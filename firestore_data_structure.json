@@ -1,0 +1,209 @@
+{
+  "description": "Example Firestore data structure for JanMat Election App",
+  "collections": {
+    "users": {
+      "description": "User profiles and authentication data",
+      "example_document": {
+        "id": "user123",
+        "phoneNumber": "+919876543210",
+        "name": "John Doe",
+        "city": "Mumbai",
+        "ward": "Ward 1 - Andheri",
+        "xpPoints": 150,
+        "lastMessageTime": "2025-01-15T10:30:00Z",
+        "createdAt": "2025-01-01T00:00:00Z",
+        "updatedAt": "2025-01-15T10:30:00Z"
+      }
+    },
+    "wards": {
+      "description": "Ward information organized by city",
+      "example_documents": [
+        {
+          "id": "mumbai_ward_1",
+          "name": "Andheri Ward",
+          "city": "Mumbai",
+          "wardNumber": 1,
+          "description": "Andheri residential and commercial area",
+          "createdAt": "2025-01-01T00:00:00Z",
+          "updatedAt": "2025-01-01T00:00:00Z"
+        },
+        {
+          "id": "mumbai_ward_2",
+          "name": "Bandra Ward",
+          "city": "Mumbai",
+          "wardNumber": 2,
+          "description": "Bandra upscale residential area",
+          "createdAt": "2025-01-01T00:00:00Z",
+          "updatedAt": "2025-01-01T00:00:00Z"
+        }
+      ]
+    },
+    "candidates": {
+      "description": "Candidate information with free and paid content",
+      "example_documents": [
+        {
+          "id": "candidate_001",
+          "name": "Rajesh Kumar",
+          "party": "Bharatiya Janata Party (BJP)",
+          "wardId": "mumbai_ward_1",
+          "wardName": "Andheri Ward",
+          "photoUrl": "https://example.com/photos/rajesh_kumar.jpg",
+          "manifesto": "Building a stronger Andheri with better infrastructure, education, and healthcare facilities for all residents.",
+          "promises": [
+            "Improve road infrastructure within 6 months",
+            "Establish 5 new schools in the ward",
+            "Provide free healthcare camps monthly",
+            "Clean water supply to all households"
+          ],
+          "posters": [
+            "https://example.com/posters/rajesh_poster1.jpg",
+            "https://example.com/posters/rajesh_poster2.jpg"
+          ],
+          "videos": [
+            "https://example.com/videos/rajesh_manifesto.mp4",
+            "https://example.com/videos/rajesh_interview.mp4"
+          ],
+          "contactInfo": "Phone: +91-9876543210 | Email: rajesh@janmat.in",
+          "socialLinks": {
+            "Facebook": "https://facebook.com/rajeshkumar",
+            "Twitter": "https://twitter.com/rajeshkumar",
+            "Instagram": "https://instagram.com/rajeshkumar_official"
+          },
+          "isSponsored": true,
+          "createdAt": "2025-01-01T00:00:00Z",
+          "updatedAt": "2025-01-15T08:00:00Z"
+        },
+        {
+          "id": "candidate_002",
+          "name": "Priya Sharma",
+          "party": "Indian National Congress (INC)",
+          "wardId": "mumbai_ward_1",
+          "wardName": "Andheri Ward",
+          "photoUrl": "https://example.com/photos/priya_sharma.jpg",
+          "manifesto": "Empowering women and youth through education and economic opportunities in Andheri.",
+          "promises": [
+            "Women's safety initiatives",
+            "Youth employment programs",
+            "Digital literacy for senior citizens",
+            "Green initiatives for cleaner environment"
+          ],
+          "isSponsored": false,
+          "createdAt": "2025-01-01T00:00:00Z",
+          "updatedAt": "2025-01-10T12:00:00Z"
+        }
+      ]
+    },
+    "conversations": {
+      "description": "Chat conversations between users and candidates",
+      "example_document": {
+        "id": "user123_candidate001",
+        "userId": "user123",
+        "candidateId": "candidate_001",
+        "lastMessageTime": "2025-01-15T10:30:00Z",
+        "unreadCount": 0,
+        "subcollections": {
+          "messages": {
+            "description": "Individual chat messages",
+            "example_documents": [
+              {
+                "id": "msg_001",
+                "senderId": "user123",
+                "receiverId": "candidate_001",
+                "message": "Hello, I would like to know about your plans for education.",
+                "timestamp": "2025-01-15T10:25:00Z",
+                "isRead": true,
+                "type": "text"
+              },
+              {
+                "id": "msg_002",
+                "senderId": "candidate_001",
+                "receiverId": "user123",
+                "message": "Hi! I'm planning to establish 5 new schools in the ward within the first year.",
+                "timestamp": "2025-01-15T10:30:00Z",
+                "isRead": false,
+                "type": "text"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "rewards": {
+      "description": "XP rewards earned by users",
+      "example_documents": [
+        {
+          "id": "reward_001",
+          "userId": "user123",
+          "xpEarned": 10,
+          "type": "videoAd",
+          "description": "Earned XP for watching rewarded video",
+          "timestamp": "2025-01-15T09:00:00Z"
+        },
+        {
+          "id": "reward_002",
+          "userId": "user123",
+          "xpEarned": 5,
+          "type": "messageSent",
+          "description": "XP spent to unlock extra message",
+          "timestamp": "2025-01-15T10:35:00Z"
+        }
+      ]
+    },
+    "xp_transactions": {
+      "description": "Detailed XP transaction history",
+      "example_documents": [
+        {
+          "id": "xp_txn_001",
+          "userId": "user123",
+          "amount": 10,
+          "type": "earned",
+          "description": "Earned XP for watching rewarded video",
+          "timestamp": "2025-01-15T09:00:00Z"
+        },
+        {
+          "id": "xp_txn_002",
+          "userId": "user123",
+          "amount": -5,
+          "type": "spent",
+          "description": "Spent XP to unlock extra message",
+          "timestamp": "2025-01-15T10:35:00Z"
+        }
+      ]
+    }
+  },
+  "indexes": [
+    {
+      "collection": "wards",
+      "fields": ["city"]
+    },
+    {
+      "collection": "wards",
+      "fields": ["city", "wardNumber"]
+    },
+    {
+      "collection": "candidates",
+      "fields": ["wardId"]
+    },
+    {
+      "collection": "candidates",
+      "fields": ["wardId", "isSponsored"]
+    },
+    {
+      "collection": "conversations",
+      "fields": ["userId", "lastMessageTime"]
+    },
+    {
+      "collection": "rewards",
+      "fields": ["userId", "timestamp"]
+    },
+    {
+      "collection": "xp_transactions",
+      "fields": ["userId", "timestamp"]
+    }
+  ],
+  "security_rules": {
+    "description": "Basic Firestore security rules",
+    "file": "firestore.rules",
+    "note": "Upload the firestore.rules file to your Firebase project"
+  }
+}

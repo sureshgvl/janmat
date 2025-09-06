@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Wards are publicly readable
+    match /wards/{wardId} {
+      allow read: if true;
+    }
+
+    // Candidates are publicly readable
+    match /candidates/{candidateId} {
+      allow read: if true;
+    }
+
+    // Users can read/write their own conversations
+    match /conversations/{conversationId} {
+      allow read, write: if request.auth != null &&
+        (conversationId.split('_')[0] == request.auth.uid ||
+         conversationId.split('_')[1] == request.auth.uid);
+    }
+
+    // Users can read/write their own rewards
+    match /rewards/{rewardId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Users can read/write their own XP transactions
+    match /xp_transactions/{transactionId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+  }
+}
