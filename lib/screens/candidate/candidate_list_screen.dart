@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../controllers/candidate_controller.dart';
 import '../../models/city_model.dart';
 import '../../models/ward_model.dart';
-import '../../widgets/searchable_dropdown.dart';
+import '../../widgets/modal_selector.dart';
 
 class CandidateListScreen extends StatefulWidget {
   final String? initialCityId;
@@ -77,7 +77,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // City Dropdown
-                    SearchableDropdown<City>(
+                    ModalSelector<City>(
+                      title: 'Select City',
                       label: 'City',
                       hint: 'Select City',
                       items: controller.cities.map((city) {
@@ -105,7 +106,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                     const SizedBox(height: 16),
 
                     // Ward Dropdown
-                    SearchableDropdown<Ward>(
+                    ModalSelector<Ward>(
+                      title: 'Select Ward',
                       label: 'Ward',
                       hint: 'Select Ward',
                       items: controller.wards.map((ward) {

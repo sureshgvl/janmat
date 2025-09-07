@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class SearchableDropdown<T> extends StatefulWidget {
   final String label;
@@ -8,6 +9,7 @@ class SearchableDropdown<T> extends StatefulWidget {
   final Function(T?) onChanged;
   final bool enabled;
   final String? Function(T?)? validator;
+  final VoidCallback? onTap;
 
   const SearchableDropdown({
     super.key,
@@ -18,6 +20,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     required this.onChanged,
     this.enabled = true,
     this.validator,
+    this.onTap,
   });
 
   @override
@@ -31,12 +34,23 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   final LayerLink _layerLink = LayerLink();
   bool _isDropdownOpen = false;
   List<DropdownMenuItem<T>> _filteredItems = [];
+  bool _isDisposed = false;
+  late final _KeyboardVisibilityObserver _keyboardObserver;
+  bool _shouldFocusSearchField = false;
 
   @override
   void initState() {
     super.initState();
     _filteredItems = widget.items;
     _searchController.addListener(_filterItems);
+
+    // Initialize keyboard observer
+    _keyboardObserver = _KeyboardVisibilityObserver(
+      onKeyboardVisibilityChanged: _handleKeyboardVisibility,
+    );
+
+    // Listen for keyboard visibility changes
+    WidgetsBinding.instance.addObserver(_keyboardObserver);
   }
 
   @override
@@ -49,9 +63,11 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _searchController.dispose();
     _searchFocus.dispose();
     _removeOverlay();
+    WidgetsBinding.instance.removeObserver(_keyboardObserver);
     super.dispose();
   }
 
@@ -71,7 +87,14 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   void _updateOverlay() {
     if (_overlayEntry != null) {
-      _overlayEntry!.markNeedsBuild();
+      // Remove current overlay
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+
+      // Recreate overlay with new position
+      if (_isDropdownOpen) {
+        _showOverlay();
+      }
     }
   }
 
@@ -79,7 +102,20 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     if (_isDropdownOpen) {
       _removeOverlay();
     } else {
+      // Call onTap callback before showing overlay
+      widget.onTap?.call();
       _showOverlay();
+    }
+  }
+
+  void _handleKeyboardVisibility() {
+    if (_isDropdownOpen) {
+      // Update overlay position when keyboard visibility changes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_isDropdownOpen && !_isDisposed) {
+          _updateOverlay();
+        }
+      });
     }
   }
 
@@ -90,15 +126,32 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     final size = renderBox.size;
     final offset = renderBox.localToGlobal(Offset.zero);
 
+    // Get screen size and keyboard insets
+    final screenSize = MediaQuery.of(context).size;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    // Calculate available space
+    final availableHeight = screenSize.height - keyboardHeight - offset.dy - size.height - 50; // 50 for padding
+    final maxHeight = availableHeight > 0 ? availableHeight.clamp(100, 350).toDouble() : 200.0;
+
+    // Determine if dropdown should open upwards or downwards
+    final spaceBelow = screenSize.height - offset.dy - size.height - keyboardHeight;
+    final spaceAbove = offset.dy;
+    final shouldOpenUpwards = spaceBelow < 100 && spaceAbove > spaceBelow;
+
+    final topPosition = shouldOpenUpwards
+        ? offset.dy - maxHeight
+        : offset.dy + size.height;
+
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         left: offset.dx,
-        top: offset.dy + size.height,
+        top: topPosition,
         width: size.width,
         child: Material(
           elevation: 4,
           child: Container(
-            constraints: const BoxConstraints(maxHeight: 350),
+            constraints: BoxConstraints(maxHeight: maxHeight),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: Colors.grey.shade300),
@@ -125,7 +178,8 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                       ),
                     ),
                     onTap: () {
-                      // Keep focus when tapping search field
+                      // Ensure focus when user taps on search field
+                      _searchFocus.requestFocus();
                     },
                   ),
                 ),
@@ -185,18 +239,20 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     );
 
     Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isDropdownOpen = true);
+    if (!_isDisposed) {
+      setState(() => _isDropdownOpen = true);
+    }
 
-    // Focus search field after overlay is shown
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchFocus.requestFocus();
-    });
+    // Don't auto-focus search field - let user tap it manually
+    // This prevents the keyboard from appearing immediately
   }
 
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() => _isDropdownOpen = false);
+    if (!_isDisposed) {
+      setState(() => _isDropdownOpen = false);
+    }
     _searchController.clear();
     _filteredItems = widget.items;
   }
@@ -252,5 +308,17 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
         ),
       ),
     );
+  }
+}
+
+class _KeyboardVisibilityObserver extends WidgetsBindingObserver {
+  final VoidCallback onKeyboardVisibilityChanged;
+
+  _KeyboardVisibilityObserver({required this.onKeyboardVisibilityChanged});
+
+  @override
+  void didChangeMetrics() {
+    // Called when keyboard visibility changes
+    onKeyboardVisibilityChanged();
   }
 }

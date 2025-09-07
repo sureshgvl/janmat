@@ -108,6 +108,14 @@ class HomeScreen extends StatelessWidget {
                     Get.to(() => const CandidateListScreen()); // Navigate to candidate list screen
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.chat),
+                  title: const Text('Chat Rooms'),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Get.toNamed('/chat'); // Navigate to chat list screen
+                  },
+                ),
                 // Add more items if needed
               ],
             ),

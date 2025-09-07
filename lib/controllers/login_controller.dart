@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../repositories/auth_repository.dart';
 
 class LoginController extends GetxController {
@@ -62,8 +64,8 @@ class LoginController extends GetxController {
       await _authRepository.createOrUpdateUser(userCredential.user!);
 
       Get.snackbar('Success', 'Login successful');
-      // Navigate to home or next screen
-      Get.offAllNamed('/home'); // Assuming home route is set up
+      // Check profile completion and navigate accordingly
+      await _navigateBasedOnProfileCompletion(userCredential.user!);
     } catch (e) {
       Get.snackbar('Error', 'Invalid OTP: ${e.toString()}');
     } finally {
@@ -81,8 +83,8 @@ class LoginController extends GetxController {
       await _authRepository.createOrUpdateUser(userCredential.user!);
 
       Get.snackbar('Success', 'Google sign-in successful');
-      // Navigate to home or next screen
-      Get.offAllNamed('/home');
+      // Check profile completion and navigate accordingly
+      await _navigateBasedOnProfileCompletion(userCredential.user!);
     } catch (e) {
       Get.snackbar('Error', 'Google sign-in failed: ${e.toString()}');
     } finally {
@@ -93,5 +95,35 @@ class LoginController extends GetxController {
   void goBackToPhoneInput() {
     isOTPScreen.value = false;
     otpController.clear();
+  }
+
+  Future<void> _navigateBasedOnProfileCompletion(User user) async {
+    try {
+      // Check if user profile is complete
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final profileCompleted = userData?['profileCompleted'] ?? false;
+
+        if (!profileCompleted) {
+          Get.offAllNamed('/profile-completion');
+          return;
+        }
+      } else {
+        // User document doesn't exist, need profile completion
+        Get.offAllNamed('/profile-completion');
+        return;
+      }
+
+      // Profile is complete, go to home
+      Get.offAllNamed('/home');
+    } catch (e) {
+      // If there's an error checking profile, default to login
+      Get.offAllNamed('/login');
+    }
   }
 }

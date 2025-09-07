@@ -34,5 +34,93 @@ service cloud.firestore {
       allow read, write: if request.auth != null &&
         resource.data.userId == request.auth.uid;
     }
+
+    // Chat rooms - public ward groups and private conversations
+    match /chats/{roomId} {
+      // Allow read for authenticated users in public rooms or members of private rooms
+      allow read: if request.auth != null &&
+        (resource.data.type == 'public' ||
+         (resource.data.type == 'private' && request.auth.uid in resource.data.members));
+
+      // Allow create for admins and candidates
+      allow create: if request.auth != null &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'candidate']);
+
+      // Allow update for room creator or admins
+      allow update: if request.auth != null &&
+        (resource.data.createdBy == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+
+      // Allow delete for admins only
+      allow delete: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Messages in chat rooms
+    match /chats/{roomId}/messages/{messageId} {
+      // Allow read for authenticated users who can access the room
+      allow read: if request.auth != null &&
+        (get(/databases/$(database)/documents/chats/$(roomId)).data.type == 'public' ||
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(roomId)).data.members);
+
+      // Allow create for authenticated users who can access the room
+      // With quota check for voters (except premium users)
+      allow create: if request.auth != null &&
+        (get(/databases/$(database)/documents/chats/$(roomId)).data.type == 'public' ||
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(roomId)).data.members) &&
+        (_canSendMessage(request.auth.uid));
+
+      // Allow update/delete for message sender or admins
+      allow update, delete: if request.auth != null &&
+        (resource.data.senderId == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // User quotas for message sending
+    match /user_quotas/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Reported messages for moderation
+    match /reported_messages/{reportId} {
+      allow read: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth != null;
+    }
+
+    // Polls in chat rooms
+    match /chats/{roomId}/polls/{pollId} {
+      allow read: if request.auth != null &&
+        (get(/databases/$(database)/documents/chats/$(roomId)).data.type == 'public' ||
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(roomId)).data.members);
+
+      allow create: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'candidate'];
+
+      allow update: if request.auth != null &&
+        (resource.data.createdBy == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // Poll votes
+    match /chats/{roomId}/polls/{pollId}/votes/{voteId} {
+      allow read: if request.auth != null &&
+        (get(/databases/$(database)/documents/chats/$(roomId)).data.type == 'public' ||
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(roomId)).data.members);
+
+      allow create, update: if request.auth != null &&
+        request.auth.uid == voteId &&
+        !exists(/databases/$(database)/documents/chats/$(roomId)/polls/$(pollId)/votes/$(request.auth.uid));
+    }
+  }
+
+  // Helper function to check if user can send message (quota/premium check)
+  function _canSendMessage(userId) {
+    let user = get(/databases/$(database)/documents/users/$(userId)).data;
+    let quota = get(/databases/$(database)/documents/user_quotas/$(userId)).data;
+
+    // Premium users and candidates have unlimited messages
+    return user.role in ['candidate', 'admin'] || user.premium == true ||
+           (quota != null && quota.messagesSent < quota.dailyLimit + (quota.extraQuota or 0));
   }
 }

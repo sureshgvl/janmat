@@ -1,0 +1,61 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Chat media files (images, audio, video)
+    match /chat_media/{roomId}/{allPaths=**} {
+      // Allow read for authenticated users who can access the chat room
+      allow read: if request.auth != null &&
+        (_canAccessRoom(request.auth.uid, roomId));
+
+      // Allow write for authenticated users who can access the room
+      allow write: if request.auth != null &&
+        _canAccessRoom(request.auth.uid, roomId) &&
+        _isValidFileType(request.resource.contentType);
+
+      // Allow delete for file owner or admins
+      allow delete: if request.auth != null &&
+        (request.auth.uid == _getFileOwner(resource.name) ||
+         _isAdmin(request.auth.uid));
+    }
+
+    // User profile images
+    match /profile_images/{userId}/{allPaths=**} {
+      allow read: if true; // Public read for profile images
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Candidate media files
+    match /candidate_media/{candidateId}/{allPaths=**} {
+      allow read: if true; // Public read for candidate media
+      allow write: if request.auth != null &&
+        (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
+      allow delete: if request.auth != null &&
+        (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
+    }
+  }
+
+  // Helper functions
+  function _canAccessRoom(userId, roomId) {
+    return firestore.exists(/databases/(default)/documents/chats/$(roomId)) &&
+           (firestore.get(/databases/(default)/documents/chats/$(roomId)).data.type == 'public' ||
+            userId in firestore.get(/databases/(default)/documents/chats/$(roomId)).data.members);
+  }
+
+  function _isValidFileType(contentType) {
+    return contentType.matches('image/.*') ||
+           contentType.matches('audio/.*') ||
+           contentType.matches('video/.*') ||
+           contentType == 'application/pdf';
+  }
+
+  function _getFileOwner(fileName) {
+    // Extract user ID from file path
+    let pathParts = fileName.split('/');
+    return pathParts[1]; // Assuming format: chat_media/roomId/userId/filename
+  }
+
+  function _isAdmin(userId) {
+    return firestore.get(/databases/(default)/documents/users/$(userId)).data.role == 'admin';
+  }
+}
