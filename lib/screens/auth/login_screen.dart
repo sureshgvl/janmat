@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../l10n/app_localizations.dart';
 import '../../controllers/login_controller.dart';
 import '../../common/loading_overlay.dart';
 
@@ -23,8 +24,8 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Welcome to JanMat',
+                    Text(
+                      AppLocalizations.of(context)!.welcomeMessage,
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -33,10 +34,10 @@ class LoginScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 40),
                     Obx(() => controller.isOTPScreen.value
-                        ? _buildOTPScreen(controller)
-                        : _buildPhoneInputScreen(controller)),
+                        ? _buildOTPScreen(context, controller)
+                        : _buildPhoneInputScreen(context, controller)),
                     const SizedBox(height: 20),
-                    _buildGoogleSignInButton(controller),
+                    _buildGoogleSignInButton(context, controller),
                   ],
                 ),
               ),
@@ -47,14 +48,14 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPhoneInputScreen(LoginController controller) {
+  Widget _buildPhoneInputScreen(BuildContext context, LoginController controller) {
     return Column(
       children: [
         TextField(
           controller: controller.phoneController,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number',
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.phoneNumber,
             prefixText: '+91 ',
             border: OutlineInputBorder(),
           ),
@@ -67,7 +68,7 @@ class LoginScreen extends StatelessWidget {
             minimumSize: const Size(double.infinity, 50),
           ),
           child: controller.isLoading.value
-              ? const Row(
+              ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -79,28 +80,28 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 10),
-                    Text('Sending...'),
+                    Text(AppLocalizations.of(context)!.sending),
                   ],
                 )
-              : const Text('Send OTP'),
+              : Text(AppLocalizations.of(context)!.sendOTP),
         )),
       ],
     );
   }
 
-  Widget _buildOTPScreen(LoginController controller) {
+  Widget _buildOTPScreen(BuildContext context, LoginController controller) {
     return Column(
       children: [
         Text(
-          'Enter OTP sent to +91${controller.phoneController.text}',
+          AppLocalizations.of(context)!.enterOTP(controller.phoneController.text),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
         TextField(
           controller: controller.otpController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'OTP',
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.otp,
             border: OutlineInputBorder(),
           ),
           maxLength: 6,
@@ -115,7 +116,7 @@ class LoginScreen extends StatelessWidget {
                   minimumSize: const Size(double.infinity, 50),
                 ),
                 child: controller.isLoading.value
-                    ? const Row(
+                    ? Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SizedBox(
@@ -127,10 +128,10 @@ class LoginScreen extends StatelessWidget {
                             ),
                           ),
                           SizedBox(width: 10),
-                          Text('Verifying...'),
+                          Text(AppLocalizations.of(context)!.verifying),
                         ],
                       )
-                    : const Text('Verify OTP'),
+                    : Text(AppLocalizations.of(context)!.verifyOTP),
               )),
             ),
           ],
@@ -138,19 +139,19 @@ class LoginScreen extends StatelessWidget {
         const SizedBox(height: 10),
         TextButton(
           onPressed: controller.goBackToPhoneInput,
-          child: const Text('Change Phone Number'),
+          child: Text(AppLocalizations.of(context)!.changePhoneNumber),
         ),
       ],
     );
   }
 
-  Widget _buildGoogleSignInButton(LoginController controller) {
+  Widget _buildGoogleSignInButton(BuildContext context, LoginController controller) {
     return LoadingOverlay(
       isLoading: controller.isLoading.value,
       child: OutlinedButton.icon(
         onPressed: controller.isLoading.value ? null : controller.signInWithGoogle,
         icon: const Icon(Icons.login),
-        label: const Text('Sign in with Google'),
+        label: Text(AppLocalizations.of(context)!.signInWithGoogle),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 50),
         ),

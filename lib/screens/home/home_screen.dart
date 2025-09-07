@@ -6,6 +6,7 @@ import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
 import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
+import '../settings/settings_screen.dart';
 import '../../models/user_model.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -114,6 +115,14 @@ class HomeScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     Get.toNamed('/chat'); // Navigate to chat list screen
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings),
+                  title: const Text('Settings'),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Get.toNamed('/settings'); // Navigate to settings screen
                   },
                 ),
                 // Add more items if needed
