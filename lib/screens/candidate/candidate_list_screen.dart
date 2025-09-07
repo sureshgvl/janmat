@@ -303,7 +303,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: candidate.sponsored ? Colors.amber : Colors.blue,
+                    color: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
                     width: 3,
                   ),
                 ),
@@ -314,7 +314,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return CircleAvatar(
-                              backgroundColor: candidate.sponsored ? Colors.amber : Colors.blue,
+                              backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
                               child: Text(
                                 candidate.name[0].toUpperCase(),
                                 style: const TextStyle(
@@ -327,7 +327,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           },
                         )
                       : CircleAvatar(
-                          backgroundColor: candidate.sponsored ? Colors.amber : Colors.blue,
+                          backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
                           child: Text(
                             candidate.name[0].toUpperCase(),
                             style: const TextStyle(
@@ -410,16 +410,16 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                         margin: const EdgeInsets.only(top: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade100,
+                          color: Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.amber.shade300),
+                          border: Border.all(color: Colors.grey.shade400),
                         ),
                         child: const Text(
                           'SPONSORED',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF92400e),
+                            color: Color(0xFF374151),
                           ),
                         ),
                       ),

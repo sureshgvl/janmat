@@ -16,6 +16,35 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Cities collection (for nested candidate structure)
+    match /cities/{cityId} {
+      allow read: if true;
+
+      // Wards within cities
+      match /wards/{wardId} {
+        allow read: if true;
+
+        // Candidates within wards
+        match /candidates/{candidateId} {
+          allow read: if true;
+
+          // Followers subcollection
+          match /followers/{userId} {
+            // Users can read/write their own follow relationships
+            allow read, write: if request.auth != null && request.auth.uid == userId;
+            // Allow read for everyone (to display follower counts)
+            allow read: if true;
+          }
+        }
+      }
+    }
+
+    // Users following subcollection
+    match /users/{userId}/following/{candidateId} {
+      // Users can read/write their own following relationships
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Users can read/write their own conversations
     match /conversations/{conversationId} {
       allow read, write: if request.auth != null &&

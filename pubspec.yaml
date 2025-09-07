@@ -67,6 +67,7 @@ dependencies:
   emoji_picker_flutter: ^2.0.0
   flutter_linkify: ^6.0.0
   timeago: ^3.6.1
+  youtube_player_flutter: ^9.0.1
 
 dev_dependencies:
   flutter_test:

@@ -6,6 +6,7 @@ import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
 import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
+import '../candidate/my_area_candidates_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../models/user_model.dart';
 
@@ -90,6 +91,15 @@ class HomeScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     Get.toNamed('/profile'); // Navigate to profile screen
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.location_on),
+                  title: const Text('My Area Candidates'),
+                  subtitle: const Text('Candidates from your ward'),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Get.to(() => const MyAreaCandidatesScreen());
                   },
                 ),
                 if (userModel?.role == 'candidate')

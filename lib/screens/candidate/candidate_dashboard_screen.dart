@@ -9,6 +9,7 @@ import '../../widgets/candidate/contact_section.dart';
 import '../../widgets/candidate/media_section.dart';
 import '../../widgets/candidate/events_section.dart';
 import '../../widgets/candidate/highlight_section.dart';
+import '../../widgets/candidate/followers_analytics_section.dart';
 
 class CandidateDashboardScreen extends StatefulWidget {
   const CandidateDashboardScreen({super.key});
@@ -26,7 +27,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -56,6 +57,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
             Tab(text: 'Media'),
             Tab(text: 'Events'),
             Tab(text: 'Highlight'),
+            Tab(text: 'Analytics'),
           ],
         ),
         actions: [
@@ -159,6 +161,9 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
               editedData: controller.editedData.value,
               isEditing: isEditing,
               onHighlightChange: (highlight) => controller.updateExtraInfo('highlight', highlight),
+            ),
+            FollowersAnalyticsSection(
+              candidateData: controller.candidateData.value!,
             ),
           ],
         );

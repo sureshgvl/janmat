@@ -10,9 +10,22 @@
         "city": "Mumbai",
         "ward": "Ward 1 - Andheri",
         "xpPoints": 150,
+        "followingCount": 25,
         "lastMessageTime": "2025-01-15T10:30:00Z",
         "createdAt": "2025-01-01T00:00:00Z",
-        "updatedAt": "2025-01-15T10:30:00Z"
+        "updatedAt": "2025-01-15T10:30:00Z",
+        "subcollections": {
+          "following": {
+            "description": "Candidates that this user follows",
+            "example_documents": [
+              {
+                "id": "candidate_001",
+                "followedAt": "2025-01-10T14:30:00Z",
+                "notificationsEnabled": true
+              }
+            ]
+          }
+        }
       }
     },
     "wards": {
@@ -70,8 +83,22 @@
             "Instagram": "https://instagram.com/rajeshkumar_official"
           },
           "isSponsored": true,
+          "followersCount": 1250,
+          "followingCount": 0,
           "createdAt": "2025-01-01T00:00:00Z",
-          "updatedAt": "2025-01-15T08:00:00Z"
+          "updatedAt": "2025-01-15T08:00:00Z",
+          "subcollections": {
+            "followers": {
+              "description": "Users who follow this candidate",
+              "example_documents": [
+                {
+                  "id": "user123",
+                  "followedAt": "2025-01-10T14:30:00Z",
+                  "notificationsEnabled": true
+                }
+              ]
+            }
+          }
         },
         {
           "id": "candidate_002",

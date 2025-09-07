@@ -10,6 +10,7 @@ class UserModel {
   final bool premium;
   final DateTime createdAt;
   final String? photoURL;
+  final int followingCount;
 
   UserModel({
     required this.uid,
@@ -23,6 +24,7 @@ class UserModel {
     required this.premium,
     required this.createdAt,
     this.photoURL,
+    this.followingCount = 0,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class UserModel {
       premium: json['premium'] ?? false,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       photoURL: json['photoURL'],
+      followingCount: json['followingCount']?.toInt() ?? 0,
     );
   }
 
@@ -54,6 +57,7 @@ class UserModel {
       'premium': premium,
       'createdAt': createdAt.toIso8601String(),
       'photoURL': photoURL,
+      'followingCount': followingCount,
     };
   }
 
@@ -69,6 +73,7 @@ class UserModel {
     bool? premium,
     DateTime? createdAt,
     String? photoURL,
+    int? followingCount,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -82,6 +87,7 @@ class UserModel {
       premium: premium ?? this.premium,
       createdAt: createdAt ?? this.createdAt,
       photoURL: photoURL ?? this.photoURL,
+      followingCount: followingCount ?? this.followingCount,
     );
   }
 }

@@ -28,6 +28,18 @@ class Contact {
       'socialLinks': socialLinks,
     };
   }
+
+  Contact copyWith({
+    String? phone,
+    String? email,
+    Map<String, String>? socialLinks,
+  }) {
+    return Contact(
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      socialLinks: socialLinks ?? this.socialLinks,
+    );
+  }
 }
 
 class ExtraInfo {
@@ -80,6 +92,28 @@ class ExtraInfo {
       'events': events,
     };
   }
+
+  ExtraInfo copyWith({
+    String? bio,
+    List<String>? achievements,
+    String? manifesto,
+    String? manifestoPdf,
+    Contact? contact,
+    Map<String, dynamic>? media,
+    bool? highlight,
+    List<Map<String, dynamic>>? events,
+  }) {
+    return ExtraInfo(
+      bio: bio ?? this.bio,
+      achievements: achievements ?? this.achievements,
+      manifesto: manifesto ?? this.manifesto,
+      manifestoPdf: manifestoPdf ?? this.manifestoPdf,
+      contact: contact ?? this.contact,
+      media: media ?? this.media,
+      highlight: highlight ?? this.highlight,
+      events: events ?? this.events,
+    );
+  }
 }
 
 class Candidate {
@@ -95,6 +129,8 @@ class Candidate {
   final bool sponsored;
   final DateTime createdAt;
   final ExtraInfo? extraInfo;
+  final int followersCount;
+  final int followingCount;
 
   Candidate({
     required this.candidateId,
@@ -109,6 +145,8 @@ class Candidate {
     required this.sponsored,
     required this.createdAt,
     this.extraInfo,
+    this.followersCount = 0,
+    this.followingCount = 0,
   });
 
   factory Candidate.fromJson(Map<String, dynamic> json) {
@@ -135,6 +173,8 @@ class Candidate {
       sponsored: json['sponsored'] ?? false,
       createdAt: createdAt,
       extraInfo: json['extra_info'] != null ? ExtraInfo.fromJson(json['extra_info']) : null,
+      followersCount: json['followersCount']?.toInt() ?? 0,
+      followingCount: json['followingCount']?.toInt() ?? 0,
     );
   }
 
@@ -152,6 +192,8 @@ class Candidate {
       'sponsored': sponsored,
       'createdAt': createdAt.toIso8601String(),
       'extra_info': extraInfo?.toJson(),
+      'followersCount': followersCount,
+      'followingCount': followingCount,
     };
   }
 
@@ -168,6 +210,8 @@ class Candidate {
     bool? sponsored,
     DateTime? createdAt,
     ExtraInfo? extraInfo,
+    int? followersCount,
+    int? followingCount,
   }) {
     return Candidate(
       candidateId: candidateId ?? this.candidateId,
@@ -182,6 +226,8 @@ class Candidate {
       sponsored: sponsored ?? this.sponsored,
       createdAt: createdAt ?? this.createdAt,
       extraInfo: extraInfo ?? this.extraInfo,
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
     );
   }
 }
