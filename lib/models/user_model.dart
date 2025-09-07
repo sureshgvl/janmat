@@ -9,6 +9,7 @@ class UserModel {
   final int xpPoints;
   final bool premium;
   final DateTime createdAt;
+  final String? photoURL;
 
   UserModel({
     required this.uid,
@@ -21,6 +22,7 @@ class UserModel {
     required this.xpPoints,
     required this.premium,
     required this.createdAt,
+    this.photoURL,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class UserModel {
       xpPoints: json['xpPoints'] ?? 0,
       premium: json['premium'] ?? false,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      photoURL: json['photoURL'],
     );
   }
 
@@ -50,6 +53,7 @@ class UserModel {
       'xpPoints': xpPoints,
       'premium': premium,
       'createdAt': createdAt.toIso8601String(),
+      'photoURL': photoURL,
     };
   }
 
@@ -64,6 +68,7 @@ class UserModel {
     int? xpPoints,
     bool? premium,
     DateTime? createdAt,
+    String? photoURL,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -76,6 +81,7 @@ class UserModel {
       xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
       createdAt: createdAt ?? this.createdAt,
+      photoURL: photoURL ?? this.photoURL,
     );
   }
 }

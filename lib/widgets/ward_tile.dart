@@ -17,7 +17,7 @@ class WardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(ward.name),
-      subtitle: Text(ward.city),
+      subtitle: Text('${ward.cityId} - ${ward.areas.join(", ")}'),
       trailing: isSelected ? const Icon(Icons.check) : null,
       onTap: onTap,
       shape: RoundedRectangleBorder(

@@ -77,6 +77,7 @@ class LoginController extends GetxController {
     isLoading.value = true;
     try {
       final userCredential = await _authRepository.signInWithGoogle();
+      print('Google Sign-In UserCredential: ${userCredential.user}');
       await _authRepository.createOrUpdateUser(userCredential.user!);
 
       Get.snackbar('Success', 'Google sign-in successful');

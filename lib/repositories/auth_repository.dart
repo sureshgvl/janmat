@@ -38,13 +38,31 @@ class AuthRepository {
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
     if (googleUser == null) throw 'Google sign-in cancelled';
 
+    // Log Google response
+    print('Google Sign-In Response:');
+    print('Display Name: ${googleUser.displayName}');
+    print('Email: ${googleUser.email}');
+    print('Photo URL: ${googleUser.photoUrl}');
+    print('ID: ${googleUser.id}');
+
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
     final OAuthCredential credential = GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
 
-    return await _firebaseAuth.signInWithCredential(credential);
+    final userCredential = await _firebaseAuth.signInWithCredential(credential);
+
+    // Log Firebase user details
+    final user = userCredential.user;
+    print('Firebase User:');
+    print('UID: ${user?.uid}');
+    print('Display Name: ${user?.displayName}');
+    print('Email: ${user?.email}');
+    print('Phone Number: ${user?.phoneNumber}');
+    print('Photo URL: ${user?.photoURL}');
+
+    return userCredential;
   }
 
   // Create or update user in Firestore
@@ -65,6 +83,7 @@ class AuthRepository {
         xpPoints: 0,
         premium: false,
         createdAt: DateTime.now(),
+        photoURL: firebaseUser.photoURL,
       );
       await userDoc.set(userModel.toJson());
     } else {
@@ -74,6 +93,7 @@ class AuthRepository {
         ...existingData,
         'phone': firebaseUser.phoneNumber ?? existingData['phone'],
         'email': firebaseUser.email ?? existingData['email'],
+        'photoURL': firebaseUser.photoURL ?? existingData['photoURL'],
       };
       await userDoc.update(updatedData);
     }
