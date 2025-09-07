@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/language_selection_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/profile_completion_screen.dart';
@@ -14,6 +15,7 @@ import 'screens/chat/chat_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/main_tab_navigation.dart';
 import 'core/app_bindings.dart';
+import 'services/language_service.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
@@ -29,8 +31,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _getInitialRoute(),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getInitialAppData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const MaterialApp(
@@ -40,18 +42,22 @@ class MyApp extends StatelessWidget {
           );
         }
 
-        final initialRoute = snapshot.data ?? '/login';
+        final appData = snapshot.data ?? {'route': '/login', 'locale': null};
+        final initialRoute = appData['route'] as String;
+        final initialLocale = appData['locale'] as Locale?;
 
         return GetMaterialApp(
           title: 'JanMat',
           theme: ThemeData(
             primarySwatch: Colors.blue,
           ),
+          locale: initialLocale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           initialBinding: AppBindings(),
           initialRoute: initialRoute,
           getPages: [
+            GetPage(name: '/language-selection', page: () => const LanguageSelectionScreen()),
             GetPage(name: '/login', page: () => const LoginScreen()),
             GetPage(name: '/home', page: () => const MainTabNavigation()),
             GetPage(name: '/profile', page: () => const ProfileScreen()),
@@ -66,11 +72,31 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  Future<String> _getInitialRoute() async {
+  Future<Map<String, dynamic>> _getInitialAppData() async {
+    final languageService = LanguageService();
+
+    // Check if it's first time user
+    final isFirstTime = await languageService.isFirstTimeUser();
+    if (isFirstTime) {
+      // Set default language to English for first-time users
+      await languageService.setDefaultLanguage('en');
+      return {
+        'route': '/language-selection',
+        'locale': const Locale('en'),
+      };
+    }
+
+    // Get stored language preference
+    final storedLocale = await languageService.getStoredLocale();
+    final locale = storedLocale ?? const Locale('en');
+
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     if (currentUser == null) {
-      return '/login';
+      return {
+        'route': '/login',
+        'locale': locale,
+      };
     }
 
     try {
@@ -85,17 +111,29 @@ class MyApp extends StatelessWidget {
         final profileCompleted = userData?['profileCompleted'] ?? false;
 
         if (!profileCompleted) {
-          return '/profile-completion';
+          return {
+            'route': '/profile-completion',
+            'locale': locale,
+          };
         }
       } else {
         // User document doesn't exist, need profile completion
-        return '/profile-completion';
+        return {
+          'route': '/profile-completion',
+          'locale': locale,
+        };
       }
 
-      return '/home';
+      return {
+        'route': '/home',
+        'locale': locale,
+      };
     } catch (e) {
       // If there's an error checking profile, default to login
-      return '/login';
+      return {
+        'route': '/login',
+        'locale': locale,
+      };
     }
   }
 }
