@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/candidate/candidate_profile_screen.dart';
 import 'core/app_bindings.dart';
 
 void main() async {
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/login', page: () => const LoginScreen()),
         GetPage(name: '/home', page: () => const HomeScreen()),
         GetPage(name: '/profile', page: () => const ProfileScreen()),
+        GetPage(name: '/candidate-profile', page: () => const CandidateProfileScreen()),
       ],
       debugShowCheckedModeBanner: false,
     );

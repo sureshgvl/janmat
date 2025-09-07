@@ -17,9 +17,9 @@ class Ward {
     return Ward(
       wardId: json['wardId'] ?? '',
       cityId: json['cityId'] ?? '',
-      name: json['name'] ?? '',
+      name: json['wardName'] ?? json['name'] ?? '',
       areas: List<String>.from(json['areas'] ?? []),
-      seats: json['seats'] ?? 0,
+      seats: json['seats'] ?? 1, // Default to 1 seat
     );
   }
 

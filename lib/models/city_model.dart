@@ -16,8 +16,8 @@ class City {
   factory City.fromJson(Map<String, dynamic> json) {
     return City(
       cityId: json['cityId'] ?? '',
-      name: json['name'] ?? '',
-      state: json['state'] ?? '',
+      name: json['cityName'] ?? json['name'] ?? '',
+      state: json['state'] ?? 'Maharashtra', // Default state
       population: json['population'] ?? 0,
       wardIds: List<String>.from(json['wardIds'] ?? []),
     );
@@ -26,6 +26,7 @@ class City {
   Map<String, dynamic> toJson() {
     return {
       'cityId': cityId,
+      'cityName': name,
       'name': name,
       'state': state,
       'population': population,

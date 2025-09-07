@@ -15,13 +15,16 @@ class CandidateController extends GetxController {
 
   // Fetch candidates by ward
   Future<void> fetchCandidatesByWard(String cityId, String wardId) async {
+    print('🔄 [Controller] Fetching candidates for city: $cityId, ward: $wardId');
     isLoading = true;
     errorMessage = null;
     update();
 
     try {
       candidates = await _repository.getCandidatesByWard(cityId, wardId);
+      print('✅ [Controller] Found ${candidates.length} candidates in city: $cityId, ward: $wardId');
     } catch (e) {
+      print('❌ [Controller] Failed to fetch candidates: $e');
       errorMessage = e.toString();
       candidates = [];
     }
@@ -49,10 +52,13 @@ class CandidateController extends GetxController {
 
   // Fetch wards for a city
   Future<void> fetchWardsByCity(String cityId) async {
+    print('🔄 [Controller] Fetching wards for city: $cityId');
     try {
       wards = await _repository.getWardsByCity(cityId);
+      print('✅ [Controller] Loaded ${wards.length} wards for city: $cityId');
       update();
     } catch (e) {
+      print('❌ [Controller] Failed to load wards for city $cityId: $e');
       errorMessage = 'Failed to load wards: $e';
       wards = [];
       update();
@@ -61,10 +67,13 @@ class CandidateController extends GetxController {
 
   // Fetch all cities
   Future<void> fetchAllCities() async {
+    print('🔄 [Controller] Fetching all cities...');
     try {
       cities = await _repository.getAllCities();
+      print('✅ [Controller] Loaded ${cities.length} cities');
       update();
     } catch (e) {
+      print('❌ [Controller] Failed to load cities: $e');
       errorMessage = 'Failed to load cities: $e';
       cities = [];
       update();
