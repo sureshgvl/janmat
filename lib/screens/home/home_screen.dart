@@ -8,6 +8,7 @@ import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
 import '../candidate/my_area_candidates_screen.dart';
 import '../settings/settings_screen.dart';
+import '../monetization/monetization_screen.dart';
 import '../../models/user_model.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -135,18 +136,231 @@ class HomeScreen extends StatelessWidget {
                     Get.toNamed('/settings'); // Navigate to settings screen
                   },
                 ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.star, color: Colors.orange),
+                  title: const Text('Premium Features'),
+                  subtitle: const Text('Upgrade to unlock premium features'),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Get.to(() => const MonetizationScreen());
+                  },
+                ),
                 // Add more items if needed
               ],
             ),
           ),
-          body: const Center(
-            child: Text(
-              'Welcome to JanMat Home Screen!',
-              style: TextStyle(fontSize: 24),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Section
+                Text(
+                  'Welcome back, ${userModel?.name ?? currentUser?.displayName ?? 'User'}!',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  userModel?.role == 'candidate'
+                      ? 'Manage your campaign and connect with voters'
+                      : 'Stay informed about your local candidates',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Premium Features Card
+                Card(
+                  elevation: 4,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.orange[400]!, Colors.orange[600]!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Unlock Premium Features',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      userModel?.role == 'candidate'
+                                          ? 'Get premium visibility and analytics'
+                                          : 'Access exclusive content and features',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Get.to(() => const MonetizationScreen()),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.orange,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'Explore Premium',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Quick Actions
+                const Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  children: [
+                    _buildQuickActionCard(
+                      icon: Icons.people,
+                      title: 'Browse Candidates',
+                      onTap: () => Get.to(() => const CandidateListScreen()),
+                    ),
+                    _buildQuickActionCard(
+                      icon: Icons.location_on,
+                      title: 'My Area',
+                      onTap: () => Get.to(() => const MyAreaCandidatesScreen()),
+                    ),
+                    _buildQuickActionCard(
+                      icon: Icons.chat,
+                      title: 'Chat Rooms',
+                      onTap: () => Get.toNamed('/chat'),
+                    ),
+                    _buildQuickActionCard(
+                      icon: Icons.poll,
+                      title: 'Polls',
+                      onTap: () => Get.toNamed('/polls'),
+                    ),
+                  ],
+                ),
+
+                if (userModel?.role == 'candidate') ...[
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Candidate Dashboard',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 2,
+                    child: ListTile(
+                      leading: const Icon(Icons.dashboard, color: Colors.blue),
+                      title: const Text('Manage Your Campaign'),
+                      subtitle: const Text('View analytics and update your profile'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () => Get.to(() => const CandidateDashboardScreen()),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildQuickActionCard({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 32,
+                color: Colors.blue,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

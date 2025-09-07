@@ -118,6 +118,7 @@ class ExtraInfo {
 
 class Candidate {
   final String candidateId;
+  final String? userId; // User who registered this candidate
   final String name;
   final String party;
   final String? symbol;
@@ -127,13 +128,17 @@ class Candidate {
   final String? photo;
   final Contact contact;
   final bool sponsored;
+  final bool premium; // Premium candidate features
   final DateTime createdAt;
   final ExtraInfo? extraInfo;
   final int followersCount;
   final int followingCount;
+  final bool? approved; // Admin approval status
+  final String? status; // "pending_election" or "finalized"
 
   Candidate({
     required this.candidateId,
+    this.userId,
     required this.name,
     required this.party,
     this.symbol,
@@ -143,10 +148,13 @@ class Candidate {
     this.photo,
     required this.contact,
     required this.sponsored,
+    required this.premium,
     required this.createdAt,
     this.extraInfo,
     this.followersCount = 0,
     this.followingCount = 0,
+    this.approved,
+    this.status,
   });
 
   factory Candidate.fromJson(Map<String, dynamic> json) {
@@ -162,6 +170,7 @@ class Candidate {
 
     return Candidate(
       candidateId: json['candidateId'] ?? '',
+      userId: json['userId'],
       name: json['name'] ?? '',
       party: json['party'] ?? '',
       symbol: json['symbol'],
@@ -171,16 +180,20 @@ class Candidate {
       photo: json['photo'],
       contact: Contact.fromJson(json['contact'] ?? {}),
       sponsored: json['sponsored'] ?? false,
+      premium: json['premium'] ?? false,
       createdAt: createdAt,
       extraInfo: json['extra_info'] != null ? ExtraInfo.fromJson(json['extra_info']) : null,
       followersCount: json['followersCount']?.toInt() ?? 0,
       followingCount: json['followingCount']?.toInt() ?? 0,
+      approved: json['approved'],
+      status: json['status'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'candidateId': candidateId,
+      'userId': userId,
       'name': name,
       'party': party,
       'symbol': symbol,
@@ -190,15 +203,19 @@ class Candidate {
       'photo': photo,
       'contact': contact.toJson(),
       'sponsored': sponsored,
+      'premium': premium,
       'createdAt': createdAt.toIso8601String(),
       'extra_info': extraInfo?.toJson(),
       'followersCount': followersCount,
       'followingCount': followingCount,
+      'approved': approved,
+      'status': status,
     };
   }
 
   Candidate copyWith({
     String? candidateId,
+    String? userId,
     String? name,
     String? party,
     String? symbol,
@@ -208,13 +225,17 @@ class Candidate {
     String? photo,
     Contact? contact,
     bool? sponsored,
+    bool? premium,
     DateTime? createdAt,
     ExtraInfo? extraInfo,
     int? followersCount,
     int? followingCount,
+    bool? approved,
+    String? status,
   }) {
     return Candidate(
       candidateId: candidateId ?? this.candidateId,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       party: party ?? this.party,
       symbol: symbol ?? this.symbol,
@@ -224,10 +245,13 @@ class Candidate {
       photo: photo ?? this.photo,
       contact: contact ?? this.contact,
       sponsored: sponsored ?? this.sponsored,
+      premium: premium ?? this.premium,
       createdAt: createdAt ?? this.createdAt,
       extraInfo: extraInfo ?? this.extraInfo,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
+      approved: approved ?? this.approved,
+      status: status ?? this.status,
     );
   }
 }

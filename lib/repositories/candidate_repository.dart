@@ -508,6 +508,184 @@ class CandidateRepository {
     }
   }
 
+  // Provisional Candidate Management Methods
+
+  // Create a new candidate (self-registration)
+  Future<String> createCandidate(Candidate candidate) async {
+    try {
+      final candidateData = candidate.toJson();
+      candidateData['approved'] = false; // Default to not approved
+      candidateData['status'] = 'pending_election'; // Default status
+      candidateData['createdAt'] = FieldValue.serverTimestamp();
+
+      final docRef = await _firestore
+          .collection('cities')
+          .doc(candidate.cityId)
+          .collection('wards')
+          .doc(candidate.wardId)
+          .collection('candidates')
+          .add(candidateData);
+
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to create candidate: $e');
+    }
+  }
+
+  // Get candidates by approval status
+  Future<List<Candidate>> getCandidatesByApprovalStatus(String cityId, String wardId, bool approved) async {
+    try {
+      final snapshot = await _firestore
+          .collection('cities')
+          .doc(cityId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .where('approved', isEqualTo: approved)
+          .get();
+
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data()! as Map<String, dynamic>;
+            final candidateData = Map<String, dynamic>.from(data);
+            candidateData['candidateId'] = doc.id;
+            return Candidate.fromJson(candidateData);
+          })
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch candidates by approval status: $e');
+    }
+  }
+
+  // Get candidates by status (pending_election or finalized)
+  Future<List<Candidate>> getCandidatesByStatus(String cityId, String wardId, String status) async {
+    try {
+      final snapshot = await _firestore
+          .collection('cities')
+          .doc(cityId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .where('status', isEqualTo: status)
+          .get();
+
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data()! as Map<String, dynamic>;
+            final candidateData = Map<String, dynamic>.from(data);
+            candidateData['candidateId'] = doc.id;
+            return Candidate.fromJson(candidateData);
+          })
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch candidates by status: $e');
+    }
+  }
+
+  // Approve or reject a candidate
+  Future<void> updateCandidateApproval(String cityId, String wardId, String candidateId, bool approved) async {
+    try {
+      await _firestore
+          .collection('cities')
+          .doc(cityId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId)
+          .update({
+            'approved': approved,
+            'status': approved ? 'pending_election' : 'rejected',
+          });
+    } catch (e) {
+      throw Exception('Failed to update candidate approval: $e');
+    }
+  }
+
+  // Switch candidates from provisional to finalized
+  Future<void> finalizeCandidates(String cityId, String wardId, List<String> candidateIds) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (final candidateId in candidateIds) {
+        final candidateRef = _firestore
+            .collection('cities')
+            .doc(cityId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('candidates')
+            .doc(candidateId);
+
+        batch.update(candidateRef, {
+          'status': 'finalized',
+          'approved': true,
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to finalize candidates: $e');
+    }
+  }
+
+  // Get all pending approval candidates across all cities and wards
+  Future<List<Map<String, dynamic>>> getPendingApprovalCandidates() async {
+    try {
+      final citiesSnapshot = await _firestore.collection('cities').get();
+      List<Map<String, dynamic>> pendingCandidates = [];
+
+      for (var cityDoc in citiesSnapshot.docs) {
+        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+
+        for (var wardDoc in wardsSnapshot.docs) {
+          final candidatesSnapshot = await wardDoc.reference
+              .collection('candidates')
+              .where('approved', isEqualTo: false)
+              .get();
+
+          for (var candidateDoc in candidatesSnapshot.docs) {
+            final data = candidateDoc.data()! as Map<String, dynamic>;
+            final candidateData = Map<String, dynamic>.from(data);
+            candidateData['candidateId'] = candidateDoc.id;
+            candidateData['cityId'] = cityDoc.id;
+            candidateData['wardId'] = wardDoc.id;
+            pendingCandidates.add(candidateData);
+          }
+        }
+      }
+
+      return pendingCandidates;
+    } catch (e) {
+      throw Exception('Failed to fetch pending approval candidates: $e');
+    }
+  }
+
+  // Check if user has already registered as a candidate
+  Future<bool> hasUserRegisteredAsCandidate(String userId) async {
+    try {
+      final citiesSnapshot = await _firestore.collection('cities').get();
+
+      for (var cityDoc in citiesSnapshot.docs) {
+        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+
+        for (var wardDoc in wardsSnapshot.docs) {
+          final candidateSnapshot = await wardDoc.reference
+              .collection('candidates')
+              .where('userId', isEqualTo: userId)
+              .limit(1)
+              .get();
+
+          if (candidateSnapshot.docs.isNotEmpty) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (e) {
+      throw Exception('Failed to check user candidate registration: $e');
+    }
+  }
+
   // Update notification settings for a follow relationship
   Future<void> updateFollowNotificationSettings(String userId, String candidateId, bool notificationsEnabled) async {
     try {

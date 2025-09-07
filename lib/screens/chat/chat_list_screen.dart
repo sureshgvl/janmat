@@ -348,7 +348,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'You have reached your daily message limit. Watch an ad to get extra messages!',
+              'You have reached your daily message limit. Choose an option to continue:',
             ),
             const SizedBox(height: 16),
             Text(
@@ -361,17 +361,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ],
         ),
         actions: [
+          // Option 1: Watch Rewarded Ad
+          TextButton.icon(
+            onPressed: () {
+              Get.back();
+              _watchRewardedAdForXP();
+            },
+            icon: const Icon(Icons.play_circle_outline),
+            label: const Text('Watch Ad (+3-5 XP)'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.orange,
+            ),
+          ),
+
+          // Option 2: Buy XP
+          TextButton.icon(
+            onPressed: () {
+              Get.back();
+              Get.toNamed('/monetization');
+            },
+            icon: const Icon(Icons.shopping_cart),
+            label: const Text('Buy XP'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.blue,
+            ),
+          ),
+
+          // Option 3: Cancel
           TextButton(
             onPressed: () => Get.back(),
             child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              // TODO: Implement ad watching functionality
-              _watchAdForQuota();
-            },
-            child: const Text('Watch Ad'),
           ),
         ],
       ),
@@ -388,6 +407,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
       backgroundColor: Colors.green.shade100,
       colorText: Colors.green.shade800,
     );
+  }
+
+  void _watchRewardedAdForXP() async {
+    Get.dialog(
+      const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading rewarded ad...'),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    await controller.watchRewardedAdForXP();
+    Get.back(); // Close loading dialog
   }
 
   // Helper methods for WhatsApp-style display

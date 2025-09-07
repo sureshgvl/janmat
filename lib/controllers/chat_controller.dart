@@ -7,8 +7,11 @@ import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
 import '../models/chat_model.dart';
 import '../models/user_model.dart';
+import '../models/plan_model.dart';
 import '../repositories/chat_repository.dart';
+import '../repositories/monetization_repository.dart';
 import '../services/chat_initializer.dart';
+import '../services/admob_service.dart';
 
 class ChatController extends GetxController {
   final ChatRepository _repository = ChatRepository();
@@ -307,8 +310,16 @@ class ChatController extends GetxController {
 
       await _repository.sendMessage(currentChatRoom!.roomId, message);
 
-      // Refresh quota after sending
-      await fetchUserQuota();
+      // Handle quota/XP deduction
+      if (userQuota != null && userQuota!.canSendMessage) {
+        // Use regular quota
+        await fetchUserQuota();
+      } else if (user.xpPoints > 0) {
+        // Use XP points (1 XP = 1 message)
+        await _deductXPForMessage(user.uid);
+        await refreshUserDataAndChat(); // Refresh to get updated XP
+      }
+
     } catch (e) {
       errorMessage = e.toString();
     }
@@ -350,7 +361,14 @@ class ChatController extends GetxController {
         );
 
         await _repository.sendMessage(currentChatRoom!.roomId, message);
-        await fetchUserQuota();
+
+        // Handle quota/XP deduction
+        if (userQuota != null && userQuota!.canSendMessage) {
+          await fetchUserQuota();
+        } else if (user.xpPoints > 0) {
+          await _deductXPForMessage(user.uid);
+          await refreshUserDataAndChat();
+        }
       }
     } catch (e) {
       errorMessage = e.toString();
@@ -411,7 +429,14 @@ class ChatController extends GetxController {
         );
 
         await _repository.sendMessage(currentChatRoom!.roomId, message);
-        await fetchUserQuota();
+
+        // Handle quota/XP deduction
+        if (userQuota != null && userQuota!.canSendMessage) {
+          await fetchUserQuota();
+        } else if (user.xpPoints > 0) {
+          await _deductXPForMessage(user.uid);
+          await refreshUserDataAndChat();
+        }
       }
 
       currentRecordingPath = null;
@@ -501,6 +526,18 @@ class ChatController extends GetxController {
     } catch (e) {
       errorMessage = e.toString();
       update();
+    }
+  }
+
+  // Deduct XP for sending message
+  Future<void> _deductXPForMessage(String userId) async {
+    try {
+      // Deduct 1 XP point for each message
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'xpPoints': FieldValue.increment(-1),
+      });
+    } catch (e) {
+      print('Error deducting XP for message: $e');
     }
   }
 
@@ -748,13 +785,129 @@ class ChatController extends GetxController {
 
   // Check if user can send message
   bool get canSendMessage {
-    if (userQuota == null) return true; // Allow if quota not loaded yet
-    return userQuota!.canSendMessage;
+    // First check user quota
+    if (userQuota != null && userQuota!.canSendMessage) {
+      return true;
+    }
+
+    // If quota exhausted, check XP balance
+    final user = currentUser;
+    if (user != null && user.xpPoints > 0) {
+      return true;
+    }
+
+    // Allow if quota not loaded yet (fallback)
+    if (userQuota == null) return true;
+
+    return false;
   }
 
-  // Get remaining messages
+  // Get remaining messages (integrate with XP system)
   int get remainingMessages {
-    if (userQuota == null) return 20; // Default
-    return userQuota!.remainingMessages;
+    // First try to get from user quota
+    if (userQuota != null) {
+      return userQuota!.remainingMessages;
+    }
+
+    // If no quota data, use XP balance as fallback
+    // Each XP point = 1 message
+    final user = currentUser;
+    if (user != null && user.xpPoints > 0) {
+      return user.xpPoints;
+    }
+
+    // Default fallback
+    return 20;
+  }
+
+  // Watch rewarded ad for XP
+  Future<void> watchRewardedAdForXP() async {
+    final adMobService = Get.find<AdMobService>();
+
+    if (!adMobService.isAdAvailable) {
+      Get.snackbar(
+        'Ad Not Ready',
+        'Please wait for the ad to load or try again later.',
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade800,
+      );
+      return;
+    }
+
+    try {
+      // Show loading dialog
+      Get.dialog(
+        const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading rewarded ad...'),
+            ],
+          ),
+        ),
+        barrierDismissible: false,
+      );
+
+      // Show the rewarded ad and wait for reward
+      final rewardXP = await adMobService.showRewardedAd();
+
+      // Close loading dialog
+      Get.back();
+
+      if (rewardXP != null && rewardXP > 0) {
+        // Award XP to user
+        await _awardXPFromAd(rewardXP);
+
+        Get.snackbar(
+          '🎉 Reward Earned!',
+          'You earned $rewardXP XP for watching the ad!',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+          duration: const Duration(seconds: 4),
+        );
+
+        // Refresh user data to show updated XP
+        await refreshUserDataAndChat();
+      } else {
+        Get.snackbar(
+          'No Reward',
+          'Ad was shown but no reward was earned.',
+          backgroundColor: Colors.orange.shade100,
+          colorText: Colors.orange.shade800,
+        );
+      }
+
+    } catch (e) {
+      // Close loading dialog if open
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      Get.snackbar(
+        'Error',
+        'Failed to show ad: ${e.toString()}',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+    }
+  }
+
+  // Award XP from watching ad
+  Future<void> _awardXPFromAd(int xpAmount) async {
+    final user = currentUser;
+    if (user == null) return;
+
+    try {
+      // Use MonetizationRepository to handle XP transaction
+      final monetizationRepo = MonetizationRepository();
+
+      // Create XP transaction and update balance
+      await monetizationRepo.updateUserXPBalance(user.uid, xpAmount);
+
+    } catch (e) {
+      print('Error awarding XP from ad: $e');
+    }
   }
 }

@@ -239,4 +239,130 @@ class CandidateController extends GetxController {
     followLoading.clear();
     update();
   }
+
+  // Provisional Candidate Management Methods
+
+  // Create a new candidate (self-registration)
+  Future<String?> createCandidate(Candidate candidate) async {
+    try {
+      final candidateId = await _repository.createCandidate(candidate);
+      print('✅ [Controller] Successfully created candidate: $candidateId');
+      return candidateId;
+    } catch (e) {
+      print('❌ [Controller] Failed to create candidate: $e');
+      errorMessage = 'Failed to create candidate: $e';
+      update();
+      return null;
+    }
+  }
+
+  // Get candidates by approval status
+  Future<void> fetchCandidatesByApprovalStatus(String cityId, String wardId, bool approved) async {
+    isLoading = true;
+    errorMessage = null;
+    update();
+
+    try {
+      candidates = await _repository.getCandidatesByApprovalStatus(cityId, wardId, approved);
+      print('✅ [Controller] Found ${candidates.length} candidates with approved: $approved');
+    } catch (e) {
+      print('❌ [Controller] Failed to fetch candidates by approval status: $e');
+      errorMessage = e.toString();
+      candidates = [];
+    }
+
+    isLoading = false;
+    update();
+  }
+
+  // Get candidates by status
+  Future<void> fetchCandidatesByStatus(String cityId, String wardId, String status) async {
+    isLoading = true;
+    errorMessage = null;
+    update();
+
+    try {
+      candidates = await _repository.getCandidatesByStatus(cityId, wardId, status);
+      print('✅ [Controller] Found ${candidates.length} candidates with status: $status');
+    } catch (e) {
+      print('❌ [Controller] Failed to fetch candidates by status: $e');
+      errorMessage = e.toString();
+      candidates = [];
+    }
+
+    isLoading = false;
+    update();
+  }
+
+  // Approve or reject a candidate
+  Future<void> updateCandidateApproval(String cityId, String wardId, String candidateId, bool approved) async {
+    try {
+      await _repository.updateCandidateApproval(cityId, wardId, candidateId, approved);
+
+      // Update the candidate in the current list if it exists
+      final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
+      if (candidateIndex != -1) {
+        final updatedCandidate = candidates[candidateIndex].copyWith(
+          approved: approved,
+          status: approved ? 'pending_election' : 'rejected',
+        );
+        candidates[candidateIndex] = updatedCandidate;
+      }
+
+      print('✅ [Controller] Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId');
+      update();
+    } catch (e) {
+      print('❌ [Controller] Failed to update candidate approval: $e');
+      errorMessage = 'Failed to update candidate approval: $e';
+      update();
+    }
+  }
+
+  // Finalize candidates
+  Future<void> finalizeCandidates(String cityId, String wardId, List<String> candidateIds) async {
+    try {
+      await _repository.finalizeCandidates(cityId, wardId, candidateIds);
+
+      // Update the candidates in the current list
+      for (final candidateId in candidateIds) {
+        final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
+        if (candidateIndex != -1) {
+          final updatedCandidate = candidates[candidateIndex].copyWith(
+            status: 'finalized',
+            approved: true,
+          );
+          candidates[candidateIndex] = updatedCandidate;
+        }
+      }
+
+      print('✅ [Controller] Successfully finalized ${candidateIds.length} candidates');
+      update();
+    } catch (e) {
+      print('❌ [Controller] Failed to finalize candidates: $e');
+      errorMessage = 'Failed to finalize candidates: $e';
+      update();
+    }
+  }
+
+  // Get all pending approval candidates
+  Future<List<Map<String, dynamic>>> getPendingApprovalCandidates() async {
+    try {
+      return await _repository.getPendingApprovalCandidates();
+    } catch (e) {
+      print('❌ [Controller] Failed to get pending approval candidates: $e');
+      errorMessage = 'Failed to get pending approval candidates: $e';
+      update();
+      return [];
+    }
+  }
+
+  // Check if user has registered as candidate
+  Future<bool> hasUserRegisteredAsCandidate(String userId) async {
+    try {
+      return await _repository.hasUserRegisteredAsCandidate(userId);
+    } catch (e) {
+      print('❌ [Controller] Failed to check user candidate registration: $e');
+      return false;
+    }
+  }
 }

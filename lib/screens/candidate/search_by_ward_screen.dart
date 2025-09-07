@@ -35,6 +35,7 @@ class _SearchByWardScreenState extends State<SearchByWardScreen> {
       photo: 'url-to-photo.png',
       contact: Contact(phone: '9876543210', email: 'suresh@gmail.com', socialLinks: {'facebook': 'fb.com/suresh', 'twitter': 'twitter.com/suresh'}),
       sponsored: true,
+      premium: false,
       createdAt: DateTime.now(),
     ),
     Candidate(
@@ -48,6 +49,7 @@ class _SearchByWardScreenState extends State<SearchByWardScreen> {
       photo: 'url-to-rajesh-photo.png',
       contact: Contact(phone: '9123456789', email: 'rajesh@gmail.com'),
       sponsored: false,
+      premium: true,
       createdAt: DateTime.now(),
     ),
     Candidate(
@@ -61,6 +63,7 @@ class _SearchByWardScreenState extends State<SearchByWardScreen> {
       photo: 'url-to-priya-photo.png',
       contact: Contact(phone: '8765432109', email: 'priya@gmail.com'),
       sponsored: true,
+      premium: false,
       createdAt: DateTime.now(),
     ),
   ];
