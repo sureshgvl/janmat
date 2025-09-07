@@ -13,6 +13,7 @@ import 'screens/profile/profile_completion_screen.dart';
 import 'screens/candidate/candidate_profile_screen.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/settings/device_management_screen.dart';
 import 'screens/main_tab_navigation.dart';
 import 'core/app_bindings.dart';
 import 'services/language_service.dart';
@@ -65,6 +66,7 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/candidate-profile', page: () => const CandidateProfileScreen()),
             GetPage(name: '/chat', page: () => const ChatListScreen()),
             GetPage(name: '/settings', page: () => const SettingsScreen()),
+            GetPage(name: '/device-management', page: () => const DeviceManagementScreen()),
           ],
           debugShowCheckedModeBanner: false,
         );

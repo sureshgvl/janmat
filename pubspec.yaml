@@ -56,6 +56,7 @@ dependencies:
   url_launcher: ^6.2.6
   shared_preferences: ^2.2.3
   fluttertoast: ^8.2.6
+  device_info_plus: ^9.1.1
 
   # Chat and Media
   image_picker: ^1.0.7

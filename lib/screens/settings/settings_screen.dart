@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../l10n/app_localizations.dart';
+import 'device_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -71,6 +72,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildOtherSettings(BuildContext context) {
     return Column(
       children: [
+        ListTile(
+          leading: const Icon(Icons.devices),
+          title: const Text('Device Management'),
+          subtitle: const Text('Manage your active devices'),
+          trailing: const Icon(Icons.arrow_forward_ios),
+          onTap: () {
+            Get.to(() => const DeviceManagementScreen());
+          },
+        ),
+        const Divider(),
         ListTile(
           leading: const Icon(Icons.notifications),
           title: Text(AppLocalizations.of(context)?.notifications ?? 'Notifications'),

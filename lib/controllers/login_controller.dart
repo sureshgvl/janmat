@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../repositories/auth_repository.dart';
+import '../services/device_service.dart';
 
 class LoginController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
+  final DeviceService _deviceService = DeviceService();
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
@@ -15,10 +17,38 @@ class LoginController extends GetxController {
   var isOTPScreen = false.obs;
 
   @override
+  void onInit() {
+    super.onInit();
+    _startDeviceMonitoring();
+  }
+
+  @override
   void onClose() {
     phoneController.dispose();
     otpController.dispose();
     super.onClose();
+  }
+
+  // Start monitoring device status for multi-device login prevention
+  void _startDeviceMonitoring() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _deviceService.monitorDeviceStatus(currentUser.uid, _handleForcedSignOut);
+    }
+  }
+
+  // Handle forced sign-out when device becomes inactive
+  void _handleForcedSignOut() {
+    Get.snackbar(
+      'Session Expired',
+      'You have been signed out because you logged in from another device',
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 5),
+    );
+
+    // Sign out and navigate to login
+    FirebaseAuth.instance.signOut();
+    Get.offAllNamed('/login');
   }
 
   Future<void> sendOTP() async {
@@ -63,6 +93,9 @@ class LoginController extends GetxController {
 
       await _authRepository.createOrUpdateUser(userCredential.user!);
 
+      // Register device for multi-device login prevention
+      await _deviceService.registerDevice(userCredential.user!.uid);
+
       Get.snackbar('Success', 'Login successful');
       // Check profile completion and navigate accordingly
       await _navigateBasedOnProfileCompletion(userCredential.user!);
@@ -81,6 +114,9 @@ class LoginController extends GetxController {
       final userCredential = await _authRepository.signInWithGoogle();
       print('Google Sign-In UserCredential: ${userCredential.user}');
       await _authRepository.createOrUpdateUser(userCredential.user!);
+
+      // Register device for multi-device login prevention
+      await _deviceService.registerDevice(userCredential.user!.uid);
 
       Get.snackbar('Success', 'Google sign-in successful');
       // Check profile completion and navigate accordingly
