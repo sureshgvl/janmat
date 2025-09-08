@@ -57,9 +57,12 @@ class ChatController extends GetxController {
 
   // Initialize chat for current user
   Future<void> _initializeChat() async {
+    // Clear any stale cached data first
+    clearUserCache();
+
     final user = await getCompleteUserData();
     if (user != null) {
-      print('🚀 Initializing chat for user: ${user.name} (${user.role})');
+      print('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
       fetchUserQuota();
       fetchChatRooms();
 
@@ -531,21 +534,19 @@ class ChatController extends GetxController {
   }
 
   // Create a poll
-  Future<void> createPoll(String question, List<String> options) async {
+  Future<void> createPoll(String question, List<String> options, {DateTime? expiresAt}) async {
     final user = currentUser;
     if (user == null || currentChatRoom == null) return;
 
     try {
-      print('📊 Creating poll: "$question" with ${options.length} options');
+      print('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
 
-      final poll = Poll(
+      final poll = Poll.create(
         pollId: _uuid.v4(),
         question: question,
         options: options,
         createdBy: user.uid,
-        createdAt: DateTime.now(),
-        votes: {},
-        userVotes: {},
+        expiresAt: expiresAt,
       );
 
       // Create the poll in Firestore
@@ -920,6 +921,38 @@ class ChatController extends GetxController {
     update();
   }
 
+  // Clear cached user data (call when user logs out or switches)
+  void clearUserCache() {
+    print('🧹 Clearing cached user data');
+    _cachedUser = null;
+    userQuota = null;
+    userQuotaStream.value = null;
+    // Clear chat data as well
+    chatRooms = [];
+    chatRoomsStream.value = [];
+    currentChatRoom = null;
+    messages = [];
+    messagesStream.value = [];
+    _isInitialLoadComplete = false;
+    update();
+  }
+
+  // Handle user authentication state change (call from auth controller)
+  Future<void> handleAuthStateChange() async {
+    print('🔐 Handling authentication state change');
+    clearUserCache();
+    await _initializeChat();
+  }
+
+  // Force refresh user data (for debugging/manual refresh)
+  Future<void> forceRefreshUserData() async {
+    print('🔄 Force refreshing user data');
+    _cachedUser = null;
+    await getCompleteUserData();
+    await fetchUserQuota();
+    update();
+  }
+
   // Refresh user data and reinitialize chat (call after profile completion)
   Future<void> refreshUserDataAndChat() async {
     print('🔄 Refreshing user data and chat after profile completion');
@@ -940,20 +973,35 @@ class ChatController extends GetxController {
 
   // Check if user can send message
   bool get canSendMessage {
+    final user = currentUser;
+
+    // Debug logging for troubleshooting
+    print('🔍 Checking canSendMessage:');
+    print('   Current user: ${user?.name ?? 'null'} (UID: ${user?.uid ?? 'null'})');
+    print('   User XP: ${user?.xpPoints ?? 'null'}');
+    print('   User quota loaded: ${userQuota != null}');
+    print('   Quota can send: ${userQuota?.canSendMessage ?? 'null'}');
+    print('   Quota remaining: ${userQuota?.remainingMessages ?? 'null'}');
+
     // First check user quota
     if (userQuota != null && userQuota!.canSendMessage) {
+      print('   ✅ Can send: Using quota');
       return true;
     }
 
     // If quota exhausted, check XP balance
-    final user = currentUser;
     if (user != null && user.xpPoints > 0) {
+      print('   ✅ Can send: Using XP (${user.xpPoints} available)');
       return true;
     }
 
     // Allow if quota not loaded yet (fallback)
-    if (userQuota == null) return true;
+    if (userQuota == null) {
+      print('   ⚠️ Can send: Quota not loaded yet (fallback)');
+      return true;
+    }
 
+    print('   ❌ Cannot send: No quota or XP available');
     return false;
   }
 
@@ -1217,14 +1265,24 @@ class ChatController extends GetxController {
   // Debug method to check user XP status
   void debugUserXPStatus() {
     final user = currentUser;
+    final firebaseUser = _auth.currentUser;
+
     print('🔍 User XP Debug Info:');
-    print('   Current user: ${user?.name ?? 'null'}');
+    print('   Firebase Auth User: ${firebaseUser?.displayName ?? 'null'} (${firebaseUser?.uid ?? 'null'})');
+    print('   Current user: ${user?.name ?? 'null'} (${user?.uid ?? 'null'})');
+    print('   Cached user: ${_cachedUser?.name ?? 'null'} (${_cachedUser?.uid ?? 'null'})');
     print('   User XP (cached): ${_cachedUser?.xpPoints ?? 'null'}');
     print('   User XP (current): ${user?.xpPoints ?? 'null'}');
     print('   Can send message: $canSendMessage');
     print('   Remaining messages: $remainingMessages');
     print('   User quota loaded: ${userQuota != null}');
     print('   Quota can send: ${userQuota?.canSendMessage ?? 'null'}');
+    print('   User role: ${user?.role ?? 'null'}');
+
+    // Check if there's a mismatch between Firebase Auth and cached user
+    if (firebaseUser != null && _cachedUser != null && firebaseUser.uid != _cachedUser!.uid) {
+      print('   ⚠️ MISMATCH DETECTED: Firebase UID (${firebaseUser.uid}) != Cached UID (${_cachedUser!.uid})');
+    }
 
     Get.snackbar(
       'XP Debug Info',
@@ -1258,6 +1316,15 @@ class ChatController extends GetxController {
         colorText: Colors.orange.shade800,
         duration: const Duration(seconds: 2),
       );
+    }
+  }
+
+  // Refresh current chat messages (called after poll voting)
+  void refreshCurrentChatMessages() {
+    if (currentChatRoom != null) {
+      print('🔄 Refreshing messages after poll vote for room: ${currentChatRoom!.roomId}');
+      // Force a refresh of the message stream
+      _listenToMessages(currentChatRoom!.roomId);
     }
   }
 

@@ -314,12 +314,24 @@ class MessageBubble extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      'Tap to vote on this poll',
-                      style: TextStyle(
-                        color: isCurrentUser ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tap to vote on this poll',
+                          style: TextStyle(
+                            color: isCurrentUser ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          'May have expiration settings',
+                          style: TextStyle(
+                            color: isCurrentUser ? Colors.white.withOpacity(0.6) : Colors.grey.shade500,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Icon(
@@ -438,7 +450,10 @@ class MessageBubble extends StatelessWidget {
         question: message.text.replaceFirst('📊 ', ''),
         currentUserId: controller.currentUser?.uid ?? '',
       ),
-    );
+    ).then((_) {
+      // Refresh messages to show updated poll results
+      controller.refreshCurrentChatMessages();
+    });
   }
 
   void _reportMessage() {

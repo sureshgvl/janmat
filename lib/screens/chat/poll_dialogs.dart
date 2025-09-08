@@ -80,15 +80,26 @@ class PollVotingDialogState extends State<PollVotingDialog> {
   }
 
   Future<void> _voteOnPoll(String option) async {
-    if (_poll == null || _hasVoted) return;
+    if (_poll == null || _hasVoted || _poll!.isExpired) return;
 
     try {
       final chatRepository = ChatRepository();
       await chatRepository.voteOnPoll(widget.pollId, widget.currentUserId, option);
 
+      // Update local poll data immediately
       setState(() {
         _hasVoted = true;
         _selectedOption = option;
+        // Update the poll votes locally
+        if (_poll != null) {
+          _poll = _poll!.copyWith(
+            userVotes: {..._poll!.userVotes, widget.currentUserId: option},
+            votes: {
+              ..._poll!.votes,
+              option: (_poll!.votes[option] ?? 0) + 1,
+            },
+          );
+        }
       });
 
       Get.snackbar(
@@ -98,6 +109,14 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         colorText: Colors.green.shade800,
         duration: const Duration(seconds: 2),
       );
+
+      // Close dialog after a short delay to show the success message
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+
     } catch (e) {
       Get.snackbar(
         'Vote Failed',
@@ -162,7 +181,39 @@ class PollVotingDialogState extends State<PollVotingDialog> {
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      // Expiration status
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _poll!.isExpired
+                              ? Colors.red.shade50
+                              : _poll!.timeRemaining != null && _poll!.timeRemaining!.inHours < 24
+                                  ? Colors.orange.shade50
+                                  : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _poll!.isExpired
+                                ? Colors.red.shade200
+                                : _poll!.timeRemaining != null && _poll!.timeRemaining!.inHours < 24
+                                    ? Colors.orange.shade200
+                                    : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          _poll!.expirationStatus,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _poll!.isExpired
+                                ? Colors.red.shade700
+                                : _poll!.timeRemaining != null && _poll!.timeRemaining!.inHours < 24
+                                    ? Colors.orange.shade700
+                                    : Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       ..._poll!.options.map((option) {
                         final voteCount = _poll!.votes[option] ?? 0;
                         final percentage = _getVotePercentage(option);
@@ -172,22 +223,26 @@ class PollVotingDialogState extends State<PollVotingDialog> {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: InkWell(
-                            onTap: (_hasVoted || _isLoading) ? null : () => _voteOnPoll(option),
+                            onTap: (_hasVoted || _isLoading || _poll!.isExpired) ? null : () => _voteOnPoll(option),
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: isSelected
-                                      ? Colors.blue.shade300
-                                      : Colors.grey.shade300,
+                                  color: _poll!.isExpired
+                                      ? Colors.grey.shade300
+                                      : isSelected
+                                          ? Colors.blue.shade300
+                                          : Colors.grey.shade300,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
-                                color: isUserChoice
-                                    ? Colors.blue.shade50
-                                    : isSelected
-                                        ? Colors.grey.shade50
-                                        : Colors.white,
+                                color: _poll!.isExpired
+                                    ? Colors.grey.shade50
+                                    : isUserChoice
+                                        ? Colors.blue.shade50
+                                        : isSelected
+                                            ? Colors.grey.shade50
+                                            : Colors.white,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,7 +300,36 @@ class PollVotingDialogState extends State<PollVotingDialog> {
                           ),
                         );
                       }).toList(),
-                      if (_hasVoted) ...[
+                      if (_poll!.isExpired) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.timer_off,
+                                color: Colors.red.shade600,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'This poll has expired. Voting is no longer available.',
+                                  style: TextStyle(
+                                    color: Color(0xFFB71C1C),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (_hasVoted) ...[
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -290,7 +374,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
 
 // Stateful widget for poll creation dialog
 class CreatePollDialog extends StatefulWidget {
-  final Function(String question, List<String> options) onPollCreated;
+  final Function(String question, List<String> options, {DateTime? expiresAt}) onPollCreated;
 
   const CreatePollDialog({super.key, required this.onPollCreated});
 
@@ -304,6 +388,11 @@ class CreatePollDialogState extends State<CreatePollDialog> {
     TextEditingController(),
     TextEditingController(),
   ];
+
+  // Expiration settings
+  bool _useCustomExpiration = false;
+  int _expirationHours = 24; // Default 24 hours
+  final List<int> _expirationOptions = [1, 6, 12, 24, 48, 72, 168]; // Hours
 
   @override
   void dispose() {
@@ -343,6 +432,13 @@ class CreatePollDialogState extends State<CreatePollDialog> {
         colorText: Colors.orange.shade800,
       );
     }
+  }
+
+  String _getExpirationDateTime() {
+    final expirationDateTime = DateTime.now().add(Duration(hours: _expirationHours));
+    final formattedDate = '${expirationDateTime.day}/${expirationDateTime.month}/${expirationDateTime.year}';
+    final formattedTime = '${expirationDateTime.hour.toString().padLeft(2, '0')}:${expirationDateTime.minute.toString().padLeft(2, '0')}';
+    return '$formattedDate at $formattedTime';
   }
 
   @override
@@ -425,6 +521,96 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              const Text(
+                'Expiration Settings',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Default: 24 hours',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: _useCustomExpiration,
+                          onChanged: (value) {
+                            setState(() {
+                              _useCustomExpiration = value;
+                            });
+                          },
+                          activeColor: Colors.blue.shade600,
+                        ),
+                      ],
+                    ),
+                    if (_useCustomExpiration) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Expires in:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _expirationOptions.map((hours) {
+                          final isSelected = _expirationHours == hours;
+                          return ChoiceChip(
+                            label: Text(
+                              hours < 24
+                                  ? '${hours}h'
+                                  : hours == 24
+                                      ? '1 day'
+                                      : hours == 168
+                                          ? '1 week'
+                                          : '${hours ~/ 24} days',
+                            ),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _expirationHours = hours;
+                                });
+                              }
+                            },
+                            selectedColor: Colors.blue.shade100,
+                            checkmarkColor: Colors.blue.shade800,
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Poll will expire on: ${_getExpirationDateTime()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -462,7 +648,11 @@ class CreatePollDialogState extends State<CreatePollDialog> {
               return;
             }
 
-            widget.onPollCreated(question, options);
+            final expiresAt = _useCustomExpiration
+                ? DateTime.now().add(Duration(hours: _expirationHours))
+                : null;
+
+            widget.onPollCreated(question, options, expiresAt: expiresAt);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue.shade600,

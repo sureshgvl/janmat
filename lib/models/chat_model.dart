@@ -293,6 +293,84 @@ class Poll {
       'userVotes': userVotes,
     };
   }
+
+  Poll copyWith({
+    String? pollId,
+    String? question,
+    List<String>? options,
+    String? createdBy,
+    DateTime? createdAt,
+    DateTime? expiresAt,
+    bool? isActive,
+    Map<String, int>? votes,
+    Map<String, String>? userVotes,
+  }) {
+    return Poll(
+      pollId: pollId ?? this.pollId,
+      question: question ?? this.question,
+      options: options ?? this.options,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      isActive: isActive ?? this.isActive,
+      votes: votes ?? this.votes,
+      userVotes: userVotes ?? this.userVotes,
+    );
+  }
+
+  // Helper methods for expiration
+  bool get isExpired {
+    if (expiresAt == null) return false;
+    return DateTime.now().isAfter(expiresAt!);
+  }
+
+  bool get canVote {
+    return isActive && !isExpired;
+  }
+
+  Duration? get timeRemaining {
+    if (expiresAt == null) return null;
+    final now = DateTime.now();
+    if (now.isAfter(expiresAt!)) return Duration.zero;
+    return expiresAt!.difference(now);
+  }
+
+  String get expirationStatus {
+    if (expiresAt == null) return 'No expiration';
+    if (isExpired) return 'Expired';
+    final remaining = timeRemaining!;
+    if (remaining.inDays > 0) {
+      return 'Expires in ${remaining.inDays} day${remaining.inDays == 1 ? '' : 's'}';
+    } else if (remaining.inHours > 0) {
+      return 'Expires in ${remaining.inHours} hour${remaining.inHours == 1 ? '' : 's'}';
+    } else if (remaining.inMinutes > 0) {
+      return 'Expires in ${remaining.inMinutes} minute${remaining.inMinutes == 1 ? '' : 's'}';
+    } else {
+      return 'Expires soon';
+    }
+  }
+
+  // Create poll with default expiration (24 hours from now)
+  factory Poll.create({
+    required String pollId,
+    required String question,
+    required List<String> options,
+    required String createdBy,
+    DateTime? expiresAt,
+  }) {
+    final now = DateTime.now();
+    return Poll(
+      pollId: pollId,
+      question: question,
+      options: options,
+      createdBy: createdBy,
+      createdAt: now,
+      expiresAt: expiresAt ?? now.add(const Duration(hours: 24)), // Default 24 hours
+      isActive: true,
+      votes: {},
+      userVotes: {},
+    );
+  }
 }
 
 class UserQuota {

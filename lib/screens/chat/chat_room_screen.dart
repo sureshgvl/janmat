@@ -26,8 +26,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   void initState() {
     super.initState();
-    // Scroll to bottom when messages load
+    // Select the chat room when entering
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.selectChatRoom(widget.chatRoom);
       _scrollToBottom();
     });
   }
@@ -111,6 +112,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: GetBuilder<ChatController>(
               builder: (controller) {
                 final messages = controller.messages;
+
+                // Show loading indicator if messages are empty and we're not sure if they're loaded
+                if (messages.isEmpty && controller.messagesStream.value.isEmpty) {
+                  _previousMessageCount = 0;
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Loading messages...',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // Show empty state if messages are loaded but empty
                 if (messages.isEmpty) {
                   _previousMessageCount = 0;
                   return Center(
@@ -238,9 +259,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     showDialog(
       context: context,
       builder: (context) => CreatePollDialog(
-        onPollCreated: (question, options) {
-          print('📊 Creating poll: "$question" with ${options.length} options');
-          controller.createPoll(question, options);
+        onPollCreated: (question, options, {DateTime? expiresAt}) {
+          print('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
+          controller.createPoll(question, options, expiresAt: expiresAt);
           Navigator.of(context).pop(); // Close the poll creation dialog
 
           // Show success message
