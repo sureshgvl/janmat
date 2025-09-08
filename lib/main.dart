@@ -7,10 +7,12 @@ import 'package:get/get.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/language_selection_screen.dart';
+import 'screens/auth/role_selection_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/profile_completion_screen.dart';
 import 'screens/candidate/candidate_profile_screen.dart';
+import 'screens/candidate/candidate_setup_screen.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/settings/device_management_screen.dart';
@@ -60,9 +62,11 @@ class MyApp extends StatelessWidget {
           getPages: [
             GetPage(name: '/language-selection', page: () => const LanguageSelectionScreen()),
             GetPage(name: '/login', page: () => const LoginScreen()),
+            GetPage(name: '/role-selection', page: () => const RoleSelectionScreen()),
             GetPage(name: '/home', page: () => const MainTabNavigation()),
             GetPage(name: '/profile', page: () => const ProfileScreen()),
             GetPage(name: '/profile-completion', page: () => const ProfileCompletionScreen()),
+            GetPage(name: '/candidate-setup', page: () => const CandidateSetupScreen()),
             GetPage(name: '/candidate-profile', page: () => const CandidateProfileScreen()),
             GetPage(name: '/chat', page: () => const ChatListScreen()),
             GetPage(name: '/settings', page: () => const SettingsScreen()),
@@ -111,10 +115,18 @@ class MyApp extends StatelessWidget {
       if (userDoc.exists) {
         final userData = userDoc.data();
         final profileCompleted = userData?['profileCompleted'] ?? false;
+        final roleSelected = userData?['roleSelected'] ?? false;
 
         if (!profileCompleted) {
           return {
             'route': '/profile-completion',
+            'locale': locale,
+          };
+        }
+
+        if (!roleSelected) {
+          return {
+            'route': '/role-selection',
             'locale': locale,
           };
         }
