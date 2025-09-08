@@ -91,6 +91,7 @@ class ChatController extends GetxController {
       phone: firebaseUser.phoneNumber ?? '',
       email: firebaseUser.email,
       role: 'voter', // Default role
+      roleSelected: false,
       wardId: '', // Will be updated after profile completion
       cityId: '', // Will be updated after profile completion
       xpPoints: 0,
@@ -119,6 +120,7 @@ class ChatController extends GetxController {
           phone: data['phone'] ?? firebaseUser.phoneNumber ?? '',
           email: data['email'] ?? firebaseUser.email,
           role: data['role'] ?? 'voter',
+          roleSelected: data['roleSelected'] ?? false,
           wardId: data['wardId'] ?? '',
           cityId: data['cityId'] ?? '',
           xpPoints: data['xpPoints'] ?? 0,

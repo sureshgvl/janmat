@@ -78,6 +78,7 @@ class AuthRepository {
         phone: firebaseUser.phoneNumber ?? '',
         email: firebaseUser.email,
         role: role ?? 'voter',
+        roleSelected: false,
         wardId: '',
         cityId: '',
         xpPoints: 0,

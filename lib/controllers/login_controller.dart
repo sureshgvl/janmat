@@ -144,9 +144,15 @@ class LoginController extends GetxController {
       if (userDoc.exists) {
         final userData = userDoc.data();
         final profileCompleted = userData?['profileCompleted'] ?? false;
+        final roleSelected = userData?['roleSelected'] ?? false;
 
         if (!profileCompleted) {
           Get.offAllNamed('/profile-completion');
+          return;
+        }
+
+        if (!roleSelected) {
+          Get.offAllNamed('/role-selection');
           return;
         }
       } else {
@@ -155,7 +161,7 @@ class LoginController extends GetxController {
         return;
       }
 
-      // Profile is complete, go to home
+      // Profile is complete and role is selected, go to home
       Get.offAllNamed('/home');
     } catch (e) {
       // If there's an error checking profile, default to login

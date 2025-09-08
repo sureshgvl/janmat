@@ -6,6 +6,7 @@ class UserModel {
   final String phone;
   final String? email;
   final String role;
+  final bool roleSelected;
   final String wardId;
   final String cityId;
   final int xpPoints;
@@ -22,6 +23,7 @@ class UserModel {
     required this.phone,
     this.email,
     required this.role,
+    required this.roleSelected,
     required this.wardId,
     required this.cityId,
     required this.xpPoints,
@@ -47,6 +49,7 @@ class UserModel {
       phone: json['phone'] ?? '',
       email: json['email'],
       role: json['role'] ?? 'voter',
+      roleSelected: json['roleSelected'] ?? false,
       wardId: json['wardId'] ?? '',
       cityId: json['cityId'] ?? '',
       xpPoints: json['xpPoints'] ?? 0,
@@ -66,6 +69,7 @@ class UserModel {
       'phone': phone,
       'email': email,
       'role': role,
+      'roleSelected': roleSelected,
       'wardId': wardId,
       'cityId': cityId,
       'xpPoints': xpPoints,
@@ -84,6 +88,7 @@ class UserModel {
     String? phone,
     String? email,
     String? role,
+    bool? roleSelected,
     String? wardId,
     String? cityId,
     int? xpPoints,
@@ -100,6 +105,7 @@ class UserModel {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       role: role ?? this.role,
+      roleSelected: roleSelected ?? this.roleSelected,
       wardId: wardId ?? this.wardId,
       cityId: cityId ?? this.cityId,
       xpPoints: xpPoints ?? this.xpPoints,

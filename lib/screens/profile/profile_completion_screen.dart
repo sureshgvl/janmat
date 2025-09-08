@@ -180,6 +180,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         phone: '+91${phoneController.text.trim()}',
         email: currentUser.email,
         role: 'voter', // Default role
+        roleSelected: false, // Will be set in role selection screen
         wardId: selectedWard!.wardId,
         cityId: selectedCity!.cityId,
         xpPoints: 0,
