@@ -71,11 +71,7 @@ class ChatRepository {
   // Send a message
   Future<Message> sendMessage(String roomId, Message message) async {
     try {
-      // Check user quota before sending
-      final canSend = await _canUserSendMessage(message.senderId);
-      if (!canSend) {
-        throw Exception('Message quota exceeded. Watch an ad to get more messages.');
-      }
+      print('💾 Repository: Sending message "${message.text}" to room $roomId');
 
       final docRef = _firestore
           .collection('chats')
@@ -84,12 +80,21 @@ class ChatRepository {
           .doc(message.messageId);
 
       await docRef.set(message.toJson());
+      print('✅ Repository: Message saved to Firestore successfully');
 
-      // Update user's message count
-      await _incrementUserMessageCount(message.senderId);
+      // Update user's message count (only if they have quota, not XP)
+      // XP deduction is handled in the controller
+      final canUseQuota = await _canUserSendMessage(message.senderId);
+      if (canUseQuota) {
+        await _incrementUserMessageCount(message.senderId);
+        print('📊 Repository: User quota decremented');
+      } else {
+        print('💰 Repository: User using XP (quota not decremented)');
+      }
 
       return message;
     } catch (e) {
+      print('❌ Repository: Failed to send message: $e');
       throw Exception('Failed to send message: $e');
     }
   }
@@ -221,9 +226,47 @@ class ChatRepository {
         });
   }
 
-  // Vote on a poll
-  Future<void> voteOnPoll(String roomId, String pollId, String userId, String option) async {
+  // Get a specific poll by ID from any room
+  Future<Poll?> getPollById(String pollId) async {
     try {
+      // Since polls are stored per room, we need to find which room contains this poll
+      // This is a simplified approach - in production, you'd want to index polls differently
+      final roomsSnapshot = await _firestore.collection('chats').get();
+
+      for (final roomDoc in roomsSnapshot.docs) {
+        final pollDoc = await roomDoc.reference.collection('polls').doc(pollId).get();
+        if (pollDoc.exists) {
+          final data = pollDoc.data() as Map<String, dynamic>;
+          data['pollId'] = pollDoc.id;
+          return Poll.fromJson(data);
+        }
+      }
+
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get poll by ID: $e');
+    }
+  }
+
+  // Vote on a poll (finds the poll in any room)
+  Future<void> voteOnPoll(String pollId, String userId, String option) async {
+    try {
+      // Find which room contains this poll
+      final roomsSnapshot = await _firestore.collection('chats').get();
+      String? roomId;
+
+      for (final roomDoc in roomsSnapshot.docs) {
+        final pollDoc = await roomDoc.reference.collection('polls').doc(pollId).get();
+        if (pollDoc.exists) {
+          roomId = roomDoc.id;
+          break;
+        }
+      }
+
+      if (roomId == null) {
+        throw Exception('Poll not found');
+      }
+
       final pollRef = _firestore
           .collection('chats')
           .doc(roomId)

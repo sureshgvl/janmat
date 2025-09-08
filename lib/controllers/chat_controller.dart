@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,8 +37,11 @@ class ChatController extends GetxController {
   var messagesStream = Rx<List<Message>>([]);
   var userQuotaStream = Rx<UserQuota?>(null);
 
-  // Current user
-  UserModel? get currentUser => _getCurrentUser();
+  // Cached complete user data
+  UserModel? _cachedUser;
+
+  // Current user (returns cached complete data or fallback)
+  UserModel? get currentUser => _cachedUser ?? _getCurrentUser();
 
   @override
   void onInit() {
@@ -106,7 +110,7 @@ class ChatController extends GetxController {
 
       if (userDoc.exists) {
         final data = userDoc.data()!;
-        return UserModel(
+        final completeUser = UserModel(
           uid: data['uid'] ?? firebaseUser.uid,
           name: data['name'] ?? firebaseUser.displayName ?? 'Unknown',
           phone: data['phone'] ?? firebaseUser.phoneNumber ?? '',
@@ -121,6 +125,12 @@ class ChatController extends GetxController {
               : DateTime.now(),
           photoURL: data['photoURL'] ?? firebaseUser.photoURL,
         );
+
+        // Cache the complete user data
+        _cachedUser = completeUser;
+        print('✅ Cached complete user data: XP=${completeUser.xpPoints}');
+
+        return completeUser;
       }
     } catch (e) {
       print('Error fetching user data: $e');
@@ -265,12 +275,31 @@ class ChatController extends GetxController {
 
   // Listen to messages in real-time
   void _listenToMessages(String roomId) {
+    print('👂 Starting message listener for room: $roomId');
+
     _repository.getMessagesForRoom(roomId).listen((messagesList) {
-      messages = messagesList;
-      messagesStream.value = messagesList;
+      print('📨 Received ${messagesList.length} messages for room $roomId');
+
+      // Filter out deleted messages
+      final activeMessages = messagesList.where((msg) => !(msg.isDeleted ?? false)).toList();
+      print('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
+
+      // Debug: Print message details
+      for (var msg in activeMessages) {
+        print('   Message: "${msg.text}" by ${msg.senderId} at ${msg.createdAt} (deleted: ${msg.isDeleted})');
+      }
+
+      messages = activeMessages;
+      messagesStream.value = activeMessages;
 
       // Mark messages as read
       _markUnreadMessagesAsRead();
+
+      update(); // Force UI update
+    }, onError: (error) {
+      print('❌ Error in message listener: $error');
+    }, onDone: () {
+      print('🔚 Message listener completed for room: $roomId');
     });
   }
 
@@ -290,10 +319,22 @@ class ChatController extends GetxController {
 
   // Send text message
   Future<void> sendTextMessage(String text) async {
-    if (text.trim().isEmpty || currentChatRoom == null) return;
+    if (text.trim().isEmpty || currentChatRoom == null) {
+      print('❌ Cannot send message: empty text or no chat room selected');
+      return;
+    }
 
     final user = currentUser;
-    if (user == null) return;
+    if (user == null) {
+      print('❌ Cannot send message: user is null');
+      return;
+    }
+
+    print('📤 Attempting to send message: "${text.trim()}"');
+    print('   User: ${user.name} (${user.uid})');
+    print('   Room: ${currentChatRoom!.roomId}');
+    print('   Can send: $canSendMessage');
+    print('   XP balance: ${user.xpPoints}');
 
     isSendingMessage = true;
     update();
@@ -308,20 +349,43 @@ class ChatController extends GetxController {
         readBy: [user.uid],
       );
 
+      print('💾 Sending message to Firestore...');
       await _repository.sendMessage(currentChatRoom!.roomId, message);
+      print('✅ Message sent successfully to Firestore');
 
-      // Handle quota/XP deduction
+      // Handle quota/XP deduction ONLY after successful message send
       if (userQuota != null && userQuota!.canSendMessage) {
+        print('📊 Using regular quota for message');
         // Use regular quota
         await fetchUserQuota();
       } else if (user.xpPoints > 0) {
+        print('💰 Using XP for message (XP before: ${user.xpPoints})');
         // Use XP points (1 XP = 1 message)
         await _deductXPForMessage(user.uid);
         await refreshUserDataAndChat(); // Refresh to get updated XP
+        print('✅ XP deducted successfully');
+      } else {
+        print('❌ No quota or XP available for message');
+        Get.snackbar(
+          'Cannot Send Message',
+          'You have no remaining messages or XP. Please watch an ad to earn XP.',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+          duration: const Duration(seconds: 4),
+        );
       }
 
     } catch (e) {
+      print('❌ Failed to send message: $e');
       errorMessage = e.toString();
+
+      Get.snackbar(
+        'Message Failed',
+        'Failed to send message. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
     }
 
     isSendingMessage = false;
@@ -472,6 +536,8 @@ class ChatController extends GetxController {
     if (user == null || currentChatRoom == null) return;
 
     try {
+      print('📊 Creating poll: "$question" with ${options.length} options');
+
       final poll = Poll(
         pollId: _uuid.v4(),
         question: question,
@@ -482,20 +548,47 @@ class ChatController extends GetxController {
         userVotes: {},
       );
 
+      // Create the poll in Firestore
       await _repository.createPoll(currentChatRoom!.roomId, poll);
+      print('✅ Poll created successfully: ${poll.pollId}');
+
+      // Create a message to announce the poll in chat
+      final pollMessage = Message(
+        messageId: _uuid.v4(),
+        text: '📊 ${question}',
+        senderId: user.uid,
+        type: 'poll',
+        createdAt: DateTime.now(),
+        readBy: [user.uid],
+        metadata: {'pollId': poll.pollId}, // Store poll reference
+      );
+
+      print('💬 Creating poll announcement message...');
+      await _repository.sendMessage(currentChatRoom!.roomId, pollMessage);
+      print('✅ Poll announcement message sent');
+
     } catch (e) {
+      print('❌ Error creating poll: $e');
       errorMessage = e.toString();
       update();
+
+      Get.snackbar(
+        'Poll Creation Failed',
+        'Failed to create poll. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 
   // Vote on poll
   Future<void> voteOnPoll(String pollId, String option) async {
     final user = currentUser;
-    if (user == null || currentChatRoom == null) return;
+    if (user == null) return;
 
     try {
-      await _repository.voteOnPoll(currentChatRoom!.roomId, pollId, user.uid, option);
+      await _repository.voteOnPoll(pollId, user.uid, option);
     } catch (e) {
       errorMessage = e.toString();
       update();
@@ -512,6 +605,56 @@ class ChatController extends GetxController {
     } catch (e) {
       errorMessage = e.toString();
       update();
+    }
+  }
+
+  // Delete message (mark as deleted)
+  Future<void> deleteMessage(String messageId) async {
+    final user = currentUser;
+    if (user == null || currentChatRoom == null) return;
+
+    try {
+      print('🗑️ Attempting to delete message: $messageId');
+
+      // Check if user is admin or message sender
+      final message = messages.firstWhereOrNull((msg) => msg.messageId == messageId);
+      if (message == null) {
+        print('❌ Message not found: $messageId');
+        return;
+      }
+
+      // Allow deletion if user is admin or message sender
+      if (user.role == 'admin' || message.senderId == user.uid) {
+        await _repository.deleteMessage(currentChatRoom!.roomId, messageId);
+        print('✅ Message marked as deleted: $messageId');
+
+        Get.snackbar(
+          'Message Deleted',
+          'Message has been deleted',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+          duration: const Duration(seconds: 2),
+        );
+      } else {
+        print('❌ User not authorized to delete message');
+        Get.snackbar(
+          'Permission Denied',
+          'You can only delete your own messages',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+        );
+      }
+    } catch (e) {
+      print('❌ Error deleting message: $e');
+      errorMessage = e.toString();
+      update();
+
+      Get.snackbar(
+        'Delete Failed',
+        'Failed to delete message. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
     }
   }
 
@@ -536,6 +679,14 @@ class ChatController extends GetxController {
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'xpPoints': FieldValue.increment(-1),
       });
+
+      // Refresh cached user data to reflect XP changes
+      await getCompleteUserData();
+
+      // Force UI update for all listeners (including profile screen)
+      update();
+
+      print('💰 XP deducted for message. Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
     } catch (e) {
       print('Error deducting XP for message: $e');
     }
@@ -773,6 +924,10 @@ class ChatController extends GetxController {
   Future<void> refreshUserDataAndChat() async {
     print('🔄 Refreshing user data and chat after profile completion');
     _isInitialLoadComplete = false; // Reset flag for fresh load
+
+    // Clear cached user data to force refresh
+    _cachedUser = null;
+
     await _initializeChat();
   }
 
@@ -830,84 +985,291 @@ class ChatController extends GetxController {
         'Please wait for the ad to load or try again later.',
         backgroundColor: Colors.orange.shade100,
         colorText: Colors.orange.shade800,
+        duration: const Duration(seconds: 3),
       );
       return;
     }
 
     try {
-      // Show loading dialog
+      print('🎬 Starting rewarded ad flow');
+
+      // Show loading dialog with timeout
       Get.dialog(
-        const AlertDialog(
+        AlertDialog(
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading rewarded ad...'),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('Loading rewarded ad...'),
+              const SizedBox(height: 8),
+              Text(
+                'Please wait while we prepare your ad',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Get.back();
+                Get.snackbar(
+                  'Cancelled',
+                  'Ad loading cancelled',
+                  backgroundColor: Colors.grey.shade100,
+                  colorText: Colors.grey.shade800,
+                );
+              },
+              child: const Text('Cancel'),
+            ),
+          ],
         ),
         barrierDismissible: false,
       );
 
-      // Show the rewarded ad and wait for reward
-      final rewardXP = await adMobService.showRewardedAd();
+      // Show the rewarded ad and wait for reward with timeout
+      print('🎬 Showing rewarded ad...');
 
-      // Close loading dialog
-      Get.back();
+      // Create a timeout future that will complete after 15 seconds
+      final timeoutCompleter = Completer<int?>();
+      final timeoutFuture = Future.delayed(const Duration(seconds: 15), () {
+        print('⏰ Ad operation timeout reached');
+        if (!timeoutCompleter.isCompleted) {
+          timeoutCompleter.complete(null); // Complete with null to indicate timeout
+        }
+        // Close loading dialog
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+      });
+
+      final adFuture = adMobService.showRewardedAd().then((result) {
+        // If ad completes before timeout, cancel the timeout
+        if (!timeoutCompleter.isCompleted) {
+          timeoutCompleter.complete(result);
+        }
+        return result;
+      }).catchError((error) {
+        print('❌ Error in ad future: $error');
+        if (!timeoutCompleter.isCompleted) {
+          timeoutCompleter.complete(null);
+        }
+        // Close loading dialog
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+        return null;
+      });
+
+      // Wait for either the ad to complete or timeout
+      final rewardXP = await timeoutCompleter.future;
+
+      // Close loading dialog if still open (double check)
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      print('🎯 Ad result: rewardXP = $rewardXP');
 
       if (rewardXP != null && rewardXP > 0) {
+        print('🎯 Ad completed, attempting to award $rewardXP XP');
+
         // Award XP to user
-        await _awardXPFromAd(rewardXP);
+        final awardSuccess = await _awardXPFromAd(rewardXP);
 
-        Get.snackbar(
-          '🎉 Reward Earned!',
-          'You earned $rewardXP XP for watching the ad!',
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade800,
-          duration: const Duration(seconds: 4),
-        );
+        if (awardSuccess) {
+          Get.snackbar(
+            '🎉 Reward Earned!',
+            'You earned $rewardXP XP for watching the ad!',
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade800,
+            duration: const Duration(seconds: 4),
+          );
 
-        // Refresh user data to show updated XP
-        await refreshUserDataAndChat();
+          // Refresh user data to show updated XP
+          await refreshUserDataAndChat();
+        } else {
+          Get.snackbar(
+            'Reward Error',
+            'Ad was watched but failed to award XP. Please contact support.',
+            backgroundColor: Colors.red.shade100,
+            colorText: Colors.red.shade800,
+            duration: const Duration(seconds: 4),
+          );
+        }
       } else {
-        Get.snackbar(
-          'No Reward',
-          'Ad was shown but no reward was earned.',
-          backgroundColor: Colors.orange.shade100,
-          colorText: Colors.orange.shade800,
-        );
+        print('⚠️ Ad was shown but no reward was earned - this might be normal for test ads');
+
+        // For test ads, still award some XP as fallback
+        if (adMobService.isTestAdUnit()) {
+          print('🧪 Test ad detected, awarding fallback XP');
+          final fallbackXP = 2;
+          final awardSuccess = await _awardXPFromAd(fallbackXP);
+
+          if (awardSuccess) {
+            Get.snackbar(
+              '🎉 Test Reward Earned!',
+              'You earned $fallbackXP XP (test mode)!',
+              backgroundColor: Colors.blue.shade100,
+              colorText: Colors.blue.shade800,
+              duration: const Duration(seconds: 4),
+            );
+            await refreshUserDataAndChat();
+          }
+        } else {
+          Get.snackbar(
+            'No Reward',
+            'Ad was shown but no reward was earned. Please try again.',
+            backgroundColor: Colors.orange.shade100,
+            colorText: Colors.orange.shade800,
+            duration: const Duration(seconds: 3),
+          );
+        }
       }
 
     } catch (e) {
+      print('❌ Error in rewarded ad flow: $e');
+
       // Close loading dialog if open
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
 
       Get.snackbar(
-        'Error',
-        'Failed to show ad: ${e.toString()}',
+        'Ad Error',
+        'Failed to show ad. Please try again later.',
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
       );
     }
   }
 
   // Award XP from watching ad
-  Future<void> _awardXPFromAd(int xpAmount) async {
+  Future<bool> _awardXPFromAd(int xpAmount) async {
     final user = currentUser;
-    if (user == null) return;
+    if (user == null) {
+      print('❌ Cannot award XP: user is null');
+      return false;
+    }
 
     try {
+      print('🏆 Attempting to award $xpAmount XP to user: ${user.uid}');
+
       // Use MonetizationRepository to handle XP transaction
       final monetizationRepo = MonetizationRepository();
 
       // Create XP transaction and update balance
       await monetizationRepo.updateUserXPBalance(user.uid, xpAmount);
 
+      // Immediately refresh cached user data to reflect XP changes
+      await getCompleteUserData();
+
+      // Force UI update for all listeners (including profile screen)
+      update();
+
+      print('✅ Successfully awarded $xpAmount XP to user: ${user.uid}');
+      print('   Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
+      return true;
+
     } catch (e) {
-      print('Error awarding XP from ad: $e');
+      print('❌ Error awarding XP from ad: $e');
+      print('   Error details: ${e.toString()}');
+      return false;
     }
+  }
+
+  // Get ad debug information
+  Map<String, dynamic> getAdDebugInfo() {
+    final adMobService = Get.find<AdMobService>();
+    return adMobService.getAdDebugInfo();
+  }
+
+  // Force close any stuck dialogs (for emergency use)
+  void forceCloseDialogs() {
+    int closedCount = 0;
+    while (Get.isDialogOpen ?? false) {
+      Get.back();
+      closedCount++;
+    }
+    if (closedCount > 0) {
+      Get.snackbar(
+        'Dialogs Closed',
+        'Closed $closedCount stuck dialog(s)',
+        backgroundColor: Colors.blue.shade100,
+        colorText: Colors.blue.shade800,
+        duration: const Duration(seconds: 2),
+      );
+    } else {
+      Get.snackbar(
+        'No Dialogs',
+        'No stuck dialogs found',
+        backgroundColor: Colors.grey.shade100,
+        colorText: Colors.grey.shade800,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  // Check dialog status
+  bool get hasOpenDialog => Get.isDialogOpen ?? false;
+
+  // Debug method to check user XP status
+  void debugUserXPStatus() {
+    final user = currentUser;
+    print('🔍 User XP Debug Info:');
+    print('   Current user: ${user?.name ?? 'null'}');
+    print('   User XP (cached): ${_cachedUser?.xpPoints ?? 'null'}');
+    print('   User XP (current): ${user?.xpPoints ?? 'null'}');
+    print('   Can send message: $canSendMessage');
+    print('   Remaining messages: $remainingMessages');
+    print('   User quota loaded: ${userQuota != null}');
+    print('   Quota can send: ${userQuota?.canSendMessage ?? 'null'}');
+
+    Get.snackbar(
+      'XP Debug Info',
+      'XP: ${user?.xpPoints ?? 0}, Can Send: $canSendMessage',
+      backgroundColor: Colors.blue.shade100,
+      colorText: Colors.blue.shade800,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  // Force refresh messages (for debugging)
+  void forceRefreshMessages() {
+    if (currentChatRoom != null) {
+      print('🔄 Force refreshing messages for room: ${currentChatRoom!.roomId}');
+      // Re-initialize the message listener
+      _listenToMessages(currentChatRoom!.roomId);
+      update();
+
+      Get.snackbar(
+        'Messages Refreshed',
+        'Message list has been refreshed',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 2),
+      );
+    } else {
+      Get.snackbar(
+        'No Chat Room',
+        'Please select a chat room first',
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade800,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  // Debug all chat status
+  void debugChatStatus() {
+    print('🔍 Chat Debug Info:');
+    print('   Current room: ${currentChatRoom?.roomId ?? 'null'}');
+    print('   Messages count: ${messages.length}');
+    print('   Is sending: $isSendingMessage');
+    print('   Can send: $canSendMessage');
+    print('   Remaining messages: $remainingMessages');
+
+    debugUserXPStatus();
   }
 }

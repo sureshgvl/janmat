@@ -164,24 +164,30 @@ class MonetizationRepository {
 
   Future<void> updateUserXPBalance(String userId, int xpAmount) async {
     try {
+      print('💰 Updating XP balance for user $userId: $xpAmount');
+
       // Create transaction record
       final transaction = XPTransaction(
         transactionId: '', // Will be set by Firestore
         userId: userId,
         amount: xpAmount,
-        type: xpAmount > 0 ? 'purchase' : 'spent',
-        description: xpAmount > 0 ? 'XP purchased' : 'XP spent',
+        type: xpAmount > 0 ? 'earned' : 'spent',
+        description: xpAmount > 0 ? 'XP earned from ad' : 'XP spent',
         timestamp: DateTime.now(),
       );
 
-      await createXPTransaction(transaction);
+      final transactionId = await createXPTransaction(transaction);
+      print('✅ Created XP transaction: $transactionId');
 
       // Update user XP balance
       final userRef = _firestore.collection('users').doc(userId);
       await userRef.update({
         'xpPoints': FieldValue.increment(xpAmount),
       });
+
+      print('✅ Updated user XP balance: +$xpAmount');
     } catch (e) {
+      print('❌ Failed to update XP balance: $e');
       throw Exception('Failed to update XP balance: $e');
     }
   }
