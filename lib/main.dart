@@ -106,6 +106,10 @@ class MyApp extends StatelessWidget {
     }
 
     try {
+      // Verify user still exists by checking if we can get their ID token
+      // This will fail if the user has been deleted
+      await currentUser.getIdToken(true);
+
       // Check if user profile is complete
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -131,9 +135,10 @@ class MyApp extends StatelessWidget {
           };
         }
       } else {
-        // User document doesn't exist, need profile completion
+        // User document doesn't exist, force logout and go to login
+        await FirebaseAuth.instance.signOut();
         return {
-          'route': '/profile-completion',
+          'route': '/login',
           'locale': locale,
         };
       }
@@ -143,7 +148,12 @@ class MyApp extends StatelessWidget {
         'locale': locale,
       };
     } catch (e) {
-      // If there's an error checking profile, default to login
+      // If there's an error (user deleted, token expired, etc.), force logout
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (_) {
+        // Ignore sign out errors
+      }
       return {
         'route': '/login',
         'locale': locale,
