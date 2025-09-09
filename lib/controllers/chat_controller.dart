@@ -65,20 +65,20 @@ class ChatController extends GetxController {
 
     final user = await getCompleteUserData();
     if (user != null) {
-      print('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
-      print('💬 Chat initialized - User can send messages: $canSendMessage');
+    debugPrint('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
+    debugPrint('💬 Chat initialized - User can send messages: $canSendMessage');
       fetchUserQuota();
       fetchChatRooms();
 
       // Ensure ward room exists for voters with complete profiles
       if (user.role == 'voter' && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
-        print('🏛️ Ensuring ward room exists for voter: ward_${user.cityId}_${user.wardId}');
+      debugPrint('🏛️ Ensuring ward room exists for voter: ward_${user.cityId}_${user.wardId}');
         ensureWardRoomExists();
       } else if (user.role == 'voter') {
-        print('⚠️ Voter profile incomplete - missing ward or city info');
+      debugPrint('⚠️ Voter profile incomplete - missing ward or city info');
       }
     } else {
-      print('❌ No user found for chat initialization');
+    debugPrint('❌ No user found for chat initialization');
     }
   }
 
@@ -139,12 +139,12 @@ class ChatController extends GetxController {
 
         // Cache the complete user data
         _cachedUser = completeUser;
-        print('✅ Cached complete user data: XP=${completeUser.xpPoints}');
+      debugPrint('✅ Cached complete user data: XP=${completeUser.xpPoints}');
 
         return completeUser;
       }
     } catch (e) {
-      print('Error fetching user data: $e');
+    debugPrint('Error fetching user data: $e');
     }
 
     return _getCurrentUser(); // Fallback to basic data
@@ -163,7 +163,7 @@ class ChatController extends GetxController {
     try {
       chatRooms = await _repository.getChatRoomsForUser(user.uid, user.role);
       chatRoomsStream.value = chatRooms;
-      print('📋 Loaded ${chatRooms.length} chat rooms for ${user.role}');
+    debugPrint('📋 Loaded ${chatRooms.length} chat rooms for ${user.role}');
 
       // Mark initial load as complete
       _isInitialLoadComplete = true;
@@ -175,7 +175,7 @@ class ChatController extends GetxController {
       chatRooms = [];
       chatRoomsStream.value = [];
       _isInitialLoadComplete = true; // Even on error, mark as complete
-      print('❌ Failed to load chat rooms: $e');
+    debugPrint('❌ Failed to load chat rooms: $e');
     }
 
     isLoading = false;
@@ -244,7 +244,7 @@ class ChatController extends GetxController {
       // Show notification for new rooms
       final addedRooms = newRoomIds.difference(currentRoomIds);
       if (addedRooms.isNotEmpty) {
-        print('🆕 New chat rooms available: ${addedRooms.length}');
+      debugPrint('🆕 New chat rooms available: ${addedRooms.length}');
       }
 
       // Show notification for deleted rooms
@@ -271,10 +271,10 @@ class ChatController extends GetxController {
       userQuotaStream.value = userQuota;
       // Reset the logging flag when quota is loaded
       _canSendMessageLogged = false;
-      print('📊 User quota loaded: ${userQuota?.remainingMessages ?? 0} messages remaining');
+    debugPrint('📊 User quota loaded: ${userQuota?.remainingMessages ?? 0} messages remaining');
       update();
     } catch (e) {
-      print('❌ Failed to fetch user quota: $e');
+    debugPrint('❌ Failed to fetch user quota: $e');
     }
   }
 
@@ -283,7 +283,7 @@ class ChatController extends GetxController {
     currentChatRoom = chatRoom;
     messages = [];
     messagesStream.value = [];
-    print('🎯 Selected chat room: ${chatRoom.title} (${chatRoom.roomId})');
+  debugPrint('🎯 Selected chat room: ${chatRoom.title} (${chatRoom.roomId})');
 
     // Start listening to messages
     _listenToMessages(chatRoom.roomId);
@@ -292,18 +292,18 @@ class ChatController extends GetxController {
 
   // Listen to messages in real-time
   void _listenToMessages(String roomId) {
-    print('👂 Starting message listener for room: $roomId');
+  debugPrint('👂 Starting message listener for room: $roomId');
 
     _repository.getMessagesForRoom(roomId).listen((messagesList) {
-      print('📨 Received ${messagesList.length} messages for room $roomId');
+    debugPrint('📨 Received ${messagesList.length} messages for room $roomId');
 
       // Filter out deleted messages
       final activeMessages = messagesList.where((msg) => !(msg.isDeleted ?? false)).toList();
-      print('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
+    debugPrint('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
 
       // Debug: Print message details
       for (var msg in activeMessages) {
-        print('   Message: "${msg.text}" by ${msg.senderId} at ${msg.createdAt} (deleted: ${msg.isDeleted})');
+      debugPrint('   Message: "${msg.text}" by ${msg.senderId} at ${msg.createdAt} (deleted: ${msg.isDeleted})');
       }
 
       messages = activeMessages;
@@ -314,9 +314,9 @@ class ChatController extends GetxController {
 
       update(); // Force UI update
     }, onError: (error) {
-      print('❌ Error in message listener: $error');
+    debugPrint('❌ Error in message listener: $error');
     }, onDone: () {
-      print('🔚 Message listener completed for room: $roomId');
+    debugPrint('🔚 Message listener completed for room: $roomId');
     });
   }
 
@@ -337,23 +337,23 @@ class ChatController extends GetxController {
   // Send text message
   Future<void> sendTextMessage(String text) async {
     if (text.trim().isEmpty || currentChatRoom == null) {
-      print('❌ Cannot send message: empty text or no chat room selected');
+    debugPrint('❌ Cannot send message: empty text or no chat room selected');
       return;
     }
 
     final user = currentUser;
     if (user == null) {
-      print('❌ Cannot send message: user is null');
+    debugPrint('❌ Cannot send message: user is null');
       return;
     }
 
     // Debug logging (only in debug mode)
     assert(() {
-      print('📤 Attempting to send message: "${text.trim()}"');
-      print('   User: ${user.name} (${user.uid})');
-      print('   Room: ${currentChatRoom!.roomId}');
-      print('   Can send: $canSendMessage');
-      print('   XP balance: ${user.xpPoints}');
+    debugPrint('📤 Attempting to send message: "${text.trim()}"');
+    debugPrint('   User: ${user.name} (${user.uid})');
+    debugPrint('   Room: ${currentChatRoom!.roomId}');
+    debugPrint('   Can send: $canSendMessage');
+    debugPrint('   XP balance: ${user.xpPoints}');
       return true;
     }());
 
@@ -372,12 +372,12 @@ class ChatController extends GetxController {
 
       // Debug logging (only in debug mode)
       assert(() {
-        print('💾 Sending message to Firestore...');
+      debugPrint('💾 Sending message to Firestore...');
         return true;
       }());
       await _repository.sendMessage(currentChatRoom!.roomId, message);
       assert(() {
-        print('✅ Message sent successfully to Firestore');
+      debugPrint('✅ Message sent successfully to Firestore');
         return true;
       }());
 
@@ -385,7 +385,7 @@ class ChatController extends GetxController {
       if (userQuota != null && userQuota!.canSendMessage) {
         // Debug logging (only in debug mode)
         assert(() {
-          print('📊 Using regular quota for message');
+        debugPrint('📊 Using regular quota for message');
           return true;
         }());
         // Use regular quota
@@ -393,20 +393,20 @@ class ChatController extends GetxController {
       } else if (user.xpPoints > 0) {
         // Debug logging (only in debug mode)
         assert(() {
-          print('💰 Using XP for message (XP before: ${user.xpPoints})');
+        debugPrint('💰 Using XP for message (XP before: ${user.xpPoints})');
           return true;
         }());
         // Use XP points (1 XP = 1 message)
         await _deductXPForMessage(user.uid);
         await refreshUserDataAndChat(); // Refresh to get updated XP
         assert(() {
-          print('✅ XP deducted successfully');
+        debugPrint('✅ XP deducted successfully');
           return true;
         }());
       } else {
         // Debug logging (only in debug mode)
         assert(() {
-          print('❌ No quota or XP available for message');
+        debugPrint('❌ No quota or XP available for message');
           return true;
         }());
         Get.snackbar(
@@ -419,7 +419,7 @@ class ChatController extends GetxController {
       }
 
     } catch (e) {
-      print('❌ Failed to send message: $e');
+    debugPrint('❌ Failed to send message: $e');
       errorMessage = e.toString();
 
       Get.snackbar(
@@ -579,7 +579,7 @@ class ChatController extends GetxController {
     if (user == null || currentChatRoom == null) return;
 
     try {
-      print('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
+    debugPrint('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
 
       final poll = Poll.create(
         pollId: _uuid.v4(),
@@ -591,7 +591,7 @@ class ChatController extends GetxController {
 
       // Create the poll in Firestore
       await _repository.createPoll(currentChatRoom!.roomId, poll);
-      print('✅ Poll created successfully: ${poll.pollId}');
+    debugPrint('✅ Poll created successfully: ${poll.pollId}');
 
       // Create a message to announce the poll in chat
       final pollMessage = Message(
@@ -604,12 +604,12 @@ class ChatController extends GetxController {
         metadata: {'pollId': poll.pollId}, // Store poll reference
       );
 
-      print('💬 Creating poll announcement message...');
+    debugPrint('💬 Creating poll announcement message...');
       await _repository.sendMessage(currentChatRoom!.roomId, pollMessage);
-      print('✅ Poll announcement message sent');
+    debugPrint('✅ Poll announcement message sent');
 
     } catch (e) {
-      print('❌ Error creating poll: $e');
+    debugPrint('❌ Error creating poll: $e');
       errorMessage = e.toString();
       update();
 
@@ -655,19 +655,19 @@ class ChatController extends GetxController {
     if (user == null || currentChatRoom == null) return;
 
     try {
-      print('🗑️ Attempting to delete message: $messageId');
+    debugPrint('🗑️ Attempting to delete message: $messageId');
 
       // Check if user is admin or message sender
       final message = messages.firstWhereOrNull((msg) => msg.messageId == messageId);
       if (message == null) {
-        print('❌ Message not found: $messageId');
+      debugPrint('❌ Message not found: $messageId');
         return;
       }
 
       // Allow deletion if user is admin or message sender
       if (user.role == 'admin' || message.senderId == user.uid) {
         await _repository.deleteMessage(currentChatRoom!.roomId, messageId);
-        print('✅ Message marked as deleted: $messageId');
+      debugPrint('✅ Message marked as deleted: $messageId');
 
         Get.snackbar(
           'Message Deleted',
@@ -677,7 +677,7 @@ class ChatController extends GetxController {
           duration: const Duration(seconds: 2),
         );
       } else {
-        print('❌ User not authorized to delete message');
+      debugPrint('❌ User not authorized to delete message');
         Get.snackbar(
           'Permission Denied',
           'You can only delete your own messages',
@@ -686,7 +686,7 @@ class ChatController extends GetxController {
         );
       }
     } catch (e) {
-      print('❌ Error deleting message: $e');
+    debugPrint('❌ Error deleting message: $e');
       errorMessage = e.toString();
       update();
 
@@ -727,9 +727,9 @@ class ChatController extends GetxController {
       // Force UI update for all listeners (including profile screen)
       update();
 
-      print('💰 XP deducted for message. Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
+    debugPrint('💰 XP deducted for message. Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
     } catch (e) {
-      print('Error deducting XP for message: $e');
+    debugPrint('Error deducting XP for message: $e');
     }
   }
 
@@ -821,16 +821,16 @@ class ChatController extends GetxController {
       // Fetch complete user data from Firestore
       final user = await getCompleteUserData();
       if (user == null) {
-        print('❌ No user found for ward room creation');
+      debugPrint('❌ No user found for ward room creation');
         return;
       }
 
       if (user.wardId.isEmpty || user.cityId.isEmpty) {
-        print('⚠️ User profile incomplete - wardId or cityId missing');
+      debugPrint('⚠️ User profile incomplete - wardId or cityId missing');
         return;
       }
 
-      print('🔍 Checking ward room for user: ${user.name}, ward: ${user.wardId}, city: ${user.cityId}');
+    debugPrint('🔍 Checking ward room for user: ${user.name}, ward: ${user.wardId}, city: ${user.cityId}');
 
       // Check if ward room exists
       final wardRoomId = 'ward_${user.cityId}_${user.wardId}';
@@ -838,11 +838,11 @@ class ChatController extends GetxController {
       final wardRoomExists = existingRooms.any((room) => room.roomId == wardRoomId);
 
       if (wardRoomExists) {
-        print('✅ Ward room already exists: $wardRoomId');
+      debugPrint('✅ Ward room already exists: $wardRoomId');
         return;
       }
 
-      print('🏗️ Creating new ward room: $wardRoomId');
+    debugPrint('🏗️ Creating new ward room: $wardRoomId');
 
       // Get city and ward names for better display
       final cityName = await _getCityName(user.cityId);
@@ -859,13 +859,13 @@ class ChatController extends GetxController {
       );
 
       await _repository.createChatRoom(chatRoom);
-      print('✅ Ward room created successfully: $wardRoomId');
+    debugPrint('✅ Ward room created successfully: $wardRoomId');
 
       // Refresh chat rooms list
       await fetchChatRooms();
 
     } catch (e) {
-      print('❌ Failed to ensure ward room exists: $e');
+    debugPrint('❌ Failed to ensure ward room exists: $e');
     }
   }
 
@@ -882,7 +882,7 @@ class ChatController extends GetxController {
         return data?['name'] ?? cityId.toUpperCase();
       }
     } catch (e) {
-      print('Error fetching city name: $e');
+    debugPrint('Error fetching city name: $e');
     }
     return cityId.toUpperCase();
   }
@@ -902,7 +902,7 @@ class ChatController extends GetxController {
         return data?['name'] ?? 'Ward $wardId';
       }
     } catch (e) {
-      print('Error fetching ward name: $e');
+    debugPrint('Error fetching ward name: $e');
     }
     return 'Ward $wardId';
   }
@@ -963,7 +963,7 @@ class ChatController extends GetxController {
 
   // Clear cached user data (call when user logs out or switches)
   void clearUserCache() {
-    print('🧹 Clearing cached user data');
+  debugPrint('🧹 Clearing cached user data');
     _cachedUser = null;
     userQuota = null;
     userQuotaStream.value = null;
@@ -981,14 +981,14 @@ class ChatController extends GetxController {
 
   // Handle user authentication state change (call from auth controller)
   Future<void> handleAuthStateChange() async {
-    print('🔐 Handling authentication state change');
+  debugPrint('🔐 Handling authentication state change');
     clearUserCache();
     await _initializeChat();
   }
 
   // Force refresh user data (for debugging/manual refresh)
   Future<void> forceRefreshUserData() async {
-    print('🔄 Force refreshing user data');
+  debugPrint('🔄 Force refreshing user data');
     _cachedUser = null;
     await getCompleteUserData();
     await fetchUserQuota();
@@ -997,7 +997,7 @@ class ChatController extends GetxController {
 
   // Refresh user data and reinitialize chat (call after profile completion)
   Future<void> refreshUserDataAndChat() async {
-    print('🔄 Refreshing user data and chat after profile completion');
+  debugPrint('🔄 Refreshing user data and chat after profile completion');
     _isInitialLoadComplete = false; // Reset flag for fresh load
 
     // Clear cached user data to force refresh
@@ -1008,7 +1008,7 @@ class ChatController extends GetxController {
 
   // Manual refresh of chat rooms (for debugging/admin purposes)
   Future<void> refreshChatRooms() async {
-    print('🔄 Manual refresh of chat rooms requested');
+  debugPrint('🔄 Manual refresh of chat rooms requested');
     _isInitialLoadComplete = false; // Reset flag
     await fetchChatRooms();
   }
@@ -1069,7 +1069,7 @@ class ChatController extends GetxController {
     }
 
     try {
-      print('🎬 Starting rewarded ad flow');
+    debugPrint('🎬 Starting rewarded ad flow');
 
       // Show loading dialog with timeout
       Get.dialog(
@@ -1106,12 +1106,12 @@ class ChatController extends GetxController {
       );
 
       // Show the rewarded ad and wait for reward with timeout
-      print('🎬 Showing rewarded ad...');
+    debugPrint('🎬 Showing rewarded ad...');
 
       // Create a timeout future that will complete after 15 seconds
       final timeoutCompleter = Completer<int?>();
       final timeoutFuture = Future.delayed(const Duration(seconds: 15), () {
-        print('⏰ Ad operation timeout reached');
+      debugPrint('⏰ Ad operation timeout reached');
         if (!timeoutCompleter.isCompleted) {
           timeoutCompleter.complete(null); // Complete with null to indicate timeout
         }
@@ -1128,7 +1128,7 @@ class ChatController extends GetxController {
         }
         return result;
       }).catchError((error) {
-        print('❌ Error in ad future: $error');
+      debugPrint('❌ Error in ad future: $error');
         if (!timeoutCompleter.isCompleted) {
           timeoutCompleter.complete(null);
         }
@@ -1147,10 +1147,10 @@ class ChatController extends GetxController {
         Get.back();
       }
 
-      print('🎯 Ad result: rewardXP = $rewardXP');
+    debugPrint('🎯 Ad result: rewardXP = $rewardXP');
 
       if (rewardXP != null && rewardXP > 0) {
-        print('🎯 Ad completed, attempting to award $rewardXP XP');
+      debugPrint('🎯 Ad completed, attempting to award $rewardXP XP');
 
         // Award XP to user
         final awardSuccess = await _awardXPFromAd(rewardXP);
@@ -1176,11 +1176,11 @@ class ChatController extends GetxController {
           );
         }
       } else {
-        print('⚠️ Ad was shown but no reward was earned - this might be normal for test ads');
+      debugPrint('⚠️ Ad was shown but no reward was earned - this might be normal for test ads');
 
         // For test ads, still award some XP as fallback
         if (adMobService.isTestAdUnit()) {
-          print('🧪 Test ad detected, awarding fallback XP');
+        debugPrint('🧪 Test ad detected, awarding fallback XP');
           final fallbackXP = 2;
           final awardSuccess = await _awardXPFromAd(fallbackXP);
 
@@ -1206,7 +1206,7 @@ class ChatController extends GetxController {
       }
 
     } catch (e) {
-      print('❌ Error in rewarded ad flow: $e');
+    debugPrint('❌ Error in rewarded ad flow: $e');
 
       // Close loading dialog if open
       if (Get.isDialogOpen ?? false) {
@@ -1227,12 +1227,12 @@ class ChatController extends GetxController {
   Future<bool> _awardXPFromAd(int xpAmount) async {
     final user = currentUser;
     if (user == null) {
-      print('❌ Cannot award XP: user is null');
+    debugPrint('❌ Cannot award XP: user is null');
       return false;
     }
 
     try {
-      print('🏆 Attempting to award $xpAmount XP to user: ${user.uid}');
+    debugPrint('🏆 Attempting to award $xpAmount XP to user: ${user.uid}');
 
       // Use MonetizationRepository to handle XP transaction
       final monetizationRepo = MonetizationRepository();
@@ -1246,13 +1246,13 @@ class ChatController extends GetxController {
       // Force UI update for all listeners (including profile screen)
       update();
 
-      print('✅ Successfully awarded $xpAmount XP to user: ${user.uid}');
-      print('   Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
+    debugPrint('✅ Successfully awarded $xpAmount XP to user: ${user.uid}');
+    debugPrint('   Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
       return true;
 
     } catch (e) {
-      print('❌ Error awarding XP from ad: $e');
-      print('   Error details: ${e.toString()}');
+    debugPrint('❌ Error awarding XP from ad: $e');
+    debugPrint('   Error details: ${e.toString()}');
       return false;
     }
   }
@@ -1297,21 +1297,21 @@ class ChatController extends GetxController {
     final user = currentUser;
     final firebaseUser = _auth.currentUser;
 
-    print('🔍 User XP Debug Info:');
-    print('   Firebase Auth User: ${firebaseUser?.displayName ?? 'null'} (${firebaseUser?.uid ?? 'null'})');
-    print('   Current user: ${user?.name ?? 'null'} (${user?.uid ?? 'null'})');
-    print('   Cached user: ${_cachedUser?.name ?? 'null'} (${_cachedUser?.uid ?? 'null'})');
-    print('   User XP (cached): ${_cachedUser?.xpPoints ?? 'null'}');
-    print('   User XP (current): ${user?.xpPoints ?? 'null'}');
-    print('   Can send message: $canSendMessage');
-    print('   Remaining messages: $remainingMessages');
-    print('   User quota loaded: ${userQuota != null}');
-    print('   Quota can send: ${userQuota?.canSendMessage ?? 'null'}');
-    print('   User role: ${user?.role ?? 'null'}');
+  debugPrint('🔍 User XP Debug Info:');
+  debugPrint('   Firebase Auth User: ${firebaseUser?.displayName ?? 'null'} (${firebaseUser?.uid ?? 'null'})');
+  debugPrint('   Current user: ${user?.name ?? 'null'} (${user?.uid ?? 'null'})');
+  debugPrint('   Cached user: ${_cachedUser?.name ?? 'null'} (${_cachedUser?.uid ?? 'null'})');
+  debugPrint('   User XP (cached): ${_cachedUser?.xpPoints ?? 'null'}');
+  debugPrint('   User XP (current): ${user?.xpPoints ?? 'null'}');
+  debugPrint('   Can send message: $canSendMessage');
+  debugPrint('   Remaining messages: $remainingMessages');
+  debugPrint('   User quota loaded: ${userQuota != null}');
+  debugPrint('   Quota can send: ${userQuota?.canSendMessage ?? 'null'}');
+  debugPrint('   User role: ${user?.role ?? 'null'}');
 
     // Check if there's a mismatch between Firebase Auth and cached user
     if (firebaseUser != null && _cachedUser != null && firebaseUser.uid != _cachedUser!.uid) {
-      print('   ⚠️ MISMATCH DETECTED: Firebase UID (${firebaseUser.uid}) != Cached UID (${_cachedUser!.uid})');
+    debugPrint('   ⚠️ MISMATCH DETECTED: Firebase UID (${firebaseUser.uid}) != Cached UID (${_cachedUser!.uid})');
     }
 
     Get.snackbar(
@@ -1326,7 +1326,7 @@ class ChatController extends GetxController {
   // Force refresh messages (for debugging)
   void forceRefreshMessages() {
     if (currentChatRoom != null) {
-      print('🔄 Force refreshing messages for room: ${currentChatRoom!.roomId}');
+    debugPrint('🔄 Force refreshing messages for room: ${currentChatRoom!.roomId}');
       // Re-initialize the message listener
       _listenToMessages(currentChatRoom!.roomId);
       update();
@@ -1352,7 +1352,7 @@ class ChatController extends GetxController {
   // Refresh current chat messages (called after poll voting)
   void refreshCurrentChatMessages() {
     if (currentChatRoom != null) {
-      print('🔄 Refreshing messages after poll vote for room: ${currentChatRoom!.roomId}');
+    debugPrint('🔄 Refreshing messages after poll vote for room: ${currentChatRoom!.roomId}');
       // Force a refresh of the message stream
       _listenToMessages(currentChatRoom!.roomId);
     }
@@ -1360,12 +1360,12 @@ class ChatController extends GetxController {
 
   // Debug all chat status
   void debugChatStatus() {
-    print('🔍 Chat Debug Info:');
-    print('   Current room: ${currentChatRoom?.roomId ?? 'null'}');
-    print('   Messages count: ${messages.length}');
-    print('   Is sending: $isSendingMessage');
-    print('   Can send: $canSendMessage');
-    print('   Remaining messages: $remainingMessages');
+  debugPrint('🔍 Chat Debug Info:');
+  debugPrint('   Current room: ${currentChatRoom?.roomId ?? 'null'}');
+  debugPrint('   Messages count: ${messages.length}');
+  debugPrint('   Is sending: $isSendingMessage');
+  debugPrint('   Can send: $canSendMessage');
+  debugPrint('   Remaining messages: $remainingMessages');
 
     debugUserXPStatus();
   }

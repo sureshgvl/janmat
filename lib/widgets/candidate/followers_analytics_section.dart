@@ -53,7 +53,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
       setState(() {
         isLoadingFollowers = false;
       });
-      print('Error loading followers: $e');
+    debugPrint('Error loading followers: $e');
     }
   }
 

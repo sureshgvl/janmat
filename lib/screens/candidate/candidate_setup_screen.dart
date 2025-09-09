@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import '../../models/candidate_model.dart';
+import '../../models/party_model.dart';
 import '../../repositories/candidate_repository.dart';
+import '../../repositories/party_repository.dart';
 import '../../controllers/chat_controller.dart';
 import '../../services/trial_service.dart';
 
@@ -17,6 +22,7 @@ class CandidateSetupScreen extends StatefulWidget {
 class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final candidateRepository = CandidateRepository();
+  final partyRepository = PartyRepository();
   final chatController = Get.find<ChatController>();
   final trialService = TrialService();
 
@@ -24,33 +30,35 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   final nameController = TextEditingController();
   final partyController = TextEditingController();
   final manifestoController = TextEditingController();
+  final symbolNameController = TextEditingController();
 
-  String? selectedParty;
+  Party? selectedParty;
+  String? symbolImageUrl;
   bool isLoading = false;
-
-  final List<String> parties = [
-    'Indian National Congress',
-    'Bharatiya Janata Party',
-    'Nationalist Congress Party (Ajit Pawar faction)',
-    'Nationalist Congress Party – Sharadchandra Pawar',
-    'Shiv Sena (Eknath Shinde faction)',
-    'Shiv Sena (Uddhav Balasaheb Thackeray – UBT)',
-    'Maharashtra Navnirman Sena',
-    'Communist Party of India',
-    'Communist Party of India (Marxist)',
-    'Bahujan Samaj Party',
-    'Samajwadi Party',
-    'All India Majlis-e-Ittehad-ul-Muslimeen',
-    'National Peoples Party',
-    'Peasants and Workers Party of India',
-    'Vanchit Bahujan Aaghadi',
-    'Rashtriya Samaj Paksha',
-  ];
+  bool isIndependent = false;
+  bool isLoadingParties = true;
+  List<Party> parties = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadParties();
+  }
+
+  Future<void> _loadParties() async {
+    try {
+      final fetchedParties = await partyRepository.getActiveParties();
+      setState(() {
+        parties = fetchedParties;
+        isLoadingParties = false;
+      });
+    } catch (e) {
+      print('Error loading parties: $e');
+      setState(() {
+        isLoadingParties = false;
+      });
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -63,14 +71,20 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
       if (existingCandidate != null) {
         // Pre-fill form with existing data
         nameController.text = existingCandidate.name;
-        selectedParty = existingCandidate.party;
+        // Find the party by name from the loaded parties
+        if (parties.isNotEmpty) {
+          selectedParty = parties.firstWhere(
+            (party) => party.name == existingCandidate.party,
+            orElse: () => parties.first, // Default to first party if not found
+          );
+        }
         manifestoController.text = existingCandidate.manifesto ?? '';
       } else {
         // Fallback to user display name
         nameController.text = currentUser.displayName ?? '';
       }
     } catch (e) {
-      print('Error loading candidate data: $e');
+    debugPrint('Error loading candidate data: $e');
       // Fallback to user display name
       nameController.text = currentUser.displayName ?? '';
     }
@@ -95,18 +109,19 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
       }
 
       // Get existing candidate data
-      print('🔍 Candidate Setup: Looking for candidate data for user: ${currentUser.uid}');
+    debugPrint('🔍 Candidate Setup: Looking for candidate data for user: ${currentUser.uid}');
       final existingCandidate = await candidateRepository.getCandidateData(currentUser.uid);
       if (existingCandidate == null) {
-        print('❌ Candidate Setup: No candidate data found for user: ${currentUser.uid}');
+      debugPrint('❌ Candidate Setup: No candidate data found for user: ${currentUser.uid}');
         throw Exception('Candidate profile not found. Please complete your basic profile first.');
       }
-      print('✅ Candidate Setup: Found candidate data: ${existingCandidate.name}, ID: ${existingCandidate.candidateId}');
+    debugPrint('✅ Candidate Setup: Found candidate data: ${existingCandidate.name}, ID: ${existingCandidate.candidateId}');
 
       // Update candidate with additional details
       final updatedCandidate = existingCandidate.copyWith(
         name: nameController.text.trim(),
-        party: selectedParty!,
+        party: selectedParty!.name,
+        symbol: isIndependent ? symbolNameController.text.trim() : null,
         manifesto: manifestoController.text.trim().isNotEmpty
             ? manifestoController.text.trim()
             : null,
@@ -127,9 +142,9 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
       // Start 3-day free trial for new candidate
       try {
         await trialService.startTrialForCandidate(currentUser.uid);
-        print('✅ Started 3-day trial for new candidate');
+      debugPrint('✅ Started 3-day trial for new candidate');
       } catch (e) {
-        print('⚠️ Failed to start trial, but candidate profile created: $e');
+      debugPrint('⚠️ Failed to start trial, but candidate profile created: $e');
         // Don't fail the entire process if trial start fails
       }
 
@@ -154,11 +169,43 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
     });
   }
 
+  Future<void> _pickSymbolImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        // Upload to Firebase Storage
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser == null) return;
+
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('candidate_symbols')
+            .child('${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+        final uploadTask = storageRef.putFile(File(image.path));
+        final snapshot = await uploadTask.whenComplete(() => null);
+
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+
+        setState(() {
+          symbolImageUrl = downloadUrl;
+        });
+
+        Get.snackbar('Success', 'Symbol image uploaded successfully');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to upload symbol image: $e');
+    }
+  }
+
   @override
   void dispose() {
     nameController.dispose();
     partyController.dispose();
     manifestoController.dispose();
+    symbolNameController.dispose();
     super.dispose();
   }
 
@@ -218,39 +265,140 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                 const SizedBox(height: 24),
 
                 // Party Selection
-                DropdownButtonFormField<String>(
-                  value: selectedParty,
-                  decoration: const InputDecoration(
-                    labelText: 'Political Party *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.flag),
-                  ),
-                  items: parties.map((party) {
-                    return DropdownMenuItem<String>(
-                      value: party,
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 250),
-                        child: Text(
-                          party,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
+                isLoadingParties
+                    ? const CircularProgressIndicator()
+                    : DropdownButtonFormField<Party>(
+                        value: selectedParty,
+                        decoration: const InputDecoration(
+                          labelText: 'Political Party *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.flag),
                         ),
+                        items: parties.map((party) {
+                          return DropdownMenuItem<Party>(
+                            value: party,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 250),
+                              child: Text(
+                                party.getDisplayName(Localizations.localeOf(context).languageCode),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedParty = value;
+                            isIndependent = value?.name.toLowerCase().contains('independent') ?? false;
+                            if (!isIndependent) {
+                              symbolNameController.clear();
+                              symbolImageUrl = null;
+                            }
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select your political party';
+                          }
+                          return null;
+                        },
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedParty = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select your political party';
-                    }
-                    return null;
-                  },
-                ),
                 const SizedBox(height: 24),
+
+                // Independent Symbol Fields (only show when Independent is selected)
+                if (isIndependent) ...[
+                  // Symbol Name Field
+                  TextFormField(
+                    controller: symbolNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Symbol Name *',
+                      hintText: 'e.g., Table, Chair, Whistle, Book, etc.',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.label),
+                    ),
+                    validator: (value) {
+                      if (isIndependent && (value == null || value.trim().isEmpty)) {
+                        return 'Please enter a symbol name for independent candidates';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Symbol Image Upload
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Symbol Image (Optional)',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Upload an image of your chosen symbol. If not provided, a default icon will be used.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            if (symbolImageUrl != null)
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  image: DecorationImage(
+                                    image: NetworkImage(symbolImageUrl!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.image,
+                                  color: Colors.grey,
+                                  size: 30,
+                                ),
+                              ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _pickSymbolImage,
+                                icon: const Icon(Icons.upload),
+                                label: const Text('Upload Symbol Image'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Manifesto Field
                 TextFormField(

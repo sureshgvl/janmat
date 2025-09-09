@@ -40,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-      print('Error loading stored language: $e');
+    debugPrint('Error loading stored language: $e');
       // Fallback to current locale
       final locale = Localizations.localeOf(context);
       if (mounted) {
@@ -196,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
-      print('Error changing language: $e');
+    debugPrint('Error changing language: $e');
 
       // Revert to previous language on error
       if (mounted) {

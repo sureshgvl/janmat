@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:get/get.dart';
 
@@ -29,14 +30,22 @@ class AdMobService extends GetxService {
   // Initialize AdMob
   Future<void> _initializeAdMob() async {
     await MobileAds.instance.initialize();
-    print('✅ AdMob initialized successfully');
+    // Only log in debug mode
+    assert(() {
+      debugPrint('✅ AdMob initialized successfully');
+      return true;
+    }());
     _loadRewardedAd();
   }
 
   // Load rewarded ad
   void _loadRewardedAd() {
-    print('🔄 Loading rewarded ad with unit ID: $rewardedAdUnitId');
-    print('   Using ${isTestAdUnit() ? 'TEST' : 'PRODUCTION'} ad unit');
+    // Only log in debug mode
+    assert(() {
+      debugPrint('🔄 Loading rewarded ad with unit ID: $rewardedAdUnitId');
+      debugPrint('   Using ${isTestAdUnit() ? 'TEST' : 'PRODUCTION'} ad unit');
+      return true;
+    }());
 
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
@@ -46,8 +55,13 @@ class AdMobService extends GetxService {
           _rewardedAd = ad;
           _isRewardedAdLoaded = true;
           isRewardedAdLoaded.value = true;
-          print('✅ Rewarded ad loaded successfully');
-          print('   Ad type: ${ad.responseInfo?.mediationAdapterClassName ?? 'Unknown'}');
+
+          // Only log in debug mode
+          assert(() {
+            debugPrint('✅ Rewarded ad loaded successfully');
+            debugPrint('   Ad type: ${ad.responseInfo?.mediationAdapterClassName ?? 'Unknown'}');
+            return true;
+          }());
 
           // Set up callbacks
           _setupRewardedAdCallbacks();
@@ -55,15 +69,15 @@ class AdMobService extends GetxService {
         onAdFailedToLoad: (error) {
           _isRewardedAdLoaded = false;
           isRewardedAdLoaded.value = false;
-          print('❌ Failed to load rewarded ad: $error');
-          print('   Error code: ${error.code}');
-          print('   Error message: ${error.message}');
-          print('   Error domain: ${error.domain}');
-          print('   Ad unit ID: $rewardedAdUnitId');
+        debugPrint('❌ Failed to load rewarded ad: $error');
+        debugPrint('   Error code: ${error.code}');
+        debugPrint('   Error message: ${error.message}');
+        debugPrint('   Error domain: ${error.domain}');
+        debugPrint('   Ad unit ID: $rewardedAdUnitId');
 
           // Handle specific error codes
           if (error.code == 3) { // No fill
-            print('   No fill error - no ads available. Will retry in 60 seconds.');
+          debugPrint('   No fill error - no ads available. Will retry in 60 seconds.');
             Future.delayed(const Duration(seconds: 60), () {
               if (!_isRewardedAdLoaded) {
                 _loadRewardedAd();
@@ -90,18 +104,18 @@ class AdMobService extends GetxService {
   // Set up rewarded ad callbacks
   void _setupRewardedAdCallbacks() {
     if (_rewardedAd == null) {
-      print('⚠️ Cannot setup callbacks: rewarded ad is null');
+    debugPrint('⚠️ Cannot setup callbacks: rewarded ad is null');
       return;
     }
 
-    print('🔧 Setting up rewarded ad callbacks');
+  debugPrint('🔧 Setting up rewarded ad callbacks');
 
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
-        print('🎬 Rewarded ad showed full screen content');
+      debugPrint('🎬 Rewarded ad showed full screen content');
       },
       onAdDismissedFullScreenContent: (ad) {
-        print('🎬 Rewarded ad dismissed');
+      debugPrint('🎬 Rewarded ad dismissed');
         // Dispose and load new ad
         ad.dispose();
         _rewardedAd = null;
@@ -110,7 +124,7 @@ class AdMobService extends GetxService {
         _loadRewardedAd();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        print('❌ Failed to show rewarded ad: $error');
+      debugPrint('❌ Failed to show rewarded ad: $error');
         ad.dispose();
         _rewardedAd = null;
         _isRewardedAdLoaded = false;
@@ -118,17 +132,17 @@ class AdMobService extends GetxService {
         _loadRewardedAd();
       },
       onAdImpression: (ad) {
-        print('📊 Rewarded ad impression recorded');
+      debugPrint('📊 Rewarded ad impression recorded');
       },
     );
 
-    print('✅ Rewarded ad callbacks setup complete');
+  debugPrint('✅ Rewarded ad callbacks setup complete');
   }
 
   // Show rewarded ad and return reward amount
   Future<int?> showRewardedAd() async {
     if (!_isRewardedAdLoaded || _rewardedAd == null) {
-      print('❌ Rewarded ad not ready');
+    debugPrint('❌ Rewarded ad not ready');
       return null;
     }
 
@@ -137,7 +151,7 @@ class AdMobService extends GetxService {
 
     _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
-        print('🎉 User earned reward: ${reward.amount} ${reward.type}');
+      debugPrint('🎉 User earned reward: ${reward.amount} ${reward.type}');
         rewardEarned = true;
 
         // Award 3-5 XP randomly
@@ -149,7 +163,7 @@ class AdMobService extends GetxService {
     // Add a timeout to handle cases where reward is never earned
     Future.delayed(const Duration(seconds: 30), () {
       if (!rewardEarned && !completer.isCompleted) {
-        print('⚠️ Reward callback timeout - assuming ad was watched without reward');
+      debugPrint('⚠️ Reward callback timeout - assuming ad was watched without reward');
         // Still award some XP as fallback
         final fallbackXP = 2; // Smaller reward for fallback
         completer.complete(fallbackXP);
@@ -164,7 +178,7 @@ class AdMobService extends GetxService {
 
   // Force reload rewarded ad (for testing)
   void reloadRewardedAd() {
-    print('🔄 Force reloading rewarded ad');
+  debugPrint('🔄 Force reloading rewarded ad');
     _rewardedAd?.dispose();
     _rewardedAd = null;
     _isRewardedAdLoaded = false;
@@ -174,7 +188,7 @@ class AdMobService extends GetxService {
 
   // Simulate reward for testing (only in debug mode)
   Future<int?> simulateRewardForTesting() async {
-    print('🧪 Simulating reward for testing purposes');
+  debugPrint('🧪 Simulating reward for testing purposes');
     final rewardXP = 3 + Random().nextInt(3); // 3, 4, or 5 XP
     return rewardXP;
   }
@@ -205,7 +219,7 @@ class AdMobService extends GetxService {
   void useProductionAdUnit() {
     const productionId = 'ca-app-pub-6744159173512986/8362274275';
     if (rewardedAdUnitId != productionId) {
-      print('🔄 Switching to production ad unit');
+    debugPrint('🔄 Switching to production ad unit');
       reloadRewardedAd();
     }
   }
@@ -214,7 +228,7 @@ class AdMobService extends GetxService {
   void useTestAdUnit() {
     const testId = 'ca-app-pub-3940256099942544/5224354917';
     if (rewardedAdUnitId != testId) {
-      print('🔄 Switching to test ad unit');
+    debugPrint('🔄 Switching to test ad unit');
       reloadRewardedAd();
     }
   }

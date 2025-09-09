@@ -3,6 +3,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class DeviceInfo {
   final String deviceId;
@@ -142,7 +143,7 @@ class DeviceService {
       await _notifyOtherDevicesSignOut(userId, deviceId);
 
     } catch (e) {
-      print('Error registering device: $e');
+    debugPrint('Error registering device: $e');
       throw Exception('Failed to register device');
     }
   }
@@ -169,7 +170,7 @@ class DeviceService {
 
       await batch.commit();
     } catch (e) {
-      print('Error deactivating other devices: $e');
+    debugPrint('Error deactivating other devices: $e');
     }
   }
 
@@ -195,7 +196,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-      print('Error sending sign-out notifications: $e');
+    debugPrint('Error sending sign-out notifications: $e');
     }
   }
 
@@ -204,7 +205,7 @@ class DeviceService {
     try {
       // Note: In a real implementation, you'd send this via your backend
       // For now, we'll just print the token for demonstration
-      print('Would send sign-out notification to device: $deviceToken');
+    debugPrint('Would send sign-out notification to device: $deviceToken');
 
       // You can implement FCM message sending here or via cloud functions
       // Example:
@@ -218,7 +219,7 @@ class DeviceService {
       */
 
     } catch (e) {
-      print('Error sending FCM notification: $e');
+    debugPrint('Error sending FCM notification: $e');
     }
   }
 
@@ -240,7 +241,7 @@ class DeviceService {
 
       return false;
     } catch (e) {
-      print('Error checking device status: $e');
+    debugPrint('Error checking device status: $e');
       return false;
     }
   }
@@ -259,7 +260,7 @@ class DeviceService {
           .map((doc) => DeviceInfo.fromMap(doc.data()))
           .toList();
     } catch (e) {
-      print('Error getting user devices: $e');
+    debugPrint('Error getting user devices: $e');
       return [];
     }
   }
@@ -289,7 +290,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-      print('Error signing out device: $e');
+    debugPrint('Error signing out device: $e');
       throw Exception('Failed to sign out device');
     }
   }
@@ -342,7 +343,7 @@ class DeviceService {
 
       await batch.commit();
     } catch (e) {
-      print('Error cleaning up inactive devices: $e');
+    debugPrint('Error cleaning up inactive devices: $e');
     }
   }
 }

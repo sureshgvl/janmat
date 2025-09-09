@@ -78,11 +78,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       _isPhonePreFilled = true;
     }
 
-    print('🔍 Pre-filled user data:');
-    print('  Name: ${nameController.text} (${_isNamePreFilled ? 'from auth' : 'manual'})');
-    print('  Phone: ${phoneController.text} (${_isPhonePreFilled ? 'from auth' : 'manual'})');
-    print('  Email: ${currentUser.email}');
-    print('  Photo: ${currentUser.photoURL}');
+  debugPrint('🔍 Pre-filled user data:');
+  debugPrint('  Name: ${nameController.text} (${_isNamePreFilled ? 'from auth' : 'manual'})');
+  debugPrint('  Phone: ${phoneController.text} (${_isPhonePreFilled ? 'from auth' : 'manual'})');
+  debugPrint('  Email: ${currentUser.email}');
+  debugPrint('  Photo: ${currentUser.photoURL}');
 
     // Trigger rebuild to show helper text
     setState(() {});
@@ -212,9 +212,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       // Refresh chat controller with new user data and create ward room
       try {
         await chatController.refreshUserDataAndChat();
-        print('✅ Ward chat room created successfully for user: ${currentUser.uid}');
+      debugPrint('✅ Ward chat room created successfully for user: ${currentUser.uid}');
       } catch (e) {
-        print('⚠️ Failed to create ward room, but profile saved: $e');
+      debugPrint('⚠️ Failed to create ward room, but profile saved: $e');
         // Don't fail the entire process if room creation fails
       }
 
@@ -240,11 +240,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           );
 
           // Save basic candidate record to make them visible to voters
-          print('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
-          print('   City: ${candidate.cityId}, Ward: ${candidate.wardId}');
-          print('   Temp ID: ${candidate.candidateId}');
+        debugPrint('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
+        debugPrint('   City: ${candidate.cityId}, Ward: ${candidate.wardId}');
+        debugPrint('   Temp ID: ${candidate.candidateId}');
           final actualCandidateId = await candidateRepository.createCandidate(candidate);
-          print('✅ Basic candidate record created with ID: $actualCandidateId');
+        debugPrint('✅ Basic candidate record created with ID: $actualCandidateId');
 
           // Update user document with the actual candidateId
           await FirebaseFirestore.instance
@@ -253,10 +253,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               .update({
                 'candidateId': actualCandidateId,
               });
-          print('✅ User document updated with candidateId: $actualCandidateId');
+        debugPrint('✅ User document updated with candidateId: $actualCandidateId');
 
         } catch (e) {
-          print('⚠️ Failed to create basic candidate record: $e');
+        debugPrint('⚠️ Failed to create basic candidate record: $e');
           // Continue with navigation even if candidate creation fails
         }
       }

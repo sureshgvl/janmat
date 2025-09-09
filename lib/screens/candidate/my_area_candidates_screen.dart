@@ -50,7 +50,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
           }
         }
       } catch (e) {
-        print('Error loading user data: $e');
+      debugPrint('Error loading user data: $e');
       }
     }
   }
@@ -78,7 +78,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         }
       }
     } catch (e) {
-      print('Error adding current user to candidates list: $e');
+    debugPrint('Error adding current user to candidates list: $e');
     }
   }
 

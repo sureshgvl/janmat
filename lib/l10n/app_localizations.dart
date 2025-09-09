@@ -970,6 +970,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social Media'**
   String get socialMedia;
+
+  /// No description provided for @party_bjp.
+  ///
+  /// In en, this message translates to:
+  /// **'Bharatiya Janata Party'**
+  String get party_bjp;
+
+  /// No description provided for @party_inc.
+  ///
+  /// In en, this message translates to:
+  /// **'Indian National Congress'**
+  String get party_inc;
+
+  /// No description provided for @party_ss_ubt.
+  ///
+  /// In en, this message translates to:
+  /// **'Shiv Sena (Uddhav Balasaheb Thackeray)'**
+  String get party_ss_ubt;
+
+  /// No description provided for @party_ss_shinde.
+  ///
+  /// In en, this message translates to:
+  /// **'Balasahebanchi Shiv Sena (Shinde)'**
+  String get party_ss_shinde;
+
+  /// No description provided for @party_ncp_ajit.
+  ///
+  /// In en, this message translates to:
+  /// **'Nationalist Congress Party (Ajit Pawar)'**
+  String get party_ncp_ajit;
+
+  /// No description provided for @party_ncp_sp.
+  ///
+  /// In en, this message translates to:
+  /// **'Nationalist Congress Party (Sharad Pawar)'**
+  String get party_ncp_sp;
+
+  /// No description provided for @party_mns.
+  ///
+  /// In en, this message translates to:
+  /// **'Maharashtra Navnirman Sena'**
+  String get party_mns;
+
+  /// No description provided for @party_pwpi.
+  ///
+  /// In en, this message translates to:
+  /// **'Peasants and Workers Party of India'**
+  String get party_pwpi;
+
+  /// No description provided for @party_cpi_m.
+  ///
+  /// In en, this message translates to:
+  /// **'Communist Party of India (Marxist)'**
+  String get party_cpi_m;
+
+  /// No description provided for @party_rsp.
+  ///
+  /// In en, this message translates to:
+  /// **'Rashtriya Samaj Paksha'**
+  String get party_rsp;
+
+  /// No description provided for @party_sp.
+  ///
+  /// In en, this message translates to:
+  /// **'Samajwadi Party'**
+  String get party_sp;
+
+  /// No description provided for @party_bsp.
+  ///
+  /// In en, this message translates to:
+  /// **'Bahujan Samaj Party'**
+  String get party_bsp;
+
+  /// No description provided for @party_bva.
+  ///
+  /// In en, this message translates to:
+  /// **'Bahujan Vikas Aaghadi'**
+  String get party_bva;
+
+  /// No description provided for @party_republican_sena.
+  ///
+  /// In en, this message translates to:
+  /// **'Republican Sena'**
+  String get party_republican_sena;
+
+  /// No description provided for @party_abs.
+  ///
+  /// In en, this message translates to:
+  /// **'Akhil Bharatiya Sena'**
+  String get party_abs;
+
+  /// No description provided for @party_vba.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanchit Bahujan Aghadi'**
+  String get party_vba;
+
+  /// No description provided for @party_independent.
+  ///
+  /// In en, this message translates to:
+  /// **'Independents'**
+  String get party_independent;
+
+  /// No description provided for @changePartySymbolTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Party & Symbol'**
+  String get changePartySymbolTitle;
+
+  /// No description provided for @updateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateButton;
+
+  /// No description provided for @updatePartyAffiliationHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Your Party Affiliation'**
+  String get updatePartyAffiliationHeader;
+
+  /// No description provided for @updatePartyAffiliationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change your party or become independent with a custom symbol.'**
+  String get updatePartyAffiliationSubtitle;
+
+  /// No description provided for @currentParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Party'**
+  String get currentParty;
+
+  /// No description provided for @symbolLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol: {symbol}'**
+  String symbolLabel(Object symbol);
+
+  /// No description provided for @newPartyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New Party *'**
+  String get newPartyLabel;
+
+  /// No description provided for @selectPartyValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select your party'**
+  String get selectPartyValidation;
+
+  /// No description provided for @symbolNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol Name *'**
+  String get symbolNameLabel;
+
+  /// No description provided for @symbolNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Table, Chair, Whistle, Book, etc.'**
+  String get symbolNameHint;
+
+  /// No description provided for @symbolNameValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a symbol name for independent candidates'**
+  String get symbolNameValidation;
+
+  /// No description provided for @symbolImageOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol Image (Optional)'**
+  String get symbolImageOptional;
+
+  /// No description provided for @symbolImageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload an image of your chosen symbol. If not provided, a default icon will be used.'**
+  String get symbolImageDescription;
+
+  /// No description provided for @uploadSymbolImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Symbol Image'**
+  String get uploadSymbolImage;
+
+  /// No description provided for @importantNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Important Notice'**
+  String get importantNotice;
+
+  /// No description provided for @partyChangeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing your party affiliation will update your profile immediately. This change will be visible to all voters.'**
+  String get partyChangeWarning;
+
+  /// No description provided for @partyUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your party and symbol have been updated successfully!'**
+  String get partyUpdateSuccess;
+
+  /// No description provided for @partyUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update party and symbol: {error}'**
+  String partyUpdateError(Object error);
+
+  /// No description provided for @symbolUploadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol image uploaded successfully'**
+  String get symbolUploadSuccess;
+
+  /// No description provided for @symbolUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to upload symbol image: {error}'**
+  String symbolUploadError(Object error);
+
+  /// No description provided for @updatingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating...'**
+  String get updatingText;
+
+  /// No description provided for @updateInstructionText.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap update to save your party and symbol changes'**
+  String get updateInstructionText;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

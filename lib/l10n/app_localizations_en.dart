@@ -465,4 +465,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get socialMedia => 'Social Media';
+
+  @override
+  String get party_bjp => 'Bharatiya Janata Party';
+
+  @override
+  String get party_inc => 'Indian National Congress';
+
+  @override
+  String get party_ss_ubt => 'Shiv Sena (Uddhav Balasaheb Thackeray)';
+
+  @override
+  String get party_ss_shinde => 'Balasahebanchi Shiv Sena (Shinde)';
+
+  @override
+  String get party_ncp_ajit => 'Nationalist Congress Party (Ajit Pawar)';
+
+  @override
+  String get party_ncp_sp => 'Nationalist Congress Party (Sharad Pawar)';
+
+  @override
+  String get party_mns => 'Maharashtra Navnirman Sena';
+
+  @override
+  String get party_pwpi => 'Peasants and Workers Party of India';
+
+  @override
+  String get party_cpi_m => 'Communist Party of India (Marxist)';
+
+  @override
+  String get party_rsp => 'Rashtriya Samaj Paksha';
+
+  @override
+  String get party_sp => 'Samajwadi Party';
+
+  @override
+  String get party_bsp => 'Bahujan Samaj Party';
+
+  @override
+  String get party_bva => 'Bahujan Vikas Aaghadi';
+
+  @override
+  String get party_republican_sena => 'Republican Sena';
+
+  @override
+  String get party_abs => 'Akhil Bharatiya Sena';
+
+  @override
+  String get party_vba => 'Vanchit Bahujan Aghadi';
+
+  @override
+  String get party_independent => 'Independents';
+
+  @override
+  String get changePartySymbolTitle => 'Change Party & Symbol';
+
+  @override
+  String get updateButton => 'Update';
+
+  @override
+  String get updatePartyAffiliationHeader => 'Update Your Party Affiliation';
+
+  @override
+  String get updatePartyAffiliationSubtitle => 'Change your party or become independent with a custom symbol.';
+
+  @override
+  String get currentParty => 'Current Party';
+
+  @override
+  String symbolLabel(Object symbol) {
+    return 'Symbol: $symbol';
+  }
+
+  @override
+  String get newPartyLabel => 'New Party *';
+
+  @override
+  String get selectPartyValidation => 'Please select your party';
+
+  @override
+  String get symbolNameLabel => 'Symbol Name *';
+
+  @override
+  String get symbolNameHint => 'e.g., Table, Chair, Whistle, Book, etc.';
+
+  @override
+  String get symbolNameValidation => 'Please enter a symbol name for independent candidates';
+
+  @override
+  String get symbolImageOptional => 'Symbol Image (Optional)';
+
+  @override
+  String get symbolImageDescription => 'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
+
+  @override
+  String get uploadSymbolImage => 'Upload Symbol Image';
+
+  @override
+  String get importantNotice => 'Important Notice';
+
+  @override
+  String get partyChangeWarning => 'Changing your party affiliation will update your profile immediately. This change will be visible to all voters.';
+
+  @override
+  String get partyUpdateSuccess => 'Your party and symbol have been updated successfully!';
+
+  @override
+  String partyUpdateError(Object error) {
+    return 'Failed to update party and symbol: $error';
+  }
+
+  @override
+  String get symbolUploadSuccess => 'Symbol image uploaded successfully';
+
+  @override
+  String symbolUploadError(Object error) {
+    return 'Failed to upload symbol image: $error';
+  }
+
+  @override
+  String get updatingText => 'Updating...';
+
+  @override
+  String get updateInstructionText => 'Tap update to save your party and symbol changes';
 }

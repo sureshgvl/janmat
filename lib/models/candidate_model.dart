@@ -126,6 +126,7 @@ class Candidate {
   final String wardId;
   final String? manifesto;
   final String? photo;
+  final String? coverPhoto; // Premium feature: Facebook-style cover photo
   final Contact contact;
   final bool sponsored;
   final bool premium; // Premium candidate features
@@ -146,6 +147,7 @@ class Candidate {
     required this.wardId,
     this.manifesto,
     this.photo,
+    this.coverPhoto,
     required this.contact,
     required this.sponsored,
     required this.premium,
@@ -178,6 +180,7 @@ class Candidate {
       wardId: json['wardId'] ?? '',
       manifesto: json['manifesto'],
       photo: json['photo'],
+      coverPhoto: json['coverPhoto'],
       contact: Contact.fromJson(json['contact'] ?? {}),
       sponsored: json['sponsored'] ?? false,
       premium: json['premium'] ?? false,
@@ -201,6 +204,7 @@ class Candidate {
       'wardId': wardId,
       'manifesto': manifesto,
       'photo': photo,
+      'coverPhoto': coverPhoto,
       'contact': contact.toJson(),
       'sponsored': sponsored,
       'premium': premium,
@@ -223,6 +227,7 @@ class Candidate {
     String? wardId,
     String? manifesto,
     String? photo,
+    String? coverPhoto,
     Contact? contact,
     bool? sponsored,
     bool? premium,
@@ -243,6 +248,7 @@ class Candidate {
       wardId: wardId ?? this.wardId,
       manifesto: manifesto ?? this.manifesto,
       photo: photo ?? this.photo,
+      coverPhoto: coverPhoto ?? this.coverPhoto,
       contact: contact ?? this.contact,
       sponsored: sponsored ?? this.sponsored,
       premium: premium ?? this.premium,

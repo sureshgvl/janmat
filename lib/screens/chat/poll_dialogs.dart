@@ -34,7 +34,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
 
   Future<void> _loadPollData() async {
     try {
-      print('🔍 Loading poll data for pollId: ${widget.pollId}');
+    debugPrint('🔍 Loading poll data for pollId: ${widget.pollId}');
 
       // Get poll data from repository
       final chatRepository = ChatRepository();
@@ -43,7 +43,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
       final poll = await chatRepository.getPollById(widget.pollId);
 
       if (poll != null) {
-        print('✅ Poll found: ${poll.question}');
+      debugPrint('✅ Poll found: ${poll.question}');
 
         setState(() {
           _poll = poll;
@@ -52,9 +52,9 @@ class PollVotingDialogState extends State<PollVotingDialog> {
           _isLoading = false;
         });
 
-        print('📊 Poll loaded - Has voted: $_hasVoted, Selected: $_selectedOption');
+      debugPrint('📊 Poll loaded - Has voted: $_hasVoted, Selected: $_selectedOption');
       } else {
-        print('❌ Poll not found with ID: ${widget.pollId}');
+      debugPrint('❌ Poll not found with ID: ${widget.pollId}');
         setState(() {
           _isLoading = false;
         });
@@ -66,7 +66,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         );
       }
     } catch (e) {
-      print('❌ Error loading poll data: $e');
+    debugPrint('❌ Error loading poll data: $e');
       setState(() {
         _isLoading = false;
       });

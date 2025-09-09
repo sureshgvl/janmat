@@ -90,17 +90,17 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                       }).toList(),
                       value: selectedCity,
                       onChanged: (city) {
-                        print('🔍 [City Selected] ID: ${city?.cityId}, Name: ${city?.name}');
+                      debugPrint('🔍 [City Selected] ID: ${city?.cityId}, Name: ${city?.name}');
                         setState(() {
                           selectedCity = city;
                           selectedWard = null;
                         });
                         if (city != null) {
-                          print('📍 [Fetching Wards] For city: ${city.name} (${city.cityId})');
+                        debugPrint('📍 [Fetching Wards] For city: ${city.name} (${city.cityId})');
                           controller.fetchWardsByCity(city.cityId);
                           controller.clearCandidates();
                         } else {
-                          print('❌ [City Cleared] No city selected');
+                        debugPrint('❌ [City Cleared] No city selected');
                         }
                       },
                     ),
@@ -121,16 +121,16 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                       enabled: selectedCity != null,
                       onChanged: (ward) {
                         if (selectedCity != null) {
-                          print('🏛️ [Ward Selected] ID: ${ward?.wardId}, Name: ${ward?.name}, Areas: ${ward?.areas.length}');
+                        debugPrint('🏛️ [Ward Selected] ID: ${ward?.wardId}, Name: ${ward?.name}, Areas: ${ward?.areas.length}');
                           setState(() => selectedWard = ward);
                           if (ward != null) {
-                            print('👥 [Fetching Candidates] City: ${selectedCity!.name} (${selectedCity!.cityId}), Ward: ${ward.name} (${ward.wardId})');
+                          debugPrint('👥 [Fetching Candidates] City: ${selectedCity!.name} (${selectedCity!.cityId}), Ward: ${ward.name} (${ward.wardId})');
                             controller.fetchCandidatesByWard(selectedCity!.cityId, ward.wardId);
                           } else {
-                            print('❌ [Ward Cleared] No ward selected');
+                          debugPrint('❌ [Ward Cleared] No ward selected');
                           }
                         } else {
-                          print('⚠️ [Ward Selection Skipped] No city selected yet');
+                        debugPrint('⚠️ [Ward Selection Skipped] No city selected yet');
                         }
                       },
                     ),
@@ -213,9 +213,12 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   }
 
   Widget _buildCandidateCard(BuildContext context, candidate) {
+    // Determine if candidate is premium
+    bool isPremiumCandidate = candidate.sponsored || candidate.followersCount > 1000;
+
     // Get party symbol path
     String getPartySymbolPath(String party) {
-      print('🔍 [Mapping Party Symbol] For party: $party');
+    debugPrint('🔍 [Mapping Party Symbol] For party: $party');
       final partySymbols = {
         'Indian National Congress': 'assets/symbols/inc.png',
         'Bharatiya Janata Party': 'assets/symbols/bjp.png',
@@ -304,7 +307,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                    color: isPremiumCandidate ? Colors.blue.shade600 : Colors.grey.shade500,
                     width: 3,
                   ),
                 ),
@@ -315,7 +318,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return CircleAvatar(
-                              backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                              backgroundColor: isPremiumCandidate ? Colors.blue.shade600 : Colors.grey.shade500,
                               child: Text(
                                 candidate.name[0].toUpperCase(),
                                 style: const TextStyle(
@@ -328,7 +331,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           },
                         )
                       : CircleAvatar(
-                          backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                          backgroundColor: isPremiumCandidate ? Colors.blue.shade600 : Colors.grey.shade500,
                           child: Text(
                             candidate.name[0].toUpperCase(),
                             style: const TextStyle(
@@ -405,25 +408,34 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                         ),
                       ),
 
-                    // Sponsored Badge
-                    if (candidate.sponsored)
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Text(
-                          AppLocalizations.of(context)!.sponsored,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF374151),
-                          ),
+                    // Premium/Free Badge
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isPremiumCandidate
+                            ? Colors.blue.shade100
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isPremiumCandidate
+                              ? Colors.blue.shade300
+                              : Colors.grey.shade400,
                         ),
                       ),
+                      child: Text(
+                        isPremiumCandidate
+                            ? 'Premium'
+                            : 'Free',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isPremiumCandidate
+                              ? Colors.blue.shade700
+                              : Color(0xFF374151),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

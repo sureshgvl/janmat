@@ -465,4 +465,127 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get socialMedia => 'सोशल मीडिया';
+
+  @override
+  String get party_bjp => 'भारतीय जनता पक्ष';
+
+  @override
+  String get party_inc => 'भारतीय राष्ट्रीय काँग्रेस';
+
+  @override
+  String get party_ss_ubt => 'शिवसेना (उद्धव बाळासाहेब ठाकरे)';
+
+  @override
+  String get party_ss_shinde => 'बाळासाहेबांची शिवसेना';
+
+  @override
+  String get party_ncp_ajit => 'राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)';
+
+  @override
+  String get party_ncp_sp => 'राष्ट्रवादी काँग्रेस पक्ष (शरदचंद्र पवार)';
+
+  @override
+  String get party_mns => 'महाराष्ट्र नवनिर्माण सेना';
+
+  @override
+  String get party_pwpi => 'शेतकरी कामगार पक्ष';
+
+  @override
+  String get party_cpi_m => 'भारतीय कम्युनिस्ट पक्ष (मार्क्सवादी)';
+
+  @override
+  String get party_rsp => 'राष्ट्रीय समाज पक्ष';
+
+  @override
+  String get party_sp => 'समाजवादी पक्ष';
+
+  @override
+  String get party_bsp => 'बहुजन समाज पार्टी';
+
+  @override
+  String get party_bva => 'बहुजन विकास आघाडी';
+
+  @override
+  String get party_republican_sena => 'रिपब्लिकन सेना';
+
+  @override
+  String get party_abs => 'अखिल भारतीय सेना';
+
+  @override
+  String get party_vba => 'वंचित बहुजन आघाडी';
+
+  @override
+  String get party_independent => 'अपक्ष';
+
+  @override
+  String get changePartySymbolTitle => 'पक्ष आणि चिन्ह बदला';
+
+  @override
+  String get updateButton => 'अपडेट करा';
+
+  @override
+  String get updatePartyAffiliationHeader => 'तुमच्या पक्षाच्या संलग्नतेचे अपडेट करा';
+
+  @override
+  String get updatePartyAffiliationSubtitle => 'तुमचा पक्ष बदला किंवा स्वतंत्र होऊन सानुकूल चिन्ह वापरा.';
+
+  @override
+  String get currentParty => 'सध्याचा पक्ष';
+
+  @override
+  String symbolLabel(Object symbol) {
+    return 'चिन्ह: $symbol';
+  }
+
+  @override
+  String get newPartyLabel => 'नवीन पक्ष *';
+
+  @override
+  String get selectPartyValidation => 'कृपया तुमचा पक्ष निवडा';
+
+  @override
+  String get symbolNameLabel => 'चिन्हाचे नाव *';
+
+  @override
+  String get symbolNameHint => 'उदा., टेबल, खुर्ची, शिट्टी, पुस्तक, इ.';
+
+  @override
+  String get symbolNameValidation => 'कृपया अपक्ष उमेदवारांसाठी चिन्हाचे नाव टाका';
+
+  @override
+  String get symbolImageOptional => 'चिन्ह प्रतिमा (पर्यायी)';
+
+  @override
+  String get symbolImageDescription => 'तुमच्या निवडलेल्या चिन्हाची प्रतिमा अपलोड करा. न दिल्यास, डिफॉल्ट आयकॉन वापरला जाईल.';
+
+  @override
+  String get uploadSymbolImage => 'चिन्ह प्रतिमा अपलोड करा';
+
+  @override
+  String get importantNotice => 'महत्वाची सूचना';
+
+  @override
+  String get partyChangeWarning => 'तुमच्या पक्षाच्या संलग्नतेत बदल केल्याने तुमचे प्रोफाइल त्वरित अपडेट होईल. हा बदल सर्व मतदारांना दिसेल.';
+
+  @override
+  String get partyUpdateSuccess => 'तुमचा पक्ष आणि चिन्ह यशस्वीरित्या अपडेट झाले आहेत!';
+
+  @override
+  String partyUpdateError(Object error) {
+    return 'पक्ष आणि चिन्ह अपडेट करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get symbolUploadSuccess => 'चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली';
+
+  @override
+  String symbolUploadError(Object error) {
+    return 'चिन्ह प्रतिमा अपलोड करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get updatingText => 'अपडेट होत आहे...';
+
+  @override
+  String get updateInstructionText => 'तुमचा पक्ष आणि चिन्ह बदल जतन करण्यासाठी अपडेट टॅप करा';
 }

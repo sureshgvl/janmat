@@ -13,6 +13,8 @@ import 'screens/profile/profile_screen.dart';
 import 'screens/profile/profile_completion_screen.dart';
 import 'screens/candidate/candidate_profile_screen.dart';
 import 'screens/candidate/candidate_setup_screen.dart';
+import 'screens/candidate/change_party_symbol_screen.dart';
+import 'models/candidate_model.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/settings/device_management_screen.dart';
@@ -20,12 +22,26 @@ import 'screens/main_tab_navigation.dart';
 import 'core/app_bindings.dart';
 import 'services/language_service.dart';
 import 'l10n/app_localizations.dart';
+import 'utils/performance_monitor.dart';
 
 void main() async {
+  // Start performance monitoring
+  startPerformanceTimer('app_startup');
+
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Track Firebase initialization
+  startPerformanceTimer('firebase_init');
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  stopPerformanceTimer('firebase_init');
+
+  stopPerformanceTimer('app_startup');
+
+  // Log performance report in debug mode
+  logPerformanceReport();
+
   runApp(const MyApp());
 }
 
@@ -68,6 +84,17 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/profile-completion', page: () => const ProfileCompletionScreen()),
             GetPage(name: '/candidate-setup', page: () => const CandidateSetupScreen()),
             GetPage(name: '/candidate-profile', page: () => const CandidateProfileScreen()),
+            GetPage(
+              name: '/change-party-symbol',
+              page: () {
+                final candidate = Get.arguments as Candidate?;
+                final currentUser = FirebaseAuth.instance.currentUser;
+                return ChangePartySymbolScreen(
+                  currentCandidate: candidate,
+                  currentUser: currentUser,
+                );
+              },
+            ),
             GetPage(name: '/chat', page: () => const ChatListScreen()),
             GetPage(name: '/settings', page: () => const SettingsScreen()),
             GetPage(name: '/device-management', page: () => const DeviceManagementScreen()),
@@ -81,7 +108,7 @@ class MyApp extends StatelessWidget {
   Future<Map<String, dynamic>> _getInitialAppData() async {
     final languageService = LanguageService();
 
-    // Check if it's first time user
+    // Check if it's first time user (fast local check)
     final isFirstTime = await languageService.isFirstTimeUser();
     if (isFirstTime) {
       // Set default language to English for first-time users
@@ -92,7 +119,7 @@ class MyApp extends StatelessWidget {
       };
     }
 
-    // Get stored language preference
+    // Get stored language preference (fast local check)
     final storedLocale = await languageService.getStoredLocale();
     final locale = storedLocale ?? const Locale('en');
 
@@ -105,59 +132,14 @@ class MyApp extends StatelessWidget {
       };
     }
 
-    try {
-      // Verify user still exists by checking if we can get their ID token
-      // This will fail if the user has been deleted
-      await currentUser.getIdToken(true);
+    // For authenticated users, go to home and let the app handle profile checks later
+    // This reduces startup time significantly
+    return {
+      'route': '/home',
+      'locale': locale,
+    };
 
-      // Check if user profile is complete
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-
-      if (userDoc.exists) {
-        final userData = userDoc.data();
-        final profileCompleted = userData?['profileCompleted'] ?? false;
-        final roleSelected = userData?['roleSelected'] ?? false;
-
-        if (!roleSelected) {
-          return {
-            'route': '/role-selection',
-            'locale': locale,
-          };
-        }
-
-        if (!profileCompleted) {
-          return {
-            'route': '/profile-completion',
-            'locale': locale,
-          };
-        }
-      } else {
-        // User document doesn't exist, force logout and go to login
-        await FirebaseAuth.instance.signOut();
-        return {
-          'route': '/login',
-          'locale': locale,
-        };
-      }
-
-      return {
-        'route': '/home',
-        'locale': locale,
-      };
-    } catch (e) {
-      // If there's an error (user deleted, token expired, etc.), force logout
-      try {
-        await FirebaseAuth.instance.signOut();
-      } catch (_) {
-        // Ignore sign out errors
-      }
-      return {
-        'route': '/login',
-        'locale': locale,
-      };
-    }
+    // Note: Profile completion checks are now handled in the home screen
+    // This prevents slow Firebase calls during app initialization
   }
 }

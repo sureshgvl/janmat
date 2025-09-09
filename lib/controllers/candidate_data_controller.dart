@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/candidate_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../services/trial_service.dart';
@@ -26,7 +26,7 @@ class CandidateDataController extends GetxController {
     // Refresh data when coming back to the dashboard
     ever(candidateData, (_) {
       // This will trigger when candidateData changes
-      print('Candidate data updated, refreshing UI');
+    debugPrint('Candidate data updated, refreshing UI');
     });
   }
 
@@ -46,13 +46,13 @@ class CandidateDataController extends GetxController {
         final isInTrial = await _trialService.isTrialActive(user.uid);
         isPaid.value = isSponsored || isInTrial;
 
-        print('🎯 Candidate access check:');
-        print('   Sponsored: $isSponsored');
-        print('   In Trial: $isInTrial');
-        print('   Has Access: ${isPaid.value}');
+      debugPrint('🎯 Candidate access check:');
+      debugPrint('   Sponsored: $isSponsored');
+      debugPrint('   In Trial: $isInTrial');
+      debugPrint('   Has Access: ${isPaid.value}');
       }
     } catch (e) {
-      print('Error fetching candidate data: $e');
+    debugPrint('Error fetching candidate data: $e');
     } finally {
       isLoading.value = false;
     }
@@ -103,10 +103,10 @@ class CandidateDataController extends GetxController {
     try {
       final success = await _candidateRepository.updateCandidateExtraInfo(editedData.value!);
       if (!success) {
-        print('Warning: Failed to save photo URL to Firebase');
+      debugPrint('Warning: Failed to save photo URL to Firebase');
       }
     } catch (e) {
-      print('Error saving photo URL: $e');
+    debugPrint('Error saving photo URL: $e');
     }
   }
 
@@ -120,7 +120,7 @@ class CandidateDataController extends GetxController {
       }
       return success;
     } catch (e) {
-      print('Error saving extra info: $e');
+    debugPrint('Error saving extra info: $e');
       return false;
     }
   }
@@ -144,12 +144,12 @@ class CandidateDataController extends GetxController {
       final isInTrial = await _trialService.isTrialActive(user.uid);
       isPaid.value = isSponsored || isInTrial;
 
-      print('🔄 Refreshed access status:');
-      print('   Sponsored: $isSponsored');
-      print('   In Trial: $isInTrial');
-      print('   Has Access: ${isPaid.value}');
+    debugPrint('🔄 Refreshed access status:');
+    debugPrint('   Sponsored: $isSponsored');
+    debugPrint('   In Trial: $isInTrial');
+    debugPrint('   Has Access: ${isPaid.value}');
     } catch (e) {
-      print('Error refreshing access status: $e');
+    debugPrint('Error refreshing access status: $e');
     }
   }
 }

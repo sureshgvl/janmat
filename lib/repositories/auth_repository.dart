@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,7 @@ class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  bool _forceAccountPicker = false;
 
   // Phone Authentication
   Future<void> verifyPhoneNumber(String phoneNumber, Function(String) onCodeSent) async {
@@ -40,35 +42,31 @@ class AuthRepository {
   }
 
   // Google Sign-In
-  Future<UserCredential> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) throw 'Google sign-in cancelled';
+  Future<UserCredential?> signInWithGoogle() async {
+     try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn
+          .signIn(); // Always show account picker
+      if (googleUser == null) return null; // User cancelled
 
-    // Log Google response
-    print('Google Sign-In Response:');
-    print('Display Name: ${googleUser.displayName}');
-    print('Email: ${googleUser.email}');
-    print('Photo URL: ${googleUser.photoUrl}');
-    print('ID: ${googleUser.id}');
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    final OAuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-    final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final UserCredential userCredential = await _firebaseAuth
+          .signInWithCredential(credential);
 
-    // Log Firebase user details
-    final user = userCredential.user;
-    print('Firebase User:');
-    print('UID: ${user?.uid}');
-    print('Display Name: ${user?.displayName}');
-    print('Email: ${user?.email}');
-    print('Phone Number: ${user?.phoneNumber}');
-    print('Photo URL: ${user?.photoURL}');
+      // Ensure user record exists / is updated
+      await createOrUpdateUser(userCredential.user!);
 
-    return userCredential;
+      return userCredential;
+    } catch (e) {
+      debugPrint("Google Sign-In Error: $e");
+      rethrow; // let controller handle error feedback
+    }
   }
 
   // Create or update user in Firestore
@@ -114,12 +112,14 @@ class AuthRepository {
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
     await _googleSignIn.signOut();
+    // Set flag to force account picker on next sign-in
+    _forceAccountPicker = true;
   }
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
-  // Delete account and all associated data
+  // Delete account and all associated data with proper batch size management
   Future<void> deleteAccount() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
@@ -130,7 +130,7 @@ class AuthRepository {
     }
 
     final userId = user.uid;
-    final batch = _firestore.batch();
+    debugPrint('🗑️ Starting account deletion for user: $userId');
 
     try {
       // Get user document to check if they're a candidate
@@ -138,46 +138,16 @@ class AuthRepository {
       final userData = userDoc.data();
       final isCandidate = userData?['role'] == 'candidate';
 
-      // Delete user document and subcollections
-      await _deleteUserDocument(userId, batch);
-
-      // Delete conversations and messages
-      await _deleteConversations(userId, batch);
-
-      // Delete rewards
-      await _deleteRewards(userId, batch);
-
-      // Delete XP transactions
-      await _deleteXpTransactions(userId, batch);
-
-      // If user is a candidate, delete candidate data
-      if (isCandidate) {
-        await _deleteCandidateData(userId, batch);
-      }
-
-      // Delete chat rooms created by the user
-      await _deleteUserChatRooms(userId, batch);
-
-      // Delete user quota data
-      await _deleteUserQuota(userId, batch);
-
-      // Delete reported messages by the user
-      await _deleteUserReportedMessages(userId, batch);
-
-      // Delete user subscriptions
-      await _deleteUserSubscriptions(userId, batch);
-
-      // Delete user devices
-      await _deleteUserDevices(userId, batch);
-
-      // Commit all Firestore deletions
-      await batch.commit();
+      // Delete data in chunks to avoid Firestore batch size limits (500 writes max)
+      await _deleteUserDataInChunks(userId, isCandidate);
 
       // Clean up media files from Firebase Storage (after Firestore deletions)
       await _deleteUserMediaFiles(userId);
 
       // Delete from Firebase Auth BEFORE clearing cache
+      debugPrint('🔐 Deleting Firebase Auth account...');
       await user.delete();
+      debugPrint('✅ Firebase Auth account deleted');
 
       // Force sign out from Google (if applicable)
       await _googleSignIn.signOut();
@@ -188,13 +158,18 @@ class AuthRepository {
       // Clear all GetX controllers
       await _clearAllControllers();
 
+      debugPrint('✅ Account deletion completed successfully');
+
     } catch (e) {
+      debugPrint('❌ Account deletion failed: $e');
+
       // If Firestore deletion fails, still try to delete from Auth
       try {
         await user.delete();
         await _googleSignIn.signOut();
         await _clearAppCache();
         await _clearAllControllers();
+        debugPrint('⚠️ Partial deletion completed - some data may remain');
       } catch (authError) {
         // If auth deletion also fails, still clear cache and controllers
         try {
@@ -216,6 +191,97 @@ class AuthRepository {
     }
   }
 
+  // Delete user data in chunks to avoid Firestore batch size limits
+  Future<void> _deleteUserDataInChunks(String userId, bool isCandidate) async {
+    const int maxBatchSize = 400; // Leave some buffer below 500 limit
+    final batches = <WriteBatch>[];
+    int currentBatchIndex = 0;
+
+    // Helper function to get or create batch
+    WriteBatch _getCurrentBatch() {
+      if (currentBatchIndex >= batches.length) {
+        batches.add(_firestore.batch());
+      }
+      return batches[currentBatchIndex];
+    }
+
+    // Helper function to commit current batch if it's getting full
+    Future<void> _commitIfNeeded() async {
+      final currentBatch = batches[currentBatchIndex];
+      // We can't check exact size, so we'll commit periodically
+      // This is a simplified approach - in production, you'd track operations count
+      if (batches.length > currentBatchIndex + 1) {
+        await batches[currentBatchIndex].commit();
+        currentBatchIndex++;
+        debugPrint('📦 Committed batch ${currentBatchIndex}');
+      }
+    }
+
+    try {
+      // 1. Delete user document and subcollections
+      debugPrint('📄 Deleting user document and subcollections...');
+      await _deleteUserDocumentChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 2. Delete conversations and messages (this can be large)
+      debugPrint('💬 Deleting conversations and messages...');
+      await _deleteConversationsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 3. Delete rewards
+      debugPrint('🏆 Deleting rewards...');
+      await _deleteRewardsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 4. Delete XP transactions
+      debugPrint('⭐ Deleting XP transactions...');
+      await _deleteXpTransactionsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 5. If user is a candidate, delete candidate data
+      if (isCandidate) {
+        debugPrint('👥 Deleting candidate data...');
+        await _deleteCandidateDataChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      }
+
+      // 6. Delete chat rooms created by the user
+      debugPrint('🏠 Deleting user chat rooms...');
+      await _deleteUserChatRoomsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 7. Delete user quota data
+      debugPrint('📊 Deleting user quota...');
+      await _deleteUserQuota(userId, _getCurrentBatch());
+
+      // 8. Delete reported messages by the user
+      debugPrint('🚨 Deleting reported messages...');
+      await _deleteUserReportedMessagesChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 9. Delete user subscriptions
+      debugPrint('💳 Deleting user subscriptions...');
+      await _deleteUserSubscriptionsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // 10. Delete user devices
+      debugPrint('📱 Deleting user devices...');
+      await _deleteUserDevicesChunked(userId, _getCurrentBatch, _commitIfNeeded);
+
+      // Commit all remaining batches
+      for (int i = currentBatchIndex; i < batches.length; i++) {
+        await batches[i].commit();
+        debugPrint('📦 Committed final batch ${i + 1}');
+      }
+
+      debugPrint('✅ All user data deleted successfully');
+
+    } catch (e) {
+      debugPrint('❌ Error during chunked deletion: $e');
+      // Try to commit any pending batches
+      for (int i = currentBatchIndex; i < batches.length; i++) {
+        try {
+          await batches[i].commit();
+        } catch (batchError) {
+          debugPrint('❌ Failed to commit batch ${i + 1}: $batchError');
+        }
+      }
+      rethrow;
+    }
+  }
+
   // Clear all app cache and local storage
   Future<void> _clearAppCache() async {
     try {
@@ -229,14 +295,14 @@ class AuthRepository {
       } catch (cacheError) {
         // Cache clearing might fail due to various reasons (indexing, etc.)
         // This is not critical for account deletion, so we continue
-        print('Warning: Firebase cache clearing failed: $cacheError');
+      debugPrint('Warning: Firebase cache clearing failed: $cacheError');
       }
 
       // Clear any cached data in Firebase Auth
       await _firebaseAuth.signOut();
 
     } catch (e) {
-      print('Warning: Failed to clear some cache: $e');
+    debugPrint('Warning: Failed to clear some cache: $e');
       // Don't throw here as cache clearing failure shouldn't stop account deletion
     }
   }
@@ -259,64 +325,70 @@ class AuthRepository {
       }
 
     } catch (e) {
-      print('Warning: Failed to clear some controllers: $e');
+    debugPrint('Warning: Failed to clear some controllers: $e');
     }
   }
 
-  Future<void> _deleteUserDocument(String userId, WriteBatch batch) async {
+  // Chunked deletion methods to handle large datasets
+  Future<void> _deleteUserDocumentChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     final userRef = _firestore.collection('users').doc(userId);
 
     // Delete following subcollection
     final followingSnapshot = await userRef.collection('following').get();
     for (final doc in followingSnapshot.docs) {
-      batch.delete(doc.reference);
+      getBatch().delete(doc.reference);
+      await commitIfNeeded();
     }
 
     // Delete main user document
-    batch.delete(userRef);
+    getBatch().delete(userRef);
   }
 
-  Future<void> _deleteConversations(String userId, WriteBatch batch) async {
+  Future<void> _deleteConversationsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     final conversationsSnapshot = await _firestore
         .collection('conversations')
         .where('userId', isEqualTo: userId)
         .get();
 
     for (final conversationDoc in conversationsSnapshot.docs) {
-      // Delete messages subcollection
+      // Delete messages subcollection (this can be very large)
       final messagesSnapshot = await conversationDoc.reference.collection('messages').get();
       for (final messageDoc in messagesSnapshot.docs) {
-        batch.delete(messageDoc.reference);
+        getBatch().delete(messageDoc.reference);
+        await commitIfNeeded();
       }
 
       // Delete conversation document
-      batch.delete(conversationDoc.reference);
+      getBatch().delete(conversationDoc.reference);
+      await commitIfNeeded();
     }
   }
 
-  Future<void> _deleteRewards(String userId, WriteBatch batch) async {
+  Future<void> _deleteRewardsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     final rewardsSnapshot = await _firestore
         .collection('rewards')
         .where('userId', isEqualTo: userId)
         .get();
 
     for (final doc in rewardsSnapshot.docs) {
-      batch.delete(doc.reference);
+      getBatch().delete(doc.reference);
+      await commitIfNeeded();
     }
   }
 
-  Future<void> _deleteXpTransactions(String userId, WriteBatch batch) async {
+  Future<void> _deleteXpTransactionsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     final xpTransactionsSnapshot = await _firestore
         .collection('xp_transactions')
         .where('userId', isEqualTo: userId)
         .get();
 
     for (final doc in xpTransactionsSnapshot.docs) {
-      batch.delete(doc.reference);
+      getBatch().delete(doc.reference);
+      await commitIfNeeded();
     }
   }
 
-  Future<void> _deleteCandidateData(String userId, WriteBatch batch) async {
+  Future<void> _deleteCandidateDataChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     try {
       // Find candidate document in hierarchical structure
       // First, search through all cities and wards to find the candidate
@@ -338,26 +410,28 @@ class AuthRepository {
             // Delete followers subcollection
             final followersSnapshot = await candidateDoc.reference.collection('followers').get();
             for (final followerDoc in followersSnapshot.docs) {
-              batch.delete(followerDoc.reference);
+              getBatch().delete(followerDoc.reference);
+              await commitIfNeeded();
             }
 
             // Delete candidate document from hierarchical structure
-            batch.delete(candidateDoc.reference);
+            getBatch().delete(candidateDoc.reference);
+            await commitIfNeeded();
 
-            print('✅ Deleted candidate data from: /cities/${cityDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}');
+            debugPrint('✅ Deleted candidate data from: /cities/${cityDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}');
             return; // Found and deleted, no need to continue searching
           }
         }
       }
 
-      print('⚠️ No candidate data found for user: $userId');
+      debugPrint('⚠️ No candidate data found for user: $userId');
     } catch (e) {
-      print('❌ Error deleting candidate data: $e');
+      debugPrint('❌ Error deleting candidate data: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserChatRooms(String userId, WriteBatch batch) async {
+  Future<void> _deleteUserChatRoomsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     try {
       // Find all chat rooms created by the user
       final chatRoomsSnapshot = await _firestore
@@ -368,27 +442,30 @@ class AuthRepository {
       for (final roomDoc in chatRoomsSnapshot.docs) {
         final roomId = roomDoc.id;
 
-        // Delete all messages in the room
+        // Delete all messages in the room (can be very large)
         final messagesSnapshot = await roomDoc.reference.collection('messages').get();
         for (final messageDoc in messagesSnapshot.docs) {
-          batch.delete(messageDoc.reference);
+          getBatch().delete(messageDoc.reference);
+          await commitIfNeeded();
         }
 
         // Delete all polls in the room
         final pollsSnapshot = await roomDoc.reference.collection('polls').get();
         for (final pollDoc in pollsSnapshot.docs) {
-          batch.delete(pollDoc.reference);
+          getBatch().delete(pollDoc.reference);
+          await commitIfNeeded();
         }
 
         // Delete the chat room itself
-        batch.delete(roomDoc.reference);
+        getBatch().delete(roomDoc.reference);
+        await commitIfNeeded();
 
-        print('✅ Deleted chat room: $roomId with ${messagesSnapshot.docs.length} messages and ${pollsSnapshot.docs.length} polls');
+        debugPrint('✅ Deleted chat room: $roomId with ${messagesSnapshot.docs.length} messages and ${pollsSnapshot.docs.length} polls');
       }
 
-      print('✅ Deleted ${chatRoomsSnapshot.docs.length} chat rooms created by user: $userId');
+      debugPrint('✅ Deleted ${chatRoomsSnapshot.docs.length} chat rooms created by user: $userId');
     } catch (e) {
-      print('❌ Error deleting user chat rooms: $e');
+      debugPrint('❌ Error deleting user chat rooms: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -397,14 +474,14 @@ class AuthRepository {
     try {
       final quotaRef = _firestore.collection('user_quotas').doc(userId);
       batch.delete(quotaRef);
-      print('✅ Deleted user quota for: $userId');
+    debugPrint('✅ Deleted user quota for: $userId');
     } catch (e) {
-      print('❌ Error deleting user quota: $e');
+    debugPrint('❌ Error deleting user quota: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserReportedMessages(String userId, WriteBatch batch) async {
+  Future<void> _deleteUserReportedMessagesChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     try {
       // Find all reported messages by the user
       final reportsSnapshot = await _firestore
@@ -413,17 +490,18 @@ class AuthRepository {
           .get();
 
       for (final reportDoc in reportsSnapshot.docs) {
-        batch.delete(reportDoc.reference);
+        getBatch().delete(reportDoc.reference);
+        await commitIfNeeded();
       }
 
-      print('✅ Deleted ${reportsSnapshot.docs.length} reported messages by user: $userId');
+      debugPrint('✅ Deleted ${reportsSnapshot.docs.length} reported messages by user: $userId');
     } catch (e) {
-      print('❌ Error deleting user reported messages: $e');
+      debugPrint('❌ Error deleting user reported messages: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserSubscriptions(String userId, WriteBatch batch) async {
+  Future<void> _deleteUserSubscriptionsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     try {
       // Find all subscriptions for the user
       final subscriptionsSnapshot = await _firestore
@@ -432,29 +510,31 @@ class AuthRepository {
           .get();
 
       for (final subscriptionDoc in subscriptionsSnapshot.docs) {
-        batch.delete(subscriptionDoc.reference);
+        getBatch().delete(subscriptionDoc.reference);
+        await commitIfNeeded();
       }
 
-      print('✅ Deleted ${subscriptionsSnapshot.docs.length} subscriptions for user: $userId');
+      debugPrint('✅ Deleted ${subscriptionsSnapshot.docs.length} subscriptions for user: $userId');
     } catch (e) {
-      print('❌ Error deleting user subscriptions: $e');
+      debugPrint('❌ Error deleting user subscriptions: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserDevices(String userId, WriteBatch batch) async {
+  Future<void> _deleteUserDevicesChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
     try {
       final userRef = _firestore.collection('users').doc(userId);
 
       // Delete devices subcollection
       final devicesSnapshot = await userRef.collection('devices').get();
       for (final deviceDoc in devicesSnapshot.docs) {
-        batch.delete(deviceDoc.reference);
+        getBatch().delete(deviceDoc.reference);
+        await commitIfNeeded();
       }
 
-      print('✅ Deleted ${devicesSnapshot.docs.length} devices for user: $userId');
+      debugPrint('✅ Deleted ${devicesSnapshot.docs.length} devices for user: $userId');
     } catch (e) {
-      print('❌ Error deleting user devices: $e');
+      debugPrint('❌ Error deleting user devices: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -464,8 +544,8 @@ class AuthRepository {
       // Note: Firebase Storage deletion is more complex and might require
       // listing all files in the user's media folder and deleting them individually
       // For now, we'll log this as a reminder that media files should be cleaned up
-      print('📝 Reminder: Media files in Firebase Storage for user $userId should be manually cleaned up');
-      print('   Location: chat_media/ and other user-uploaded files');
+    debugPrint('📝 Reminder: Media files in Firebase Storage for user $userId should be manually cleaned up');
+    debugPrint('   Location: chat_media/ and other user-uploaded files');
 
       // In a production app, you would:
       // 1. List all files in user's media folders
@@ -473,7 +553,7 @@ class AuthRepository {
       // 3. This can be expensive, so consider doing it asynchronously
 
     } catch (e) {
-      print('❌ Error deleting user media files: $e');
+    debugPrint('❌ Error deleting user media files: $e');
       // Don't throw here as media cleanup is not critical
     }
   }

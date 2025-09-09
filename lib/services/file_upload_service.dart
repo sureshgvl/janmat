@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
@@ -33,7 +34,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      print('Error uploading profile photo: $e');
+    debugPrint('Error uploading profile photo: $e');
       throw Exception('Failed to upload profile photo: $e');
     }
   }
@@ -73,7 +74,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      print('Error uploading manifesto PDF: $e');
+    debugPrint('Error uploading manifesto PDF: $e');
       throw Exception('Failed to upload manifesto PDF: $e');
     }
   }
@@ -103,7 +104,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      print('Error uploading candidate photo: $e');
+    debugPrint('Error uploading candidate photo: $e');
       throw Exception('Failed to upload candidate photo: $e');
     }
   }
@@ -128,7 +129,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      print('Error uploading file: $e');
+    debugPrint('Error uploading file: $e');
       throw Exception('Failed to upload file: $e');
     }
   }
@@ -139,7 +140,7 @@ class FileUploadService {
       final ref = _storage.refFromURL(fileUrl);
       await ref.delete();
     } catch (e) {
-      print('Error deleting file: $e');
+    debugPrint('Error deleting file: $e');
       // Don't throw error for delete failures as file might not exist
     }
   }
@@ -150,7 +151,7 @@ class FileUploadService {
       final ref = _storage.ref().child(storagePath);
       return await ref.getDownloadURL();
     } catch (e) {
-      print('Error getting download URL: $e');
+    debugPrint('Error getting download URL: $e');
       return null;
     }
   }

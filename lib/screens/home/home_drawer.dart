@@ -8,6 +8,7 @@ import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
 import '../candidate/my_area_candidates_screen.dart';
 import '../candidate/candidate_profile_screen.dart';
+import '../candidate/change_party_symbol_screen.dart';
 import '../settings/settings_screen.dart';
 import '../monetization/monetization_screen.dart';
 import '../chat/chat_list_screen.dart';
@@ -116,7 +117,7 @@ class HomeDrawer extends StatelessWidget {
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
             },
           ),
-          if (userModel?.role == 'candidate')
+          if (userModel?.role == 'candidate') ...[
             ListTile(
               leading: const Icon(Icons.dashboard),
               title: Text(AppLocalizations.of(context)!.candidateDashboard),
@@ -125,6 +126,19 @@ class HomeDrawer extends StatelessWidget {
                 HomeNavigation.toRightToLeft(const CandidateDashboardScreen()); // Navigate to candidate dashboard
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: const Text('Change Party & Symbol'),
+              subtitle: const Text('Update your party affiliation and symbol'),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                HomeNavigation.toRightToLeft(ChangePartySymbolScreen(
+                  currentCandidate: candidateModel,
+                  currentUser: currentUser,
+                ));
+              },
+            ),
+          ],
           ListTile(
             leading: const Icon(Icons.search),
             title: Text(AppLocalizations.of(context)!.searchByWard),

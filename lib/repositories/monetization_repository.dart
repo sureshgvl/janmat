@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/plan_model.dart';
 import '../models/user_model.dart';
 
@@ -164,7 +165,7 @@ class MonetizationRepository {
 
   Future<void> updateUserXPBalance(String userId, int xpAmount) async {
     try {
-      print('💰 Updating XP balance for user $userId: $xpAmount');
+    debugPrint('💰 Updating XP balance for user $userId: $xpAmount');
 
       // Create transaction record
       final transaction = XPTransaction(
@@ -177,7 +178,7 @@ class MonetizationRepository {
       );
 
       final transactionId = await createXPTransaction(transaction);
-      print('✅ Created XP transaction: $transactionId');
+    debugPrint('✅ Created XP transaction: $transactionId');
 
       // Update user XP balance
       final userRef = _firestore.collection('users').doc(userId);
@@ -185,9 +186,9 @@ class MonetizationRepository {
         'xpPoints': FieldValue.increment(xpAmount),
       });
 
-      print('✅ Updated user XP balance: +$xpAmount');
+    debugPrint('✅ Updated user XP balance: +$xpAmount');
     } catch (e) {
-      print('❌ Failed to update XP balance: $e');
+    debugPrint('❌ Failed to update XP balance: $e');
       throw Exception('Failed to update XP balance: $e');
     }
   }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/chat_model.dart';
 
 class ChatInitializer {
@@ -9,9 +10,9 @@ class ChatInitializer {
     try {
       await _createSampleWardRooms();
       await _createSampleCandidateRooms();
-      print('✅ Sample chat rooms initialized successfully');
+    debugPrint('✅ Sample chat rooms initialized successfully');
     } catch (e) {
-      print('❌ Failed to initialize sample chat rooms: $e');
+    debugPrint('❌ Failed to initialize sample chat rooms: $e');
     }
   }
 
@@ -106,12 +107,12 @@ class ChatInitializer {
 
       if (!doc.exists) {
         await docRef.set(chatRoom.toJson());
-        print('✅ Created chat room: ${chatRoom.roomId}');
+      debugPrint('✅ Created chat room: ${chatRoom.roomId}');
       } else {
-        print('ℹ️ Chat room already exists: ${chatRoom.roomId}');
+      debugPrint('ℹ️ Chat room already exists: ${chatRoom.roomId}');
       }
     } catch (e) {
-      print('❌ Failed to create room ${chatRoom.roomId}: $e');
+    debugPrint('❌ Failed to create room ${chatRoom.roomId}: $e');
     }
   }
 
@@ -158,9 +159,9 @@ class ChatInitializer {
         await _createMessageIfNotExists(messageData['roomId'] as String, message);
       }
 
-      print('✅ Sample messages created successfully');
+    debugPrint('✅ Sample messages created successfully');
     } catch (e) {
-      print('❌ Failed to create sample messages: $e');
+    debugPrint('❌ Failed to create sample messages: $e');
     }
   }
 
@@ -176,10 +177,10 @@ class ChatInitializer {
 
       if (existingMessages.docs.isEmpty) {
         await messagesRef.doc(message.messageId).set(message.toJson());
-        print('✅ Created sample message in room: $roomId');
+      debugPrint('✅ Created sample message in room: $roomId');
       }
     } catch (e) {
-      print('❌ Failed to create message in room $roomId: $e');
+    debugPrint('❌ Failed to create message in room $roomId: $e');
     }
   }
 
@@ -187,6 +188,6 @@ class ChatInitializer {
   Future<void> initializeAll() async {
     await initializeSampleChatRooms();
     await createSampleMessages();
-    print('🎉 Chat system initialization complete!');
+  debugPrint('🎉 Chat system initialization complete!');
   }
 }

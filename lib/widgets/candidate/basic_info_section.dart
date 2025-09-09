@@ -3,10 +3,12 @@ import '../../models/candidate_model.dart';
 
 class BasicInfoSection extends StatelessWidget {
   final Candidate candidateData;
+  final String Function(String) getPartySymbolPath;
 
   const BasicInfoSection({
     super.key,
     required this.candidateData,
+    required this.getPartySymbolPath,
   });
 
   @override
@@ -53,12 +55,66 @@ class BasicInfoSection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        candidateData.party,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.blue,
-                        ),
+                      Row(
+                        children: [
+                          if (candidateData.party.toLowerCase().contains('independent') || candidateData.party.trim().isEmpty)
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.grey.shade200,
+                              ),
+                              child: const Icon(
+                                Icons.label,
+                                size: 30,
+                                color: Colors.grey,
+                              ),
+                            )
+                          else
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                image: DecorationImage(
+                                  image: AssetImage(getPartySymbolPath(candidateData.party)),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  candidateData.party.toLowerCase().contains('independent') || candidateData.party.trim().isEmpty
+                                      ? 'Independent Candidate'
+                                      : candidateData.party,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: candidateData.party.toLowerCase().contains('independent') || candidateData.party.trim().isEmpty
+                                        ? Colors.grey.shade700
+                                        : Colors.blue,
+                                    fontWeight: candidateData.party.toLowerCase().contains('independent') || candidateData.party.trim().isEmpty
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                if (candidateData.symbol != null && candidateData.symbol!.isNotEmpty)
+                                  Text(
+                                    'Symbol: ${candidateData.symbol}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -68,27 +124,7 @@ class BasicInfoSection extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Ward',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Text(
-                        candidateData.wardId,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                //city
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,6 +138,26 @@ class BasicInfoSection extends StatelessWidget {
                       ),
                       Text(
                         candidateData.cityId,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                //ward
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Ward',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      Text(
+                        candidateData.wardId,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,

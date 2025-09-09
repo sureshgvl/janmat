@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/candidate_model.dart';
 import '../models/ward_model.dart';
@@ -19,16 +20,16 @@ class CandidateController extends GetxController {
 
   // Fetch candidates by ward
   Future<void> fetchCandidatesByWard(String cityId, String wardId) async {
-    print('🔄 [Controller] Fetching candidates for city: $cityId, ward: $wardId');
+  debugPrint('🔄 [Controller] Fetching candidates for city: $cityId, ward: $wardId');
     isLoading = true;
     errorMessage = null;
     update();
 
     try {
       candidates = await _repository.getCandidatesByWard(cityId, wardId);
-      print('✅ [Controller] Found ${candidates.length} candidates in city: $cityId, ward: $wardId');
+    debugPrint('✅ [Controller] Found ${candidates.length} candidates in city: $cityId, ward: $wardId');
     } catch (e) {
-      print('❌ [Controller] Failed to fetch candidates: $e');
+    debugPrint('❌ [Controller] Failed to fetch candidates: $e');
       errorMessage = e.toString();
       candidates = [];
     }
@@ -56,13 +57,13 @@ class CandidateController extends GetxController {
 
   // Fetch wards for a city
   Future<void> fetchWardsByCity(String cityId) async {
-    print('🔄 [Controller] Fetching wards for city: $cityId');
+  debugPrint('🔄 [Controller] Fetching wards for city: $cityId');
     try {
       wards = await _repository.getWardsByCity(cityId);
-      print('✅ [Controller] Loaded ${wards.length} wards for city: $cityId');
+    debugPrint('✅ [Controller] Loaded ${wards.length} wards for city: $cityId');
       update();
     } catch (e) {
-      print('❌ [Controller] Failed to load wards for city $cityId: $e');
+    debugPrint('❌ [Controller] Failed to load wards for city $cityId: $e');
       errorMessage = 'Failed to load wards: $e';
       wards = [];
       update();
@@ -71,13 +72,13 @@ class CandidateController extends GetxController {
 
   // Fetch all cities
   Future<void> fetchAllCities() async {
-    print('🔄 [Controller] Fetching all cities...');
+  debugPrint('🔄 [Controller] Fetching all cities...');
     try {
       cities = await _repository.getAllCities();
-      print('✅ [Controller] Loaded ${cities.length} cities');
+    debugPrint('✅ [Controller] Loaded ${cities.length} cities');
       update();
     } catch (e) {
-      print('❌ [Controller] Failed to load cities: $e');
+    debugPrint('❌ [Controller] Failed to load cities: $e');
       errorMessage = 'Failed to load cities: $e';
       cities = [];
       update();
@@ -122,7 +123,7 @@ class CandidateController extends GetxController {
       followStatus[candidateId] = isFollowing;
       update();
     } catch (e) {
-      print('❌ [Controller] Failed to check follow status: $e');
+    debugPrint('❌ [Controller] Failed to check follow status: $e');
     }
   }
 
@@ -146,9 +147,9 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-      print('✅ [Controller] Successfully followed candidate: $candidateId');
+    debugPrint('✅ [Controller] Successfully followed candidate: $candidateId');
     } catch (e) {
-      print('❌ [Controller] Failed to follow candidate: $e');
+    debugPrint('❌ [Controller] Failed to follow candidate: $e');
       errorMessage = 'Failed to follow candidate: $e';
     }
 
@@ -176,9 +177,9 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-      print('✅ [Controller] Successfully unfollowed candidate: $candidateId');
+    debugPrint('✅ [Controller] Successfully unfollowed candidate: $candidateId');
     } catch (e) {
-      print('❌ [Controller] Failed to unfollow candidate: $e');
+    debugPrint('❌ [Controller] Failed to unfollow candidate: $e');
       errorMessage = 'Failed to unfollow candidate: $e';
     }
 
@@ -201,9 +202,9 @@ class CandidateController extends GetxController {
   Future<void> updateFollowNotificationSettings(String userId, String candidateId, bool notificationsEnabled) async {
     try {
       await _repository.updateFollowNotificationSettings(userId, candidateId, notificationsEnabled);
-      print('✅ [Controller] Updated notification settings for candidate: $candidateId');
+    debugPrint('✅ [Controller] Updated notification settings for candidate: $candidateId');
     } catch (e) {
-      print('❌ [Controller] Failed to update notification settings: $e');
+    debugPrint('❌ [Controller] Failed to update notification settings: $e');
       errorMessage = 'Failed to update notification settings: $e';
       update();
     }
@@ -214,7 +215,7 @@ class CandidateController extends GetxController {
     try {
       return await _repository.getCandidateFollowers(candidateId);
     } catch (e) {
-      print('❌ [Controller] Failed to get followers: $e');
+    debugPrint('❌ [Controller] Failed to get followers: $e');
       errorMessage = 'Failed to get followers: $e';
       update();
       return [];
@@ -226,7 +227,7 @@ class CandidateController extends GetxController {
     try {
       return await _repository.getUserFollowing(userId);
     } catch (e) {
-      print('❌ [Controller] Failed to get following list: $e');
+    debugPrint('❌ [Controller] Failed to get following list: $e');
       errorMessage = 'Failed to get following list: $e';
       update();
       return [];
@@ -246,10 +247,10 @@ class CandidateController extends GetxController {
   Future<String?> createCandidate(Candidate candidate) async {
     try {
       final candidateId = await _repository.createCandidate(candidate);
-      print('✅ [Controller] Successfully created candidate: $candidateId');
+    debugPrint('✅ [Controller] Successfully created candidate: $candidateId');
       return candidateId;
     } catch (e) {
-      print('❌ [Controller] Failed to create candidate: $e');
+    debugPrint('❌ [Controller] Failed to create candidate: $e');
       errorMessage = 'Failed to create candidate: $e';
       update();
       return null;
@@ -264,9 +265,9 @@ class CandidateController extends GetxController {
 
     try {
       candidates = await _repository.getCandidatesByApprovalStatus(cityId, wardId, approved);
-      print('✅ [Controller] Found ${candidates.length} candidates with approved: $approved');
+    debugPrint('✅ [Controller] Found ${candidates.length} candidates with approved: $approved');
     } catch (e) {
-      print('❌ [Controller] Failed to fetch candidates by approval status: $e');
+    debugPrint('❌ [Controller] Failed to fetch candidates by approval status: $e');
       errorMessage = e.toString();
       candidates = [];
     }
@@ -283,9 +284,9 @@ class CandidateController extends GetxController {
 
     try {
       candidates = await _repository.getCandidatesByStatus(cityId, wardId, status);
-      print('✅ [Controller] Found ${candidates.length} candidates with status: $status');
+    debugPrint('✅ [Controller] Found ${candidates.length} candidates with status: $status');
     } catch (e) {
-      print('❌ [Controller] Failed to fetch candidates by status: $e');
+    debugPrint('❌ [Controller] Failed to fetch candidates by status: $e');
       errorMessage = e.toString();
       candidates = [];
     }
@@ -309,10 +310,10 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-      print('✅ [Controller] Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId');
+    debugPrint('✅ [Controller] Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId');
       update();
     } catch (e) {
-      print('❌ [Controller] Failed to update candidate approval: $e');
+    debugPrint('❌ [Controller] Failed to update candidate approval: $e');
       errorMessage = 'Failed to update candidate approval: $e';
       update();
     }
@@ -335,10 +336,10 @@ class CandidateController extends GetxController {
         }
       }
 
-      print('✅ [Controller] Successfully finalized ${candidateIds.length} candidates');
+    debugPrint('✅ [Controller] Successfully finalized ${candidateIds.length} candidates');
       update();
     } catch (e) {
-      print('❌ [Controller] Failed to finalize candidates: $e');
+    debugPrint('❌ [Controller] Failed to finalize candidates: $e');
       errorMessage = 'Failed to finalize candidates: $e';
       update();
     }
@@ -349,7 +350,7 @@ class CandidateController extends GetxController {
     try {
       return await _repository.getPendingApprovalCandidates();
     } catch (e) {
-      print('❌ [Controller] Failed to get pending approval candidates: $e');
+    debugPrint('❌ [Controller] Failed to get pending approval candidates: $e');
       errorMessage = 'Failed to get pending approval candidates: $e';
       update();
       return [];
@@ -361,7 +362,7 @@ class CandidateController extends GetxController {
     try {
       return await _repository.hasUserRegisteredAsCandidate(userId);
     } catch (e) {
-      print('❌ [Controller] Failed to check user candidate registration: $e');
+    debugPrint('❌ [Controller] Failed to check user candidate registration: $e');
       return false;
     }
   }

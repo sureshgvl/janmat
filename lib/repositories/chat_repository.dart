@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
@@ -71,7 +72,11 @@ class ChatRepository {
   // Send a message
   Future<Message> sendMessage(String roomId, Message message) async {
     try {
-      print('💾 Repository: Sending message "${message.text}" to room $roomId');
+      // Only log in debug mode
+      assert(() {
+        debugPrint('💾 Repository: Sending message "${message.text}" to room $roomId');
+        return true;
+      }());
 
       final docRef = _firestore
           .collection('chats')
@@ -80,21 +85,38 @@ class ChatRepository {
           .doc(message.messageId);
 
       await docRef.set(message.toJson());
-      print('✅ Repository: Message saved to Firestore successfully');
+
+      // Only log in debug mode
+      assert(() {
+        debugPrint('✅ Repository: Message saved to Firestore successfully');
+        return true;
+      }());
 
       // Update user's message count (only if they have quota, not XP)
       // XP deduction is handled in the controller
       final canUseQuota = await _canUserSendMessage(message.senderId);
       if (canUseQuota) {
         await _incrementUserMessageCount(message.senderId);
-        print('📊 Repository: User quota decremented');
+        // Only log in debug mode
+        assert(() {
+          debugPrint('📊 Repository: User quota decremented');
+          return true;
+        }());
       } else {
-        print('💰 Repository: User using XP (quota not decremented)');
+        // Only log in debug mode
+        assert(() {
+          debugPrint('💰 Repository: User using XP (quota not decremented)');
+          return true;
+        }());
       }
 
       return message;
     } catch (e) {
-      print('❌ Repository: Failed to send message: $e');
+      // Only log in debug mode
+      assert(() {
+        debugPrint('❌ Repository: Failed to send message: $e');
+        return true;
+      }());
       throw Exception('Failed to send message: $e');
     }
   }

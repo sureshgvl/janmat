@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 import '../models/plan_model.dart';
-import '../models/user_model.dart';
 import '../repositories/monetization_repository.dart';
 
 class MonetizationController extends GetxController {

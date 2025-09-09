@@ -15,7 +15,9 @@ class ManifestoTab extends StatefulWidget {
   State<ManifestoTab> createState() => _ManifestoTabState();
 }
 
-class _ManifestoTabState extends State<ManifestoTab> {
+class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final GoogleTranslator _translator = GoogleTranslator();
   String _currentLanguage = 'en'; // 'en' for English, 'mr' for Marathi
   String _translatedText = '';
@@ -106,6 +108,7 @@ class _ManifestoTabState extends State<ManifestoTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final manifesto = widget.candidate.manifesto ?? '';
 
     return SingleChildScrollView(
@@ -115,27 +118,53 @@ class _ManifestoTabState extends State<ManifestoTab> {
         children: [
           if (manifesto.isNotEmpty)
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Manifesto',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1f2937),
-                        ),
-                      ),
                       Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.gavel_outlined,
+                              color: Colors.red.shade600,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Manifesto',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1f2937),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           if (widget.candidate.extraInfo?.manifestoPdf != null && widget.candidate.extraInfo!.manifestoPdf!.isNotEmpty)
                             IconButton(
@@ -147,42 +176,76 @@ class _ManifestoTabState extends State<ManifestoTab> {
                               },
                               icon: const Icon(Icons.download, color: Colors.blue),
                               tooltip: 'Download PDF',
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(8),
                             ),
-                          const SizedBox(width: 8),
-                          // Language Toggle Buttons
-                          ElevatedButton(
-                            onPressed: _currentLanguage == 'en' ? null : () => _changeLanguage('en'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _currentLanguage == 'en'
-                                  ? Theme.of(context).primaryColor
-                                  : Colors.grey.shade300,
-                              foregroundColor: _currentLanguage == 'en'
-                                  ? Colors.white
-                                  : Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              minimumSize: const Size(0, 32),
+                          // Language Toggle Buttons - More compact
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'English',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: _currentLanguage == 'mr' ? null : () => _changeLanguage('mr'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _currentLanguage == 'mr'
-                                  ? Theme.of(context).primaryColor
-                                  : Colors.grey.shade300,
-                              foregroundColor: _currentLanguage == 'mr'
-                                  ? Colors.white
-                                  : Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              minimumSize: const Size(0, 32),
-                            ),
-                            child: const Text(
-                              'मराठी',
-                              style: TextStyle(fontSize: 12),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  height: 32,
+                                  child: TextButton(
+                                    onPressed: _currentLanguage == 'en' ? null : () => _changeLanguage('en'),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: _currentLanguage == 'en'
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.transparent,
+                                      foregroundColor: _currentLanguage == 'en'
+                                          ? Colors.white
+                                          : Colors.grey[700],
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      minimumSize: const Size(0, 32),
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(8),
+                                          bottomLeft: Radius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'EN',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 16,
+                                  color: Colors.grey.shade300,
+                                ),
+                                SizedBox(
+                                  height: 32,
+                                  child: TextButton(
+                                    onPressed: _currentLanguage == 'mr' ? null : () => _changeLanguage('mr'),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: _currentLanguage == 'mr'
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.transparent,
+                                      foregroundColor: _currentLanguage == 'mr'
+                                          ? Colors.white
+                                          : Colors.grey[700],
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      minimumSize: const Size(0, 32),
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.only(
+                                          topRight: Radius.circular(8),
+                                          bottomRight: Radius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'मराठी',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -192,16 +255,23 @@ class _ManifestoTabState extends State<ManifestoTab> {
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: _isTranslating
                         ? const Center(
                             child: Padding(
-                              padding: EdgeInsets.all(16.0),
+                              padding: EdgeInsets.all(20.0),
                               child: CircularProgressIndicator(),
                             ),
                           )
@@ -210,7 +280,8 @@ class _ManifestoTabState extends State<ManifestoTab> {
                             style: const TextStyle(
                               fontSize: 16,
                               color: Color(0xFF374151),
-                              height: 1.6,
+                              height: 1.7,
+                              letterSpacing: 0.3,
                             ),
                           ),
                   ),

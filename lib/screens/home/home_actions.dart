@@ -87,7 +87,7 @@ class HomeActions {
         }
       } catch (dialogError) {
         // Ignore dialog dismissal errors
-        print('Warning: Could not dismiss loading dialog: $dialogError');
+      debugPrint('Warning: Could not dismiss loading dialog: $dialogError');
       }
 
       // Only show error if it's not the expected "no current user" error

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../models/ward_model.dart';
 import '../models/city_model.dart';
@@ -177,13 +178,13 @@ class CandidateRepository {
   // Get candidate data by user ID (optimized)
   Future<Candidate?> getCandidateData(String userId) async {
     try {
-      print('🔍 Candidate Repository: Searching for candidate data for userId: $userId');
+    debugPrint('🔍 Candidate Repository: Searching for candidate data for userId: $userId');
 
       // First, get the user's cityId and wardId from their user document
       final userDoc = await _firestore.collection('users').doc(userId).get();
 
       if (!userDoc.exists) {
-        print('❌ User document not found for userId: $userId');
+      debugPrint('❌ User document not found for userId: $userId');
         return null;
       }
 
@@ -192,12 +193,12 @@ class CandidateRepository {
       final wardId = userData['wardId'];
 
       if (cityId == null || wardId == null || cityId.isEmpty || wardId.isEmpty) {
-        print('⚠️ User has no cityId or wardId, falling back to brute force search');
+      debugPrint('⚠️ User has no cityId or wardId, falling back to brute force search');
         // Fallback to the old method if city/ward info is missing
         return await _getCandidateDataBruteForce(userId);
       }
 
-      print('🎯 Direct search: City: $cityId, Ward: $wardId');
+    debugPrint('🎯 Direct search: City: $cityId, Ward: $wardId');
 
       // Direct query to the specific city/ward path
       final candidatesSnapshot = await _firestore
@@ -210,30 +211,30 @@ class CandidateRepository {
           .limit(1)
           .get();
 
-      print('👤 Found ${candidatesSnapshot.docs.length} candidates in $cityId/$wardId');
+    debugPrint('👤 Found ${candidatesSnapshot.docs.length} candidates in $cityId/$wardId');
 
       if (candidatesSnapshot.docs.isNotEmpty) {
         final doc = candidatesSnapshot.docs.first;
         final data = doc.data()! as Map<String, dynamic>;
         final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = doc.id;
-        print('✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})');
+      debugPrint('✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})');
         return Candidate.fromJson(candidateData);
       }
 
-      print('❌ No candidate found in user\'s city/ward: $cityId/$wardId');
+    debugPrint('❌ No candidate found in user\'s city/ward: $cityId/$wardId');
       return null;
     } catch (e) {
-      print('❌ Error fetching candidate data: $e');
+    debugPrint('❌ Error fetching candidate data: $e');
       throw Exception('Failed to fetch candidate data: $e');
     }
   }
 
   // Fallback brute force search (for backward compatibility)
   Future<Candidate?> _getCandidateDataBruteForce(String userId) async {
-    print('🔍 Falling back to brute force search for userId: $userId');
+  debugPrint('🔍 Falling back to brute force search for userId: $userId');
     final citiesSnapshot = await _firestore.collection('cities').get();
-    print('📊 Found ${citiesSnapshot.docs.length} cities to search');
+  debugPrint('📊 Found ${citiesSnapshot.docs.length} cities to search');
 
     for (var cityDoc in citiesSnapshot.docs) {
       final wardsSnapshot = await cityDoc.reference.collection('wards').get();
@@ -250,13 +251,13 @@ class CandidateRepository {
           final data = doc.data()! as Map<String, dynamic>;
           final candidateData = Map<String, dynamic>.from(data);
           candidateData['candidateId'] = doc.id;
-          print('✅ Found candidate via brute force: ${candidateData['name']} (ID: ${doc.id})');
+        debugPrint('✅ Found candidate via brute force: ${candidateData['name']} (ID: ${doc.id})');
           return Candidate.fromJson(candidateData);
         }
       }
     }
 
-    print('❌ No candidate found via brute force search');
+  debugPrint('❌ No candidate found via brute force search');
     return null;
   }
 
@@ -558,7 +559,7 @@ class CandidateRepository {
       }
       return null;
     } catch (e) {
-      print('Error fetching user data for $userId: $e');
+    debugPrint('Error fetching user data for $userId: $e');
       return null;
     }
   }

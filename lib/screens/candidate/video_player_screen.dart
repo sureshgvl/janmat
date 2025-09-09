@@ -80,11 +80,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           ),
           onReady: () {
             // Video is ready to play
-            print('Video is ready to play');
+          debugPrint('Video is ready to play');
           },
           onEnded: (data) {
             // Video has ended
-            print('Video has ended');
+          debugPrint('Video has ended');
           },
         ),
       ),

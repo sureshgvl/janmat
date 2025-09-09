@@ -261,7 +261,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       context: context,
       builder: (context) => CreatePollDialog(
         onPollCreated: (question, options, {DateTime? expiresAt}) {
-          print('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
+        debugPrint('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
           controller.createPoll(question, options, expiresAt: expiresAt);
           Navigator.of(context).pop(); // Close the poll creation dialog
 

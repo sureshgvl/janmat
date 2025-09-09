@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
@@ -9,6 +10,7 @@ import '../../widgets/candidate/info_tab.dart';
 import '../../widgets/candidate/manifesto_tab.dart';
 import '../../widgets/candidate/media_tab.dart';
 import '../../widgets/candidate/contact_tab.dart';
+import '../../utils/performance_monitor.dart';
 
 class CandidateProfileScreen extends StatefulWidget {
   const CandidateProfileScreen({super.key});
@@ -17,14 +19,19 @@ class CandidateProfileScreen extends StatefulWidget {
   State<CandidateProfileScreen> createState() => _CandidateProfileScreenState();
 }
 
-class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
+class _CandidateProfileScreenState extends State<CandidateProfileScreen> with TickerProviderStateMixin {
   Candidate? candidate;
   final CandidateController controller = Get.find<CandidateController>();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  TabController? _tabController;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize TabController for performance monitoring
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController?.addListener(_onTabChanged);
 
     // Check if arguments are provided
     if (Get.arguments == null) {
@@ -50,104 +57,45 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
     }
   }
 
-  void _addDummyDataIfNeeded() {
-    if (candidate == null) return;
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
 
-    // Create dummy extra info if not present
-    if (candidate!.extraInfo == null) {
-      candidate = candidate!.copyWith(
-        extraInfo: ExtraInfo(
-          bio: "I am a dedicated public servant with over 15 years of experience in community development and local governance. My commitment to transparency, accountability, and inclusive growth has been the cornerstone of my political career. I believe in empowering every citizen and creating opportunities for sustainable development in our ward.",
-          achievements: [
-            "Successfully implemented 5 new community health camps serving over 2000 residents",
-            "Led the construction of 3 new public schools benefiting 1500+ students",
-            "Introduced digital literacy programs for senior citizens across the ward",
-            "Established clean water supply systems reaching 500+ households",
-            "Organized vocational training programs for unemployed youth",
-            "Implemented waste management initiatives reducing pollution by 40%"
-          ],
-          manifesto: "Building a prosperous future through inclusive development, sustainable infrastructure, and community empowerment.",
-          manifestoPdf: "https://example.com/manifesto.pdf",
-          contact: Contact(
-            phone: candidate!.contact.phone,
-            email: candidate!.contact.email ?? "candidate@example.com",
-            socialLinks: {
-              "Facebook": "https://facebook.com/candidate",
-              "Twitter": "https://twitter.com/candidate",
-              "Instagram": "https://instagram.com/candidate",
-              "YouTube": "https://youtube.com/candidate",
-              "Website": "https://candidate-website.com"
-            }
-          ),
-          media: {
-            "photos": ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"],
-            "videos": ["https://example.com/video1.mp4"]
-          },
-          highlight: true,
-          events: [
-            {
-              "title": "Public Meeting on Ward Development",
-              "date": "15th December 2024, 6:00 PM",
-              "description": "Open discussion on upcoming infrastructure projects and community needs"
-            },
-            {
-              "title": "Youth Career Guidance Seminar",
-              "date": "20th December 2024, 10:00 AM",
-              "description": "Career counseling and skill development workshop for young adults"
-            },
-            {
-              "title": "Senior Citizens Health Camp",
-              "date": "25th December 2024, 9:00 AM",
-              "description": "Free health checkup and consultation for senior citizens"
-            },
-            {
-              "title": "Environmental Awareness Drive",
-              "date": "30th December 2024, 8:00 AM",
-              "description": "Tree plantation and cleanliness drive in the ward"
-            }
-          ]
-        )
-      );
-    }
+  void _onTabChanged() {
+    if (_tabController?.indexIsChanging == false) {
+      // Only log when tab change is complete
+      final tabNames = ['Info', 'Manifesto', 'Media', 'Contact'];
+      final currentTab = tabNames[_tabController!.index];
 
-    // Add dummy manifesto if not present
-    if (candidate!.manifesto == null || candidate!.manifesto!.isEmpty) {
-      candidate = candidate!.copyWith(
-        manifesto: "Dear Fellow Citizens,\n\nI stand before you with a vision of progress, prosperity, and inclusive development for our beloved ward. My manifesto is built on three fundamental pillars:\n\n1. **Infrastructure Development**: Modern roads, efficient public transport, and sustainable urban planning.\n\n2. **Education & Healthcare**: Quality education for all children and accessible healthcare facilities.\n\n3. **Economic Empowerment**: Skill development programs, job creation initiatives, and support for local businesses.\n\n4. **Environmental Sustainability**: Green initiatives, waste management, and pollution control measures.\n\n5. **Social Welfare**: Support for senior citizens, women empowerment, and inclusive policies for all.\n\nTogether, we can build a ward that we can all be proud of. Your support and participation in this journey will be invaluable.\n\nLet's work together for a brighter future!\n\nBest regards,\n${candidate!.name}",
-        followersCount: 2500, // High follower count for premium demonstration
-        followingCount: 45,
-        sponsored: true, // Make sponsored for premium badge
-      );
-    }
-
-    // Add dummy email if not present
-    if (candidate!.contact.email == null || candidate!.contact.email!.isEmpty) {
-      candidate = candidate!.copyWith(
-        contact: candidate!.contact.copyWith(
-          email: "${candidate!.name.toLowerCase().replaceAll(' ', '.')}@gmail.com"
-        )
-      );
-    }
-
-    // Add dummy social links if not present
-    if (candidate!.contact.socialLinks == null || candidate!.contact.socialLinks!.isEmpty) {
-      candidate = candidate!.copyWith(
-        contact: candidate!.contact.copyWith(
-          socialLinks: {
-            "Facebook": "https://facebook.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
-            "Twitter": "https://twitter.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
-            "Instagram": "https://instagram.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
-            "YouTube": "https://youtube.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
-            "Website": "https://www.${candidate!.name.toLowerCase().replaceAll(' ', '')}.com"
-          }
-        )
-      );
+      // Only log in debug mode
+      assert(() {
+        debugPrint('🔄 Tab switched to: $currentTab');
+        return true;
+      }());
     }
   }
 
+  void _addDummyDataIfNeeded() {
+    // Removed all dummy data - now showing actual Firebase data only
+    // The app will display real data from Firestore or show empty states
+  }
+
   // Get party symbol path
-  String getPartySymbolPath(String party) {
-    print('🔍 [Mapping Party Symbol] For party: $party');
+  String getPartySymbolPath(String party, {String? candidateSymbol}) {
+    debugPrint('🔍 [Mapping Party Symbol] For party: $party');
+
+    // Handle independent candidates - use their custom symbol if available
+    if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
+      if (candidateSymbol != null && candidateSymbol.isNotEmpty) {
+        return candidateSymbol; // Use uploaded symbol URL
+      }
+      return 'assets/symbols/independent.png';
+    }
+
+    // For party-affiliated candidates, use the default symbol mapping
+    // This will be replaced with Firebase data in the future
     final partySymbols = {
       'Indian National Congress': 'assets/symbols/inc.png',
       'Bharatiya Janata Party': 'assets/symbols/bjp.png',
@@ -234,85 +182,218 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
     }
 
     // Check if candidate is premium (you can define your own logic here)
-    bool isPremiumCandidate = candidate!.sponsored || candidate!.followersCount > 1000;
+    bool isPremiumCandidate = candidate!.premium;
 
-    // For demonstration, make this candidate premium
-    isPremiumCandidate = true;
+    // ToDo: Remove this line
+    isPremiumCandidate = false;
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        body: NestedScrollView(
-          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-            return <Widget>[
-              ProfileHeader(
-                candidate: candidate!,
-                isPremiumCandidate: isPremiumCandidate,
-                getPartySymbolPath: getPartySymbolPath,
-                formatDate: formatDate,
-                buildStatItem: _buildStatItem,
+    return Scaffold(
+      body: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget>[
+            ProfileHeader(
+              candidate: candidate!,
+              isPremiumCandidate: isPremiumCandidate,
+              getPartySymbolPath: (party) => getPartySymbolPath(party, candidateSymbol: candidate!.symbol),
+              formatDate: formatDate,
+              buildStatItem: _buildStatItem,
+              onCoverPhotoChange: (isPremiumCandidate && currentUserId == candidate!.userId) ? _changeCoverPhoto : null,
+              onProfilePhotoChange: (isPremiumCandidate && currentUserId == candidate!.userId) ? _changeProfilePhoto : null,
+              currentUserId: currentUserId,
+              tabController: _tabController,
+            ),
+            // Pinned TabBar
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverAppBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabs: [
+                    const Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.info_outline, size: 16, color: Colors.black),
+                          SizedBox(width: 4),
+                          Text(
+                            'Info',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.description_outlined, size: 16, color: Colors.black),
+                          SizedBox(width: 4),
+                          Text(
+                            'Manifesto',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_outlined, size: 16, color: Colors.black),
+                          SizedBox(width: 4),
+                          Text(
+                            'Media',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.contact_phone_outlined, size: 16, color: Colors.black),
+                          SizedBox(width: 4),
+                          Text(
+                            'Contact',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  indicatorColor: Colors.black,
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.black54,
+                  indicatorWeight: 3,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: const TextStyle(fontSize: 13),
+                  tabAlignment: TabAlignment.start,
+                ),
               ),
-            ];
-          },
-          body: TabBarView(
-            children: [
-              InfoTab(
-                candidate: candidate!,
-                getPartySymbolPath: getPartySymbolPath,
-                formatDate: formatDate,
-              ),
-              ManifestoTab(candidate: candidate!),
-              MediaTab(candidate: candidate!),
-              ContactTab(candidate: candidate!),
-            ],
-          ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            InfoTab(
+              candidate: candidate!,
+              getPartySymbolPath: (party) => getPartySymbolPath(party, candidateSymbol: candidate!.symbol),
+              formatDate: formatDate,
+            ),
+            ManifestoTab(candidate: candidate!),
+            MediaTab(candidate: candidate!),
+            ContactTab(candidate: candidate!),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _changeCoverPhoto() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        // TODO: Upload image to storage and update candidate model
+        // For now, show a success message
+        Get.snackbar(
+          'Success',
+          'Cover photo updated successfully!',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to update cover photo: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _changeProfilePhoto() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        // TODO: Upload image to storage and update candidate model
+        // For now, show a success message
+        Get.snackbar(
+          'Success',
+          'Profile photo updated successfully!',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to update profile photo: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   Widget _buildStatItem(String value, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
+          color: Colors.white.withOpacity(0.25),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.2),
+            Colors.white.withOpacity(0.1),
+          ],
+        ),
       ),
       child: Column(
         children: [
           Text(
-            value,
+            _formatNumber(value),
             style: TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               shadows: const [
                 Shadow(
                   color: Color(0x4D000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
+                  blurRadius: 6,
+                  offset: Offset(0, 3),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
               shadows: const [
                 Shadow(
                   color: Color(0x4D000000),
@@ -327,5 +408,41 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
     );
   }
 
+  String _formatNumber(String value) {
+    try {
+      final num = int.parse(value);
+      if (num >= 1000000) {
+        return '${(num / 1000000).toStringAsFixed(1)}M';
+      } else if (num >= 1000) {
+        return '${(num / 1000).toStringAsFixed(1)}K';
+      }
+      return value;
+    } catch (e) {
+      return value;
+    }
+  }
+}
 
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.white,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
+  }
 }

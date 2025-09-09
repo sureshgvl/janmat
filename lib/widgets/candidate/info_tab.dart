@@ -24,12 +24,15 @@ class InfoTab extends StatefulWidget {
   State<InfoTab> createState() => _InfoTabState();
 }
 
-class _InfoTabState extends State<InfoTab> {
+class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final CandidateController controller = Get.find<CandidateController>();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -155,30 +158,55 @@ class _InfoTabState extends State<InfoTab> {
           if (widget.candidate.extraInfo?.bio != null && widget.candidate.extraInfo!.bio!.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.about,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1f2937),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.person_outline,
+                          color: Colors.blue.shade600,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        AppLocalizations.of(context)!.about,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1f2937),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(
                     widget.candidate.extraInfo!.bio!,
                     style: const TextStyle(
                       fontSize: 16,
                       color: Color(0xFF374151),
-                      height: 1.6,
+                      height: 1.7,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
@@ -190,43 +218,77 @@ class _InfoTabState extends State<InfoTab> {
           if (widget.candidate.extraInfo?.achievements != null && widget.candidate.extraInfo!.achievements!.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.achievements,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1f2937),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.emoji_events_outlined,
+                          color: Colors.amber.shade600,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        AppLocalizations.of(context)!.achievements,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1f2937),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  ...widget.candidate.extraInfo!.achievements!.map((achievement) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                  const SizedBox(height: 20),
+                  ...widget.candidate.extraInfo!.achievements!.map((achievement) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '• ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF374151),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(top: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade500,
+                            shape: BoxShape.circle,
                           ),
                         ),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             achievement,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               color: Color(0xFF374151),
-                              height: 1.4,
+                              height: 1.5,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
@@ -242,39 +304,76 @@ class _InfoTabState extends State<InfoTab> {
           if (widget.candidate.extraInfo?.events != null && widget.candidate.extraInfo!.events!.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.upcomingEvents,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1f2937),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.event_available_outlined,
+                          color: Colors.green.shade600,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        AppLocalizations.of(context)!.upcomingEvents,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1f2937),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  ...widget.candidate.extraInfo!.events!.map((event) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                  const SizedBox(height: 20),
+                  ...widget.candidate.extraInfo!.events!.map((event) => Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 8,
-                          height: 8,
+                          width: 12,
+                          height: 12,
                           margin: const EdgeInsets.only(top: 6),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade600,
+                            color: Colors.green.shade500,
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.shade200,
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,22 +386,37 @@ class _InfoTabState extends State<InfoTab> {
                                   color: Color(0xFF1f2937),
                                 ),
                               ),
+                              const SizedBox(height: 4),
                               if (event['date'] != null)
-                                Text(
-                                  event['date'],
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF6b7280),
-                                  ),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      event['date'],
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF6b7280),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              if (event['description'] != null)
+                              if (event['description'] != null) ...[
+                                const SizedBox(height: 8),
                                 Text(
                                   event['description'],
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Color(0xFF374151),
+                                    height: 1.4,
                                   ),
                                 ),
+                              ],
                             ],
                           ),
                         ),
