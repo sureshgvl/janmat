@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/theme_constants.dart';
+import '../../utils/symbol_utils.dart';
 
 class ProfileHeader extends StatelessWidget {
    final Candidate candidate;
@@ -138,7 +139,9 @@ class ProfileHeader extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage(getPartySymbolPath(candidate.party)),
+                      image: SymbolUtils.getSymbolImageProvider(
+                        SymbolUtils.getPartySymbolPath(candidate.party, candidate: candidate)
+                      ),
                       fit: BoxFit.cover,
                       opacity: 0.1,
                     ),

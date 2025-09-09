@@ -584,6 +584,9 @@ class AppLocalizationsMr extends AppLocalizations {
   }
 
   @override
+  String get symbolImageSizeLimitError => 'प्रतिमेचा आकार 5MB पेक्षा कमी असावा. कृपया लहान प्रतिमा निवडा.';
+
+  @override
   String get updatingText => 'अपडेट होत आहे...';
 
   @override

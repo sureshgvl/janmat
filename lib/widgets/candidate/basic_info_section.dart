@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import '../../utils/symbol_utils.dart';
 
 class BasicInfoSection extends StatelessWidget {
   final Candidate candidateData;
@@ -78,7 +79,9 @@ class BasicInfoSection extends StatelessWidget {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                                 image: DecorationImage(
-                                  image: AssetImage(getPartySymbolPath(candidateData.party)),
+                                  image: SymbolUtils.getSymbolImageProvider(
+                                    SymbolUtils.getPartySymbolPath(candidateData.party, candidate: candidateData)
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
                               ),

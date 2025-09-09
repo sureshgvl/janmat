@@ -36,32 +36,52 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   String? symbolImageUrl;
   bool isLoading = false;
   bool isLoadingParties = true;
+  bool isUploadingImage = false;
   List<Party> parties = [];
   bool isIndependent = false;
 
   @override
   void initState() {
     super.initState();
+    debugPrint('🎯 ChangePartySymbolScreen: Initializing screen');
+    debugPrint('   Current candidate: ${widget.currentCandidate?.name ?? 'null'}');
+    debugPrint('   Current user: ${widget.currentUser?.uid ?? 'null'}');
     _loadParties();
     _loadCurrentData();
   }
 
   void _loadCurrentData() {
+    debugPrint('📋 ChangePartySymbolScreen: Loading current candidate data');
     if (widget.currentCandidate != null) {
+      debugPrint('   Candidate: ${widget.currentCandidate!.name}');
+      debugPrint('   Current party: ${widget.currentCandidate!.party}');
+      debugPrint('   Current symbol: ${widget.currentCandidate!.symbol ?? 'none'}');
+
       // Find current party
       if (parties.isNotEmpty) {
         selectedParty = parties.firstWhere(
           (party) => party.name == widget.currentCandidate!.party,
           orElse: () => parties.first,
         );
+        debugPrint('   Selected party: ${selectedParty?.name ?? 'none'}');
       }
 
       // Load symbol data
       if (widget.currentCandidate!.symbol != null) {
         symbolNameController.text = widget.currentCandidate!.symbol!;
+        debugPrint('   Symbol name loaded: ${widget.currentCandidate!.symbol}');
+      }
+
+      // Load existing symbol image URL from extraInfo.media
+      if (widget.currentCandidate!.extraInfo?.media != null) {
+        symbolImageUrl = widget.currentCandidate!.extraInfo!.media!['symbolImageUrl'];
+        debugPrint('   Symbol image URL loaded: ${symbolImageUrl ?? 'none'}');
       }
 
       isIndependent = widget.currentCandidate!.party.toLowerCase().contains('independent');
+      debugPrint('   Is independent: $isIndependent');
+    } else {
+      debugPrint('   No candidate data available');
     }
   }
 
@@ -118,32 +138,91 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   Future<void> _pickSymbolImage() async {
     final localizations = AppLocalizations.of(context)!;
 
+    debugPrint('📸 ChangePartySymbolScreen: Starting image upload process');
+    setState(() {
+      isUploadingImage = true;
+    });
+
     try {
       final ImagePicker picker = ImagePicker();
+      debugPrint('📸 ChangePartySymbolScreen: Opening image picker');
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image != null) {
+        debugPrint('📸 ChangePartySymbolScreen: Image selected - Path: ${image.path}');
+        debugPrint('📸 ChangePartySymbolScreen: Image name: ${image.name}');
+
+        // Check image file size (5MB limit)
+        final file = File(image.path);
+        final fileSize = await file.length();
+        const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+
+        debugPrint('📏 ChangePartySymbolScreen: File size check - Size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB, Limit: 5MB');
+
+        if (fileSize > maxSizeInBytes) {
+          debugPrint('❌ ChangePartySymbolScreen: File too large - rejecting upload');
+          Get.snackbar(localizations.error, localizations.symbolImageSizeLimitError);
+          setState(() {
+            isUploadingImage = false;
+          });
+          return;
+        }
+
+        debugPrint('✅ ChangePartySymbolScreen: File size validation passed');
+
         // Upload to Firebase Storage
         final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser == null) return;
+        if (currentUser == null) {
+          debugPrint('❌ ChangePartySymbolScreen: No authenticated user found');
+          setState(() {
+            isUploadingImage = false;
+          });
+          return;
+        }
+
+        final fileName = '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        debugPrint('📤 ChangePartySymbolScreen: Preparing upload - User: ${currentUser.uid}, File: $fileName');
+        debugPrint('📂 ChangePartySymbolScreen: Firebase Storage path: candidate_symbols/$fileName');
 
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('candidate_symbols')
-            .child('${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+            .child(fileName);
 
+        debugPrint('📤 ChangePartySymbolScreen: Starting Firebase Storage upload');
         final uploadTask = storageRef.putFile(File(image.path));
+
+        // Monitor upload progress
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          debugPrint('📊 ChangePartySymbolScreen: Upload progress: ${progress.toStringAsFixed(1)}%');
+        });
+
         final snapshot = await uploadTask.whenComplete(() => null);
+        debugPrint('✅ ChangePartySymbolScreen: Upload completed successfully');
 
         final downloadUrl = await snapshot.ref.getDownloadURL();
+        debugPrint('🔗 ChangePartySymbolScreen: Download URL obtained: ${downloadUrl.substring(0, 50)}...');
+        debugPrint('📍 ChangePartySymbolScreen: Firebase Console path: candidate_symbols/ → $fileName');
 
         setState(() {
           symbolImageUrl = downloadUrl;
+          isUploadingImage = false;
         });
 
+        debugPrint('🎉 ChangePartySymbolScreen: Image upload process completed successfully');
         Get.snackbar(localizations.success, localizations.symbolUploadSuccess);
+      } else {
+        debugPrint('❌ ChangePartySymbolScreen: No image selected by user');
+        setState(() {
+          isUploadingImage = false;
+        });
       }
     } catch (e) {
+      debugPrint('💥 ChangePartySymbolScreen: Error during image upload: $e');
+      setState(() {
+        isUploadingImage = false;
+      });
       Get.snackbar(localizations.error, localizations.symbolUploadError(e.toString()));
     }
   }
@@ -151,12 +230,24 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   Future<void> _updatePartyAndSymbol() async {
     final localizations = AppLocalizations.of(context)!;
 
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('📝 ChangePartySymbolScreen: Starting party and symbol update process');
+
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('❌ ChangePartySymbolScreen: Form validation failed');
+      return;
+    }
 
     if (selectedParty == null) {
+      debugPrint('❌ ChangePartySymbolScreen: No party selected');
       Get.snackbar(localizations.error, localizations.selectPartyValidation);
       return;
     }
+
+    debugPrint('✅ ChangePartySymbolScreen: Form validation passed');
+    debugPrint('   Selected party: ${selectedParty!.name}');
+    debugPrint('   Is independent: $isIndependent');
+    debugPrint('   Symbol name: ${isIndependent ? symbolNameController.text.trim() : 'N/A'}');
+    debugPrint('   Symbol image URL: ${symbolImageUrl ?? 'none'}');
 
     setState(() {
       isLoading = true;
@@ -165,21 +256,41 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
+        debugPrint('❌ ChangePartySymbolScreen: User not authenticated');
         throw Exception('User not authenticated');
       }
 
       if (widget.currentCandidate == null) {
+        debugPrint('❌ ChangePartySymbolScreen: Candidate data not found');
         throw Exception('Candidate data not found');
       }
 
+      debugPrint('👤 ChangePartySymbolScreen: Authenticated user: ${currentUser.uid}');
+      debugPrint('👤 ChangePartySymbolScreen: Updating candidate: ${widget.currentCandidate!.candidateId}');
+
       // Update candidate with new party and symbol
+      final updatedExtraInfo = widget.currentCandidate!.extraInfo?.copyWith(
+        media: {
+          ...?widget.currentCandidate!.extraInfo?.media,
+          'symbolImageUrl': symbolImageUrl,
+        },
+      ) ?? ExtraInfo(media: {'symbolImageUrl': symbolImageUrl});
+
       final updatedCandidate = widget.currentCandidate!.copyWith(
         party: selectedParty!.name,
         symbol: isIndependent ? symbolNameController.text.trim() : null,
+        extraInfo: updatedExtraInfo,
       );
 
+      debugPrint('💾 ChangePartySymbolScreen: Data to be saved:');
+      debugPrint('   Party: ${updatedCandidate.party}');
+      debugPrint('   Symbol: ${updatedCandidate.symbol}');
+      debugPrint('   Symbol Image URL: ${updatedCandidate.extraInfo?.media?['symbolImageUrl']}');
+
+      debugPrint('📤 ChangePartySymbolScreen: Sending update to database...');
       // Update candidate in database
       await candidateRepository.updateCandidateExtraInfo(updatedCandidate);
+      debugPrint('✅ ChangePartySymbolScreen: Database update successful');
 
       // Update the local candidate data to reflect changes immediately
       setState(() {
@@ -187,26 +298,44 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         // This will refresh the current party display
       });
 
+      debugPrint('🎉 ChangePartySymbolScreen: Party and symbol update completed successfully');
+
+      // Update loading state before navigation
+      setState(() {
+        isLoading = false;
+      });
+
+      // Show success message
       Get.snackbar(
         localizations.success,
         localizations.partyUpdateSuccess,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
       );
 
-      // Navigate back to refresh the parent screen
-      Get.back(result: updatedCandidate);
+      // Small delay to ensure UI updates before navigation
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Navigate back to previous screen (which should lead to home)
+      debugPrint('🔙 ChangePartySymbolScreen: Navigating back to previous screen');
+      if (mounted) {
+        Get.back(result: updatedCandidate);
+      }
 
     } catch (e) {
+      debugPrint('💥 ChangePartySymbolScreen: Error updating party and symbol: $e');
+      setState(() {
+        isLoading = false;
+      });
       Get.snackbar(localizations.error, localizations.partyUpdateError(e.toString()));
     }
 
-    setState(() {
-      isLoading = false;
-    });
+    debugPrint('🏁 ChangePartySymbolScreen: Update process completed');
   }
 
   @override
   void dispose() {
+    debugPrint('🗑️ ChangePartySymbolScreen: Disposing screen');
+    debugPrint('   Final state - Party: ${selectedParty?.name ?? 'none'}, Symbol: ${symbolNameController.text}, Image: ${symbolImageUrl != null ? 'uploaded' : 'none'}');
     symbolNameController.dispose();
     super.dispose();
   }
@@ -219,7 +348,10 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         title: Text(localizations.changePartySymbolTitle),
         actions: [
           TextButton(
-            onPressed: isLoading ? null : _updatePartyAndSymbol,
+            onPressed: isLoading ? null : () {
+              debugPrint('🔘 ChangePartySymbolScreen: Update button pressed');
+              _updatePartyAndSymbol();
+            },
             child: isLoading
                 ? const SizedBox(
                     width: 20,
@@ -333,12 +465,22 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                           );
                         }).toList(),
                         onChanged: (value) {
+                          debugPrint('🎯 ChangePartySymbolScreen: Party selection changed');
+                          debugPrint('   New party: ${value?.name ?? 'none'}');
                           setState(() {
                             selectedParty = value;
                             isIndependent = value?.name.toLowerCase().contains('independent') ?? false;
+                            debugPrint('   Is independent: $isIndependent');
                             if (!isIndependent) {
                               symbolNameController.clear();
                               symbolImageUrl = null;
+                              debugPrint('   Cleared symbol data for non-independent party');
+                            } else {
+                              // Load existing symbol image URL for independent candidates
+                              if (widget.currentCandidate!.extraInfo?.media != null) {
+                                symbolImageUrl = widget.currentCandidate!.extraInfo!.media!['symbolImageUrl'];
+                                debugPrint('   Loaded existing symbol image URL for independent party');
+                              }
                             }
                           });
                         },
@@ -377,16 +519,37 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade50,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          localizations.symbolImageOptional,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              localizations.symbolImageOptional,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Max 5MB',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -396,49 +559,128 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                             color: Colors.grey,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Supported formats: JPG, PNG. Maximum file size: 5MB.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            if (symbolImageUrl != null)
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: DecorationImage(
-                                    image: NetworkImage(symbolImageUrl!),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.image,
-                                  color: Colors.grey,
-                                  size: 30,
-                                ),
+                            // Image Preview
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
                               ),
+                              child: isUploadingImage
+                                  ? const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : symbolImageUrl != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Image.network(
+                                            symbolImageUrl!,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return const Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return const Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                                size: 30,
+                                              );
+                                            },
+                                          ),
+                                        )
+                                      : Container(
+                                          color: Colors.grey.shade100,
+                                          child: const Icon(
+                                            Icons.image,
+                                            color: Colors.grey,
+                                            size: 30,
+                                          ),
+                                        ),
+                            ),
                             const SizedBox(width: 16),
+                            // Upload Button
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _pickSymbolImage,
-                                icon: const Icon(Icons.upload),
-                                label: Text(localizations.uploadSymbolImage),
+                                onPressed: isUploadingImage ? null : () {
+                                  debugPrint('🔘 ChangePartySymbolScreen: Upload symbol image button pressed');
+                                  _pickSymbolImage();
+                                },
+                                icon: isUploadingImage
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.upload),
+                                label: Text(
+                                  isUploadingImage
+                                      ? 'Uploading...'
+                                      : localizations.uploadSymbolImage,
+                                ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
+                                  backgroundColor: isUploadingImage ? Colors.grey : Colors.blue,
                                   foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
+                        if (symbolImageUrl != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Image uploaded successfully',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

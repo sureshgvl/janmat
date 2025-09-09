@@ -284,6 +284,7 @@ class CandidateRepository {
                 .update({
                   'name': candidate.name,
                   'party': candidate.party,
+                  'symbol': candidate.symbol,
                   'extra_info': candidate.extraInfo?.toJson(),
                   'photo': candidate.photo,
                   'manifesto': candidate.manifesto,

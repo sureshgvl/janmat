@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../models/candidate_model.dart';
+import '../../utils/symbol_utils.dart';
 import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
 import '../candidate/my_area_candidates_screen.dart';
@@ -14,6 +15,7 @@ import '../monetization/monetization_screen.dart';
 import '../chat/chat_list_screen.dart';
 import 'home_utils.dart';
 import 'home_navigation.dart';
+
 
 class HomeDrawer extends StatelessWidget {
   final UserModel? userModel;
@@ -55,8 +57,10 @@ class HomeDrawer extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(3),
-                      child: Image.asset(
-                        getPartySymbolPath(candidateModel?.party ?? ''),
+                      child: Image(
+                        image: SymbolUtils.getSymbolImageProvider(
+                          SymbolUtils.getPartySymbolPath(candidateModel?.party ?? '', candidate: candidateModel)
+                        ),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Image.asset(

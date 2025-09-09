@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/symbol_utils.dart';
 import 'follow_button.dart';
 import '../../screens/candidate/followers_list_screen.dart';
 
@@ -54,7 +55,9 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     image: DecorationImage(
-                      image: AssetImage(widget.getPartySymbolPath(widget.candidate.party)),
+                      image: SymbolUtils.getSymbolImageProvider(
+                        SymbolUtils.getPartySymbolPath(widget.candidate.party, candidate: widget.candidate)
+                      ),
                       fit: BoxFit.cover,
                     ),
                   ),

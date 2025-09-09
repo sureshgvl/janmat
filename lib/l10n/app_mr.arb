@@ -188,6 +188,7 @@
   "partyUpdateError": "पक्ष आणि चिन्ह अपडेट करण्यात अयशस्वी: {error}",
   "symbolUploadSuccess": "चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली",
   "symbolUploadError": "चिन्ह प्रतिमा अपलोड करण्यात अयशस्वी: {error}",
+  "symbolImageSizeLimitError": "प्रतिमेचा आकार 5MB पेक्षा कमी असावा. कृपया लहान प्रतिमा निवडा.",
   "updatingText": "अपडेट होत आहे...",
   "updateInstructionText": "तुमचा पक्ष आणि चिन्ह बदल जतन करण्यासाठी अपडेट टॅप करा"
 }

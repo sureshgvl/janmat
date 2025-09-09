@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -442,6 +443,22 @@ class ChatController extends GetxController {
     try {
       final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
       if (pickedFile == null) return;
+
+      // Check image file size (5MB limit)
+      final file = File(pickedFile.path);
+      final fileSize = await file.length();
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+
+      if (fileSize > maxSizeInBytes) {
+        Get.snackbar(
+          'Error',
+          'Image size must be less than 5MB. Please select a smaller image.',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+          duration: const Duration(seconds: 3),
+        );
+        return;
+      }
 
       isSendingMessage = true;
       update();

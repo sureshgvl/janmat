@@ -1193,6 +1193,12 @@ abstract class AppLocalizations {
   /// **'Failed to upload symbol image: {error}'**
   String symbolUploadError(Object error);
 
+  /// No description provided for @symbolImageSizeLimitError.
+  ///
+  /// In en, this message translates to:
+  /// **'Image size must be less than 5MB. Please select a smaller image.'**
+  String get symbolImageSizeLimitError;
+
   /// No description provided for @updatingText.
   ///
   /// In en, this message translates to:

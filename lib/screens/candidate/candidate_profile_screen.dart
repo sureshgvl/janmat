@@ -11,6 +11,7 @@ import '../../widgets/candidate/manifesto_tab.dart';
 import '../../widgets/candidate/media_tab.dart';
 import '../../widgets/candidate/contact_tab.dart';
 import '../../utils/performance_monitor.dart';
+import '../../utils/symbol_utils.dart';
 
 class CandidateProfileScreen extends StatefulWidget {
   const CandidateProfileScreen({super.key});
@@ -82,85 +83,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
     // The app will display real data from Firestore or show empty states
   }
 
-  // Get party symbol path
-  String getPartySymbolPath(String party, {String? candidateSymbol}) {
-    debugPrint('🔍 [Mapping Party Symbol] For party: $party');
-
-    // Handle independent candidates - use their custom symbol if available
-    if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
-      if (candidateSymbol != null && candidateSymbol.isNotEmpty) {
-        return candidateSymbol; // Use uploaded symbol URL
-      }
-      return 'assets/symbols/independent.png';
-    }
-
-    // For party-affiliated candidates, use the default symbol mapping
-    // This will be replaced with Firebase data in the future
-    final partySymbols = {
-      'Indian National Congress': 'assets/symbols/inc.png',
-      'Bharatiya Janata Party': 'assets/symbols/bjp.png',
-      'Nationalist Congress Party (Ajit Pawar faction)': 'assets/symbols/ncp_ajit.png',
-      'Nationalist Congress Party – Sharadchandra Pawar': 'assets/symbols/ncp_sp.png',
-      'Shiv Sena (Eknath Shinde faction)': 'assets/symbols/shiv_sena_shinde.png',
-      'Shiv Sena (Uddhav Balasaheb Thackeray – UBT)': 'assets/symbols/shiv_sena_ubt.jpeg',
-      'Maharashtra Navnirman Sena': 'assets/symbols/mns.png',
-      'Communist Party of India': 'assets/symbols/cpi.png',
-      'Communist Party of India (Marxist)': 'assets/symbols/cpi_m.png',
-      'Bahujan Samaj Party': 'assets/symbols/bsp.png',
-      'Samajwadi Party': 'assets/symbols/sp.png',
-      'All India Majlis-e-Ittehad-ul-Muslimeen': 'assets/symbols/aimim.png',
-      'National Peoples Party': 'assets/symbols/npp.png',
-      'Peasants and Workers Party of India': 'assets/symbols/pwp.jpg',
-      'Vanchit Bahujan Aaghadi': 'assets/symbols/vba.png',
-      'Rashtriya Samaj Paksha': 'assets/symbols/default.png',
-    };
-
-    // First try exact match
-    if (partySymbols.containsKey(party)) {
-      return partySymbols[party]!;
-    }
-
-    // Try case-insensitive match
-    final upperParty = party.toUpperCase();
-    for (var entry in partySymbols.entries) {
-      if (entry.key.toUpperCase() == upperParty) {
-        return entry.value;
-      }
-    }
-
-    // Try partial matches for common variations
-    final partialMatches = {
-      'INDIAN NATIONAL CONGRESS': 'assets/symbols/inc.png',
-      'INDIA NATIONAL CONGRESS': 'assets/symbols/inc.png',
-      'BHARATIYA JANATA PARTY': 'assets/symbols/bjp.png',
-      'NATIONALIST CONGRESS PARTY': 'assets/symbols/ncp_ajit.png',
-      'NATIONALIST CONGRESS PARTY AJIT': 'assets/symbols/ncp_ajit.png',
-      'NATIONALIST CONGRESS PARTY SP': 'assets/symbols/ncp_sp.png',
-      'SHIV SENA': 'assets/symbols/shiv_sena_ubt.jpeg',
-      'SHIV SENA UBT': 'assets/symbols/shiv_sena_ubt.jpeg',
-      'SHIV SENA SHINDE': 'assets/symbols/shiv_sena_shinde.png',
-      'MAHARASHTRA NAVNIRMAN SENA': 'assets/symbols/mns.png',
-      'COMMUNIST PARTY OF INDIA': 'assets/symbols/cpi.png',
-      'COMMUNIST PARTY OF INDIA MARXIST': 'assets/symbols/cpi_m.png',
-      'BAHUJAN SAMAJ PARTY': 'assets/symbols/bsp.png',
-      'SAMAJWADI PARTY': 'assets/symbols/sp.png',
-      'ALL INDIA MAJLIS E ITTEHADUL MUSLIMEEN': 'assets/symbols/aimim.png',
-      'ALL INDIA MAJLIS-E-ITTEHADUL MUSLIMEEN': 'assets/symbols/aimim.png',
-      'NATIONAL PEOPLES PARTY': 'assets/symbols/npp.png',
-      'PEASANT AND WORKERS PARTY': 'assets/symbols/pwp.jpg',
-      'VANCHIT BAHUJAN AGHADI': 'assets/symbols/vba.png',
-      'REVOLUTIONARY SOCIALIST PARTY': 'assets/symbols/default.png',
-    };
-
-    for (var entry in partialMatches.entries) {
-      if (upperParty.contains(entry.key.toUpperCase().replaceAll(' ', '')) ||
-          entry.key.toUpperCase().contains(upperParty.replaceAll(' ', ''))) {
-        return entry.value;
-      }
-    }
-
-    return 'assets/symbols/default.png';
-  }
 
   // Format date
   String formatDate(DateTime date) {
@@ -194,7 +116,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
             ProfileHeader(
               candidate: candidate!,
               isPremiumCandidate: isPremiumCandidate,
-              getPartySymbolPath: (party) => getPartySymbolPath(party, candidateSymbol: candidate!.symbol),
+              getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: candidate),
               formatDate: formatDate,
               buildStatItem: _buildStatItem,
               onCoverPhotoChange: (isPremiumCandidate && currentUserId == candidate!.userId) ? _changeCoverPhoto : null,
@@ -281,7 +203,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
           children: [
             InfoTab(
               candidate: candidate!,
-              getPartySymbolPath: (party) => getPartySymbolPath(party, candidateSymbol: candidate!.symbol),
+              getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: candidate),
               formatDate: formatDate,
             ),
             ManifestoTab(candidate: candidate!),

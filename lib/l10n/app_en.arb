@@ -188,6 +188,7 @@
   "partyUpdateError": "Failed to update party and symbol: {error}",
   "symbolUploadSuccess": "Symbol image uploaded successfully",
   "symbolUploadError": "Failed to upload symbol image: {error}",
+  "symbolImageSizeLimitError": "Image size must be less than 5MB. Please select a smaller image.",
   "updatingText": "Updating...",
   "updateInstructionText": "Tap update to save your party and symbol changes"
 }

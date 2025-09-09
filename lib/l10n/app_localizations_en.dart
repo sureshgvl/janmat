@@ -584,6 +584,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get symbolImageSizeLimitError => 'Image size must be less than 5MB. Please select a smaller image.';
+
+  @override
   String get updatingText => 'Updating...';
 
   @override

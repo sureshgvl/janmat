@@ -37,6 +37,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   bool isLoading = false;
   bool isIndependent = false;
   bool isLoadingParties = true;
+  bool isUploadingImage = false;
   List<Party> parties = [];
 
   @override
@@ -170,14 +171,36 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   }
 
   Future<void> _pickSymbolImage() async {
+    setState(() {
+      isUploadingImage = true;
+    });
+
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image != null) {
+        // Check image file size (5MB limit)
+        final file = File(image.path);
+        final fileSize = await file.length();
+        const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+
+        if (fileSize > maxSizeInBytes) {
+          Get.snackbar('Error', 'Image size must be less than 5MB. Please select a smaller image.');
+          setState(() {
+            isUploadingImage = false;
+          });
+          return;
+        }
+
         // Upload to Firebase Storage
         final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser == null) return;
+        if (currentUser == null) {
+          setState(() {
+            isUploadingImage = false;
+          });
+          return;
+        }
 
         final storageRef = FirebaseStorage.instance
             .ref()
@@ -191,11 +214,19 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
 
         setState(() {
           symbolImageUrl = downloadUrl;
+          isUploadingImage = false;
         });
 
         Get.snackbar('Success', 'Symbol image uploaded successfully');
+      } else {
+        setState(() {
+          isUploadingImage = false;
+        });
       }
     } catch (e) {
+      setState(() {
+        isUploadingImage = false;
+      });
       Get.snackbar('Error', 'Failed to upload symbol image: $e');
     }
   }
@@ -332,16 +363,37 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade50,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Symbol Image (Optional)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Row(
+                          children: [
+                            const Text(
+                              'Symbol Image (Optional)',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Max 5MB',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -351,49 +403,125 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                             color: Colors.grey,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Supported formats: JPG, PNG. Maximum file size: 5MB.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            if (symbolImageUrl != null)
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: DecorationImage(
-                                    image: NetworkImage(symbolImageUrl!),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.image,
-                                  color: Colors.grey,
-                                  size: 30,
-                                ),
+                            // Image Preview
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
                               ),
+                              child: isUploadingImage
+                                  ? const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : symbolImageUrl != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Image.network(
+                                            symbolImageUrl!,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return const Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return const Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                                size: 30,
+                                              );
+                                            },
+                                          ),
+                                        )
+                                      : Container(
+                                          color: Colors.grey.shade100,
+                                          child: const Icon(
+                                            Icons.image,
+                                            color: Colors.grey,
+                                            size: 30,
+                                          ),
+                                        ),
+                            ),
                             const SizedBox(width: 16),
+                            // Upload Button
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _pickSymbolImage,
-                                icon: const Icon(Icons.upload),
-                                label: const Text('Upload Symbol Image'),
+                                onPressed: isUploadingImage ? null : _pickSymbolImage,
+                                icon: isUploadingImage
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.upload),
+                                label: Text(
+                                  isUploadingImage
+                                      ? 'Uploading...'
+                                      : 'Upload Symbol Image',
+                                ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
+                                  backgroundColor: isUploadingImage ? Colors.grey : Colors.blue,
                                   foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
+                        if (symbolImageUrl != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Image uploaded successfully',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
