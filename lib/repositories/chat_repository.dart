@@ -92,23 +92,7 @@ class ChatRepository {
         return true;
       }());
 
-      // Update user's message count (only if they have quota, not XP)
-      // XP deduction is handled in the controller
-      final canUseQuota = await _canUserSendMessage(message.senderId);
-      if (canUseQuota) {
-        await _incrementUserMessageCount(message.senderId);
-        // Only log in debug mode
-        assert(() {
-          debugPrint('📊 Repository: User quota decremented');
-          return true;
-        }());
-      } else {
-        // Only log in debug mode
-        assert(() {
-          debugPrint('💰 Repository: User using XP (quota not decremented)');
-          return true;
-        }());
-      }
+      // Quota/XP handling is now done in the controller
 
       return message;
     } catch (e) {

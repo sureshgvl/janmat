@@ -27,15 +27,25 @@ class MessageInput extends StatelessWidget {
       child: Row(
         children: [
           // Attachment button
-          IconButton(
-            icon: const Icon(Icons.attach_file),
-            onPressed: onShowAttachmentOptions,
+          GetBuilder<ChatController>(
+            builder: (controller) => IconButton(
+              icon: Icon(
+                Icons.attach_file,
+                color: controller.canSendMessage ? null : Colors.grey,
+              ),
+              onPressed: controller.canSendMessage ? onShowAttachmentOptions : null,
+            ),
           ),
 
           // Voice recording button
-          IconButton(
-            icon: const Icon(Icons.mic),
-            onPressed: _toggleVoiceRecording,
+          GetBuilder<ChatController>(
+            builder: (controller) => IconButton(
+              icon: Icon(
+                Icons.mic,
+                color: controller.canSendMessage ? null : Colors.grey,
+              ),
+              onPressed: controller.canSendMessage ? _toggleVoiceRecording : null,
+            ),
           ),
 
           // Text input
@@ -46,7 +56,9 @@ class MessageInput extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: controller.canSendMessage
                       ? 'Type a message...'
-                      : 'Watch ad to send more messages',
+                      : controller.shouldShowWatchAdsButton
+                          ? 'Watch ad to earn XP and send messages'
+                          : 'Unable to send messages',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
@@ -61,19 +73,49 @@ class MessageInput extends StatelessWidget {
             ),
           ),
 
-          // Send button
+          // Send button or Watch Ads button
           const SizedBox(width: 8),
           GetBuilder<ChatController>(
-            builder: (controller) => Container(
-              decoration: BoxDecoration(
-                color: controller.canSendMessage ? Colors.blue : Colors.grey,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: controller.canSendMessage ? onSendMessage : null,
-              ),
-            ),
+            builder: (controller) {
+              if (controller.canSendMessage) {
+                // Show send button when user can send messages
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: onSendMessage,
+                  ),
+                );
+              } else if (controller.shouldShowWatchAdsButton) {
+                // Show watch ads button when user cannot send but is not premium
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade600,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.play_circle_fill, color: Colors.white),
+                    onPressed: () => controller.watchRewardedAdForXP(),
+                    tooltip: 'Watch ad to earn XP',
+                  ),
+                );
+              } else {
+                // Show disabled send button for premium users who somehow can't send
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.grey,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const IconButton(
+                    icon: Icon(Icons.send, color: Colors.white),
+                    onPressed: null,
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),

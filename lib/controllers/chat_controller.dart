@@ -33,6 +33,11 @@ class ChatController extends GetxController {
   String? currentRecordingPath;
   bool _isInitialLoadComplete = false; // Flag to prevent real-time override during initial load
 
+  // Message caching for performance optimization
+  final Map<String, List<Message>> _messageCache = {}; // roomId -> messages
+  final Map<String, DateTime> _messageCacheTimestamps = {}; // roomId -> last cache time
+  static const Duration _cacheValidityDuration = Duration(minutes: 5); // Cache valid for 5 minutes
+
   // Reactive variables for real-time updates
   var chatRoomsStream = Rx<List<ChatRoom>>([]);
   var messagesStream = Rx<List<Message>>([]);
@@ -45,7 +50,16 @@ class ChatController extends GetxController {
   bool _canSendMessageLogged = false;
 
   // Current user (returns cached complete data or fallback)
-  UserModel? get currentUser => _cachedUser ?? _getCurrentUser();
+  UserModel? get currentUser {
+    if (_cachedUser != null) {
+      return _cachedUser;
+    }
+
+    // ⚠️ WARNING: This fallback should rarely be used
+    // If this is called frequently, it means user data is not being cached properly
+    debugPrint('⚠️ FALLBACK: Using incomplete user data - this indicates caching issue');
+    return _getCurrentUser();
+  }
 
   @override
   void onInit() {
@@ -64,22 +78,39 @@ class ChatController extends GetxController {
     // Clear any stale cached data first
     clearUserCache();
 
+    // Clean up any expired message caches from previous sessions
+    _clearExpiredCaches();
+
     final user = await getCompleteUserData();
     if (user != null) {
-    debugPrint('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
-    debugPrint('💬 Chat initialized - User can send messages: $canSendMessage');
+      // Cache the user data immediately to prevent fallback usage
+      _cachedUser = user;
+
+      debugPrint('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
+      debugPrint('💬 Chat initialized - User can send messages: $canSendMessage');
       fetchUserQuota();
       fetchChatRooms();
 
       // Ensure ward room exists for voters with complete profiles
       if (user.role == 'voter' && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
-      debugPrint('🏛️ Ensuring ward room exists for voter: ward_${user.cityId}_${user.wardId}');
+        debugPrint('🏛️ Ensuring ward room exists for voter: ward_${user.cityId}_${user.wardId}');
         ensureWardRoomExists();
       } else if (user.role == 'voter') {
-      debugPrint('⚠️ Voter profile incomplete - missing ward or city info');
+        debugPrint('⚠️ Voter profile incomplete - missing ward or city info');
       }
     } else {
-    debugPrint('❌ No user found for chat initialization');
+      debugPrint('❌ CRITICAL: Failed to get complete user data from Firestore');
+      debugPrint('   This will cause issues with user roles, XP, and premium status');
+      debugPrint('   The app will fall back to incomplete Firebase Auth data');
+
+      // Try to get basic user info as fallback, but warn about the limitations
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser != null) {
+        debugPrint('   Firebase Auth user available: ${firebaseUser.displayName ?? 'Unknown'}');
+        debugPrint('   ⚠️ WARNING: User data will be incomplete (no role, XP, premium status)');
+      } else {
+        debugPrint('   ❌ No Firebase Auth user either - chat will not work properly');
+      }
     }
   }
 
@@ -88,20 +119,24 @@ class ChatController extends GetxController {
     final firebaseUser = _auth.currentUser;
     if (firebaseUser == null) return null;
 
-    // For now, return basic user info
-    // In a real implementation, you'd cache this or fetch from Firestore
+    // ⚠️ WARNING: This method returns incomplete user data
+    // It should only be used as a last resort when Firestore data is unavailable
+    // The proper way is to use getCompleteUserData() which fetches from Firestore
+    debugPrint('⚠️ WARNING: Using fallback user data - this should be avoided!');
+    debugPrint('   Consider calling getCompleteUserData() instead for complete user info');
+
     return UserModel(
       uid: firebaseUser.uid,
       name: firebaseUser.displayName ?? 'Unknown',
       phone: firebaseUser.phoneNumber ?? '',
       email: firebaseUser.email,
-      role: 'voter', // Default role
+      role: 'voter', // Default role - INCORRECT for actual users
       roleSelected: false,
       profileCompleted: false,
       wardId: '', // Will be updated after profile completion
       cityId: '', // Will be updated after profile completion
-      xpPoints: 0,
-      premium: false,
+      xpPoints: 0, // INCORRECT - actual users have XP
+      premium: false, // INCORRECT - actual users may be premium
       createdAt: DateTime.now(),
       photoURL: firebaseUser.photoURL,
     );
@@ -269,6 +304,20 @@ class ChatController extends GetxController {
 
     try {
       userQuota = await _repository.getUserQuota(user.uid);
+
+      // If no quota exists, create a default one
+      if (userQuota == null) {
+        debugPrint('📊 No quota found, creating default quota for user: ${user.uid}');
+        final newQuota = UserQuota(
+          userId: user.uid,
+          lastReset: DateTime.now(),
+          createdAt: DateTime.now(),
+        );
+        await _repository.updateUserQuota(newQuota);
+        userQuota = newQuota;
+        debugPrint('✅ Default quota created: ${userQuota!.remainingMessages} messages remaining');
+      }
+
       userQuotaStream.value = userQuota;
       // Reset the logging flag when quota is loaded
       _canSendMessageLogged = false;
@@ -282,30 +331,77 @@ class ChatController extends GetxController {
   // Select a chat room
   void selectChatRoom(ChatRoom chatRoom) {
     currentChatRoom = chatRoom;
-    messages = [];
-    messagesStream.value = [];
-  debugPrint('🎯 Selected chat room: ${chatRoom.title} (${chatRoom.roomId})');
 
-    // Start listening to messages
-    _listenToMessages(chatRoom.roomId);
+    // Check if we have cached messages for this room
+    if (_hasValidCachedMessages(chatRoom.roomId)) {
+      // Use cached messages
+      messages = List.from(_messageCache[chatRoom.roomId]!);
+      messagesStream.value = messages;
+      final cacheAge = DateTime.now().difference(_messageCacheTimestamps[chatRoom.roomId]!);
+      debugPrint('⚡ CACHE HIT: Using cached messages for room: ${chatRoom.title} (${messages.length} messages, ${cacheAge.inSeconds}s old)');
+
+      // Start listening for real-time updates (only new messages)
+      _listenToMessages(chatRoom.roomId, useCache: true);
+    } else {
+      // No valid cache, fetch from Firebase
+      messages = [];
+      messagesStream.value = [];
+      debugPrint('🔄 CACHE MISS: Selected chat room: ${chatRoom.title} (${chatRoom.roomId}) - fetching from Firebase');
+
+      // Start listening to messages
+      _listenToMessages(chatRoom.roomId, useCache: false);
+    }
+
     update();
   }
 
+  // Check if we have valid cached messages for a room
+  bool _hasValidCachedMessages(String roomId) {
+    if (!_messageCache.containsKey(roomId) || !_messageCacheTimestamps.containsKey(roomId)) {
+      return false;
+    }
+
+    final cacheTime = _messageCacheTimestamps[roomId]!;
+    final now = DateTime.now();
+    final isCacheValid = now.difference(cacheTime) < _cacheValidityDuration;
+
+    if (!isCacheValid) {
+      // Clean up expired cache
+      _messageCache.remove(roomId);
+      _messageCacheTimestamps.remove(roomId);
+      debugPrint('🗑️ Cleaned up expired cache for room: $roomId');
+    }
+
+    return isCacheValid;
+  }
+
+  // Cache messages for a room
+  void _cacheMessages(String roomId, List<Message> messages) {
+    _messageCache[roomId] = List.from(messages);
+    _messageCacheTimestamps[roomId] = DateTime.now();
+    debugPrint('💾 Cached ${messages.length} messages for room: $roomId');
+  }
+
   // Listen to messages in real-time
-  void _listenToMessages(String roomId) {
-  debugPrint('👂 Starting message listener for room: $roomId');
+  void _listenToMessages(String roomId, {bool useCache = false}) {
+    debugPrint('👂 Starting message listener for room: $roomId (useCache: $useCache)');
 
     _repository.getMessagesForRoom(roomId).listen((messagesList) {
-    debugPrint('📨 Received ${messagesList.length} messages for room $roomId');
+    final cacheStatus = useCache ? ' (cache hit)' : ' (from Firebase)';
+    debugPrint('📨 Received ${messagesList.length} messages for room $roomId$cacheStatus');
 
       // Filter out deleted messages
       final activeMessages = messagesList.where((msg) => !(msg.isDeleted ?? false)).toList();
-    debugPrint('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
+      debugPrint('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
 
-      // Debug: Print message details
-      for (var msg in activeMessages) {
-      debugPrint('   Message: "${msg.text}" by ${msg.senderId} at ${msg.createdAt} (deleted: ${msg.isDeleted})');
+      // Debug: Print message details (only first few for performance)
+      for (var i = 0; i < activeMessages.length && i < 3; i++) {
+        final msg = activeMessages[i];
+        debugPrint('   Message ${i + 1}: "${msg.text.length > 50 ? msg.text.substring(0, 50) + '...' : msg.text}" by ${msg.senderId}');
       }
+
+      // Cache the messages for future use
+      _cacheMessages(roomId, activeMessages);
 
       messages = activeMessages;
       messagesStream.value = activeMessages;
@@ -315,9 +411,9 @@ class ChatController extends GetxController {
 
       update(); // Force UI update
     }, onError: (error) {
-    debugPrint('❌ Error in message listener: $error');
+      debugPrint('❌ Error in message listener: $error');
     }, onDone: () {
-    debugPrint('🔚 Message listener completed for room: $roomId');
+      debugPrint('🔚 Message listener completed for room: $roomId');
     });
   }
 
@@ -345,6 +441,19 @@ class ChatController extends GetxController {
     final user = currentUser;
     if (user == null) {
     debugPrint('❌ Cannot send message: user is null');
+      return;
+    }
+
+    // Check if user can send message before proceeding
+    if (!canSendMessage) {
+    debugPrint('❌ Cannot send message: insufficient quota or XP');
+      Get.snackbar(
+        'Cannot Send Message',
+        'You have no remaining messages or XP. Please watch an ad to earn XP.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 4),
+      );
       return;
     }
 
@@ -383,14 +492,20 @@ class ChatController extends GetxController {
       }());
 
       // Handle quota/XP deduction ONLY after successful message send
+      // Since we already checked canSendMessage at the beginning, we know either quota or XP is available
+
       if (userQuota != null && userQuota!.canSendMessage) {
         // Debug logging (only in debug mode)
         assert(() {
         debugPrint('📊 Using regular quota for message');
           return true;
         }());
-        // Use regular quota
-        await fetchUserQuota();
+        // Decrement quota
+        final updatedQuota = userQuota!.copyWith(
+          messagesSent: userQuota!.messagesSent + 1,
+        );
+        await _repository.updateUserQuota(updatedQuota);
+        await fetchUserQuota(); // Refresh local quota
       } else if (user.xpPoints > 0) {
         // Debug logging (only in debug mode)
         assert(() {
@@ -399,24 +514,10 @@ class ChatController extends GetxController {
         }());
         // Use XP points (1 XP = 1 message)
         await _deductXPForMessage(user.uid);
-        await refreshUserDataAndChat(); // Refresh to get updated XP
         assert(() {
         debugPrint('✅ XP deducted successfully');
           return true;
         }());
-      } else {
-        // Debug logging (only in debug mode)
-        assert(() {
-        debugPrint('❌ No quota or XP available for message');
-          return true;
-        }());
-        Get.snackbar(
-          'Cannot Send Message',
-          'You have no remaining messages or XP. Please watch an ad to earn XP.',
-          backgroundColor: Colors.red.shade100,
-          colorText: Colors.red.shade800,
-          duration: const Duration(seconds: 4),
-        );
       }
 
     } catch (e) {
@@ -439,6 +540,19 @@ class ChatController extends GetxController {
   // Send image message
   Future<void> sendImageMessage() async {
     if (currentChatRoom == null) return;
+
+    // Check if user can send message before proceeding
+    if (!canSendMessage) {
+    debugPrint('❌ Cannot send image: insufficient quota or XP');
+      Get.snackbar(
+        'Cannot Send Message',
+        'You have no remaining messages or XP. Please watch an ad to earn XP.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
 
     try {
       final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
@@ -487,11 +601,32 @@ class ChatController extends GetxController {
         await _repository.sendMessage(currentChatRoom!.roomId, message);
 
         // Handle quota/XP deduction
+        // Since we already checked canSendMessage at the beginning, we know either quota or XP is available
+
         if (userQuota != null && userQuota!.canSendMessage) {
-          await fetchUserQuota();
+          // Debug logging (only in debug mode)
+          assert(() {
+          debugPrint('📊 Using regular quota for voice message');
+            return true;
+          }());
+          // Decrement quota
+          final updatedQuota = userQuota!.copyWith(
+            messagesSent: userQuota!.messagesSent + 1,
+          );
+          await _repository.updateUserQuota(updatedQuota);
+          await fetchUserQuota(); // Refresh local quota
         } else if (user.xpPoints > 0) {
+          // Debug logging (only in debug mode)
+          assert(() {
+          debugPrint('💰 Using XP for voice message (XP before: ${user.xpPoints})');
+            return true;
+          }());
+          // Use XP points (1 XP = 1 message)
           await _deductXPForMessage(user.uid);
-          await refreshUserDataAndChat();
+          assert(() {
+          debugPrint('✅ XP deducted successfully');
+            return true;
+          }());
         }
       }
     } catch (e) {
@@ -524,6 +659,19 @@ class ChatController extends GetxController {
   Future<void> stopVoiceRecording() async {
     if (currentChatRoom == null || currentRecordingPath == null) return;
 
+    // Check if user can send message before proceeding
+    if (!canSendMessage) {
+    debugPrint('❌ Cannot send voice message: insufficient quota or XP');
+      Get.snackbar(
+        'Cannot Send Message',
+        'You have no remaining messages or XP. Please watch an ad to earn XP.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+
     try {
       final path = await _audioRecorder.stop();
       if (path == null) return;
@@ -555,11 +703,32 @@ class ChatController extends GetxController {
         await _repository.sendMessage(currentChatRoom!.roomId, message);
 
         // Handle quota/XP deduction
+        // Since we already checked canSendMessage at the beginning, we know either quota or XP is available
+
         if (userQuota != null && userQuota!.canSendMessage) {
-          await fetchUserQuota();
+          // Debug logging (only in debug mode)
+          assert(() {
+          debugPrint('📊 Using regular quota for image');
+            return true;
+          }());
+          // Decrement quota
+          final updatedQuota = userQuota!.copyWith(
+            messagesSent: userQuota!.messagesSent + 1,
+          );
+          await _repository.updateUserQuota(updatedQuota);
+          await fetchUserQuota(); // Refresh local quota
         } else if (user.xpPoints > 0) {
+          // Debug logging (only in debug mode)
+          assert(() {
+          debugPrint('💰 Using XP for image (XP before: ${user.xpPoints})');
+            return true;
+          }());
+          // Use XP points (1 XP = 1 message)
           await _deductXPForMessage(user.uid);
-          await refreshUserDataAndChat();
+          assert(() {
+          debugPrint('✅ XP deducted successfully');
+            return true;
+          }());
         }
       }
 
@@ -972,6 +1141,33 @@ class ChatController extends GetxController {
     update();
   }
 
+  // Clear message cache for a specific room
+  void _clearMessageCache(String roomId) {
+    _messageCache.remove(roomId);
+    _messageCacheTimestamps.remove(roomId);
+    debugPrint('🗑️ Cleared message cache for room: $roomId');
+  }
+
+  // Clear all expired message caches
+  void _clearExpiredCaches() {
+    final now = DateTime.now();
+    final expiredRoomIds = <String>[];
+
+    _messageCacheTimestamps.forEach((roomId, timestamp) {
+      if (now.difference(timestamp) >= _cacheValidityDuration) {
+        expiredRoomIds.add(roomId);
+      }
+    });
+
+    for (final roomId in expiredRoomIds) {
+      _clearMessageCache(roomId);
+    }
+
+    if (expiredRoomIds.isNotEmpty) {
+      debugPrint('🧹 Cleared ${expiredRoomIds.length} expired message caches');
+    }
+  }
+
   // Clear error
   void clearError() {
     errorMessage = null;
@@ -980,7 +1176,7 @@ class ChatController extends GetxController {
 
   // Clear cached user data (call when user logs out or switches)
   void clearUserCache() {
-  debugPrint('🧹 Clearing cached user data');
+    debugPrint('🧹 Clearing cached user data');
     _cachedUser = null;
     userQuota = null;
     userQuotaStream.value = null;
@@ -993,6 +1189,12 @@ class ChatController extends GetxController {
     messages = [];
     messagesStream.value = [];
     _isInitialLoadComplete = false;
+
+    // Clear all message caches
+    _messageCache.clear();
+    _messageCacheTimestamps.clear();
+    debugPrint('🗑️ Cleared all message caches');
+
     update();
   }
 
@@ -1034,6 +1236,11 @@ class ChatController extends GetxController {
   bool get canSendMessage {
     final user = currentUser;
 
+    //user is premium
+    if (user != null && user.premium) {
+      return true;
+    }
+
     // First check user quota
     if (userQuota != null && userQuota!.canSendMessage) {
       return true;
@@ -1044,12 +1251,21 @@ class ChatController extends GetxController {
       return true;
     }
 
-    // Allow if quota not loaded yet (fallback)
-    if (userQuota == null) {
-      return true;
+    // If all checks fail, user cannot send messages
+    return false;
+  }
+
+  // Check if user should see watch ads button
+  bool get shouldShowWatchAdsButton {
+    final user = currentUser;
+
+    // Don't show if user is premium (they can always send)
+    if (user != null && user.premium) {
+      return false;
     }
 
-    return false;
+    // Show if user cannot send messages (no quota and no XP)
+    return !canSendMessage;
   }
 
   // Get remaining messages (integrate with XP system)
@@ -1067,7 +1283,7 @@ class ChatController extends GetxController {
     }
 
     // Default fallback
-    return 20;
+    return 0;
   }
 
   // Watch rewarded ad for XP
@@ -1377,13 +1593,38 @@ class ChatController extends GetxController {
 
   // Debug all chat status
   void debugChatStatus() {
-  debugPrint('🔍 Chat Debug Info:');
-  debugPrint('   Current room: ${currentChatRoom?.roomId ?? 'null'}');
-  debugPrint('   Messages count: ${messages.length}');
-  debugPrint('   Is sending: $isSendingMessage');
-  debugPrint('   Can send: $canSendMessage');
-  debugPrint('   Remaining messages: $remainingMessages');
+    debugPrint('🔍 Chat Debug Info:');
+    debugPrint('   Current room: ${currentChatRoom?.roomId ?? 'null'}');
+    debugPrint('   Messages count: ${messages.length}');
+    debugPrint('   Is sending: $isSendingMessage');
+    debugPrint('   Can send: $canSendMessage');
+    debugPrint('   Remaining messages: $remainingMessages');
+
+    // Debug cache info
+    debugPrint('   📊 Cache Info:');
+    debugPrint('     Cached rooms: ${_messageCache.length}');
+    _messageCache.forEach((roomId, cachedMessages) {
+      final timestamp = _messageCacheTimestamps[roomId];
+      final age = timestamp != null ? DateTime.now().difference(timestamp) : null;
+      debugPrint('     Room $roomId: ${cachedMessages.length} messages, age: ${age?.inSeconds ?? 'unknown'}s');
+    });
 
     debugUserXPStatus();
+  }
+
+  // Manually clear all message caches (for debugging)
+  void clearAllMessageCaches() {
+    final cacheCount = _messageCache.length;
+    _messageCache.clear();
+    _messageCacheTimestamps.clear();
+    debugPrint('🗑️ Manually cleared $cacheCount message caches');
+
+    Get.snackbar(
+      'Cache Cleared',
+      'Cleared $cacheCount message caches',
+      backgroundColor: Colors.blue.shade100,
+      colorText: Colors.blue.shade800,
+      duration: const Duration(seconds: 2),
+    );
   }
 }

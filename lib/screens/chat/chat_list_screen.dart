@@ -371,7 +371,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             icon: const Icon(Icons.play_circle_outline),
             label: Text(AppLocalizations.of(context)!.watchAdForXP),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.orange,
+              foregroundColor: Colors.green,
             ),
           ),
 
