@@ -7,6 +7,7 @@ class UserModel {
   final String? email;
   final String role;
   final bool roleSelected;
+  final bool profileCompleted;
   final String wardId;
   final String cityId;
   final int xpPoints;
@@ -14,6 +15,11 @@ class UserModel {
   final String? subscriptionPlanId; // current active subscription
   final DateTime? subscriptionExpiresAt;
   final DateTime createdAt;
+  // Trial fields for candidates
+  final DateTime? trialStartedAt;
+  final DateTime? trialExpiresAt;
+  final bool isTrialActive;
+  final bool hasConvertedFromTrial;
   final String? photoURL;
   final int followingCount;
 
@@ -24,6 +30,7 @@ class UserModel {
     this.email,
     required this.role,
     required this.roleSelected,
+    required this.profileCompleted,
     required this.wardId,
     required this.cityId,
     required this.xpPoints,
@@ -33,6 +40,10 @@ class UserModel {
     required this.createdAt,
     this.photoURL,
     this.followingCount = 0,
+    this.trialStartedAt,
+    this.trialExpiresAt,
+    this.isTrialActive = false,
+    this.hasConvertedFromTrial = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -43,6 +54,24 @@ class UserModel {
       subscriptionExpiresAt = DateTime.parse(json['subscriptionExpiresAt']);
     }
 
+    // Parse trial dates
+    DateTime? trialStartedAt;
+    DateTime? trialExpiresAt;
+    if (json['trialStartedAt'] != null) {
+      if (json['trialStartedAt'] is Timestamp) {
+        trialStartedAt = (json['trialStartedAt'] as Timestamp).toDate();
+      } else if (json['trialStartedAt'] is String) {
+        trialStartedAt = DateTime.parse(json['trialStartedAt']);
+      }
+    }
+    if (json['trialExpiresAt'] != null) {
+      if (json['trialExpiresAt'] is Timestamp) {
+        trialExpiresAt = (json['trialExpiresAt'] as Timestamp).toDate();
+      } else if (json['trialExpiresAt'] is String) {
+        trialExpiresAt = DateTime.parse(json['trialExpiresAt']);
+      }
+    }
+
     return UserModel(
       uid: json['uid'] ?? '',
       name: json['name'] ?? '',
@@ -50,6 +79,7 @@ class UserModel {
       email: json['email'],
       role: json['role'] ?? 'voter',
       roleSelected: json['roleSelected'] ?? false,
+      profileCompleted: json['profileCompleted'] ?? false,
       wardId: json['wardId'] ?? '',
       cityId: json['cityId'] ?? '',
       xpPoints: json['xpPoints'] ?? 0,
@@ -59,6 +89,10 @@ class UserModel {
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       photoURL: json['photoURL'],
       followingCount: json['followingCount']?.toInt() ?? 0,
+      trialStartedAt: trialStartedAt,
+      trialExpiresAt: trialExpiresAt,
+      isTrialActive: json['isTrialActive'] ?? false,
+      hasConvertedFromTrial: json['hasConvertedFromTrial'] ?? false,
     );
   }
 
@@ -70,6 +104,7 @@ class UserModel {
       'email': email,
       'role': role,
       'roleSelected': roleSelected,
+      'profileCompleted': profileCompleted,
       'wardId': wardId,
       'cityId': cityId,
       'xpPoints': xpPoints,
@@ -79,6 +114,10 @@ class UserModel {
       'createdAt': createdAt.toIso8601String(),
       'photoURL': photoURL,
       'followingCount': followingCount,
+      'trialStartedAt': trialStartedAt?.toIso8601String(),
+      'trialExpiresAt': trialExpiresAt?.toIso8601String(),
+      'isTrialActive': isTrialActive,
+      'hasConvertedFromTrial': hasConvertedFromTrial,
     };
   }
 
@@ -89,6 +128,7 @@ class UserModel {
     String? email,
     String? role,
     bool? roleSelected,
+    bool? profileCompleted,
     String? wardId,
     String? cityId,
     int? xpPoints,
@@ -98,6 +138,10 @@ class UserModel {
     DateTime? createdAt,
     String? photoURL,
     int? followingCount,
+    DateTime? trialStartedAt,
+    DateTime? trialExpiresAt,
+    bool? isTrialActive,
+    bool? hasConvertedFromTrial,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -106,6 +150,7 @@ class UserModel {
       email: email ?? this.email,
       role: role ?? this.role,
       roleSelected: roleSelected ?? this.roleSelected,
+      profileCompleted: profileCompleted ?? this.profileCompleted,
       wardId: wardId ?? this.wardId,
       cityId: cityId ?? this.cityId,
       xpPoints: xpPoints ?? this.xpPoints,
@@ -115,6 +160,10 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       photoURL: photoURL ?? this.photoURL,
       followingCount: followingCount ?? this.followingCount,
+      trialStartedAt: trialStartedAt ?? this.trialStartedAt,
+      trialExpiresAt: trialExpiresAt ?? this.trialExpiresAt,
+      isTrialActive: isTrialActive ?? this.isTrialActive,
+      hasConvertedFromTrial: hasConvertedFromTrial ?? this.hasConvertedFromTrial,
     );
   }
 }

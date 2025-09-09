@@ -4,10 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../repositories/auth_repository.dart';
 import '../services/device_service.dart';
+import '../services/trial_service.dart';
 
 class LoginController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
   final DeviceService _deviceService = DeviceService();
+  final TrialService _trialService = TrialService();
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
@@ -146,18 +148,25 @@ class LoginController extends GetxController {
         final profileCompleted = userData?['profileCompleted'] ?? false;
         final roleSelected = userData?['roleSelected'] ?? false;
 
-        if (!profileCompleted) {
-          Get.offAllNamed('/profile-completion');
-          return;
+        // Clean up expired trials on login
+        try {
+          await _trialService.cleanupExpiredTrials(user.uid);
+        } catch (e) {
+          print('⚠️ Trial cleanup failed: $e');
         }
 
         if (!roleSelected) {
           Get.offAllNamed('/role-selection');
           return;
         }
+
+        if (!profileCompleted) {
+          Get.offAllNamed('/profile-completion');
+          return;
+        }
       } else {
-        // User document doesn't exist, need profile completion
-        Get.offAllNamed('/profile-completion');
+        // User document doesn't exist, need role selection first
+        Get.offAllNamed('/role-selection');
         return;
       }
 

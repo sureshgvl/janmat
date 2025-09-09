@@ -27,9 +27,8 @@ class FollowButton extends StatelessWidget {
         final isLoading = controller.followLoading[candidateId] ?? false;
 
         // Find candidate to get followers count
-        final candidate = controller.candidates.firstWhere(
+        final candidate = controller.candidates.firstWhereOrNull(
           (c) => c.candidateId == candidateId,
-          orElse: () => null as dynamic,
         );
 
         return Column(

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/candidate_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../controllers/chat_controller.dart';
+import '../../services/trial_service.dart';
 
 class CandidateSetupScreen extends StatefulWidget {
   const CandidateSetupScreen({super.key});
@@ -17,6 +18,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final candidateRepository = CandidateRepository();
   final chatController = Get.find<ChatController>();
+  final trialService = TrialService();
 
   // Form controllers
   final nameController = TextEditingController();
@@ -53,7 +55,23 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
 
   Future<void> _loadUserData() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
+    if (currentUser == null) return;
+
+    try {
+      // Load existing candidate data if available
+      final existingCandidate = await candidateRepository.getCandidateData(currentUser.uid);
+      if (existingCandidate != null) {
+        // Pre-fill form with existing data
+        nameController.text = existingCandidate.name;
+        selectedParty = existingCandidate.party;
+        manifestoController.text = existingCandidate.manifesto ?? '';
+      } else {
+        // Fallback to user display name
+        nameController.text = currentUser.displayName ?? '';
+      }
+    } catch (e) {
+      print('Error loading candidate data: $e');
+      // Fallback to user display name
       nameController.text = currentUser.displayName ?? '';
     }
   }
@@ -76,65 +94,55 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Get user data for city/ward info
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        throw Exception('User profile not found');
+      // Get existing candidate data
+      print('🔍 Candidate Setup: Looking for candidate data for user: ${currentUser.uid}');
+      final existingCandidate = await candidateRepository.getCandidateData(currentUser.uid);
+      if (existingCandidate == null) {
+        print('❌ Candidate Setup: No candidate data found for user: ${currentUser.uid}');
+        throw Exception('Candidate profile not found. Please complete your basic profile first.');
       }
+      print('✅ Candidate Setup: Found candidate data: ${existingCandidate.name}, ID: ${existingCandidate.candidateId}');
 
-      final userData = userDoc.data()!;
-      final cityId = userData['cityId'] ?? '';
-      final wardId = userData['wardId'] ?? '';
-
-      // Create candidate
-      final candidate = Candidate(
-        candidateId: 'candidate_${currentUser.uid}',
-        userId: currentUser.uid,
+      // Update candidate with additional details
+      final updatedCandidate = existingCandidate.copyWith(
         name: nameController.text.trim(),
         party: selectedParty!,
-        cityId: cityId,
-        wardId: wardId,
-        contact: Contact(
-          phone: userData['phone'] ?? '',
-          email: userData['email'],
-        ),
-        sponsored: false,
-        premium: false,
-        createdAt: DateTime.now(),
         manifesto: manifestoController.text.trim().isNotEmpty
             ? manifestoController.text.trim()
             : null,
       );
 
-      // Save to Firestore
-      await FirebaseFirestore.instance
-          .collection('candidates')
-          .doc(candidate.candidateId)
-          .set(candidate.toJson());
+      // Update candidate in hierarchical structure
+      await candidateRepository.updateCandidateExtraInfo(updatedCandidate);
 
-      // Update user role to candidate
+      // Update user role to candidate (in case it wasn't set)
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
           .update({
             'role': 'candidate',
-            'candidateId': candidate.candidateId,
+            'candidateId': existingCandidate.candidateId,
           });
+
+      // Start 3-day free trial for new candidate
+      try {
+        await trialService.startTrialForCandidate(currentUser.uid);
+        print('✅ Started 3-day trial for new candidate');
+      } catch (e) {
+        print('⚠️ Failed to start trial, but candidate profile created: $e');
+        // Don't fail the entire process if trial start fails
+      }
 
       // Refresh user data
       await chatController.refreshUserDataAndChat();
 
       Get.snackbar(
         'Success!',
-        'Your candidate profile has been created successfully!',
-        duration: const Duration(seconds: 3),
+        'Your candidate profile has been updated! You have 3 days of premium access to try all features.',
+        duration: const Duration(seconds: 4),
       );
 
-      // Navigate to candidate dashboard
+      // Navigate to home (trial will be active)
       Get.offAllNamed('/home');
 
     } catch (e) {
@@ -158,7 +166,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Set Up Candidate Profile'),
+        title: const Text('Complete Candidate Profile'),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -220,7 +228,14 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                   items: parties.map((party) {
                     return DropdownMenuItem<String>(
                       value: party,
-                      child: Text(party),
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 250),
+                        child: Text(
+                          party,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -309,7 +324,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
-                            'Create Candidate Profile',
+                            'Update Candidate Profile',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

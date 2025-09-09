@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:translator/translator.dart';
 import '../../models/candidate_model.dart';
+import '../../services/file_upload_service.dart';
+import 'demo_data_modal.dart';
 
 class ManifestoSection extends StatefulWidget {
   final Candidate candidateData;
@@ -24,9 +26,12 @@ class ManifestoSection extends StatefulWidget {
 
 class _ManifestoSectionState extends State<ManifestoSection> {
   final GoogleTranslator _translator = GoogleTranslator();
+  final FileUploadService _fileUploadService = FileUploadService();
+  late TextEditingController _manifestoController;
   String _currentLanguage = 'en'; // 'en' for English, 'mr' for Marathi
   String _translatedText = '';
   bool _isTranslating = false;
+  bool _isUploadingPdf = false;
   String? _originalText;
 
   @override
@@ -35,6 +40,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
     final data = widget.editedData ?? widget.candidateData;
     _originalText = data.extraInfo?.manifesto ?? '';
     _translatedText = _originalText ?? '';
+    _manifestoController = TextEditingController(text: _originalText);
   }
 
   @override
@@ -44,12 +50,19 @@ class _ManifestoSectionState extends State<ManifestoSection> {
     final newText = data.extraInfo?.manifesto ?? '';
     if (_originalText != newText) {
       _originalText = newText;
+      _manifestoController.text = newText;
       if (_currentLanguage == 'en') {
         _translatedText = newText;
       } else {
         _translateText(newText, _currentLanguage);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _manifestoController.dispose();
+    super.dispose();
   }
 
   Future<void> _translateText(String text, String targetLanguage) async {
@@ -110,6 +123,39 @@ class _ManifestoSectionState extends State<ManifestoSection> {
       } else {
         _translateText(_originalText!, language);
       }
+    }
+  }
+
+  Future<void> _uploadManifestoPdf() async {
+    setState(() {
+      _isUploadingPdf = true;
+    });
+
+    try {
+      final pdfUrl = await _fileUploadService.uploadManifestoPdf(
+        widget.candidateData.userId ?? 'unknown_user',
+      );
+
+      if (pdfUrl != null) {
+        widget.onManifestoPdfChange(pdfUrl);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Manifesto PDF uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to upload PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isUploadingPdf = false;
+      });
     }
   }
 
@@ -180,10 +226,29 @@ class _ManifestoSectionState extends State<ManifestoSection> {
             const SizedBox(height: 16),
             if (widget.isEditing)
               TextFormField(
-                initialValue: manifesto,
-                decoration: const InputDecoration(
+                controller: _manifestoController,
+                decoration: InputDecoration(
                   labelText: 'Manifesto',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.lightbulb,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => DemoDataModal(
+                          category: 'manifesto',
+                          onDataSelected: (selectedData) {
+                            _manifestoController.text = selectedData;
+                            widget.onManifestoChange(selectedData);
+                          },
+                        ),
+                      );
+                    },
+                    tooltip: 'Use demo manifesto',
+                  ),
                 ),
                 maxLines: 5,
                 onChanged: widget.onManifestoChange,
@@ -214,11 +279,17 @@ class _ManifestoSectionState extends State<ManifestoSection> {
               ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: widget.isEditing ? () {
-                // TODO: Implement PDF upload
-                widget.onManifestoPdfChange('https://example.com/manifesto.pdf');
-              } : null,
-              child: const Text('Upload Manifesto PDF'),
+              onPressed: widget.isEditing && !_isUploadingPdf ? _uploadManifestoPdf : null,
+              child: _isUploadingPdf
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Upload Manifesto PDF'),
             ),
           ],
         ),

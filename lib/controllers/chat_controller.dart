@@ -40,6 +40,9 @@ class ChatController extends GetxController {
   // Cached complete user data
   UserModel? _cachedUser;
 
+  // Flag to prevent repeated debug logging
+  bool _canSendMessageLogged = false;
+
   // Current user (returns cached complete data or fallback)
   UserModel? get currentUser => _cachedUser ?? _getCurrentUser();
 
@@ -63,6 +66,7 @@ class ChatController extends GetxController {
     final user = await getCompleteUserData();
     if (user != null) {
       print('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
+      print('💬 Chat initialized - User can send messages: $canSendMessage');
       fetchUserQuota();
       fetchChatRooms();
 
@@ -92,6 +96,7 @@ class ChatController extends GetxController {
       email: firebaseUser.email,
       role: 'voter', // Default role
       roleSelected: false,
+      profileCompleted: false,
       wardId: '', // Will be updated after profile completion
       cityId: '', // Will be updated after profile completion
       xpPoints: 0,
@@ -121,6 +126,7 @@ class ChatController extends GetxController {
           email: data['email'] ?? firebaseUser.email,
           role: data['role'] ?? 'voter',
           roleSelected: data['roleSelected'] ?? false,
+          profileCompleted: data['profileCompleted'] ?? false,
           wardId: data['wardId'] ?? '',
           cityId: data['cityId'] ?? '',
           xpPoints: data['xpPoints'] ?? 0,
@@ -157,6 +163,7 @@ class ChatController extends GetxController {
     try {
       chatRooms = await _repository.getChatRoomsForUser(user.uid, user.role);
       chatRoomsStream.value = chatRooms;
+      print('📋 Loaded ${chatRooms.length} chat rooms for ${user.role}');
 
       // Mark initial load as complete
       _isInitialLoadComplete = true;
@@ -168,6 +175,7 @@ class ChatController extends GetxController {
       chatRooms = [];
       chatRoomsStream.value = [];
       _isInitialLoadComplete = true; // Even on error, mark as complete
+      print('❌ Failed to load chat rooms: $e');
     }
 
     isLoading = false;
@@ -261,9 +269,12 @@ class ChatController extends GetxController {
     try {
       userQuota = await _repository.getUserQuota(user.uid);
       userQuotaStream.value = userQuota;
+      // Reset the logging flag when quota is loaded
+      _canSendMessageLogged = false;
+      print('📊 User quota loaded: ${userQuota?.remainingMessages ?? 0} messages remaining');
       update();
     } catch (e) {
-      print('Failed to fetch user quota: $e');
+      print('❌ Failed to fetch user quota: $e');
     }
   }
 
@@ -272,6 +283,7 @@ class ChatController extends GetxController {
     currentChatRoom = chatRoom;
     messages = [];
     messagesStream.value = [];
+    print('🎯 Selected chat room: ${chatRoom.title} (${chatRoom.roomId})');
 
     // Start listening to messages
     _listenToMessages(chatRoom.roomId);
@@ -335,11 +347,15 @@ class ChatController extends GetxController {
       return;
     }
 
-    print('📤 Attempting to send message: "${text.trim()}"');
-    print('   User: ${user.name} (${user.uid})');
-    print('   Room: ${currentChatRoom!.roomId}');
-    print('   Can send: $canSendMessage');
-    print('   XP balance: ${user.xpPoints}');
+    // Debug logging (only in debug mode)
+    assert(() {
+      print('📤 Attempting to send message: "${text.trim()}"');
+      print('   User: ${user.name} (${user.uid})');
+      print('   Room: ${currentChatRoom!.roomId}');
+      print('   Can send: $canSendMessage');
+      print('   XP balance: ${user.xpPoints}');
+      return true;
+    }());
 
     isSendingMessage = true;
     update();
@@ -354,23 +370,45 @@ class ChatController extends GetxController {
         readBy: [user.uid],
       );
 
-      print('💾 Sending message to Firestore...');
+      // Debug logging (only in debug mode)
+      assert(() {
+        print('💾 Sending message to Firestore...');
+        return true;
+      }());
       await _repository.sendMessage(currentChatRoom!.roomId, message);
-      print('✅ Message sent successfully to Firestore');
+      assert(() {
+        print('✅ Message sent successfully to Firestore');
+        return true;
+      }());
 
       // Handle quota/XP deduction ONLY after successful message send
       if (userQuota != null && userQuota!.canSendMessage) {
-        print('📊 Using regular quota for message');
+        // Debug logging (only in debug mode)
+        assert(() {
+          print('📊 Using regular quota for message');
+          return true;
+        }());
         // Use regular quota
         await fetchUserQuota();
       } else if (user.xpPoints > 0) {
-        print('💰 Using XP for message (XP before: ${user.xpPoints})');
+        // Debug logging (only in debug mode)
+        assert(() {
+          print('💰 Using XP for message (XP before: ${user.xpPoints})');
+          return true;
+        }());
         // Use XP points (1 XP = 1 message)
         await _deductXPForMessage(user.uid);
         await refreshUserDataAndChat(); // Refresh to get updated XP
-        print('✅ XP deducted successfully');
+        assert(() {
+          print('✅ XP deducted successfully');
+          return true;
+        }());
       } else {
-        print('❌ No quota or XP available for message');
+        // Debug logging (only in debug mode)
+        assert(() {
+          print('❌ No quota or XP available for message');
+          return true;
+        }());
         Get.snackbar(
           'Cannot Send Message',
           'You have no remaining messages or XP. Please watch an ad to earn XP.',
@@ -929,6 +967,8 @@ class ChatController extends GetxController {
     _cachedUser = null;
     userQuota = null;
     userQuotaStream.value = null;
+    // Reset logging flag
+    _canSendMessageLogged = false;
     // Clear chat data as well
     chatRooms = [];
     chatRoomsStream.value = [];
@@ -977,33 +1017,21 @@ class ChatController extends GetxController {
   bool get canSendMessage {
     final user = currentUser;
 
-    // Debug logging for troubleshooting
-    print('🔍 Checking canSendMessage:');
-    print('   Current user: ${user?.name ?? 'null'} (UID: ${user?.uid ?? 'null'})');
-    print('   User XP: ${user?.xpPoints ?? 'null'}');
-    print('   User quota loaded: ${userQuota != null}');
-    print('   Quota can send: ${userQuota?.canSendMessage ?? 'null'}');
-    print('   Quota remaining: ${userQuota?.remainingMessages ?? 'null'}');
-
     // First check user quota
     if (userQuota != null && userQuota!.canSendMessage) {
-      print('   ✅ Can send: Using quota');
       return true;
     }
 
     // If quota exhausted, check XP balance
     if (user != null && user.xpPoints > 0) {
-      print('   ✅ Can send: Using XP (${user.xpPoints} available)');
       return true;
     }
 
     // Allow if quota not loaded yet (fallback)
     if (userQuota == null) {
-      print('   ⚠️ Can send: Quota not loaded yet (fallback)');
       return true;
     }
 
-    print('   ❌ Cannot send: No quota or XP available');
     return false;
   }
 

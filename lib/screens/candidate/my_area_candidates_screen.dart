@@ -37,15 +37,48 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
         if (userDoc.exists) {
           currentUser = UserModel.fromJson(userDoc.data()!);
+
           // Load candidates from user's ward
           await candidateController.fetchCandidatesByWard(
             currentUser!.cityId,
             currentUser!.wardId
           );
+
+          // If current user is a candidate, add them to the list
+          if (currentUser!.role == 'candidate') {
+            await _addCurrentUserToCandidatesList();
+          }
         }
       } catch (e) {
         print('Error loading user data: $e');
       }
+    }
+  }
+
+  Future<void> _addCurrentUserToCandidatesList() async {
+    try {
+      // Check if current user has a candidate profile
+      final candidateDoc = await FirebaseFirestore.instance
+          .collection('candidates')
+          .doc('candidate_${currentUserId}')
+          .get();
+
+      if (candidateDoc.exists) {
+        final candidateData = candidateDoc.data()!;
+        final currentUserCandidate = Candidate.fromJson(candidateData);
+
+        // Check if current user is already in the list (avoid duplicates)
+        final existingIndex = candidateController.candidates
+            .indexWhere((c) => c.candidateId == currentUserCandidate.candidateId);
+
+        if (existingIndex == -1) {
+          // Add current user to the beginning of the list
+          candidateController.candidates.insert(0, currentUserCandidate);
+          candidateController.update();
+        }
+      }
+    } catch (e) {
+      print('Error adding current user to candidates list: $e');
     }
   }
 
@@ -154,9 +187,11 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
   }
 
   Widget _buildCandidateCard(Candidate candidate) {
+    final isCurrentUser = candidate.userId == currentUserId;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      elevation: isCurrentUser ? 4 : 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -165,108 +200,138 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
           Get.to(() => const CandidateProfileScreen(), arguments: candidate);
         },
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with photo and basic info
-              Row(
-                children: [
-                  // Profile Photo
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: ClipOval(
-                      child: candidate.photo != null && candidate.photo!.isNotEmpty
-                          ? Image.network(
-                              candidate.photo!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return CircleAvatar(
-                                  backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
-                                  child: Text(
-                                    candidate.name[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: isCurrentUser ? Border.all(color: Colors.blue, width: 2) : null,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with photo and basic info
+                Row(
+                  children: [
+                    // Profile Photo
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isCurrentUser ? Colors.blue : Colors.grey.shade300,
+                          width: isCurrentUser ? 3 : 1,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: candidate.photo != null && candidate.photo!.isNotEmpty
+                            ? Image.network(
+                                candidate.photo!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return CircleAvatar(
+                                    backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                                    child: Text(
+                                      candidate.name[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            )
-                          : CircleAvatar(
-                              backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
-                              child: Text(
-                                candidate.name[0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Name and Party
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                candidate.name,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1f2937),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (candidate.sponsored)
-                              Container(
-                                margin: const EdgeInsets.only(left: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  'SPONSORED',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFF374151),
+                                  );
+                                },
+                              )
+                            : CircleAvatar(
+                                backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                                child: Text(
+                                  candidate.name[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          candidate.party,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6b7280),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 12),
+                    // Name and Party
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      candidate.name,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: isCurrentUser ? Colors.blue : const Color(0xFF1f2937),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (isCurrentUser) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade100,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Text(
+                                          'YOU',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (candidate.sponsored)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'SPONSORED',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFF374151),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            candidate.party,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6b7280),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 12),
 
               // Stats Row
@@ -294,8 +359,8 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
               const SizedBox(height: 16),
 
-              // Follow Button
-              if (currentUserId != null)
+              // Follow Button (don't show for current user)
+              if (currentUserId != null && !isCurrentUser)
                 SizedBox(
                   width: double.infinity,
                   child: FollowButton(
@@ -307,7 +372,28 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                     },
                   ),
                 ),
-            ],
+
+              // Current user indicator
+              if (isCurrentUser)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'This is your profile',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

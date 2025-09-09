@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/language_service.dart';
 import 'device_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -12,15 +13,52 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedLanguage = 'en'; // Default to English
+  bool _isChangingLanguage = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Get current locale
+    // Load stored language preference
+    _loadStoredLanguage();
+  }
+
+  Future<void> _loadStoredLanguage() async {
+    try {
+      final languageService = LanguageService();
+      final storedLanguage = await languageService.getStoredLanguage();
+      if (storedLanguage != null && mounted) {
+        setState(() {
+          _selectedLanguage = storedLanguage;
+        });
+      } else {
+        // Fallback to current locale
+        final locale = Localizations.localeOf(context);
+        if (mounted) {
+          setState(() {
+            _selectedLanguage = locale.languageCode;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading stored language: $e');
+      // Fallback to current locale
+      final locale = Localizations.localeOf(context);
+      if (mounted) {
+        setState(() {
+          _selectedLanguage = locale.languageCode;
+        });
+      }
+    }
+  }
+
+  // Refresh language selection when locale changes
+  void _refreshLanguageSelection() {
     final locale = Localizations.localeOf(context);
-    setState(() {
-      _selectedLanguage = locale.languageCode;
-    });
+    if (mounted && _selectedLanguage != locale.languageCode) {
+      setState(() {
+        _selectedLanguage = locale.languageCode;
+      });
+    }
   }
 
   @override
@@ -29,12 +67,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)?.settings ?? 'Settings'),
       ),
-      body: ListView(
+      body: Stack(
         children: [
-          const SizedBox(height: 16),
-          _buildLanguageSection(context),
-          const Divider(),
-          _buildOtherSettings(context),
+          ListView(
+            children: [
+              const SizedBox(height: 16),
+              _buildLanguageSection(context),
+              const Divider(),
+              _buildOtherSettings(context),
+            ],
+          ),
+          if (_isChangingLanguage)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
         ],
       ),
     );
@@ -114,24 +163,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _changeLanguage(String languageCode) {
+  void _changeLanguage(String languageCode) async {
+    if (_isChangingLanguage) return; // Prevent multiple calls
+
+    final previousLanguage = _selectedLanguage;
+
     setState(() {
+      _isChangingLanguage = true;
       _selectedLanguage = languageCode;
     });
 
-    // Change app locale
-    final locale = Locale(languageCode);
-    Get.updateLocale(locale);
+    try {
+      // Save language preference using LanguageService
+      final languageService = LanguageService();
+      await languageService.setLanguage(languageCode);
 
-    // Show confirmation using ScaffoldMessenger instead of Get.snackbar
-    // to avoid ticker issues
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Language changed to ${languageCode == 'en' ? 'English' : 'Marathi'}',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      // Change app locale
+      final locale = Locale(languageCode);
+      Get.updateLocale(locale);
+
+      // Wait for locale change to take effect
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Show confirmation message without navigation
+      if (mounted) {
+        Get.snackbar(
+          'Success',
+          languageCode == 'en'
+              ? 'Language changed to English'
+              : 'भाषा मराठीमध्ये बदलली',
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      print('Error changing language: $e');
+
+      // Revert to previous language on error
+      if (mounted) {
+        setState(() {
+          _selectedLanguage = previousLanguage;
+          _isChangingLanguage = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              previousLanguage == 'en'
+                  ? 'Failed to change language. Please try again.'
+                  : 'भाषा बदलण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }

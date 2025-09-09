@@ -121,16 +121,16 @@ class MyApp extends StatelessWidget {
         final profileCompleted = userData?['profileCompleted'] ?? false;
         final roleSelected = userData?['roleSelected'] ?? false;
 
-        if (!profileCompleted) {
+        if (!roleSelected) {
           return {
-            'route': '/profile-completion',
+            'route': '/role-selection',
             'locale': locale,
           };
         }
 
-        if (!roleSelected) {
+        if (!profileCompleted) {
           return {
-            'route': '/role-selection',
+            'route': '/profile-completion',
             'locale': locale,
           };
         }

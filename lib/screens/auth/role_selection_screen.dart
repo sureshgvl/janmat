@@ -63,15 +63,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             'roleSelected': true,
           });
 
-      // If candidate role selected, navigate to candidate setup
+      // After role selection, navigate to profile completion
       if (selectedRole == 'candidate') {
-        Get.offAllNamed('/candidate-setup');
-      } else {
-        // For voter role, go to home
-        Get.offAllNamed('/home');
+        Get.offAllNamed('/profile-completion');
         Get.snackbar(
-          'Welcome!',
-          'Your role has been set. Welcome to the community!',
+          'Role Selected!',
+          'You selected Candidate. Please complete your profile.',
+          duration: const Duration(seconds: 3),
+        );
+      } else {
+        // For voter role, go to profile completion
+        Get.offAllNamed('/profile-completion');
+        Get.snackbar(
+          'Role Selected!',
+          'You selected Voter. Please complete your profile.',
           duration: const Duration(seconds: 3),
         );
       }

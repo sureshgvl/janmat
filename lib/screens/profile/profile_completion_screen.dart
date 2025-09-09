@@ -7,6 +7,7 @@ import '../../controllers/chat_controller.dart';
 import '../../models/user_model.dart';
 import '../../models/city_model.dart';
 import '../../models/ward_model.dart';
+import '../../models/candidate_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../widgets/modal_selector.dart';
 
@@ -173,14 +174,22 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         throw Exception('User not authenticated');
       }
 
+      // Get current user role from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      final currentRole = userDoc.data()?['role'] ?? 'voter';
+
       // Create updated user model
       final updatedUser = UserModel(
         uid: currentUser.uid,
         name: nameController.text.trim(),
         phone: '+91${phoneController.text.trim()}',
         email: currentUser.email,
-        role: 'voter', // Default role
-        roleSelected: false, // Will be set in role selection screen
+        role: currentRole,
+        roleSelected: true,
+        profileCompleted: true,
         wardId: selectedWard!.wardId,
         cityId: selectedCity!.cityId,
         xpPoints: 0,
@@ -209,13 +218,65 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         // Don't fail the entire process if room creation fails
       }
 
-      // Navigate to home
-      Get.offAllNamed('/home');
-      Get.snackbar(
-        'Success',
-        'Profile completed! Your ward chat room has been created.',
-        duration: const Duration(seconds: 4),
-      );
+      // If user is a candidate, create basic candidate record immediately
+      if (currentRole == 'candidate') {
+        try {
+          // Create basic candidate record
+          final candidate = Candidate(
+            candidateId: 'temp_${currentUser.uid}', // Temporary ID, will be updated in candidate setup
+            userId: currentUser.uid,
+            name: nameController.text.trim(),
+            party: 'Independent', // Default party, will be updated in candidate setup
+            cityId: selectedCity!.cityId,
+            wardId: selectedWard!.wardId,
+            contact: Contact(
+              phone: '+91${phoneController.text.trim()}',
+              email: currentUser.email,
+            ),
+            sponsored: false,
+            premium: false,
+            createdAt: DateTime.now(),
+            manifesto: null, // Will be updated in candidate setup
+          );
+
+          // Save basic candidate record to make them visible to voters
+          print('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
+          print('   City: ${candidate.cityId}, Ward: ${candidate.wardId}');
+          print('   Temp ID: ${candidate.candidateId}');
+          final actualCandidateId = await candidateRepository.createCandidate(candidate);
+          print('✅ Basic candidate record created with ID: $actualCandidateId');
+
+          // Update user document with the actual candidateId
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.uid)
+              .update({
+                'candidateId': actualCandidateId,
+              });
+          print('✅ User document updated with candidateId: $actualCandidateId');
+
+        } catch (e) {
+          print('⚠️ Failed to create basic candidate record: $e');
+          // Continue with navigation even if candidate creation fails
+        }
+      }
+
+      // Navigate based on role
+      if (currentRole == 'candidate') {
+        Get.offAllNamed('/candidate-setup');
+        Get.snackbar(
+          'Profile Completed!',
+          'Basic profile completed. Now set up your candidate profile.',
+          duration: const Duration(seconds: 4),
+        );
+      } else {
+        Get.offAllNamed('/home');
+        Get.snackbar(
+          'Success',
+          'Profile completed! Your ward chat room has been created.',
+          duration: const Duration(seconds: 4),
+        );
+      }
 
     } catch (e) {
       Get.snackbar('Error', 'Failed to save profile: $e');

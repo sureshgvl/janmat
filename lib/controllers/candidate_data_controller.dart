@@ -3,9 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/candidate_model.dart';
 import '../repositories/candidate_repository.dart';
+import '../services/trial_service.dart';
 
 class CandidateDataController extends GetxController {
   final CandidateRepository _candidateRepository = CandidateRepository();
+  final TrialService _trialService = TrialService();
 
   var candidateData = Rx<Candidate?>(null);
   var editedData = Rx<Candidate?>(null);
@@ -18,6 +20,16 @@ class CandidateDataController extends GetxController {
     fetchCandidateData();
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+    // Refresh data when coming back to the dashboard
+    ever(candidateData, (_) {
+      // This will trigger when candidateData changes
+      print('Candidate data updated, refreshing UI');
+    });
+  }
+
   Future<void> fetchCandidateData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -28,7 +40,16 @@ class CandidateDataController extends GetxController {
       if (data != null) {
         candidateData.value = data;
         editedData.value = data;
-        isPaid.value = data.sponsored; // Assuming sponsored means paid
+
+        // Check if user has premium access (sponsored OR in trial)
+        final isSponsored = data.sponsored;
+        final isInTrial = await _trialService.isTrialActive(user.uid);
+        isPaid.value = isSponsored || isInTrial;
+
+        print('🎯 Candidate access check:');
+        print('   Sponsored: $isSponsored');
+        print('   In Trial: $isInTrial');
+        print('   Has Access: ${isPaid.value}');
       }
     } catch (e) {
       print('Error fetching candidate data: $e');
@@ -71,10 +92,22 @@ class CandidateDataController extends GetxController {
     updateExtraInfo('contact', updatedContact);
   }
 
-  void updatePhoto(String photoUrl) {
+  void updatePhoto(String photoUrl) async {
     if (editedData.value == null) return;
 
+    // Update both editedData and candidateData immediately
     editedData.value = editedData.value!.copyWith(photo: photoUrl);
+    candidateData.value = candidateData.value?.copyWith(photo: photoUrl);
+
+    // Save immediately to Firebase
+    try {
+      final success = await _candidateRepository.updateCandidateExtraInfo(editedData.value!);
+      if (!success) {
+        print('Warning: Failed to save photo URL to Firebase');
+      }
+    } catch (e) {
+      print('Error saving photo URL: $e');
+    }
   }
 
   Future<bool> saveExtraInfo() async {
@@ -94,5 +127,29 @@ class CandidateDataController extends GetxController {
 
   void resetEditedData() {
     editedData.value = candidateData.value;
+  }
+
+  // Refresh candidate data (useful when navigating back to dashboard)
+  Future<void> refreshCandidateData() async {
+    await fetchCandidateData();
+  }
+
+  /// Refresh premium access status (useful after trial changes)
+  Future<void> refreshAccessStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || candidateData.value == null) return;
+
+    try {
+      final isSponsored = candidateData.value!.sponsored;
+      final isInTrial = await _trialService.isTrialActive(user.uid);
+      isPaid.value = isSponsored || isInTrial;
+
+      print('🔄 Refreshed access status:');
+      print('   Sponsored: $isSponsored');
+      print('   In Trial: $isInTrial');
+      print('   Has Access: ${isPaid.value}');
+    } catch (e) {
+      print('Error refreshing access status: $e');
+    }
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import 'demo_data_modal.dart';
 
-class AchievementsSection extends StatelessWidget {
+class AchievementsSection extends StatefulWidget {
   final Candidate candidateData;
   final Candidate? editedData;
   final bool isEditing;
@@ -16,8 +17,40 @@ class AchievementsSection extends StatelessWidget {
   });
 
   @override
+  State<AchievementsSection> createState() => _AchievementsSectionState();
+}
+
+class _AchievementsSectionState extends State<AchievementsSection> {
+  late TextEditingController _achievementsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = widget.editedData ?? widget.candidateData;
+    final achievements = data.extraInfo?.achievements ?? [];
+    _achievementsController = TextEditingController(text: achievements.join('\n'));
+  }
+
+  @override
+  void didUpdateWidget(AchievementsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.editedData != widget.editedData ||
+        oldWidget.candidateData != widget.candidateData) {
+      final data = widget.editedData ?? widget.candidateData;
+      final achievements = data.extraInfo?.achievements ?? [];
+      _achievementsController.text = achievements.join('\n');
+    }
+  }
+
+  @override
+  void dispose() {
+    _achievementsController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final data = editedData ?? candidateData;
+    final data = widget.editedData ?? widget.candidateData;
     final achievements = data.extraInfo?.achievements ?? [];
 
     return Card(
@@ -35,17 +68,37 @@ class AchievementsSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            if (isEditing)
+            if (widget.isEditing)
               TextFormField(
-                initialValue: achievements.join('\n'),
-                decoration: const InputDecoration(
+                controller: _achievementsController,
+                decoration: InputDecoration(
                   labelText: 'Achievements (one per line)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.lightbulb,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => DemoDataModal(
+                          category: 'achievements',
+                          onDataSelected: (selectedData) {
+                            _achievementsController.text = selectedData;
+                            final list = selectedData.split('\n').where((e) => e.isNotEmpty).toList();
+                            widget.onAchievementsChange(list);
+                          },
+                        ),
+                      );
+                    },
+                    tooltip: 'Use demo achievements',
+                  ),
                 ),
                 maxLines: 5,
                 onChanged: (value) {
                   final list = value.split('\n').where((e) => e.isNotEmpty).toList();
-                  onAchievementsChange(list);
+                  widget.onAchievementsChange(list);
                 },
               )
             else

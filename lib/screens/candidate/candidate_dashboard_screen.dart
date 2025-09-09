@@ -27,7 +27,11 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
+    // Refresh data when dashboard is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.refreshCandidateData();
+    });
   }
 
   @override

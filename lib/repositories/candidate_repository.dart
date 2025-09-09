@@ -174,37 +174,90 @@ class CandidateRepository {
     }
   }
 
-  // Get candidate data by user ID
+  // Get candidate data by user ID (optimized)
   Future<Candidate?> getCandidateData(String userId) async {
     try {
-      // First, find the candidate by searching through all cities and wards
-      // This is not optimal but necessary given the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      print('🔍 Candidate Repository: Searching for candidate data for userId: $userId');
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      // First, get the user's cityId and wardId from their user document
+      final userDoc = await _firestore.collection('users').doc(userId).get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidatesSnapshot = await wardDoc.reference
-              .collection('candidates')
-              .where('userId', isEqualTo: userId)
-              .limit(1)
-              .get();
-
-          if (candidatesSnapshot.docs.isNotEmpty) {
-            final doc = candidatesSnapshot.docs.first;
-            final data = doc.data()! as Map<String, dynamic>;
-            final candidateData = Map<String, dynamic>.from(data);
-            candidateData['candidateId'] = doc.id;
-            return Candidate.fromJson(candidateData);
-          }
-        }
+      if (!userDoc.exists) {
+        print('❌ User document not found for userId: $userId');
+        return null;
       }
 
+      final userData = userDoc.data()!;
+      final cityId = userData['cityId'];
+      final wardId = userData['wardId'];
+
+      if (cityId == null || wardId == null || cityId.isEmpty || wardId.isEmpty) {
+        print('⚠️ User has no cityId or wardId, falling back to brute force search');
+        // Fallback to the old method if city/ward info is missing
+        return await _getCandidateDataBruteForce(userId);
+      }
+
+      print('🎯 Direct search: City: $cityId, Ward: $wardId');
+
+      // Direct query to the specific city/ward path
+      final candidatesSnapshot = await _firestore
+          .collection('cities')
+          .doc(cityId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      print('👤 Found ${candidatesSnapshot.docs.length} candidates in $cityId/$wardId');
+
+      if (candidatesSnapshot.docs.isNotEmpty) {
+        final doc = candidatesSnapshot.docs.first;
+        final data = doc.data()! as Map<String, dynamic>;
+        final candidateData = Map<String, dynamic>.from(data);
+        candidateData['candidateId'] = doc.id;
+        print('✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})');
+        return Candidate.fromJson(candidateData);
+      }
+
+      print('❌ No candidate found in user\'s city/ward: $cityId/$wardId');
       return null;
     } catch (e) {
+      print('❌ Error fetching candidate data: $e');
       throw Exception('Failed to fetch candidate data: $e');
     }
+  }
+
+  // Fallback brute force search (for backward compatibility)
+  Future<Candidate?> _getCandidateDataBruteForce(String userId) async {
+    print('🔍 Falling back to brute force search for userId: $userId');
+    final citiesSnapshot = await _firestore.collection('cities').get();
+    print('📊 Found ${citiesSnapshot.docs.length} cities to search');
+
+    for (var cityDoc in citiesSnapshot.docs) {
+      final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+
+      for (var wardDoc in wardsSnapshot.docs) {
+        final candidatesSnapshot = await wardDoc.reference
+            .collection('candidates')
+            .where('userId', isEqualTo: userId)
+            .limit(1)
+            .get();
+
+        if (candidatesSnapshot.docs.isNotEmpty) {
+          final doc = candidatesSnapshot.docs.first;
+          final data = doc.data()! as Map<String, dynamic>;
+          final candidateData = Map<String, dynamic>.from(data);
+          candidateData['candidateId'] = doc.id;
+          print('✅ Found candidate via brute force: ${candidateData['name']} (ID: ${doc.id})');
+          return Candidate.fromJson(candidateData);
+        }
+      }
+    }
+
+    print('❌ No candidate found via brute force search');
+    return null;
   }
 
   // Update candidate extra info
@@ -228,6 +281,8 @@ class CandidateRepository {
                 .collection('candidates')
                 .doc(candidate.candidateId)
                 .update({
+                  'name': candidate.name,
+                  'party': candidate.party,
                   'extra_info': candidate.extraInfo?.toJson(),
                   'photo': candidate.photo,
                   'manifesto': candidate.manifesto,
@@ -518,14 +573,26 @@ class CandidateRepository {
       candidateData['status'] = 'pending_election'; // Default status
       candidateData['createdAt'] = FieldValue.serverTimestamp();
 
-      final docRef = await _firestore
-          .collection('cities')
-          .doc(candidate.cityId)
-          .collection('wards')
-          .doc(candidate.wardId)
-          .collection('candidates')
-          .add(candidateData);
+      // Use the candidateId if provided, otherwise let Firestore generate one
+      final docRef = candidate.candidateId.isNotEmpty && !candidate.candidateId.startsWith('temp_')
+          ? _firestore
+              .collection('cities')
+              .doc(candidate.cityId)
+              .collection('wards')
+              .doc(candidate.wardId)
+              .collection('candidates')
+              .doc(candidate.candidateId)
+          : _firestore
+              .collection('cities')
+              .doc(candidate.cityId)
+              .collection('wards')
+              .doc(candidate.wardId)
+              .collection('candidates')
+              .doc();
 
+      await docRef.set(candidateData);
+
+      // Return the actual document ID (in case it was auto-generated)
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to create candidate: $e');
