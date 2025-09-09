@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
@@ -20,7 +21,7 @@ class ProfileScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Profile'),
+        title: Text(AppLocalizations.of(context)!.profile),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -46,27 +47,27 @@ class ProfileScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return const Center(child: Text('User data not found'));
+                  return Center(child: Text(AppLocalizations.of(context)!.userDataNotFound));
                 }
 
                 final userData = snapshot.data!.data() as Map<String, dynamic>;
                 userModel = UserModel.fromJson(userData);
-                return _buildProfileContent(userModel!);
+                return _buildProfileContent(context, userModel!);
               },
             );
           }
 
           // Use reactive user data from ChatController
-          return _buildProfileContent(userModel);
+          return _buildProfileContent(context, userModel);
         },
       ),
     );
   }
 
-  Widget _buildProfileContent(UserModel userModel) {
+  Widget _buildProfileContent(BuildContext context, UserModel userModel) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -143,8 +144,8 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Account Details',
+                      Text(
+                        AppLocalizations.of(context)!.accountDetails,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -167,7 +168,7 @@ class ProfileScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Premium',
+                                AppLocalizations.of(context)!.premium,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -187,20 +188,23 @@ class ProfileScreen extends StatelessWidget {
                     childAspectRatio: 1.7,
                     children: [
                       _buildDetailItem(
+                        context: context,
                         icon: Icons.phone,
-                        label: 'Phone',
+                        label: AppLocalizations.of(context)!.phoneNumber,
                         value: userModel.phone,
                         iconColor: Colors.blue,
                       ),
                       _buildDetailItem(
+                        context: context,
                         icon: Icons.star,
-                        label: 'XP Points',
+                        label: AppLocalizations.of(context)!.xpPoints,
                         value: userModel.xpPoints.toString(),
                         iconColor: Colors.blue,
                       ),
                       _buildDetailItem(
+                        context: context,
                         icon: Icons.email,
-                        label: 'Email',
+                        label: AppLocalizations.of(context)!.phoneNumber,
                         value: userModel.email ?? '',
                         iconColor: Colors.blue,
                       ),
@@ -229,7 +233,7 @@ class ProfileScreen extends StatelessWidget {
 
                   Get.offAllNamed('/login');
                 } catch (e) {
-                  Get.snackbar('Error', 'Failed to logout: ${e.toString()}');
+                  Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -240,8 +244,8 @@ class ProfileScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Log Out',
+              child: Text(
+                AppLocalizations.of(context)!.logOut,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -255,6 +259,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildDetailItem({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,

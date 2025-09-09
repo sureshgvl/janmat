@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
+import '../../l10n/app_localizations.dart';
 import 'follow_button.dart';
 import '../../screens/candidate/followers_list_screen.dart';
 
@@ -70,7 +71,7 @@ class _InfoTabState extends State<InfoTab> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Ward ${widget.candidate.wardId} • ${widget.candidate.cityId}',
+                        AppLocalizations.of(context)!.wardInfo(widget.candidate.wardId.toString(), widget.candidate.cityId),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6b7280),
@@ -78,7 +79,7 @@ class _InfoTabState extends State<InfoTab> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Joined ${widget.formatDate(widget.candidate.createdAt)}',
+                        AppLocalizations.of(context)!.joinedDate(widget.formatDate(widget.candidate.createdAt)),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF9ca3af),
@@ -131,7 +132,7 @@ class _InfoTabState extends State<InfoTab> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'View all followers',
+                          AppLocalizations.of(context)!.viewAllFollowers,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -163,9 +164,9 @@ class _InfoTabState extends State<InfoTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'About',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.about,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1f2937),
@@ -198,9 +199,9 @@ class _InfoTabState extends State<InfoTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Achievements',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.achievements,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1f2937),
@@ -250,9 +251,9 @@ class _InfoTabState extends State<InfoTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Upcoming Events',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.upcomingEvents,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1f2937),

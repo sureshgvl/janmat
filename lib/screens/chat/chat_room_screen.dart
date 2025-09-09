@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../l10n/app_localizations.dart';
 import '../../controllers/chat_controller.dart';
 import '../../models/chat_model.dart';
 import 'message_bubble.dart';
@@ -122,8 +123,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       children: [
                         const CircularProgressIndicator(),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Loading messages...',
+                        Text(
+                          AppLocalizations.of(context)!.loadingMessages,
                           style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                       ],
@@ -140,13 +141,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       children: [
                         const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
                         const SizedBox(height: 16),
-                        const Text(
-                          'No messages yet',
+                        Text(
+                          AppLocalizations.of(context)!.noMessagesYet,
                           style: TextStyle(fontSize: 18, color: Colors.grey),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Start the conversation in ${widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)}',
+                          AppLocalizations.of(context)!.startConversation(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
                           style: const TextStyle(color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
@@ -233,7 +234,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.image),
-              title: const Text('Send Image'),
+              title: Text(AppLocalizations.of(context)!.sendImage),
               onTap: () {
                 Get.back();
                 controller.sendImageMessage();
@@ -241,7 +242,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.poll),
-              title: const Text('Create Poll'),
+              title: Text(AppLocalizations.of(context)!.createPoll),
               onTap: () {
                 Get.back();
                 _showCreatePollDialog();
@@ -266,8 +267,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
           // Show success message
           Get.snackbar(
-            'Poll Created!',
-            'Your poll has been shared in the chat',
+            AppLocalizations.of(context)!.pollCreated,
+            AppLocalizations.of(context)!.pollSharedInChat,
             backgroundColor: Colors.green.shade100,
             colorText: Colors.green.shade800,
             duration: const Duration(seconds: 3),
@@ -287,7 +288,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.info),
-              title: const Text('Room Info'),
+              title: Text(AppLocalizations.of(context)!.roomInfo),
               onTap: () {
                 Get.back();
                 _showRoomInfo();
@@ -295,7 +296,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.exit_to_app),
-              title: const Text('Leave Room'),
+              title: Text(AppLocalizations.of(context)!.leaveRoom),
               onTap: () {
                 Get.back();
                 _leaveRoom();
@@ -316,7 +317,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Type: ${widget.chatRoom.type == 'public' ? 'Public' : 'Private'}'),
+            Text('${AppLocalizations.of(context)!.type}: ${widget.chatRoom.type == 'public' ? AppLocalizations.of(context)!.public : AppLocalizations.of(context)!.private}'),
             if (widget.chatRoom.description != null)
               Text('Description: ${widget.chatRoom.description}'),
             Text('Created: ${timeago.format(widget.chatRoom.createdAt)}'),
@@ -327,7 +328,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context)!.close),
           ),
         ],
       ),

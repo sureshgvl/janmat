@@ -22,7 +22,7 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
     const CandidateListScreen(),
     const ChatListScreen(),
     const PollsScreen(),
-    const ProfileScreen(),
+    //const ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -33,10 +33,22 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
+    return WillPopScope(
+      onWillPop: () async {
+        // If not on home tab, navigate to home tab instead of closing app
+        if (_selectedIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+          return false; // Prevent app from closing
+        }
+        // If already on home tab, allow app to close
+        return true;
+      },
+      child: Scaffold(
+        body: _widgetOptions.elementAt(_selectedIndex),
+        bottomNavigationBar: BottomNavigationBar(
+          items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),
             label: AppLocalizations.of(context)?.home ?? 'Home',
@@ -53,17 +65,18 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
             icon: const Icon(Icons.poll),
             label: AppLocalizations.of(context)?.polls ?? 'Polls',
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: AppLocalizations.of(context)?.profile ?? 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
+          // BottomNavigationBarItem(
+          //   icon: const Icon(Icons.person),
+          //   label: AppLocalizations.of(context)?.profile ?? 'Profile',
+          // ),
+          ],
+          currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
+        ),
       ),
     );
   }

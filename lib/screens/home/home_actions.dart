@@ -1,39 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../repositories/auth_repository.dart';
 
 class HomeActions {
-  static void showDeleteAccountDialog(BuildContext context, UserModel? userModel) {
+  static void showDeleteAccountDialog(BuildContext context, UserModel? userModel, AppLocalizations localizations) {
     Navigator.pop(context); // Close drawer first
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Account'),
-          content: const Text(
-            'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including:\n\n'
-            '• Your profile information\n'
-            '• Chat conversations and messages\n'
-            '• XP points and rewards\n'
-            '• Following/followers data\n\n'
-            'This action is irreversible.',
-          ),
+          title: Text(localizations.deleteAccount),
+          content: Text(localizations.deleteAccountConfirmation),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations.cancel),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.pop(context); // Close dialog
-                await _deleteAccount(context);
+                await _deleteAccount(context, localizations);
               },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
-              child: const Text('Delete Account'),
+              child: Text(localizations.deleteAccount),
             ),
           ],
         );
@@ -41,7 +35,7 @@ class HomeActions {
     );
   }
 
-  static Future<void> _deleteAccount(BuildContext context) async {
+  static Future<void> _deleteAccount(BuildContext context, AppLocalizations localizations) async {
     BuildContext? dialogContext;
 
     try {
@@ -67,8 +61,8 @@ class HomeActions {
 
       // Show success message
       Get.snackbar(
-        'Success',
-        'Your account has been deleted successfully.',
+        localizations.success,
+        localizations.accountDeletedSuccessfully,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         duration: const Duration(seconds: 3),
@@ -101,8 +95,8 @@ class HomeActions {
           !e.toString().contains('failed-precondition') &&
           !e.toString().contains('permission-denied')) {
         Get.snackbar(
-          'Error',
-          'Failed to delete account: ${e.toString()}',
+          localizations.error,
+          localizations.failedToDeleteAccount(e.toString()),
           backgroundColor: Colors.red,
           colorText: Colors.white,
           duration: const Duration(seconds: 5),
@@ -110,8 +104,8 @@ class HomeActions {
       } else {
         // For expected errors, still show success since account was deleted
         Get.snackbar(
-          'Success',
-          'Your account has been deleted successfully.',
+          localizations.success,
+          localizations.accountDeletedSuccessfully,
           backgroundColor: Colors.green,
           colorText: Colors.white,
           duration: const Duration(seconds: 3),

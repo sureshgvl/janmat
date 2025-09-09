@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../l10n/app_localizations.dart';
 import '../../controllers/chat_controller.dart';
 import '../../models/chat_model.dart';
 import 'chat_room_screen.dart';
@@ -28,7 +29,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat Rooms'),
+        title: Text(AppLocalizations.of(context)!.chatRooms),
         actions: [
           // Initialize sample data button (admin only)
           GetBuilder<ChatController>(
@@ -39,15 +40,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.refresh),
-                      tooltip: 'Initialize Sample Data',
+                      tooltip: AppLocalizations.of(context)!.initializeSampleData,
                       onPressed: () => _showInitializeDataDialog(),
                     ),
                     IconButton(
                       icon: const Icon(Icons.sync),
-                      tooltip: 'Refresh Ward Room',
+                      tooltip: AppLocalizations.of(context)!.refreshWardRoom,
                       onPressed: () async {
                         await controller.refreshUserDataAndChat();
-                        Get.snackbar('Debug', 'User data refreshed and ward room checked');
+                        Get.snackbar(AppLocalizations.of(context)!.debug, AppLocalizations.of(context)!.userDataRefreshed);
                       },
                     ),
                   ],
@@ -55,10 +56,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
               }
               return IconButton(
                 icon: const Icon(Icons.sync),
-                tooltip: 'Refresh Ward Room',
+                tooltip: AppLocalizations.of(context)!.refreshWardRoom,
                 onPressed: () async {
                   await controller.refreshUserDataAndChat();
-                  Get.snackbar('Debug', 'User data refreshed and ward room checked');
+                  Get.snackbar(AppLocalizations.of(context)!.debug, AppLocalizations.of(context)!.userDataRefreshed);
                 },
               );
             },
@@ -70,10 +71,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
               // Refresh button
               IconButton(
                 icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh Chat Rooms',
+                tooltip: AppLocalizations.of(context)!.refreshChatRooms,
                 onPressed: () async {
                   await controller.refreshChatRooms();
-                  Get.snackbar('Refreshed', 'Chat rooms updated');
+                  Get.snackbar(AppLocalizations.of(context)!.refreshed, AppLocalizations.of(context)!.chatRoomsUpdated);
                 },
               ),
 
@@ -137,7 +138,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       controller.clearError();
                       controller.fetchChatRooms();
                     },
-                    child: const Text('Retry'),
+                    child: Text(AppLocalizations.of(context)!.retry),
                   ),
                 ],
               ),
@@ -151,13 +152,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 children: [
                   const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No chat rooms available',
+                  Text(
+                    AppLocalizations.of(context)!.noChatRoomsAvailable,
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Chat rooms will appear here when available\nUser: ${controller.currentUser?.name ?? 'Unknown'}',
+                    AppLocalizations.of(context)!.chatRoomsWillAppearHere(controller.currentUser?.name ?? 'Unknown'),
                     style: const TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
@@ -167,7 +168,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       await controller.refreshChatRooms();
                     },
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh Rooms'),
+                    label: Text(AppLocalizations.of(context)!.refreshRooms),
                   ),
                 ],
               ),
@@ -311,8 +312,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text(
-                    'Private',
+                  child: Text(
+                    AppLocalizations.of(context)!.private,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -336,23 +337,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
       },
       backgroundColor: Colors.orange,
       icon: const Icon(Icons.warning),
-      label: const Text('Watch Ad'),
+      label: Text(AppLocalizations.of(context)!.watchAd),
     );
   }
 
   void _showQuotaDialog() {
     Get.dialog(
       AlertDialog(
-        title: const Text('Message Limit Reached'),
+        title: Text(AppLocalizations.of(context)!.messageLimitReached),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'You have reached your daily message limit. Choose an option to continue:',
+            Text(
+              AppLocalizations.of(context)!.messageLimitReachedDescription,
             ),
             const SizedBox(height: 16),
             Text(
-              'Remaining messages: ${controller.remainingMessages}',
+              AppLocalizations.of(context)!.remainingMessages(controller.remainingMessages.toString()),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
@@ -368,7 +369,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               _watchRewardedAdForXP();
             },
             icon: const Icon(Icons.play_circle_outline),
-            label: const Text('Watch Ad (+3-5 XP)'),
+            label: Text(AppLocalizations.of(context)!.watchAdForXP),
             style: TextButton.styleFrom(
               foregroundColor: Colors.orange,
             ),
@@ -381,7 +382,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Get.toNamed('/monetization');
             },
             icon: const Icon(Icons.shopping_cart),
-            label: const Text('Buy XP'),
+            label: Text(AppLocalizations.of(context)!.buyXP),
             style: TextButton.styleFrom(
               foregroundColor: Colors.blue,
             ),
@@ -390,7 +391,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           // Option 3: Cancel
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
         ],
       ),
@@ -403,7 +404,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     controller.addExtraQuota(10);
     Get.snackbar(
       'Success',
-      'You earned 10 extra messages!',
+      AppLocalizations.of(context)!.earnedExtraMessages,
       backgroundColor: Colors.green.shade100,
       colorText: Colors.green.shade800,
     );
@@ -411,13 +412,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   void _watchRewardedAdForXP() async {
     Get.dialog(
-      const AlertDialog(
+      AlertDialog(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Loading rewarded ad...'),
+            Text(AppLocalizations.of(context)!.loadingRewardedAd),
           ],
         ),
       ),
@@ -504,7 +505,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       onPressed: () => _showCreateRoomDialog(),
       backgroundColor: Colors.blue,
       child: const Icon(Icons.add),
-      tooltip: 'Create New Chat Room',
+      tooltip: AppLocalizations.of(context)!.createNewChatRoom,
     );
   }
 
@@ -514,7 +515,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         onPressed: () => _showQuotaDialog(),
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.warning),
-        label: const Text('Watch Ad'),
+        label: Text(AppLocalizations.of(context)!.watchAd),
       );
     }
     return null;
@@ -527,34 +528,34 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     Get.dialog(
       AlertDialog(
-        title: const Text('Create New Chat Room'),
+        title: Text(AppLocalizations.of(context)!.createNewChatRoom),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Room Title',
-                  hintText: 'Enter room name',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.roomTitle,
+                  hintText: AppLocalizations.of(context)!.enterRoomName,
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (Optional)',
-                  hintText: 'Brief description of the room',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.descriptionOptional,
+                  hintText: AppLocalizations.of(context)!.briefDescriptionOfRoom,
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: roomType,
-                decoration: const InputDecoration(labelText: 'Room Type'),
-                items: const [
-                  DropdownMenuItem(value: 'public', child: Text('Public Room')),
-                  DropdownMenuItem(value: 'private', child: Text('Private Room')),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.roomType),
+                items: [
+                  DropdownMenuItem(value: 'public', child: Text(AppLocalizations.of(context)!.publicRoom)),
+                  DropdownMenuItem(value: 'private', child: Text(AppLocalizations.of(context)!.privateRoom)),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -568,7 +569,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -593,7 +594,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 }
               }
             },
-            child: const Text('Create'),
+            child: Text(AppLocalizations.of(context)!.create),
           ),
         ],
       ),
@@ -603,23 +604,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
   void _showInitializeDataDialog() {
     Get.dialog(
       AlertDialog(
-        title: const Text('Initialize Sample Data'),
-        content: const Text(
-          'This will create sample chat rooms and messages for testing purposes. '
-          'This is only available for admin users.\n\n'
-          'Continue?',
+        title: Text(AppLocalizations.of(context)!.initializeSampleData),
+        content: Text(
+          AppLocalizations.of(context)!.initializeSampleDataDescription,
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Get.back();
               await controller.initializeSampleData();
             },
-            child: const Text('Initialize'),
+            child: Text(AppLocalizations.of(context)!.initialize),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_controller.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/city_model.dart';
 import '../../models/ward_model.dart';
 import '../../widgets/modal_selector.dart';
@@ -53,7 +54,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Candidates'),
+        title: Text(AppLocalizations.of(context)!.searchCandidates),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Get.back(),
@@ -78,9 +79,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                   children: [
                     // City Dropdown
                     ModalSelector<City>(
-                      title: 'Select City',
-                      label: 'City',
-                      hint: 'Select City',
+                      title: AppLocalizations.of(context)!.selectCity,
+                      label: AppLocalizations.of(context)!.selectCity,
+                      hint: AppLocalizations.of(context)!.selectCity,
                       items: controller.cities.map((city) {
                         return DropdownMenuItem<City>(
                           value: city,
@@ -107,9 +108,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
                     // Ward Dropdown
                     ModalSelector<Ward>(
-                      title: 'Select Ward',
-                      label: 'Ward',
-                      hint: 'Select Ward',
+                      title: AppLocalizations.of(context)!.selectWard,
+                      label: AppLocalizations.of(context)!.selectWard,
+                      hint: AppLocalizations.of(context)!.selectWard,
                       items: controller.wards.map((ward) {
                         return DropdownMenuItem<Ward>(
                           value: ward,
@@ -164,7 +165,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                       );
                                     }
                                   },
-                                  child: const Text('Retry'),
+                                  child: Text(AppLocalizations.of(context)!.retry),
                                 ),
                               ],
                             ),
@@ -176,25 +177,25 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                   children: [
                                     const Icon(Icons.search_off, size: 48, color: Colors.grey),
                                     const SizedBox(height: 16),
-                                    const Text(
-                                      'No candidates found',
+                                    Text(
+                                      AppLocalizations.of(context)!.noCandidatesFound,
                                       style: TextStyle(fontSize: 18, color: Colors.grey),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'No candidates available in ${selectedWard!.name}',
+                                      '${AppLocalizations.of(context)!.noCandidatesFound} ${selectedWard!.name}',
                                       style: const TextStyle(color: Colors.grey),
                                     ),
                                   ],
                                 ),
                               )
                             : selectedWard == null
-                                ? const Center(
-                                    child: Text(
-                                      'Select a ward to view candidates',
-                                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                                    ),
-                                  )
+                                ? Center(
+                                        child: Text(
+                                          AppLocalizations.of(context)!.selectWardToViewCandidates,
+                                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                                        ),
+                                      )
                                 : ListView.builder(
                                     padding: const EdgeInsets.all(16),
                                     itemCount: controller.candidates.length,
@@ -414,8 +415,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey.shade400),
                         ),
-                        child: const Text(
-                          'SPONSORED',
+                        child: Text(
+                          AppLocalizations.of(context)!.sponsored,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
 import '../../widgets/candidate/profile_header.dart';
@@ -17,30 +18,44 @@ class CandidateProfileScreen extends StatefulWidget {
 }
 
 class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
-  late Candidate candidate;
+  Candidate? candidate;
   final CandidateController controller = Get.find<CandidateController>();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   void initState() {
     super.initState();
+
+    // Check if arguments are provided
+    if (Get.arguments == null) {
+      // Handle the case where no candidate data is provided
+      // You might want to show an error or navigate back
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.candidateDataNotFound);
+        Get.back();
+      });
+      return;
+    }
+
     candidate = Get.arguments as Candidate;
 
     // Add dummy data for demonstration if data is missing
     _addDummyDataIfNeeded();
 
     // Check follow status when screen loads
-    if (currentUserId != null) {
+    if (currentUserId != null && candidate != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        controller.checkFollowStatus(currentUserId!, candidate.candidateId);
+        controller.checkFollowStatus(currentUserId!, candidate!.candidateId);
       });
     }
   }
 
   void _addDummyDataIfNeeded() {
+    if (candidate == null) return;
+
     // Create dummy extra info if not present
-    if (candidate.extraInfo == null) {
-      candidate = candidate.copyWith(
+    if (candidate!.extraInfo == null) {
+      candidate = candidate!.copyWith(
         extraInfo: ExtraInfo(
           bio: "I am a dedicated public servant with over 15 years of experience in community development and local governance. My commitment to transparency, accountability, and inclusive growth has been the cornerstone of my political career. I believe in empowering every citizen and creating opportunities for sustainable development in our ward.",
           achievements: [
@@ -54,8 +69,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
           manifesto: "Building a prosperous future through inclusive development, sustainable infrastructure, and community empowerment.",
           manifestoPdf: "https://example.com/manifesto.pdf",
           contact: Contact(
-            phone: candidate.contact.phone,
-            email: candidate.contact.email ?? "candidate@example.com",
+            phone: candidate!.contact.phone,
+            email: candidate!.contact.email ?? "candidate@example.com",
             socialLinks: {
               "Facebook": "https://facebook.com/candidate",
               "Twitter": "https://twitter.com/candidate",
@@ -96,9 +111,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
     }
 
     // Add dummy manifesto if not present
-    if (candidate.manifesto == null || candidate.manifesto!.isEmpty) {
-      candidate = candidate.copyWith(
-        manifesto: "Dear Fellow Citizens,\n\nI stand before you with a vision of progress, prosperity, and inclusive development for our beloved ward. My manifesto is built on three fundamental pillars:\n\n1. **Infrastructure Development**: Modern roads, efficient public transport, and sustainable urban planning.\n\n2. **Education & Healthcare**: Quality education for all children and accessible healthcare facilities.\n\n3. **Economic Empowerment**: Skill development programs, job creation initiatives, and support for local businesses.\n\n4. **Environmental Sustainability**: Green initiatives, waste management, and pollution control measures.\n\n5. **Social Welfare**: Support for senior citizens, women empowerment, and inclusive policies for all.\n\nTogether, we can build a ward that we can all be proud of. Your support and participation in this journey will be invaluable.\n\nLet's work together for a brighter future!\n\nBest regards,\n${candidate.name}",
+    if (candidate!.manifesto == null || candidate!.manifesto!.isEmpty) {
+      candidate = candidate!.copyWith(
+        manifesto: "Dear Fellow Citizens,\n\nI stand before you with a vision of progress, prosperity, and inclusive development for our beloved ward. My manifesto is built on three fundamental pillars:\n\n1. **Infrastructure Development**: Modern roads, efficient public transport, and sustainable urban planning.\n\n2. **Education & Healthcare**: Quality education for all children and accessible healthcare facilities.\n\n3. **Economic Empowerment**: Skill development programs, job creation initiatives, and support for local businesses.\n\n4. **Environmental Sustainability**: Green initiatives, waste management, and pollution control measures.\n\n5. **Social Welfare**: Support for senior citizens, women empowerment, and inclusive policies for all.\n\nTogether, we can build a ward that we can all be proud of. Your support and participation in this journey will be invaluable.\n\nLet's work together for a brighter future!\n\nBest regards,\n${candidate!.name}",
         followersCount: 2500, // High follower count for premium demonstration
         followingCount: 45,
         sponsored: true, // Make sponsored for premium badge
@@ -106,24 +121,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
     }
 
     // Add dummy email if not present
-    if (candidate.contact.email == null || candidate.contact.email!.isEmpty) {
-      candidate = candidate.copyWith(
-        contact: candidate.contact.copyWith(
-          email: "${candidate.name.toLowerCase().replaceAll(' ', '.')}@gmail.com"
+    if (candidate!.contact.email == null || candidate!.contact.email!.isEmpty) {
+      candidate = candidate!.copyWith(
+        contact: candidate!.contact.copyWith(
+          email: "${candidate!.name.toLowerCase().replaceAll(' ', '.')}@gmail.com"
         )
       );
     }
 
     // Add dummy social links if not present
-    if (candidate.contact.socialLinks == null || candidate.contact.socialLinks!.isEmpty) {
-      candidate = candidate.copyWith(
-        contact: candidate.contact.copyWith(
+    if (candidate!.contact.socialLinks == null || candidate!.contact.socialLinks!.isEmpty) {
+      candidate = candidate!.copyWith(
+        contact: candidate!.contact.copyWith(
           socialLinks: {
-            "Facebook": "https://facebook.com/${candidate.name.toLowerCase().replaceAll(' ', '')}",
-            "Twitter": "https://twitter.com/${candidate.name.toLowerCase().replaceAll(' ', '')}",
-            "Instagram": "https://instagram.com/${candidate.name.toLowerCase().replaceAll(' ', '')}",
-            "YouTube": "https://youtube.com/${candidate.name.toLowerCase().replaceAll(' ', '')}",
-            "Website": "https://www.${candidate.name.toLowerCase().replaceAll(' ', '')}.com"
+            "Facebook": "https://facebook.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
+            "Twitter": "https://twitter.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
+            "Instagram": "https://instagram.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
+            "YouTube": "https://youtube.com/${candidate!.name.toLowerCase().replaceAll(' ', '')}",
+            "Website": "https://www.${candidate!.name.toLowerCase().replaceAll(' ', '')}.com"
           }
         )
       );
@@ -206,8 +221,20 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Handle case where candidate is null
+    if (candidate == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.candidateProfile),
+        ),
+        body: Center(
+          child: Text(AppLocalizations.of(context)!.candidateDataNotAvailable),
+        ),
+      );
+    }
+
     // Check if candidate is premium (you can define your own logic here)
-    bool isPremiumCandidate = candidate.sponsored || candidate.followersCount > 1000;
+    bool isPremiumCandidate = candidate!.sponsored || candidate!.followersCount > 1000;
 
     // For demonstration, make this candidate premium
     isPremiumCandidate = true;
@@ -219,7 +246,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
           headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
             return <Widget>[
               ProfileHeader(
-                candidate: candidate,
+                candidate: candidate!,
                 isPremiumCandidate: isPremiumCandidate,
                 getPartySymbolPath: getPartySymbolPath,
                 formatDate: formatDate,
@@ -230,13 +257,13 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> {
           body: TabBarView(
             children: [
               InfoTab(
-                candidate: candidate,
+                candidate: candidate!,
                 getPartySymbolPath: getPartySymbolPath,
                 formatDate: formatDate,
               ),
-              ManifestoTab(candidate: candidate),
-              MediaTab(candidate: candidate),
-              ContactTab(candidate: candidate),
+              ManifestoTab(candidate: candidate!),
+              MediaTab(candidate: candidate!),
+              ContactTab(candidate: candidate!),
             ],
           ),
         ),

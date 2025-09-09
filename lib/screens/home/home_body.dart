@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../models/candidate_model.dart';
 import '../../services/trial_service.dart';
@@ -32,32 +33,32 @@ class HomeBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome Section
-          _buildWelcomeSection(),
+          _buildWelcomeSection(context),
 
           // Trial Status Banner (only for candidates with active trials)
           if (userModel?.role == 'candidate' && userModel?.isTrialActive == true)
-            _buildTrialBanner(),
+            _buildTrialBanner(context),
 
           const SizedBox(height: 32),
 
           // Premium Features Card
-          _buildPremiumCard(),
+          _buildPremiumCard(context),
 
           const SizedBox(height: 32),
 
           // Quick Actions
-          _buildQuickActions(),
+          _buildQuickActions(context),
 
           if (userModel?.role == 'candidate') ...[
             const SizedBox(height: 32),
-            _buildCandidateDashboard(),
+            _buildCandidateDashboard(context),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildWelcomeSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -103,8 +104,8 @@ class HomeBody extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           userModel?.role == 'candidate'
-              ? 'Manage your campaign and connect with voters'
-              : 'Stay informed about your local candidates',
+              ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
+              : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey[600],
@@ -114,7 +115,7 @@ class HomeBody extends StatelessWidget {
     );
   }
 
-  Widget _buildTrialBanner() {
+  Widget _buildTrialBanner(BuildContext context) {
     return FutureBuilder<int>(
       future: TrialService().getTrialDaysRemaining(userModel!.uid),
       builder: (context, snapshot) {
@@ -144,8 +145,8 @@ class HomeBody extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Premium Trial Active',
+                    Text(
+                      AppLocalizations.of(context)!.premiumTrialActive,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -155,8 +156,8 @@ class HomeBody extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       daysRemaining == 1
-                          ? '1 day remaining - Upgrade to continue premium features!'
-                          : '$daysRemaining days remaining in your trial',
+                          ? AppLocalizations.of(context)!.oneDayRemainingUpgrade
+                          : AppLocalizations.of(context)!.daysRemainingInTrial(daysRemaining.toString()),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -170,8 +171,8 @@ class HomeBody extends StatelessWidget {
                   onPressed: () {
                     // TODO: Navigate to premium upgrade screen
                     Get.snackbar(
-                      'Upgrade Available',
-                      'Premium upgrade feature coming soon!',
+                      AppLocalizations.of(context)!.upgradeAvailable,
+                      AppLocalizations.of(context)!.premiumUpgradeFeatureComingSoon,
                       backgroundColor: Colors.white,
                       colorText: Colors.blue,
                     );
@@ -181,7 +182,7 @@ class HomeBody extends StatelessWidget {
                     foregroundColor: Colors.blue,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
-                  child: const Text('Upgrade'),
+                  child: Text(AppLocalizations.of(context)!.upgrade),
                 ),
             ],
           ),
@@ -190,7 +191,7 @@ class HomeBody extends StatelessWidget {
     );
   }
 
-  Widget _buildPremiumCard() {
+  Widget _buildPremiumCard(BuildContext context) {
     return Card(
       elevation: 4,
       child: Container(
@@ -219,8 +220,8 @@ class HomeBody extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Unlock Premium Features',
+                        Text(
+                          AppLocalizations.of(context)!.unlockPremiumFeatures,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -231,9 +232,9 @@ class HomeBody extends StatelessWidget {
                         Text(
                           userModel?.role == 'candidate'
                               ? (userModel?.isTrialActive == true
-                                  ? 'Enjoy full premium features during your trial'
-                                  : 'Get premium visibility and analytics')
-                              : 'Access exclusive content and features',
+                                  ? AppLocalizations.of(context)!.enjoyFullPremiumFeaturesDuringTrial
+                                  : AppLocalizations.of(context)!.getPremiumVisibilityAndAnalytics)
+                              : AppLocalizations.of(context)!.accessExclusiveContentAndFeatures,
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
@@ -257,8 +258,8 @@ class HomeBody extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Explore Premium',
+                  child: Text(
+                    AppLocalizations.of(context)!.explorePremium,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -273,12 +274,12 @@ class HomeBody extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
+        Text(
+          AppLocalizations.of(context)!.quickActions,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -294,22 +295,22 @@ class HomeBody extends StatelessWidget {
           children: [
             HomeWidgets.buildAnimatedQuickActionCard(
               icon: Icons.people,
-              title: 'Browse Candidates',
+              title: AppLocalizations.of(context)!.browseCandidates,
               page: const CandidateListScreen(),
             ),
             HomeWidgets.buildAnimatedQuickActionCard(
               icon: Icons.location_on,
-              title: 'My Area',
+              title: AppLocalizations.of(context)!.myArea,
               page: const MyAreaCandidatesScreen(),
             ),
             HomeWidgets.buildAnimatedQuickActionCard(
               icon: Icons.chat,
-              title: 'Chat Rooms',
+              title: AppLocalizations.of(context)!.chatRooms,
               routeName: '/chat',
             ),
             HomeWidgets.buildAnimatedQuickActionCard(
               icon: Icons.poll,
-              title: 'Polls',
+              title: AppLocalizations.of(context)!.polls,
               routeName: '/polls',
             ),
           ],
@@ -318,12 +319,12 @@ class HomeBody extends StatelessWidget {
     );
   }
 
-  Widget _buildCandidateDashboard() {
+  Widget _buildCandidateDashboard(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Candidate Dashboard',
+        Text(
+          AppLocalizations.of(context)!.candidateDashboard,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -334,8 +335,8 @@ class HomeBody extends StatelessWidget {
           elevation: 2,
           child: ListTile(
             leading: const Icon(Icons.dashboard, color: Colors.blue),
-            title: const Text('Manage Your Campaign'),
-            subtitle: const Text('View analytics and update your profile'),
+            title: Text(AppLocalizations.of(context)!.manageYourCampaign),
+            subtitle: Text(AppLocalizations.of(context)!.viewAnalyticsAndUpdateYourProfile),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () => HomeNavigation.toRightToLeft(const CandidateDashboardScreen()),
           ),

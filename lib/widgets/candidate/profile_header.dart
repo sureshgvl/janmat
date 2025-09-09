@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import '../../l10n/app_localizations.dart';
 
 class ProfileHeader extends StatelessWidget {
   final Candidate candidate;
@@ -238,18 +239,18 @@ class ProfileHeader extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.verified,
                               color: Colors.white,
                               size: 16,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(
-                              'VERIFIED',
-                              style: TextStyle(
+                              AppLocalizations.of(context)!.verified,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -263,9 +264,9 @@ class ProfileHeader extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        buildStatItem('${candidate.followersCount}', 'Followers'),
+                        buildStatItem('${candidate.followersCount}', AppLocalizations.of(context)!.followers),
                         const SizedBox(width: 32),
-                        buildStatItem('${candidate.followingCount}', 'Following'),
+                        buildStatItem('${candidate.followingCount}', AppLocalizations.of(context)!.following),
                       ],
                     ),
                   ],
@@ -295,13 +296,13 @@ class ProfileHeader extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.star, color: Colors.amber, size: 16),
-                SizedBox(width: 4),
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
                 Text(
-                  'SPONSORED',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.sponsored,
+                  style: const TextStyle(
                     color: Color(0xFF374151),
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -311,12 +312,12 @@ class ProfileHeader extends StatelessWidget {
             ),
           ),
       ],
-      bottom: const TabBar(
+      bottom: TabBar(
         tabs: [
-          Tab(text: 'Info'),
-          Tab(text: 'Manifesto'),
-          Tab(text: 'Media'),
-          Tab(text: 'Contact'),
+          Tab(text: AppLocalizations.of(context)!.info),
+          Tab(text: AppLocalizations.of(context)!.manifesto),
+          Tab(text: AppLocalizations.of(context)!.media),
+          Tab(text: AppLocalizations.of(context)!.contact),
         ],
         indicatorColor: Colors.white,
         labelColor: Colors.white,

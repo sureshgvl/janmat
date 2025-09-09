@@ -256,6 +256,720 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'votes'**
   String get votes;
+
+  /// No description provided for @myAreaCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'My Area Candidates'**
+  String get myAreaCandidates;
+
+  /// No description provided for @candidatesFromYourWard.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidates from your ward'**
+  String get candidatesFromYourWard;
+
+  /// No description provided for @candidateDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate Dashboard'**
+  String get candidateDashboard;
+
+  /// No description provided for @searchByWard.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by Ward'**
+  String get searchByWard;
+
+  /// No description provided for @premiumFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Features'**
+  String get premiumFeatures;
+
+  /// No description provided for @upgradeToUnlockPremiumFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to unlock premium features'**
+  String get upgradeToUnlockPremiumFeatures;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @permanentlyDeleteYourAccountAndData.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete your account and data'**
+  String get permanentlyDeleteYourAccountAndData;
+
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error;
+
+  /// No description provided for @failedToLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to logout: {error}'**
+  String failedToLogout(Object error);
+
+  /// No description provided for @manageYourCampaignAndConnectWithVoters.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your campaign and connect with voters'**
+  String get manageYourCampaignAndConnectWithVoters;
+
+  /// No description provided for @stayInformedAboutYourLocalCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay informed about your local candidates'**
+  String get stayInformedAboutYourLocalCandidates;
+
+  /// No description provided for @premiumTrialActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Trial Active'**
+  String get premiumTrialActive;
+
+  /// No description provided for @oneDayRemainingUpgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day remaining - Upgrade to continue premium features!'**
+  String get oneDayRemainingUpgrade;
+
+  /// No description provided for @daysRemainingInTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days remaining in your trial'**
+  String daysRemainingInTrial(Object days);
+
+  /// No description provided for @upgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade'**
+  String get upgrade;
+
+  /// No description provided for @upgradeAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade Available'**
+  String get upgradeAvailable;
+
+  /// No description provided for @premiumUpgradeFeatureComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium upgrade feature coming soon!'**
+  String get premiumUpgradeFeatureComingSoon;
+
+  /// No description provided for @unlockPremiumFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Premium Features'**
+  String get unlockPremiumFeatures;
+
+  /// No description provided for @enjoyFullPremiumFeaturesDuringTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Enjoy full premium features during your trial'**
+  String get enjoyFullPremiumFeaturesDuringTrial;
+
+  /// No description provided for @getPremiumVisibilityAndAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Get premium visibility and analytics'**
+  String get getPremiumVisibilityAndAnalytics;
+
+  /// No description provided for @accessExclusiveContentAndFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Access exclusive content and features'**
+  String get accessExclusiveContentAndFeatures;
+
+  /// No description provided for @explorePremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore Premium'**
+  String get explorePremium;
+
+  /// No description provided for @quickActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Actions'**
+  String get quickActions;
+
+  /// No description provided for @myArea.
+  ///
+  /// In en, this message translates to:
+  /// **'My Area'**
+  String get myArea;
+
+  /// No description provided for @manageYourCampaign.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Your Campaign'**
+  String get manageYourCampaign;
+
+  /// No description provided for @viewAnalyticsAndUpdateYourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'View analytics and update your profile'**
+  String get viewAnalyticsAndUpdateYourProfile;
+
+  /// No description provided for @deleteAccountConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including:\n\n• Your profile information\n• Chat conversations and messages\n• XP points and rewards\n• Following/followers data\n\nThis action is irreversible.'**
+  String get deleteAccountConfirmation;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @success.
+  ///
+  /// In en, this message translates to:
+  /// **'Success'**
+  String get success;
+
+  /// No description provided for @accountDeletedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted successfully.'**
+  String get accountDeletedSuccessfully;
+
+  /// No description provided for @failedToDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account: {error}'**
+  String failedToDeleteAccount(Object error);
+
+  /// No description provided for @userDataNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'User data not found'**
+  String get userDataNotFound;
+
+  /// No description provided for @accountDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Details'**
+  String get accountDetails;
+
+  /// No description provided for @premium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get premium;
+
+  /// No description provided for @xpPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'XP Points'**
+  String get xpPoints;
+
+  /// No description provided for @logOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get logOut;
+
+  /// No description provided for @searchCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Candidates'**
+  String get searchCandidates;
+
+  /// No description provided for @selectCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Select City'**
+  String get selectCity;
+
+  /// No description provided for @selectWard.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Ward'**
+  String get selectWard;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @noCandidatesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No candidates found'**
+  String get noCandidatesFound;
+
+  /// No description provided for @selectWardToViewCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a ward to view candidates'**
+  String get selectWardToViewCandidates;
+
+  /// No description provided for @sponsored.
+  ///
+  /// In en, this message translates to:
+  /// **'SPONSORED'**
+  String get sponsored;
+
+  /// No description provided for @loadingMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading messages...'**
+  String get loadingMessages;
+
+  /// No description provided for @noMessagesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet'**
+  String get noMessagesYet;
+
+  /// No description provided for @startConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the conversation in {roomName}'**
+  String startConversation(Object roomName);
+
+  /// No description provided for @sendImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Image'**
+  String get sendImage;
+
+  /// No description provided for @createPoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Poll'**
+  String get createPoll;
+
+  /// No description provided for @pollCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Created!'**
+  String get pollCreated;
+
+  /// No description provided for @pollSharedInChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Your poll has been shared in the chat'**
+  String get pollSharedInChat;
+
+  /// No description provided for @roomInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Room Info'**
+  String get roomInfo;
+
+  /// No description provided for @leaveRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Room'**
+  String get leaveRoom;
+
+  /// No description provided for @type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get type;
+
+  /// No description provided for @public.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get public;
+
+  /// No description provided for @private.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get private;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @initializeSampleData.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialize Sample Data'**
+  String get initializeSampleData;
+
+  /// No description provided for @refreshWardRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Ward Room'**
+  String get refreshWardRoom;
+
+  /// No description provided for @debug.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug'**
+  String get debug;
+
+  /// No description provided for @userDataRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'User data refreshed and ward room checked'**
+  String get userDataRefreshed;
+
+  /// No description provided for @refreshChatRooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Chat Rooms'**
+  String get refreshChatRooms;
+
+  /// No description provided for @refreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshed'**
+  String get refreshed;
+
+  /// No description provided for @chatRoomsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat rooms updated'**
+  String get chatRoomsUpdated;
+
+  /// No description provided for @noChatRoomsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No chat rooms available'**
+  String get noChatRoomsAvailable;
+
+  /// No description provided for @chatRoomsWillAppearHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat rooms will appear here when available\nUser: {userName}'**
+  String chatRoomsWillAppearHere(Object userName);
+
+  /// No description provided for @refreshRooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Rooms'**
+  String get refreshRooms;
+
+  /// No description provided for @watchAd.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch Ad'**
+  String get watchAd;
+
+  /// No description provided for @messageLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Limit Reached'**
+  String get messageLimitReached;
+
+  /// No description provided for @messageLimitReachedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You have reached your daily message limit. Choose an option to continue:'**
+  String get messageLimitReachedDescription;
+
+  /// No description provided for @remainingMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining messages: {count}'**
+  String remainingMessages(Object count);
+
+  /// No description provided for @watchAdForXP.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch Ad (+3-5 XP)'**
+  String get watchAdForXP;
+
+  /// No description provided for @buyXP.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy XP'**
+  String get buyXP;
+
+  /// No description provided for @earnedExtraMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'You earned 10 extra messages!'**
+  String get earnedExtraMessages;
+
+  /// No description provided for @loadingRewardedAd.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading rewarded ad...'**
+  String get loadingRewardedAd;
+
+  /// No description provided for @createNewChatRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Chat Room'**
+  String get createNewChatRoom;
+
+  /// No description provided for @roomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Room Title'**
+  String get roomTitle;
+
+  /// No description provided for @enterRoomName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter room name'**
+  String get enterRoomName;
+
+  /// No description provided for @descriptionOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (Optional)'**
+  String get descriptionOptional;
+
+  /// No description provided for @briefDescriptionOfRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Brief description of the room'**
+  String get briefDescriptionOfRoom;
+
+  /// No description provided for @roomType.
+  ///
+  /// In en, this message translates to:
+  /// **'Room Type'**
+  String get roomType;
+
+  /// No description provided for @publicRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Room'**
+  String get publicRoom;
+
+  /// No description provided for @privateRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Private Room'**
+  String get privateRoom;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @initializeSampleDataDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This will create sample chat rooms and messages for testing purposes. This is only available for admin users.\n\nContinue?'**
+  String get initializeSampleDataDescription;
+
+  /// No description provided for @initialize.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialize'**
+  String get initialize;
+
+  /// No description provided for @candidateDataNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate data not found'**
+  String get candidateDataNotFound;
+
+  /// No description provided for @candidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate Profile'**
+  String get candidateProfile;
+
+  /// No description provided for @candidateDataNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate data not available'**
+  String get candidateDataNotAvailable;
+
+  /// No description provided for @verified.
+  ///
+  /// In en, this message translates to:
+  /// **'VERIFIED'**
+  String get verified;
+
+  /// No description provided for @followers.
+  ///
+  /// In en, this message translates to:
+  /// **'Followers'**
+  String get followers;
+
+  /// No description provided for @following.
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get following;
+
+  /// No description provided for @info.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get info;
+
+  /// No description provided for @manifesto.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto'**
+  String get manifesto;
+
+  /// No description provided for @media.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get media;
+
+  /// No description provided for @contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contact;
+
+  /// No description provided for @wardInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Ward {wardId} • {cityId}'**
+  String wardInfo(Object cityId, Object wardId);
+
+  /// No description provided for @joinedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined {date}'**
+  String joinedDate(Object date);
+
+  /// No description provided for @viewAllFollowers.
+  ///
+  /// In en, this message translates to:
+  /// **'View all followers'**
+  String get viewAllFollowers;
+
+  /// No description provided for @achievements.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get achievements;
+
+  /// No description provided for @upcomingEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming Events'**
+  String get upcomingEvents;
+
+  /// No description provided for @translationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation failed: {error}'**
+  String translationFailed(Object error);
+
+  /// No description provided for @downloadPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Download PDF'**
+  String get downloadPdf;
+
+  /// No description provided for @english.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @marathi.
+  ///
+  /// In en, this message translates to:
+  /// **'मराठी'**
+  String get marathi;
+
+  /// No description provided for @noManifestoAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No manifesto available'**
+  String get noManifestoAvailable;
+
+  /// No description provided for @photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get photos;
+
+  /// No description provided for @demoVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo Video'**
+  String get demoVideo;
+
+  /// No description provided for @janMatAppDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'JanMat App Demo'**
+  String get janMatAppDemo;
+
+  /// No description provided for @fullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen'**
+  String get fullscreen;
+
+  /// No description provided for @janMatAppDemoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'JanMat App Demo - Watch how our platform works'**
+  String get janMatAppDemoDescription;
+
+  /// No description provided for @videos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get videos;
+
+  /// No description provided for @youtubeChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube Channel'**
+  String get youtubeChannel;
+
+  /// No description provided for @watchVideosAndUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch videos and updates'**
+  String get watchVideosAndUpdates;
+
+  /// No description provided for @noMediaAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No media available'**
+  String get noMediaAvailable;
+
+  /// No description provided for @contactInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Information'**
+  String get contactInformation;
+
+  /// No description provided for @phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phone;
+
+  /// No description provided for @email.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get email;
+
+  /// No description provided for @socialMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Media'**
+  String get socialMedia;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../models/candidate_model.dart';
 import '../candidate/candidate_list_screen.dart';
@@ -95,7 +96,7 @@ class HomeDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.person),
-            title: const Text('Profile'),
+            title: Text(AppLocalizations.of(context)!.profile),
             onTap: () {
               Navigator.pop(context); // Close drawer
               // Navigate based on user role
@@ -108,8 +109,8 @@ class HomeDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.location_on),
-            title: const Text('My Area Candidates'),
-            subtitle: const Text('Candidates from your ward'),
+            title: Text(AppLocalizations.of(context)!.myAreaCandidates),
+            subtitle: Text(AppLocalizations.of(context)!.candidatesFromYourWard),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
@@ -118,7 +119,7 @@ class HomeDrawer extends StatelessWidget {
           if (userModel?.role == 'candidate')
             ListTile(
               leading: const Icon(Icons.dashboard),
-              title: const Text('Candidate Dashboard'),
+              title: Text(AppLocalizations.of(context)!.candidateDashboard),
               onTap: () {
                 Navigator.pop(context); // Close drawer
                 HomeNavigation.toRightToLeft(const CandidateDashboardScreen()); // Navigate to candidate dashboard
@@ -126,7 +127,7 @@ class HomeDrawer extends StatelessWidget {
             ),
           ListTile(
             leading: const Icon(Icons.search),
-            title: const Text('Search by Ward'),
+            title: Text(AppLocalizations.of(context)!.searchByWard),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const CandidateListScreen()); // Navigate to candidate list screen
@@ -134,7 +135,7 @@ class HomeDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.chat),
-            title: const Text('Chat Rooms'),
+            title: Text(AppLocalizations.of(context)!.chatRooms),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const ChatListScreen()); // Navigate to chat list screen
@@ -142,7 +143,7 @@ class HomeDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
+            title: Text(AppLocalizations.of(context)!.settings),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const SettingsScreen()); // Navigate to settings screen
@@ -151,8 +152,8 @@ class HomeDrawer extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.star, color: Colors.orange),
-            title: const Text('Premium Features'),
-            subtitle: const Text('Upgrade to unlock premium features'),
+            title: Text(AppLocalizations.of(context)!.premiumFeatures),
+            subtitle: Text(AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const MonetizationScreen());
@@ -161,8 +162,8 @@ class HomeDrawer extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-            subtitle: const Text('Permanently delete your account and data'),
+            title: Text(AppLocalizations.of(context)!.deleteAccount, style: TextStyle(color: Colors.red)),
+            subtitle: Text(AppLocalizations.of(context)!.permanentlyDeleteYourAccountAndData),
             onTap: () => onDeleteAccount(context, userModel),
           ),
         ],

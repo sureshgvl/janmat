@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
 import '../../models/user_model.dart';
@@ -20,20 +21,28 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final HomeServices _homeServices = HomeServices();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  bool _shouldRefreshData = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Refresh data when screen comes back into focus
-    // This handles the case when user navigates back from candidate dashboard
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Small delay to ensure navigation is complete
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          setState(() {});
-        }
+    // Only refresh data when explicitly needed (not on tab navigation)
+    if (_shouldRefreshData) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Small delay to ensure navigation is complete
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() {});
+            _shouldRefreshData = false; // Reset the flag
+          }
+        });
       });
-    });
+    }
+  }
+
+  // Method to trigger data refresh (can be called from other screens)
+  void refreshData() {
+    _shouldRefreshData = true;
   }
 
   @override
@@ -67,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Home'),
+            title: Text(AppLocalizations.of(context)!.home),
             actions: [
               IconButton(
                 icon: const Icon(Icons.logout),
@@ -85,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     Get.offAllNamed('/login');
                   } catch (e) {
-                    Get.snackbar('Error', 'Failed to logout: ${e.toString()}');
+                    Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
                   }
                 },
               ),
@@ -95,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
             userModel: userModel,
             candidateModel: candidateModel,
             currentUser: currentUser,
-            onDeleteAccount: HomeActions.showDeleteAccountDialog,
+            onDeleteAccount: (context, userModel) => HomeActions.showDeleteAccountDialog(context, userModel, AppLocalizations.of(context)!),
           ),
           body: HomeBody(
             userModel: userModel,
