@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../l10n/app_localizations.dart';
 import '../../controllers/login_controller.dart';
 import '../../controllers/chat_controller.dart';
 import '../../models/user_model.dart';
@@ -89,18 +90,20 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   }
 
   // Build input decoration with dynamic helper text
-  InputDecoration _buildInputDecoration({
+  InputDecoration _buildInputDecoration(BuildContext context, {
     required String label,
     required String hint,
     required IconData icon,
     bool showPreFilledHelper = false,
   }) {
+    final localizations = AppLocalizations.of(context)!;
+
     return InputDecoration(
       labelText: label,
       hintText: hint,
       border: const OutlineInputBorder(),
       prefixIcon: Icon(icon),
-      helperText: showPreFilledHelper ? 'Auto-filled from your account' : null,
+      helperText: showPreFilledHelper ? localizations.autoFilledFromAccount : null,
       helperStyle: const TextStyle(
         color: Colors.blue,
         fontSize: 12,
@@ -123,6 +126,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         isLoadingCities = false;
       });
     } catch (e) {
+      // For now, keep the error message in English since we don't have context here
       Get.snackbar('Error', 'Failed to load cities: $e');
       setState(() {
         isLoadingCities = false;
@@ -130,12 +134,14 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
-  Future<void> _loadWards(String cityId) async {
+  Future<void> _loadWards(String cityId, BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
+
     try {
       wards = await candidateRepository.getWardsByCity(cityId);
       setState(() {});
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load wards: $e');
+      Get.snackbar(localizations.error, localizations.failedToLoadWards(e.toString()));
     }
   }
 
@@ -155,11 +161,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
-  Future<void> _saveProfile() async {
+  Future<void> _saveProfile(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
+
     if (!_formKey.currentState!.validate()) return;
 
     if (selectedCity == null || selectedWard == null || selectedGender == null) {
-      Get.snackbar('Error', 'Please fill all required fields');
+      Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
       return;
     }
 
@@ -265,21 +273,21 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       if (currentRole == 'candidate') {
         Get.offAllNamed('/candidate-setup');
         Get.snackbar(
-          'Profile Completed!',
-          'Basic profile completed. Now set up your candidate profile.',
+          localizations.profileCompleted,
+          localizations.basicProfileCompletedSetupCandidate,
           duration: const Duration(seconds: 4),
         );
       } else {
         Get.offAllNamed('/home');
         Get.snackbar(
-          'Success',
-          'Profile completed! Your ward chat room has been created.',
+          localizations.success,
+          localizations.profileCompletedWardChatCreated,
           duration: const Duration(seconds: 4),
         );
       }
 
     } catch (e) {
-      Get.snackbar('Error', 'Failed to save profile: $e');
+      Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
     }
 
     setState(() {
@@ -289,9 +297,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complete Your Profile'),
+        title: Text(localizations.completeYourProfile),
         automaticallyImplyLeading: false, // Prevent back button
       ),
       body: SafeArea(
@@ -303,8 +313,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                const Text(
-                  'Welcome! Please complete your profile to continue.',
+                Text(
+                  localizations.welcomeCompleteYourProfile,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -315,7 +325,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 Builder(
                   builder: (context) {
                     final currentUser = FirebaseAuth.instance.currentUser;
-                    String loginMethod = 'your account';
+                    String loginMethod = localizations.autoFilledFromAccount;
 
                     if (currentUser?.providerData.isNotEmpty ?? false) {
                       final provider = currentUser!.providerData.first;
@@ -327,8 +337,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     }
 
                     return Text(
-                      'Some information has been pre-filled from $loginMethod. This helps us connect you with your local community.',
-                      style: const TextStyle(
+                      localizations.preFilledFromAccount(loginMethod),
+                      style: TextStyle(
                         fontSize: 14,
                         color: Colors.black54,
                       ),
@@ -340,18 +350,18 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 // Name Field
                 TextFormField(
                   controller: nameController,
-                  decoration: _buildInputDecoration(
-                    label: 'Full Name *',
-                    hint: 'Enter your full name',
+                  decoration: _buildInputDecoration(context,
+                    label: localizations.fullNameRequired,
+                    hint: localizations.enterYourFullName,
                     icon: Icons.person,
                     showPreFilledHelper: _isNamePreFilled,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
+                      return localizations.pleaseEnterYourName;
                     }
                     if (value.trim().length < 2) {
-                      return 'Name must be at least 2 characters';
+                      return localizations.nameMustBeAtLeast2Characters;
                     }
                     return null;
                   },
@@ -363,9 +373,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
-                  decoration: _buildInputDecoration(
-                    label: 'Phone Number *',
-                    hint: 'Enter your phone number',
+                  decoration: _buildInputDecoration(context,
+                    label: localizations.phoneNumberRequired,
+                    hint: localizations.enterYourPhoneNumber,
                     icon: Icons.phone,
                     showPreFilledHelper: _isPhonePreFilled,
                   ).copyWith(
@@ -373,13 +383,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your phone number';
+                      return localizations.pleaseEnterYourPhoneNumber;
                     }
                     if (value.trim().length != 10) {
-                      return 'Phone number must be 10 digits';
+                      return localizations.phoneNumberMustBe10Digits;
                     }
                     if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value.trim())) {
-                      return 'Please enter a valid phone number';
+                      return localizations.pleaseEnterValidPhoneNumber;
                     }
                     return null;
                   },
@@ -391,16 +401,16 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   controller: birthDateController,
                   readOnly: true,
                   onTap: () => _selectBirthDate(context),
-                  decoration: const InputDecoration(
-                    labelText: 'Birth Date *',
-                    hintText: 'Select your birth date',
+                  decoration: InputDecoration(
+                    labelText: localizations.birthDateRequired,
+                    hintText: localizations.selectYourBirthDate,
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.calendar_today),
                     suffixIcon: Icon(Icons.arrow_drop_down),
                   ),
                   validator: (value) {
                     if (selectedBirthDate == null) {
-                      return 'Please select your birth date';
+                      return localizations.pleaseSelectYourBirthDate;
                     }
                     return null;
                   },
@@ -410,16 +420,16 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 // Gender Selection
                 DropdownButtonFormField<String>(
                   value: selectedGender,
-                  decoration: const InputDecoration(
-                    labelText: 'Gender *',
+                  decoration: InputDecoration(
+                    labelText: localizations.genderRequired,
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.people),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'male', child: Text('Male')),
-                    DropdownMenuItem(value: 'female', child: Text('Female')),
-                    DropdownMenuItem(value: 'other', child: Text('Other')),
-                    DropdownMenuItem(value: 'prefer_not_to_say', child: Text('Prefer not to say')),
+                  items: [
+                    DropdownMenuItem(value: 'male', child: Text(localizations.male)),
+                    DropdownMenuItem(value: 'female', child: Text(localizations.female)),
+                    DropdownMenuItem(value: 'other', child: Text(localizations.other)),
+                    DropdownMenuItem(value: 'prefer_not_to_say', child: Text(localizations.preferNotToSay)),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -428,7 +438,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   },
                   validator: (value) {
                     if (value == null) {
-                      return 'Please select your gender';
+                      return localizations.pleaseSelectYourGender;
                     }
                     return null;
                   },
@@ -440,9 +450,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   const Center(child: CircularProgressIndicator())
                 else
                   ModalSelector<City>(
-                    title: 'Select City',
-                    label: 'City *',
-                    hint: 'Select your city',
+                    title: localizations.selectCity,
+                    label: localizations.cityRequired,
+                    hint: localizations.selectYourCity,
                     items: cities.map((city) {
                       return DropdownMenuItem<City>(
                         value: city,
@@ -457,7 +467,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         wards = [];
                       });
                       if (city != null) {
-                        _loadWards(city.cityId);
+                        _loadWards(city.cityId, context);
                       }
                     },
                   ),
@@ -465,9 +475,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
                 // Ward Selection
                 ModalSelector<Ward>(
-                  title: 'Select Ward',
-                  label: 'Ward *',
-                  hint: selectedCity != null ? 'Select your ward' : 'Select city first',
+                  title: localizations.selectWard,
+                  label: localizations.wardRequired,
+                  hint: selectedCity != null ? localizations.selectYourWard : localizations.selectCityFirst,
                   items: wards.map((ward) {
                     return DropdownMenuItem<Ward>(
                       value: ward,
@@ -489,7 +499,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: isLoading ? null : _saveProfile,
+                    onPressed: isLoading ? null : () => _saveProfile(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       shape: RoundedRectangleBorder(
@@ -498,8 +508,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     ),
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Complete Profile',
+                        : Text(
+                            localizations.completeProfile,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -511,8 +521,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 16),
 
                 // Info Text
-                const Text(
-                  '* Required fields',
+                Text(
+                  localizations.requiredFields,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey,

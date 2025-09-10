@@ -24,6 +24,7 @@ class ChatController extends GetxController {
 
   // State variables
   List<ChatRoom> chatRooms = [];
+  List<ChatRoomDisplayInfo> chatRoomDisplayInfos = []; // Rooms with unread info
   ChatRoom? currentChatRoom;
   List<Message> messages = [];
   UserQuota? userQuota;
@@ -33,6 +34,12 @@ class ChatController extends GetxController {
   String? currentRecordingPath;
   bool _isInitialLoadComplete = false; // Flag to prevent real-time override during initial load
 
+  // Unread message tracking
+  final Map<String, int> _unreadCounts = {}; // roomId -> unread count
+  final Map<String, DateTime> _lastMessageTimes = {}; // roomId -> last message time
+  final Map<String, String> _lastMessagePreviews = {}; // roomId -> last message preview
+  final Map<String, String> _lastMessageSenders = {}; // roomId -> last message sender
+
   // Message caching for performance optimization
   final Map<String, List<Message>> _messageCache = {}; // roomId -> messages
   final Map<String, DateTime> _messageCacheTimestamps = {}; // roomId -> last cache time
@@ -40,6 +47,7 @@ class ChatController extends GetxController {
 
   // Reactive variables for real-time updates
   var chatRoomsStream = Rx<List<ChatRoom>>([]);
+  var chatRoomDisplayInfosStream = Rx<List<ChatRoomDisplayInfo>>([]); // Display info with unread counts
   var messagesStream = Rx<List<Message>>([]);
   var userQuotaStream = Rx<UserQuota?>(null);
 
@@ -61,9 +69,67 @@ class ChatController extends GetxController {
     return _getCurrentUser();
   }
 
+  // Unread count management methods
+  void _incrementUnreadCount(String roomId, Message message) {
+    final user = currentUser;
+    if (user == null || currentChatRoom?.roomId == roomId) return; // Don't count if user is in the room
+
+    _unreadCounts[roomId] = (_unreadCounts[roomId] ?? 0) + 1;
+    _lastMessageTimes[roomId] = message.createdAt;
+    _lastMessagePreviews[roomId] = _getMessagePreview(message);
+    _lastMessageSenders[roomId] = message.senderId;
+
+    _updateChatRoomDisplayInfos();
+    debugPrint('📨 Unread count for room $roomId: ${_unreadCounts[roomId]}');
+  }
+
+  void _resetUnreadCount(String roomId) {
+    _unreadCounts[roomId] = 0;
+    _updateChatRoomDisplayInfos();
+    debugPrint('✅ Reset unread count for room $roomId');
+  }
+
+  String _getMessagePreview(Message message) {
+    switch (message.type) {
+      case 'image':
+        return '📷 Image';
+      case 'audio':
+        return '🎵 Voice message';
+      case 'poll':
+        return '📊 Poll';
+      default:
+        return message.text.length > 50
+            ? '${message.text.substring(0, 50)}...'
+            : message.text;
+    }
+  }
+
+  void _updateChatRoomDisplayInfos() {
+    chatRoomDisplayInfos = chatRooms.map((room) {
+      return ChatRoomDisplayInfo(
+        room: room,
+        unreadCount: _unreadCounts[room.roomId] ?? 0,
+        lastMessageTime: _lastMessageTimes[room.roomId],
+        lastMessagePreview: _lastMessagePreviews[room.roomId],
+        lastMessageSender: _lastMessageSenders[room.roomId],
+      );
+    }).toList();
+
+    // Sort by last message time (newest first)
+    chatRoomDisplayInfos.sort((a, b) {
+      final aTime = a.lastMessageTime ?? a.room.createdAt;
+      final bTime = b.lastMessageTime ?? b.room.createdAt;
+      return bTime.compareTo(aTime);
+    });
+
+    chatRoomDisplayInfosStream.value = chatRoomDisplayInfos;
+  }
+
   @override
   void onInit() {
     super.onInit();
+    // Clean up expired repository cache on app start
+    clearExpiredRepositoryCache();
     _initializeChat();
   }
 
@@ -81,22 +147,92 @@ class ChatController extends GetxController {
     // Clean up any expired message caches from previous sessions
     _clearExpiredCaches();
 
+    try {
+      debugPrint('📦 BATCH: Initializing chat with batch operations');
+
+      // Get current user ID
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser == null) {
+        debugPrint('❌ No Firebase Auth user - cannot initialize chat');
+        return;
+      }
+
+      // Use batch operation to get all required data
+      final userData = await _repository.getUserDataAndQuota(firebaseUser.uid);
+      final user = userData['user'] as UserModel?;
+      final quota = userData['quota'] as UserQuota?;
+
+      if (user != null) {
+        // Cache the user data immediately to prevent fallback usage
+        _cachedUser = user;
+        userQuota = quota;
+        userQuotaStream.value = quota;
+
+        debugPrint('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
+        debugPrint('💬 Chat initialized - User can send messages: $canSendMessage');
+
+        // Use batch operation for remaining data
+        final appData = await _repository.initializeAppData(
+          user.uid,
+          user.role,
+          cityId: user.cityId,
+          wardId: user.wardId
+        );
+
+        // Update local state with batch results
+        chatRooms = appData['rooms'] as List<ChatRoom>;
+        chatRoomsStream.value = chatRooms;
+
+        debugPrint('✅ BATCH: Chat initialized with ${chatRooms.length} rooms');
+
+        // Ensure ward room exists for users with complete profiles (both voters and candidates)
+        if ((user.role == 'voter' || user.role == 'candidate') && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
+          debugPrint('🏛️ BREAKPOINT FALLBACK-1: Ensuring ward room exists for ${user.role}: ward_${user.cityId}_${user.wardId}');
+          debugPrint('🏛️ BREAKPOINT FALLBACK-1: User details - Name: ${user.name}, Role: ${user.role}, Ward: ${user.wardId}, City: ${user.cityId}');
+          ensureWardRoomExists();
+        } else if (user.role == 'voter' || user.role == 'candidate') {
+          debugPrint('⚠️ BREAKPOINT FALLBACK-2: ${user.role} profile incomplete - missing ward or city info');
+          debugPrint('⚠️ BREAKPOINT FALLBACK-2: User details - Name: ${user.name}, Ward: ${user.wardId}, City: ${user.cityId}');
+        } else {
+          debugPrint('🏛️ BREAKPOINT FALLBACK-3: User is not a voter or candidate - Role: ${user.role}');
+        }
+      } else {
+        debugPrint('❌ CRITICAL: Failed to get complete user data from Firestore');
+        debugPrint('   This will cause issues with user roles, XP, and premium status');
+        debugPrint('   The app will fall back to incomplete Firebase Auth data');
+        debugPrint('   ⚠️ WARNING: User data will be incomplete (no role, XP, premium status)');
+      }
+    } catch (e) {
+      debugPrint('❌ BATCH: Failed to initialize chat with batch operations: $e');
+      debugPrint('   Falling back to individual operations...');
+
+      // Fallback to original initialization method
+      await _initializeChatFallback();
+    }
+  }
+
+  // Fallback initialization method (original logic)
+  Future<void> _initializeChatFallback() async {
     final user = await getCompleteUserData();
     if (user != null) {
       // Cache the user data immediately to prevent fallback usage
       _cachedUser = user;
 
-      debugPrint('🚀 Initializing chat for user: ${user.name} (${user.role}) - UID: ${user.uid}');
+      debugPrint('🚀 Initializing chat (fallback) for user: ${user.name} (${user.role}) - UID: ${user.uid}');
       debugPrint('💬 Chat initialized - User can send messages: $canSendMessage');
       fetchUserQuota();
       fetchChatRooms();
 
-      // Ensure ward room exists for voters with complete profiles
-      if (user.role == 'voter' && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
-        debugPrint('🏛️ Ensuring ward room exists for voter: ward_${user.cityId}_${user.wardId}');
+      // Ensure ward room exists for users with complete profiles (both voters and candidates)
+      if ((user.role == 'voter' || user.role == 'candidate') && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
+        debugPrint('🏛️ BREAKPOINT INIT-1: Ensuring ward room exists for ${user.role}: ward_${user.cityId}_${user.wardId}');
+        debugPrint('🏛️ BREAKPOINT INIT-1: User details - Name: ${user.name}, Role: ${user.role}, Ward: ${user.wardId}, City: ${user.cityId}');
         ensureWardRoomExists();
-      } else if (user.role == 'voter') {
-        debugPrint('⚠️ Voter profile incomplete - missing ward or city info');
+      } else if (user.role == 'voter' || user.role == 'candidate') {
+        debugPrint('⚠️ BREAKPOINT INIT-2: ${user.role} profile incomplete - missing ward or city info');
+        debugPrint('⚠️ BREAKPOINT INIT-2: User details - Name: ${user.name}, Ward: ${user.wardId}, City: ${user.cityId}');
+      } else {
+        debugPrint('🏛️ BREAKPOINT INIT-3: User is not a voter or candidate - Role: ${user.role}');
       }
     } else {
       debugPrint('❌ CRITICAL: Failed to get complete user data from Firestore');
@@ -142,8 +278,16 @@ class ChatController extends GetxController {
     );
   }
 
-  // Fetch complete user data from Firestore
+  // Fetch complete user data from Firestore (with smart caching)
   Future<UserModel?> getCompleteUserData() async {
+    // First check if we already have cached data
+    if (_cachedUser != null) {
+      debugPrint('⚡ CACHE HIT: Returning cached user data for ${_cachedUser!.name}');
+      return _cachedUser;
+    }
+
+    debugPrint('🔄 CACHE MISS: Fetching fresh user data from Firestore');
+
     final firebaseUser = _auth.currentUser;
     if (firebaseUser == null) return null;
 
@@ -175,21 +319,30 @@ class ChatController extends GetxController {
 
         // Cache the complete user data
         _cachedUser = completeUser;
-      debugPrint('✅ Cached complete user data: XP=${completeUser.xpPoints}');
+        debugPrint('✅ Cached complete user data: XP=${completeUser.xpPoints}');
 
         return completeUser;
       }
     } catch (e) {
-    debugPrint('Error fetching user data: $e');
+      debugPrint('❌ Error fetching user data: $e');
     }
 
+    debugPrint('⚠️ Falling back to basic Firebase Auth data');
     return _getCurrentUser(); // Fallback to basic data
   }
 
   // Fetch chat rooms for current user
   Future<void> fetchChatRooms() async {
     final user = currentUser;
-    if (user == null) return;
+
+    // BREAKPOINT FETCH-1: Start of fetchChatRooms
+    debugPrint('🔍 BREAKPOINT FETCH-1: Starting fetchChatRooms()');
+    debugPrint('🔍 BREAKPOINT FETCH-1: Current user - Name: ${user?.name}, UID: ${user?.uid}, Role: ${user?.role}');
+
+    if (user == null) {
+      debugPrint('❌ BREAKPOINT FETCH-2: No user found, returning early');
+      return;
+    }
 
     isLoading = true;
     errorMessage = null;
@@ -197,9 +350,27 @@ class ChatController extends GetxController {
     update();
 
     try {
-      chatRooms = await _repository.getChatRoomsForUser(user.uid, user.role);
+      // BREAKPOINT FETCH-3: Before repository call
+      debugPrint('🔍 BREAKPOINT FETCH-3: Calling repository.getChatRoomsForUser()');
+      debugPrint('🔍 BREAKPOINT FETCH-3: Parameters - UID: ${user.uid}, Role: ${user.role}, City: ${user.cityId}, Ward: ${user.wardId}');
+
+      chatRooms = await _repository.getChatRoomsForUser(
+        user.uid,
+        user.role,
+        cityId: user.cityId,
+        wardId: user.wardId
+      );
+
+      // BREAKPOINT FETCH-4: After repository call
+      debugPrint('🔍 BREAKPOINT FETCH-4: Repository returned ${chatRooms.length} rooms');
+      chatRooms.forEach((room) => debugPrint('   Room: ${room.roomId} - ${room.title} (${room.type})'));
+
       chatRoomsStream.value = chatRooms;
-    debugPrint('📋 Loaded ${chatRooms.length} chat rooms for ${user.role}');
+
+      // Initialize display info with current unread counts
+      _updateChatRoomDisplayInfos();
+
+      debugPrint('📋 Loaded ${chatRooms.length} chat rooms for ${user.role}');
 
       // Mark initial load as complete
       _isInitialLoadComplete = true;
@@ -210,12 +381,17 @@ class ChatController extends GetxController {
       errorMessage = e.toString();
       chatRooms = [];
       chatRoomsStream.value = [];
+      chatRoomDisplayInfos = [];
+      chatRoomDisplayInfosStream.value = [];
       _isInitialLoadComplete = true; // Even on error, mark as complete
-    debugPrint('❌ Failed to load chat rooms: $e');
+    debugPrint('❌ BREAKPOINT FETCH-5: Failed to load chat rooms: $e');
     }
 
     isLoading = false;
     update();
+
+    // BREAKPOINT FETCH-6: End of fetchChatRooms
+    debugPrint('🔍 BREAKPOINT FETCH-6: fetchChatRooms() completed - Total rooms: ${chatRooms.length}');
   }
 
   // Listen for real-time room changes (deletions, updates)
@@ -297,10 +473,21 @@ class ChatController extends GetxController {
     }
   }
 
-  // Fetch user quota
+  // Fetch user quota (with smart caching)
   Future<void> fetchUserQuota() async {
     final user = currentUser;
     if (user == null) return;
+
+    // Check if we already have quota data and it's recent
+    if (userQuota != null) {
+      debugPrint('⚡ CACHE HIT: Using cached quota data');
+      userQuotaStream.value = userQuota;
+      _canSendMessageLogged = false;
+      update();
+      return;
+    }
+
+    debugPrint('🔄 CACHE MISS: Fetching fresh quota data from Firestore');
 
     try {
       userQuota = await _repository.getUserQuota(user.uid);
@@ -321,16 +508,19 @@ class ChatController extends GetxController {
       userQuotaStream.value = userQuota;
       // Reset the logging flag when quota is loaded
       _canSendMessageLogged = false;
-    debugPrint('📊 User quota loaded: ${userQuota?.remainingMessages ?? 0} messages remaining');
+      debugPrint('📊 User quota loaded: ${userQuota?.remainingMessages ?? 0} messages remaining');
       update();
     } catch (e) {
-    debugPrint('❌ Failed to fetch user quota: $e');
+      debugPrint('❌ Failed to fetch user quota: $e');
     }
   }
 
   // Select a chat room
   void selectChatRoom(ChatRoom chatRoom) {
     currentChatRoom = chatRoom;
+
+    // Reset unread count for this room
+    _resetUnreadCount(chatRoom.roomId);
 
     // Check if we have cached messages for this room
     if (_hasValidCachedMessages(chatRoom.roomId)) {
@@ -400,14 +590,27 @@ class ChatController extends GetxController {
         debugPrint('   Message ${i + 1}: "${msg.text.length > 50 ? msg.text.substring(0, 50) + '...' : msg.text}" by ${msg.senderId}');
       }
 
+      // Check for new messages and increment unread counts
+      final previousMessageCount = _messageCache[roomId]?.length ?? 0;
+      final newMessages = activeMessages.length - previousMessageCount;
+
+      if (newMessages > 0 && activeMessages.isNotEmpty) {
+        // Increment unread count for new messages
+        for (int i = previousMessageCount; i < activeMessages.length; i++) {
+          _incrementUnreadCount(roomId, activeMessages[i]);
+        }
+      }
+
       // Cache the messages for future use
       _cacheMessages(roomId, activeMessages);
 
       messages = activeMessages;
       messagesStream.value = activeMessages;
 
-      // Mark messages as read
-      _markUnreadMessagesAsRead();
+      // Mark messages as read (only if user is currently in this room)
+      if (currentChatRoom?.roomId == roomId) {
+        _markUnreadMessagesAsRead();
+      }
 
       update(); // Force UI update
     }, onError: (error) {
@@ -480,45 +683,34 @@ class ChatController extends GetxController {
         readBy: [user.uid],
       );
 
-      // Debug logging (only in debug mode)
-      assert(() {
-      debugPrint('💾 Sending message to Firestore...');
-        return true;
-      }());
-      await _repository.sendMessage(currentChatRoom!.roomId, message);
-      assert(() {
-      debugPrint('✅ Message sent successfully to Firestore');
-        return true;
-      }());
+      // Determine if we should use quota or XP
+      final useQuota = userQuota != null && userQuota!.canSendMessage;
+      final useXP = !useQuota && user.xpPoints > 0;
 
-      // Handle quota/XP deduction ONLY after successful message send
-      // Since we already checked canSendMessage at the beginning, we know either quota or XP is available
+      // Use batch operation to send message and update quota/XP together
+      debugPrint('📦 Using batch operation for message + quota/XP update');
+      final result = await _repository.sendMessageWithQuotaUpdate(
+        currentChatRoom!.roomId,
+        message,
+        user.uid,
+        useQuota,
+        useXP
+      );
 
-      if (userQuota != null && userQuota!.canSendMessage) {
-        // Debug logging (only in debug mode)
-        assert(() {
-        debugPrint('📊 Using regular quota for message');
-          return true;
-        }());
-        // Decrement quota
-        final updatedQuota = userQuota!.copyWith(
-          messagesSent: userQuota!.messagesSent + 1,
-        );
-        await _repository.updateUserQuota(updatedQuota);
-        await fetchUserQuota(); // Refresh local quota
-      } else if (user.xpPoints > 0) {
-        // Debug logging (only in debug mode)
-        assert(() {
-        debugPrint('💰 Using XP for message (XP before: ${user.xpPoints})');
-          return true;
-        }());
-        // Use XP points (1 XP = 1 message)
-        await _deductXPForMessage(user.uid);
-        assert(() {
-        debugPrint('✅ XP deducted successfully');
-          return true;
-        }());
+      // Update local quota if it was modified
+      if (result['quota'] != null) {
+        userQuota = result['quota'] as UserQuota?;
+        userQuotaStream.value = userQuota;
       }
+
+      // If XP was used, refresh user data
+      if (useXP) {
+        await getCompleteUserData();
+        // Invalidate repository cache since user data changed
+        _repository.invalidateUserCache(user.uid);
+      }
+
+      debugPrint('✅ Message sent with batch operation');
 
     } catch (e) {
     debugPrint('❌ Failed to send message: $e');
@@ -537,7 +729,7 @@ class ChatController extends GetxController {
     update();
   }
 
-  // Send image message
+  // Send image message (with batch operations)
   Future<void> sendImageMessage() async {
     if (currentChatRoom == null) return;
 
@@ -585,7 +777,7 @@ class ChatController extends GetxController {
         'image/jpeg',
       );
 
-      // Send message with image URL
+      // Send message with image URL using batch operation
       final user = currentUser;
       if (user != null) {
         final message = Message(
@@ -598,36 +790,39 @@ class ChatController extends GetxController {
           mediaUrl: downloadUrl,
         );
 
-        await _repository.sendMessage(currentChatRoom!.roomId, message);
+        // Determine if we should use quota or XP
+        final useQuota = userQuota != null && userQuota!.canSendMessage;
+        final useXP = !useQuota && user.xpPoints > 0;
 
-        // Handle quota/XP deduction
-        // Since we already checked canSendMessage at the beginning, we know either quota or XP is available
+        // Use batch operation to send message and update quota/XP together
+        debugPrint('📦 Using batch operation for image message + quota/XP update');
+        final result = await _repository.sendMessageWithQuotaUpdate(
+          currentChatRoom!.roomId,
+          message,
+          user.uid,
+          useQuota,
+          useXP
+        );
 
-        if (userQuota != null && userQuota!.canSendMessage) {
-          // Debug logging (only in debug mode)
-          assert(() {
-          debugPrint('📊 Using regular quota for voice message');
-            return true;
-          }());
-          // Decrement quota
-          final updatedQuota = userQuota!.copyWith(
-            messagesSent: userQuota!.messagesSent + 1,
-          );
-          await _repository.updateUserQuota(updatedQuota);
-          await fetchUserQuota(); // Refresh local quota
-        } else if (user.xpPoints > 0) {
-          // Debug logging (only in debug mode)
-          assert(() {
-          debugPrint('💰 Using XP for voice message (XP before: ${user.xpPoints})');
-            return true;
-          }());
-          // Use XP points (1 XP = 1 message)
-          await _deductXPForMessage(user.uid);
-          assert(() {
-          debugPrint('✅ XP deducted successfully');
-            return true;
-          }());
+        // Update local quota if it was modified
+        if (result['quota'] != null) {
+          userQuota = result['quota'] as UserQuota?;
+          userQuotaStream.value = userQuota;
+          debugPrint('📊 Local quota updated: ${userQuota!.remainingMessages} messages remaining');
+        } else if (useQuota) {
+          // If quota was used but not returned, refresh from database
+          debugPrint('🔄 Quota used but not returned, refreshing from database');
+          await fetchUserQuota();
         }
+
+        // If XP was used, refresh user data
+        if (useXP) {
+          await getCompleteUserData();
+          // Invalidate repository cache since user data changed
+          _repository.invalidateUserCache(user.uid);
+        }
+
+        debugPrint('✅ Image message sent with batch operation');
       }
     } catch (e) {
       errorMessage = e.toString();
@@ -700,36 +895,39 @@ class ChatController extends GetxController {
           mediaUrl: downloadUrl,
         );
 
-        await _repository.sendMessage(currentChatRoom!.roomId, message);
+        // Determine if we should use quota or XP
+        final useQuota = userQuota != null && userQuota!.canSendMessage;
+        final useXP = !useQuota && user.xpPoints > 0;
 
-        // Handle quota/XP deduction
-        // Since we already checked canSendMessage at the beginning, we know either quota or XP is available
+        // Use batch operation to send message and update quota/XP together
+        debugPrint('📦 Using batch operation for voice message + quota/XP update');
+        final result = await _repository.sendMessageWithQuotaUpdate(
+          currentChatRoom!.roomId,
+          message,
+          user.uid,
+          useQuota,
+          useXP
+        );
 
-        if (userQuota != null && userQuota!.canSendMessage) {
-          // Debug logging (only in debug mode)
-          assert(() {
-          debugPrint('📊 Using regular quota for image');
-            return true;
-          }());
-          // Decrement quota
-          final updatedQuota = userQuota!.copyWith(
-            messagesSent: userQuota!.messagesSent + 1,
-          );
-          await _repository.updateUserQuota(updatedQuota);
-          await fetchUserQuota(); // Refresh local quota
-        } else if (user.xpPoints > 0) {
-          // Debug logging (only in debug mode)
-          assert(() {
-          debugPrint('💰 Using XP for image (XP before: ${user.xpPoints})');
-            return true;
-          }());
-          // Use XP points (1 XP = 1 message)
-          await _deductXPForMessage(user.uid);
-          assert(() {
-          debugPrint('✅ XP deducted successfully');
-            return true;
-          }());
+        // Update local quota if it was modified
+        if (result['quota'] != null) {
+          userQuota = result['quota'] as UserQuota?;
+          userQuotaStream.value = userQuota;
+          debugPrint('📊 Local quota updated: ${userQuota!.remainingMessages} messages remaining');
+        } else if (useQuota) {
+          // If quota was used but not returned, refresh from database
+          debugPrint('🔄 Quota used but not returned, refreshing from database');
+          await fetchUserQuota();
         }
+
+        // If XP was used, refresh user data
+        if (useXP) {
+          await getCompleteUserData();
+          // Invalidate repository cache since user data changed
+          _repository.invalidateUserCache(user.uid);
+        }
+
+        debugPrint('✅ Voice message sent with batch operation');
       }
 
       currentRecordingPath = null;
@@ -892,11 +1090,59 @@ class ChatController extends GetxController {
 
     try {
       await _repository.addExtraQuota(user.uid, quota);
+      // No need to invalidate cache here since quota changes don't affect room visibility
       await fetchUserQuota();
     } catch (e) {
       errorMessage = e.toString();
       update();
     }
+  }
+
+  // Get repository cache statistics
+  Map<String, dynamic> getRepositoryCacheStats() {
+    return _repository.getCacheStats();
+  }
+
+  // Manually clear expired repository cache
+  void clearExpiredRepositoryCache() {
+    _repository.clearExpiredCache();
+  }
+
+  // Force refresh all cached data (for debugging/admin purposes)
+  Future<void> forceRefreshAllData() async {
+    debugPrint('🔄 Force refreshing all cached data');
+
+    // Clear all caches
+    clearUserCache();
+    clearExpiredRepositoryCache();
+    clearAllMessageCaches();
+
+    // Re-initialize everything
+    await _initializeChat();
+
+    Get.snackbar(
+      'Data Refreshed',
+      'All cached data has been refreshed from server',
+      backgroundColor: Colors.green.shade100,
+      colorText: Colors.green.shade800,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  // Get comprehensive cache statistics
+  Map<String, dynamic> getComprehensiveCacheStats() {
+    final repoStats = getRepositoryCacheStats();
+
+    return {
+      'controller_cache': {
+        'user_cached': _cachedUser != null,
+        'quota_cached': userQuota != null,
+        'message_cache_count': _messageCache.length,
+        'chat_rooms_cached': chatRooms.length,
+      },
+      'repository_cache': repoStats,
+      'total_cached_items': (_messageCache.length + chatRooms.length + (repoStats['total_entries'] as int? ?? 0)),
+    };
   }
 
   // Deduct XP for sending message
@@ -906,6 +1152,9 @@ class ChatController extends GetxController {
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'xpPoints': FieldValue.increment(-1),
       });
+
+      // Invalidate repository cache since user data changed
+      _repository.invalidateUserCache(userId);
 
       // Refresh cached user data to reflect XP changes
       await getCompleteUserData();
@@ -1003,9 +1252,26 @@ class ChatController extends GetxController {
 
   // Get or create ward room for current user
   Future<void> ensureWardRoomExists() async {
+    // BREAKPOINT 1: Start of ward room creation
+    debugPrint('🔍 BREAKPOINT 1: Starting ensureWardRoomExists()');
+
     try {
-      // Fetch complete user data from Firestore
-      final user = await getCompleteUserData();
+      // Use cached user data if available and complete, otherwise fetch from Firestore
+      UserModel? user = currentUser;
+
+      // BREAKPOINT 2: Check user data availability
+      debugPrint('🔍 BREAKPOINT 2: Current user data - Name: ${user?.name}, UID: ${user?.uid}, Role: ${user?.role}');
+      debugPrint('🔍 BREAKPOINT 2: Ward ID: ${user?.wardId}, City ID: ${user?.cityId}');
+
+      // If cached user data is incomplete (missing ward/city), fetch fresh data
+      if (user == null || user.wardId.isEmpty || user.cityId.isEmpty) {
+        debugPrint('🔄 Cached user data incomplete, fetching fresh data...');
+        user = await getCompleteUserData();
+
+        // BREAKPOINT 3: After fetching fresh user data
+        debugPrint('🔍 BREAKPOINT 3: Fresh user data - Name: ${user?.name}, Ward: ${user?.wardId}, City: ${user?.cityId}');
+      }
+
       if (user == null) {
       debugPrint('❌ No user found for ward room creation');
         return;
@@ -1020,8 +1286,25 @@ class ChatController extends GetxController {
 
       // Check if ward room exists
       final wardRoomId = 'ward_${user.cityId}_${user.wardId}';
-      final existingRooms = await _repository.getChatRoomsForUser(user.uid, user.role);
+
+      // BREAKPOINT 4: Before checking existing rooms
+      debugPrint('🔍 BREAKPOINT 4: Checking for existing ward room: $wardRoomId');
+
+      final existingRooms = await _repository.getChatRoomsForUser(
+        user.uid,
+        user.role,
+        cityId: user.cityId,
+        wardId: user.wardId
+      );
+
+      // BREAKPOINT 5: After fetching existing rooms
+      debugPrint('🔍 BREAKPOINT 5: Found ${existingRooms.length} existing rooms');
+      existingRooms.forEach((room) => debugPrint('   Room: ${room.roomId} - ${room.title}'));
+
       final wardRoomExists = existingRooms.any((room) => room.roomId == wardRoomId);
+
+      // BREAKPOINT 6: Ward room existence check result
+      debugPrint('🔍 BREAKPOINT 6: Ward room exists: $wardRoomExists');
 
       if (wardRoomExists) {
       debugPrint('✅ Ward room already exists: $wardRoomId');
@@ -1034,6 +1317,9 @@ class ChatController extends GetxController {
       final cityName = await _getCityName(user.cityId);
       final wardName = await _getWardName(user.cityId, user.wardId);
 
+      // BREAKPOINT 7: Before creating chat room
+      debugPrint('🔍 BREAKPOINT 7: Creating ward room - City: $cityName, Ward: $wardName');
+
       // Create ward room if it doesn't exist
       final chatRoom = ChatRoom(
         roomId: wardRoomId,
@@ -1044,11 +1330,19 @@ class ChatController extends GetxController {
         description: wardName.isNotEmpty ? wardName : 'Ward ${user.wardId}',
       );
 
+      // BREAKPOINT 8: Before repository call
+      debugPrint('🔍 BREAKPOINT 8: Calling repository.createChatRoom()');
+
       await _repository.createChatRoom(chatRoom);
-    debugPrint('✅ Ward room created successfully: $wardRoomId');
+
+      // BREAKPOINT 9: After successful creation
+      debugPrint('✅ BREAKPOINT 9: Ward room created successfully: $wardRoomId');
 
       // Refresh chat rooms list
       await fetchChatRooms();
+
+      // BREAKPOINT 10: After refresh
+      debugPrint('✅ BREAKPOINT 10: Chat rooms refreshed after ward room creation');
 
     } catch (e) {
     debugPrint('❌ Failed to ensure ward room exists: $e');
@@ -1185,6 +1479,8 @@ class ChatController extends GetxController {
     // Clear chat data as well
     chatRooms = [];
     chatRoomsStream.value = [];
+    chatRoomDisplayInfos = [];
+    chatRoomDisplayInfosStream.value = [];
     currentChatRoom = null;
     messages = [];
     messagesStream.value = [];
@@ -1193,7 +1489,14 @@ class ChatController extends GetxController {
     // Clear all message caches
     _messageCache.clear();
     _messageCacheTimestamps.clear();
-    debugPrint('🗑️ Cleared all message caches');
+
+    // Clear unread count tracking
+    _unreadCounts.clear();
+    _lastMessageTimes.clear();
+    _lastMessagePreviews.clear();
+    _lastMessageSenders.clear();
+
+    debugPrint('🗑️ Cleared all message caches and unread counts');
 
     update();
   }
@@ -1202,6 +1505,11 @@ class ChatController extends GetxController {
   Future<void> handleAuthStateChange() async {
   debugPrint('🔐 Handling authentication state change');
     clearUserCache();
+    // Clear repository cache for the current user
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      _repository.invalidateUserCache(currentUser.uid);
+    }
     await _initializeChat();
   }
 
@@ -1221,6 +1529,12 @@ class ChatController extends GetxController {
 
     // Clear cached user data to force refresh
     _cachedUser = null;
+
+    // Clear repository cache since user data changed
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      _repository.invalidateUserCache(currentUser.uid);
+    }
 
     await _initializeChat();
   }
@@ -1275,15 +1589,29 @@ class ChatController extends GetxController {
       return userQuota!.remainingMessages;
     }
 
+    // If no quota data, try to create default quota immediately
+    final user = currentUser;
+    if (user != null) {
+      // Create default quota synchronously if possible
+      userQuota = UserQuota(
+        userId: user.uid,
+        lastReset: DateTime.now(),
+        createdAt: DateTime.now(),
+      );
+      // Update stream for UI
+      userQuotaStream.value = userQuota;
+      debugPrint('📊 Created default quota: ${userQuota!.remainingMessages} messages remaining');
+      return userQuota!.remainingMessages;
+    }
+
     // If no quota data, use XP balance as fallback
     // Each XP point = 1 message
-    final user = currentUser;
     if (user != null && user.xpPoints > 0) {
       return user.xpPoints;
     }
 
     // Default fallback
-    return 0;
+    return 20; // Return default daily limit instead of 0
   }
 
   // Watch rewarded ad for XP

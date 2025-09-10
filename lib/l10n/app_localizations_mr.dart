@@ -591,4 +591,255 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get updateInstructionText => 'तुमचा पक्ष आणि चिन्ह बदल जतन करण्यासाठी अपडेट टॅप करा';
+
+  @override
+  String get chooseYourRole => 'तुमची भूमिका निवडा';
+
+  @override
+  String get howWouldYouLikeToParticipate => 'तुम्हाला कशी सहभागी व्हायचे आहे?';
+
+  @override
+  String get selectYourRoleToCustomizeExperience => 'समुदायातील तुमच्या अनुभवाचे सानुकूलन करण्यासाठी तुमची भूमिका निवडा.';
+
+  @override
+  String get voter => 'मतदार';
+
+  @override
+  String get stayInformedAndParticipateInDiscussions => 'माहिती मिळवा आणि चर्चेत सहभागी व्हा';
+
+  @override
+  String get accessWardDiscussionsPollsAndCommunityUpdates => 'वॉर्ड चर्चा, मतदान आणि समुदाय अपडेट्समध्ये प्रवेश मिळवा';
+
+  @override
+  String get candidate => 'उमेदवार';
+
+  @override
+  String get runForOfficeAndConnectWithVoters => 'निवडणुकीसाठी उभे राहा आणि मतदारांशी संपर्क साधा';
+
+  @override
+  String get createYourProfileShareManifestoAndEngageWithCommunity => 'तुमचे प्रोफाइल तयार करा, घोषणापत्र सामायिक करा आणि समुदायाशी संवाद साधा';
+
+  @override
+  String get continueButton => 'सुरू ठेवा';
+
+  @override
+  String get youCanChangeYourRoleLaterInSettings => 'तुम्ही नंतर सेटिंग्जमध्ये तुमची भूमिका बदलू शकता';
+
+  @override
+  String get pleaseSelectARoleToContinue => 'सुरू ठेवण्यासाठी कृपया भूमिका निवडा';
+
+  @override
+  String get roleSelected => 'भूमिका निवडली!';
+
+  @override
+  String get youSelectedCandidatePleaseCompleteYourProfile => 'तुम्ही उमेदवार निवडला आहे. कृपया तुमचे प्रोफाइल पूर्ण करा.';
+
+  @override
+  String get youSelectedVoterPleaseCompleteYourProfile => 'तुम्ही मतदार निवडला आहे. कृपया तुमचे प्रोफाइल पूर्ण करा.';
+
+  @override
+  String failedToSaveRole(Object error) {
+    return 'भूमिका जतन करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get completeYourProfile => 'तुमचे प्रोफाइल पूर्ण करा';
+
+  @override
+  String get welcomeCompleteYourProfile => 'स्वागत आहे! सुरू ठेवण्यासाठी कृपया तुमचे प्रोफाइल पूर्ण करा.';
+
+  @override
+  String preFilledFromAccount(Object loginMethod) {
+    return '$loginMethod वरून काही माहिती आधीच भरली गेली आहे. हे तुम्हाला तुमच्या स्थानिक समुदायाशी जोडण्यात मदत करते.';
+  }
+
+  @override
+  String get fullName => 'पूर्ण नाव';
+
+  @override
+  String get fullNameRequired => 'पूर्ण नाव *';
+
+  @override
+  String get enterYourFullName => 'तुमचे पूर्ण नाव टाका';
+
+  @override
+  String get phoneNumberRequired => 'फोन नंबर *';
+
+  @override
+  String get enterYourPhoneNumber => 'तुमचा फोन नंबर टाका';
+
+  @override
+  String get birthDateRequired => 'जन्म तारीख *';
+
+  @override
+  String get selectYourBirthDate => 'तुमची जन्म तारीख निवडा';
+
+  @override
+  String get genderRequired => 'लिंग *';
+
+  @override
+  String get male => 'पुरुष';
+
+  @override
+  String get female => 'स्त्री';
+
+  @override
+  String get other => 'इतर';
+
+  @override
+  String get preferNotToSay => 'सांगू इच्छित नाही';
+
+  @override
+  String get cityRequired => 'शहर *';
+
+  @override
+  String get selectYourCity => 'तुमचे शहर निवडा';
+
+  @override
+  String get wardRequired => 'वॉर्ड *';
+
+  @override
+  String get selectYourWard => 'तुमचा वॉर्ड निवडा';
+
+  @override
+  String get selectCityFirst => 'आधी शहर निवडा';
+
+  @override
+  String get completeProfile => 'प्रोफाइल पूर्ण करा';
+
+  @override
+  String get requiredFields => '* आवश्यक क्षेत्रे';
+
+  @override
+  String get pleaseEnterYourName => 'कृपया तुमचे नाव टाका';
+
+  @override
+  String get nameMustBeAtLeast2Characters => 'नाव कमीत कमी 2 अक्षरे असावे';
+
+  @override
+  String get pleaseEnterYourPhoneNumber => 'कृपया तुमचा फोन नंबर टाका';
+
+  @override
+  String get phoneNumberMustBe10Digits => 'फोन नंबर 10 अंकांचा असावा';
+
+  @override
+  String get pleaseEnterValidPhoneNumber => 'कृपया वैध फोन नंबर टाका';
+
+  @override
+  String get pleaseSelectYourBirthDate => 'कृपया तुमची जन्म तारीख निवडा';
+
+  @override
+  String get pleaseSelectYourGender => 'कृपया तुमचे लिंग निवडा';
+
+  @override
+  String get pleaseFillAllRequiredFields => 'कृपया सर्व आवश्यक क्षेत्रे भरा';
+
+  @override
+  String failedToLoadCities(Object error) {
+    return 'शहरे लोड करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String failedToLoadWards(Object error) {
+    return 'वॉर्ड लोड करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String failedToSaveProfile(Object error) {
+    return 'प्रोफाइल जतन करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get profileCompleted => 'प्रोफाइल पूर्ण झाला!';
+
+  @override
+  String get basicProfileCompletedSetupCandidate => 'मूलभूत प्रोफाइल पूर्ण झाला. आता तुमचा उमेदवार प्रोफाइल सेट अप करा.';
+
+  @override
+  String get profileCompletedWardChatCreated => 'प्रोफाइल पूर्ण झाला! तुमची वॉर्ड गप्पा खोली तयार झाली आहे.';
+
+  @override
+  String get autoFilledFromAccount => 'तुमच्या खात्यातून ऑटो-भरले';
+
+  @override
+  String get completeCandidateProfile => 'उमेदवार प्रोफाइल पूर्ण करा';
+
+  @override
+  String get completeYourCandidateProfile => 'तुमचा उमेदवार प्रोफाइल पूर्ण करा';
+
+  @override
+  String get fillDetailsCreateCandidateProfile => 'मतदारांशी संपर्क साधण्यासाठी तुमचा उमेदवार प्रोफाइल तयार करण्यासाठी तपशील भरा.';
+
+  @override
+  String get enterFullNameAsOnBallot => 'मतपत्रिकेवर दिसणारे तुमचे पूर्ण नाव टाका';
+
+  @override
+  String get politicalPartyRequired => 'राजकीय पक्ष *';
+
+  @override
+  String get symbolNameRequired => 'चिन्हाचे नाव *';
+
+  @override
+  String get manifestoOptional => 'घोषणापत्र (पर्यायी)';
+
+  @override
+  String get brieflyDescribeKeyPromises => 'तुमच्या प्रमुख वचनबद्धता आणि समुदायासाठी तुमचे दृष्टीपत्र संक्षिप्तपणे वर्णन करा';
+
+  @override
+  String get updateCandidateProfile => 'उमेदवार प्रोफाइल अपडेट करा';
+
+  @override
+  String get whatHappensNext => 'पुढे काय होईल?';
+
+  @override
+  String get candidateProfileBenefits => '• तुमचे प्रोफाइल तयार होईल आणि मतदारांना दिसेल\n• तुम्ही उमेदवार डॅशबोर्डमध्ये प्रवेश करू शकता आणि तुमच्या प्रचाराचे व्यवस्थापन करू शकता\n• प्रीमियम वैशिष्ट्ये वाढीव दृश्यमानतेसाठी उपलब्ध असतील\n• तुम्ही घोषणापत्र, संपर्क माहिती आणि मीडिया कधीही अपडेट करू शकता';
+
+  @override
+  String get changeRoleSelection => 'भूमिका निवड बदला';
+
+  @override
+  String get pleaseSelectYourParty => 'कृपया तुमचा पक्ष निवडा';
+
+  @override
+  String failedToCreateCandidateProfile(Object error) {
+    return 'उमेदवार प्रोफाइल तयार करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get imageSizeMustBeLessThan5MB => 'प्रतिमेचा आकार 5MB पेक्षा कमी असावा. कृपया लहान प्रतिमा निवडा.';
+
+  @override
+  String failedToUploadSymbolImage(Object error) {
+    return 'चिन्ह प्रतिमा अपलोड करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get candidateProfileUpdated => 'यशस्वी!';
+
+  @override
+  String get candidateProfileUpdatedMessage => 'तुमचा उमेदवार प्रोफाइल अपडेट झाला आहे! तुम्हाला सर्व वैशिष्ट्ये ट्राय करण्यासाठी 3 दिवस प्रीमियम प्रवेश मिळाला आहे.';
+
+  @override
+  String get symbolImageUploadedSuccessfully => 'चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली';
+
+  @override
+  String get uploading => 'अपलोड होत आहे...';
+
+  @override
+  String get max5MB => 'कमाल 5MB';
+
+  @override
+  String get uploadImageOfChosenSymbol => 'तुमच्या निवडलेल्या चिन्हाची प्रतिमा अपलोड करा. न दिल्यास, डिफॉल्ट आयकॉन वापरला जाईल.';
+
+  @override
+  String get supportedFormatsJPGPNGMax5MB => 'समर्थित स्वरूप: JPG, PNG. कमाल फाइल आकार: 5MB.';
+
+  @override
+  String get imageUploadedSuccessfully => 'प्रतिमा यशस्वीरित्या अपलोड झाली';
+
+  @override
+  String get pleaseEnterSymbolNameForIndependent => 'कृपया अपक्ष उमेदवारांसाठी चिन्हाचे नाव टाका';
+
+  @override
+  String get pleaseSelectYourPoliticalParty => 'कृपया तुमचा राजकीय पक्ष निवडा';
 }

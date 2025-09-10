@@ -10,6 +10,8 @@ class ChatRoom {
   final String? description;
   final bool? isActive;
   final Map<String, dynamic>? metadata;
+  // Note: unreadCount, lastMessageTime, lastMessagePreview, lastMessageSender
+  // are computed dynamically and not stored in the database
 
   ChatRoom({
     required this.roomId,
@@ -371,6 +373,40 @@ class Poll {
       userVotes: {},
     );
   }
+}
+
+class ChatRoomDisplayInfo {
+  final ChatRoom room;
+  final int unreadCount;
+  final DateTime? lastMessageTime;
+  final String? lastMessagePreview;
+  final String? lastMessageSender;
+
+  ChatRoomDisplayInfo({
+    required this.room,
+    this.unreadCount = 0,
+    this.lastMessageTime,
+    this.lastMessagePreview,
+    this.lastMessageSender,
+  });
+
+  ChatRoomDisplayInfo copyWith({
+    ChatRoom? room,
+    int? unreadCount,
+    DateTime? lastMessageTime,
+    String? lastMessagePreview,
+    String? lastMessageSender,
+  }) {
+    return ChatRoomDisplayInfo(
+      room: room ?? this.room,
+      unreadCount: unreadCount ?? this.unreadCount,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      lastMessageSender: lastMessageSender ?? this.lastMessageSender,
+    );
+  }
+
+  bool get hasUnreadMessages => unreadCount > 0;
 }
 
 class UserQuota {

@@ -591,4 +591,255 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateInstructionText => 'Tap update to save your party and symbol changes';
+
+  @override
+  String get chooseYourRole => 'Choose Your Role';
+
+  @override
+  String get howWouldYouLikeToParticipate => 'How would you like to participate?';
+
+  @override
+  String get selectYourRoleToCustomizeExperience => 'Select your role to customize your experience in the community.';
+
+  @override
+  String get voter => 'Voter';
+
+  @override
+  String get stayInformedAndParticipateInDiscussions => 'Stay informed and participate in discussions';
+
+  @override
+  String get accessWardDiscussionsPollsAndCommunityUpdates => 'Access ward discussions, polls, and community updates';
+
+  @override
+  String get candidate => 'Candidate';
+
+  @override
+  String get runForOfficeAndConnectWithVoters => 'Run for office and connect with voters';
+
+  @override
+  String get createYourProfileShareManifestoAndEngageWithCommunity => 'Create your profile, share manifesto, and engage with community';
+
+  @override
+  String get continueButton => 'Continue';
+
+  @override
+  String get youCanChangeYourRoleLaterInSettings => 'You can change your role later in settings';
+
+  @override
+  String get pleaseSelectARoleToContinue => 'Please select a role to continue';
+
+  @override
+  String get roleSelected => 'Role Selected!';
+
+  @override
+  String get youSelectedCandidatePleaseCompleteYourProfile => 'You selected Candidate. Please complete your profile.';
+
+  @override
+  String get youSelectedVoterPleaseCompleteYourProfile => 'You selected Voter. Please complete your profile.';
+
+  @override
+  String failedToSaveRole(Object error) {
+    return 'Failed to save role: $error';
+  }
+
+  @override
+  String get completeYourProfile => 'Complete Your Profile';
+
+  @override
+  String get welcomeCompleteYourProfile => 'Welcome! Please complete your profile to continue.';
+
+  @override
+  String preFilledFromAccount(Object loginMethod) {
+    return 'Some information has been pre-filled from $loginMethod. This helps us connect you with your local community.';
+  }
+
+  @override
+  String get fullName => 'Full Name';
+
+  @override
+  String get fullNameRequired => 'Full Name *';
+
+  @override
+  String get enterYourFullName => 'Enter your full name';
+
+  @override
+  String get phoneNumberRequired => 'Phone Number *';
+
+  @override
+  String get enterYourPhoneNumber => 'Enter your phone number';
+
+  @override
+  String get birthDateRequired => 'Birth Date *';
+
+  @override
+  String get selectYourBirthDate => 'Select your birth date';
+
+  @override
+  String get genderRequired => 'Gender *';
+
+  @override
+  String get male => 'Male';
+
+  @override
+  String get female => 'Female';
+
+  @override
+  String get other => 'Other';
+
+  @override
+  String get preferNotToSay => 'Prefer not to say';
+
+  @override
+  String get cityRequired => 'City *';
+
+  @override
+  String get selectYourCity => 'Select your city';
+
+  @override
+  String get wardRequired => 'Ward *';
+
+  @override
+  String get selectYourWard => 'Select your ward';
+
+  @override
+  String get selectCityFirst => 'Select city first';
+
+  @override
+  String get completeProfile => 'Complete Profile';
+
+  @override
+  String get requiredFields => '* Required fields';
+
+  @override
+  String get pleaseEnterYourName => 'Please enter your name';
+
+  @override
+  String get nameMustBeAtLeast2Characters => 'Name must be at least 2 characters';
+
+  @override
+  String get pleaseEnterYourPhoneNumber => 'Please enter your phone number';
+
+  @override
+  String get phoneNumberMustBe10Digits => 'Phone number must be 10 digits';
+
+  @override
+  String get pleaseEnterValidPhoneNumber => 'Please enter a valid phone number';
+
+  @override
+  String get pleaseSelectYourBirthDate => 'Please select your birth date';
+
+  @override
+  String get pleaseSelectYourGender => 'Please select your gender';
+
+  @override
+  String get pleaseFillAllRequiredFields => 'Please fill all required fields';
+
+  @override
+  String failedToLoadCities(Object error) {
+    return 'Failed to load cities: $error';
+  }
+
+  @override
+  String failedToLoadWards(Object error) {
+    return 'Failed to load wards: $error';
+  }
+
+  @override
+  String failedToSaveProfile(Object error) {
+    return 'Failed to save profile: $error';
+  }
+
+  @override
+  String get profileCompleted => 'Profile Completed!';
+
+  @override
+  String get basicProfileCompletedSetupCandidate => 'Basic profile completed. Now set up your candidate profile.';
+
+  @override
+  String get profileCompletedWardChatCreated => 'Profile completed! Your ward chat room has been created.';
+
+  @override
+  String get autoFilledFromAccount => 'Auto-filled from your account';
+
+  @override
+  String get completeCandidateProfile => 'Complete Candidate Profile';
+
+  @override
+  String get completeYourCandidateProfile => 'Complete Your Candidate Profile';
+
+  @override
+  String get fillDetailsCreateCandidateProfile => 'Fill in your details to create your candidate profile and start engaging with voters.';
+
+  @override
+  String get enterFullNameAsOnBallot => 'Enter your full name as it appears on ballot';
+
+  @override
+  String get politicalPartyRequired => 'Political Party *';
+
+  @override
+  String get symbolNameRequired => 'Symbol Name *';
+
+  @override
+  String get manifestoOptional => 'Manifesto (Optional)';
+
+  @override
+  String get brieflyDescribeKeyPromises => 'Briefly describe your key promises and vision for the community';
+
+  @override
+  String get updateCandidateProfile => 'Update Candidate Profile';
+
+  @override
+  String get whatHappensNext => 'What happens next?';
+
+  @override
+  String get candidateProfileBenefits => '• Your profile will be created and visible to voters\n• You can access the Candidate Dashboard to manage your campaign\n• Premium features will be available for enhanced visibility\n• You can update your manifesto, contact info, and media anytime';
+
+  @override
+  String get changeRoleSelection => 'Change Role Selection';
+
+  @override
+  String get pleaseSelectYourParty => 'Please select your party';
+
+  @override
+  String failedToCreateCandidateProfile(Object error) {
+    return 'Failed to create candidate profile: $error';
+  }
+
+  @override
+  String get imageSizeMustBeLessThan5MB => 'Image size must be less than 5MB. Please select a smaller image.';
+
+  @override
+  String failedToUploadSymbolImage(Object error) {
+    return 'Failed to upload symbol image: $error';
+  }
+
+  @override
+  String get candidateProfileUpdated => 'Success!';
+
+  @override
+  String get candidateProfileUpdatedMessage => 'Your candidate profile has been updated! You have 3 days of premium access to try all features.';
+
+  @override
+  String get symbolImageUploadedSuccessfully => 'Symbol image uploaded successfully';
+
+  @override
+  String get uploading => 'Uploading...';
+
+  @override
+  String get max5MB => 'Max 5MB';
+
+  @override
+  String get uploadImageOfChosenSymbol => 'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
+
+  @override
+  String get supportedFormatsJPGPNGMax5MB => 'Supported formats: JPG, PNG. Maximum file size: 5MB.';
+
+  @override
+  String get imageUploadedSuccessfully => 'Image uploaded successfully';
+
+  @override
+  String get pleaseEnterSymbolNameForIndependent => 'Please enter a symbol name for independent candidates';
+
+  @override
+  String get pleaseSelectYourPoliticalParty => 'Please select your political party';
 }

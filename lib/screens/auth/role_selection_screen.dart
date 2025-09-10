@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../l10n/app_localizations.dart';
 import '../../controllers/login_controller.dart';
 import '../../controllers/chat_controller.dart';
 import '../../models/user_model.dart';
@@ -19,28 +20,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   String? selectedRole;
   bool isLoading = false;
 
-  final List<Map<String, dynamic>> roles = [
-    {
-      'id': 'voter',
-      'title': 'Voter',
-      'subtitle': 'Stay informed and participate in discussions',
-      'description': 'Access ward discussions, polls, and community updates',
-      'icon': Icons.how_to_vote,
-      'color': Colors.blue,
-    },
-    {
-      'id': 'candidate',
-      'title': 'Candidate',
-      'subtitle': 'Run for office and connect with voters',
-      'description': 'Create your profile, share manifesto, and engage with community',
-      'icon': Icons.account_balance,
-      'color': Colors.green,
-    },
-  ];
-
   Future<void> _saveRole() async {
+    final localizations = AppLocalizations.of(context)!;
+
     if (selectedRole == null) {
-      Get.snackbar('Error', 'Please select a role to continue');
+      Get.snackbar(localizations.error, localizations.pleaseSelectARoleToContinue);
       return;
     }
 
@@ -67,22 +51,22 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       if (selectedRole == 'candidate') {
         Get.offAllNamed('/profile-completion');
         Get.snackbar(
-          'Role Selected!',
-          'You selected Candidate. Please complete your profile.',
+          localizations.roleSelected,
+          localizations.youSelectedCandidatePleaseCompleteYourProfile,
           duration: const Duration(seconds: 3),
         );
       } else {
         // For voter role, go to profile completion
         Get.offAllNamed('/profile-completion');
         Get.snackbar(
-          'Role Selected!',
-          'You selected Voter. Please complete your profile.',
+          localizations.roleSelected,
+          localizations.youSelectedVoterPleaseCompleteYourProfile,
           duration: const Duration(seconds: 3),
         );
       }
 
     } catch (e) {
-      Get.snackbar('Error', 'Failed to save role: $e');
+      Get.snackbar(localizations.error, localizations.failedToSaveRole(e.toString()));
     }
 
     setState(() {
@@ -92,9 +76,30 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    final List<Map<String, dynamic>> roles = [
+      {
+        'id': 'voter',
+        'title': localizations.voter,
+        'subtitle': localizations.stayInformedAndParticipateInDiscussions,
+        'description': localizations.accessWardDiscussionsPollsAndCommunityUpdates,
+        'icon': Icons.how_to_vote,
+        'color': Colors.blue,
+      },
+      {
+        'id': 'candidate',
+        'title': localizations.candidate,
+        'subtitle': localizations.runForOfficeAndConnectWithVoters,
+        'description': localizations.createYourProfileShareManifestoAndEngageWithCommunity,
+        'icon': Icons.account_balance,
+        'color': Colors.green,
+      },
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Choose Your Role'),
+        title: Text(localizations.chooseYourRole),
         automaticallyImplyLeading: false, // Prevent back button
       ),
       body: SafeArea(
@@ -104,8 +109,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              const Text(
-                'How would you like to participate?',
+              Text(
+                localizations.howWouldYouLikeToParticipate,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -113,8 +118,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Select your role to customize your experience in the community.',
+              Text(
+                localizations.selectYourRoleToCustomizeExperience,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.black54,
@@ -230,22 +235,22 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   ),
                   child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      : Text(
+                             localizations.continueButton,
+                             style: TextStyle(
+                               fontSize: 16,
+                               fontWeight: FontWeight.bold,
+                             ),
+                           ),
                 ),
               ),
 
               const SizedBox(height: 16),
 
               // Info Text
-              const Center(
+              Center(
                 child: Text(
-                  'You can change your role later in settings',
+                  localizations.youCanChangeYourRoleLaterInSettings,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey,

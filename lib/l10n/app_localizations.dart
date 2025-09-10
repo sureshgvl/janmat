@@ -1210,6 +1210,480 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap update to save your party and symbol changes'**
   String get updateInstructionText;
+
+  /// No description provided for @chooseYourRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Your Role'**
+  String get chooseYourRole;
+
+  /// No description provided for @howWouldYouLikeToParticipate.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you like to participate?'**
+  String get howWouldYouLikeToParticipate;
+
+  /// No description provided for @selectYourRoleToCustomizeExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your role to customize your experience in the community.'**
+  String get selectYourRoleToCustomizeExperience;
+
+  /// No description provided for @voter.
+  ///
+  /// In en, this message translates to:
+  /// **'Voter'**
+  String get voter;
+
+  /// No description provided for @stayInformedAndParticipateInDiscussions.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay informed and participate in discussions'**
+  String get stayInformedAndParticipateInDiscussions;
+
+  /// No description provided for @accessWardDiscussionsPollsAndCommunityUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Access ward discussions, polls, and community updates'**
+  String get accessWardDiscussionsPollsAndCommunityUpdates;
+
+  /// No description provided for @candidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate'**
+  String get candidate;
+
+  /// No description provided for @runForOfficeAndConnectWithVoters.
+  ///
+  /// In en, this message translates to:
+  /// **'Run for office and connect with voters'**
+  String get runForOfficeAndConnectWithVoters;
+
+  /// No description provided for @createYourProfileShareManifestoAndEngageWithCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your profile, share manifesto, and engage with community'**
+  String get createYourProfileShareManifestoAndEngageWithCommunity;
+
+  /// No description provided for @continueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueButton;
+
+  /// No description provided for @youCanChangeYourRoleLaterInSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change your role later in settings'**
+  String get youCanChangeYourRoleLaterInSettings;
+
+  /// No description provided for @pleaseSelectARoleToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a role to continue'**
+  String get pleaseSelectARoleToContinue;
+
+  /// No description provided for @roleSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Role Selected!'**
+  String get roleSelected;
+
+  /// No description provided for @youSelectedCandidatePleaseCompleteYourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'You selected Candidate. Please complete your profile.'**
+  String get youSelectedCandidatePleaseCompleteYourProfile;
+
+  /// No description provided for @youSelectedVoterPleaseCompleteYourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'You selected Voter. Please complete your profile.'**
+  String get youSelectedVoterPleaseCompleteYourProfile;
+
+  /// No description provided for @failedToSaveRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save role: {error}'**
+  String failedToSaveRole(Object error);
+
+  /// No description provided for @completeYourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Your Profile'**
+  String get completeYourProfile;
+
+  /// No description provided for @welcomeCompleteYourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome! Please complete your profile to continue.'**
+  String get welcomeCompleteYourProfile;
+
+  /// No description provided for @preFilledFromAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Some information has been pre-filled from {loginMethod}. This helps us connect you with your local community.'**
+  String preFilledFromAccount(Object loginMethod);
+
+  /// No description provided for @fullName.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get fullName;
+
+  /// No description provided for @fullNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name *'**
+  String get fullNameRequired;
+
+  /// No description provided for @enterYourFullName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your full name'**
+  String get enterYourFullName;
+
+  /// No description provided for @phoneNumberRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number *'**
+  String get phoneNumberRequired;
+
+  /// No description provided for @enterYourPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number'**
+  String get enterYourPhoneNumber;
+
+  /// No description provided for @birthDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Birth Date *'**
+  String get birthDateRequired;
+
+  /// No description provided for @selectYourBirthDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your birth date'**
+  String get selectYourBirthDate;
+
+  /// No description provided for @genderRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender *'**
+  String get genderRequired;
+
+  /// No description provided for @male.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get male;
+
+  /// No description provided for @female.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get female;
+
+  /// No description provided for @other.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get other;
+
+  /// No description provided for @preferNotToSay.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefer not to say'**
+  String get preferNotToSay;
+
+  /// No description provided for @cityRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'City *'**
+  String get cityRequired;
+
+  /// No description provided for @selectYourCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your city'**
+  String get selectYourCity;
+
+  /// No description provided for @wardRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Ward *'**
+  String get wardRequired;
+
+  /// No description provided for @selectYourWard.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your ward'**
+  String get selectYourWard;
+
+  /// No description provided for @selectCityFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select city first'**
+  String get selectCityFirst;
+
+  /// No description provided for @completeProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Profile'**
+  String get completeProfile;
+
+  /// No description provided for @requiredFields.
+  ///
+  /// In en, this message translates to:
+  /// **'* Required fields'**
+  String get requiredFields;
+
+  /// No description provided for @pleaseEnterYourName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name'**
+  String get pleaseEnterYourName;
+
+  /// No description provided for @nameMustBeAtLeast2Characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be at least 2 characters'**
+  String get nameMustBeAtLeast2Characters;
+
+  /// No description provided for @pleaseEnterYourPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your phone number'**
+  String get pleaseEnterYourPhoneNumber;
+
+  /// No description provided for @phoneNumberMustBe10Digits.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number must be 10 digits'**
+  String get phoneNumberMustBe10Digits;
+
+  /// No description provided for @pleaseEnterValidPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid phone number'**
+  String get pleaseEnterValidPhoneNumber;
+
+  /// No description provided for @pleaseSelectYourBirthDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select your birth date'**
+  String get pleaseSelectYourBirthDate;
+
+  /// No description provided for @pleaseSelectYourGender.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select your gender'**
+  String get pleaseSelectYourGender;
+
+  /// No description provided for @pleaseFillAllRequiredFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill all required fields'**
+  String get pleaseFillAllRequiredFields;
+
+  /// No description provided for @failedToLoadCities.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load cities: {error}'**
+  String failedToLoadCities(Object error);
+
+  /// No description provided for @failedToLoadWards.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load wards: {error}'**
+  String failedToLoadWards(Object error);
+
+  /// No description provided for @failedToSaveProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save profile: {error}'**
+  String failedToSaveProfile(Object error);
+
+  /// No description provided for @profileCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Completed!'**
+  String get profileCompleted;
+
+  /// No description provided for @basicProfileCompletedSetupCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic profile completed. Now set up your candidate profile.'**
+  String get basicProfileCompletedSetupCandidate;
+
+  /// No description provided for @profileCompletedWardChatCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile completed! Your ward chat room has been created.'**
+  String get profileCompletedWardChatCreated;
+
+  /// No description provided for @autoFilledFromAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-filled from your account'**
+  String get autoFilledFromAccount;
+
+  /// No description provided for @completeCandidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Candidate Profile'**
+  String get completeCandidateProfile;
+
+  /// No description provided for @completeYourCandidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Your Candidate Profile'**
+  String get completeYourCandidateProfile;
+
+  /// No description provided for @fillDetailsCreateCandidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in your details to create your candidate profile and start engaging with voters.'**
+  String get fillDetailsCreateCandidateProfile;
+
+  /// No description provided for @enterFullNameAsOnBallot.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your full name as it appears on ballot'**
+  String get enterFullNameAsOnBallot;
+
+  /// No description provided for @politicalPartyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Political Party *'**
+  String get politicalPartyRequired;
+
+  /// No description provided for @symbolNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol Name *'**
+  String get symbolNameRequired;
+
+  /// No description provided for @manifestoOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto (Optional)'**
+  String get manifestoOptional;
+
+  /// No description provided for @brieflyDescribeKeyPromises.
+  ///
+  /// In en, this message translates to:
+  /// **'Briefly describe your key promises and vision for the community'**
+  String get brieflyDescribeKeyPromises;
+
+  /// No description provided for @updateCandidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Candidate Profile'**
+  String get updateCandidateProfile;
+
+  /// No description provided for @whatHappensNext.
+  ///
+  /// In en, this message translates to:
+  /// **'What happens next?'**
+  String get whatHappensNext;
+
+  /// No description provided for @candidateProfileBenefits.
+  ///
+  /// In en, this message translates to:
+  /// **'• Your profile will be created and visible to voters\n• You can access the Candidate Dashboard to manage your campaign\n• Premium features will be available for enhanced visibility\n• You can update your manifesto, contact info, and media anytime'**
+  String get candidateProfileBenefits;
+
+  /// No description provided for @changeRoleSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Role Selection'**
+  String get changeRoleSelection;
+
+  /// No description provided for @pleaseSelectYourParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select your party'**
+  String get pleaseSelectYourParty;
+
+  /// No description provided for @failedToCreateCandidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create candidate profile: {error}'**
+  String failedToCreateCandidateProfile(Object error);
+
+  /// No description provided for @imageSizeMustBeLessThan5MB.
+  ///
+  /// In en, this message translates to:
+  /// **'Image size must be less than 5MB. Please select a smaller image.'**
+  String get imageSizeMustBeLessThan5MB;
+
+  /// No description provided for @failedToUploadSymbolImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to upload symbol image: {error}'**
+  String failedToUploadSymbolImage(Object error);
+
+  /// No description provided for @candidateProfileUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Success!'**
+  String get candidateProfileUpdated;
+
+  /// No description provided for @candidateProfileUpdatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your candidate profile has been updated! You have 3 days of premium access to try all features.'**
+  String get candidateProfileUpdatedMessage;
+
+  /// No description provided for @symbolImageUploadedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol image uploaded successfully'**
+  String get symbolImageUploadedSuccessfully;
+
+  /// No description provided for @uploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get uploading;
+
+  /// No description provided for @max5MB.
+  ///
+  /// In en, this message translates to:
+  /// **'Max 5MB'**
+  String get max5MB;
+
+  /// No description provided for @uploadImageOfChosenSymbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload an image of your chosen symbol. If not provided, a default icon will be used.'**
+  String get uploadImageOfChosenSymbol;
+
+  /// No description provided for @supportedFormatsJPGPNGMax5MB.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported formats: JPG, PNG. Maximum file size: 5MB.'**
+  String get supportedFormatsJPGPNGMax5MB;
+
+  /// No description provided for @imageUploadedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Image uploaded successfully'**
+  String get imageUploadedSuccessfully;
+
+  /// No description provided for @pleaseEnterSymbolNameForIndependent.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a symbol name for independent candidates'**
+  String get pleaseEnterSymbolNameForIndependent;
+
+  /// No description provided for @pleaseSelectYourPoliticalParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select your political party'**
+  String get pleaseSelectYourPoliticalParty;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

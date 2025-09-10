@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import '../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../models/party_model.dart';
 import '../../repositories/candidate_repository.dart';
@@ -91,11 +92,13 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
     }
   }
 
-  Future<void> _createCandidateProfile() async {
+  Future<void> _createCandidateProfile(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
+
     if (!_formKey.currentState!.validate()) return;
 
     if (selectedParty == null) {
-      Get.snackbar('Error', 'Please select your party');
+      Get.snackbar(localizations.error, localizations.pleaseSelectYourParty);
       return;
     }
 
@@ -149,12 +152,21 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
         // Don't fail the entire process if trial start fails
       }
 
+      // Create candidate's personal chat room
+      try {
+        await chatController.createCandidateChatRoom(currentUser.uid, nameController.text.trim());
+      debugPrint('✅ Candidate personal chat room created');
+      } catch (e) {
+      debugPrint('⚠️ Failed to create candidate chat room: $e');
+        // Don't fail the entire process if room creation fails
+      }
+
       // Refresh user data
       await chatController.refreshUserDataAndChat();
 
       Get.snackbar(
-        'Success!',
-        'Your candidate profile has been updated! You have 3 days of premium access to try all features.',
+        localizations.candidateProfileUpdated,
+        localizations.candidateProfileUpdatedMessage,
         duration: const Duration(seconds: 4),
       );
 
@@ -162,7 +174,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
       Get.offAllNamed('/home');
 
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create candidate profile: $e');
+      Get.snackbar(localizations.error, localizations.failedToCreateCandidateProfile(e.toString()));
     }
 
     setState(() {
@@ -186,7 +198,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
         const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
 
         if (fileSize > maxSizeInBytes) {
-          Get.snackbar('Error', 'Image size must be less than 5MB. Please select a smaller image.');
+          final localizations = AppLocalizations.of(context)!;
+          Get.snackbar(localizations.error, localizations.imageSizeMustBeLessThan5MB);
           setState(() {
             isUploadingImage = false;
           });
@@ -217,7 +230,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
           isUploadingImage = false;
         });
 
-        Get.snackbar('Success', 'Symbol image uploaded successfully');
+        final localizations = AppLocalizations.of(context)!;
+        Get.snackbar(localizations.success, localizations.symbolImageUploadedSuccessfully);
       } else {
         setState(() {
           isUploadingImage = false;
@@ -227,7 +241,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
       setState(() {
         isUploadingImage = false;
       });
-      Get.snackbar('Error', 'Failed to upload symbol image: $e');
+      final localizations = AppLocalizations.of(context)!;
+      Get.snackbar(localizations.error, localizations.failedToUploadSymbolImage(e.toString()));
     }
   }
 
@@ -242,9 +257,11 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complete Candidate Profile'),
+        title: Text(localizations.completeCandidateProfile),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -256,8 +273,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                const Text(
-                  'Complete Your Candidate Profile',
+                Text(
+                  localizations.completeYourCandidateProfile,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -265,8 +282,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Fill in your details to create your candidate profile and start engaging with voters.',
+                Text(
+                  localizations.fillDetailsCreateCandidateProfile,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.black54,
@@ -277,18 +294,18 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                 // Name Field
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name *',
-                    hintText: 'Enter your full name as it appears on ballot',
+                  decoration: InputDecoration(
+                    labelText: localizations.fullNameRequired,
+                    hintText: localizations.enterFullNameAsOnBallot,
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
+                      return localizations.pleaseEnterYourName;
                     }
                     if (value.trim().length < 2) {
-                      return 'Name must be at least 2 characters';
+                      return localizations.nameMustBeAtLeast2Characters;
                     }
                     return null;
                   },
@@ -300,8 +317,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                     ? const CircularProgressIndicator()
                     : DropdownButtonFormField<Party>(
                         value: selectedParty,
-                        decoration: const InputDecoration(
-                          labelText: 'Political Party *',
+                        decoration: InputDecoration(
+                          labelText: localizations.politicalPartyRequired,
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.flag),
                         ),
@@ -330,7 +347,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                         },
                         validator: (value) {
                           if (value == null) {
-                            return 'Please select your political party';
+                            return localizations.pleaseSelectYourPoliticalParty;
                           }
                           return null;
                         },
@@ -342,15 +359,15 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                   // Symbol Name Field
                   TextFormField(
                     controller: symbolNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Symbol Name *',
-                      hintText: 'e.g., Table, Chair, Whistle, Book, etc.',
+                    decoration: InputDecoration(
+                      labelText: localizations.symbolNameRequired,
+                      hintText: localizations.symbolNameHint,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.label),
                     ),
                     validator: (value) {
                       if (isIndependent && (value == null || value.trim().isEmpty)) {
-                        return 'Please enter a symbol name for independent candidates';
+                        return localizations.pleaseEnterSymbolNameForIndependent;
                       }
                       return null;
                     },
@@ -370,8 +387,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Symbol Image (Optional)',
+                            Text(
+                              localizations.symbolImageOptional,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -384,8 +401,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                                 color: Colors.blue.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
-                                'Max 5MB',
+                              child: Text(
+                                localizations.max5MB,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.blue,
@@ -396,16 +413,16 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Upload an image of your chosen symbol. If not provided, a default icon will be used.',
+                        Text(
+                          localizations.uploadImageOfChosenSymbol,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Supported formats: JPG, PNG. Maximum file size: 5MB.',
+                        Text(
+                          localizations.supportedFormatsJPGPNGMax5MB,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -486,8 +503,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                                     : const Icon(Icons.upload),
                                 label: Text(
                                   isUploadingImage
-                                      ? 'Uploading...'
-                                      : 'Upload Symbol Image',
+                                      ? localizations.uploading
+                                      : localizations.uploadSymbolImage,
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: isUploadingImage ? Colors.grey : Colors.blue,
@@ -512,7 +529,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Image uploaded successfully',
+                                localizations.imageUploadedSuccessfully,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.green.shade700,
@@ -532,9 +549,9 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                 TextFormField(
                   controller: manifestoController,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Manifesto (Optional)',
-                    hintText: 'Briefly describe your key promises and vision for the community',
+                  decoration: InputDecoration(
+                    labelText: localizations.manifestoOptional,
+                    hintText: localizations.brieflyDescribeKeyPromises,
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.description),
                   ),
@@ -561,7 +578,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                           Icon(Icons.info, color: Colors.blue.shade700),
                           const SizedBox(width: 8),
                           Text(
-                            'What happens next?',
+                            localizations.whatHappensNext,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue.shade700,
@@ -571,10 +588,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '• Your profile will be created and visible to voters\n'
-                        '• You can access the Candidate Dashboard to manage your campaign\n'
-                        '• Premium features will be available for enhanced visibility\n'
-                        '• You can update your manifesto, contact info, and media anytime',
+                        localizations.candidateProfileBenefits,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.blue.shade700,
@@ -590,7 +604,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: isLoading ? null : _createCandidateProfile,
+                    onPressed: isLoading ? null : () => _createCandidateProfile(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       shape: RoundedRectangleBorder(
@@ -599,8 +613,8 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                     ),
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Update Candidate Profile',
+                        : Text(
+                            localizations.updateCandidateProfile,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -617,7 +631,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                     onPressed: () {
                       Get.offAllNamed('/role-selection');
                     },
-                    child: const Text('Change Role Selection'),
+                    child: Text(localizations.changeRoleSelection),
                   ),
                 ),
               ],

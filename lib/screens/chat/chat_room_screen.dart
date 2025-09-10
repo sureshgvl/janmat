@@ -114,8 +114,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               builder: (controller) {
                 final messages = controller.messages;
 
-                // Show loading indicator if messages are empty and we're not sure if they're loaded
-                if (messages.isEmpty && controller.messagesStream.value.isEmpty) {
+                // Show loading indicator only when we're actively loading and have no cached data
+                if (messages.isEmpty && controller.isLoading) {
                   _previousMessageCount = 0;
                   return Center(
                     child: Column(
@@ -132,8 +132,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   );
                 }
 
-                // Show empty state if messages are loaded but empty
-                if (messages.isEmpty) {
+                // Show empty state if messages are loaded but empty (not loading anymore)
+                if (messages.isEmpty && !controller.isLoading) {
                   _previousMessageCount = 0;
                   return Center(
                     child: Column(
