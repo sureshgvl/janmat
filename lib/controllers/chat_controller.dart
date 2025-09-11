@@ -14,6 +14,7 @@ import '../repositories/chat_repository.dart';
 import '../repositories/monetization_repository.dart';
 import '../services/chat_initializer.dart';
 import '../services/admob_service.dart';
+import '../services/background_initializer.dart';
 
 class ChatController extends GetxController {
   final ChatRepository _repository = ChatRepository();
@@ -128,15 +129,35 @@ class ChatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Clean up expired repository cache on app start
+    // Clean up expired repository cache on app start (fast operation)
     clearExpiredRepositoryCache();
-    _initializeChat();
+
+    // Firebase is now available synchronously, so we can initialize immediately
+    // but we'll still defer heavy operations to when chat is actually accessed
+    debugPrint('📱 ChatController initialized - Firebase ready');
   }
 
   @override
   void onClose() {
     _audioRecorder.dispose();
     super.onClose();
+  }
+
+  // Lazy initialization - called when chat is actually accessed
+  Future<void> initializeChatIfNeeded() async {
+    // Only initialize if not already done
+    if (_cachedUser != null || isLoading) return;
+
+    debugPrint('🚀 Starting zero-frame chat initialization');
+
+    // Use background initializer for zero-frame chat setup
+    final backgroundInit = BackgroundInitializer();
+    await backgroundInit.initializeServiceWithZeroFrames(
+      'Chat Services',
+      () => _initializeChat(),
+    );
+
+    debugPrint('✅ Chat initialized with zero frames');
   }
 
   // Initialize chat for current user
@@ -333,6 +354,9 @@ class ChatController extends GetxController {
 
   // Fetch chat rooms for current user
   Future<void> fetchChatRooms() async {
+    // Ensure chat is initialized before fetching rooms
+    await initializeChatIfNeeded();
+
     final user = currentUser;
 
     // BREAKPOINT FETCH-1: Start of fetchChatRooms
@@ -396,15 +420,19 @@ class ChatController extends GetxController {
 
   // Listen for real-time room changes (deletions, updates)
   void _listenForRoomChanges(String userId, String userRole) {
-    // Use a single comprehensive query instead of multiple listeners
-    // This prevents the issue where different listeners overwrite each other
+    // Use a filtered query based on user role to avoid permission issues
+    // This prevents trying to read rooms the user doesn't have access to
 
-    FirebaseFirestore.instance
-        .collection('chats')
-        .snapshots()
-        .listen((snapshot) async {
-          await _handleAllRoomChanges(snapshot, userId, userRole);
-        });
+    Query query = FirebaseFirestore.instance.collection('chats');
+
+    if (userRole != 'admin') {
+      // Non-admin users can only see public rooms
+      query = query.where('type', isEqualTo: 'public');
+    }
+
+    query.snapshots().listen((snapshot) async {
+      await _handleAllRoomChanges(snapshot, userId, userRole);
+    });
   }
 
   // Handle all room changes with proper filtering
@@ -1182,11 +1210,11 @@ class ChatController extends GetxController {
   // Create ward-based chat room (automatic)
   Future<void> createWardChatRoom(String wardId, String cityId) async {
     final user = currentUser;
-    if (user == null || (user.role != 'admin' && user.role != 'candidate')) return;
+    if (user == null) return;
 
     try {
       final chatRoom = ChatRoom(
-        roomId: 'ward_${cityId}_${wardId}',
+        roomId: 'ward_${cityId}_$wardId',
         createdAt: DateTime.now(),
         createdBy: user.uid,
         type: 'public',
@@ -1195,7 +1223,9 @@ class ChatController extends GetxController {
       );
 
       await _repository.createChatRoom(chatRoom);
+      print('✅ Ward chat room created: ${chatRoom.roomId}');
       await fetchChatRooms();
+      print('📋 Refreshed chat rooms after ward room creation');
     } catch (e) {
       errorMessage = e.toString();
       update();
@@ -1217,8 +1247,11 @@ class ChatController extends GetxController {
         description: 'Official updates and discussions with $candidateName',
       );
 
+
+    print('🏗️ Creating candidate chat room for $candidateName');
       await _repository.createChatRoom(chatRoom);
       await fetchChatRooms();
+    print('✅ Candidate chat room created and chat rooms refreshed');
     } catch (e) {
       errorMessage = e.toString();
       update();
@@ -1557,6 +1590,11 @@ class ChatController extends GetxController {
 
     // First check user quota
     if (userQuota != null && userQuota!.canSendMessage) {
+      return true;
+    }
+
+    // If no quota exists, assume user can send (quota will be created on first message)
+    if (userQuota == null && user != null) {
       return true;
     }
 

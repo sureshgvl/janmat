@@ -110,72 +110,70 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         children: [
           // Messages list
           Expanded(
-            child: GetBuilder<ChatController>(
-              builder: (controller) {
-                final messages = controller.messages;
+            child: Obx(() {
+              final messages = controller.messagesStream.value;
 
-                // Show loading indicator only when we're actively loading and have no cached data
-                if (messages.isEmpty && controller.isLoading) {
-                  _previousMessageCount = 0;
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.loadingMessages,
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                // Show empty state if messages are loaded but empty (not loading anymore)
-                if (messages.isEmpty && !controller.isLoading) {
-                  _previousMessageCount = 0;
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.noMessagesYet,
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          AppLocalizations.of(context)!.startConversation(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
-                          style: const TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                // Check if messages increased (new message received)
-                if (messages.length > _previousMessageCount) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToBottom();
-                  });
-                }
-                _previousMessageCount = messages.length;
-
-                return ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isCurrentUser = message.senderId == controller.currentUser?.uid;
-                    return _buildMessageBubble(message, isCurrentUser);
-                  },
+              // Show loading indicator only when we're actively loading and have no cached data
+              if (messages.isEmpty && controller.isLoading) {
+                _previousMessageCount = 0;
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        AppLocalizations.of(context)!.loadingMessages,
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 );
-              },
-            ),
+              }
+
+              // Show empty state if messages are loaded but empty (not loading anymore)
+              if (messages.isEmpty && !controller.isLoading) {
+                _previousMessageCount = 0;
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        AppLocalizations.of(context)!.noMessagesYet,
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.of(context)!.startConversation(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
+                        style: const TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Check if messages increased (new message received)
+              if (messages.length > _previousMessageCount) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToBottom();
+                });
+              }
+              _previousMessageCount = messages.length;
+
+              return ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final message = messages[index];
+                  final isCurrentUser = message.senderId == controller.currentUser?.uid;
+                  return _buildMessageBubble(message, isCurrentUser);
+                },
+              );
+            }),
           ),
 
           // Message input

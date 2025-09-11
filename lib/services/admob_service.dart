@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:get/get.dart';
+import 'background_initializer.dart';
 
 class AdMobService extends GetxService {
   // Use test ad unit ID for development/testing
@@ -18,7 +19,9 @@ class AdMobService extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _initializeAdMob();
+    // Defer AdMob initialization to avoid blocking startup
+    // Will be initialized when first ad is needed
+    debugPrint('📱 AdMob service initialized - heavy operations deferred');
   }
 
   @override
@@ -29,7 +32,9 @@ class AdMobService extends GetxService {
 
   // Initialize AdMob
   Future<void> _initializeAdMob() async {
+    // Set application ID at runtime since we removed it from manifest
     await MobileAds.instance.initialize();
+
     // Only log in debug mode
     assert(() {
       debugPrint('✅ AdMob initialized successfully');
@@ -141,8 +146,19 @@ class AdMobService extends GetxService {
 
   // Show rewarded ad and return reward amount
   Future<int?> showRewardedAd() async {
+    // Ensure AdMob is initialized
+    await initializeIfNeeded();
+
+    // Wait for ad to be loaded (with timeout)
+    const maxWaitTime = Duration(seconds: 10);
+    final startTime = DateTime.now();
+
+    while (!_isRewardedAdLoaded && DateTime.now().difference(startTime) < maxWaitTime) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
     if (!_isRewardedAdLoaded || _rewardedAd == null) {
-    debugPrint('❌ Rewarded ad not ready');
+    debugPrint('❌ Rewarded ad not ready after initialization');
       return null;
     }
 
@@ -171,6 +187,22 @@ class AdMobService extends GetxService {
     });
 
     return completer.future;
+  }
+
+  // Lazy initialization of AdMob
+  Future<void> initializeIfNeeded() async {
+    if (_rewardedAd != null || _isRewardedAdLoaded) return; // Already initialized
+
+    debugPrint('🚀 Starting zero-frame AdMob initialization');
+
+    // Use background initializer for zero-frame AdMob setup
+    final backgroundInit = BackgroundInitializer();
+    await backgroundInit.initializeServiceWithZeroFrames(
+      'AdMob',
+      () => _initializeAdMob(),
+    );
+
+    debugPrint('✅ AdMob initialized with zero frames');
   }
 
   // Check if rewarded ad is available

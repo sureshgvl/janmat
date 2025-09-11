@@ -19,8 +19,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch chat rooms when screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Initialize chat lazily when screen loads, then fetch rooms
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await controller.initializeChatIfNeeded();
       controller.fetchChatRooms();
     });
   }
@@ -117,7 +118,32 @@ class _ChatListScreenState extends State<ChatListScreen> {
       body: GetBuilder<ChatController>(
         builder: (controller) {
           if (controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blue, Colors.blueAccent],
+                ),
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 24),
+                    Text(
+                      'Loading chat rooms...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           if (controller.errorMessage != null) {
@@ -239,7 +265,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget? _buildQuotaWarningButtonExtended() {
     if (!controller.canSendMessage) {
       return FloatingActionButton.extended(
-        onPressed: () => ChatDialogs.showQuotaDialog(context),
+        onPressed: () => ChatDialogs.showWatchAdDialog(context),
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.warning),
         label: Text(AppLocalizations.of(context)!.watchAd),

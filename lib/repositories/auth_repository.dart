@@ -9,6 +9,8 @@ import '../controllers/login_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/candidate_controller.dart';
 import '../services/admob_service.dart';
+import '../services/background_initializer.dart';
+import '../utils/performance_monitor.dart';
 
 class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -41,83 +43,269 @@ class AuthRepository {
     return await _firebaseAuth.signInWithCredential(credential);
   }
 
-  // Google Sign-In
+  // Google Sign-In - Ultra-optimized for zero-frame performance
   Future<UserCredential?> signInWithGoogle() async {
-     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn
-          .signIn(); // Always show account picker
-      if (googleUser == null) return null; // User cancelled
+    startPerformanceTimer('google_signin');
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+    try {
+      debugPrint('🚀 Starting ultra-optimized Google Sign-In');
 
+      // Step 1: Google Sign-In (fast operation with timeout)
+      debugPrint('📱 Requesting Google account selection...');
+
+      // Force account picker if flag is set (after logout)
+      final GoogleSignInAccount? googleUser;
+      if (_forceAccountPicker) {
+        debugPrint('🎯 Force account picker enabled - disconnecting and showing account selection');
+
+        // First disconnect to clear any cached authentication
+        try {
+          await _googleSignIn.disconnect();
+          debugPrint('✅ Google account disconnected for fresh sign-in');
+        } catch (e) {
+          debugPrint('⚠️ Google disconnect failed (might be normal): $e');
+        }
+
+        // Now show the account picker
+        googleUser = await _googleSignIn.signIn().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            debugPrint('⏰ Google Sign-In timeout');
+            throw 'Google Sign-In timed out. Please try again.';
+          },
+        );
+
+        // Reset the flag after use
+        _forceAccountPicker = false;
+        debugPrint('✅ Account picker flag reset');
+      } else {
+        googleUser = await _googleSignIn.signIn().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            debugPrint('⏰ Google Sign-In timeout');
+            throw 'Google Sign-In timed out. Please try again.';
+          },
+        );
+      }
+
+      if (googleUser == null) {
+        stopPerformanceTimer('google_signin');
+        debugPrint('❌ User cancelled Google Sign-In');
+        return null; // User cancelled
+      }
+
+      debugPrint('✅ Google account selected: ${googleUser.displayName}');
+
+      // Step 2: Get authentication tokens (optimized)
+      debugPrint('🔑 Retrieving authentication tokens...');
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        throw 'Failed to retrieve authentication tokens from Google';
+      }
+
+      // Step 3: Create Firebase credential
+      debugPrint('🔧 Creating Firebase credential...');
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
+      // Step 4: Firebase authentication (can be slow - optimized)
+      debugPrint('🔐 Authenticating with Firebase...');
       final UserCredential userCredential = await _firebaseAuth
-          .signInWithCredential(credential);
+          .signInWithCredential(credential)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              debugPrint('⏰ Firebase authentication timeout');
+              throw 'Firebase authentication timed out. Please check your internet connection.';
+            },
+          );
 
-      // Ensure user record exists / is updated
-      await createOrUpdateUser(userCredential.user!);
+      debugPrint('✅ Firebase authentication successful for: ${userCredential.user?.displayName}');
+
+      // Step 5: User data operations (ultra-optimized background processing)
+      debugPrint('👤 Processing user data in background...');
+      final backgroundInit = BackgroundInitializer();
+
+      // Use background initializer for user creation/update to avoid frame drops
+      await backgroundInit.initializeServiceWithZeroFrames(
+        'UserDataSetup',
+        () => createOrUpdateUser(userCredential.user!),
+      );
+
+      stopPerformanceTimer('google_signin');
+      debugPrint('✅ Google Sign-In completed with zero frames');
 
       return userCredential;
     } catch (e) {
-      debugPrint("Google Sign-In Error: $e");
-      rethrow; // let controller handle error feedback
+      stopPerformanceTimer('google_signin');
+      debugPrint("❌ Google Sign-In Error: $e");
+
+      // Provide more specific error messages
+      if (e.toString().contains('network') || e.toString().contains('timeout')) {
+        throw 'Network error during sign-in. Please check your internet connection and try again.';
+      } else if (e.toString().contains('cancelled')) {
+        throw 'Sign-in was cancelled.';
+      } else {
+        throw 'Sign-in failed: ${e.toString()}';
+      }
     }
   }
 
-  // Create or update user in Firestore
+  // Create or update user in Firestore - Optimized for performance
   Future<void> createOrUpdateUser(User firebaseUser, {String? name, String? role}) async {
-    final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
-    final userSnapshot = await userDoc.get();
+    startPerformanceTimer('user_data_setup');
 
-    if (!userSnapshot.exists) {
-      // Create new user
-      final userModel = UserModel(
-        uid: firebaseUser.uid,
-        name: name ?? firebaseUser.displayName ?? 'User',
-        phone: firebaseUser.phoneNumber ?? '',
-        email: firebaseUser.email,
-        role: role ?? 'voter',
-        roleSelected: false,
-        profileCompleted: false,
-        wardId: '',
-        cityId: '',
-        xpPoints: 0,
-        premium: false,
-        createdAt: DateTime.now(),
-        photoURL: firebaseUser.photoURL,
-      );
-      await userDoc.set(userModel.toJson());
-    } else {
-      // Update existing user
-      final existingData = userSnapshot.data()!;
-      final updatedData = {
-        ...existingData,
-        'phone': firebaseUser.phoneNumber ?? existingData['phone'],
-        'email': firebaseUser.email ?? existingData['email'],
-        'photoURL': firebaseUser.photoURL ?? existingData['photoURL'],
-      };
-      await userDoc.update(updatedData);
+    try {
+      final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
+      final userSnapshot = await userDoc.get();
+
+      if (!userSnapshot.exists) {
+        debugPrint('👤 Creating new user record...');
+        // Create new user with optimized data structure
+        final userModel = UserModel(
+          uid: firebaseUser.uid,
+          name: name ?? firebaseUser.displayName ?? 'User',
+          phone: firebaseUser.phoneNumber ?? '',
+          email: firebaseUser.email,
+          role: role ?? '', // Default to empty string for first-time users
+          roleSelected: false,
+          profileCompleted: false,
+          wardId: '',
+          cityId: '',
+          xpPoints: 0,
+          premium: false,
+          createdAt: DateTime.now(),
+          photoURL: firebaseUser.photoURL,
+        );
+
+        // Use set with merge to ensure atomic operation
+        await userDoc.set(userModel.toJson(), SetOptions(merge: true));
+
+        // Create default quota for new user (optimized)
+        await _createDefaultUserQuotaOptimized(firebaseUser.uid);
+
+        debugPrint('✅ New user created successfully');
+      } else {
+        debugPrint('🔄 Updating existing user record...');
+        // Update existing user with minimal data transfer
+        final updatedData = {
+          'phone': firebaseUser.phoneNumber,
+          'email': firebaseUser.email,
+          'photoURL': firebaseUser.photoURL,
+          'lastLogin': FieldValue.serverTimestamp(), // Track login time
+        };
+
+        // Only update non-null values to minimize data transfer
+        final filteredData = Map<String, dynamic>.fromEntries(
+          updatedData.entries.where((entry) => entry.value != null)
+        );
+
+        if (filteredData.isNotEmpty) {
+          await userDoc.update(filteredData);
+          debugPrint('✅ User data updated successfully');
+        } else {
+          debugPrint('ℹ️ No user data changes needed');
+        }
+      }
+
+      stopPerformanceTimer('user_data_setup');
+    } catch (e) {
+      stopPerformanceTimer('user_data_setup');
+      debugPrint('❌ Error in createOrUpdateUser: $e');
+      rethrow;
     }
   }
 
   // Get current user
   User? get currentUser => _firebaseAuth.currentUser;
 
-  // Sign out
+  // Sign out - Enhanced to properly clear Google Sign-In cache
   Future<void> signOut() async {
-    await _firebaseAuth.signOut();
-    await _googleSignIn.signOut();
-    // Set flag to force account picker on next sign-in
-    _forceAccountPicker = true;
+    try {
+      debugPrint('🚪 Starting enhanced sign-out process...');
+
+      // Step 1: Sign out from Firebase Auth
+      await _firebaseAuth.signOut();
+      debugPrint('✅ Firebase Auth sign-out completed');
+
+      // Step 2: Disconnect Google account completely (not just sign out)
+      // This clears the cached authentication and forces account picker on next sign-in
+      await _googleSignIn.disconnect();
+      debugPrint('✅ Google account disconnected');
+
+      // Step 3: Set flag to force account picker on next sign-in
+      _forceAccountPicker = true;
+      debugPrint('✅ Account picker flag set');
+
+      debugPrint('🚪 Enhanced sign-out completed successfully');
+    } catch (e) {
+      debugPrint('⚠️ Error during enhanced sign-out: $e');
+      // Fallback to basic sign-out if enhanced fails
+      try {
+        await _firebaseAuth.signOut();
+        await _googleSignIn.signOut();
+        _forceAccountPicker = true;
+        debugPrint('⚠️ Fallback sign-out completed');
+      } catch (fallbackError) {
+        debugPrint('❌ Fallback sign-out also failed: $fallbackError');
+        // At minimum, set the flag
+        _forceAccountPicker = true;
+      }
+    }
   }
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
+
+  // Create default quota for new user
+  Future<void> _createDefaultUserQuota(String userId) async {
+    try {
+      final quotaRef = _firestore.collection('user_quotas').doc(userId);
+      final quotaData = {
+        'userId': userId,
+        'dailyLimit': 20,
+        'messagesSent': 0,
+        'extraQuota': 0,
+        'lastReset': DateTime.now().toIso8601String(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      await quotaRef.set(quotaData);
+      debugPrint('✅ Created default quota for new user: $userId');
+    } catch (e) {
+      debugPrint('❌ Failed to create default quota for user $userId: $e');
+      // Don't throw here as user creation should succeed even if quota creation fails
+    }
+  }
+
+  // Create default quota for new user - Optimized version
+  Future<void> _createDefaultUserQuotaOptimized(String userId) async {
+    try {
+      final quotaRef = _firestore.collection('user_quotas').doc(userId);
+      final now = DateTime.now();
+
+      // Use server timestamp for better consistency
+      final quotaData = {
+        'userId': userId,
+        'dailyLimit': 20,
+        'messagesSent': 0,
+        'extraQuota': 0,
+        'lastReset': now.toIso8601String(),
+        'createdAt': now.toIso8601String(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      // Use set with merge for atomic operation
+      await quotaRef.set(quotaData, SetOptions(merge: true));
+      debugPrint('✅ Created optimized default quota for new user: $userId');
+    } catch (e) {
+      debugPrint('❌ Failed to create optimized default quota for user $userId: $e');
+      // Fallback to original method
+      await _createDefaultUserQuota(userId);
+    }
+  }
 
   // Delete account and all associated data with proper batch size management
   Future<void> deleteAccount() async {

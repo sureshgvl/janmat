@@ -111,11 +111,12 @@ class LoginController extends GetxController {
   }
 
   Future<void> signInWithGoogle() async {
-    // Show loading immediately when button is pressed
-    isLoading.value = true;
-    debugPrint('🔄 Starting Google Sign-In process...');
+    // Show prominent loading dialog immediately
+    _showGoogleSignInLoadingDialog();
 
     try {
+      debugPrint('🔄 Starting Google Sign-In process...');
+
       // Step 1: Google authentication (account picker will show here)
       debugPrint('📱 Initiating Google authentication...');
       final userCredential = await _authRepository.signInWithGoogle();
@@ -123,22 +124,34 @@ class LoginController extends GetxController {
 
       // Handle cancelled sign-in
       if (userCredential == null) {
+        _hideGoogleSignInLoadingDialog();
         Get.snackbar("Cancelled", "Google sign-in was cancelled");
         return;
       }
       if (userCredential.user == null) {
+        _hideGoogleSignInLoadingDialog();
         Get.snackbar("Error", "Google sign-in failed: No user returned");
         return;
       }
+
+      // Update loading dialog message
+      _updateGoogleSignInLoadingDialog('Creating your profile...');
+
       // Step 2: Keep loading while creating/updating user profile
       debugPrint('👤 Creating/updating user profile...');
       await _authRepository.createOrUpdateUser(userCredential.user!);
       debugPrint('✅ User profile updated');
 
+      // Update loading dialog message
+      _updateGoogleSignInLoadingDialog('Setting up your account...');
+
       // Step 3: Keep loading while registering device
       debugPrint('📱 Registering device...');
       await _deviceService.registerDevice(userCredential.user!.uid);
       debugPrint('✅ Device registered');
+
+      // Update loading dialog message
+      _updateGoogleSignInLoadingDialog('Almost ready...');
 
       // Step 4: Show success and navigate
       Get.snackbar('Success', 'Google sign-in successful');
@@ -148,18 +161,80 @@ class LoginController extends GetxController {
 
     } catch (e) {
       debugPrint('❌ Google sign-in failed: $e');
+      _hideGoogleSignInLoadingDialog();
       Get.snackbar('Error', 'Google sign-in failed: ${e.toString()}');
-    } finally {
-      isLoading.value = false; // Always reset
-      // Keep loading until navigation is complete
-      debugPrint('🔄 Ensuring loading state remains until navigation completes...');
-      // Don't set isLoading to false here - let navigation complete first
+    }finally {
+      isLoading.value = false;
+      _hideGoogleSignInLoadingDialog();
+      debugPrint('✅ Google sign-in process completed');
     }
   }
 
   void goBackToPhoneInput() {
     isOTPScreen.value = false;
     otpController.clear();
+  }
+
+  // Google Sign-In Loading Dialog Methods
+  void _showGoogleSignInLoadingDialog() {
+    Get.dialog(
+      AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            const Text(
+              'Signing in with Google...',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please select your Google account',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        // actions: [
+        //   TextButton(
+        //     onPressed: () {
+        //       Get.back();
+        //       Get.snackbar('Cancelled', 'Google sign-in was cancelled');
+        //     },
+        //     child: const Text('Cancel'),
+        //   ),
+        // ],
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void _updateGoogleSignInLoadingDialog(String message) {
+    if (Get.isDialogOpen ?? false) {
+      Get.dialog(
+        AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+        barrierDismissible: false,
+      );
+    }
+  }
+
+  void _hideGoogleSignInLoadingDialog() {
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
   }
 
   Future<void> _navigateBasedOnProfileCompletion(User user) async {
@@ -217,6 +292,7 @@ class LoginController extends GetxController {
       // Ensure loading state is cleared after navigation
       debugPrint('✅ Navigation completed, clearing loading state');
       isLoading.value = false;
+      _hideGoogleSignInLoadingDialog(); // Ensure dialog is closed
     }
   }
 }

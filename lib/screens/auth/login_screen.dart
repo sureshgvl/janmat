@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../l10n/app_localizations.dart';
 import '../../controllers/login_controller.dart';
-import '../../common/loading_overlay.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -146,16 +145,23 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildGoogleSignInButton(BuildContext context, LoginController controller) {
-    return LoadingOverlay(
-      isLoading: controller.isLoading.value,
-      child: OutlinedButton.icon(
-        onPressed: controller.isLoading.value ? null : controller.signInWithGoogle,
-        icon: const Icon(Icons.login),
-        label: Text(AppLocalizations.of(context)!.signInWithGoogle),
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(double.infinity, 50),
-        ),
+    return Obx(() => OutlinedButton.icon(
+      onPressed: controller.isLoading.value ? null : controller.signInWithGoogle,
+      icon: controller.isLoading.value
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.login),
+      label: Text(
+        controller.isLoading.value
+            ? 'Signing in...'
+            : AppLocalizations.of(context)!.signInWithGoogle,
       ),
-    );
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 50),
+      ),
+    ));
   }
 }

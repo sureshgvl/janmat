@@ -6,12 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../l10n/app_localizations.dart';
-import '../../models/candidate_model.dart';
 import '../../models/party_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../repositories/party_repository.dart';
 import '../../controllers/chat_controller.dart';
 import '../../services/trial_service.dart';
+import '../../utils/symbol_utils.dart';
 
 class CandidateSetupScreen extends StatefulWidget {
   const CandidateSetupScreen({super.key});
@@ -246,6 +246,196 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
     }
   }
 
+  void _showPartySelectionModal(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.flag,
+                      color: Colors.blue,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      localizations.politicalPartyRequired,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.blue,
+                        size: 28,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Party List
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: parties.length,
+                  itemBuilder: (context, index) {
+                    final party = parties[index];
+                    final isSelected = selectedParty?.id == party.id;
+
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          selectedParty = party;
+                          isIndependent = party.name.toLowerCase().contains('independent');
+                          if (!isIndependent) {
+                            symbolNameController.clear();
+                            symbolImageUrl = null;
+                          }
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.blue.shade50 : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? Colors.blue.shade200 : Colors.grey.shade200,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.blue.shade100,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            // Party Symbol
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(7),
+                                child: Image(
+                                  image: SymbolUtils.getSymbolImageProvider(
+                                    SymbolUtils.getPartySymbolPathFromParty(party)
+                                  ),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Icon(
+                                        Icons.flag,
+                                        size: 32,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 16),
+
+                            // Party Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    party.getDisplayName(Localizations.localeOf(context).languageCode),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    party.abbreviation,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Selection Indicator
+                            if (isSelected)
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     nameController.dispose();
@@ -312,45 +502,57 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Party Selection
+                // Party Selection with Custom Modal
                 isLoadingParties
                     ? const CircularProgressIndicator()
-                    : DropdownButtonFormField<Party>(
-                        value: selectedParty,
-                        decoration: InputDecoration(
-                          labelText: localizations.politicalPartyRequired,
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.flag),
+                    : InkWell(
+                        onTap: () => _showPartySelectionModal(context),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: localizations.politicalPartyRequired,
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.flag),
+                            suffixIcon: const Icon(Icons.arrow_drop_down),
+                          ),
+                          child: selectedParty != null
+                              ? Row(
+                                  children: [
+                                    // Selected Party Symbol
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      margin: const EdgeInsets.only(right: 12),
+                                      child: Image(
+                                        image: SymbolUtils.getSymbolImageProvider(
+                                          SymbolUtils.getPartySymbolPathFromParty(selectedParty!)
+                                        ),
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(
+                                            Icons.flag,
+                                            size: 28,
+                                            color: Colors.grey,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    // Selected Party Name
+                                    Expanded(
+                                      child: Text(
+                                        selectedParty!.getDisplayName(Localizations.localeOf(context).languageCode),
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Text(
+                                  localizations.pleaseSelectYourPoliticalParty,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
-                        items: parties.map((party) {
-                          return DropdownMenuItem<Party>(
-                            value: party,
-                            child: Container(
-                              constraints: const BoxConstraints(maxWidth: 250),
-                              child: Text(
-                                party.getDisplayName(Localizations.localeOf(context).languageCode),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedParty = value;
-                            isIndependent = value?.name.toLowerCase().contains('independent') ?? false;
-                            if (!isIndependent) {
-                              symbolNameController.clear();
-                              symbolImageUrl = null;
-                            }
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return localizations.pleaseSelectYourPoliticalParty;
-                          }
-                          return null;
-                        },
                       ),
                 const SizedBox(height: 24),
 

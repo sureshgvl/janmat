@@ -13,7 +13,6 @@ import '../candidate/change_party_symbol_screen.dart';
 import '../settings/settings_screen.dart';
 import '../monetization/monetization_screen.dart';
 import '../chat/chat_list_screen.dart';
-import 'home_utils.dart';
 import 'home_navigation.dart';
 
 
@@ -48,29 +47,29 @@ class HomeDrawer extends StatelessWidget {
                 ),
                 if (candidateModel != null) ...[
                   const SizedBox(width: 8),
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: Image(
-                        image: SymbolUtils.getSymbolImageProvider(
-                          SymbolUtils.getPartySymbolPath(candidateModel?.party ?? '', candidate: candidateModel)
-                        ),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/symbols/default.png',
-                            fit: BoxFit.cover,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  // Container(
+                  //   width: 100,
+                  //   height: 100,
+                  //   decoration: BoxDecoration(
+                  //     borderRadius: BorderRadius.circular(4),
+                  //     border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                  //   ),
+                  //   child: ClipRRect(
+                  //     borderRadius: BorderRadius.circular(3),
+                  //     child: Image(
+                  //       image: SymbolUtils.getSymbolImageProvider(
+                  //         SymbolUtils.getPartySymbolPath(candidateModel?.party ?? '', candidate: candidateModel)
+                  //       ),
+                  //       fit: BoxFit.cover,
+                  //       errorBuilder: (context, error, stackTrace) {
+                  //         return Image.asset(
+                  //           'assets/symbols/default.png',
+                  //           fit: BoxFit.cover,
+                  //         );
+                  //       },
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ],
             ),

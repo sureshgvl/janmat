@@ -251,7 +251,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         debugPrint('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
         debugPrint('   City: ${candidate.cityId}, Ward: ${candidate.wardId}');
         debugPrint('   Temp ID: ${candidate.candidateId}');
+          //create candidate and get actual ID
           final actualCandidateId = await candidateRepository.createCandidate(candidate);
+
+          // here we have to create candidate chat room as well
+           chatController.createCandidateChatRoom(actualCandidateId, candidate.name);
         debugPrint('✅ Basic candidate record created with ID: $actualCandidateId');
 
           // Update user document with the actual candidateId

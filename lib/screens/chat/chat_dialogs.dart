@@ -86,7 +86,7 @@ class ChatDialogs {
     );
   }
 
-  static void showQuotaDialog(BuildContext context) {
+  static void showWatchAdDialog(BuildContext context) {
     final controller = Get.find<ChatController>();
 
     Get.dialog(
