@@ -71,6 +71,10 @@ class CandidateDataController extends GetxController {
       media: field == 'media' ? value : currentExtra.media,
       highlight: field == 'highlight' ? value : currentExtra.highlight,
       events: field == 'events' ? value : currentExtra.events,
+      age: field == 'age' ? value : currentExtra.age,
+      gender: field == 'gender' ? value : currentExtra.gender,
+      education: field == 'education' ? value : currentExtra.education,
+      address: field == 'address' ? value : currentExtra.address,
     );
 
     editedData.value = editedData.value!.copyWith(extraInfo: updatedExtra);
@@ -107,6 +111,31 @@ class CandidateDataController extends GetxController {
       }
     } catch (e) {
     debugPrint('Error saving photo URL: $e');
+    }
+  }
+
+  void updateBasicInfo(String field, dynamic value) {
+    if (editedData.value == null) return;
+
+    switch (field) {
+      case 'name':
+        editedData.value = editedData.value!.copyWith(name: value);
+        break;
+      case 'party':
+        editedData.value = editedData.value!.copyWith(party: value);
+        break;
+      case 'cityId':
+        editedData.value = editedData.value!.copyWith(cityId: value);
+        break;
+      case 'wardId':
+        editedData.value = editedData.value!.copyWith(wardId: value);
+        break;
+      case 'age':
+      case 'gender':
+      case 'education':
+      case 'address':
+        updateExtraInfo(field, value);
+        break;
     }
   }
 

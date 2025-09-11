@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/demo_data_service.dart';
+import '../../models/achievement_model.dart';
 
 class DemoDataModal extends StatefulWidget {
   final String category;
-  final Function(String) onDataSelected;
+  final Function(dynamic) onDataSelected;
 
   const DemoDataModal({
     Key? key,
@@ -19,7 +20,7 @@ class DemoDataModal extends StatefulWidget {
 class _DemoDataModalState extends State<DemoDataModal> {
   String selectedLanguage = 'en';
   String? selectedType;
-  String? previewText;
+  dynamic previewText;
 
   @override
   void initState() {
@@ -248,13 +249,48 @@ class _DemoDataModalState extends State<DemoDataModal> {
                         ),
                         constraints: const BoxConstraints(maxHeight: 200),
                         child: SingleChildScrollView(
-                          child: Text(
-                            previewText!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                          ),
+                          child: widget.category == 'achievements' && previewText is List
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: (previewText as List).map<Widget>((item) {
+                                    if (item is Achievement) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            Text(
+                                              item.description,
+                                              style: const TextStyle(fontSize: 12),
+                                            ),
+                                            Text(
+                                              'Year: ${item.year}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                    return const SizedBox.shrink();
+                                  }).toList(),
+                                )
+                              : Text(
+                                  previewText?.toString() ?? '',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -295,7 +331,11 @@ class _DemoDataModalState extends State<DemoDataModal> {
                     child: ElevatedButton(
                       onPressed: previewText != null
                           ? () {
-                              widget.onDataSelected(previewText!);
+                              if (widget.category == 'achievements' && previewText is List) {
+                                widget.onDataSelected(previewText);
+                              } else {
+                                widget.onDataSelected(previewText!);
+                              }
                               Navigator.of(context).pop();
                             }
                           : null,

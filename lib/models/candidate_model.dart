@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'achievement_model.dart';
 
 class Contact {
   final String phone;
@@ -44,13 +45,17 @@ class Contact {
 
 class ExtraInfo {
   final String? bio;
-  final List<String>? achievements;
+  final List<Achievement>? achievements;
   final String? manifesto;
   final String? manifestoPdf;
   final Contact? contact;
   final Map<String, dynamic>? media;
   final bool? highlight;
   final List<Map<String, dynamic>>? events;
+  final int? age;
+  final String? gender;
+  final String? education;
+  final String? address;
 
   ExtraInfo({
     this.bio,
@@ -61,13 +66,19 @@ class ExtraInfo {
     this.media,
     this.highlight,
     this.events,
+    this.age,
+    this.gender,
+    this.education,
+    this.address,
   });
 
   factory ExtraInfo.fromJson(Map<String, dynamic> json) {
     return ExtraInfo(
       bio: json['bio'],
       achievements: json['achievements'] != null
-          ? List<String>.from(json['achievements'])
+          ? (json['achievements'] as List<dynamic>)
+              .map((item) => Achievement.fromJson(item as Map<String, dynamic>))
+              .toList()
           : null,
       manifesto: json['manifesto'],
       manifestoPdf: json['manifesto_pdf'],
@@ -77,31 +88,43 @@ class ExtraInfo {
       events: json['events'] != null
           ? List<Map<String, dynamic>>.from(json['events'])
           : null,
+      age: json['age']?.toInt(),
+      gender: json['gender'],
+      education: json['education'],
+      address: json['address'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'bio': bio,
-      'achievements': achievements,
+      'achievements': achievements?.map((a) => a.toJson()).toList(),
       'manifesto': manifesto,
       'manifesto_pdf': manifestoPdf,
       'contact': contact?.toJson(),
       'media': media,
       'highlight': highlight,
       'events': events,
+      'age': age,
+      'gender': gender,
+      'education': education,
+      'address': address,
     };
   }
 
   ExtraInfo copyWith({
     String? bio,
-    List<String>? achievements,
+    List<Achievement>? achievements,
     String? manifesto,
     String? manifestoPdf,
     Contact? contact,
     Map<String, dynamic>? media,
     bool? highlight,
     List<Map<String, dynamic>>? events,
+    int? age,
+    String? gender,
+    String? education,
+    String? address,
   }) {
     return ExtraInfo(
       bio: bio ?? this.bio,
@@ -112,6 +135,10 @@ class ExtraInfo {
       media: media ?? this.media,
       highlight: highlight ?? this.highlight,
       events: events ?? this.events,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      education: education ?? this.education,
+      address: address ?? this.address,
     );
   }
 }

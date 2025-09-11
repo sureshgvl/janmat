@@ -267,15 +267,17 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                               Expanded(
                                 child: Row(
                                   children: [
-                                    Text(
-                                      candidate.name,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: isCurrentUser ? Colors.blue : const Color(0xFF1f2937),
+                                    Expanded(
+                                      child: Text(
+                                        candidate.name,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: isCurrentUser ? Colors.blue : const Color(0xFF1f2937),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     if (isCurrentUser) ...[
                                       const SizedBox(width: 8),
@@ -299,19 +301,21 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                                 ),
                               ),
                               if (candidate.sponsored)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    'SPONSORED',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFF374151),
-                                      fontWeight: FontWeight.bold,
+                                Flexible(
+                                  child: Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'SPONSORED',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFF374151),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),

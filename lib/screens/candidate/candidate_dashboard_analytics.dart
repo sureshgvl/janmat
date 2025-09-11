@@ -1,0 +1,29 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../controllers/candidate_data_controller.dart';
+import '../../widgets/candidate/followers_analytics_section.dart';
+
+class CandidateDashboardAnalytics extends StatelessWidget {
+  const CandidateDashboardAnalytics({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final CandidateDataController controller = Get.put(CandidateDataController());
+
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (controller.candidateData.value == null) {
+        return const Center(child: Text('No candidate data found'));
+      }
+
+      return SingleChildScrollView(
+        child: FollowersAnalyticsSection(
+          candidateData: controller.candidateData.value!,
+        ),
+      );
+    });
+  }
+}

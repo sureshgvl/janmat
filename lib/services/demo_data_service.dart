@@ -1,3 +1,5 @@
+import '../models/achievement_model.dart';
+
 class DemoDataService {
   static const Map<String, Map<String, String>> bioTemplates = {
     'professional': {
@@ -101,30 +103,118 @@ class DemoDataService {
     },
   };
 
-  static const Map<String, Map<String, String>> achievementTemplates = {
+  static const Map<String, Map<String, List<Map<String, dynamic>>>> achievementTemplates = {
     'community_service': {
-      'en': '''• Successfully implemented clean water project serving 500+ households
-• Organized vaccination drives reaching 2000+ residents
-• Led tree plantation initiative planting 1000+ trees
-• Coordinated disaster relief efforts during monsoon floods
-• Established community learning center for underprivileged children''',
-      'mr': '''• 500+ कुटुंबांना सेवा देणारे स्वच्छ पाणी प्रकल्प यशस्वीरीत्या अंमलात आणला
-• 2000+ रहिवाशांना पोहोचणारे लसीकरण मोहीम आयोजित केले
-• 1000+ झाडे लावणारी वृक्षारोपण मोहीम सुरू केली
-• पावसाळी पुरात आपत्ती मदत प्रयत्न समन्वयित केले
-• वंचित मुलांसाठी समुदाय शिक्षण केंद्र स्थापन केले''',
+      'en': [
+        {
+          'title': 'Clean Water Project',
+          'description': 'Successfully implemented clean water project serving 500+ households with sustainable water supply',
+          'year': 2023,
+        },
+        {
+          'title': 'Vaccination Drive',
+          'description': 'Organized vaccination drives reaching 2000+ residents and achieving 95% vaccination coverage',
+          'year': 2022,
+        },
+        {
+          'title': 'Tree Plantation Initiative',
+          'description': 'Led tree plantation initiative planting 1000+ trees in the community area',
+          'year': 2021,
+        },
+        {
+          'title': 'Disaster Relief Coordination',
+          'description': 'Coordinated disaster relief efforts during monsoon floods, providing aid to 300+ affected families',
+          'year': 2020,
+        },
+        {
+          'title': 'Community Learning Center',
+          'description': 'Established community learning center for underprivileged children with 150+ enrolled students',
+          'year': 2019,
+        },
+      ],
+      'mr': [
+        {
+          'title': 'स्वच्छ पाणी प्रकल्प',
+          'description': '500+ कुटुंबांना शाश्वत पाणी पुरवठा देणारा स्वच्छ पाणी प्रकल्प यशस्वीरीत्या अंमलात आणला',
+          'year': 2023,
+        },
+        {
+          'title': 'लसीकरण मोहीम',
+          'description': '2000+ रहिवाशांना पोहोचणारे लसीकरण मोहीम आयोजित केले आणि 95% लसीकरण कव्हरेज प्राप्त केले',
+          'year': 2022,
+        },
+        {
+          'title': 'वृक्षारोपण मोहीम',
+          'description': 'समुदाय क्षेत्रात 1000+ झाडे लावणारी वृक्षारोपण मोहीम सुरू केली',
+          'year': 2021,
+        },
+        {
+          'title': 'आपत्ती मदत समन्वय',
+          'description': 'पावसाळी पुरात आपत्ती मदत प्रयत्न समन्वयित केले, 300+ प्रभावित कुटुंबांना मदत पुरवली',
+          'year': 2020,
+        },
+        {
+          'title': 'समुदाय शिक्षण केंद्र',
+          'description': 'वंचित मुलांसाठी समुदाय शिक्षण केंद्र स्थापन केले, 150+ विद्यार्थी नोंदणीकृत',
+          'year': 2019,
+        },
+      ],
     },
     'administrative': {
-      'en': '''• Streamlined municipal service delivery reducing response time by 40%
-• Implemented digital record-keeping system improving efficiency
-• Successfully managed ward development budget of ₹50 lakhs
-• Coordinated with state agencies for infrastructure projects
-• Received "Best Ward Administrator" award for outstanding performance''',
-      'mr': '''• 40% प्रतिसाद वेळ कमी करून महानगरपालिका सेवा वितरण सुव्यवस्थित केले
-• कार्यक्षमता सुधारणारे डिजिटल रेकॉर्ड-कीपिंग सिस्टम अंमलात आणले
-• ₹50 लाख वार्ड विकास बजेट यशस्वीरीत्या व्यवस्थापित केले
-• पायाभूत सुविधा प्रकल्पांसाठी राज्य एजन्सींसह समन्वय साधला
-• उत्कृष्ट कामगिरीसाठी "सर्वोत्कृष्ट वार्ड प्रशासक" पुरस्कार प्राप्त केला''',
+      'en': [
+        {
+          'title': 'Service Delivery Optimization',
+          'description': 'Streamlined municipal service delivery reducing response time by 40% through process improvements',
+          'year': 2023,
+        },
+        {
+          'title': 'Digital Record System',
+          'description': 'Implemented digital record-keeping system improving efficiency and reducing paperwork by 60%',
+          'year': 2022,
+        },
+        {
+          'title': 'Budget Management',
+          'description': 'Successfully managed ward development budget of ₹50 lakhs with 100% utilization and positive outcomes',
+          'year': 2021,
+        },
+        {
+          'title': 'Infrastructure Coordination',
+          'description': 'Coordinated with state agencies for infrastructure projects worth ₹2 crores',
+          'year': 2020,
+        },
+        {
+          'title': 'Best Administrator Award',
+          'description': 'Received "Best Ward Administrator" award for outstanding performance and community service',
+          'year': 2019,
+        },
+      ],
+      'mr': [
+        {
+          'title': 'सेवा वितरण ऑप्टिमायझेशन',
+          'description': 'प्रक्रिया सुधारणेद्वारे 40% प्रतिसाद वेळ कमी करून महानगरपालिका सेवा वितरण सुव्यवस्थित केले',
+          'year': 2023,
+        },
+        {
+          'title': 'डिजिटल रेकॉर्ड सिस्टम',
+          'description': 'कार्यक्षमता सुधारणारे आणि 60% कागदपत्रे कमी करणारे डिजिटल रेकॉर्ड-कीपिंग सिस्टम अंमलात आणले',
+          'year': 2022,
+        },
+        {
+          'title': 'बजेट व्यवस्थापन',
+          'description': '₹50 लाख वार्ड विकास बजेट यशस्वीरीत्या व्यवस्थापित केले, 100% वापर आणि सकारात्मक परिणाम',
+          'year': 2021,
+        },
+        {
+          'title': 'पायाभूत सुविधा समन्वय',
+          'description': '₹2 कोटी किमतीच्या पायाभूत सुविधा प्रकल्पांसाठी राज्य एजन्सींसह समन्वय साधला',
+          'year': 2020,
+        },
+        {
+          'title': 'सर्वोत्कृष्ट प्रशासक पुरस्कार',
+          'description': 'उत्कृष्ट कामगिरी आणि समुदाय सेवेसाठी "सर्वोत्कृष्ट वार्ड प्रशासक" पुरस्कार प्राप्त केला',
+          'year': 2019,
+        },
+      ],
     },
   };
 
@@ -140,14 +230,15 @@ class DemoDataService {
   };
 
   // Get demo data for a specific category and language
-  static String getDemoData(String category, String type, String language) {
+  static dynamic getDemoData(String category, String type, String language) {
     switch (category) {
       case 'bio':
         return bioTemplates[type]?[language] ?? bioTemplates['professional']!['en']!;
       case 'manifesto':
         return manifestoTemplates[type]?[language] ?? manifestoTemplates['development']!['en']!;
       case 'achievements':
-        return achievementTemplates[type]?[language] ?? achievementTemplates['community_service']!['en']!;
+        final data = achievementTemplates[type]?[language] ?? achievementTemplates['community_service']!['en']!;
+        return data.map((item) => Achievement.fromJson(item)).toList();
       case 'highlight':
         return highlightTemplates[type]?[language] ?? highlightTemplates['vision']!['en']!;
       default:

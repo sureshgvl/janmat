@@ -109,6 +109,37 @@ class FileUploadService {
     }
   }
 
+  // Upload achievement photo
+  Future<String?> uploadAchievementPhoto(String candidateId, String achievementTitle) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 75,
+      );
+
+      if (image == null) return null;
+
+      final sanitizedTitle = achievementTitle.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(' ', '_');
+      final fileName = 'achievement_${candidateId}_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = _storage.ref().child('achievement_photos/$fileName');
+
+      final uploadTask = storageRef.putFile(
+        File(image.path),
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+    debugPrint('Error uploading achievement photo: $e');
+      throw Exception('Failed to upload achievement photo: $e');
+    }
+  }
+
   // Generic file upload method
   Future<String?> uploadFile(
     String filePath,

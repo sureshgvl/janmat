@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../utils/symbol_utils.dart';
-import '../../widgets/candidate/basic_info_section.dart';
-import '../../widgets/candidate/profile_section.dart';
-import '../../widgets/candidate/achievements_section.dart';
-import '../../widgets/candidate/manifesto_section.dart';
-import '../../widgets/candidate/contact_section.dart';
-import '../../widgets/candidate/media_section.dart';
-import '../../widgets/candidate/events_section.dart';
-import '../../widgets/candidate/highlight_section.dart';
-import '../../widgets/candidate/followers_analytics_section.dart';
+import 'candidate_dashboard_info.dart';
+import 'candidate_dashboard_profile.dart';
+import 'candidate_dashboard_achievements.dart';
+import 'candidate_dashboard_manifesto.dart';
+import 'candidate_dashboard_contact.dart';
+import 'candidate_dashboard_media.dart';
+import 'candidate_dashboard_events.dart';
+import 'candidate_dashboard_highlight.dart';
+import 'candidate_dashboard_analytics.dart';
 
 class CandidateDashboardScreen extends StatefulWidget {
   const CandidateDashboardScreen({super.key});
@@ -66,46 +66,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
             Tab(text: 'Analytics'),
           ],
         ),
-        actions: [
-          Obx(() {
-            if (controller.isPaid.value) {
-              return Row(
-                children: [
-                  if (!isEditing)
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () => setState(() => isEditing = true),
-                    )
-                  else
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.save),
-                          onPressed: () async {
-                            final success = await controller.saveExtraInfo();
-                            if (success) {
-                              setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Changes saved successfully');
-                            } else {
-                              Get.snackbar('Error', 'Failed to save changes');
-                            }
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.cancel),
-                          onPressed: () {
-                            controller.resetEditedData();
-                            setState(() => isEditing = false);
-                          },
-                        ),
-                      ],
-                    ),
-                ],
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
+        actions: null,
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -118,60 +79,16 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
 
         return TabBarView(
           controller: _tabController,
-          children: [
-            BasicInfoSection(
-              candidateData: controller.candidateData.value!,
-              getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: controller.candidateData.value),
-            ),
-            ProfileSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onBioChange: (bio) => controller.updateExtraInfo('bio', bio),
-              onPhotoChange: (photo) => controller.updatePhoto(photo),
-            ),
-            AchievementsSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onAchievementsChange: (achievements) => controller.updateExtraInfo('achievements', achievements),
-            ),
-            ManifestoSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onManifestoChange: (manifesto) => controller.updateExtraInfo('manifesto', manifesto),
-              onManifestoPdfChange: (pdf) => controller.updateExtraInfo('manifesto_pdf', pdf),
-            ),
-            ContactSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onContactChange: (field, value) => controller.updateContact(field, value),
-              onSocialChange: (field, value) => controller.updateContact('social_$field', value),
-            ),
-            MediaSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onImagesChange: (images) => controller.updateExtraInfo('media', {'images': images}),
-              onVideosChange: (videos) => controller.updateExtraInfo('media', {'videos': videos}),
-            ),
-            EventsSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onEventsChange: (events) => controller.updateExtraInfo('events', events),
-            ),
-            HighlightSection(
-              candidateData: controller.candidateData.value!,
-              editedData: controller.editedData.value,
-              isEditing: isEditing,
-              onHighlightChange: (highlight) => controller.updateExtraInfo('highlight', highlight),
-            ),
-            FollowersAnalyticsSection(
-              candidateData: controller.candidateData.value!,
-            ),
+          children: const [
+            CandidateDashboardInfo(),
+            CandidateDashboardProfile(),
+            CandidateDashboardAchievements(),
+            CandidateDashboardManifesto(),
+            CandidateDashboardContact(),
+            CandidateDashboardMedia(),
+            CandidateDashboardEvents(),
+            CandidateDashboardHighlight(),
+            CandidateDashboardAnalytics(),
           ],
         );
       }),
