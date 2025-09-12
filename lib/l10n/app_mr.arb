@@ -264,6 +264,7 @@
   "failedToUploadSymbolImage": "चिन्ह प्रतिमा अपलोड करण्यात अयशस्वी: {error}",
   "candidateProfileUpdated": "यशस्वी!",
   "candidateProfileUpdatedMessage": "तुमचा उमेदवार प्रोफाइल अपडेट झाला आहे! तुम्हाला सर्व वैशिष्ट्ये ट्राय करण्यासाठी 3 दिवस प्रीमियम प्रवेश मिळाला आहे.",
+  "basicInfoUpdatedSuccessfully": "मूलभूत माहिती यशस्वीरित्या अपडेट झाली",
   "symbolImageUploadedSuccessfully": "चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली",
   "uploadSymbolImage": "चिन्ह प्रतिमा अपलोड करा",
   "uploading": "अपलोड होत आहे...",

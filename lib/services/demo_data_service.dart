@@ -22,84 +22,124 @@ class DemoDataService {
 
   static const Map<String, Map<String, String>> manifestoTemplates = {
     'development': {
-      'en': '''**Infrastructure Development:**
-• Modern road networks and public transportation
-• Clean water supply and sanitation facilities
-• Reliable electricity and digital connectivity
+      'en': '''**Clean Water & Good Roads:**
+• 24x7 clean water supply to every household
+• pothole-free ward roads within 1 year
+• Street lighting for all lanes and bylanes
 
-**Education & Healthcare:**
-• Quality education for all children
-• Accessible healthcare services
-• Skill development programs
+**Waste Management & Cleanliness:**
+• 100% household waste collection
+• Ward-level cleanliness app for citizens
+• Community composting centers
 
-**Economic Growth:**
-• Job creation through local industries
-• Support for small businesses
-• Agricultural modernization
+**Basic Infrastructure:**
+• Drainage system improvement
+• Park development and maintenance
+• Public toilet construction and maintenance''',
+      'mr': '''**स्वच्छ पाणी व चांगले रस्ते:**
+• प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा
+• खड्डेमुक्त वॉर्ड रस्ते १ वर्षात
+• सर्व गल्ल्या-बोळात स्ट्रीट लाईट
 
-**Social Welfare:**
-• Senior citizen care programs
-• Women empowerment initiatives
-• Environmental conservation''',
-      'mr': '''**पायाभूत सुविधा विकास:**
-• आधुनिक रस्ते नेटवर्क आणि सार्वजनिक वाहतूक
-• स्वच्छ पाणी पुरवठा आणि स्वच्छता सुविधा
-• विश्वासार्ह वीज आणि डिजिटल कनेक्टिव्हिटी
+**कचरा व्यवस्थापन व स्वच्छता:**
+• १००% घरगुती कचरा संकलन
+• वॉर्ड स्तरावर स्वच्छता अॅप – नागरिक थेट तक्रार नोंदवू शकतात
+• समुदाय कंपोस्टिंग केंद्र
 
-**शिक्षण आणि आरोग्य:**
-• सर्व मुलांसाठी दर्जेदार शिक्षण
-• प्रवेशयोग्य आरोग्य सेवा
-• कौशल्य विकास कार्यक्रम
-
-**आर्थिक वाढ:**
-• स्थानिक उद्योगांद्वारे रोजगार निर्मिती
-• लहान व्यवसायांना समर्थन
-• कृषी आधुनिकीकरण
-
-**सामाजिक कल्याण:**
-• वृद्ध नागरिक काळजी कार्यक्रम
-• महिला सशक्तीकरण उपक्रम
-• पर्यावरण संरक्षण''',
+**मूलभूत पायाभूत सुविधा:**
+• नाला प्रणाली सुधारणा
+• उद्यान विकास आणि देखभाल
+• सार्वजनिक शौचालय बांधणी आणि देखभाल''',
     },
     'transparency': {
       'en': '''**Transparency & Accountability:**
-• Regular public meetings and updates
-• Open budget discussions
-• Performance tracking and reporting
+• Online public record of every expense
+• Every 3 months "Progress Report" meeting with citizens
+• Ward development fund utilization report
 
 **Digital Governance:**
 • Online complaint and suggestion system
-• Real-time project monitoring
-• Digital service delivery
+• Real-time project monitoring dashboard
+• Digital ward committee meetings
 
 **Community Participation:**
-• Ward committee involvement
-• Youth and women representation
-• Regular feedback mechanisms
-
-**Anti-Corruption Measures:**
-• Transparent tender processes
-• Regular audits and reviews
-• Whistleblower protection''',
-      'mr': '''**पारदर्शकता आणि जबाबदारी:**
-• नियमित सार्वजनिक बैठक आणि अद्यतने
-• खुला बजेट चर्चा
-• कामगिरी ट्रॅकिंग आणि अहवाल
+• Monthly ward sabha meetings
+• Youth and women representation in committees
+• Regular feedback collection from residents''',
+      'mr': '''**पारदर्शकता व जबाबदारी:**
+• प्रत्येक खर्चाची ऑनलाईन सार्वजनिक नोंद
+• दर ३ महिन्यांनी नागरिकांसोबत "Progress Report" बैठक
+• वॉर्ड विकास निधी वापर अहवाल
 
 **डिजिटल शासन:**
 • ऑनलाइन तक्रार आणि सूचना प्रणाली
-• रिअल-टाइम प्रकल्प देखरेख
-• डिजिटल सेवा वितरण
+• रिअल-टाइम प्रकल्प देखरेख डॅशबोर्ड
+• डिजिटल वॉर्ड समिती बैठक
 
 **समुदाय सहभाग:**
-• वॉर्ड समिती सहभाग
-• युवा आणि महिला प्रतिनिधित्व
-• नियमित अभिप्राय यंत्रणा
+• मासिक वॉर्ड सभा बैठक
+• समित्यांमध्ये युवा आणि महिला प्रतिनिधित्व
+• रहिवाशांकडून नियमित अभिप्राय संकलन''',
+    },
+    'youth_education': {
+      'en': '''**Education & Youth Development:**
+• Digital classrooms in every school
+• Employment skill training center for youth
+• Career counseling and job placement assistance
 
-**भ्रष्टाचार विरोधी उपाय:**
-• पारदर्शक निविदा प्रक्रिया
-• नियमित ऑडिट आणि पुनरावलोकन
-• व्हिसलब्लोअर संरक्षण''',
+**Sports & Cultural Activities:**
+• Sports facilities and playground development
+• Youth club for cultural activities
+• Library and study center establishment
+
+**Digital Literacy:**
+• Computer training for youth and senior citizens
+• Online education platform access
+• Mobile library service for remote areas''',
+      'mr': '''**शिक्षण व तरुणाई विकास:**
+• प्रत्येक शाळेत डिजिटल क्लासरूम
+• तरुणांसाठी रोजगार कौशल्य प्रशिक्षण केंद्र
+• करियर सल्ला आणि नोकरी मिळवण्यात मदत
+
+**क्रीडा व सांस्कृतिक उपक्रम:**
+• क्रीडा सुविधा आणि खेळाचे मैदान विकास
+• सांस्कृतिक उपक्रमांसाठी युवा क्लब
+• ग्रंथालय आणि अभ्यास केंद्र स्थापना
+
+**डिजिटल साक्षरता:**
+• युवा आणि वृद्ध नागरिकांसाठी संगणक प्रशिक्षण
+• ऑनलाइन शिक्षण प्लॅटफॉर्म प्रवेश
+• दूरस्थ भागांसाठी मोबाईल ग्रंथालय सेवा''',
+    },
+    'women_safety': {
+      'en': '''**Women & Safety Measures:**
+• CCTV cameras at every corner
+• Special health centers for women
+• Women helpline and support services
+
+**Women Empowerment:**
+• Self-defense training camps for women
+• Women entrepreneurship development
+• Working women hostel facility
+
+**Child & Family Welfare:**
+• Crèche facilities for working mothers
+• Women and child health check-up camps
+• Domestic violence prevention programs''',
+      'mr': '''**महिला व सुरक्षा उपाय:**
+• प्रत्येक चौकात CCTV कॅमेरे
+• महिलांसाठी विशेष आरोग्य केंद्र
+• महिला हेल्पलाइन आणि समर्थन सेवा
+
+**महिला सशक्तीकरण:**
+• महिलांसाठी स्वयंरक्षण प्रशिक्षण शिबिर
+• महिला उद्योजकता विकास
+• काम करणाऱ्या महिलांसाठी हॉस्टेल सुविधा
+
+**बालक व कुटुंब कल्याण:**
+• काम करणाऱ्या मातांसाठी क्रेच सुविधा
+• महिला आणि बाल आरोग्य तपासणी शिबिर
+• घरगुती हिंसा प्रतिबंध कार्यक्रम''',
     },
   };
 
@@ -246,6 +286,21 @@ class DemoDataService {
     }
   }
 
+
+  // Get demo manifesto promises as simple strings
+  static List<String> getDemoManifestoPromises(String type, String language) {
+    final template = manifestoTemplates[type]?[language] ?? '';
+    if (template.isEmpty) return [];
+
+    // Split the template by bullet points and clean them up
+    final lines = template.split('\n')
+        .where((line) => line.trim().isNotEmpty && line.contains('•'))
+        .map((line) => line.replaceAll('•', '').trim())
+        .toList();
+
+    return lines;
+  }
+
   // Get available types for a category
   static List<String> getAvailableTypes(String category) {
     switch (category) {
@@ -274,9 +329,13 @@ class DemoDataService {
       case 'youthful':
         return 'Youthful';
       case 'development':
-        return 'Development Focus';
+        return 'Infrastructure & Cleanliness';
       case 'transparency':
-        return 'Transparency Focus';
+        return 'Transparency & Accountability';
+      case 'youth_education':
+        return 'Education & Youth Development';
+      case 'women_safety':
+        return 'Women & Safety Measures';
       case 'community_service':
         return 'Community Service';
       case 'administrative':

@@ -820,6 +820,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get candidateProfileUpdatedMessage => 'Your candidate profile has been updated! You have 3 days of premium access to try all features.';
 
   @override
+  String get basicInfoUpdatedSuccessfully => 'Basic info updated successfully';
+
+  @override
   String get symbolImageUploadedSuccessfully => 'Symbol image uploaded successfully';
 
   @override

@@ -15,8 +15,8 @@ class BasicInfoSection extends StatefulWidget {
   final Function(String) onNameChange;
   final Function(String) onCityChange;
   final Function(String) onWardChange;
-  final Function(String) onPartyChange;
   final Function(String) onPhotoChange;
+  final Function(String) onPartyChange;
   final Function(String, dynamic) onBasicInfoChange;
 
   const BasicInfoSection({
@@ -44,7 +44,6 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
   late TextEditingController _nameController;
   late TextEditingController _cityController;
   late TextEditingController _wardController;
-  late TextEditingController _partyController;
   late TextEditingController _ageController;
   late TextEditingController _genderController;
   late TextEditingController _educationController;
@@ -55,14 +54,20 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     super.initState();
     final data = widget.editedData ?? widget.candidateData;
     final extraInfo = data.extraInfo;
+
+    debugPrint('🎯 BasicInfoSection initState - Education debug:');
+    debugPrint('   extraInfo exists: ${extraInfo != null}');
+    debugPrint('   basicInfo exists: ${extraInfo?.basicInfo != null}');
+    debugPrint('   education from basicInfo: ${extraInfo?.basicInfo?.education}');
+    debugPrint('   address from contact: ${extraInfo?.contact?.address}');
+
     _nameController = TextEditingController(text: data.name);
     _cityController = TextEditingController(text: data.cityId);
     _wardController = TextEditingController(text: data.wardId);
-    _partyController = TextEditingController(text: data.party);
-    _ageController = TextEditingController(text: extraInfo?.age?.toString() ?? '');
-    _genderController = TextEditingController(text: extraInfo?.gender ?? '');
-    _educationController = TextEditingController(text: extraInfo?.education ?? '');
-    _addressController = TextEditingController(text: extraInfo?.address ?? '');
+    _ageController = TextEditingController(text: extraInfo?.basicInfo?.age?.toString() ?? '');
+    _genderController = TextEditingController(text: extraInfo?.basicInfo?.gender ?? '');
+    _educationController = TextEditingController(text: extraInfo?.basicInfo?.education ?? '');
+    _addressController = TextEditingController(text: extraInfo?.contact?.address ?? '');
   }
 
   @override
@@ -75,11 +80,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
       _nameController.text = data.name;
       _cityController.text = data.cityId;
       _wardController.text = data.wardId;
-      _partyController.text = data.party;
-      _ageController.text = extraInfo?.age?.toString() ?? '';
-      _genderController.text = extraInfo?.gender ?? '';
-      _educationController.text = extraInfo?.education ?? '';
-      _addressController.text = extraInfo?.address ?? '';
+      _ageController.text = extraInfo?.basicInfo?.age?.toString() ?? '';
+      _genderController.text = extraInfo?.basicInfo?.gender ?? '';
+      _educationController.text = extraInfo?.basicInfo?.education ?? '';
+      _addressController.text = extraInfo?.contact?.address ?? '';
     }
   }
 
@@ -88,7 +92,6 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     _nameController.dispose();
     _cityController.dispose();
     _wardController.dispose();
-    _partyController.dispose();
     _ageController.dispose();
     _genderController.dispose();
     _educationController.dispose();
@@ -203,11 +206,82 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     }
   }
 
+  Future<void> _selectBirthDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 25)), // Default to 25 years ago
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      final age = _calculateAge(picked);
+      _ageController.text = age.toString();
+      widget.onBasicInfoChange('age', age);
+      widget.onBasicInfoChange('dateOfBirth', picked.toIso8601String());
+    }
+  }
+
+  Future<void> _selectGender(BuildContext context) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Gender'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('Male'),
+                onTap: () => Navigator.of(context).pop('Male'),
+              ),
+              ListTile(
+                title: const Text('Female'),
+                onTap: () => Navigator.of(context).pop('Female'),
+              ),
+              ListTile(
+                title: const Text('Other'),
+                onTap: () => Navigator.of(context).pop('Other'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      _genderController.text = result;
+      widget.onBasicInfoChange('gender', result);
+    }
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
   void _populateDemoData() {
     _nameController.text = 'राहुल पाटील';
     _ageController.text = '42';
     _genderController.text = 'पुरुष';
-    _partyController.text = 'Indian National Congress';
     _educationController.text = 'B.A. Political Science';
     _addressController.text = 'पुणे, महाराष्ट्र';
 
@@ -215,7 +289,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     widget.onNameChange('राहुल पाटील');
     widget.onBasicInfoChange('age', 42);
     widget.onBasicInfoChange('gender', 'पुरुष');
-    widget.onPartyChange('Indian National Congress');
+    widget.onBasicInfoChange('dateOfBirth', '1982-01-15T00:00:00.000Z'); // Demo birthdate
     widget.onBasicInfoChange('education', 'B.A. Political Science');
     widget.onBasicInfoChange('address', 'पुणे, महाराष्ट्र');
   }
@@ -436,42 +510,95 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
             ),
             const SizedBox(height: 16),
             if (widget.isEditing) ...[
-              // Age and Gender fields
+              // Age and Gender fields (non-editable, tap to edit)
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _ageController,
-                      decoration: const InputDecoration(
-                        labelText: 'Age',
-                        border: OutlineInputBorder(),
+                    child: GestureDetector(
+                      onTap: () => _selectBirthDate(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Age',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    _ageController.text.isNotEmpty ? _ageController.text : 'Tap to select birth date',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: _ageController.text.isNotEmpty ? Colors.black : Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) => widget.onBasicInfoChange('age', int.tryParse(value) ?? 0),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: TextFormField(
-                      controller: _genderController,
-                      decoration: const InputDecoration(
-                        labelText: 'Gender',
-                        border: OutlineInputBorder(),
+                    child: GestureDetector(
+                      onTap: () => _selectGender(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Gender',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    _genderController.text.isNotEmpty ? _genderController.text : 'Tap to select gender',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: _genderController.text.isNotEmpty ? Colors.black : Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
-                      onChanged: (value) => widget.onBasicInfoChange('gender', value),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              // Party field
-              TextFormField(
-                controller: _partyController,
-                decoration: const InputDecoration(
-                  labelText: 'Party',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: widget.onPartyChange,
               ),
               const SizedBox(height: 16),
               // Education field
@@ -552,10 +679,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
               // Display additional info fields
               if (data.extraInfo != null) ...[
                 const SizedBox(height: 16),
-                if (data.extraInfo!.age != null || data.extraInfo!.gender != null) ...[
+                if (data.extraInfo!.basicInfo?.age != null || data.extraInfo!.basicInfo?.gender != null) ...[
                   Row(
                     children: [
-                      if (data.extraInfo!.age != null)
+                      if (data.extraInfo!.basicInfo?.age != null)
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,7 +695,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                 ),
                               ),
                               Text(
-                                '${data.extraInfo!.age}',
+                                '${data.extraInfo!.basicInfo!.age}',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -577,9 +704,9 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                             ],
                           ),
                         ),
-                      if (data.extraInfo!.age != null && data.extraInfo!.gender != null)
+                      if (data.extraInfo!.basicInfo?.age != null && data.extraInfo!.basicInfo?.gender != null)
                         const SizedBox(width: 16),
-                      if (data.extraInfo!.gender != null)
+                      if (data.extraInfo!.basicInfo?.gender != null)
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,7 +719,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                 ),
                               ),
                               Text(
-                                data.extraInfo!.gender!,
+                                data.extraInfo!.basicInfo!.gender!,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -605,7 +732,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                if (data.extraInfo!.education != null) ...[
+                if (data.extraInfo!.basicInfo?.education != null) ...[
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -617,7 +744,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                         ),
                       ),
                       Text(
-                        data.extraInfo!.education!,
+                        data.extraInfo!.basicInfo!.education!,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -627,7 +754,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                if (data.extraInfo!.address != null) ...[
+                if (data.extraInfo!.contact?.address != null) ...[
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -639,7 +766,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                         ),
                       ),
                       Text(
-                        data.extraInfo!.address!,
+                        data.extraInfo!.contact!.address!,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,

@@ -21,6 +21,9 @@ class ContactSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = editedData ?? candidateData;
     final contact = data.extraInfo?.contact ?? data.contact;
+    final phone = contact is ExtendedContact ? contact.phone : (contact as Contact).phone;
+    final email = contact is ExtendedContact ? contact.email : (contact as Contact).email;
+    final socialLinks = contact is ExtendedContact ? contact.socialLinks : (contact as Contact).socialLinks;
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -39,7 +42,7 @@ class ContactSection extends StatelessWidget {
             const SizedBox(height: 16),
             if (isEditing) ...[
               TextFormField(
-                initialValue: contact.phone,
+                initialValue: phone,
                 decoration: const InputDecoration(
                   labelText: 'Phone',
                   border: OutlineInputBorder(),
@@ -48,7 +51,7 @@ class ContactSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                initialValue: contact.email ?? '',
+                initialValue: email ?? '',
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   border: OutlineInputBorder(),
@@ -59,7 +62,7 @@ class ContactSection extends StatelessWidget {
               // Social links
               const Text('Social Links', style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
-                initialValue: contact.socialLinks?['facebook'] ?? '',
+                initialValue: socialLinks?['facebook'] ?? '',
                 decoration: const InputDecoration(
                   labelText: 'Facebook',
                   border: OutlineInputBorder(),
@@ -68,7 +71,7 @@ class ContactSection extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               TextFormField(
-                initialValue: contact.socialLinks?['twitter'] ?? '',
+                initialValue: socialLinks?['twitter'] ?? '',
                 decoration: const InputDecoration(
                   labelText: 'Twitter',
                   border: OutlineInputBorder(),
@@ -76,10 +79,10 @@ class ContactSection extends StatelessWidget {
                 onChanged: (value) => onSocialChange('twitter', value),
               ),
             ] else ...[
-              Text('Phone: ${contact.phone}'),
-              if (contact.email != null) Text('Email: ${contact.email}'),
-              if (contact.socialLinks != null)
-                ...contact.socialLinks!.entries.map((e) => Text('${e.key}: ${e.value}')),
+              Text('Phone: $phone'),
+              if (email != null) Text('Email: $email'),
+              if (socialLinks != null)
+                ...socialLinks.entries.map((e) => Text('${e.key}: ${e.value}')),
             ],
           ],
         ),

@@ -57,6 +57,7 @@ dependencies:
   shared_preferences: ^2.2.3
   fluttertoast: ^8.2.6
   device_info_plus: ^9.1.1
+  path_provider: ^2.1.3
 
   # Chat and Media
   image_picker: ^1.0.7
@@ -73,6 +74,9 @@ dependencies:
 
   # Translation
   translator: ^1.0.0
+
+  # Markdown
+  flutter_markdown: ^0.7.1
 
 dev_dependencies:
   flutter_test:

@@ -13,6 +13,7 @@ class CandidateDashboardProfile extends StatefulWidget {
 class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
+  bool isSaving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
           title: const Text('Profile'),
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
-          actions: controller.isPaid.value ? [
+          actions: [
             if (!isEditing)
               IconButton(
                 icon: const Icon(Icons.edit),
@@ -41,17 +42,31 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.save),
-                    onPressed: () async {
-                      final success = await controller.saveExtraInfo();
-                      if (success) {
-                        setState(() => isEditing = false);
-                        Get.snackbar('Success', 'Profile updated successfully');
-                      } else {
-                        Get.snackbar('Error', 'Failed to update profile');
+                    icon: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                            ),
+                          )
+                        : const Icon(Icons.save),
+                    onPressed: isSaving ? null : () async {
+                      setState(() => isSaving = true);
+                      try {
+                        final success = await controller.saveExtraInfo();
+                        if (success) {
+                          setState(() => isEditing = false);
+                          Get.snackbar('Success', 'Profile updated successfully');
+                        } else {
+                          Get.snackbar('Error', 'Failed to update profile');
+                        }
+                      } finally {
+                        setState(() => isSaving = false);
                       }
                     },
-                    tooltip: 'Save Changes',
+                    tooltip: isSaving ? 'Saving...' : 'Save Changes',
                   ),
                   IconButton(
                     icon: const Icon(Icons.cancel),
@@ -63,7 +78,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                   ),
                 ],
               ),
-          ] : null,
+          ],
         ),
         body: SingleChildScrollView(
           child: ProfileSection(

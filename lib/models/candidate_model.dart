@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'achievement_model.dart';
+
 
 class Contact {
   final String phone;
@@ -43,36 +45,414 @@ class Contact {
   }
 }
 
-class ExtraInfo {
-  final String? bio;
-  final List<Achievement>? achievements;
-  final String? manifesto;
-  final String? manifestoPdf;
-  final Contact? contact;
-  final Map<String, dynamic>? media;
-  final bool? highlight;
-  final List<Map<String, dynamic>>? events;
+class ManifestoData {
+  final String? title;
+  final List<String>? promises;
+  final String? pdfUrl;
+  final List<String>? images;
+  final String? videoUrl;
+
+  ManifestoData({
+    this.title,
+    this.promises,
+    this.pdfUrl,
+    this.images,
+    this.videoUrl,
+  });
+
+  factory ManifestoData.fromJson(Map<String, dynamic> json) {
+    return ManifestoData(
+      title: json['title'],
+      promises: json['promises'] != null ? List<String>.from(json['promises']) : null,
+      pdfUrl: json['pdfUrl'],
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
+      videoUrl: json['videoUrl'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'promises': promises,
+      'pdfUrl': pdfUrl,
+      'images': images,
+      'videoUrl': videoUrl,
+    };
+  }
+
+  ManifestoData copyWith({
+    String? title,
+    List<String>? promises,
+    String? pdfUrl,
+    List<String>? images,
+    String? videoUrl,
+  }) {
+    return ManifestoData(
+      title: title ?? this.title,
+      promises: promises ?? this.promises,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
+      images: images ?? this.images,
+      videoUrl: videoUrl ?? this.videoUrl,
+    );
+  }
+}
+
+
+class ExtendedContact {
+  final String? phone;
+  final String? email;
+  final String? address;
+  final Map<String, String>? socialLinks;
+  final String? officeAddress;
+  final String? officeHours;
+
+  ExtendedContact({
+    this.phone,
+    this.email,
+    this.address,
+    this.socialLinks,
+    this.officeAddress,
+    this.officeHours,
+  });
+
+  factory ExtendedContact.fromJson(Map<String, dynamic> json) {
+    return ExtendedContact(
+      phone: json['phone'],
+      email: json['email'],
+      address: json['address'],
+      socialLinks: json['social_links'] != null
+          ? Map<String, String>.from(json['social_links'])
+          : null,
+      officeAddress: json['office_address'],
+      officeHours: json['office_hours'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'phone': phone,
+      'email': email,
+      'address': address,
+      'social_links': socialLinks,
+      'office_address': officeAddress,
+      'office_hours': officeHours,
+    };
+  }
+}
+
+class MediaItem {
+  final String url;
+  final String? caption;
+  final String? title;
+  final String? description;
+  final String? duration;
+  final String? type;
+  final String? uploadedAt;
+
+  MediaItem({
+    required this.url,
+    this.caption,
+    this.title,
+    this.description,
+    this.duration,
+    this.type,
+    this.uploadedAt,
+  });
+
+  factory MediaItem.fromJson(Map<String, dynamic> json) {
+    return MediaItem(
+      url: json['url'],
+      caption: json['caption'],
+      title: json['title'],
+      description: json['description'],
+      duration: json['duration'],
+      type: json['type'],
+      uploadedAt: json['uploaded_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'url': url,
+      'caption': caption,
+      'title': title,
+      'description': description,
+      'duration': duration,
+      'type': type,
+      'uploaded_at': uploadedAt,
+    };
+  }
+}
+
+class EventData {
+  final String? id;
+  final String title;
+  final String? description;
+  final String date;
+  final String? time;
+  final String? venue;
+  final String? type;
+  final String? status;
+  final int? attendeesExpected;
+  final List<String>? agenda;
+
+  EventData({
+    this.id,
+    required this.title,
+    this.description,
+    required this.date,
+    this.time,
+    this.venue,
+    this.type,
+    this.status,
+    this.attendeesExpected,
+    this.agenda,
+  });
+
+  factory EventData.fromJson(Map<String, dynamic> json) {
+    return EventData(
+      id: json['id'],
+      title: json['title'],
+      description: json['description'],
+      date: json['date'],
+      time: json['time'],
+      venue: json['venue'],
+      type: json['type'],
+      status: json['status'],
+      attendeesExpected: json['attendees_expected'],
+      agenda: json['agenda'] != null ? List<String>.from(json['agenda']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'date': date,
+      'time': time,
+      'venue': venue,
+      'type': type,
+      'status': status,
+      'attendees_expected': attendeesExpected,
+      'agenda': agenda,
+    };
+  }
+}
+
+class HighlightData {
+  final bool enabled;
+  final String? title;
+  final String? message;
+  final String? imageUrl;
+  final String? priority;
+  final String? expiresAt;
+
+  HighlightData({
+    required this.enabled,
+    this.title,
+    this.message,
+    this.imageUrl,
+    this.priority,
+    this.expiresAt,
+  });
+
+  factory HighlightData.fromJson(Map<String, dynamic> json) {
+    return HighlightData(
+      enabled: json['enabled'] ?? false,
+      title: json['title'],
+      message: json['message'],
+      imageUrl: json['image_url'],
+      priority: json['priority'],
+      expiresAt: json['expires_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'title': title,
+      'message': message,
+      'image_url': imageUrl,
+      'priority': priority,
+      'expires_at': expiresAt,
+    };
+  }
+}
+
+class AnalyticsData {
+  final int? profileViews;
+  final int? manifestoViews;
+  final List<Map<String, dynamic>>? followerGrowth;
+  final double? engagementRate;
+  final Map<String, dynamic>? topPerformingContent;
+  final Map<String, dynamic>? demographics;
+
+  AnalyticsData({
+    this.profileViews,
+    this.manifestoViews,
+    this.followerGrowth,
+    this.engagementRate,
+    this.topPerformingContent,
+    this.demographics,
+  });
+
+  factory AnalyticsData.fromJson(Map<String, dynamic> json) {
+    return AnalyticsData(
+      profileViews: json['profile_views'],
+      manifestoViews: json['manifesto_views'],
+      followerGrowth: json['follower_growth'] != null
+          ? List<Map<String, dynamic>>.from(json['follower_growth'])
+          : null,
+      engagementRate: json['engagement_rate']?.toDouble(),
+      topPerformingContent: json['top_performing_content'],
+      demographics: json['demographics'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'profile_views': profileViews,
+      'manifesto_views': manifestoViews,
+      'follower_growth': followerGrowth,
+      'engagement_rate': engagementRate,
+      'top_performing_content': topPerformingContent,
+      'demographics': demographics,
+    };
+  }
+}
+
+class BasicInfoData {
+  final String? fullName;
+  final String? dateOfBirth;
   final int? age;
   final String? gender;
   final String? education;
-  final String? address;
+  final String? profession;
+  final List<String>? languages;
+  final int? experienceYears;
+  final List<String>? previousPositions;
+
+  BasicInfoData({
+    this.fullName,
+    this.dateOfBirth,
+    this.age,
+    this.gender,
+    this.education,
+    this.profession,
+    this.languages,
+    this.experienceYears,
+    this.previousPositions,
+  });
+
+  factory BasicInfoData.fromJson(Map<String, dynamic> json) {
+    return BasicInfoData(
+      fullName: json['full_name'],
+      dateOfBirth: json['date_of_birth'],
+      age: json['age'],
+      gender: json['gender'],
+      education: json['education'],
+      profession: json['profession'],
+      languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
+      experienceYears: json['experience_years'],
+      previousPositions: json['previous_positions'] != null ? List<String>.from(json['previous_positions']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'full_name': fullName,
+      'date_of_birth': dateOfBirth,
+      'age': age,
+      'gender': gender,
+      'education': education,
+      'profession': profession,
+      'languages': languages,
+      'experience_years': experienceYears,
+      'previous_positions': previousPositions,
+    };
+  }
+}
+
+class ExtraInfo {
+  final String? bio;
+  final List<Achievement>? achievements;
+  final ManifestoData? manifesto;
+  final ExtendedContact? contact;
+  final Map<String, List<MediaItem>>? media;
+  final List<EventData>? events;
+  final HighlightData? highlight;
+  final AnalyticsData? analytics;
+  final BasicInfoData? basicInfo;
 
   ExtraInfo({
     this.bio,
     this.achievements,
     this.manifesto,
-    this.manifestoPdf,
     this.contact,
     this.media,
-    this.highlight,
     this.events,
-    this.age,
-    this.gender,
-    this.education,
-    this.address,
+    this.highlight,
+    this.analytics,
+    this.basicInfo,
   });
 
+
   factory ExtraInfo.fromJson(Map<String, dynamic> json) {
+    debugPrint('🔍 ExtraInfo.fromJson - Raw JSON keys: ${json.keys.toList()}');
+    debugPrint('   education field: ${json['education']}');
+    debugPrint('   basic_info exists: ${json['basic_info'] != null}');
+
+    // Handle backward compatibility for raw fields
+    BasicInfoData? basicInfo = json['basic_info'] != null ? BasicInfoData.fromJson(json['basic_info']) : null;
+    ExtendedContact? contact = json['contact'] != null ? ExtendedContact.fromJson(json['contact']) : null;
+
+    // If basicInfo exists, merge raw fields into it
+    if (basicInfo != null) {
+      debugPrint('   Merging raw fields into existing basicInfo');
+      basicInfo = BasicInfoData(
+        fullName: basicInfo.fullName,
+        dateOfBirth: basicInfo.dateOfBirth,
+        age: basicInfo.age ?? (json['age'] != null ? int.tryParse(json['age'].toString()) : null),
+        gender: basicInfo.gender ?? json['gender'],
+        education: basicInfo.education ?? json['education'], // This is the key fix!
+        profession: basicInfo.profession ?? json['profession'],
+        languages: basicInfo.languages ?? (json['languages'] != null ? List<String>.from(json['languages']) : null),
+        experienceYears: basicInfo.experienceYears ?? json['experience_years'],
+        previousPositions: basicInfo.previousPositions ?? (json['previous_positions'] != null ? List<String>.from(json['previous_positions']) : null),
+      );
+    }
+    // If basicInfo doesn't exist but we have raw education field, create basicInfo
+    else if (json['education'] != null) {
+      debugPrint('   Creating basicInfo from raw education field');
+      basicInfo = BasicInfoData(
+        education: json['education'],
+        age: json['age'] != null ? int.tryParse(json['age'].toString()) : null,
+        gender: json['gender'],
+        fullName: json['full_name'],
+        dateOfBirth: json['date_of_birth'],
+        profession: json['profession'],
+        languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
+        experienceYears: json['experience_years'],
+        previousPositions: json['previous_positions'] != null ? List<String>.from(json['previous_positions']) : null,
+      );
+    }
+
+    // If contact doesn't exist but we have raw address field, create contact
+    if (contact == null && json['address'] != null) {
+      debugPrint('   Creating contact from raw address field');
+      contact = ExtendedContact(
+        address: json['address'],
+        phone: json['phone'],
+        email: json['email'],
+        socialLinks: json['social_links'] != null ? Map<String, String>.from(json['social_links']) : null,
+        officeAddress: json['office_address'],
+        officeHours: json['office_hours'],
+      );
+    }
+
+    debugPrint('   Final basicInfo.education: ${basicInfo?.education}');
+
     return ExtraInfo(
       bio: json['bio'],
       achievements: json['achievements'] != null
@@ -80,65 +460,108 @@ class ExtraInfo {
               .map((item) => Achievement.fromJson(item as Map<String, dynamic>))
               .toList()
           : null,
-      manifesto: json['manifesto'],
-      manifestoPdf: json['manifesto_pdf'],
-      contact: json['contact'] != null ? Contact.fromJson(json['contact']) : null,
-      media: json['media'],
-      highlight: json['highlight'],
-      events: json['events'] != null
-          ? List<Map<String, dynamic>>.from(json['events'])
+      manifesto: json['manifesto'] != null ? ManifestoData.fromJson(json['manifesto']) : null,
+      contact: contact,
+      media: json['media'] != null
+          ? _parseMediaData(json['media'])
           : null,
-      age: json['age']?.toInt(),
-      gender: json['gender'],
-      education: json['education'],
-      address: json['address'],
+      events: json['events'] != null
+          ? (json['events'] as List<dynamic>)
+              .map((item) => EventData.fromJson(item as Map<String, dynamic>))
+              .toList()
+          : null,
+      highlight: json['highlight'] != null ? HighlightData.fromJson(json['highlight']) : null,
+      analytics: json['analytics'] != null ? AnalyticsData.fromJson(json['analytics']) : null,
+      basicInfo: basicInfo,
     );
+  }
+
+  static Map<String, List<MediaItem>>? _parseMediaData(dynamic data) {
+    if (data == null || data is! Map<String, dynamic>) return null;
+
+    final Map<String, List<MediaItem>> result = {};
+
+    data.forEach((key, value) {
+      if (value is List) {
+        result[key] = value.map((item) => MediaItem.fromJson(item as Map<String, dynamic>)).toList();
+      }
+    });
+
+    return result;
+  }
+
+  // Helper method to parse manifesto promises from different formats
+  static List<Map<String, dynamic>>? _parseManifestoPromises(dynamic data) {
+    if (data == null) return null;
+
+    try {
+      // Handle new format: List<Map<String, dynamic>>
+      if (data is List) {
+        return data.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            // Convert old string format to new map format
+            return {
+              'title': item,
+              'points': [item], // Use the string as both title and first point
+            };
+          } else {
+            return {'title': item.toString(), 'points': [item.toString()]};
+          }
+        }).toList();
+      }
+
+      // Handle old format: single string (shouldn't happen but safety check)
+      if (data is String) {
+        return [{
+          'title': data,
+          'points': [data],
+        }];
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error parsing manifesto promises: $e');
+      return null;
+    }
   }
 
   Map<String, dynamic> toJson() {
     return {
       'bio': bio,
       'achievements': achievements?.map((a) => a.toJson()).toList(),
-      'manifesto': manifesto,
-      'manifesto_pdf': manifestoPdf,
+      'manifesto': manifesto?.toJson(),
       'contact': contact?.toJson(),
-      'media': media,
-      'highlight': highlight,
-      'events': events,
-      'age': age,
-      'gender': gender,
-      'education': education,
-      'address': address,
+      'media': media?.map((key, value) => MapEntry(key, value.map((item) => item.toJson()).toList())),
+      'events': events?.map((e) => e.toJson()).toList(),
+      'highlight': highlight?.toJson(),
+      'analytics': analytics?.toJson(),
+      'basic_info': basicInfo?.toJson(),
     };
   }
 
   ExtraInfo copyWith({
     String? bio,
     List<Achievement>? achievements,
-    String? manifesto,
-    String? manifestoPdf,
-    Contact? contact,
-    Map<String, dynamic>? media,
-    bool? highlight,
-    List<Map<String, dynamic>>? events,
-    int? age,
-    String? gender,
-    String? education,
-    String? address,
+    ManifestoData? manifesto,
+    ExtendedContact? contact,
+    Map<String, List<MediaItem>>? media,
+    List<EventData>? events,
+    HighlightData? highlight,
+    AnalyticsData? analytics,
+    BasicInfoData? basicInfo,
   }) {
     return ExtraInfo(
       bio: bio ?? this.bio,
       achievements: achievements ?? this.achievements,
       manifesto: manifesto ?? this.manifesto,
-      manifestoPdf: manifestoPdf ?? this.manifestoPdf,
       contact: contact ?? this.contact,
       media: media ?? this.media,
-      highlight: highlight ?? this.highlight,
       events: events ?? this.events,
-      age: age ?? this.age,
-      gender: gender ?? this.gender,
-      education: education ?? this.education,
-      address: address ?? this.address,
+      highlight: highlight ?? this.highlight,
+      analytics: analytics ?? this.analytics,
+      basicInfo: basicInfo ?? this.basicInfo,
     );
   }
 }

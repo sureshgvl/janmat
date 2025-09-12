@@ -35,11 +35,14 @@ class SymbolUtils {
 
       // For independent candidates, check if there's a symbol image URL in extraInfo
       if (candidate.extraInfo?.media != null) {
-        final symbolImageUrl = candidate.extraInfo!.media!['symbolImageUrl'];
-        if (symbolImageUrl != null && symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
-          debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
-          _symbolCache[cacheKey] = symbolImageUrl;
-          return symbolImageUrl; // Return the Firebase Storage URL
+        final symbolImageList = candidate.extraInfo!.media!['symbolImageUrl'];
+        if (symbolImageList != null && symbolImageList.isNotEmpty) {
+          final symbolImageUrl = symbolImageList.first.url;
+          if (symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
+            debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
+            _symbolCache[cacheKey] = symbolImageUrl;
+            return symbolImageUrl; // Return the Firebase Storage URL
+          }
         }
       }
 
@@ -159,11 +162,14 @@ class SymbolUtils {
 
       // For independent candidates, check if there's a symbol image URL in extraInfo
       if (candidate.extraInfo?.media != null) {
-        final symbolImageUrl = candidate.extraInfo!.media!['symbolImageUrl'];
-        if (symbolImageUrl != null && symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
-          debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
-          _symbolCache[cacheKey] = symbolImageUrl;
-          return symbolImageUrl; // Return the Firebase Storage URL
+        final symbolImageList = candidate.extraInfo!.media!['symbolImageUrl'];
+        if (symbolImageList != null && symbolImageList.isNotEmpty) {
+          final symbolImageUrl = symbolImageList.first.url;
+          if (symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
+            debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
+            _symbolCache[cacheKey] = symbolImageUrl;
+            return symbolImageUrl; // Return the Firebase Storage URL
+          }
         }
       }
 

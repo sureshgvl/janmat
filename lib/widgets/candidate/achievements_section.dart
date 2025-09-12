@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../models/achievement_model.dart';
@@ -9,6 +10,7 @@ class AchievementsSection extends StatefulWidget {
   final Candidate? editedData;
   final bool isEditing;
   final Function(List<Achievement>) onAchievementsChange;
+  final Function()? onCancelEditing; // Callback for cleanup when editing is cancelled
 
   const AchievementsSection({
     super.key,
@@ -16,6 +18,7 @@ class AchievementsSection extends StatefulWidget {
     this.editedData,
     required this.isEditing,
     required this.onAchievementsChange,
+    this.onCancelEditing,
   });
 
   @override
@@ -25,6 +28,8 @@ class AchievementsSection extends StatefulWidget {
 class _AchievementsSectionState extends State<AchievementsSection> {
   late List<Achievement> _achievements;
   final FileUploadService _fileUploadService = FileUploadService();
+  final Map<int, bool> _uploadingPhotos = {}; // Track uploading state per achievement
+  final Set<String> _uploadedPhotoUrls = {}; // Track photos uploaded in this session
 
   @override
   void initState() {
@@ -39,15 +44,49 @@ class _AchievementsSectionState extends State<AchievementsSection> {
         oldWidget.candidateData != widget.candidateData) {
       _loadAchievements();
     }
+
+    // Check if editing was cancelled (isEditing changed from true to false)
+    if (oldWidget.isEditing && !widget.isEditing && widget.onCancelEditing != null) {
+      _cleanupDanglingPhotos();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Cleanup any dangling photos when the widget is disposed
+    _cleanupDanglingPhotos();
+    super.dispose();
   }
 
   void _loadAchievements() {
     final data = widget.editedData ?? widget.candidateData;
     _achievements = List.from(data.extraInfo?.achievements ?? []);
+
+    // Track existing photo URLs to avoid deleting them during cleanup
+    _uploadedPhotoUrls.clear();
+    for (final achievement in _achievements) {
+      if (achievement.photoUrl != null && achievement.photoUrl!.isNotEmpty) {
+        _uploadedPhotoUrls.add(achievement.photoUrl!);
+      }
+    }
   }
 
   void _updateAchievements() {
     widget.onAchievementsChange(_achievements);
+  }
+
+  // Cleanup dangling photos when editing is cancelled
+  Future<void> _cleanupDanglingPhotos() async {
+    try {
+      // Clean up all temporary local photos since editing was cancelled
+      await _fileUploadService.cleanupTempPhotos();
+      debugPrint('🗑️ Cleaned up all temporary local photos');
+
+      // Clear the tracking set
+      _uploadedPhotoUrls.clear();
+    } catch (e) {
+      debugPrint('❌ Error during photo cleanup: $e');
+    }
   }
 
   void _addAchievement() {
@@ -111,27 +150,90 @@ class _AchievementsSectionState extends State<AchievementsSection> {
   }
 
   Future<void> _uploadPhoto(int index) async {
+    setState(() {
+      _uploadingPhotos[index] = true;
+    });
+
     try {
       final candidateId = widget.candidateData.candidateId;
       final achievement = _achievements[index];
-      final photoUrl = await _fileUploadService.uploadAchievementPhoto(
+
+      // First, save photo locally with optimization
+      final localPath = await _fileUploadService.savePhotoLocally(
         candidateId,
         achievement.title,
       );
 
-      if (photoUrl != null) {
-        _updateAchievement(
-          index,
-          achievement.copyWith(photoUrl: photoUrl),
-        );
+      if (localPath == null) return;
+
+      // Validate file size and show warnings if needed
+      final validation = await _fileUploadService.validateFileSize(localPath);
+
+      if (!validation.isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Photo uploaded successfully')),
+          SnackBar(
+            content: Text(validation.message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
+        return;
       }
+
+      // Show warning for large files
+      if (validation.warning) {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Large File Warning'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(validation.message),
+                if (validation.recommendation != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    validation.recommendation!,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Choose Different Photo'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Continue Anyway'),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) return;
+      }
+
+      // Track this local photo path
+      _uploadedPhotoUrls.add(localPath);
+
+      _updateAchievement(
+        index,
+        achievement.copyWith(photoUrl: localPath),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo saved locally')),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload photo: $e')),
+        SnackBar(content: Text('Failed to save photo: $e')),
       );
+    } finally {
+      setState(() {
+        _uploadingPhotos[index] = false;
+      });
     }
   }
 
@@ -229,21 +331,6 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                               if (widget.isEditing)
                                 Row(
                                   children: [
-                                    if (achievement.photoUrl != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(right: 12),
-                                        child: Container(
-                                          width: 60,
-                                          height: 60,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(8),
-                                            image: DecorationImage(
-                                              image: NetworkImage(achievement.photoUrl!),
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
                                     Expanded(
                                       child: TextFormField(
                                         initialValue: achievement.title,
@@ -337,23 +424,37 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                           child: InteractiveViewer(
                                             minScale: 0.5,
                                             maxScale: 4.0,
-                                            child: Image.network(
-                                              achievement.photoUrl!,
-                                              fit: BoxFit.contain,
-                                              loadingBuilder: (context, child, loadingProgress) {
-                                                if (loadingProgress == null) return child;
-                                                return const Center(child: CircularProgressIndicator());
-                                              },
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return const Center(
-                                                  child: Icon(
-                                                    Icons.error,
-                                                    color: Colors.red,
-                                                    size: 48,
+                                            child: _fileUploadService.isLocalPath(achievement.photoUrl!)
+                                                ? Image.file(
+                                                    File(achievement.photoUrl!.replaceFirst('local:', '')),
+                                                    fit: BoxFit.contain,
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return const Center(
+                                                        child: Icon(
+                                                          Icons.error,
+                                                          color: Colors.red,
+                                                          size: 48,
+                                                        ),
+                                                      );
+                                                    },
+                                                  )
+                                                : Image.network(
+                                                    achievement.photoUrl!,
+                                                    fit: BoxFit.contain,
+                                                    loadingBuilder: (context, child, loadingProgress) {
+                                                      if (loadingProgress == null) return child;
+                                                      return const Center(child: CircularProgressIndicator());
+                                                    },
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return const Center(
+                                                        child: Icon(
+                                                          Icons.error,
+                                                          color: Colors.red,
+                                                          size: 48,
+                                                        ),
+                                                      );
+                                                    },
                                                   ),
-                                                );
-                                              },
-                                            ),
                                           ),
                                         ),
                                       ),
@@ -366,7 +467,9 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(color: Colors.grey.shade300),
                                       image: DecorationImage(
-                                        image: NetworkImage(achievement.photoUrl!),
+                                        image: _fileUploadService.isLocalPath(achievement.photoUrl!)
+                                            ? FileImage(File(achievement.photoUrl!.replaceFirst('local:', '')))
+                                            : NetworkImage(achievement.photoUrl!),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -377,9 +480,17 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: OutlinedButton.icon(
-                                    onPressed: () => _uploadPhoto(index),
-                                    icon: const Icon(Icons.photo_camera),
-                                    label: Text(achievement.photoUrl != null ? 'Change Photo' : 'Add Photo (Optional)'),
+                                    onPressed: _uploadingPhotos[index] == true ? null : () => _uploadPhoto(index),
+                                    icon: _uploadingPhotos[index] == true
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          )
+                                        : const Icon(Icons.photo_camera),
+                                    label: Text(_uploadingPhotos[index] == true
+                                        ? 'Uploading...'
+                                        : (achievement.photoUrl != null ? 'Change Photo' : 'Add Photo (Optional)')),
                                   ),
                                 ),
                             ],

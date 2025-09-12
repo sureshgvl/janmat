@@ -264,6 +264,7 @@
   "failedToUploadSymbolImage": "Failed to upload symbol image: {error}",
   "candidateProfileUpdated": "Success!",
   "candidateProfileUpdatedMessage": "Your candidate profile has been updated! You have 3 days of premium access to try all features.",
+  "basicInfoUpdatedSuccessfully": "Basic info updated successfully",
   "symbolImageUploadedSuccessfully": "Symbol image uploaded successfully",
   "uploadSymbolImage": "Upload Symbol Image",
   "uploading": "Uploading...",

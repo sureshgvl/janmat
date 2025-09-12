@@ -18,7 +18,7 @@ class HighlightSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = editedData ?? candidateData;
-    final highlight = data.extraInfo?.highlight ?? false;
+    final highlight = data.extraInfo?.highlight?.enabled ?? false;
 
     return Card(
       margin: const EdgeInsets.all(16),

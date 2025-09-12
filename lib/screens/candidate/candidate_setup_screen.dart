@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../l10n/app_localizations.dart';
 import '../../models/party_model.dart';
+import '../../models/candidate_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../repositories/party_repository.dart';
 import '../../controllers/chat_controller.dart';
@@ -32,6 +33,9 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
   final partyController = TextEditingController();
   final manifestoController = TextEditingController();
   final symbolNameController = TextEditingController();
+  final birthDateController = TextEditingController();
+  DateTime? selectedBirthDate;
+  String? selectedGender;
 
   Party? selectedParty;
   String? symbolImageUrl;
@@ -81,6 +85,16 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
           );
         }
         manifestoController.text = existingCandidate.manifesto ?? '';
+  
+        // Load existing birthdate and gender from extraInfo
+        if (existingCandidate.extraInfo?.basicInfo != null) {
+          final basicInfo = existingCandidate.extraInfo!.basicInfo!;
+          if (basicInfo.dateOfBirth != null) {
+            selectedBirthDate = DateTime.parse(basicInfo.dateOfBirth!);
+            birthDateController.text = '${selectedBirthDate!.day}/${selectedBirthDate!.month}/${selectedBirthDate!.year}';
+          }
+          selectedGender = basicInfo.gender;
+        }
       } else {
         // Fallback to user display name
         nameController.text = currentUser.displayName ?? '';
@@ -121,7 +135,40 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
       }
     debugPrint('✅ Candidate Setup: Found candidate data: ${existingCandidate.name}, ID: ${existingCandidate.candidateId}');
 
-      // Update candidate with additional details
+      // Calculate age from birthdate
+      int? age;
+      if (selectedBirthDate != null) {
+        final now = DateTime.now();
+        age = now.year - selectedBirthDate!.year;
+        if (now.month < selectedBirthDate!.month ||
+            (now.month == selectedBirthDate!.month && now.day < selectedBirthDate!.day)) {
+          age--;
+        }
+      }
+
+      // Update candidate with additional details, including birthdate and gender
+      final updatedExtraInfo = existingCandidate.extraInfo?.copyWith(
+        basicInfo: BasicInfoData(
+          fullName: nameController.text.trim(),
+          dateOfBirth: selectedBirthDate?.toIso8601String(),
+          age: age,
+          gender: selectedGender,
+          // Preserve other basic info fields if they exist
+          education: existingCandidate.extraInfo?.basicInfo?.education,
+          profession: existingCandidate.extraInfo?.basicInfo?.profession,
+          languages: existingCandidate.extraInfo?.basicInfo?.languages,
+          experienceYears: existingCandidate.extraInfo?.basicInfo?.experienceYears,
+          previousPositions: existingCandidate.extraInfo?.basicInfo?.previousPositions,
+        ),
+      ) ?? ExtraInfo(
+        basicInfo: BasicInfoData(
+          fullName: nameController.text.trim(),
+          dateOfBirth: selectedBirthDate?.toIso8601String(),
+          age: age,
+          gender: selectedGender,
+        ),
+      );
+
       final updatedCandidate = existingCandidate.copyWith(
         name: nameController.text.trim(),
         party: selectedParty!.name,
@@ -129,6 +176,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
         manifesto: manifestoController.text.trim().isNotEmpty
             ? manifestoController.text.trim()
             : null,
+        extraInfo: updatedExtraInfo,
       );
 
       // Update candidate in hierarchical structure
@@ -180,6 +228,22 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
     setState(() {
       isLoading = false;
     });
+  }
+
+  Future<void> _selectBirthDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedBirthDate ?? DateTime.now().subtract(const Duration(days: 365 * 18)), // 18 years ago
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 13)), // 13 years ago (minimum age)
+    );
+
+    if (picked != null) {
+      setState(() {
+        selectedBirthDate = picked;
+        birthDateController.text = '${picked.day}/${picked.month}/${picked.year}';
+      });
+    }
   }
 
   Future<void> _pickSymbolImage() async {
@@ -442,6 +506,7 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
     partyController.dispose();
     manifestoController.dispose();
     symbolNameController.dispose();
+    birthDateController.dispose();
     super.dispose();
   }
 
@@ -498,6 +563,43 @@ class _CandidateSetupScreenState extends State<CandidateSetupScreen> {
                       return localizations.nameMustBeAtLeast2Characters;
                     }
                     return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Birth Date Field
+                TextFormField(
+                  controller: birthDateController,
+                  readOnly: true,
+                  onTap: () => _selectBirthDate(context),
+                  decoration: InputDecoration(
+                    labelText: 'Birth Date (Optional)',
+                    hintText: 'Select your birth date',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.calendar_today),
+                    suffixIcon: Icon(Icons.arrow_drop_down),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Gender Selection
+                DropdownButtonFormField<String>(
+                  value: selectedGender,
+                  decoration: InputDecoration(
+                    labelText: 'Gender (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.people),
+                  ),
+                  items: [
+                    DropdownMenuItem(value: 'male', child: Text('Male')),
+                    DropdownMenuItem(value: 'female', child: Text('Female')),
+                    DropdownMenuItem(value: 'other', child: Text('Other')),
+                    DropdownMenuItem(value: 'prefer_not_to_say', child: Text('Prefer not to say')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedGender = value;
+                    });
                   },
                 ),
                 const SizedBox(height: 24),

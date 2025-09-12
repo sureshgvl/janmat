@@ -1637,6 +1637,12 @@ abstract class AppLocalizations {
   /// **'Your candidate profile has been updated! You have 3 days of premium access to try all features.'**
   String get candidateProfileUpdatedMessage;
 
+  /// No description provided for @basicInfoUpdatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic info updated successfully'**
+  String get basicInfoUpdatedSuccessfully;
+
   /// No description provided for @symbolImageUploadedSuccessfully.
   ///
   /// In en, this message translates to:

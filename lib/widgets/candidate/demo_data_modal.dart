@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../services/demo_data_service.dart';
 import '../../models/achievement_model.dart';
 
@@ -284,13 +285,28 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                     return const SizedBox.shrink();
                                   }).toList(),
                                 )
-                              : Text(
-                                  previewText?.toString() ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    height: 1.5,
-                                  ),
-                                ),
+                              : widget.category == 'manifesto'
+                                  ? MarkdownBody(
+                                      data: previewText?.toString() ?? '',
+                                      styleSheet: MarkdownStyleSheet(
+                                        p: const TextStyle(
+                                          fontSize: 14,
+                                          height: 1.5,
+                                        ),
+                                        strong: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    )
+                                  : Text(
+                                      previewText?.toString() ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        height: 1.5,
+                                      ),
+                                    ),
                         ),
                       ),
                     ],

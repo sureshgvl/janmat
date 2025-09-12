@@ -820,6 +820,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get candidateProfileUpdatedMessage => 'तुमचा उमेदवार प्रोफाइल अपडेट झाला आहे! तुम्हाला सर्व वैशिष्ट्ये ट्राय करण्यासाठी 3 दिवस प्रीमियम प्रवेश मिळाला आहे.';
 
   @override
+  String get basicInfoUpdatedSuccessfully => 'मूलभूत माहिती यशस्वीरित्या अपडेट झाली';
+
+  @override
   String get symbolImageUploadedSuccessfully => 'चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली';
 
   @override

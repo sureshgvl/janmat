@@ -218,6 +218,13 @@ class CandidateRepository {
         final data = doc.data()! as Map<String, dynamic>;
         final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = doc.id;
+
+        debugPrint('📄 Raw candidate data from DB:');
+        final extraInfo = data['extra_info'] as Map<String, dynamic>?;
+        debugPrint('   extra_info keys: ${extraInfo?.keys.toList() ?? 'null'}');
+        debugPrint('   education in extra_info: ${extraInfo?.containsKey('education') ?? false}');
+        debugPrint('   education value: ${extraInfo != null && extraInfo.containsKey('education') ? extraInfo['education'] : 'not found'}');
+
       debugPrint('✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})');
         return Candidate.fromJson(candidateData);
       }
@@ -261,7 +268,7 @@ class CandidateRepository {
     return null;
   }
 
-  // Update candidate extra info
+  // Update candidate extra info (legacy - saves entire object)
   Future<bool> updateCandidateExtraInfo(Candidate candidate) async {
     try {
       // Find the candidate's location in the nested structure
@@ -298,6 +305,108 @@ class CandidateRepository {
       throw Exception('Candidate not found');
     } catch (e) {
       throw Exception('Failed to update candidate extra info: $e');
+    }
+  }
+
+  // Update specific fields only (optimized field-level updates)
+  Future<bool> updateCandidateFields(String candidateId, Map<String, dynamic> fieldUpdates) async {
+    try {
+      // Find the candidate's location in the nested structure
+      final citiesSnapshot = await _firestore.collection('cities').get();
+
+      for (var cityDoc in citiesSnapshot.docs) {
+        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+
+        for (var wardDoc in wardsSnapshot.docs) {
+          final candidateDoc = await wardDoc.reference
+              .collection('candidates')
+              .doc(candidateId)
+              .get();
+
+          if (candidateDoc.exists) {
+            // Found the candidate, update only specified fields
+            await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .update(fieldUpdates);
+            return true;
+          }
+        }
+      }
+
+      throw Exception('Candidate not found');
+    } catch (e) {
+      throw Exception('Failed to update candidate fields: $e');
+    }
+  }
+
+  // Update specific extra_info fields (most common use case)
+  Future<bool> updateCandidateExtraInfoFields(String candidateId, Map<String, dynamic> extraInfoUpdates) async {
+    try {
+      debugPrint('🔄 updateCandidateExtraInfoFields - Input: $extraInfoUpdates');
+
+      // Convert extra_info field updates to dot notation
+      final fieldUpdates = <String, dynamic>{};
+
+      extraInfoUpdates.forEach((key, value) {
+        fieldUpdates['extra_info.$key'] = value;
+        debugPrint('   Converting $key -> extra_info.$key = $value');
+      });
+
+      debugPrint('   Final field updates: $fieldUpdates');
+
+      return await updateCandidateFields(candidateId, fieldUpdates);
+    } catch (e) {
+      throw Exception('Failed to update candidate extra info fields: $e');
+    }
+  }
+
+  // Batch update multiple fields at once
+  Future<bool> batchUpdateCandidateFields(String candidateId, Map<String, dynamic> updates) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Find the candidate's location
+      final citiesSnapshot = await _firestore.collection('cities').get();
+      String? candidateCityId;
+      String? candidateWardId;
+
+      for (var cityDoc in citiesSnapshot.docs) {
+        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+
+        for (var wardDoc in wardsSnapshot.docs) {
+          final candidateDoc = await wardDoc.reference
+              .collection('candidates')
+              .doc(candidateId)
+              .get();
+
+          if (candidateDoc.exists) {
+            candidateCityId = cityDoc.id;
+            candidateWardId = wardDoc.id;
+            break;
+          }
+        }
+        if (candidateCityId != null) break;
+      }
+
+      if (candidateCityId == null || candidateWardId == null) {
+        throw Exception('Candidate not found');
+      }
+
+      final candidateRef = _firestore
+          .collection('cities')
+          .doc(candidateCityId)
+          .collection('wards')
+          .doc(candidateWardId)
+          .collection('candidates')
+          .doc(candidateId);
+
+      batch.update(candidateRef, updates);
+      await batch.commit();
+
+      return true;
+    } catch (e) {
+      throw Exception('Failed to batch update candidate fields: $e');
     }
   }
 

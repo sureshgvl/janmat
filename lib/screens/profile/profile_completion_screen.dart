@@ -9,8 +9,11 @@ import '../../models/user_model.dart';
 import '../../models/city_model.dart';
 import '../../models/ward_model.dart';
 import '../../models/candidate_model.dart';
+import '../../models/party_model.dart';
 import '../../repositories/candidate_repository.dart';
+import '../../repositories/party_repository.dart';
 import '../../widgets/modal_selector.dart';
+import '../../utils/symbol_utils.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
@@ -24,6 +27,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final loginController = Get.find<LoginController>();
   final chatController = Get.find<ChatController>();
   final candidateRepository = CandidateRepository();
+  final partyRepository = PartyRepository();
 
   // Form controllers
   final nameController = TextEditingController();
@@ -33,18 +37,24 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   String? selectedGender;
   City? selectedCity;
   Ward? selectedWard;
+  Party? selectedParty;
 
   List<City> cities = [];
   List<Ward> wards = [];
+  List<Party> parties = [];
   bool isLoading = false;
   bool isLoadingCities = true;
+  bool isLoadingParties = true;
   bool _isNamePreFilled = false;
   bool _isPhonePreFilled = false;
+  String? currentUserRole;
 
   @override
   void initState() {
     super.initState();
     _loadCities();
+    _loadParties();
+    _loadUserRole();
     _preFillUserData();
   }
 
@@ -134,6 +144,40 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
+  Future<void> _loadParties() async {
+    try {
+      parties = await partyRepository.getActiveParties();
+      setState(() {
+        isLoadingParties = false;
+      });
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to load parties: $e');
+      setState(() {
+        isLoadingParties = false;
+      });
+    }
+  }
+
+  Future<void> _loadUserRole() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      setState(() {
+        currentUserRole = userDoc.data()?['role'] ?? 'voter';
+      });
+    } catch (e) {
+      debugPrint('Error loading user role: $e');
+      setState(() {
+        currentUserRole = 'voter';
+      });
+    }
+  }
+
   Future<void> _loadWards(String cityId, BuildContext context) async {
     final localizations = AppLocalizations.of(context)!;
 
@@ -161,6 +205,191 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
+  void _showPartySelectionModal(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.flag,
+                      color: Colors.blue,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Select Political Party',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.blue,
+                        size: 28,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Party List
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: parties.length,
+                  itemBuilder: (context, index) {
+                    final party = parties[index];
+                    final isSelected = selectedParty?.id == party.id;
+
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          selectedParty = party;
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.blue.shade50 : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? Colors.blue.shade200 : Colors.grey.shade200,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.blue.shade100,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            // Party Symbol
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(7),
+                                child: Image(
+                                  image: SymbolUtils.getSymbolImageProvider(
+                                    SymbolUtils.getPartySymbolPathFromParty(party)
+                                  ),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Icon(
+                                        Icons.flag,
+                                        size: 32,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 16),
+
+                            // Party Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    party.getDisplayName(Localizations.localeOf(context).languageCode),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    party.abbreviation,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Selection Indicator
+                            if (isSelected)
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _saveProfile(BuildContext context) async {
     final localizations = AppLocalizations.of(context)!;
 
@@ -168,6 +397,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
     if (selectedCity == null || selectedWard == null || selectedGender == null) {
       Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+      return;
+    }
+
+    // For candidates, party selection is required
+    if (currentUserRole == 'candidate' && selectedParty == null) {
+      Get.snackbar(localizations.error, 'Please select your political party');
       return;
     }
 
@@ -229,12 +464,23 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       // If user is a candidate, create basic candidate record immediately
       if (currentRole == 'candidate') {
         try {
-          // Create basic candidate record
+          // Calculate age from birthdate
+          int? age;
+          if (selectedBirthDate != null) {
+            final now = DateTime.now();
+            age = now.year - selectedBirthDate!.year;
+            if (now.month < selectedBirthDate!.month ||
+                (now.month == selectedBirthDate!.month && now.day < selectedBirthDate!.day)) {
+              age--;
+            }
+          }
+
+          // Create basic candidate record with birthdate, gender, and selected party
           final candidate = Candidate(
-            candidateId: 'temp_${currentUser.uid}', // Temporary ID, will be updated in candidate setup
+            candidateId: 'temp_${currentUser.uid}', // Temporary ID
             userId: currentUser.uid,
             name: nameController.text.trim(),
-            party: 'Independent', // Default party, will be updated in candidate setup
+            party: selectedParty!.name, // Use selected party
             cityId: selectedCity!.cityId,
             wardId: selectedWard!.wardId,
             contact: Contact(
@@ -244,7 +490,15 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
             sponsored: false,
             premium: false,
             createdAt: DateTime.now(),
-            manifesto: null, // Will be updated in candidate setup
+            manifesto: null, // Can be updated later in dashboard
+            extraInfo: ExtraInfo(
+              basicInfo: BasicInfoData(
+                fullName: nameController.text.trim(),
+                dateOfBirth: selectedBirthDate?.toIso8601String(),
+                age: age,
+                gender: selectedGender,
+              ),
+            ),
           );
 
           // Save basic candidate record to make them visible to voters
@@ -273,16 +527,15 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         }
       }
 
-      // Navigate based on role
+      // Navigate to home for all users (streamlined flow)
+      Get.offAllNamed('/home');
       if (currentRole == 'candidate') {
-        Get.offAllNamed('/candidate-setup');
         Get.snackbar(
           localizations.profileCompleted,
-          localizations.basicProfileCompletedSetupCandidate,
+          'Profile completed! You can update your manifesto and other details from your dashboard.',
           duration: const Duration(seconds: 4),
         );
       } else {
-        Get.offAllNamed('/home');
         Get.snackbar(
           localizations.success,
           localizations.profileCompletedWardChatCreated,
@@ -430,10 +683,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     prefixIcon: Icon(Icons.people),
                   ),
                   items: [
-                    DropdownMenuItem(value: 'male', child: Text(localizations.male)),
-                    DropdownMenuItem(value: 'female', child: Text(localizations.female)),
-                    DropdownMenuItem(value: 'other', child: Text(localizations.other)),
-                    DropdownMenuItem(value: 'prefer_not_to_say', child: Text(localizations.preferNotToSay)),
+                    DropdownMenuItem(value: 'Male', child: Text(localizations.male)),
+                    DropdownMenuItem(value: 'Female', child: Text(localizations.female)),
+                    DropdownMenuItem(value: 'Other', child: Text(localizations.other)),
+                    DropdownMenuItem(value: 'Prefer Not to Say', child: Text(localizations.preferNotToSay)),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -496,7 +749,64 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Party Selection (only for candidates)
+                if (currentUserRole == 'candidate') ...[
+                  if (isLoadingParties)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    InkWell(
+                      onTap: () => _showPartySelectionModal(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Political Party (Required)',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.flag),
+                          suffixIcon: const Icon(Icons.arrow_drop_down),
+                        ),
+                        child: selectedParty != null
+                            ? Row(
+                                children: [
+                                  // Selected Party Symbol
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    child: Image(
+                                      image: SymbolUtils.getSymbolImageProvider(
+                                        SymbolUtils.getPartySymbolPathFromParty(selectedParty!)
+                                      ),
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(
+                                          Icons.flag,
+                                          size: 28,
+                                          color: Colors.grey,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  // Selected Party Name
+                                  Expanded(
+                                    child: Text(
+                                      selectedParty!.getDisplayName(Localizations.localeOf(context).languageCode),
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                'Select your political party',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                      ),
+                    ),
+                  const SizedBox(height: 32),
+                ],
 
                 // Submit Button
                 SizedBox(
