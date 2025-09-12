@@ -104,6 +104,87 @@ class CandidateDataController extends GetxController {
       case 'manifesto':
         updatedExtra = currentExtra.copyWith(manifesto: value);
         break;
+      case 'manifesto_promises':
+        // Convert List<Map<String, dynamic>> to List<String> for the model
+        final promisesList = value as List<Map<String, dynamic>>;
+        final stringPromises = promisesList.map((promise) {
+          final title = promise['title'] ?? '';
+          final points = promise['points'] as List<dynamic>? ?? [];
+          if (title.isNotEmpty && points.isNotEmpty) {
+            // Combine title and points into a formatted string
+            final pointsText = points.map((point) => '• $point').join('\n');
+            return '**$title:**\n$pointsText';
+          } else if (title.isNotEmpty) {
+            return title;
+          } else {
+            return points.isNotEmpty ? points.first.toString() : '';
+          }
+        }).where((promise) => promise.isNotEmpty).toList();
+
+        // Update the manifesto with the converted promises
+        final currentManifesto = currentExtra.manifesto ?? ManifestoData();
+        final updatedManifesto = ManifestoData(
+          title: currentManifesto.title,
+          promises: stringPromises.cast<String>(),
+          pdfUrl: currentManifesto.pdfUrl,
+          images: currentManifesto.images,
+          videoUrl: currentManifesto.videoUrl,
+        );
+        trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
+        updatedExtra = currentExtra.copyWith(manifesto: updatedManifesto);
+        break;
+      case 'manifesto_title':
+        final currentManifesto = currentExtra.manifesto ?? ManifestoData();
+        final updatedManifesto = ManifestoData(
+          title: value,
+          promises: currentManifesto.promises,
+          pdfUrl: currentManifesto.pdfUrl,
+          images: currentManifesto.images,
+          videoUrl: currentManifesto.videoUrl,
+        );
+        trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
+        updatedExtra = currentExtra.copyWith(manifesto: updatedManifesto);
+        break;
+      case 'manifesto_pdf':
+        final currentManifesto = currentExtra.manifesto ?? ManifestoData();
+        final updatedManifesto = ManifestoData(
+          title: currentManifesto.title,
+          promises: currentManifesto.promises,
+          pdfUrl: value,
+          images: currentManifesto.images,
+          videoUrl: currentManifesto.videoUrl,
+        );
+        trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
+        updatedExtra = currentExtra.copyWith(manifesto: updatedManifesto);
+        break;
+      case 'manifesto_image':
+        final currentManifesto = currentExtra.manifesto ?? ManifestoData();
+        final currentImages = List<String>.from(currentManifesto.images ?? []);
+        if (value != null && !currentImages.contains(value)) {
+          currentImages.add(value);
+        }
+        final updatedManifesto = ManifestoData(
+          title: currentManifesto.title,
+          promises: currentManifesto.promises,
+          pdfUrl: currentManifesto.pdfUrl,
+          images: currentImages,
+          videoUrl: currentManifesto.videoUrl,
+        );
+        trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
+        updatedExtra = currentExtra.copyWith(manifesto: updatedManifesto);
+        break;
+      case 'manifesto_video':
+        final currentManifesto = currentExtra.manifesto ?? ManifestoData();
+        final updatedManifesto = ManifestoData(
+          title: currentManifesto.title,
+          promises: currentManifesto.promises,
+          pdfUrl: currentManifesto.pdfUrl,
+          images: currentManifesto.images,
+          videoUrl: value,
+        );
+        trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
+        updatedExtra = currentExtra.copyWith(manifesto: updatedManifesto);
+        break;
       case 'contact':
         updatedExtra = currentExtra.copyWith(contact: value);
         break;

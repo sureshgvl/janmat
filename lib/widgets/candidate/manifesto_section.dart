@@ -36,7 +36,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
   final FileUploadService _fileUploadService = FileUploadService();
   late TextEditingController _manifestoController;
   late TextEditingController _titleController;
-  late List<Map<String, Object?>> _promiseControllers;
+  late List<Map<String, dynamic>> _promiseControllers;
   String _currentLanguage = 'en'; // 'en' for English, 'mr' for Marathi
   String _translatedText = '';
   bool _isTranslating = false;
@@ -50,6 +50,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
   @override
   void initState() {
     super.initState();
+    debugPrint('ManifestoSection initState called');
     final data = widget.editedData ?? widget.candidateData;
     _originalText = data.extraInfo?.manifesto?.title ?? '';
     _translatedText = _originalText ?? '';
@@ -57,73 +58,163 @@ class _ManifestoSectionState extends State<ManifestoSection> {
 
     // Initialize title
     _manifestoTitle = data.extraInfo?.manifesto?.title ?? '';
-    _titleController = TextEditingController(text: _manifestoTitle);
+    _titleController = TextEditingController(text: _withBoldMarkers(_manifestoTitle ?? ''));
 
     // Initialize manifesto promises list with structured format
     final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
-    _manifestoPromises = rawPromises.map((promise) => {'title': promise, 'points': [promise]}).toList();
+    debugPrint('Raw promises from data: $rawPromises');
+    _manifestoPromises = rawPromises.map((promise) {
+      if (promise is Map<String, dynamic>) {
+        // Already structured format
+        return promise;
+      } else {
+        // Convert string format to structured format (avoid duplicating title as a point)
+        return <String, dynamic>{'title': promise.toString(), 'points': <dynamic>[]};
+      }
+    }).cast<Map<String, dynamic>>().toList();
 
     // Initialize controllers for existing promises
-    _promiseControllers = _manifestoPromises.map((promise) => <String, Object?>{
-      'title': TextEditingController(text: promise['title'] ?? ''),
-      'points': (promise['points'] as List<dynamic>? ?? []).map((point) =>
-          TextEditingController(text: point.toString())).toList(),
+    _promiseControllers = _manifestoPromises.map((promise) {
+      final title = promise['title'] as String? ?? '';
+      final points = promise['points'] as List<dynamic>? ?? <dynamic>[];
+      return <String, dynamic>{
+        'title': TextEditingController(text: _withBoldMarkers(title)),
+        'points': points.map((point) => TextEditingController(text: point.toString())).toList(),
+      };
     }).toList();
 
     // If no promises exist, create one empty promise
     if (_manifestoPromises.isEmpty) {
-      _manifestoPromises.add({'title': '', 'points': ['']});
-      _promiseControllers.add(<String, Object?>{
+      debugPrint('No promises found, creating empty promise');
+      _manifestoPromises.add(<String, dynamic>{'title': '', 'points': <dynamic>['']});
+      _promiseControllers.add(<String, dynamic>{
         'title': TextEditingController(),
-        'points': [TextEditingController()],
+        'points': <TextEditingController>[TextEditingController()],
       });
     }
+    debugPrint('Initialized with ${_manifestoPromises.length} promises');
   }
 
   @override
   void didUpdateWidget(ManifestoSection oldWidget) {
     super.didUpdateWidget(oldWidget);
+    debugPrint('ManifestoSection didUpdateWidget called, isEditing: ${widget.isEditing}');
     final data = widget.editedData ?? widget.candidateData;
-    final newText = data.extraInfo?.manifesto ?? '';
+    final newText = data.extraInfo?.manifesto?.title ?? '';
     if (_originalText != newText) {
-      _originalText = newText as String?;
-      _manifestoController.text = newText as String;
+      debugPrint('Updating original text from $_originalText to $newText');
+      _originalText = newText;
+      _manifestoController.text = newText;
       if (_currentLanguage == 'en') {
-        _translatedText = newText as String;
+        _translatedText = newText;
       } else {
-        _translateText(newText as String, _currentLanguage);
+        _translateText(newText, _currentLanguage);
       }
     }
 
     // Update title
     final newTitle = data.extraInfo?.manifesto?.title ?? '';
     if (_manifestoTitle != newTitle) {
+      debugPrint('Updating title from $_manifestoTitle to $newTitle');
       _manifestoTitle = newTitle;
-      _titleController.text = newTitle;
+      _titleController.text = _withBoldMarkers(newTitle);
     }
 
-    // Update manifesto promises
-    final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
-    final newManifestoPromises = rawPromises.map((promise) => {'title': promise, 'points': [promise]}).toList();
-    if (_manifestoPromises != newManifestoPromises) {
-      _manifestoPromises = List.from(newManifestoPromises);
+    // Only update promises if we're not in editing mode or if the data has actually changed
+    if (!widget.isEditing) {
+      final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
+      debugPrint('Raw promises in didUpdateWidget: $rawPromises');
+      final newManifestoPromises = rawPromises.map((promise) {
+        if (promise is Map<String, dynamic>) {
+          // Already structured format
+          return promise;
+        } else {
+          // Convert string format to structured format (avoid duplicating title as a point)
+          return <String, dynamic>{'title': promise.toString(), 'points': <dynamic>[]};
+        }
+      }).cast<Map<String, dynamic>>().toList();
 
-      // Update controllers
-      _promiseControllers = _manifestoPromises.map((promise) => <String, Object?>{
-        'title': TextEditingController(text: promise['title'] ?? ''),
-        'points': (promise['points'] as List<dynamic>? ?? []).map((point) =>
-            TextEditingController(text: point.toString())).toList(),
-      }).toList();
+      // Only update if the promises have actually changed
+      if (_manifestoPromises.length != newManifestoPromises.length ||
+          !_arePromisesEqual(_manifestoPromises, newManifestoPromises)) {
+        debugPrint('Updating promises from ${_manifestoPromises.length} to ${newManifestoPromises.length} promises');
+        _manifestoPromises = List.from(newManifestoPromises);
 
-      // If no promises exist, create one empty promise
-      if (_manifestoPromises.isEmpty) {
-        _manifestoPromises.add({'title': '', 'points': ['']});
-        _promiseControllers.add(<String, Object?>{
-          'title': TextEditingController(),
-          'points': [TextEditingController()],
-        });
+        // Update controllers
+        _promiseControllers = _manifestoPromises.map((promise) {
+          final title = promise['title'] as String? ?? '';
+          final points = promise['points'] as List<dynamic>? ?? <dynamic>[];
+          return <String, dynamic>{
+            'title': TextEditingController(text: _withBoldMarkers(title)),
+            'points': points.map((point) => TextEditingController(text: point.toString())).toList(),
+          };
+        }).toList();
+
+        // If no promises exist, create one empty promise
+        if (_manifestoPromises.isEmpty) {
+          debugPrint('No promises found in didUpdateWidget, creating empty promise');
+          _manifestoPromises.add(<String, dynamic>{'title': '', 'points': <dynamic>['']});
+          _promiseControllers.add(<String, Object?>{
+            'title': TextEditingController(),
+            'points': <TextEditingController>[TextEditingController()],
+          });
+        }
+      } else {
+        debugPrint('Promises unchanged, skipping update');
+      }
+    } else {
+      debugPrint('In editing mode, skipping promise updates');
+    }
+  }
+
+  bool _arePromisesEqual(List<Map<String, dynamic>> list1, List<Map<String, dynamic>> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i]['title'] != list2[i]['title']) return false;
+      final points1 = list1[i]['points'] as List<dynamic>? ?? [];
+      final points2 = list2[i]['points'] as List<dynamic>? ?? [];
+      if (points1.length != points2.length) return false;
+      for (int j = 0; j < points1.length; j++) {
+        if (points1[j].toString() != points2[j].toString()) return false;
       }
     }
+    return true;
+  }
+
+  // Remove duplicates, empties, and title-duplicates from points for display
+  List<String> _filteredPoints(dynamic points, String? title) {
+    final String titleTrim = _stripBoldMarkers((title ?? '').trim());
+    final List<String> result = [];
+    if (points is List) {
+      for (final p in points) {
+        final s = _stripBoldMarkers(p?.toString() ?? '');
+        if (s.isEmpty) continue;
+        if (s == titleTrim) continue;
+        if (!result.contains(s)) {
+          result.add(s);
+        }
+      }
+    }
+    return result;
+  }
+
+  // Strip simple markdown bold markers for display
+  String _stripBoldMarkers(String s) {
+    if (s.isEmpty) return s;
+    // Remove any ** surrounding markers and any standalone occurrences
+    final trimmed = s.trim();
+    if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length >= 4) {
+      return trimmed.substring(2, trimmed.length - 2).trim();
+    }
+    return trimmed.replaceAll('**', '').trim();
+  }
+
+  // Ensure title text has ** markers for editing fields
+  String _withBoldMarkers(String s) {
+    final t = s.trim();
+    if (t.isEmpty) return t;
+    if (t.startsWith('**') && t.endsWith('**') && t.length >= 4) return t;
+    return '**$t**';
   }
 
   @override
@@ -131,8 +222,8 @@ class _ManifestoSectionState extends State<ManifestoSection> {
     _manifestoController.dispose();
     _titleController.dispose();
     for (var controllerMap in _promiseControllers) {
-      (controllerMap['title'] as TextEditingController).dispose();
-      for (var pointController in (controllerMap['points'] as List<TextEditingController>)) {
+      (controllerMap['title'] as TextEditingController?)?.dispose();
+      for (var pointController in (controllerMap['points'] as List<TextEditingController>? ?? [])) {
         pointController.dispose();
       }
     }
@@ -518,19 +609,28 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Use the specific demo format requested
-                            this.setState(() {
-                              (_promiseControllers[index]['title'] as TextEditingController).text = 'स्वच्छ पाणी व चांगले रस्ते';
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).clear();
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).addAll([
+                            debugPrint('Using Infrastructure & Cleanliness template for promise $index');
+                            setState(() {
+                              // Update controllers
+                              final titleController = _promiseControllers[index]['title'] as TextEditingController? ?? TextEditingController();
+                              titleController.text = _withBoldMarkers('स्वच्छ पाणी व चांगले रस्ते');
+                              _promiseControllers[index]['title'] = titleController;
+
+                              // Clear existing points and add new ones
+                              final pointsList = <TextEditingController>[
                                 TextEditingController(text: 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.'),
                                 TextEditingController(text: 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.'),
-                              ]);
-                              _manifestoPromises[index] = {
+                              ];
+                              _promiseControllers[index]['points'] = pointsList;
+
+                              // Update manifesto data
+                              _manifestoPromises[index] = <String, dynamic>{
                                 'title': 'स्वच्छ पाणी व चांगले रस्ते',
-                                'points': ['प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.', 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.']
+                                'points': <dynamic>['प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.', 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.']
                               };
                             });
                             widget.onManifestoPromisesChange(_manifestoPromises);
+                            debugPrint('Template applied successfully to promise $index');
                             Navigator.of(context).pop();
                           },
                           child: const Text('Use This Template'),
@@ -611,19 +711,28 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Use transparency demo format
-                            this.setState(() {
-                              (_promiseControllers[index]['title'] as TextEditingController).text = 'पारदर्शकता आणि जबाबदारी';
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).clear();
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).addAll([
+                            debugPrint('Using Transparency & Accountability template for promise $index');
+                            setState(() {
+                              // Update controllers
+                              final titleController = _promiseControllers[index]['title'] as TextEditingController? ?? TextEditingController();
+                              titleController.text = _withBoldMarkers('पारदर्शकता आणि जबाबदारी');
+                              _promiseControllers[index]['title'] = titleController;
+
+                              // Clear existing points and add new ones
+                              final pointsList = <TextEditingController>[
                                 TextEditingController(text: 'नियमित सार्वजनिक बैठक आणि अद्यतने'),
                                 TextEditingController(text: 'खुला बजेट चर्चा'),
-                              ]);
-                              _manifestoPromises[index] = {
+                              ];
+                              _promiseControllers[index]['points'] = pointsList;
+
+                              // Update manifesto data
+                              _manifestoPromises[index] = <String, dynamic>{
                                 'title': 'पारदर्शकता आणि जबाबदारी',
-                                'points': ['नियमित सार्वजनिक बैठक आणि अद्यतने', 'खुला बजेट चर्चा']
+                                'points': <dynamic>['नियमित सार्वजनिक बैठक आणि अद्यतने', 'खुला बजेट चर्चा']
                               };
                             });
                             widget.onManifestoPromisesChange(_manifestoPromises);
+                            debugPrint('Template applied successfully to promise $index');
                             Navigator.of(context).pop();
                           },
                           child: const Text('Use This Template'),
@@ -704,19 +813,28 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Use youth education demo format
-                            this.setState(() {
-                              (_promiseControllers[index]['title'] as TextEditingController).text = 'शिक्षण आणि युवा विकास';
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).clear();
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).addAll([
+                            debugPrint('Using Education & Youth Development template for promise $index');
+                            setState(() {
+                              // Update controllers
+                              final titleController = _promiseControllers[index]['title'] as TextEditingController? ?? TextEditingController();
+                              titleController.text = _withBoldMarkers('शिक्षण आणि युवा विकास');
+                              _promiseControllers[index]['title'] = titleController;
+
+                              // Clear existing points and add new ones
+                              final pointsList = <TextEditingController>[
                                 TextEditingController(text: 'डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र'),
                                 TextEditingController(text: 'कौशल्य प्रशिक्षण कार्यक्रम'),
-                              ]);
-                              _manifestoPromises[index] = {
+                              ];
+                              _promiseControllers[index]['points'] = pointsList;
+
+                              // Update manifesto data
+                              _manifestoPromises[index] = <String, dynamic>{
                                 'title': 'शिक्षण आणि युवा विकास',
-                                'points': ['डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र', 'कौशल्य प्रशिक्षण कार्यक्रम']
+                                'points': <dynamic>['डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र', 'कौशल्य प्रशिक्षण कार्यक्रम']
                               };
                             });
                             widget.onManifestoPromisesChange(_manifestoPromises);
+                            debugPrint('Template applied successfully to promise $index');
                             Navigator.of(context).pop();
                           },
                           child: const Text('Use This Template'),
@@ -797,19 +915,28 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Use women safety demo format
-                            this.setState(() {
-                              (_promiseControllers[index]['title'] as TextEditingController).text = 'महिला आणि सुरक्षा';
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).clear();
-                              (_promiseControllers[index]['points'] as List<TextEditingController>).addAll([
+                            debugPrint('Using Women & Safety Measures template for promise $index');
+                            setState(() {
+                              // Update controllers
+                              final titleController = _promiseControllers[index]['title'] as TextEditingController? ?? TextEditingController();
+                              titleController.text = _withBoldMarkers('महिला आणि सुरक्षा');
+                              _promiseControllers[index]['title'] = titleController;
+
+                              // Clear existing points and add new ones
+                              final pointsList = <TextEditingController>[
                                 TextEditingController(text: 'महिलांसाठी विशेष आरोग्य केंद्र'),
                                 TextEditingController(text: 'प्रत्येक चौकात CCTV कॅमेरे'),
-                              ]);
-                              _manifestoPromises[index] = {
+                              ];
+                              _promiseControllers[index]['points'] = pointsList;
+
+                              // Update manifesto data
+                              _manifestoPromises[index] = <String, dynamic>{
                                 'title': 'महिला आणि सुरक्षा',
-                                'points': ['महिलांसाठी विशेष आरोग्य केंद्र', 'प्रत्येक चौकात CCTV कॅमेरे']
+                                'points': <dynamic>['महिलांसाठी विशेष आरोग्य केंद्र', 'प्रत्येक चौकात CCTV कॅमेरे']
                               };
                             });
                             widget.onManifestoPromisesChange(_manifestoPromises);
+                            debugPrint('Template applied successfully to promise $index');
                             Navigator.of(context).pop();
                           },
                           child: const Text('Use This Template'),
@@ -984,7 +1111,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
   @override
   Widget build(BuildContext context) {
     final data = widget.editedData ?? widget.candidateData;
-    final manifesto = data.extraInfo?.manifesto ?? '';
+    final manifesto = data.extraInfo?.manifesto?.title ?? '';
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -1103,7 +1230,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                     tooltip: 'Use demo title',
                   ),
                 ),
-                onChanged: widget.onManifestoTitleChange,
+                onChanged: (v) => widget.onManifestoTitleChange(_stripBoldMarkers(v)),
               ),
               const SizedBox(height: 16),
             ] else if (_manifestoTitle != null && _manifestoTitle!.isNotEmpty) ...[
@@ -1116,7 +1243,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                   border: Border.all(color: Colors.blue.shade200),
                 ),
                 child: Text(
-                  _manifestoTitle!,
+                  _stripBoldMarkers(_manifestoTitle!),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1176,6 +1303,7 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                                           _promiseControllers.removeAt(index);
                                         });
                                         widget.onManifestoPromisesChange(_manifestoPromises);
+                                        debugPrint('Deleted promise at index $index, remaining promises: ${_manifestoPromises.length}');
                                       },
                                       tooltip: 'Delete Promise',
                                     ),
@@ -1190,46 +1318,55 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                               Padding(
                                 padding: const EdgeInsets.only(left: 12),
                                 child: TextFormField(
-                                  controller: _promiseControllers[index]['title'] as TextEditingController,
+                                  controller: _promiseControllers[index]['title'] as TextEditingController? ?? TextEditingController(),
                                   decoration: const InputDecoration(
                                     labelText: 'वचनाचा शीर्षक',
                                     border: OutlineInputBorder(),
                                     hintText: 'उदा. स्वच्छ पाणी व चांगले रस्ते',
                                   ),
                                   onChanged: (value) {
-                                    _manifestoPromises[index]['title'] = value;
+                                    _manifestoPromises[index]['title'] = _stripBoldMarkers(value);
                                     widget.onManifestoPromisesChange(_manifestoPromises);
                                   },
                                 ),
                               ),
                               const SizedBox(height: 12),
                               // Promise Points
-                              ...List.generate((_promiseControllers[index]['points'] as List<TextEditingController>).length, (pointIndex) {
+                              ...List.generate(((_promiseControllers[index]['points'] as List<TextEditingController>?) ?? []).length, (pointIndex) {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 8, left: 24),
                                   child: Row(
                                     children: [
                                       Expanded(
                                         child: TextFormField(
-                                          controller: (_promiseControllers[index]['points'] as List<TextEditingController>)[pointIndex],
+                                          controller: ((_promiseControllers[index]['points'] as List<TextEditingController>?) ?? [])[pointIndex],
                                           decoration: InputDecoration(
                                             labelText: 'बिंदू ${pointIndex + 1}',
                                             border: const OutlineInputBorder(),
                                             hintText: pointIndex == 0 ? 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.' : 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.',
                                           ),
                                           onChanged: (value) {
-                                            (_manifestoPromises[index]['points'] as List<dynamic>)[pointIndex] = value;
+                                            final pointsList = _manifestoPromises[index]['points'] as List<dynamic>? ?? [];
+                                            if (pointIndex < pointsList.length) {
+                                              pointsList[pointIndex] = value;
+                                              _manifestoPromises[index]['points'] = pointsList;
+                                            }
                                             widget.onManifestoPromisesChange(_manifestoPromises);
                                           },
                                         ),
                                       ),
-                                      if ((_promiseControllers[index]['points'] as List<TextEditingController>).length > 1)
+                                      if (((_promiseControllers[index]['points'] as List<TextEditingController>?) ?? []).length > 1)
                                         IconButton(
                                           icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                                           onPressed: () {
+                                            final pointsList = _promiseControllers[index]['points'] as List<TextEditingController>? ?? [];
+                                            final manifestoPointsList = _manifestoPromises[index]['points'] as List<dynamic>? ?? [];
+
                                             setState(() {
-                                              (_promiseControllers[index]['points'] as List<TextEditingController>).removeAt(pointIndex);
-                                              (_manifestoPromises[index]['points'] as List<dynamic>).removeAt(pointIndex);
+                                              pointsList.removeAt(pointIndex);
+                                              manifestoPointsList.removeAt(pointIndex);
+                                              _promiseControllers[index]['points'] = pointsList;
+                                              _manifestoPromises[index]['points'] = manifestoPointsList;
                                             });
                                             widget.onManifestoPromisesChange(_manifestoPromises);
                                           },
@@ -1241,17 +1378,31 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                               }),
                               // Add Point Button
                               Padding(
-                                padding: const EdgeInsets.only(left: 16),
-                                child: TextButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      (_promiseControllers[index]['points'] as List<TextEditingController>).add(TextEditingController());
-                                      (_manifestoPromises[index]['points'] as List<dynamic>).add('');
-                                    });
-                                    widget.onManifestoPromisesChange(_manifestoPromises);
-                                  },
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text('बिंदू जोडा'),
+                                padding: const EdgeInsets.only(left: 16, top: 8),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: TextButton.icon(
+                                    onPressed: () {
+                                      debugPrint('Add Point button pressed for promise $index');
+                                      final pointsList = _promiseControllers[index]['points'] as List<TextEditingController>? ?? [];
+                                      final manifestoPointsList = _manifestoPromises[index]['points'] as List<dynamic>? ?? [];
+
+                                      setState(() {
+                                        pointsList.add(TextEditingController());
+                                        manifestoPointsList.add('');
+                                        _promiseControllers[index]['points'] = pointsList;
+                                        _manifestoPromises[index]['points'] = manifestoPointsList;
+                                      });
+                                      widget.onManifestoPromisesChange(_manifestoPromises);
+                                      debugPrint('Added point to promise $index, total points: ${pointsList.length}');
+                                    },
+                                    icon: const Icon(Icons.add, size: 16),
+                                    label: const Text('बिंदू जोडा'),
+                                    style: TextButton.styleFrom(
+                                      alignment: Alignment.centerLeft,
+                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -1263,23 +1414,29 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                 );
               }),
               const SizedBox(height: 12),
-              Center(
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
+                    debugPrint('Add New Promise button pressed');
                     setState(() {
-                      _manifestoPromises.add({'title': '', 'points': ['']});
-                      _promiseControllers.add(<String, Object?>{
+                      final newPromise = <String, dynamic>{'title': '', 'points': <dynamic>['']};
+                      final newController = <String, dynamic>{
                         'title': TextEditingController(),
-                        'points': [TextEditingController()],
-                      });
+                        'points': <TextEditingController>[TextEditingController()],
+                      };
+                      _manifestoPromises.add(newPromise);
+                      _promiseControllers.add(newController);
                     });
                     widget.onManifestoPromisesChange(_manifestoPromises);
+                    debugPrint('Added new promise, total promises: ${_manifestoPromises.length}');
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Add New Promise'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
@@ -1321,13 +1478,32 @@ class _ManifestoSectionState extends State<ManifestoSection> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          '• $promise',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            height: 1.4,
-                            color: Color(0xFF6B7280),
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (promise['title'] != null && promise['title'].toString().isNotEmpty)
+                              Text(
+                                _stripBoldMarkers(promise['title'].toString()),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF374151),
+                                ),
+                              ),
+                            ..._filteredPoints(promise['points'], promise['title']?.toString()).map((point) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '• $point',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    height: 1.4,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ],
                         ),
                       ),
                     ],

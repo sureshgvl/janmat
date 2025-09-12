@@ -122,17 +122,27 @@ class LoginController extends GetxController {
       final userCredential = await _authRepository.signInWithGoogle();
       debugPrint('✅ Google authentication successful');
 
-      // Handle cancelled sign-in
+      // Handle cancelled sign-in or timeout with successful auth
       if (userCredential == null) {
-        _hideGoogleSignInLoadingDialog();
-        Get.snackbar("Cancelled", "Google sign-in was cancelled");
-        return;
+        // Check if authentication actually succeeded despite returning null
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          debugPrint('✅ Authentication succeeded despite null credential, proceeding with current user');
+          await _handleSuccessfulAuthenticationWithCurrentUser(currentUser);
+          return;
+        } else {
+          _hideGoogleSignInLoadingDialog();
+          Get.snackbar("Cancelled", "Google sign-in was cancelled");
+          return;
+        }
       }
       if (userCredential.user == null) {
         _hideGoogleSignInLoadingDialog();
         Get.snackbar("Error", "Google sign-in failed: No user returned");
         return;
       }
+
+      await _handleSuccessfulAuthentication(userCredential);
 
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Creating your profile...');
@@ -234,6 +244,68 @@ class LoginController extends GetxController {
   void _hideGoogleSignInLoadingDialog() {
     if (Get.isDialogOpen ?? false) {
       Get.back();
+    }
+  }
+
+  // Handle successful authentication flow
+  Future<void> _handleSuccessfulAuthentication(UserCredential userCredential) async {
+    // Update loading dialog message
+    _updateGoogleSignInLoadingDialog('Creating your profile...');
+
+    // Step 2: Keep loading while creating/updating user profile
+    debugPrint('👤 Creating/updating user profile...');
+    await _authRepository.createOrUpdateUser(userCredential.user!);
+    debugPrint('✅ User profile updated');
+
+    // Update loading dialog message
+    _updateGoogleSignInLoadingDialog('Setting up your account...');
+
+    // Step 3: Keep loading while registering device
+    debugPrint('📱 Registering device...');
+    await _deviceService.registerDevice(userCredential.user!.uid);
+    debugPrint('✅ Device registered');
+
+    // Update loading dialog message
+    _updateGoogleSignInLoadingDialog('Almost ready...');
+
+    // Step 4: Show success and navigate
+    Get.snackbar('Success', 'Google sign-in successful');
+
+    debugPrint('🏠 Checking profile completion and navigating...');
+    await _navigateBasedOnProfileCompletion(userCredential.user!);
+  }
+
+  // Handle successful authentication when userCredential is null but user is authenticated
+  Future<void> _handleSuccessfulAuthenticationWithCurrentUser(User user) async {
+    try {
+      // Update loading dialog message
+      _updateGoogleSignInLoadingDialog('Creating your profile...');
+
+      // Step 2: Keep loading while creating/updating user profile
+      debugPrint('👤 Creating/updating user profile...');
+      await _authRepository.createOrUpdateUser(user);
+      debugPrint('✅ User profile updated');
+
+      // Update loading dialog message
+      _updateGoogleSignInLoadingDialog('Setting up your account...');
+
+      // Step 3: Keep loading while registering device
+      debugPrint('📱 Registering device...');
+      await _deviceService.registerDevice(user.uid);
+      debugPrint('✅ Device registered');
+
+      // Update loading dialog message
+      _updateGoogleSignInLoadingDialog('Almost ready...');
+
+      // Step 4: Show success and navigate
+      Get.snackbar('Success', 'Google sign-in successful');
+
+      debugPrint('🏠 Checking profile completion and navigating...');
+      await _navigateBasedOnProfileCompletion(user);
+    } catch (e) {
+      debugPrint('❌ Error in successful authentication flow: $e');
+      _hideGoogleSignInLoadingDialog();
+      Get.snackbar('Error', 'Failed to complete sign-in setup: ${e.toString()}');
     }
   }
 

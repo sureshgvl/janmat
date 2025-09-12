@@ -113,35 +113,56 @@ class AuthRepository {
 
       // Step 4: Firebase authentication (can be slow - optimized)
       debugPrint('🔐 Authenticating with Firebase...');
+
+      // Use a longer timeout to handle App Check delays
       final UserCredential userCredential = await _firebaseAuth
           .signInWithCredential(credential)
           .timeout(
-            const Duration(seconds: 15),
+            const Duration(seconds: 45),
             onTimeout: () {
               debugPrint('⏰ Firebase authentication timeout');
-              throw 'Firebase authentication timed out. Please check your internet connection.';
+
+              // Check if authentication actually succeeded despite the timeout
+              final currentUser = _firebaseAuth.currentUser;
+              if (currentUser != null) {
+                debugPrint('✅ Authentication succeeded despite timeout - proceeding');
+                throw 'AUTH_SUCCESS_BUT_TIMEOUT'; // Special exception to handle in catch block
+              } else {
+                throw 'Firebase authentication timed out. Please check your internet connection.';
+              }
             },
           );
 
       debugPrint('✅ Firebase authentication successful for: ${userCredential.user?.displayName}');
 
-      // Step 5: User data operations (ultra-optimized background processing)
-      debugPrint('👤 Processing user data in background...');
-      final backgroundInit = BackgroundInitializer();
-
-      // Use background initializer for user creation/update to avoid frame drops
-      await backgroundInit.initializeServiceWithZeroFrames(
-        'UserDataSetup',
-        () => createOrUpdateUser(userCredential.user!),
-      );
+      // Step 5: User data operations (synchronous to avoid isolate issues)
+      debugPrint('👤 Processing user data synchronously...');
+      await createOrUpdateUser(userCredential.user!);
 
       stopPerformanceTimer('google_signin');
-      debugPrint('✅ Google Sign-In completed with zero frames');
+      debugPrint('✅ Google Sign-In completed successfully');
 
       return userCredential;
     } catch (e) {
       stopPerformanceTimer('google_signin');
       debugPrint("❌ Google Sign-In Error: $e");
+
+      // Handle the special case where auth succeeded but timed out
+      if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
+        debugPrint('✅ Handling successful authentication that timed out');
+
+        final currentUser = _firebaseAuth.currentUser;
+        if (currentUser != null) {
+          debugPrint('✅ Proceeding with authenticated user: ${currentUser.displayName}');
+
+          // Step 5: User data operations for successful auth
+          debugPrint('👤 Processing user data synchronously...');
+          await createOrUpdateUser(currentUser);
+
+          debugPrint('✅ Google Sign-In completed successfully despite timeout');
+          return null; // Return null to indicate success but no UserCredential
+        }
+      }
 
       // Provide more specific error messages
       if (e.toString().contains('network') || e.toString().contains('timeout')) {

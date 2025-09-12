@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
@@ -42,6 +43,28 @@ void main() async {
   startPerformanceTimer('firebase_init');
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+    // Initialize Firebase App Check with error handling
+    try {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: kDebugMode
+            ? AndroidProvider.debug
+            : AndroidProvider.playIntegrity,
+        appleProvider: AppleProvider.appAttest,
+      );
+      debugPrint('✅ Firebase App Check activated successfully');
+    } catch (e) {
+      debugPrint('⚠️ Firebase App Check activation failed: $e');
+      debugPrint('ℹ️ Continuing without App Check - this is normal if not configured in Firebase console');
+
+      // In debug mode, we can safely continue without App Check
+      if (kDebugMode) {
+        debugPrint('🔧 Running in debug mode without App Check');
+      } else {
+        // In release mode, App Check should be properly configured
+        debugPrint('⚠️ WARNING: App Check failed in release mode - authentication may be affected');
+      }
+    }
 
     // Configure Firebase for development (suppresses App Check warnings)
     if (kDebugMode) {
