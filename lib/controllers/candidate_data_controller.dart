@@ -4,17 +4,24 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
 import '../models/achievement_model.dart';
 import '../repositories/candidate_repository.dart';
+import '../repositories/event_repository.dart';
 import '../services/trial_service.dart';
 import '../services/file_upload_service.dart';
 
 class CandidateDataController extends GetxController {
   final CandidateRepository _candidateRepository = CandidateRepository();
+  final EventRepository _eventRepository = EventRepository();
   final TrialService _trialService = TrialService();
 
   var candidateData = Rx<Candidate?>(null);
   var editedData = Rx<Candidate?>(null);
   var isLoading = false.obs;
   var isPaid = false.obs;
+
+  // Events management
+  var events = RxList<EventData>([]);
+  var isEventsLoading = false.obs;
+  var eventsLastFetched = Rx<DateTime?>(null);
 
   // Change tracking for field-level updates
   final Map<String, dynamic> _changedFields = {};
@@ -105,27 +112,14 @@ class CandidateDataController extends GetxController {
         updatedExtra = currentExtra.copyWith(manifesto: value);
         break;
       case 'manifesto_promises':
-        // Convert List<Map<String, dynamic>> to List<String> for the model
+        // Store the structured promises directly (no conversion needed)
         final promisesList = value as List<Map<String, dynamic>>;
-        final stringPromises = promisesList.map((promise) {
-          final title = promise['title'] ?? '';
-          final points = promise['points'] as List<dynamic>? ?? [];
-          if (title.isNotEmpty && points.isNotEmpty) {
-            // Combine title and points into a formatted string
-            final pointsText = points.map((point) => '• $point').join('\n');
-            return '**$title:**\n$pointsText';
-          } else if (title.isNotEmpty) {
-            return title;
-          } else {
-            return points.isNotEmpty ? points.first.toString() : '';
-          }
-        }).where((promise) => promise.isNotEmpty).toList();
 
-        // Update the manifesto with the converted promises
+        // Update the manifesto with the structured promises
         final currentManifesto = currentExtra.manifesto ?? ManifestoData();
         final updatedManifesto = ManifestoData(
           title: currentManifesto.title,
-          promises: stringPromises.cast<String>(),
+          promises: promisesList,
           pdfUrl: currentManifesto.pdfUrl,
           images: currentManifesto.images,
           videoUrl: currentManifesto.videoUrl,
@@ -478,6 +472,99 @@ class CandidateDataController extends GetxController {
     debugPrint('   Has Access: ${isPaid.value}');
     } catch (e) {
     debugPrint('Error refreshing access status: $e');
+    }
+  }
+
+  // Events Management Methods
+
+  /// Fetch events for the current candidate with caching
+  Future<void> fetchEvents({bool forceRefresh = false}) async {
+    final candidate = candidateData.value;
+    if (candidate == null) {
+      debugPrint('🎪 No candidate data available, clearing events');
+      events.clear();
+      eventsLastFetched.value = null;
+      isEventsLoading.value = false;
+      return;
+    }
+
+    // Check if we have recent data and don't need to refresh
+    if (!forceRefresh &&
+        eventsLastFetched.value != null &&
+        events.isNotEmpty &&
+        DateTime.now().difference(eventsLastFetched.value!) < const Duration(minutes: 5)) {
+      debugPrint('🎪 Using cached events data');
+      return;
+    }
+
+    isEventsLoading.value = true;
+    try {
+      debugPrint('🎪 Fetching events for candidate: ${candidate.candidateId}');
+      final fetchedEvents = await _eventRepository.getCandidateEvents(candidate.candidateId);
+
+      events.assignAll(fetchedEvents);
+      eventsLastFetched.value = DateTime.now();
+
+      debugPrint('🎪 Successfully loaded ${fetchedEvents.length} events');
+    } catch (e) {
+      debugPrint('❌ Error fetching events: $e');
+      // Clear events on error to show empty state
+      events.clear();
+      eventsLastFetched.value = null;
+      // Don't show error snackbar for missing candidate data - this is expected
+      if (!e.toString().contains('No candidate found')) {
+        Get.snackbar('Error', 'Failed to load events: $e');
+      }
+    } finally {
+      isEventsLoading.value = false;
+    }
+  }
+
+  /// Refresh events data (force reload from server)
+  Future<void> refreshEvents() async {
+    await fetchEvents(forceRefresh: true);
+  }
+
+  /// Get events data (ensures data is loaded if not already)
+  Future<List<EventData>> getEventsData() async {
+    if (events.isEmpty && !isEventsLoading.value) {
+      await fetchEvents();
+    }
+    return events.toList();
+  }
+
+  /// Clear events cache
+  void clearEventsCache() {
+    events.clear();
+    eventsLastFetched.value = null;
+  }
+
+  /// Update events after creation/editing/deletion
+  void updateEventsCache(List<EventData> updatedEvents) {
+    events.assignAll(updatedEvents);
+    eventsLastFetched.value = DateTime.now();
+  }
+
+  /// Debug method: Log all candidate data in the system
+  Future<void> logAllCandidateData() async {
+    try {
+      debugPrint('🔍 ===== CANDIDATE DATA CONTROLLER AUDIT =====');
+      debugPrint('🔍 Current user candidate data:');
+      debugPrint('   candidateData.value: ${candidateData.value}');
+      debugPrint('   isLoading.value: ${isLoading.value}');
+      debugPrint('   isPaid.value: ${isPaid.value}');
+
+      // Log events data
+      debugPrint('🎪 Events data:');
+      debugPrint('   events.length: ${events.length}');
+      debugPrint('   isEventsLoading.value: ${isEventsLoading.value}');
+      debugPrint('   eventsLastFetched.value: ${eventsLastFetched.value}');
+
+      // Call the repository audit method
+      await _candidateRepository.logAllCandidatesInSystem();
+
+    } catch (e) {
+      debugPrint('❌ Error in candidate data audit: $e');
     }
   }
 }

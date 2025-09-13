@@ -1,4 +1,5 @@
 import '../models/achievement_model.dart';
+import '../models/candidate_model.dart';
 
 class DemoDataService {
   static const Map<String, Map<String, String>> bioTemplates = {
@@ -269,6 +270,141 @@ class DemoDataService {
     },
   };
 
+  static const Map<String, Map<String, List<Map<String, dynamic>>>> eventTemplates = {
+    'political': {
+      'en': [
+        {
+          'title': 'जनसंपर्क सभा – वारजे',
+          'description': 'Public meeting to discuss ward development issues and gather feedback from residents',
+          'date': '2025-09-15',
+          'time': '18:00',
+          'venue': 'वारजे बस स्टँड जवळ',
+          'map_link': 'https://maps.app.goo.gl/xyz123',
+          'type': 'public_meeting',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'रॅली – कोंढवा',
+          'description': 'Victory rally showcasing party achievements and future plans',
+          'date': '2025-09-20',
+          'time': '16:00',
+          'venue': 'कोंढवा चौक',
+          'map_link': 'https://maps.app.goo.gl/abc456',
+          'type': 'rally',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'वॉर्ड समिती बैठक',
+          'description': 'Monthly ward committee meeting to review ongoing projects and plan new initiatives',
+          'date': '2025-09-25',
+          'time': '10:00',
+          'venue': 'वॉर्ड ऑफिस, पिंपरी',
+          'map_link': 'https://maps.app.goo.gl/def789',
+          'type': 'meeting',
+          'status': 'upcoming',
+        },
+      ],
+      'mr': [
+        {
+          'title': 'जनसंपर्क सभा – वारजे',
+          'description': 'वॉर्ड विकासाच्या समस्यांवर चर्चा करण्यासाठी आणि रहिवाशांकडून अभिप्राय गोळा करण्यासाठी सार्वजनिक बैठक',
+          'date': '2025-09-15',
+          'time': '18:00',
+          'venue': 'वारजे बस स्टँड जवळ',
+          'map_link': 'https://maps.app.goo.gl/xyz123',
+          'type': 'public_meeting',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'रॅली – कोंढवा',
+          'description': 'पक्षाच्या कामगिरीचे प्रदर्शन आणि भविष्याच्या योजना दाखवणारी विजय रॅली',
+          'date': '2025-09-20',
+          'time': '16:00',
+          'venue': 'कोंढवा चौक',
+          'map_link': 'https://maps.app.goo.gl/abc456',
+          'type': 'rally',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'वॉर्ड समिती बैठक',
+          'description': 'चालू प्रकल्पांचे पुनरावलोकन आणि नवीन उपक्रमांची योजना करण्यासाठी मासिक वॉर्ड समिती बैठक',
+          'date': '2025-09-25',
+          'time': '10:00',
+          'venue': 'वॉर्ड ऑफिस, पिंपरी',
+          'map_link': 'https://maps.app.goo.gl/def789',
+          'type': 'meeting',
+          'status': 'upcoming',
+        },
+      ],
+    },
+    'community': {
+      'en': [
+        {
+          'title': 'Cleanliness Drive',
+          'description': 'Community cleanliness campaign to keep our ward clean and green',
+          'date': '2025-09-18',
+          'time': '07:00',
+          'venue': 'वॉर्ड पार्क',
+          'map_link': 'https://maps.app.goo.gl/ghi012',
+          'type': 'community_service',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'Health Camp',
+          'description': 'Free health check-up camp for senior citizens and children',
+          'date': '2025-09-22',
+          'time': '09:00',
+          'venue': 'कम्युनिटी हॉल',
+          'map_link': 'https://maps.app.goo.gl/jkl345',
+          'type': 'health_camp',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'Youth Sports Tournament',
+          'description': 'Inter-ward cricket tournament for youth development',
+          'date': '2025-09-28',
+          'time': '14:00',
+          'venue': 'स्पोर्ट्स ग्राउंड',
+          'map_link': 'https://maps.app.goo.gl/mno678',
+          'type': 'sports',
+          'status': 'upcoming',
+        },
+      ],
+      'mr': [
+        {
+          'title': 'स्वच्छता मोहीम',
+          'description': 'आमचा वॉर्ड स्वच्छ आणि हिरवा ठेवण्यासाठी समुदाय स्वच्छता मोहीम',
+          'date': '2025-09-18',
+          'time': '07:00',
+          'venue': 'वॉर्ड पार्क',
+          'map_link': 'https://maps.app.goo.gl/ghi012',
+          'type': 'community_service',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'आरोग्य शिबिर',
+          'description': 'वृद्ध नागरिक आणि मुलांसाठी मोफत आरोग्य तपासणी शिबिर',
+          'date': '2025-09-22',
+          'time': '09:00',
+          'venue': 'कम्युनिटी हॉल',
+          'map_link': 'https://maps.app.goo.gl/jkl345',
+          'type': 'health_camp',
+          'status': 'upcoming',
+        },
+        {
+          'title': 'युवा क्रीडा स्पर्धा',
+          'description': 'युवा विकासासाठी आंतर-वॉर्ड क्रिकेट स्पर्धा',
+          'date': '2025-09-28',
+          'time': '14:00',
+          'venue': 'स्पोर्ट्स ग्राउंड',
+          'map_link': 'https://maps.app.goo.gl/mno678',
+          'type': 'sports',
+          'status': 'upcoming',
+        },
+      ],
+    },
+  };
+
   // Get demo data for a specific category and language
   static dynamic getDemoData(String category, String type, String language) {
     switch (category) {
@@ -279,6 +415,9 @@ class DemoDataService {
       case 'achievements':
         final data = achievementTemplates[type]?[language] ?? achievementTemplates['community_service']!['en']!;
         return data.map((item) => Achievement.fromJson(item)).toList();
+      case 'events':
+        final data = eventTemplates[type]?[language] ?? eventTemplates['political']!['en']!;
+        return data.map((item) => EventData.fromJson(item)).toList();
       case 'highlight':
         return highlightTemplates[type]?[language] ?? highlightTemplates['vision']!['en']!;
       default:
@@ -287,18 +426,37 @@ class DemoDataService {
   }
 
 
-  // Get demo manifesto promises as simple strings
-  static List<String> getDemoManifestoPromises(String type, String language) {
+  // Get demo manifesto promises as structured format
+  static List<Map<String, dynamic>> getDemoManifestoPromises(String type, String language) {
     final template = manifestoTemplates[type]?[language] ?? '';
     if (template.isEmpty) return [];
 
-    // Split the template by bullet points and clean them up
-    final lines = template.split('\n')
-        .where((line) => line.trim().isNotEmpty && line.contains('•'))
-        .map((line) => line.replaceAll('•', '').trim())
-        .toList();
+    // Parse the template into structured format
+    final sections = template.split('**').where((section) => section.trim().isNotEmpty).toList();
 
-    return lines;
+    final List<Map<String, dynamic>> structuredPromises = [];
+
+    for (int i = 0; i < sections.length; i += 2) {
+      if (i + 1 < sections.length) {
+        final title = sections[i].trim();
+        final content = sections[i + 1].trim();
+
+        // Extract points from content
+        final points = content.split('\n')
+            .where((line) => line.trim().isNotEmpty && line.contains('•'))
+            .map((line) => line.replaceAll('•', '').trim())
+            .toList();
+
+        if (title.isNotEmpty && points.isNotEmpty) {
+          structuredPromises.add({
+            'title': title,
+            'points': points,
+          });
+        }
+      }
+    }
+
+    return structuredPromises;
   }
 
   // Get available types for a category
@@ -310,6 +468,8 @@ class DemoDataService {
         return manifestoTemplates.keys.toList();
       case 'achievements':
         return achievementTemplates.keys.toList();
+      case 'events':
+        return eventTemplates.keys.toList();
       case 'highlight':
         return highlightTemplates.keys.toList();
       default:
@@ -340,6 +500,10 @@ class DemoDataService {
         return 'Community Service';
       case 'administrative':
         return 'Administrative';
+      case 'political':
+        return 'Political Events';
+      case 'community':
+        return 'Community Events';
       case 'vision':
         return 'Vision Statement';
       case 'commitment':

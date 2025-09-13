@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../models/achievement_model.dart';
 import '../../services/file_upload_service.dart';
+import '../common/aspect_ratio_image.dart';
 import 'demo_data_modal.dart';
 
 class AchievementsSection extends StatefulWidget {
@@ -88,6 +89,8 @@ class _AchievementsSectionState extends State<AchievementsSection> {
       debugPrint('❌ Error during photo cleanup: $e');
     }
   }
+
+
 
   void _addAchievement() {
     setState(() {
@@ -412,68 +415,13 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                               ),
                               if (achievement.photoUrl != null && achievement.photoUrl!.isNotEmpty) ...[
                                 const SizedBox(height: 12),
-                                GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => Dialog(
-                                        insetPadding: const EdgeInsets.all(10),
-                                        child: Container(
-                                          width: double.infinity,
-                                          height: MediaQuery.of(context).size.height * 0.8,
-                                          child: InteractiveViewer(
-                                            minScale: 0.5,
-                                            maxScale: 4.0,
-                                            child: _fileUploadService.isLocalPath(achievement.photoUrl!)
-                                                ? Image.file(
-                                                    File(achievement.photoUrl!.replaceFirst('local:', '')),
-                                                    fit: BoxFit.contain,
-                                                    errorBuilder: (context, error, stackTrace) {
-                                                      return const Center(
-                                                        child: Icon(
-                                                          Icons.error,
-                                                          color: Colors.red,
-                                                          size: 48,
-                                                        ),
-                                                      );
-                                                    },
-                                                  )
-                                                : Image.network(
-                                                    achievement.photoUrl!,
-                                                    fit: BoxFit.contain,
-                                                    loadingBuilder: (context, child, loadingProgress) {
-                                                      if (loadingProgress == null) return child;
-                                                      return const Center(child: CircularProgressIndicator());
-                                                    },
-                                                    errorBuilder: (context, error, stackTrace) {
-                                                      return const Center(
-                                                        child: Icon(
-                                                          Icons.error,
-                                                          color: Colors.red,
-                                                          size: 48,
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    width: double.infinity,
-                                    height: 150,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey.shade300),
-                                      image: DecorationImage(
-                                        image: _fileUploadService.isLocalPath(achievement.photoUrl!)
-                                            ? FileImage(File(achievement.photoUrl!.replaceFirst('local:', '')))
-                                            : NetworkImage(achievement.photoUrl!),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
+                                AspectRatioImage(
+                                  imageUrl: achievement.photoUrl!,
+                                  isLocal: _fileUploadService.isLocalPath(achievement.photoUrl!),
+                                  fit: BoxFit.contain,
+                                  minHeight: 120,
+                                  maxHeight: 200,
+                                  borderColor: Colors.grey.shade300,
                                 ),
                               ],
                               if (widget.isEditing)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/followers_analytics_section.dart';
+import '../../widgets/candidate/events_analytics_section.dart';
 
 class CandidateDashboardAnalytics extends StatelessWidget {
   const CandidateDashboardAnalytics({super.key});
@@ -20,8 +21,16 @@ class CandidateDashboardAnalytics extends StatelessWidget {
       }
 
       return SingleChildScrollView(
-        child: FollowersAnalyticsSection(
-          candidateData: controller.candidateData.value!,
+        child: Column(
+          children: [
+            FollowersAnalyticsSection(
+              candidateData: controller.candidateData.value!,
+            ),
+            const Divider(height: 32),
+            EventsAnalyticsSection(
+              candidateData: controller.candidateData.value!,
+            ),
+          ],
         ),
       );
     });

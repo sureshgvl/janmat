@@ -32,7 +32,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
           title: const Text('Events'),
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
-          actions: controller.isPaid.value ? [
+          actions: /* controller.isPaid.value ? */ [
             if (!isEditing)
               IconButton(
                 icon: const Icon(Icons.edit),
@@ -101,7 +101,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   ),
                 ],
               ),
-          ] : null,
+          ] /* : null */,
         ),
         body: SingleChildScrollView(
           child: EventsSection(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:translator/translator.dart';
 import 'package:get/get.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:video_player/video_player.dart';
 import '../../models/candidate_model.dart';
 import '../../services/demo_data_service.dart';
 import '../../controllers/candidate_data_controller.dart';
@@ -22,11 +22,6 @@ class ManifestoTab extends StatefulWidget {
 class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-  final GoogleTranslator _translator = GoogleTranslator();
-  String _currentLanguage = 'en'; // 'en' for English, 'mr' for Marathi
-  String _translatedText = '';
-  bool _isTranslating = false;
-  String? _originalText;
 
   // Voter interaction state
   bool _isLiked = false;
@@ -39,94 +34,7 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
     'women_safety': 0,
   };
 
-  @override
-  void initState() {
-    super.initState();
-    // Use the first manifesto item's title or fallback to main manifesto
-    final manifestoPromises = widget.candidate.extraInfo?.manifesto?.promises ?? [];
-    _originalText = manifestoPromises.isNotEmpty
-        ? manifestoPromises.first
-        : widget.candidate.manifesto ?? '';
-    _translatedText = _originalText ?? '';
-  }
 
-  @override
-  void didUpdateWidget(ManifestoTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final manifestoPromises = widget.candidate.extraInfo?.manifesto?.promises ?? [];
-    final newText = manifestoPromises.isNotEmpty
-        ? manifestoPromises.first
-        : widget.candidate.manifesto ?? '';
-    if (_originalText != newText) {
-      _originalText = newText;
-      if (_currentLanguage == 'en') {
-        _translatedText = newText;
-      } else {
-        _translateText(newText, _currentLanguage);
-      }
-    }
-  }
-
-  Future<void> _translateText(String text, String targetLanguage) async {
-    if (text.isEmpty) {
-      setState(() {
-        _translatedText = text;
-        _isTranslating = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isTranslating = true;
-    });
-
-    try {
-      final translation = await _translator.translate(
-        text,
-        from: 'auto',
-        to: targetLanguage,
-      );
-
-      if (mounted) {
-        setState(() {
-          _translatedText = translation.text;
-          _isTranslating = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _translatedText = text; // Fallback to original text
-          _isTranslating = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Translation failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _changeLanguage(String language) {
-    if (_currentLanguage == language) return;
-
-    setState(() {
-      _currentLanguage = language;
-    });
-
-    if (_originalText != null) {
-      if (language == 'en') {
-        // Show original text (assuming original is English)
-        setState(() {
-          _translatedText = _originalText!;
-        });
-      } else {
-        _translateText(_originalText!, language);
-      }
-    }
-  }
 
   void _toggleLike() {
     setState(() {
@@ -158,6 +66,16 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
       backgroundColor: Colors.blue.shade100,
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
+    );
+  }
+
+  // Video player functionality
+  void _playVideo(String videoUrl) {
+    debugPrint('🎥 [Video Player] Opening video player for: $videoUrl');
+
+    showDialog(
+      context: context,
+      builder: (context) => VideoPlayerDialog(videoUrl: videoUrl),
     );
   }
 
@@ -227,7 +145,7 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
 
     // Use demo manifesto items if no real items exist
     final displayManifestoPromises = manifestoPromises.isNotEmpty
-        ? manifestoPromises.map((promise) => promise.toString()).toList()
+        ? manifestoPromises
         : DemoDataService.getDemoManifestoPromises('development', 'en');
 
     final hasStructuredData = displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
@@ -258,32 +176,6 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.gavel_outlined,
-                              color: Colors.red.shade600,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Manifesto',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1f2937),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
                       // Display Manifesto Title
                       if (widget.candidate.extraInfo?.manifesto?.title != null && widget.candidate.extraInfo!.manifesto!.title!.isNotEmpty) ...[
                         Container(
@@ -305,95 +197,46 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                           ),
                         ),
                         const SizedBox(height: 12),
-                      ],
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (widget.candidate.extraInfo?.manifesto?.pdfUrl != null && widget.candidate.extraInfo!.manifesto!.pdfUrl!.isNotEmpty)
-                            IconButton(
-                              onPressed: () async {
-                                final url = widget.candidate.extraInfo!.manifesto!.pdfUrl!;
-                                if (await canLaunch(url)) {
-                                  await launch(url);
-                                }
-                              },
-                              icon: const Icon(Icons.download, color: Colors.blue),
-                              tooltip: 'Download PDF',
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(8),
-                            ),
-                          // Language Toggle Buttons - More compact
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  height: 32,
-                                  child: TextButton(
-                                    onPressed: _currentLanguage == 'en' ? null : () => _changeLanguage('en'),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: _currentLanguage == 'en'
-                                          ? Theme.of(context).primaryColor
-                                          : Colors.transparent,
-                                      foregroundColor: _currentLanguage == 'en'
-                                          ? Colors.white
-                                          : Colors.grey[700],
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      minimumSize: const Size(0, 32),
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(8),
-                                          bottomLeft: Radius.circular(8),
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'EN',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: 16,
-                                  color: Colors.grey.shade300,
-                                ),
-                                SizedBox(
-                                  height: 32,
-                                  child: TextButton(
-                                    onPressed: _currentLanguage == 'mr' ? null : () => _changeLanguage('mr'),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: _currentLanguage == 'mr'
-                                          ? Theme.of(context).primaryColor
-                                          : Colors.transparent,
-                                      foregroundColor: _currentLanguage == 'mr'
-                                          ? Colors.white
-                                          : Colors.grey[700],
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      minimumSize: const Size(0, 32),
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.only(
-                                          topRight: Radius.circular(8),
-                                          bottomRight: Radius.circular(8),
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'मराठी',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                      ] else ...[
+                        // Placeholder for manifesto title
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade200),
                           ),
-                        ],
-                      ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.title,
+                                size: 24,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Manifesto Title',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Not available',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -404,7 +247,7 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                       'Key Promises',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w900,
                         color: Color(0xFF374151),
                       ),
                     ),
@@ -414,32 +257,131 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                         final promise = manifestoPromises[index];
                         if (promise.isEmpty) return const SizedBox.shrink();
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Card(
-                            elevation: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                  Expanded(
-                                    child: Text(
-                                      promise,
+                        // Handle new structured format
+                        if (promise is Map<String, dynamic>) {
+                          final title = promise['title'] as String? ?? '';
+                          final points = promise['points'] as List<dynamic>? ?? [];
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Card(
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Promise Title
+                                    Text(
+                                      title,
                                       style: const TextStyle(
                                         fontSize: 16,
-                                        height: 1.4,
+                                        fontWeight: FontWeight.bold,
                                         color: Color(0xFF374151),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 8),
+                                    // Promise Points
+                                    ...points.map((point) {
+                                      final pointIndex = points.indexOf(point) + 1;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 4, left: 16),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '$pointIndex. ',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF6B7280),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                point.toString(),
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  height: 1.4,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
+                          );
+                        } else {
+                          // Fallback for old string format
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Card(
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    Expanded(
+                                      child: Text(
+                                        promise.toString(),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          height: 1.4,
+                                          color: Color(0xFF374151),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                       }),
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    // Show placeholder when no promises are available
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.list_alt,
+                            size: 48,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Key Promises',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Not available',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -461,33 +403,363 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                           ),
                         ],
                       ),
-                      child: _isTranslating
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(20.0),
-                                child: CircularProgressIndicator(),
-                              ),
-                            )
-                          : MarkdownBody(
-                              data: _translatedText,
-                              styleSheet: MarkdownStyleSheet(
-                                p: const TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF374151),
-                                  height: 1.7,
-                                  letterSpacing: 0.3,
-                                ),
-                                strong: const TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF374151),
-                                  height: 1.7,
-                                  letterSpacing: 0.3,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                      child: MarkdownBody(
+                        data: manifesto,
+                        styleSheet: MarkdownStyleSheet(
+                          p: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF374151),
+                            height: 1.7,
+                            letterSpacing: 0.3,
+                          ),
+                          strong: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF374151),
+                            height: 1.7,
+                            letterSpacing: 0.3,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    // Placeholder for manifesto text
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.article,
+                            size: 48,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Manifesto Content',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Not available',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
+
+                  // Additional Resources Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Additional Resources',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF374151),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // PDF Section
+                        if (widget.candidate.extraInfo?.manifesto?.pdfUrl != null && widget.candidate.extraInfo!.manifesto!.pdfUrl!.isNotEmpty) ...[
+                          Row(
+                            children: [
+                              Icon(Icons.picture_as_pdf, color: Colors.red.shade600, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Manifesto PDF Available',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () async {
+                                  final url = widget.candidate.extraInfo!.manifesto!.pdfUrl!;
+                                  if (await canLaunch(url)) {
+                                    await launch(url);
+                                  }
+                                },
+                                icon: const Icon(Icons.download, color: Colors.blue),
+                                tooltip: 'Download PDF',
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          Row(
+                            children: [
+                              Icon(Icons.picture_as_pdf, color: Colors.grey.shade400, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'PDF Document',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Not available',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        const SizedBox(height: 12),
+
+                        // Images Section
+                        if (widget.candidate.extraInfo?.manifesto?.images != null && widget.candidate.extraInfo!.manifesto!.images!.isNotEmpty) ...[
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.image, color: Colors.green.shade600, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Manifesto Images (${widget.candidate.extraInfo!.manifesto!.images!.length})',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF374151),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 120,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: widget.candidate.extraInfo!.manifesto!.images!.length,
+                                  itemBuilder: (context, index) {
+                                    final imageUrl = widget.candidate.extraInfo!.manifesto!.images![index];
+                                    return Container(
+                                      width: 120,
+                                      margin: const EdgeInsets.only(right: 12),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.grey.shade300),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => Dialog(
+                                                insetPadding: const EdgeInsets.all(10),
+                                                child: Container(
+                                                  width: double.infinity,
+                                                  height: MediaQuery.of(context).size.height * 0.8,
+                                                  child: InteractiveViewer(
+                                                    minScale: 0.5,
+                                                    maxScale: 4.0,
+                                                    child: Image.network(
+                                                      imageUrl,
+                                                      fit: BoxFit.contain,
+                                                      loadingBuilder: (context, child, loadingProgress) {
+                                                        if (loadingProgress == null) return child;
+                                                        return const Center(child: CircularProgressIndicator());
+                                                      },
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return const Center(
+                                                          child: Icon(
+                                                            Icons.error,
+                                                            color: Colors.red,
+                                                            size: 48,
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Image.network(
+                                            imageUrl,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return Container(
+                                                color: Colors.grey.shade100,
+                                                child: const Center(
+                                                  child: CircularProgressIndicator(),
+                                                ),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.grey.shade100,
+                                                child: const Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.grey,
+                                                  size: 32,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          Row(
+                            children: [
+                              Icon(Icons.image, color: Colors.grey.shade400, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Images',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Not available',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        const SizedBox(height: 12),
+
+                        // Video Section
+                        if (widget.candidate.extraInfo?.manifesto?.videoUrl != null && widget.candidate.extraInfo!.manifesto!.videoUrl!.isNotEmpty) ...[
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.video_call, color: Colors.purple.shade600, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Manifesto Video',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF374151),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                width: 200,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      // Video thumbnail (using a placeholder for now)
+                                      Container(
+                                        color: Colors.purple.shade100,
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.video_call,
+                                            color: Colors.purple,
+                                            size: 48,
+                                          ),
+                                        ),
+                                      ),
+                                      // Play button overlay
+                                      GestureDetector(
+                                        onTap: () => _playVideo(widget.candidate.extraInfo!.manifesto!.videoUrl!),
+                                        child: Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.7),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.play_arrow,
+                                            color: Colors.white,
+                                            size: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          Row(
+                            children: [
+                              Icon(Icons.video_call, color: Colors.grey.shade400, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Video',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Not available',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
                   // Voter Interaction Section
                   const SizedBox(height: 24),
@@ -583,5 +855,257 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
         ],
       ),
     );
+  }
+}
+
+// Video Player Dialog Widget
+class VideoPlayerDialog extends StatefulWidget {
+  final String videoUrl;
+
+  const VideoPlayerDialog({
+    Key? key,
+    required this.videoUrl,
+  }) : super(key: key);
+
+  @override
+  State<VideoPlayerDialog> createState() => _VideoPlayerDialogState();
+}
+
+class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+  bool _isPlaying = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideoPlayer();
+  }
+
+  Future<void> _initializeVideoPlayer() async {
+    try {
+      debugPrint('🎥 [Video Player] Initializing video player for: ${widget.videoUrl}');
+
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+
+      await _controller.initialize();
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+          _isLoading = false;
+        });
+      }
+
+      debugPrint('🎥 [Video Player] Video initialized successfully');
+    } catch (e) {
+      debugPrint('🎥 [Video Player] Error initializing video: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load video: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _togglePlayPause() {
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+      setState(() {
+        _isPlaying = false;
+      });
+    } else {
+      _controller.play();
+      setState(() {
+        _isPlaying = true;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(10),
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            // Header with close button
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Manifesto Video',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Video content
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Loading video...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _isInitialized
+                      ? Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            AspectRatio(
+                              aspectRatio: _controller.value.aspectRatio,
+                              child: VideoPlayer(_controller),
+                            ),
+                            // Play/Pause overlay
+                            Positioned.fill(
+                              child: GestureDetector(
+                                onTap: _togglePlayPause,
+                                child: Container(
+                                  color: Colors.transparent,
+                                  child: Center(
+                                    child: Icon(
+                                      _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                                      color: Colors.white.withOpacity(0.8),
+                                      size: 80,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Video controls
+                            Positioned(
+                              bottom: 20,
+                              left: 20,
+                              right: 20,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  children: [
+                                    // Progress bar
+                                    VideoProgressIndicator(
+                                      _controller,
+                                      allowScrubbing: true,
+                                      colors: const VideoProgressColors(
+                                        playedColor: Colors.purple,
+                                        bufferedColor: Colors.grey,
+                                        backgroundColor: Colors.white24,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Time display
+                                    ValueListenableBuilder(
+                                      valueListenable: _controller,
+                                      builder: (context, VideoPlayerValue value, child) {
+                                        final position = value.position;
+                                        final duration = value.duration;
+                                        return Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _formatDuration(position),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            Text(
+                                              _formatDuration(duration),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error,
+                                color: Colors.red,
+                                size: 48,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Failed to load video',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 }

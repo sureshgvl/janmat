@@ -47,7 +47,7 @@ class Contact {
 
 class ManifestoData {
   final String? title;
-  final List<String>? promises;
+  final List<Map<String, dynamic>>? promises;
   final String? pdfUrl;
   final List<String>? images;
   final String? videoUrl;
@@ -63,11 +63,37 @@ class ManifestoData {
   factory ManifestoData.fromJson(Map<String, dynamic> json) {
     return ManifestoData(
       title: json['title'],
-      promises: json['promises'] != null ? List<String>.from(json['promises']) : null,
+      promises: json['promises'] != null ? _parsePromises(json['promises']) : null,
       pdfUrl: json['pdfUrl'],
       images: json['images'] != null ? List<String>.from(json['images']) : null,
       videoUrl: json['videoUrl'],
     );
+  }
+
+  static List<Map<String, dynamic>> _parsePromises(dynamic data) {
+    if (data == null) return [];
+
+    // Handle new structured format
+    if (data is List) {
+      return data.map((item) {
+        if (item is Map<String, dynamic>) {
+          return item;
+        } else if (item is String) {
+          // Convert old string format to new structured format
+          return {
+            'title': item,
+            '1': item, // Use the string as the first point
+          };
+        } else {
+          return {
+            'title': item.toString(),
+            '1': item.toString(),
+          };
+        }
+      }).toList();
+    }
+
+    return [];
   }
 
   Map<String, dynamic> toJson() {
@@ -82,7 +108,7 @@ class ManifestoData {
 
   ManifestoData copyWith({
     String? title,
-    List<String>? promises,
+    List<Map<String, dynamic>>? promises,
     String? pdfUrl,
     List<String>? images,
     String? videoUrl,
@@ -191,10 +217,12 @@ class EventData {
   final String date;
   final String? time;
   final String? venue;
+  final String? mapLink;
   final String? type;
   final String? status;
   final int? attendeesExpected;
   final List<String>? agenda;
+  final Map<String, List<String>>? rsvp; // interested, going, not_going
 
   EventData({
     this.id,
@@ -203,10 +231,12 @@ class EventData {
     required this.date,
     this.time,
     this.venue,
+    this.mapLink,
     this.type,
     this.status,
     this.attendeesExpected,
     this.agenda,
+    this.rsvp,
   });
 
   factory EventData.fromJson(Map<String, dynamic> json) {
@@ -217,10 +247,15 @@ class EventData {
       date: json['date'],
       time: json['time'],
       venue: json['venue'],
+      mapLink: json['map_link'],
       type: json['type'],
       status: json['status'],
       attendeesExpected: json['attendees_expected'],
       agenda: json['agenda'] != null ? List<String>.from(json['agenda']) : null,
+      rsvp: json['rsvp'] != null
+          ? Map<String, List<String>>.from(json['rsvp'].map((key, value) =>
+              MapEntry(key, value is List ? List<String>.from(value) : [])))
+          : null,
     );
   }
 
@@ -232,11 +267,52 @@ class EventData {
       'date': date,
       'time': time,
       'venue': venue,
+      'map_link': mapLink,
       'type': type,
       'status': status,
       'attendees_expected': attendeesExpected,
       'agenda': agenda,
+      'rsvp': rsvp,
     };
+  }
+
+  // Helper methods for RSVP
+  int getInterestedCount() => rsvp?['interested']?.length ?? 0;
+  int getGoingCount() => rsvp?['going']?.length ?? 0;
+  int getNotGoingCount() => rsvp?['not_going']?.length ?? 0;
+
+  bool isUserInterested(String userId) => rsvp?['interested']?.contains(userId) ?? false;
+  bool isUserGoing(String userId) => rsvp?['going']?.contains(userId) ?? false;
+  bool isUserNotGoing(String userId) => rsvp?['not_going']?.contains(userId) ?? false;
+
+  EventData copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? date,
+    String? time,
+    String? venue,
+    String? mapLink,
+    String? type,
+    String? status,
+    int? attendeesExpected,
+    List<String>? agenda,
+    Map<String, List<String>>? rsvp,
+  }) {
+    return EventData(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      date: date ?? this.date,
+      time: time ?? this.time,
+      venue: venue ?? this.venue,
+      mapLink: mapLink ?? this.mapLink,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      attendeesExpected: attendeesExpected ?? this.attendeesExpected,
+      agenda: agenda ?? this.agenda,
+      rsvp: rsvp ?? this.rsvp,
+    );
   }
 }
 

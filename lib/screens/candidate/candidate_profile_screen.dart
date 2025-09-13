@@ -7,6 +7,7 @@ import 'dart:io';
 import '../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
+import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/info_tab.dart';
 import '../../widgets/candidate/manifesto_tab.dart';
 import '../../widgets/candidate/media_tab.dart';
@@ -14,6 +15,7 @@ import '../../widgets/candidate/contact_tab.dart';
 import '../../widgets/candidate/profile_section.dart';
 import '../../widgets/candidate/achievements_section.dart';
 import '../../widgets/candidate/events_section.dart';
+import '../../widgets/candidate/voter_events_section.dart';
 import '../../widgets/candidate/highlight_section.dart';
 import '../../widgets/candidate/followers_analytics_section.dart';
 import '../../utils/symbol_utils.dart';
@@ -474,14 +476,57 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                             // Following Count (Clickable)
                             Expanded(
                               child: InkWell(
-                                onTap: () {
-                                  // TODO: Navigate to following list screen when implemented
-                                  Get.snackbar(
-                                    'Info',
-                                    'Following list coming soon!',
-                                    backgroundColor: Colors.blue,
-                                    colorText: Colors.white,
-                                  );
+                                onTap: () async {
+                                  // Debug: Log all candidate data in system
+                                  try {
+                                    final controller = Get.find<CandidateDataController>();
+                                    await controller.logAllCandidateData();
+
+                                    // Show detailed candidate info in a dialog
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: const Text('Candidate Data Audit'),
+                                          content: SingleChildScrollView(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text('Current Candidate: ${candidate!.name}'),
+                                                Text('Party: ${candidate!.party}'),
+                                                Text('ID: ${candidate!.candidateId}'),
+                                                Text('User ID: ${candidate!.userId}'),
+                                                Text('City: ${candidate!.cityId}'),
+                                                Text('Ward: ${candidate!.wardId}'),
+                                                Text('Approved: ${candidate!.approved}'),
+                                                Text('Status: ${candidate!.status}'),
+                                                Text('Followers: ${candidate!.followersCount}'),
+                                                const SizedBox(height: 16),
+                                                const Text(
+                                                  '📊 System audit completed! Check console logs for full details.',
+                                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(),
+                                              child: const Text('OK'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } catch (e) {
+                                    Get.snackbar(
+                                      'Debug Error',
+                                      'Failed to log candidate data: $e',
+                                      backgroundColor: Colors.red,
+                                      colorText: Colors.white,
+                                    );
+                                  }
                                 },
                                 child: Container(
                                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -661,12 +706,17 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               // Media Tab
               MediaTab(candidate: candidate!),
               // Events Tab
-              EventsSection(
-                candidateData: candidate!,
-                editedData: null,
-                isEditing: false,
-                onEventsChange: (value) {},
-              ),
+              if (currentUserId == candidate!.userId)
+                EventsSection(
+                  candidateData: candidate!,
+                  editedData: null,
+                  isEditing: false,
+                  onEventsChange: (value) {},
+                )
+              else
+                VoterEventsSection(
+                  candidateData: candidate!,
+                ),
               // Highlight Tab
               HighlightSection(
                 candidateData: candidate!,

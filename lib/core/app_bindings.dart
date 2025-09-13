@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/candidate_controller.dart';
+import '../controllers/candidate_data_controller.dart';
 import '../services/admob_service.dart';
 
 class AppBindings extends Bindings {
@@ -13,6 +14,7 @@ class AppBindings extends Bindings {
     // Put other controllers
     Get.put<ChatController>(ChatController());
     Get.put<CandidateController>(CandidateController());
+    Get.put<CandidateDataController>(CandidateDataController());
 
     // Put services
     Get.put<AdMobService>(AdMobService());

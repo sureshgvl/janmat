@@ -18,6 +18,9 @@ class _CandidateDashboardManifestoState extends State<CandidateDashboardManifest
   bool isEditing = false;
   bool isSaving = false;
 
+  // Global key to access manifesto section for file uploads
+  final GlobalKey<ManifestoSectionState> _manifestoSectionKey = GlobalKey<ManifestoSectionState>();
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -59,6 +62,14 @@ class _CandidateDashboardManifestoState extends State<CandidateDashboardManifest
                       );
 
                       try {
+                        // First, upload any pending local files to Firebase/Cloudinary
+                        final manifestoSectionState = _manifestoSectionKey.currentState;
+                        if (manifestoSectionState != null) {
+                          messageController.add('Uploading files to cloud...');
+                          await manifestoSectionState.uploadPendingFiles();
+                        }
+
+                        // Then save the manifesto data
                         final success = await controller.saveExtraInfo(
                           onProgress: (message) => messageController.add(message),
                         );
@@ -106,6 +117,7 @@ class _CandidateDashboardManifestoState extends State<CandidateDashboardManifest
         ),
         body: SingleChildScrollView(
           child: ManifestoSection(
+            key: _manifestoSectionKey,
             candidateData: controller.candidateData.value!,
             editedData: controller.editedData.value,
             isEditing: isEditing,
