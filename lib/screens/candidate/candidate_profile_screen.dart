@@ -497,7 +497,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                                                 Text('Party: ${candidate!.party}'),
                                                 Text('ID: ${candidate!.candidateId}'),
                                                 Text('User ID: ${candidate!.userId}'),
-                                                Text('City: ${candidate!.cityId}'),
+                                                Text('District: ${candidate!.districtId}'),
                                                 Text('Ward: ${candidate!.wardId}'),
                                                 Text('Approved: ${candidate!.approved}'),
                                                 Text('Status: ${candidate!.status}'),

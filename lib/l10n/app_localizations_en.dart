@@ -690,6 +690,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preferNotToSay => 'Prefer not to say';
 
   @override
+  String get districtRequired => 'District *';
+
+  @override
+  String get selectYourDistrict => 'Select your district';
+
+  @override
+  String get bodyRequired => 'Body *';
+
+  @override
+  String get selectYourBody => 'Select your body';
+
+  @override
   String get cityRequired => 'City *';
 
   @override
@@ -700,6 +712,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectYourWard => 'Select your ward';
+
+  @override
+  String get areaRequired => 'Area *';
+
+  @override
+  String get selectYourArea => 'Select your area';
 
   @override
   String get selectCityFirst => 'Select city first';

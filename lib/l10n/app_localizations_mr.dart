@@ -690,6 +690,18 @@ class AppLocalizationsMr extends AppLocalizations {
   String get preferNotToSay => 'सांगू इच्छित नाही';
 
   @override
+  String get districtRequired => 'जिल्हा *';
+
+  @override
+  String get selectYourDistrict => 'तुमचा जिल्हा निवडा';
+
+  @override
+  String get bodyRequired => 'संस्था *';
+
+  @override
+  String get selectYourBody => 'तुमची संस्था निवडा';
+
+  @override
   String get cityRequired => 'शहर *';
 
   @override
@@ -700,6 +712,12 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get selectYourWard => 'तुमचा वॉर्ड निवडा';
+
+  @override
+  String get areaRequired => 'क्षेत्र *';
+
+  @override
+  String get selectYourArea => 'तुमचे क्षेत्र निवडा';
 
   @override
   String get selectCityFirst => 'आधी शहर निवडा';

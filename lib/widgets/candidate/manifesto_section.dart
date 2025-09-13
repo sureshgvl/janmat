@@ -287,7 +287,7 @@ class ManifestoSectionState extends State<ManifestoSection> {
 
   void _showDemoTitleOptions() {
     String selectedLanguage = 'en'; // Default to English
-    final cityId = widget.candidateData.cityId;
+    final cityId = widget.candidateData.districtId;
     final wardId = widget.candidateData.wardId;
 
     showDialog(

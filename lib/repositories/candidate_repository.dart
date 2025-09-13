@@ -8,18 +8,20 @@ class CandidateRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Get candidates by ward
-  Future<List<Candidate>> getCandidatesByWard(String cityId, String wardId) async {
+  Future<List<Candidate>> getCandidatesByWard(String districtId, String bodyId, String wardId) async {
     try {
-      debugPrint('🔍 getCandidatesByWard: Fetching candidates for $cityId/$wardId');
+      debugPrint('🔍 getCandidatesByWard: Fetching candidates for $districtId/$bodyId/$wardId');
       final snapshot = await _firestore
-          .collection('cities')
-          .doc(cityId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
           .get();
 
-      debugPrint('📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $cityId/$wardId');
+      debugPrint('📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $districtId/$bodyId/$wardId');
 
       final candidates = snapshot.docs
           .map((doc) {
@@ -31,7 +33,7 @@ class CandidateRepository {
             debugPrint('👤 Candidate: ${candidateData['name']} (ID: ${doc.id})');
             debugPrint('   Party: ${candidateData['party']}');
             debugPrint('   UserId: ${candidateData['userId']}');
-            debugPrint('   City: $cityId, Ward: $wardId');
+            debugPrint('   District: $districtId, Body: $bodyId, Ward: $wardId');
             debugPrint('   Approved: ${candidateData['approved'] ?? false}');
             debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
 
@@ -107,6 +109,32 @@ class CandidateRepository {
             final wardData = Map<String, dynamic>.from(data);
             wardData['wardId'] = doc.id;
             wardData['cityId'] = cityId;
+            return Ward.fromJson(wardData);
+          })
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch wards: $e');
+    }
+  }
+
+  // Get wards for a district and body
+  Future<List<Ward>> getWardsByDistrictAndBody(String districtId, String bodyId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .get();
+
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data()! as Map<String, dynamic>;
+            final wardData = Map<String, dynamic>.from(data);
+            wardData['wardId'] = doc.id;
+            wardData['districtId'] = districtId;
+            wardData['bodyId'] = bodyId;
             return Ward.fromJson(wardData);
           })
           .toList();
@@ -222,7 +250,7 @@ class CandidateRepository {
     try {
     debugPrint('🔍 Candidate Repository: Searching for candidate data for userId: $userId');
 
-      // First, get the user's cityId and wardId from their user document
+      // First, get the user's districtId, bodyId and wardId from their user document
       final userDoc = await _firestore.collection('users').doc(userId).get();
 
       if (!userDoc.exists) {
@@ -233,21 +261,24 @@ class CandidateRepository {
       }
 
       final userData = userDoc.data()!;
-      final cityId = userData['cityId'];
+      final districtId = userData['districtId'] ?? userData['cityId']; // Backward compatibility
+      final bodyId = userData['bodyId'];
       final wardId = userData['wardId'];
 
-      if (cityId == null || wardId == null || cityId.isEmpty || wardId.isEmpty) {
-      debugPrint('⚠️ User has no cityId or wardId, falling back to brute force search');
-        // Fallback to the old method if city/ward info is missing
+      if (districtId == null || wardId == null || districtId.isEmpty || wardId.isEmpty) {
+      debugPrint('⚠️ User has no districtId or wardId, falling back to brute force search');
+        // Fallback to the old method if location info is missing
         return await _getCandidateDataBruteForce(userId);
       }
 
-    debugPrint('🎯 Direct search: City: $cityId, Ward: $wardId');
+    debugPrint('🎯 Direct search: District: $districtId, Body: $bodyId, Ward: $wardId');
 
-      // Direct query to the specific city/ward path
+      // Direct query to the specific district/body/ward path
       final candidatesSnapshot = await _firestore
-          .collection('cities')
-          .doc(cityId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId ?? '') // Empty string if bodyId is null for backward compatibility
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
@@ -255,7 +286,7 @@ class CandidateRepository {
           .limit(1)
           .get();
 
-    debugPrint('👤 Found ${candidatesSnapshot.docs.length} candidates in $cityId/$wardId');
+    debugPrint('👤 Found ${candidatesSnapshot.docs.length} candidates in $districtId/$bodyId/$wardId');
 
       if (candidatesSnapshot.docs.isNotEmpty) {
         final doc = candidatesSnapshot.docs.first;
@@ -273,7 +304,7 @@ class CandidateRepository {
         return Candidate.fromJson(candidateData);
       }
 
-    debugPrint('❌ No candidate found in user\'s city/ward: $cityId/$wardId');
+    debugPrint('❌ No candidate found in user\'s district/body/ward: $districtId/$bodyId/$wardId');
       return null;
     } catch (e) {
     debugPrint('❌ Error fetching candidate data: $e');
@@ -335,33 +366,37 @@ class CandidateRepository {
   // Update candidate extra info (legacy - saves entire object)
   Future<bool> updateCandidateExtraInfo(Candidate candidate) async {
     try {
-      // Find the candidate's location in the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      // Find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidate.candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            // Found the candidate, update it
-            await wardDoc.reference
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
                 .collection('candidates')
                 .doc(candidate.candidateId)
-                .update({
-                  'name': candidate.name,
-                  'party': candidate.party,
-                  'symbol': candidate.symbol,
-                  'extra_info': candidate.extraInfo?.toJson(),
-                  'photo': candidate.photo,
-                  'manifesto': candidate.manifesto,
-                  'contact': candidate.contact.toJson(),
-                });
-            return true;
+                .get();
+
+            if (candidateDoc.exists) {
+              // Found the candidate, update it
+              await wardDoc.reference
+                  .collection('candidates')
+                  .doc(candidate.candidateId)
+                  .update({
+                    'name': candidate.name,
+                    'party': candidate.party,
+                    'symbol': candidate.symbol,
+                    'extra_info': candidate.extraInfo?.toJson(),
+                    'photo': candidate.photo,
+                    'manifesto': candidate.manifesto,
+                    'contact': candidate.contact.toJson(),
+                  });
+              return true;
+            }
           }
         }
       }
@@ -375,25 +410,29 @@ class CandidateRepository {
   // Update specific fields only (optimized field-level updates)
   Future<bool> updateCandidateFields(String candidateId, Map<String, dynamic> fieldUpdates) async {
     try {
-      // Find the candidate's location in the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      // Find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            // Found the candidate, update only specified fields
-            await wardDoc.reference
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
                 .collection('candidates')
                 .doc(candidateId)
-                .update(fieldUpdates);
-            return true;
+                .get();
+
+            if (candidateDoc.exists) {
+              // Found the candidate, update only specified fields
+              await wardDoc.reference
+                  .collection('candidates')
+                  .doc(candidateId)
+                  .update(fieldUpdates);
+              return true;
+            }
           }
         }
       }
@@ -430,36 +469,45 @@ class CandidateRepository {
     try {
       final batch = _firestore.batch();
 
-      // Find the candidate's location
-      final citiesSnapshot = await _firestore.collection('cities').get();
-      String? candidateCityId;
+      // Find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
+      String? candidateDistrictId;
+      String? candidateBodyId;
       String? candidateWardId;
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            candidateCityId = cityDoc.id;
-            candidateWardId = wardDoc.id;
-            break;
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              candidateDistrictId = districtDoc.id;
+              candidateBodyId = bodyDoc.id;
+              candidateWardId = wardDoc.id;
+              break;
+            }
           }
+          if (candidateDistrictId != null) break;
         }
-        if (candidateCityId != null) break;
+        if (candidateDistrictId != null) break;
       }
 
-      if (candidateCityId == null || candidateWardId == null) {
+      if (candidateDistrictId == null || candidateBodyId == null || candidateWardId == null) {
         throw Exception('Candidate not found');
       }
 
       final candidateRef = _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')
@@ -479,30 +527,37 @@ class CandidateRepository {
   // Follow a candidate
   Future<void> followCandidate(String userId, String candidateId, {bool notificationsEnabled = true}) async {
     try {
-      // First find the candidate's location in the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
-      String? candidateCityId;
+      // First find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
+      String? candidateDistrictId;
+      String? candidateBodyId;
       String? candidateWardId;
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            candidateCityId = cityDoc.id;
-            candidateWardId = wardDoc.id;
-            break;
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              candidateDistrictId = districtDoc.id;
+              candidateBodyId = bodyDoc.id;
+              candidateWardId = wardDoc.id;
+              break;
+            }
           }
+          if (candidateDistrictId != null) break;
         }
-        if (candidateCityId != null) break;
+        if (candidateDistrictId != null) break;
       }
 
-      if (candidateCityId == null || candidateWardId == null) {
+      if (candidateDistrictId == null || candidateBodyId == null || candidateWardId == null) {
         throw Exception('Candidate not found');
       }
 
@@ -510,8 +565,10 @@ class CandidateRepository {
 
       // Add to candidate's followers subcollection
       final candidateFollowersRef = _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')
@@ -538,8 +595,10 @@ class CandidateRepository {
 
       // Update candidate's followers count
       final candidateRef = _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')
@@ -564,30 +623,37 @@ class CandidateRepository {
   // Unfollow a candidate
   Future<void> unfollowCandidate(String userId, String candidateId) async {
     try {
-      // First find the candidate's location in the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
-      String? candidateCityId;
+      // First find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
+      String? candidateDistrictId;
+      String? candidateBodyId;
       String? candidateWardId;
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            candidateCityId = cityDoc.id;
-            candidateWardId = wardDoc.id;
-            break;
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              candidateDistrictId = districtDoc.id;
+              candidateBodyId = bodyDoc.id;
+              candidateWardId = wardDoc.id;
+              break;
+            }
           }
+          if (candidateDistrictId != null) break;
         }
-        if (candidateCityId != null) break;
+        if (candidateDistrictId != null) break;
       }
 
-      if (candidateCityId == null || candidateWardId == null) {
+      if (candidateDistrictId == null || candidateBodyId == null || candidateWardId == null) {
         throw Exception('Candidate not found');
       }
 
@@ -595,8 +661,10 @@ class CandidateRepository {
 
       // Remove from candidate's followers subcollection
       final candidateFollowersRef = _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')
@@ -617,8 +685,10 @@ class CandidateRepository {
 
       // Update candidate's followers count
       final candidateRef = _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')
@@ -659,36 +729,45 @@ class CandidateRepository {
   // Get followers list for a candidate
   Future<List<Map<String, dynamic>>> getCandidateFollowers(String candidateId) async {
     try {
-      // First find the candidate's location in the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
-      String? candidateCityId;
+      // First find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
+      String? candidateDistrictId;
+      String? candidateBodyId;
       String? candidateWardId;
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            candidateCityId = cityDoc.id;
-            candidateWardId = wardDoc.id;
-            break;
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              candidateDistrictId = districtDoc.id;
+              candidateBodyId = bodyDoc.id;
+              candidateWardId = wardDoc.id;
+              break;
+            }
           }
+          if (candidateDistrictId != null) break;
         }
-        if (candidateCityId != null) break;
+        if (candidateDistrictId != null) break;
       }
 
-      if (candidateCityId == null || candidateWardId == null) {
+      if (candidateDistrictId == null || candidateBodyId == null || candidateWardId == null) {
         throw Exception('Candidate not found');
       }
 
       final snapshot = await _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')
@@ -743,25 +822,29 @@ class CandidateRepository {
     try {
       debugPrint('🔍 Candidate Repository: Searching for candidate data by candidateId: $candidateId');
 
-      // Search through all cities and wards to find the candidate
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      // Search through all districts, bodies, and wards to find the candidate
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            final data = candidateDoc.data()! as Map<String, dynamic>;
-            final candidateData = Map<String, dynamic>.from(data);
-            candidateData['candidateId'] = candidateDoc.id;
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
 
-            debugPrint('✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id}) in ${cityDoc.id}/${wardDoc.id}');
-            return Candidate.fromJson(candidateData);
+            if (candidateDoc.exists) {
+              final data = candidateDoc.data()! as Map<String, dynamic>;
+              final candidateData = Map<String, dynamic>.from(data);
+              candidateData['candidateId'] = candidateDoc.id;
+
+              debugPrint('✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+              return Candidate.fromJson(candidateData);
+            }
           }
         }
       }
@@ -775,7 +858,7 @@ class CandidateRepository {
   }
 
   // Create or update user document with basic info
-  Future<void> ensureUserDocumentExists(String userId, {String? cityId, String? wardId}) async {
+  Future<void> ensureUserDocumentExists(String userId, {String? districtId, String? bodyId, String? wardId, String? cityId}) async {
     try {
       final userRef = _firestore.collection('users').doc(userId);
       final userDoc = await userRef.get();
@@ -783,19 +866,28 @@ class CandidateRepository {
       if (!userDoc.exists) {
         debugPrint('📝 Creating user document for $userId');
         await userRef.set({
-          'cityId': cityId ?? '',
+          'districtId': districtId ?? '',
+          'bodyId': bodyId ?? '',
           'wardId': wardId ?? '',
+          'cityId': cityId ?? '', // Keep for backward compatibility
           'createdAt': FieldValue.serverTimestamp(),
           'followingCount': 0,
         });
-      } else if (cityId != null && wardId != null) {
-        // Update existing document with city/ward info if provided
+      } else if ((districtId != null && bodyId != null && wardId != null) || (cityId != null && wardId != null)) {
+        // Update existing document with location info if provided
         final userData = userDoc.data() ?? {};
-        if (userData['cityId'] != cityId || userData['wardId'] != wardId) {
-          debugPrint('🔄 Updating user document for $userId with city/ward info');
+        final needsUpdate = (districtId != null && userData['districtId'] != districtId) ||
+                           (bodyId != null && userData['bodyId'] != bodyId) ||
+                           (wardId != null && userData['wardId'] != wardId) ||
+                           (cityId != null && userData['cityId'] != cityId);
+
+        if (needsUpdate) {
+          debugPrint('🔄 Updating user document for $userId with location info');
           await userRef.update({
-            'cityId': cityId,
-            'wardId': wardId,
+            'districtId': districtId ?? userData['districtId'] ?? '',
+            'bodyId': bodyId ?? userData['bodyId'] ?? '',
+            'wardId': wardId ?? userData['wardId'] ?? '',
+            'cityId': cityId ?? userData['cityId'] ?? '', // Keep for backward compatibility
           });
         }
       }
@@ -818,15 +910,19 @@ class CandidateRepository {
       // Use the candidateId if provided, otherwise let Firestore generate one
       final docRef = candidate.candidateId.isNotEmpty && !candidate.candidateId.startsWith('temp_')
           ? _firestore
-              .collection('cities')
-              .doc(candidate.cityId)
+              .collection('districts')
+              .doc(candidate.districtId)
+              .collection('bodies')
+              .doc(candidate.bodyId)
               .collection('wards')
               .doc(candidate.wardId)
               .collection('candidates')
               .doc(candidate.candidateId)
           : _firestore
-              .collection('cities')
-              .doc(candidate.cityId)
+              .collection('districts')
+              .doc(candidate.districtId)
+              .collection('bodies')
+              .doc(candidate.bodyId)
               .collection('wards')
               .doc(candidate.wardId)
               .collection('candidates')
@@ -842,11 +938,13 @@ class CandidateRepository {
   }
 
   // Get candidates by approval status
-  Future<List<Candidate>> getCandidatesByApprovalStatus(String cityId, String wardId, bool approved) async {
+  Future<List<Candidate>> getCandidatesByApprovalStatus(String districtId, String bodyId, String wardId, bool approved) async {
     try {
       final snapshot = await _firestore
-          .collection('cities')
-          .doc(cityId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
@@ -867,11 +965,13 @@ class CandidateRepository {
   }
 
   // Get candidates by status (pending_election or finalized)
-  Future<List<Candidate>> getCandidatesByStatus(String cityId, String wardId, String status) async {
+  Future<List<Candidate>> getCandidatesByStatus(String districtId, String bodyId, String wardId, String status) async {
     try {
       final snapshot = await _firestore
-          .collection('cities')
-          .doc(cityId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
@@ -892,11 +992,13 @@ class CandidateRepository {
   }
 
   // Approve or reject a candidate
-  Future<void> updateCandidateApproval(String cityId, String wardId, String candidateId, bool approved) async {
+  Future<void> updateCandidateApproval(String districtId, String bodyId, String wardId, String candidateId, bool approved) async {
     try {
       await _firestore
-          .collection('cities')
-          .doc(cityId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
@@ -911,14 +1013,16 @@ class CandidateRepository {
   }
 
   // Switch candidates from provisional to finalized
-  Future<void> finalizeCandidates(String cityId, String wardId, List<String> candidateIds) async {
+  Future<void> finalizeCandidates(String districtId, String bodyId, String wardId, List<String> candidateIds) async {
     try {
       final batch = _firestore.batch();
 
       for (final candidateId in candidateIds) {
         final candidateRef = _firestore
-            .collection('cities')
-            .doc(cityId)
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
             .collection('wards')
             .doc(wardId)
             .collection('candidates')
@@ -971,13 +1075,25 @@ class CandidateRepository {
   // Check if user has already registered as a candidate
   Future<bool> hasUserRegisteredAsCandidate(String userId) async {
     try {
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      // First check if user has district/body/ward info
+      final userDoc = await _firestore.collection('users').doc(userId).get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final districtId = userData['districtId'];
+        final bodyId = userData['bodyId'];
+        final wardId = userData['wardId'];
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateSnapshot = await wardDoc.reference
+        // If user has location info, check directly in that ward
+        if (districtId != null && bodyId != null && wardId != null &&
+            districtId.isNotEmpty && bodyId.isNotEmpty && wardId.isNotEmpty) {
+          final candidateSnapshot = await _firestore
+              .collection('districts')
+              .doc(districtId)
+              .collection('bodies')
+              .doc(bodyId)
+              .collection('wards')
+              .doc(wardId)
               .collection('candidates')
               .where('userId', isEqualTo: userId)
               .limit(1)
@@ -985,6 +1101,29 @@ class CandidateRepository {
 
           if (candidateSnapshot.docs.isNotEmpty) {
             return true;
+          }
+        }
+      }
+
+      // Fallback: search through all districts, bodies, and wards
+      final districtsSnapshot = await _firestore.collection('districts').get();
+
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateSnapshot = await wardDoc.reference
+                .collection('candidates')
+                .where('userId', isEqualTo: userId)
+                .limit(1)
+                .get();
+
+            if (candidateSnapshot.docs.isNotEmpty) {
+              return true;
+            }
           }
         }
       }
@@ -998,30 +1137,37 @@ class CandidateRepository {
   // Update notification settings for a follow relationship
   Future<void> updateFollowNotificationSettings(String userId, String candidateId, bool notificationsEnabled) async {
     try {
-      // First find the candidate's location in the nested structure
-      final citiesSnapshot = await _firestore.collection('cities').get();
-      String? candidateCityId;
+      // First find the candidate's location in the new district/body/ward structure
+      final districtsSnapshot = await _firestore.collection('districts').get();
+      String? candidateDistrictId;
+      String? candidateBodyId;
       String? candidateWardId;
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            candidateCityId = cityDoc.id;
-            candidateWardId = wardDoc.id;
-            break;
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              candidateDistrictId = districtDoc.id;
+              candidateBodyId = bodyDoc.id;
+              candidateWardId = wardDoc.id;
+              break;
+            }
           }
+          if (candidateDistrictId != null) break;
         }
-        if (candidateCityId != null) break;
+        if (candidateDistrictId != null) break;
       }
 
-      if (candidateCityId == null || candidateWardId == null) {
+      if (candidateDistrictId == null || candidateBodyId == null || candidateWardId == null) {
         throw Exception('Candidate not found');
       }
 
@@ -1029,8 +1175,10 @@ class CandidateRepository {
 
       // Update in candidate's followers subcollection (use set with merge to handle both create and update)
       final candidateFollowersRef = _firestore
-          .collection('cities')
-          .doc(candidateCityId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
           .collection('wards')
           .doc(candidateWardId)
           .collection('candidates')

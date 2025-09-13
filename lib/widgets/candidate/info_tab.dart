@@ -74,7 +74,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        AppLocalizations.of(context)!.wardInfo(widget.candidate.wardId.toString(), widget.candidate.cityId),
+                        AppLocalizations.of(context)!.wardInfo(widget.candidate.wardId.toString(), widget.candidate.districtId),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6b7280),

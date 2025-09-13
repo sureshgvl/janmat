@@ -62,7 +62,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     debugPrint('   address from contact: ${extraInfo?.contact?.address}');
 
     _nameController = TextEditingController(text: data.name);
-    _cityController = TextEditingController(text: data.cityId);
+    _cityController = TextEditingController(text: data.districtId);
     _wardController = TextEditingController(text: data.wardId);
     _ageController = TextEditingController(text: extraInfo?.basicInfo?.age?.toString() ?? '');
     _genderController = TextEditingController(text: extraInfo?.basicInfo?.gender ?? '');
@@ -78,7 +78,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
       final data = widget.editedData ?? widget.candidateData;
       final extraInfo = data.extraInfo;
       _nameController.text = data.name;
-      _cityController.text = data.cityId;
+      _cityController.text = data.districtId;
       _wardController.text = data.wardId;
       _ageController.text = extraInfo?.basicInfo?.age?.toString() ?? '';
       _genderController.text = extraInfo?.basicInfo?.gender ?? '';
@@ -659,7 +659,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                       children: [
                         Expanded(
                           child: Text(
-                            'City: ${data.cityId}',
+                            'District: ${data.districtId}',
                             style: const TextStyle(fontSize: 16),
                           ),
                         ),
@@ -793,7 +793,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                           ),
                         ),
                         Text(
-                          data.cityId,
+                          data.districtId,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,

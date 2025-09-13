@@ -6,14 +6,19 @@ import '../../l10n/app_localizations.dart';
 import '../../controllers/login_controller.dart';
 import '../../controllers/chat_controller.dart';
 import '../../models/user_model.dart';
-import '../../models/city_model.dart';
 import '../../models/ward_model.dart';
 import '../../models/candidate_model.dart';
 import '../../models/party_model.dart';
+import '../../models/district_model.dart';
+import '../../models/body_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../repositories/party_repository.dart';
-import '../../widgets/modal_selector.dart';
 import '../../utils/symbol_utils.dart';
+import '../../widgets/profile/district_selection_modal.dart';
+import '../../widgets/profile/area_selection_modal.dart';
+import '../../widgets/profile/area_in_ward_selection_modal.dart';
+import '../../widgets/profile/party_selection_modal.dart';
+import '../../widgets/profile/ward_selection_modal.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
@@ -35,15 +40,18 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final birthDateController = TextEditingController();
   DateTime? selectedBirthDate;
   String? selectedGender;
-  City? selectedCity;
+  String? selectedDistrictId;
+  String? selectedBodyId;
   Ward? selectedWard;
+  String? selectedArea;
   Party? selectedParty;
 
-  List<City> cities = [];
-  List<Ward> wards = [];
+  List<District> districts = [];
+  Map<String, List<Body>> districtBodies = {};
+  Map<String, List<Ward>> bodyWards = {};
   List<Party> parties = [];
   bool isLoading = false;
-  bool isLoadingCities = true;
+  bool isLoadingDistricts = true;
   bool isLoadingParties = true;
   bool _isNamePreFilled = false;
   bool _isPhonePreFilled = false;
@@ -52,7 +60,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCities();
+    _loadDistricts();
     _loadParties();
     _loadUserRole();
     _preFillUserData();
@@ -129,17 +137,43 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     super.dispose();
   }
 
-  Future<void> _loadCities() async {
+  Future<void> _loadDistricts() async {
     try {
-      cities = await candidateRepository.getAllCities();
+      // Load districts from Firestore
+      final districtsSnapshot = await FirebaseFirestore.instance.collection('districts').get();
+      districts = districtsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return District.fromJson({
+          'districtId': doc.id,
+          ...data,
+        });
+      }).toList();
+
+      // Load bodies for each district
+      for (final district in districts) {
+        final bodiesSnapshot = await FirebaseFirestore.instance
+            .collection('districts')
+            .doc(district.districtId)
+            .collection('bodies')
+            .get();
+        districtBodies[district.districtId] = bodiesSnapshot.docs.map((doc) {
+          final data = doc.data();
+          return Body.fromJson({
+            'bodyId': doc.id,
+            'districtId': district.districtId,
+            ...data,
+          });
+        }).toList();
+      }
+
       setState(() {
-        isLoadingCities = false;
+        isLoadingDistricts = false;
       });
     } catch (e) {
       // For now, keep the error message in English since we don't have context here
-      Get.snackbar('Error', 'Failed to load cities: $e');
+      Get.snackbar('Error', 'Failed to load districts: $e');
       setState(() {
-        isLoadingCities = false;
+        isLoadingDistricts = false;
       });
     }
   }
@@ -178,11 +212,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
-  Future<void> _loadWards(String cityId, BuildContext context) async {
+  Future<void> _loadWards(String districtId, String bodyId, BuildContext context) async {
     final localizations = AppLocalizations.of(context)!;
 
     try {
-      wards = await candidateRepository.getWardsByCity(cityId);
+      final wards = await candidateRepository.getWardsByDistrictAndBody(districtId, bodyId);
+      bodyWards[bodyId] = wards;
       setState(() {});
     } catch (e) {
       Get.snackbar(localizations.error, localizations.failedToLoadWards(e.toString()));
@@ -205,186 +240,107 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
-  void _showPartySelectionModal(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
-
+  void _showDistrictSelectionModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.flag,
-                      color: Colors.blue,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Select Political Party',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.blue,
-                        size: 28,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        return DistrictSelectionModal(
+          districts: districts,
+          districtBodies: districtBodies,
+          selectedDistrictId: selectedDistrictId,
+          onDistrictSelected: (districtId) {
+            setState(() {
+              selectedDistrictId = districtId;
+              selectedBodyId = null;
+              selectedWard = null;
+              bodyWards.clear();
+            });
+          },
+        );
+      },
+    );
+  }
 
-              // Party List
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: parties.length,
-                  itemBuilder: (context, index) {
-                    final party = parties[index];
-                    final isSelected = selectedParty?.id == party.id;
+  void _showBodySelectionModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return AreaSelectionModal(
+          bodies: districtBodies[selectedDistrictId!]!,
+          selectedBodyId: selectedBodyId,
+          onBodySelected: (bodyId) {
+            setState(() {
+              selectedBodyId = bodyId;
+              selectedWard = null;
+              bodyWards.clear();
+            });
+            _loadWards(selectedDistrictId!, bodyId, context);
+          },
+        );
+      },
+    );
+  }
 
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          selectedParty = party;
-                        });
-                        Navigator.of(context).pop();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.blue.shade50 : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? Colors.blue.shade200 : Colors.grey.shade200,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.blue.shade100,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ]
-                              : null,
-                        ),
-                        child: Row(
-                          children: [
-                            // Party Symbol
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                  width: 1,
-                                ),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(7),
-                                child: Image(
-                                  image: SymbolUtils.getSymbolImageProvider(
-                                    SymbolUtils.getPartySymbolPathFromParty(party)
-                                  ),
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey.shade100,
-                                      child: const Icon(
-                                        Icons.flag,
-                                        size: 32,
-                                        color: Colors.grey,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
+  void _showWardSelectionModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return WardSelectionModal(
+          wards: bodyWards[selectedBodyId!] ?? [],
+          selectedWardId: selectedWard?.wardId,
+          onWardSelected: (wardId) {
+            final ward = bodyWards[selectedBodyId!]!.firstWhere((w) => w.wardId == wardId);
+            setState(() {
+              selectedWard = ward;
+              selectedArea = null; // Reset area when ward changes
+            });
+          },
+        );
+      },
+    );
+  }
 
-                            const SizedBox(width: 16),
+  void _showAreaSelectionModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return AreaInWardSelectionModal(
+          ward: selectedWard!,
+          selectedArea: selectedArea,
+          onAreaSelected: (area) {
+            setState(() {
+              selectedArea = area;
+            });
+          },
+        );
+      },
+    );
+  }
 
-                            // Party Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    party.getDisplayName(Localizations.localeOf(context).languageCode),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected ? Colors.blue.shade800 : Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    party.abbreviation,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade600,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
 
-                            // Selection Indicator
-                            if (isSelected)
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: Colors.blue,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+
+  void _showPartySelectionModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return PartySelectionModal(
+          parties: parties,
+          selectedPartyId: selectedParty?.id,
+          onPartySelected: (partyId) {
+            setState(() {
+              selectedParty = parties.firstWhere((party) => party.id == partyId);
+            });
+          },
         );
       },
     );
@@ -395,14 +351,20 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    if (selectedCity == null || selectedWard == null || selectedGender == null) {
+    if (selectedDistrictId == null || selectedBodyId == null || selectedWard == null || selectedGender == null) {
       Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+      return;
+    }
+
+    // Check if area selection is required and selected (only for non-candidates)
+    if (currentUserRole != 'candidate' && selectedWard!.areas != null && selectedWard!.areas!.isNotEmpty && selectedArea == null) {
+      Get.snackbar(localizations.error, localizations.selectYourArea);
       return;
     }
 
     // For candidates, party selection is required
     if (currentUserRole == 'candidate' && selectedParty == null) {
-      Get.snackbar(localizations.error, 'Please select your political party');
+      Get.snackbar(localizations.error, localizations.pleaseSelectYourPoliticalParty);
       return;
     }
 
@@ -433,8 +395,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         role: currentRole,
         roleSelected: true,
         profileCompleted: true,
+        districtId: selectedDistrictId!,
+        bodyId: selectedBodyId!,
         wardId: selectedWard!.wardId,
-        cityId: selectedCity!.cityId,
+        cityId: '', // Keep for backward compatibility
         xpPoints: 0,
         premium: false,
         createdAt: DateTime.now(),
@@ -449,6 +413,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
             ...updatedUser.toJson(),
             'birthDate': selectedBirthDate?.toIso8601String(),
             'gender': selectedGender,
+            'area': selectedArea, // Save selected area
             'profileCompleted': true,
           });
 
@@ -481,7 +446,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
             userId: currentUser.uid,
             name: nameController.text.trim(),
             party: selectedParty!.name, // Use selected party
-            cityId: selectedCity!.cityId,
+            districtId: selectedDistrictId!,
+            bodyId: selectedBodyId!,
             wardId: selectedWard!.wardId,
             contact: Contact(
               phone: '+91${phoneController.text.trim()}',
@@ -503,7 +469,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
           // Save basic candidate record to make them visible to voters
         debugPrint('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
-        debugPrint('   City: ${candidate.cityId}, Ward: ${candidate.wardId}');
+        debugPrint('   District: ${candidate.districtId}, Body: ${candidate.bodyId}, Ward: ${candidate.wardId}');
         debugPrint('   Temp ID: ${candidate.candidateId}');
           //create candidate and get actual ID
           final actualCandidateId = await candidateRepository.createCandidate(candidate);
@@ -702,54 +668,183 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // City Selection
-                if (isLoadingCities)
+                // District Selection
+                if (isLoadingDistricts)
                   const Center(child: CircularProgressIndicator())
                 else
-                  ModalSelector<City>(
-                    title: localizations.selectCity,
-                    label: localizations.cityRequired,
-                    hint: localizations.selectYourCity,
-                    items: cities.map((city) {
-                      return DropdownMenuItem<City>(
-                        value: city,
-                        child: Text('${city.name} (${city.state})'),
-                      );
-                    }).toList(),
-                    value: selectedCity,
-                    onChanged: (city) {
-                      setState(() {
-                        selectedCity = city;
-                        selectedWard = null;
-                        wards = [];
-                      });
-                      if (city != null) {
-                        _loadWards(city.cityId, context);
-                      }
-                    },
+                  InkWell(
+                    onTap: () => _showDistrictSelectionModal(context),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: localizations.districtRequired,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.location_city),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
+                      ),
+                      child: selectedDistrictId != null
+                          ? Text(
+                              districts.firstWhere((d) => d.districtId == selectedDistrictId).name,
+                              style: const TextStyle(fontSize: 16),
+                            )
+                          : Text(
+                              localizations.selectYourDistrict,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+
+                // Area Selection
+                if (selectedDistrictId != null && districtBodies[selectedDistrictId!] != null && districtBodies[selectedDistrictId!]!.isNotEmpty)
+                  InkWell(
+                    onTap: () => _showBodySelectionModal(context),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Area (विभाग) *',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.business),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
+                      ),
+                      child: selectedBodyId != null
+                          ? Builder(
+                              builder: (context) {
+                                final body = districtBodies[selectedDistrictId!]!.firstWhere(
+                                  (b) => b.bodyId == selectedBodyId,
+                                  orElse: () => Body(bodyId: '', districtId: '', name: '', type: '', wardCount: 0),
+                                );
+                                return Text(
+                                  body.bodyId.isNotEmpty ? '${body.name} (${body.type})' : selectedBodyId!,
+                                  style: const TextStyle(fontSize: 16),
+                                );
+                              },
+                            )
+                          : const Text(
+                              'Select Area (विभाग)',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.business, color: Colors.grey),
+                        const SizedBox(width: 12),
+                        Text(
+                          selectedDistrictId == null
+                              ? 'Select district first'
+                              : districtBodies[selectedDistrictId!] == null || districtBodies[selectedDistrictId!]!.isEmpty
+                                  ? 'No areas available in this district'
+                                  : 'Select Area (विभाग)',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 const SizedBox(height: 24),
 
                 // Ward Selection
-                ModalSelector<Ward>(
-                  title: localizations.selectWard,
-                  label: localizations.wardRequired,
-                  hint: selectedCity != null ? localizations.selectYourWard : localizations.selectCityFirst,
-                  items: wards.map((ward) {
-                    return DropdownMenuItem<Ward>(
-                      value: ward,
-                      child: Text('${ward.name} (${ward.areas.length} areas)'),
-                    );
-                  }).toList(),
-                  value: selectedWard,
-                  enabled: selectedCity != null,
-                  onChanged: (ward) {
-                    setState(() {
-                      selectedWard = ward;
-                    });
-                  },
-                ),
+                if (selectedBodyId != null && bodyWards[selectedBodyId!] != null && bodyWards[selectedBodyId!]!.isNotEmpty)
+                  InkWell(
+                    onTap: () => _showWardSelectionModal(context),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: localizations.wardRequired,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.home),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
+                      ),
+                      child: selectedWard != null
+                          ? Builder(
+                              builder: (context) {
+                                // Format ward display like "वॉर्ड 1 - Ward Name"
+                                final numberMatch = RegExp(r'ward_(\d+)').firstMatch(selectedWard!.wardId.toLowerCase());
+                                final displayText = numberMatch != null
+                                    ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
+                                    : selectedWard!.name;
+                                return Text(
+                                  displayText,
+                                  style: const TextStyle(fontSize: 16),
+                                );
+                              },
+                            )
+                          : const Text(
+                              'Select Ward (वॉर्ड)',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.home, color: Colors.grey),
+                        const SizedBox(width: 12),
+                        Text(
+                          selectedBodyId == null
+                              ? 'Select area first'
+                              : bodyWards[selectedBodyId!] == null || bodyWards[selectedBodyId!]!.isEmpty
+                                  ? 'No wards available in this area'
+                                  : 'Select Ward (वॉर्ड)',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 24),
+
+                // Area Selection (only show if ward has areas and user is not a candidate)
+                if (selectedWard != null && selectedWard!.areas != null && selectedWard!.areas!.isNotEmpty && currentUserRole != 'candidate') ...[
+                  InkWell(
+                    onTap: () => _showAreaSelectionModal(context),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: localizations.areaRequired,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.location_on),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
+                      ),
+                      child: selectedArea != null
+                          ? Text(
+                              selectedArea!,
+                              style: const TextStyle(fontSize: 16),
+                            )
+                          : Text(
+                              localizations.selectYourArea,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Party Selection (only for candidates)
                 if (currentUserRole == 'candidate') ...[
@@ -760,7 +855,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       onTap: () => _showPartySelectionModal(context),
                       child: InputDecorator(
                         decoration: InputDecoration(
-                          labelText: 'Political Party (Required)',
+                          labelText: localizations.politicalPartyRequired,
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.flag),
                           suffixIcon: const Icon(Icons.arrow_drop_down),
@@ -797,7 +892,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                 ],
                               )
                             : Text(
-                                'Select your political party',
+                                localizations.pleaseSelectYourPoliticalParty,
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontSize: 16,

@@ -648,7 +648,8 @@ class Candidate {
   final String name;
   final String party;
   final String? symbol;
-  final String cityId;
+  final String districtId;
+  final String bodyId;
   final String wardId;
   final String? manifesto;
   final String? photo;
@@ -669,7 +670,8 @@ class Candidate {
     required this.name,
     required this.party,
     this.symbol,
-    required this.cityId,
+    required this.districtId,
+    required this.bodyId,
     required this.wardId,
     this.manifesto,
     this.photo,
@@ -702,7 +704,8 @@ class Candidate {
       name: json['name'] ?? '',
       party: json['party'] ?? '',
       symbol: json['symbol'],
-      cityId: json['cityId'] ?? '',
+      districtId: json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
+      bodyId: json['bodyId'] ?? '',
       wardId: json['wardId'] ?? '',
       manifesto: json['manifesto'],
       photo: json['photo'],
@@ -726,7 +729,8 @@ class Candidate {
       'name': name,
       'party': party,
       'symbol': symbol,
-      'cityId': cityId,
+      'districtId': districtId,
+      'bodyId': bodyId,
       'wardId': wardId,
       'manifesto': manifesto,
       'photo': photo,
@@ -749,7 +753,8 @@ class Candidate {
     String? name,
     String? party,
     String? symbol,
-    String? cityId,
+    String? districtId,
+    String? bodyId,
     String? wardId,
     String? manifesto,
     String? photo,
@@ -770,7 +775,8 @@ class Candidate {
       name: name ?? this.name,
       party: party ?? this.party,
       symbol: symbol ?? this.symbol,
-      cityId: cityId ?? this.cityId,
+      districtId: districtId ?? this.districtId,
+      bodyId: bodyId ?? this.bodyId,
       wardId: wardId ?? this.wardId,
       manifesto: manifesto ?? this.manifesto,
       photo: photo ?? this.photo,

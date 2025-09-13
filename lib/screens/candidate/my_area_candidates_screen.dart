@@ -38,9 +38,10 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         if (userDoc.exists) {
           currentUser = UserModel.fromJson(userDoc.data()!);
 
-          // Load candidates from user's ward
+          // Load candidates from user's ward using new district/body/ward structure
           await candidateController.fetchCandidatesByWard(
-            currentUser!.cityId,
+            currentUser!.districtId!,
+            currentUser!.bodyId!,
             currentUser!.wardId
           );
 
@@ -57,16 +58,10 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
   Future<void> _addCurrentUserToCandidatesList() async {
     try {
-      // Check if current user has a candidate profile
-      final candidateDoc = await FirebaseFirestore.instance
-          .collection('candidates')
-          .doc('candidate_${currentUserId}')
-          .get();
+      // Get current user's candidate data using the repository method
+      final currentUserCandidate = await candidateController.candidateRepository.getCandidateData(currentUserId!);
 
-      if (candidateDoc.exists) {
-        final candidateData = candidateDoc.data()!;
-        final currentUserCandidate = Candidate.fromJson(candidateData);
-
+      if (currentUserCandidate != null) {
         // Check if current user is already in the list (avoid duplicates)
         final existingIndex = candidateController.candidates
             .indexWhere((c) => c.candidateId == currentUserCandidate.candidateId);

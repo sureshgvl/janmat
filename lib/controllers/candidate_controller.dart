@@ -8,6 +8,9 @@ import '../repositories/candidate_repository.dart';
 class CandidateController extends GetxController {
   final CandidateRepository _repository = CandidateRepository();
 
+  // Public getter for repository access
+  CandidateRepository get candidateRepository => _repository;
+
   List<Candidate> candidates = [];
   List<Ward> wards = [];
   List<City> cities = [];
@@ -19,15 +22,15 @@ class CandidateController extends GetxController {
   Map<String, bool> followLoading = {}; // candidateId -> isLoading
 
   // Fetch candidates by ward
-  Future<void> fetchCandidatesByWard(String cityId, String wardId) async {
-  debugPrint('🔄 [Controller] Fetching candidates for city: $cityId, ward: $wardId');
+  Future<void> fetchCandidatesByWard(String districtId, String bodyId, String wardId) async {
+  debugPrint('🔄 [Controller] Fetching candidates for district: $districtId, body: $bodyId, ward: $wardId');
     isLoading = true;
     errorMessage = null;
     update();
 
     try {
-      candidates = await _repository.getCandidatesByWard(cityId, wardId);
-    debugPrint('✅ [Controller] Found ${candidates.length} candidates in city: $cityId, ward: $wardId');
+      candidates = await _repository.getCandidatesByWard(districtId, bodyId, wardId);
+    debugPrint('✅ [Controller] Found ${candidates.length} candidates in district: $districtId, body: $bodyId, ward: $wardId');
     } catch (e) {
     debugPrint('❌ [Controller] Failed to fetch candidates: $e');
       errorMessage = e.toString();
@@ -257,33 +260,14 @@ class CandidateController extends GetxController {
     }
   }
 
-  // Get candidates by approval status
-  Future<void> fetchCandidatesByApprovalStatus(String cityId, String wardId, bool approved) async {
-    isLoading = true;
-    errorMessage = null;
-    update();
-
-    try {
-      candidates = await _repository.getCandidatesByApprovalStatus(cityId, wardId, approved);
-    debugPrint('✅ [Controller] Found ${candidates.length} candidates with approved: $approved');
-    } catch (e) {
-    debugPrint('❌ [Controller] Failed to fetch candidates by approval status: $e');
-      errorMessage = e.toString();
-      candidates = [];
-    }
-
-    isLoading = false;
-    update();
-  }
-
   // Get candidates by status
-  Future<void> fetchCandidatesByStatus(String cityId, String wardId, String status) async {
+  Future<void> fetchCandidatesByStatus(String districtId, String bodyId, String wardId, String status) async {
     isLoading = true;
     errorMessage = null;
     update();
 
     try {
-      candidates = await _repository.getCandidatesByStatus(cityId, wardId, status);
+      candidates = await _repository.getCandidatesByStatus(districtId, bodyId, wardId, status);
     debugPrint('✅ [Controller] Found ${candidates.length} candidates with status: $status');
     } catch (e) {
     debugPrint('❌ [Controller] Failed to fetch candidates by status: $e');
@@ -296,9 +280,9 @@ class CandidateController extends GetxController {
   }
 
   // Approve or reject a candidate
-  Future<void> updateCandidateApproval(String cityId, String wardId, String candidateId, bool approved) async {
+  Future<void> updateCandidateApproval(String districtId, String bodyId, String wardId, String candidateId, bool approved) async {
     try {
-      await _repository.updateCandidateApproval(cityId, wardId, candidateId, approved);
+      await _repository.updateCandidateApproval(districtId, bodyId, wardId, candidateId, approved);
 
       // Update the candidate in the current list if it exists
       final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
@@ -320,9 +304,9 @@ class CandidateController extends GetxController {
   }
 
   // Finalize candidates
-  Future<void> finalizeCandidates(String cityId, String wardId, List<String> candidateIds) async {
+  Future<void> finalizeCandidates(String districtId, String bodyId, String wardId, List<String> candidateIds) async {
     try {
-      await _repository.finalizeCandidates(cityId, wardId, candidateIds);
+      await _repository.finalizeCandidates(districtId, bodyId, wardId, candidateIds);
 
       // Update the candidates in the current list
       for (final candidateId in candidateIds) {

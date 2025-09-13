@@ -330,8 +330,11 @@ class CandidateDataController extends GetxController {
       case 'party':
         editedData.value = editedData.value!.copyWith(party: value);
         break;
-      case 'cityId':
-        editedData.value = editedData.value!.copyWith(cityId: value);
+      case 'districtId':
+        editedData.value = editedData.value!.copyWith(districtId: value);
+        break;
+      case 'bodyId':
+        editedData.value = editedData.value!.copyWith(bodyId: value);
         break;
       case 'wardId':
         editedData.value = editedData.value!.copyWith(wardId: value);

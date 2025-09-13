@@ -1397,6 +1397,30 @@ abstract class AppLocalizations {
   /// **'Prefer not to say'**
   String get preferNotToSay;
 
+  /// No description provided for @districtRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'District *'**
+  String get districtRequired;
+
+  /// No description provided for @selectYourDistrict.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your district'**
+  String get selectYourDistrict;
+
+  /// No description provided for @bodyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Body *'**
+  String get bodyRequired;
+
+  /// No description provided for @selectYourBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your body'**
+  String get selectYourBody;
+
   /// No description provided for @cityRequired.
   ///
   /// In en, this message translates to:
@@ -1420,6 +1444,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select your ward'**
   String get selectYourWard;
+
+  /// No description provided for @areaRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Area *'**
+  String get areaRequired;
+
+  /// No description provided for @selectYourArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your area'**
+  String get selectYourArea;
 
   /// No description provided for @selectCityFirst.
   ///

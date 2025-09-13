@@ -9,7 +9,9 @@ class UserModel {
   final bool roleSelected;
   final bool profileCompleted;
   final String wardId;
-  final String cityId;
+  final String? districtId;
+  final String? bodyId;
+  final String cityId; // Keep for backward compatibility
   final int xpPoints;
   final bool premium;
   final String? subscriptionPlanId; // current active subscription
@@ -32,6 +34,8 @@ class UserModel {
     required this.roleSelected,
     required this.profileCompleted,
     required this.wardId,
+    this.districtId,
+    this.bodyId,
     required this.cityId,
     required this.xpPoints,
     required this.premium,
@@ -81,6 +85,8 @@ class UserModel {
       roleSelected: json['roleSelected'] ?? false,
       profileCompleted: json['profileCompleted'] ?? false,
       wardId: json['wardId'] ?? '',
+      districtId: json['districtId'],
+      bodyId: json['bodyId'],
       cityId: json['cityId'] ?? '',
       xpPoints: json['xpPoints'] ?? 0,
       premium: json['premium'] ?? false,
@@ -106,6 +112,8 @@ class UserModel {
       'roleSelected': roleSelected,
       'profileCompleted': profileCompleted,
       'wardId': wardId,
+      'districtId': districtId,
+      'bodyId': bodyId,
       'cityId': cityId,
       'xpPoints': xpPoints,
       'premium': premium,
@@ -130,6 +138,8 @@ class UserModel {
     bool? roleSelected,
     bool? profileCompleted,
     String? wardId,
+    String? districtId,
+    String? bodyId,
     String? cityId,
     int? xpPoints,
     bool? premium,
@@ -152,6 +162,8 @@ class UserModel {
       roleSelected: roleSelected ?? this.roleSelected,
       profileCompleted: profileCompleted ?? this.profileCompleted,
       wardId: wardId ?? this.wardId,
+      districtId: districtId ?? this.districtId,
+      bodyId: bodyId ?? this.bodyId,
       cityId: cityId ?? this.cityId,
       xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
