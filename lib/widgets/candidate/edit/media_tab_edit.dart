@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/candidate_model.dart';
+import '../../../models/candidate_model.dart';
 
 class MediaSection extends StatelessWidget {
   final Candidate candidateData;

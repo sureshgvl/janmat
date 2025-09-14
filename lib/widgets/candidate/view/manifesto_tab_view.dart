@@ -3,25 +3,34 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:video_player/video_player.dart';
-import '../../models/candidate_model.dart';
-import '../../services/demo_data_service.dart';
-import '../../controllers/candidate_data_controller.dart';
+import 'package:chewie/chewie.dart';
+import '../../../models/candidate_model.dart';
+import '../../../services/demo_data_service.dart';
+import '../../../controllers/candidate_data_controller.dart';
+import '../../common/whatsapp_image_viewer.dart';
+import '../../common/reusable_video_widget.dart';
 
-class ManifestoTab extends StatefulWidget {
+class ManifestoTabView extends StatefulWidget {
   final Candidate candidate;
+  final bool isOwnProfile;
+  final bool showVoterInteractions; // New parameter to control voter interactions
 
-  const ManifestoTab({
+  const ManifestoTabView({
     Key? key,
     required this.candidate,
+    this.isOwnProfile = false,
+    this.showVoterInteractions = true, // Default to true for backward compatibility
   }) : super(key: key);
 
   @override
-  State<ManifestoTab> createState() => _ManifestoTabState();
+  State<ManifestoTabView> createState() => _ManifestoTabViewState();
 }
 
-class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClientMixin {
+class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
+
+  late final CandidateDataController? _dataController;
 
   // Voter interaction state
   bool _isLiked = false;
@@ -33,6 +42,16 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
     'youth_education': 0,
     'women_safety': 0,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isOwnProfile) {
+      _dataController = Get.find<CandidateDataController>();
+    } else {
+      _dataController = null;
+    }
+  }
 
 
 
@@ -70,14 +89,38 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
   }
 
   // Video player functionality
-  void _playVideo(String videoUrl) {
-    debugPrint('🎥 [Video Player] Opening video player for: $videoUrl');
+   void _playVideo(String videoUrl) {
+     debugPrint('🎥 [Video Player] Opening video player for: $videoUrl');
 
-    showDialog(
-      context: context,
-      builder: (context) => VideoPlayerDialog(videoUrl: videoUrl),
-    );
-  }
+     showDialog(
+       context: context,
+       builder: (context) => ReusableVideoWidget(
+         videoUrl: videoUrl,
+         title: 'Manifesto Video',
+       ),
+     );
+   }
+
+  // WhatsApp-style full-screen image viewer
+   void _showFullScreenImage(String imageUrl) {
+     Navigator.of(context).push(
+       PageRouteBuilder(
+         opaque: false,
+         barrierColor: Colors.black,
+         pageBuilder: (context, animation, secondaryAnimation) {
+           return WhatsAppImageViewer(
+             imageUrl: imageUrl,
+           );
+         },
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           return FadeTransition(
+             opacity: animation,
+             child: child,
+           );
+         },
+       ),
+     );
+   }
 
   Widget _buildPollOption(String optionKey, String optionText) {
     final isSelected = _selectedPollOption == optionKey;
@@ -140,8 +183,21 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final manifestoPromises = widget.candidate.extraInfo?.manifesto?.promises ?? [];
-    final manifesto = widget.candidate.manifesto ?? '';
+
+    // Use reactive data for own profile, static data for others
+    if (widget.isOwnProfile && _dataController != null) {
+      return Obx(() {
+        final candidate = _dataController!.candidateData.value ?? widget.candidate;
+        return _buildContent(candidate);
+      });
+    } else {
+      return _buildContent(widget.candidate);
+    }
+  }
+
+  Widget _buildContent(Candidate candidate) {
+    final manifestoPromises = candidate.extraInfo?.manifesto?.promises ?? [];
+    final manifesto = candidate.manifesto ?? '';
 
     // Use demo manifesto items if no real items exist
     final displayManifestoPromises = manifestoPromises.isNotEmpty
@@ -243,9 +299,9 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
 
                   // Display Manifesto Items
                   if (manifestoPromises.isNotEmpty) ...[
-                    const Text(
-                      'Key Promises',
-                      style: TextStyle(
+                    Text(
+                      'promisesTitle'.tr,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF374151),
@@ -365,87 +421,10 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Key Promises',
+                            'promisesTitle'.tr,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Not available',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Display Manifesto Text
-                  if (manifesto.isNotEmpty) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: MarkdownBody(
-                        data: manifesto,
-                        styleSheet: MarkdownStyleSheet(
-                          p: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF374151),
-                            height: 1.7,
-                            letterSpacing: 0.3,
-                          ),
-                          strong: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF374151),
-                            height: 1.7,
-                            letterSpacing: 0.3,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ] else ...[
-                    // Placeholder for manifesto text
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.article,
-                            size: 48,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Manifesto Content',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
                               color: Colors.grey.shade600,
                             ),
                           ),
@@ -538,8 +517,12 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
 
                         const SizedBox(height: 12),
 
-                        // Images Section
-                        if (widget.candidate.extraInfo?.manifesto?.images != null && widget.candidate.extraInfo!.manifesto!.images!.isNotEmpty) ...[
+
+
+                        const SizedBox(height: 12),
+
+                        // Image Section
+                        if (widget.candidate.extraInfo?.manifesto?.image != null && widget.candidate.extraInfo!.manifesto!.image!.isNotEmpty) ...[
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -548,7 +531,7 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                                   Icon(Icons.image, color: Colors.green.shade600, size: 20),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Manifesto Images (${widget.candidate.extraInfo!.manifesto!.images!.length})',
+                                    'Manifesto Image',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -558,83 +541,76 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              SizedBox(
-                                height: 120,
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: widget.candidate.extraInfo!.manifesto!.images!.length,
-                                  itemBuilder: (context, index) {
-                                    final imageUrl = widget.candidate.extraInfo!.manifesto!.images![index];
-                                    return Container(
-                                      width: 120,
-                                      margin: const EdgeInsets.only(right: 12),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.grey.shade300),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => Dialog(
-                                                insetPadding: const EdgeInsets.all(10),
-                                                child: Container(
-                                                  width: double.infinity,
-                                                  height: MediaQuery.of(context).size.height * 0.8,
-                                                  child: InteractiveViewer(
-                                                    minScale: 0.5,
-                                                    maxScale: 4.0,
-                                                    child: Image.network(
-                                                      imageUrl,
-                                                      fit: BoxFit.contain,
-                                                      loadingBuilder: (context, child, loadingProgress) {
-                                                        if (loadingProgress == null) return child;
-                                                        return const Center(child: CircularProgressIndicator());
-                                                      },
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return const Center(
-                                                          child: Icon(
-                                                            Icons.error,
-                                                            color: Colors.red,
-                                                            size: 48,
-                                                          ),
-                                                        );
-                                                      },
+                              // Improved Image Preview with Aspect Ratio
+                              Container(
+                                width: double.infinity,
+                                constraints: const BoxConstraints(
+                                  maxHeight: 300,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: AspectRatio(
+                                    aspectRatio: 16 / 9, // Default aspect ratio, can be made dynamic
+                                    child: GestureDetector(
+                                      onTap: () => _showFullScreenImage(widget.candidate.extraInfo!.manifesto!.image!),
+                                      child: Image.network(
+                                        widget.candidate.extraInfo!.manifesto!.image!,
+                                        fit: BoxFit.cover, // Instagram/WhatsApp style preview
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return Container(
+                                            color: Colors.grey.shade100,
+                                            child: const Center(
+                                              child: CircularProgressIndicator(),
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey.shade100,
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.broken_image,
+                                                    color: Colors.grey,
+                                                    size: 48,
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    'Failed to load image',
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 14,
                                                     ),
                                                   ),
-                                                ),
+                                                ],
                                               ),
-                                            );
-                                          },
-                                          child: Image.network(
-                                            imageUrl,
-                                            fit: BoxFit.cover,
-                                            loadingBuilder: (context, child, loadingProgress) {
-                                              if (loadingProgress == null) return child;
-                                              return Container(
-                                                color: Colors.grey.shade100,
-                                                child: const Center(
-                                                  child: CircularProgressIndicator(),
-                                                ),
-                                              );
-                                            },
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Container(
-                                                color: Colors.grey.shade100,
-                                                child: const Icon(
-                                                  Icons.broken_image,
-                                                  color: Colors.grey,
-                                                  size: 32,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Full-screen view button
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => _showFullScreenImage(widget.candidate.extraInfo!.manifesto!.image!),
+                                  icon: const Icon(Icons.fullscreen, size: 16),
+                                  label: const Text('View Full Image'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.blue.shade600,
+                                    textStyle: const TextStyle(fontSize: 12),
+                                  ),
                                 ),
                               ),
                             ],
@@ -646,7 +622,7 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Images',
+                                  'Image',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey.shade600,
@@ -686,49 +662,34 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Container(
-                                width: 200,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade300),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      // Video thumbnail (using a placeholder for now)
-                                      Container(
-                                        color: Colors.purple.shade100,
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.video_call,
-                                            color: Colors.purple,
-                                            size: 48,
-                                          ),
-                                        ),
-                                      ),
-                                      // Play button overlay
-                                      GestureDetector(
-                                        onTap: () => _playVideo(widget.candidate.extraInfo!.manifesto!.videoUrl!),
-                                        child: Container(
-                                          width: 60,
-                                          height: 60,
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.7),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.play_arrow,
-                                            color: Colors.white,
-                                            size: 32,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                              // Video Preview Widget
+                              VideoPreviewWidget(
+                                videoUrl: widget.candidate.extraInfo!.manifesto!.videoUrl!,
+                                title: 'Manifesto Video',
+                                onPlayPressed: () => _playVideo(widget.candidate.extraInfo!.manifesto!.videoUrl!),
+                              ),
+                              // Video info and controls
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Tap to play video',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
-                                ),
+                                  TextButton.icon(
+                                    onPressed: () => _playVideo(widget.candidate.extraInfo!.manifesto!.videoUrl!),
+                                    icon: const Icon(Icons.play_circle_fill, size: 16),
+                                    label: const Text('Play'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.purple.shade600,
+                                      textStyle: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -761,9 +722,10 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                   ),
                   const SizedBox(height: 16),
 
-                  // Voter Interaction Section
-                  const SizedBox(height: 24),
-                  Container(
+                  // Voter Interaction Section (only show if enabled)
+                  if (widget.showVoterInteractions) ...[
+                    const SizedBox(height: 24),
+                    Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
@@ -827,6 +789,7 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
                       ),
                     ),
                   ],
+                  ],
                 ),
               )
           else
@@ -858,254 +821,4 @@ class _ManifestoTabState extends State<ManifestoTab> with AutomaticKeepAliveClie
   }
 }
 
-// Video Player Dialog Widget
-class VideoPlayerDialog extends StatefulWidget {
-  final String videoUrl;
 
-  const VideoPlayerDialog({
-    Key? key,
-    required this.videoUrl,
-  }) : super(key: key);
-
-  @override
-  State<VideoPlayerDialog> createState() => _VideoPlayerDialogState();
-}
-
-class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
-  late VideoPlayerController _controller;
-  bool _isInitialized = false;
-  bool _isPlaying = false;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideoPlayer();
-  }
-
-  Future<void> _initializeVideoPlayer() async {
-    try {
-      debugPrint('🎥 [Video Player] Initializing video player for: ${widget.videoUrl}');
-
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-
-      await _controller.initialize();
-
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-          _isLoading = false;
-        });
-      }
-
-      debugPrint('🎥 [Video Player] Video initialized successfully');
-    } catch (e) {
-      debugPrint('🎥 [Video Player] Error initializing video: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load video: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _togglePlayPause() {
-    if (_controller.value.isPlaying) {
-      _controller.pause();
-      setState(() {
-        _isPlaying = false;
-      });
-    } else {
-      _controller.play();
-      setState(() {
-        _isPlaying = true;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(10),
-      child: Container(
-        width: double.infinity,
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            // Header with close button
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Manifesto Video',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Video content
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            color: Colors.white,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Loading video...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _isInitialized
-                      ? Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            AspectRatio(
-                              aspectRatio: _controller.value.aspectRatio,
-                              child: VideoPlayer(_controller),
-                            ),
-                            // Play/Pause overlay
-                            Positioned.fill(
-                              child: GestureDetector(
-                                onTap: _togglePlayPause,
-                                child: Container(
-                                  color: Colors.transparent,
-                                  child: Center(
-                                    child: Icon(
-                                      _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                                      color: Colors.white.withOpacity(0.8),
-                                      size: 80,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Video controls
-                            Positioned(
-                              bottom: 20,
-                              left: 20,
-                              right: 20,
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.7),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Column(
-                                  children: [
-                                    // Progress bar
-                                    VideoProgressIndicator(
-                                      _controller,
-                                      allowScrubbing: true,
-                                      colors: const VideoProgressColors(
-                                        playedColor: Colors.purple,
-                                        bufferedColor: Colors.grey,
-                                        backgroundColor: Colors.white24,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // Time display
-                                    ValueListenableBuilder(
-                                      valueListenable: _controller,
-                                      builder: (context, VideoPlayerValue value, child) {
-                                        final position = value.position;
-                                        final duration = value.duration;
-                                        return Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              _formatDuration(position),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Text(
-                                              _formatDuration(duration),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.error,
-                                color: Colors.red,
-                                size: 48,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Failed to load video',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-}

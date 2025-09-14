@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../models/candidate_model.dart';
-import '../../controllers/candidate_controller.dart';
-import '../../l10n/app_localizations.dart';
-import '../../utils/symbol_utils.dart';
+import '../../../models/candidate_model.dart';
+import '../../../controllers/candidate_controller.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../utils/symbol_utils.dart';
 
 class InfoTab extends StatefulWidget {
   final Candidate candidate;

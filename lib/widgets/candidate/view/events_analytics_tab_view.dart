@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/candidate_model.dart';
-import '../../repositories/event_repository.dart';
+import '../../../models/candidate_model.dart';
+import '../../../repositories/event_repository.dart';
 
 class EventsAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;

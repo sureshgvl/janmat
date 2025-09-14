@@ -121,7 +121,7 @@ class CandidateDataController extends GetxController {
           title: currentManifesto.title,
           promises: promisesList,
           pdfUrl: currentManifesto.pdfUrl,
-          images: currentManifesto.images,
+          image: currentManifesto.image,
           videoUrl: currentManifesto.videoUrl,
         );
         trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
@@ -133,7 +133,7 @@ class CandidateDataController extends GetxController {
           title: value,
           promises: currentManifesto.promises,
           pdfUrl: currentManifesto.pdfUrl,
-          images: currentManifesto.images,
+          image: currentManifesto.image,
           videoUrl: currentManifesto.videoUrl,
         );
         trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
@@ -145,7 +145,7 @@ class CandidateDataController extends GetxController {
           title: currentManifesto.title,
           promises: currentManifesto.promises,
           pdfUrl: value,
-          images: currentManifesto.images,
+          image: currentManifesto.image,
           videoUrl: currentManifesto.videoUrl,
         );
         trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
@@ -153,15 +153,11 @@ class CandidateDataController extends GetxController {
         break;
       case 'manifesto_image':
         final currentManifesto = currentExtra.manifesto ?? ManifestoData();
-        final currentImages = List<String>.from(currentManifesto.images ?? []);
-        if (value != null && !currentImages.contains(value)) {
-          currentImages.add(value);
-        }
         final updatedManifesto = ManifestoData(
           title: currentManifesto.title,
           promises: currentManifesto.promises,
           pdfUrl: currentManifesto.pdfUrl,
-          images: currentImages,
+          image: value,
           videoUrl: currentManifesto.videoUrl,
         );
         trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());
@@ -173,7 +169,7 @@ class CandidateDataController extends GetxController {
           title: currentManifesto.title,
           promises: currentManifesto.promises,
           pdfUrl: currentManifesto.pdfUrl,
-          images: currentManifesto.images,
+          image: currentManifesto.image,
           videoUrl: value,
         );
         trackExtraInfoFieldChange('manifesto', updatedManifesto.toJson());

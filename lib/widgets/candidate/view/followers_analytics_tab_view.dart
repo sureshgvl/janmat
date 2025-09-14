@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/candidate_controller.dart';
-import '../../models/candidate_model.dart';
-import '../../repositories/candidate_repository.dart';
-import '../../screens/candidate/followers_list_screen.dart';
+import '../../../controllers/candidate_controller.dart';
+import '../../../models/candidate_model.dart';
+import '../../../repositories/candidate_repository.dart';
+import '../../../screens/candidate/followers_list_screen.dart';
 
 class FollowersAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;

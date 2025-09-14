@@ -101,6 +101,30 @@ class AppLocalizationsMr extends AppLocalizations {
   String get candidateDashboard => 'उमेदवार डॅशबोर्ड';
 
   @override
+  String get basicInfo => 'मूलभूत माहिती';
+
+  @override
+  String get achievements => 'उपलब्धी';
+
+  @override
+  String get manifesto => 'घोषणापत्र';
+
+  @override
+  String get contact => 'संपर्क';
+
+  @override
+  String get media => 'मीडिया';
+
+  @override
+  String get events => 'कार्यक्रम';
+
+  @override
+  String get highlight => 'मुख्य मुद्दे';
+
+  @override
+  String get analytics => 'विश्लेषण';
+
+  @override
   String get searchByWard => 'वॉर्डनुसार शोधा';
 
   @override
@@ -383,15 +407,6 @@ class AppLocalizationsMr extends AppLocalizations {
   String get info => 'माहिती';
 
   @override
-  String get manifesto => 'घोषणापत्र';
-
-  @override
-  String get media => 'मीडिया';
-
-  @override
-  String get contact => 'संपर्क';
-
-  @override
   String wardInfo(Object cityId, Object wardId) {
     return 'वॉर्ड $wardId • $cityId';
   }
@@ -403,9 +418,6 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get viewAllFollowers => 'सर्व फॉलोअर्स पहा';
-
-  @override
-  String get achievements => 'उपलब्धी';
 
   @override
   String get upcomingEvents => 'आगामी कार्यक्रम';
@@ -863,4 +875,268 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get pleaseSelectYourPoliticalParty => 'कृपया तुमचा राजकीय पक्ष निवडा';
+
+  @override
+  String get manifestoTitle => 'घोषणापत्र शीर्षक';
+
+  @override
+  String get manifestoTitleLabel => 'घोषणापत्र शीर्षक';
+
+  @override
+  String get manifestoTitleHint => 'उदा., वॉर्ड २३ विकास आणि पारदर्शकता योजना';
+
+  @override
+  String get useDemoTitle => 'डेमो शीर्षक वापरा';
+
+  @override
+  String get promises => 'वचनबद्धता';
+
+  @override
+  String get promisesTitle => 'वचनबद्धता';
+
+  @override
+  String promiseNumber(Object number) {
+    return 'वचनबद्धता $number';
+  }
+
+  @override
+  String get useDemoTemplate => 'डेमो टेम्प्लेट वापरा';
+
+  @override
+  String get deletePromise => 'वचनबद्धता हटवा';
+
+  @override
+  String get promiseTitle => 'वचनबद्धता शीर्षक';
+
+  @override
+  String get promiseTitleHint => 'उदा., स्वच्छ पाणी आणि चांगले रस्ते';
+
+  @override
+  String pointNumber(Object number) {
+    return 'बिंदू $number';
+  }
+
+  @override
+  String get pointHint1 => 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा';
+
+  @override
+  String get pointHint2 => 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात';
+
+  @override
+  String get deletePoint => 'बिंदू हटवा';
+
+  @override
+  String get addPoint => 'बिंदू जोडा';
+
+  @override
+  String get addNewPromise => 'नवीन वचनबद्धता जोडा';
+
+  @override
+  String get uploadFiles => 'फायली अपलोड करा';
+
+  @override
+  String get uploadPdf => 'PDF अपलोड करा';
+
+  @override
+  String get pdfFileLimit => 'फाइल < २० MB असावी';
+
+  @override
+  String get choosePdf => 'PDF निवडा';
+
+  @override
+  String get uploadImage => 'प्रतिमा अपलोड करा';
+
+  @override
+  String get imageFileLimit => 'फाइल < १० MB असावी';
+
+  @override
+  String get chooseImage => 'प्रतिमा निवडा';
+
+  @override
+  String get uploadVideo => 'व्हिडिओ अपलोड करा';
+
+  @override
+  String get premiumVideo => 'प्रीमियम व्हिडिओ';
+
+  @override
+  String get videoFileLimit => 'फाइल < १०० MB असावी';
+
+  @override
+  String get premiumFeatureRequired => 'प्रीमियम वैशिष्ट्य आवश्यक';
+
+  @override
+  String get chooseVideo => 'व्हिडिओ निवडा';
+
+  @override
+  String filesReadyForUpload(Object count) {
+    return 'अपलोडसाठी तयार फायली ($count)';
+  }
+
+  @override
+  String get filesUploadMessage => 'जेव्हा तुम्ही सेव्ह दाबाल तेव्हा या फायली सर्व्हरवर अपलोड केल्या जातील.';
+
+  @override
+  String get readyForUpload => 'अपलोडसाठी तयार';
+
+  @override
+  String get removeFromUploadQueue => 'अपलोड रांगेतून काढा';
+
+  @override
+  String get manifestoPdf => 'घोषणापत्र PDF';
+
+  @override
+  String get tapToViewDocument => 'तुमचे घोषणापत्र दस्तऐवज पाहण्यासाठी टॅप करा';
+
+  @override
+  String get openPdf => 'PDF उघडा';
+
+  @override
+  String get manifestoImage => 'घोषणापत्र प्रतिमा';
+
+  @override
+  String get tapImageFullscreen => 'पूर्ण स्क्रीनमध्ये प्रतिमा पाहण्यासाठी टॅप करा';
+
+  @override
+  String get manifestoVideo => 'घोषणापत्र व्हिडिओ';
+
+  @override
+  String get premiumVideoContent => 'प्रीमियम व्हिडिओ सामग्री उपलब्ध';
+
+  @override
+  String get manifestoAnalytics => 'घोषणापत्र विश्लेषण';
+
+  @override
+  String get views => 'पहावे';
+
+  @override
+  String get likes => 'लाइक';
+
+  @override
+  String get shares => 'शेअर';
+
+  @override
+  String get downloads => 'डाउनलोड';
+
+  @override
+  String get chooseManifestoTitle => 'घोषणापत्र शीर्षक निवडा';
+
+  @override
+  String get selectLanguage => 'भाषा निवडा:';
+
+  @override
+  String get chooseTitle => 'शीर्षक निवडा:';
+
+  @override
+  String get standardDevelopmentFocus => 'मानक विकास केंद्रित';
+
+  @override
+  String get developmentWithTransparency => 'पारदर्शकतेसह विकास';
+
+  @override
+  String get focusOnProgress => 'प्रगती आणि वाढ केंद्रित';
+
+  @override
+  String get focusOnCitizenWelfare => 'नागरिक कल्याण केंद्रित';
+
+  @override
+  String get chooseDemoTemplate => 'डेमो टेम्प्लेट निवडा';
+
+  @override
+  String get infrastructureCleanliness => 'पायाभूत सुविधा आणि स्वच्छता';
+
+  @override
+  String get infrastructureDescription => 'स्वच्छ पाणी, रस्ते आणि कचरा व्यवस्थापन';
+
+  @override
+  String get transparencyAccountability => 'पारदर्शकता आणि जबाबदारी';
+
+  @override
+  String get transparencyDescription => 'खुलं शासन आणि नागरिक सहभाग';
+
+  @override
+  String get educationYouthDevelopment => 'शिक्षण आणि युवा विकास';
+
+  @override
+  String get educationDescription => 'डिजिटल शिक्षण आणि कौशल्य प्रशिक्षण';
+
+  @override
+  String get womenSafetyMeasures => 'महिला आणि सुरक्षा उपाय';
+
+  @override
+  String get womenSafetyDescription => 'महिला सशक्तीकरण आणि सुरक्षा';
+
+  @override
+  String get useThisTemplate => 'हे टेम्प्लेट वापरा';
+
+  @override
+  String get cleanWaterGoodRoads => 'स्वच्छ पाणी व चांगले रस्ते';
+
+  @override
+  String get provideCleanWater => 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.';
+
+  @override
+  String get potholeFreeRoads => 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.';
+
+  @override
+  String get transparencyAccountabilityTitle => 'पारदर्शकता आणि जबाबदारी';
+
+  @override
+  String get regularMeetings => 'नियमित सार्वजनिक बैठक आणि अद्यतने';
+
+  @override
+  String get openBudgetDiscussion => 'खुला बजेट चर्चा';
+
+  @override
+  String get educationYouthTitle => 'शिक्षण आणि युवा विकास';
+
+  @override
+  String get digitalLibrary => 'डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र';
+
+  @override
+  String get skillTrainingPrograms => 'कौशल्य प्रशिक्षण कार्यक्रम';
+
+  @override
+  String get womenSafetyTitle => 'महिला आणि सुरक्षा';
+
+  @override
+  String get specialHealthCenter => 'महिलांसाठी विशेष आरोग्य केंद्र';
+
+  @override
+  String get cctvCameras => 'प्रत्येक चौकात CCTV कॅमेरे';
+
+  @override
+  String get willBeDeletedWhenYouSave => 'जेव्हा तुम्ही सेव्ह कराल तेव्हा हटवले जाईल';
+
+  @override
+  String get markPdfForDeletion => 'PDF हटवण्यासाठी चिन्हांकित करा';
+
+  @override
+  String get pdfDeletionWarning => 'हे PDF तुम्ही बदल सेव्ह केल्यावर कायमचा हटवले जाईल. ही क्रिया पूर्ववत केली जाऊ शकत नाही.';
+
+  @override
+  String get markForDeletion => 'हटवण्यासाठी चिन्हांकित करा';
+
+  @override
+  String get pdfMarkedForDeletion => 'PDF हटवण्यासाठी चिन्हांकित केले. पुष्टी करण्यासाठी सेव्ह दाबा.';
+
+  @override
+  String get markImageForDeletion => 'प्रतिमा हटवण्यासाठी चिन्हांकित करा';
+
+  @override
+  String get imageDeletionWarning => 'ही प्रतिमा तुम्ही बदल सेव्ह केल्यावर कायमचा हटवली जाईल. ही क्रिया पूर्ववत केली जाऊ शकत नाही.';
+
+  @override
+  String get imageMarkedForDeletion => 'प्रतिमा हटवण्यासाठी चिन्हांकित केली. पुष्टी करण्यासाठी सेव्ह दाबा.';
+
+  @override
+  String get markVideoForDeletion => 'व्हिडिओ हटवण्यासाठी चिन्हांकित करा';
+
+  @override
+  String get videoDeletionWarning => 'हा व्हिडिओ तुम्ही बदल सेव्ह केल्यावर कायमचा हटवला जाईल. ही क्रिया पूर्ववत केली जाऊ शकत नाही.';
+
+  @override
+  String get videoMarkedForDeletion => 'व्हिडिओ हटवण्यासाठी चिन्हांकित केला. पुष्टी करण्यासाठी सेव्ह दाबा.';
+
+  @override
+  String get premiumFeatureMultiResolution => 'प्रीमियम वैशिष्ट्य - बहु-रेजोल्यूशन व्हिडिओ प्रोसेसिंग';
 }

@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../models/candidate_model.dart';
-import '../../models/achievement_model.dart';
-import '../../services/file_upload_service.dart';
-import '../common/aspect_ratio_image.dart';
-import 'demo_data_modal.dart';
+import '../../../models/candidate_model.dart';
+import '../../../models/achievement_model.dart';
+import '../../../services/file_upload_service.dart';
+import '../../common/reusable_image_widget.dart';
+import '../demo_data_modal.dart';
 
 class AchievementsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -415,13 +415,14 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                               ),
                               if (achievement.photoUrl != null && achievement.photoUrl!.isNotEmpty) ...[
                                 const SizedBox(height: 12),
-                                AspectRatioImage(
+                                ReusableImageWidget(
                                   imageUrl: achievement.photoUrl!,
                                   isLocal: _fileUploadService.isLocalPath(achievement.photoUrl!),
                                   fit: BoxFit.contain,
                                   minHeight: 120,
                                   maxHeight: 200,
                                   borderColor: Colors.grey.shade300,
+                                  fullScreenTitle: 'Achievement Photo',
                                 ),
                               ],
                               if (widget.isEditing)

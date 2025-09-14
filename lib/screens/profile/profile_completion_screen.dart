@@ -28,6 +28,10 @@ class ProfileCompletionScreen extends StatefulWidget {
 }
 
 class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
+  // User data passed from main.dart to avoid duplicate Firebase call
+  Map<String, dynamic>? _passedUserData;
+  bool _profileCompleted = false;
+
   final _formKey = GlobalKey<FormState>();
   final loginController = Get.find<LoginController>();
   final chatController = Get.find<ChatController>();
@@ -60,10 +64,65 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Get user data passed from main.dart
+    final args = Get.arguments;
+    if (args is Map<String, dynamic> && args.containsKey('userData')) {
+      _passedUserData = args['userData'];
+      _profileCompleted = _passedUserData?['profileCompleted'] ?? false;
+
+      debugPrint('📥 Received user data from main.dart: profileCompleted = $_profileCompleted');
+
+      // If profile is already completed, navigate to home immediately
+      if (_profileCompleted) {
+        debugPrint('✅ Profile already completed (from passed data), navigating to home');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.offAllNamed('/home');
+        });
+        return;
+      }
+    } else {
+      // Fallback: fetch user data if not passed (for direct navigation)
+      debugPrint('⚠️ No user data passed, falling back to Firebase fetch');
+      _checkProfileCompletion();
+    }
+
+    // Continue with normal initialization
     _loadDistricts();
     _loadParties();
     _loadUserRole();
     _preFillUserData();
+  }
+
+  // Check if profile is already completed and navigate accordingly
+  Future<void> _checkProfileCompletion() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final profileCompleted = userData?['profileCompleted'] ?? false;
+
+        if (profileCompleted) {
+          // Profile is already completed, navigate to home
+          debugPrint('✅ Profile already completed, navigating to home');
+          Get.offAllNamed('/home');
+          return;
+        }
+      }
+
+      // Profile not completed, continue with normal flow
+      debugPrint('📝 Profile not completed, showing completion screen');
+    } catch (e) {
+      debugPrint('⚠️ Error checking profile completion: $e');
+      // Continue with normal flow if there's an error
+    }
   }
 
 

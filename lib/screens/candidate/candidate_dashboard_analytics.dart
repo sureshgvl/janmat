@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
-import '../../widgets/candidate/followers_analytics_section.dart';
-import '../../widgets/candidate/events_analytics_section.dart';
+import '../../widgets/candidate/view/followers_analytics_tab_view.dart';
+import '../../widgets/candidate/view/events_analytics_tab_view.dart';
 
 class CandidateDashboardAnalytics extends StatelessWidget {
   const CandidateDashboardAnalytics({super.key});

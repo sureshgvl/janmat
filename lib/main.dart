@@ -15,8 +15,8 @@ import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/profile_completion_screen.dart';
 import 'screens/candidate/candidate_profile_screen.dart';
-import 'screens/candidate/candidate_setup_screen.dart';
 import 'screens/candidate/change_party_symbol_screen.dart';
+import 'widgets/common/animated_splash_screen.dart';
 import 'models/candidate_model.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/monetization/monetization_screen.dart';
@@ -97,44 +97,8 @@ class MyApp extends StatelessWidget {
       future: _getInitialAppData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return MaterialApp(
-            theme: ThemeData(primarySwatch: Colors.blue),
-            home: Scaffold(
-              body: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.blue, Colors.blueAccent],
-                  ),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: Colors.white),
-                      SizedBox(height: 24),
-                      Text(
-                        'JanMat',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Loading...',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          return const MaterialApp(
+            home: AnimatedSplashScreen(),
           );
         }
 
@@ -145,7 +109,57 @@ class MyApp extends StatelessWidget {
         return GetMaterialApp(
           title: 'JanMat',
           theme: ThemeData(
-            primarySwatch: Colors.blue,
+            primaryColor: const Color(0xFFFF9933), // Deep saffron
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFFF9933), // Deep saffron
+              secondary: Color(0xFF138808), // Forest green
+              surface: Colors.white,
+              background: Color(0xFFF9FAFB), // Light neutral gray
+              onPrimary: Colors.white,
+              onSecondary: Colors.white,
+              onSurface: Color(0xFF1F2937), // Dark charcoal
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9933), // Consistent saffron buttons
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFFF9933),
+                side: const BorderSide(color: Color(0xFFFF9933)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFFF9933),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            cardTheme: CardThemeData(
+              color: Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFFFF9933),
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
           ),
           locale: initialLocale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -159,7 +173,7 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/home', page: () => const MainTabNavigation()),
             GetPage(name: '/profile', page: () => const ProfileScreen()),
             GetPage(name: '/profile-completion', page: () => const ProfileCompletionScreen()),
-            GetPage(name: '/candidate-setup', page: () => const CandidateSetupScreen()),
+
             GetPage(name: '/candidate-profile', page: () => const CandidateProfileScreen()),
             GetPage(
               name: '/change-party-symbol',
@@ -236,56 +250,22 @@ class MyApp extends StatelessWidget {
           };
         }
 
-        // Step 2: Check if profile is completed (city and ward)
-        if (cityId.isEmpty || wardId.isEmpty) {
-          debugPrint('🎯 Redirecting to profile completion - city/ward missing');
+        // Step 2: Check if profile is completed
+        final profileCompleted = userData['profileCompleted'] ?? false;
+        debugPrint('🔍 Profile completion status: $profileCompleted');
+
+        if (!profileCompleted) {
+          // Profile not completed, go to profile completion
+          debugPrint('🎯 Redirecting to profile completion - profile not completed');
           return {
             'route': '/profile-completion',
             'locale': locale,
+            'userData': userData, // Pass user data to avoid duplicate fetch
           };
         }
 
-        // Step 3: If user is candidate, check candidate setup
-        if (role == 'candidate') {
-          try {
-            // Check candidate data to see if party is selected
-            final candidateDoc = await FirebaseFirestore.instance
-                .collection('cities')
-                .doc(cityId)
-                .collection('wards')
-                .doc(wardId)
-                .collection('candidates')
-                .where('userId', isEqualTo: currentUser.uid)
-                .limit(1)
-                .get();
-
-            if (candidateDoc.docs.isNotEmpty) {
-              final candidateData = candidateDoc.docs.first.data();
-              final party = candidateData['party'] as String? ?? '';
-
-              if (party.isEmpty) {
-                debugPrint('🎯 Redirecting to candidate setup - party not selected');
-                return {
-                  'route': '/candidate-setup',
-                  'locale': locale,
-                };
-              }
-            } else {
-              debugPrint('🎯 Redirecting to candidate setup - candidate data not found');
-              return {
-                'route': '/candidate-setup',
-                'locale': locale,
-              };
-            }
-          } catch (e) {
-            debugPrint('⚠️ Error checking candidate data: $e');
-            // If there's an error, redirect to candidate setup to be safe
-            return {
-              'route': '/candidate-setup',
-              'locale': locale,
-            };
-          }
-        }
+        // Step 3: Profile is completed, go to home for all users
+        debugPrint('✅ Profile completed, redirecting to home');
 
         // All checks passed - user can go to home
         debugPrint('✅ All user checks passed - redirecting to home');

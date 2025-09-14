@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'whatsapp_image_viewer.dart';
 
-/// A reusable widget for displaying images with proper aspect ratio handling
-class AspectRatioImage extends StatefulWidget {
+/// A reusable widget for displaying images with proper aspect ratio handling and WhatsApp-style full-screen viewer
+class ReusableImageWidget extends StatefulWidget {
   final String imageUrl;
   final bool isLocal;
   final BoxFit fit;
@@ -17,8 +18,9 @@ class AspectRatioImage extends StatefulWidget {
   final Widget? errorWidget;
   final VoidCallback? onTap;
   final bool enableFullScreenView;
+  final String? fullScreenTitle;
 
-  const AspectRatioImage({
+  const ReusableImageWidget({
     super.key,
     required this.imageUrl,
     this.isLocal = false,
@@ -34,13 +36,14 @@ class AspectRatioImage extends StatefulWidget {
     this.errorWidget,
     this.onTap,
     this.enableFullScreenView = true,
+    this.fullScreenTitle,
   });
 
   @override
-  State<AspectRatioImage> createState() => _AspectRatioImageState();
+  State<ReusableImageWidget> createState() => _ReusableImageWidgetState();
 }
 
-class _AspectRatioImageState extends State<AspectRatioImage> {
+class _ReusableImageWidgetState extends State<ReusableImageWidget> {
   double _aspectRatio = 4 / 3; // Default aspect ratio
   bool _isLoading = true;
   bool _hasError = false;
@@ -52,7 +55,7 @@ class _AspectRatioImageState extends State<AspectRatioImage> {
   }
 
   @override
-  void didUpdateWidget(AspectRatioImage oldWidget) {
+  void didUpdateWidget(ReusableImageWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imageUrl != widget.imageUrl) {
       _loadImageDimensions();
@@ -154,49 +157,23 @@ class _AspectRatioImageState extends State<AspectRatioImage> {
   void _showFullScreenView() {
     if (!widget.enableFullScreenView) return;
 
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(10),
-        child: Container(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.8,
-          child: InteractiveViewer(
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: widget.isLocal
-                ? Image.file(
-                    File(widget.imageUrl.replaceFirst('local:', '')),
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.error,
-                          color: Colors.red,
-                          size: 48,
-                        ),
-                      );
-                    },
-                  )
-                : Image.network(
-                    widget.imageUrl,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.error,
-                          color: Colors.red,
-                          size: 48,
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ),
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return WhatsAppImageViewer(
+            imageUrl: widget.imageUrl,
+            isLocal: widget.isLocal,
+            title: widget.fullScreenTitle,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -206,46 +183,6 @@ class _AspectRatioImageState extends State<AspectRatioImage> {
     return GestureDetector(
       onTap: widget.onTap ?? (widget.enableFullScreenView ? _showFullScreenView : null),
       child: _buildImage(),
-    );
-  }
-}
-
-/// Utility class for aspect ratio calculations
-class AspectRatioUtils {
-  /// Get default aspect ratio for different content types
-  static double getDefaultAspectRatio(String contentType) {
-    switch (contentType.toLowerCase()) {
-      case 'portrait':
-      case 'profile':
-        return 3 / 4; // Portrait
-      case 'landscape':
-      case 'banner':
-        return 16 / 9; // Landscape
-      case 'square':
-        return 1 / 1; // Square
-      case 'video':
-        return 16 / 9; // Standard video
-      default:
-        return 4 / 3; // Default
-    }
-  }
-
-  /// Calculate aspect ratio from width and height
-  static double calculateAspectRatio(double width, double height) {
-    if (height == 0) return 4 / 3; // Prevent division by zero
-    return width / height;
-  }
-
-  /// Get responsive constraints based on screen size
-  static BoxConstraints getResponsiveConstraints(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-
-    return BoxConstraints(
-      minHeight: isSmallScreen ? 100 : 120,
-      maxHeight: isSmallScreen ? 200 : 300,
-      minWidth: 0,
-      maxWidth: double.infinity,
     );
   }
 }

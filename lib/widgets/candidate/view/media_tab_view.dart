@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import '../../models/candidate_model.dart';
-import '../../screens/candidate/video_player_screen.dart';
+import '../../../models/candidate_model.dart';
+import '../../../screens/candidate/video_player_screen.dart';
 
 class MediaTab extends StatefulWidget {
   final Candidate candidate;

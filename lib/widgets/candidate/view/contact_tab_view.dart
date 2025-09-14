@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../models/candidate_model.dart';
+import '../../../models/candidate_model.dart';
 
 class ContactTab extends StatefulWidget {
   final Candidate candidate;

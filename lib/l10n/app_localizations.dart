@@ -275,6 +275,54 @@ abstract class AppLocalizations {
   /// **'Candidate Dashboard'**
   String get candidateDashboard;
 
+  /// No description provided for @basicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Info'**
+  String get basicInfo;
+
+  /// No description provided for @achievements.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get achievements;
+
+  /// No description provided for @manifesto.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto'**
+  String get manifesto;
+
+  /// No description provided for @contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contact;
+
+  /// No description provided for @media.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get media;
+
+  /// No description provided for @events.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get events;
+
+  /// No description provided for @highlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get highlight;
+
+  /// No description provided for @analytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get analytics;
+
   /// No description provided for @searchByWard.
   ///
   /// In en, this message translates to:
@@ -815,24 +863,6 @@ abstract class AppLocalizations {
   /// **'Info'**
   String get info;
 
-  /// No description provided for @manifesto.
-  ///
-  /// In en, this message translates to:
-  /// **'Manifesto'**
-  String get manifesto;
-
-  /// No description provided for @media.
-  ///
-  /// In en, this message translates to:
-  /// **'Media'**
-  String get media;
-
-  /// No description provided for @contact.
-  ///
-  /// In en, this message translates to:
-  /// **'Contact'**
-  String get contact;
-
   /// No description provided for @wardInfo.
   ///
   /// In en, this message translates to:
@@ -850,12 +880,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View all followers'**
   String get viewAllFollowers;
-
-  /// No description provided for @achievements.
-  ///
-  /// In en, this message translates to:
-  /// **'Achievements'**
-  String get achievements;
 
   /// No description provided for @upcomingEvents.
   ///
@@ -1726,6 +1750,522 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please select your political party'**
   String get pleaseSelectYourPoliticalParty;
+
+  /// No description provided for @manifestoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto Title'**
+  String get manifestoTitle;
+
+  /// No description provided for @manifestoTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto Title'**
+  String get manifestoTitleLabel;
+
+  /// No description provided for @manifestoTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Ward 23 Development & Transparency Plan'**
+  String get manifestoTitleHint;
+
+  /// No description provided for @useDemoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use demo title'**
+  String get useDemoTitle;
+
+  /// No description provided for @promises.
+  ///
+  /// In en, this message translates to:
+  /// **'Promises'**
+  String get promises;
+
+  /// No description provided for @promisesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Promises'**
+  String get promisesTitle;
+
+  /// No description provided for @promiseNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Promise {number}'**
+  String promiseNumber(Object number);
+
+  /// No description provided for @useDemoTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Use demo template'**
+  String get useDemoTemplate;
+
+  /// No description provided for @deletePromise.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Promise'**
+  String get deletePromise;
+
+  /// No description provided for @promiseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Promise Title'**
+  String get promiseTitle;
+
+  /// No description provided for @promiseTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Clean Water and Good Roads'**
+  String get promiseTitleHint;
+
+  /// No description provided for @pointNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Point {number}'**
+  String pointNumber(Object number);
+
+  /// No description provided for @pointHint1.
+  ///
+  /// In en, this message translates to:
+  /// **'Provide 24x7 clean water to every household'**
+  String get pointHint1;
+
+  /// No description provided for @pointHint2.
+  ///
+  /// In en, this message translates to:
+  /// **'Pothole-free ward roads in 1 year'**
+  String get pointHint2;
+
+  /// No description provided for @deletePoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Point'**
+  String get deletePoint;
+
+  /// No description provided for @addPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Point'**
+  String get addPoint;
+
+  /// No description provided for @addNewPromise.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New Promise'**
+  String get addNewPromise;
+
+  /// No description provided for @uploadFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Files'**
+  String get uploadFiles;
+
+  /// No description provided for @uploadPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload PDF'**
+  String get uploadPdf;
+
+  /// No description provided for @pdfFileLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'File must be < 20 MB'**
+  String get pdfFileLimit;
+
+  /// No description provided for @choosePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose PDF'**
+  String get choosePdf;
+
+  /// No description provided for @uploadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Image'**
+  String get uploadImage;
+
+  /// No description provided for @imageFileLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'File must be < 10 MB'**
+  String get imageFileLimit;
+
+  /// No description provided for @chooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Image'**
+  String get chooseImage;
+
+  /// No description provided for @uploadVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Video'**
+  String get uploadVideo;
+
+  /// No description provided for @premiumVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Video'**
+  String get premiumVideo;
+
+  /// No description provided for @videoFileLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'File must be < 100 MB'**
+  String get videoFileLimit;
+
+  /// No description provided for @premiumFeatureRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium feature required'**
+  String get premiumFeatureRequired;
+
+  /// No description provided for @chooseVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Video'**
+  String get chooseVideo;
+
+  /// No description provided for @filesReadyForUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Files Ready for Upload ({count})'**
+  String filesReadyForUpload(Object count);
+
+  /// No description provided for @filesUploadMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'These files will be uploaded to the server when you press Save.'**
+  String get filesUploadMessage;
+
+  /// No description provided for @readyForUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for upload'**
+  String get readyForUpload;
+
+  /// No description provided for @removeFromUploadQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from upload queue'**
+  String get removeFromUploadQueue;
+
+  /// No description provided for @manifestoPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto PDF'**
+  String get manifestoPdf;
+
+  /// No description provided for @tapToViewDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view your manifesto document'**
+  String get tapToViewDocument;
+
+  /// No description provided for @openPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Open PDF'**
+  String get openPdf;
+
+  /// No description provided for @manifestoImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto Image'**
+  String get manifestoImage;
+
+  /// No description provided for @tapImageFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap image to view in full screen'**
+  String get tapImageFullscreen;
+
+  /// No description provided for @manifestoVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto Video'**
+  String get manifestoVideo;
+
+  /// No description provided for @premiumVideoContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium video content available'**
+  String get premiumVideoContent;
+
+  /// No description provided for @manifestoAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto Analytics'**
+  String get manifestoAnalytics;
+
+  /// No description provided for @views.
+  ///
+  /// In en, this message translates to:
+  /// **'Views'**
+  String get views;
+
+  /// No description provided for @likes.
+  ///
+  /// In en, this message translates to:
+  /// **'Likes'**
+  String get likes;
+
+  /// No description provided for @shares.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares'**
+  String get shares;
+
+  /// No description provided for @downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloads;
+
+  /// No description provided for @chooseManifestoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Manifesto Title'**
+  String get chooseManifestoTitle;
+
+  /// No description provided for @selectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language:'**
+  String get selectLanguage;
+
+  /// No description provided for @chooseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Title:'**
+  String get chooseTitle;
+
+  /// No description provided for @standardDevelopmentFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard development focus'**
+  String get standardDevelopmentFocus;
+
+  /// No description provided for @developmentWithTransparency.
+  ///
+  /// In en, this message translates to:
+  /// **'Development with transparency focus'**
+  String get developmentWithTransparency;
+
+  /// No description provided for @focusOnProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus on progress and growth'**
+  String get focusOnProgress;
+
+  /// No description provided for @focusOnCitizenWelfare.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus on citizen welfare'**
+  String get focusOnCitizenWelfare;
+
+  /// No description provided for @chooseDemoTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Demo Template'**
+  String get chooseDemoTemplate;
+
+  /// No description provided for @infrastructureCleanliness.
+  ///
+  /// In en, this message translates to:
+  /// **'Infrastructure & Cleanliness'**
+  String get infrastructureCleanliness;
+
+  /// No description provided for @infrastructureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean water, roads & waste management'**
+  String get infrastructureDescription;
+
+  /// No description provided for @transparencyAccountability.
+  ///
+  /// In en, this message translates to:
+  /// **'Transparency & Accountability'**
+  String get transparencyAccountability;
+
+  /// No description provided for @transparencyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Open governance & citizen participation'**
+  String get transparencyDescription;
+
+  /// No description provided for @educationYouthDevelopment.
+  ///
+  /// In en, this message translates to:
+  /// **'Education & Youth Development'**
+  String get educationYouthDevelopment;
+
+  /// No description provided for @educationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Digital education & skill training'**
+  String get educationDescription;
+
+  /// No description provided for @womenSafetyMeasures.
+  ///
+  /// In en, this message translates to:
+  /// **'Women & Safety Measures'**
+  String get womenSafetyMeasures;
+
+  /// No description provided for @womenSafetyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Women empowerment & security'**
+  String get womenSafetyDescription;
+
+  /// No description provided for @useThisTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Use This Template'**
+  String get useThisTemplate;
+
+  /// No description provided for @cleanWaterGoodRoads.
+  ///
+  /// In en, this message translates to:
+  /// **'स्वच्छ पाणी व चांगले रस्ते'**
+  String get cleanWaterGoodRoads;
+
+  /// No description provided for @provideCleanWater.
+  ///
+  /// In en, this message translates to:
+  /// **'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.'**
+  String get provideCleanWater;
+
+  /// No description provided for @potholeFreeRoads.
+  ///
+  /// In en, this message translates to:
+  /// **'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.'**
+  String get potholeFreeRoads;
+
+  /// No description provided for @transparencyAccountabilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'पारदर्शकता आणि जबाबदारी'**
+  String get transparencyAccountabilityTitle;
+
+  /// No description provided for @regularMeetings.
+  ///
+  /// In en, this message translates to:
+  /// **'नियमित सार्वजनिक बैठक आणि अद्यतने'**
+  String get regularMeetings;
+
+  /// No description provided for @openBudgetDiscussion.
+  ///
+  /// In en, this message translates to:
+  /// **'खुला बजेट चर्चा'**
+  String get openBudgetDiscussion;
+
+  /// No description provided for @educationYouthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'शिक्षण आणि युवा विकास'**
+  String get educationYouthTitle;
+
+  /// No description provided for @digitalLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र'**
+  String get digitalLibrary;
+
+  /// No description provided for @skillTrainingPrograms.
+  ///
+  /// In en, this message translates to:
+  /// **'कौशल्य प्रशिक्षण कार्यक्रम'**
+  String get skillTrainingPrograms;
+
+  /// No description provided for @womenSafetyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'महिला आणि सुरक्षा'**
+  String get womenSafetyTitle;
+
+  /// No description provided for @specialHealthCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'महिलांसाठी विशेष आरोग्य केंद्र'**
+  String get specialHealthCenter;
+
+  /// No description provided for @cctvCameras.
+  ///
+  /// In en, this message translates to:
+  /// **'प्रत्येक चौकात CCTV कॅमेरे'**
+  String get cctvCameras;
+
+  /// No description provided for @willBeDeletedWhenYouSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Will be deleted when you save'**
+  String get willBeDeletedWhenYouSave;
+
+  /// No description provided for @markPdfForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark PDF for Deletion'**
+  String get markPdfForDeletion;
+
+  /// No description provided for @pdfDeletionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This PDF will be permanently deleted when you save changes. This action cannot be undone.'**
+  String get pdfDeletionWarning;
+
+  /// No description provided for @markForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark for Deletion'**
+  String get markForDeletion;
+
+  /// No description provided for @pdfMarkedForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF marked for deletion. Press Save to confirm.'**
+  String get pdfMarkedForDeletion;
+
+  /// No description provided for @markImageForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Image for Deletion'**
+  String get markImageForDeletion;
+
+  /// No description provided for @imageDeletionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This image will be permanently deleted when you save changes. This action cannot be undone.'**
+  String get imageDeletionWarning;
+
+  /// No description provided for @imageMarkedForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Image marked for deletion. Press Save to confirm.'**
+  String get imageMarkedForDeletion;
+
+  /// No description provided for @markVideoForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Video for Deletion'**
+  String get markVideoForDeletion;
+
+  /// No description provided for @videoDeletionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This video will be permanently deleted when you save changes. This action cannot be undone.'**
+  String get videoDeletionWarning;
+
+  /// No description provided for @videoMarkedForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Video marked for deletion. Press Save to confirm.'**
+  String get videoMarkedForDeletion;
+
+  /// No description provided for @premiumFeatureMultiResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Feature - Multi-resolution video processing'**
+  String get premiumFeatureMultiResolution;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

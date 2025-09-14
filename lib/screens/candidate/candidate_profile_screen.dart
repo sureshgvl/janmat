@@ -8,19 +8,21 @@ import '../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
 import '../../controllers/candidate_data_controller.dart';
-import '../../widgets/candidate/info_tab.dart';
-import '../../widgets/candidate/manifesto_tab.dart';
-import '../../widgets/candidate/media_tab.dart';
-import '../../widgets/candidate/contact_tab.dart';
-import '../../widgets/candidate/profile_section.dart';
-import '../../widgets/candidate/achievements_section.dart';
-import '../../widgets/candidate/events_section.dart';
-import '../../widgets/candidate/voter_events_section.dart';
-import '../../widgets/candidate/highlight_section.dart';
-import '../../widgets/candidate/followers_analytics_section.dart';
+import '../../widgets/candidate/view/info_tab_view.dart';
+import '../../widgets/candidate/view/manifesto_tab_view.dart';
+import '../../widgets/candidate/view/media_tab_view.dart';
+import '../../widgets/candidate/view/contact_tab_view.dart';
+import '../../widgets/candidate/edit/profile_tab_edit.dart';
+import '../../widgets/candidate/edit/achievements_tab_edit.dart';
+import '../../widgets/candidate/edit/events_tab_edit.dart';
+import '../../widgets/candidate/view/voter_events_tab_view.dart';
+import '../../widgets/candidate/edit/highlight_tab_edit.dart';
+import '../../widgets/candidate/view/followers_analytics_tab_view.dart';
 import '../../utils/symbol_utils.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../screens/candidate/followers_list_screen.dart';
+import '../../screens/candidate/candidate_dashboard_screen.dart';
+import '../../screens/home/home_navigation.dart';
 
 class CandidateProfileScreen extends StatefulWidget {
   const CandidateProfileScreen({super.key});
@@ -32,10 +34,12 @@ class CandidateProfileScreen extends StatefulWidget {
 class _CandidateProfileScreenState extends State<CandidateProfileScreen> with TickerProviderStateMixin {
   Candidate? candidate;
   final CandidateController controller = Get.find<CandidateController>();
+  final CandidateDataController dataController = Get.find<CandidateDataController>();
   final CandidateRepository candidateRepository = CandidateRepository();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   TabController? _tabController;
   bool _isUploadingPhoto = false;
+  bool _isOwnProfile = false;
 
   @override
   void initState() {
@@ -58,6 +62,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
 
     candidate = Get.arguments as Candidate;
 
+    // Determine if this is the user's own profile
+    _isOwnProfile = currentUserId != null && candidate != null && currentUserId == candidate!.userId;
+
     // Add dummy data for demonstration if data is missing
     _addDummyDataIfNeeded();
 
@@ -65,6 +72,13 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
     if (currentUserId != null && candidate != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.checkFollowStatus(currentUserId!, candidate!.candidateId);
+      });
+    }
+
+    // If this is the user's own profile, ensure we have the latest data from the controller
+    if (_isOwnProfile) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _syncWithControllerData();
       });
     }
   }
@@ -113,9 +127,25 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  // Sync with controller data for own profile
+  void _syncWithControllerData() {
+    if (_isOwnProfile && dataController.candidateData.value != null) {
+      debugPrint('🔄 Syncing profile screen with controller data');
+      setState(() {
+        candidate = dataController.candidateData.value;
+      });
+    }
+  }
+
   // Refresh candidate data
   Future<void> _refreshCandidateData() async {
     try {
+      // For own profile, refresh from controller
+      if (_isOwnProfile) {
+        await dataController.refreshCandidateData();
+        _syncWithControllerData();
+      }
+
       // Refresh follow status if user is logged in
       if (currentUserId != null && candidate != null) {
         await controller.checkFollowStatus(currentUserId!, candidate!.candidateId);
@@ -244,12 +274,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                               IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.black),
                                 onPressed: () {
-                                  Navigator.of(context).pushNamed(
-                                    '/change-party-symbol',
-                                    arguments: candidate,
-                                  );
+                                  // Navigate to candidate dashboard screen
+                                  HomeNavigation.toRightToLeft(const CandidateDashboardScreen());
                                 },
-                                tooltip: 'Edit Party & Symbol',
+                                tooltip: 'Edit Profile',
                               ),
                           ],
                         ),
@@ -680,53 +708,142 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
             controller: _tabController,
             children: [
               // Info Tab
-              InfoTab(
-                candidate: candidate!,
-                getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: candidate),
-                formatDate: formatDate,
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Info Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Info Tab - Party: ${candidate!.party}');
+                  debugPrint('📊 [TAB LOG] Info Tab - District: ${candidate!.districtId}');
+                  debugPrint('📊 [TAB LOG] Info Tab - Ward: ${candidate!.wardId}');
+                  debugPrint('📊 [TAB LOG] Info Tab - Followers: ${candidate!.followersCount}');
+                  debugPrint('📊 [TAB LOG] Info Tab - Following: ${candidate!.followingCount}');
+                  debugPrint('📊 [TAB LOG] Info Tab - Has Basic Info: ${candidate!.extraInfo?.basicInfo != null}');
+                  debugPrint('📊 [TAB LOG] Info Tab - Has Events: ${candidate!.extraInfo?.events?.isNotEmpty ?? false}');
+                  return InfoTab(
+                    candidate: candidate!,
+                    getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: candidate),
+                    formatDate: formatDate,
+                  );
+                },
               ),
               // Profile Tab (Bio section)
-              ProfileSection(
-                candidateData: candidate!,
-                editedData: null,
-                isEditing: false,
-                onBioChange: (value) {},
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Bio: ${candidate!.extraInfo?.bio ?? "No bio available"}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Has Bio: ${candidate!.extraInfo?.bio?.isNotEmpty ?? false}');
+                  return ProfileSection(
+                    candidateData: candidate!,
+                    editedData: null,
+                    isEditing: false,
+                    onBioChange: (value) {},
+                  );
+                },
               ),
               // Achievements Tab
-              AchievementsSection(
-                candidateData: candidate!,
-                editedData: null,
-                isEditing: false,
-                onAchievementsChange: (value) {},
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Achievements Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Achievements Tab - Achievement Count: ${candidate!.extraInfo?.achievements?.length ?? 0}');
+                  if (candidate!.extraInfo?.achievements?.isNotEmpty ?? false) {
+                    debugPrint('📊 [TAB LOG] Achievements Tab - First Achievement: ${candidate!.extraInfo!.achievements!.first.title}');
+                  }
+                  return AchievementsSection(
+                    candidateData: candidate!,
+                    editedData: null,
+                    isEditing: false,
+                    onAchievementsChange: (value) {},
+                  );
+                },
               ),
               // Manifesto Tab
-              ManifestoTab(candidate: candidate!),
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has Manifesto: ${candidate!.manifesto?.isNotEmpty ?? false}');
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Manifesto Length: ${candidate!.manifesto?.length ?? 0}');
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has Structured Manifesto: ${candidate!.extraInfo?.manifesto != null}');
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Manifesto Promises Count: ${candidate!.extraInfo?.manifesto?.promises?.length ?? 0}');
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has PDF: ${candidate!.extraInfo?.manifesto?.pdfUrl?.isNotEmpty ?? false}');
+
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has Video: ${candidate!.extraInfo?.manifesto?.videoUrl?.isNotEmpty ?? false}');
+                  debugPrint('📊 [TAB LOG] Manifesto Tab - Is Own Profile: ${_isOwnProfile}');
+                  return ManifestoTabView(
+                    candidate: candidate!,
+                    isOwnProfile: _isOwnProfile,
+                    showVoterInteractions: true, // Show voter interactions in profile view
+                  );
+                },
+              ),
               // Contact Tab
-              ContactTab(candidate: candidate!),
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Contact Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Contact Tab - Has Contact Info: ${candidate!.extraInfo?.contact != null}');
+                  debugPrint('📊 [TAB LOG] Contact Tab - Phone: ${candidate!.extraInfo?.contact?.phone ?? "Not available"}');
+                  debugPrint('📊 [TAB LOG] Contact Tab - Email: ${candidate!.extraInfo?.contact?.email ?? "Not available"}');
+                  debugPrint('📊 [TAB LOG] Contact Tab - Address: ${candidate!.extraInfo?.contact?.address ?? "Not available"}');
+                  debugPrint('📊 [TAB LOG] Contact Tab - Has Social Links: ${candidate!.extraInfo?.contact?.socialLinks?.isNotEmpty ?? false}');
+                  return ContactTab(candidate: candidate!);
+                },
+              ),
               // Media Tab
-              MediaTab(candidate: candidate!),
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Media Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Media Tab - Has Media: ${candidate!.extraInfo?.media != null}');
+                  debugPrint('📊 [TAB LOG] Media Tab - Images Count: ${candidate!.extraInfo?.media?['images']?.length ?? 0}');
+                  debugPrint('📊 [TAB LOG] Media Tab - Videos Count: ${candidate!.extraInfo?.media?['videos']?.length ?? 0}');
+                  return MediaTab(candidate: candidate!);
+                },
+              ),
               // Events Tab
-              if (currentUserId == candidate!.userId)
-                EventsSection(
-                  candidateData: candidate!,
-                  editedData: null,
-                  isEditing: false,
-                  onEventsChange: (value) {},
-                )
-              else
-                VoterEventsSection(
-                  candidateData: candidate!,
-                ),
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Events Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Events Tab - Is Own Profile: ${currentUserId == candidate!.userId}');
+                  debugPrint('📊 [TAB LOG] Events Tab - Events Count: ${candidate!.extraInfo?.events?.length ?? 0}');
+                  if (candidate!.extraInfo?.events?.isNotEmpty ?? false) {
+                    debugPrint('📊 [TAB LOG] Events Tab - First Event: ${candidate!.extraInfo!.events!.first.title}');
+                  }
+                  if (currentUserId == candidate!.userId) {
+                    return EventsSection(
+                      candidateData: candidate!,
+                      editedData: null,
+                      isEditing: false,
+                      onEventsChange: (value) {},
+                    );
+                  } else {
+                    return VoterEventsSection(
+                      candidateData: candidate!,
+                    );
+                  }
+                },
+              ),
               // Highlight Tab
-              HighlightSection(
-                candidateData: candidate!,
-                editedData: null,
-                isEditing: false,
-                onHighlightChange: (value) {},
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Highlight Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Highlight Tab - Has Highlight: ${candidate!.extraInfo?.highlight != null}');
+                  debugPrint('📊 [TAB LOG] Highlight Tab - Highlight Enabled: ${candidate!.extraInfo?.highlight?.enabled ?? false}');
+                  return HighlightSection(
+                    candidateData: candidate!,
+                    editedData: null,
+                    isEditing: false,
+                    onHighlightChange: (value) {},
+                  );
+                },
               ),
               // Analytics Tab
-              FollowersAnalyticsSection(
-                candidateData: candidate!,
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Analytics Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Analytics Tab - Followers Count: ${candidate!.followersCount}');
+                  debugPrint('📊 [TAB LOG] Analytics Tab - Following Count: ${candidate!.followingCount}');
+                  debugPrint('📊 [TAB LOG] Analytics Tab - Has Analytics: ${candidate!.extraInfo?.analytics != null}');
+                  return FollowersAnalyticsSection(
+                    candidateData: candidate!,
+                  );
+                },
               ),
             ],
           ),

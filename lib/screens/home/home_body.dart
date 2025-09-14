@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../models/candidate_model.dart';
 import '../../services/trial_service.dart';
 import '../../utils/symbol_utils.dart';
+import '../../utils/helpers.dart';
 import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
 import '../candidate/my_area_candidates_screen.dart';
@@ -129,11 +130,11 @@ class HomeBody extends StatelessWidget {
           margin: const EdgeInsets.only(top: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue[400]!, Colors.blue[600]!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+          gradient: LinearGradient(
+            colors: [const Color(0xFFFF9933).withOpacity(0.8), const Color(0xFFFF9933)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -173,11 +174,9 @@ class HomeBody extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     // TODO: Navigate to premium upgrade screen
-                    Get.snackbar(
-                      AppLocalizations.of(context)!.upgradeAvailable,
+                    Helpers.showWarningSnackBar(
+                      context,
                       AppLocalizations.of(context)!.premiumUpgradeFeatureComingSoon,
-                      backgroundColor: Colors.white,
-                      colorText: Colors.blue,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -200,7 +199,7 @@ class HomeBody extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.orange[400]!, Colors.orange[600]!],
+            colors: [const Color(0xFF138808).withOpacity(0.8), const Color(0xFF138808)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -255,7 +254,7 @@ class HomeBody extends StatelessWidget {
                   onPressed: () => HomeNavigation.toRightToLeft(const MonetizationScreen()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: Colors.orange,
+                    foregroundColor: const Color(0xFFFF9933),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -337,7 +336,7 @@ class HomeBody extends StatelessWidget {
         Card(
           elevation: 2,
           child: ListTile(
-            leading: const Icon(Icons.dashboard, color: Colors.blue),
+            leading: const Icon(Icons.dashboard, color: Color(0xFFFF9933)),
             title: Text(AppLocalizations.of(context)!.manageYourCampaign),
             subtitle: Text(AppLocalizations.of(context)!.viewAnalyticsAndUpdateYourProfile),
             trailing: const Icon(Icons.arrow_forward_ios),

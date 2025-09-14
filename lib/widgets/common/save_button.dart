@@ -24,7 +24,7 @@ class SaveButton extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
               ),
             )
-          : const Icon(Icons.save),
+          : const Icon(Icons.save, color: Colors.green),
       onPressed: isSaving ? null : onPressed,
       tooltip: tooltip ?? 'Save Changes',
     );

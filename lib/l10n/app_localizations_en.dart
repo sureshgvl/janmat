@@ -101,6 +101,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get candidateDashboard => 'Candidate Dashboard';
 
   @override
+  String get basicInfo => 'Basic Info';
+
+  @override
+  String get achievements => 'Achievements';
+
+  @override
+  String get manifesto => 'Manifesto';
+
+  @override
+  String get contact => 'Contact';
+
+  @override
+  String get media => 'Media';
+
+  @override
+  String get events => 'Events';
+
+  @override
+  String get highlight => 'Highlight';
+
+  @override
+  String get analytics => 'Analytics';
+
+  @override
   String get searchByWard => 'Search by Ward';
 
   @override
@@ -383,15 +407,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get info => 'Info';
 
   @override
-  String get manifesto => 'Manifesto';
-
-  @override
-  String get media => 'Media';
-
-  @override
-  String get contact => 'Contact';
-
-  @override
   String wardInfo(Object cityId, Object wardId) {
     return 'Ward $wardId • $cityId';
   }
@@ -403,9 +418,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAllFollowers => 'View all followers';
-
-  @override
-  String get achievements => 'Achievements';
 
   @override
   String get upcomingEvents => 'Upcoming Events';
@@ -863,4 +875,268 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pleaseSelectYourPoliticalParty => 'Please select your political party';
+
+  @override
+  String get manifestoTitle => 'Manifesto Title';
+
+  @override
+  String get manifestoTitleLabel => 'Manifesto Title';
+
+  @override
+  String get manifestoTitleHint => 'e.g., Ward 23 Development & Transparency Plan';
+
+  @override
+  String get useDemoTitle => 'Use demo title';
+
+  @override
+  String get promises => 'Promises';
+
+  @override
+  String get promisesTitle => 'Promises';
+
+  @override
+  String promiseNumber(Object number) {
+    return 'Promise $number';
+  }
+
+  @override
+  String get useDemoTemplate => 'Use demo template';
+
+  @override
+  String get deletePromise => 'Delete Promise';
+
+  @override
+  String get promiseTitle => 'Promise Title';
+
+  @override
+  String get promiseTitleHint => 'e.g., Clean Water and Good Roads';
+
+  @override
+  String pointNumber(Object number) {
+    return 'Point $number';
+  }
+
+  @override
+  String get pointHint1 => 'Provide 24x7 clean water to every household';
+
+  @override
+  String get pointHint2 => 'Pothole-free ward roads in 1 year';
+
+  @override
+  String get deletePoint => 'Delete Point';
+
+  @override
+  String get addPoint => 'Add Point';
+
+  @override
+  String get addNewPromise => 'Add New Promise';
+
+  @override
+  String get uploadFiles => 'Upload Files';
+
+  @override
+  String get uploadPdf => 'Upload PDF';
+
+  @override
+  String get pdfFileLimit => 'File must be < 20 MB';
+
+  @override
+  String get choosePdf => 'Choose PDF';
+
+  @override
+  String get uploadImage => 'Upload Image';
+
+  @override
+  String get imageFileLimit => 'File must be < 10 MB';
+
+  @override
+  String get chooseImage => 'Choose Image';
+
+  @override
+  String get uploadVideo => 'Upload Video';
+
+  @override
+  String get premiumVideo => 'Premium Video';
+
+  @override
+  String get videoFileLimit => 'File must be < 100 MB';
+
+  @override
+  String get premiumFeatureRequired => 'Premium feature required';
+
+  @override
+  String get chooseVideo => 'Choose Video';
+
+  @override
+  String filesReadyForUpload(Object count) {
+    return 'Files Ready for Upload ($count)';
+  }
+
+  @override
+  String get filesUploadMessage => 'These files will be uploaded to the server when you press Save.';
+
+  @override
+  String get readyForUpload => 'Ready for upload';
+
+  @override
+  String get removeFromUploadQueue => 'Remove from upload queue';
+
+  @override
+  String get manifestoPdf => 'Manifesto PDF';
+
+  @override
+  String get tapToViewDocument => 'Tap to view your manifesto document';
+
+  @override
+  String get openPdf => 'Open PDF';
+
+  @override
+  String get manifestoImage => 'Manifesto Image';
+
+  @override
+  String get tapImageFullscreen => 'Tap image to view in full screen';
+
+  @override
+  String get manifestoVideo => 'Manifesto Video';
+
+  @override
+  String get premiumVideoContent => 'Premium video content available';
+
+  @override
+  String get manifestoAnalytics => 'Manifesto Analytics';
+
+  @override
+  String get views => 'Views';
+
+  @override
+  String get likes => 'Likes';
+
+  @override
+  String get shares => 'Shares';
+
+  @override
+  String get downloads => 'Downloads';
+
+  @override
+  String get chooseManifestoTitle => 'Choose Manifesto Title';
+
+  @override
+  String get selectLanguage => 'Select Language:';
+
+  @override
+  String get chooseTitle => 'Choose Title:';
+
+  @override
+  String get standardDevelopmentFocus => 'Standard development focus';
+
+  @override
+  String get developmentWithTransparency => 'Development with transparency focus';
+
+  @override
+  String get focusOnProgress => 'Focus on progress and growth';
+
+  @override
+  String get focusOnCitizenWelfare => 'Focus on citizen welfare';
+
+  @override
+  String get chooseDemoTemplate => 'Choose Demo Template';
+
+  @override
+  String get infrastructureCleanliness => 'Infrastructure & Cleanliness';
+
+  @override
+  String get infrastructureDescription => 'Clean water, roads & waste management';
+
+  @override
+  String get transparencyAccountability => 'Transparency & Accountability';
+
+  @override
+  String get transparencyDescription => 'Open governance & citizen participation';
+
+  @override
+  String get educationYouthDevelopment => 'Education & Youth Development';
+
+  @override
+  String get educationDescription => 'Digital education & skill training';
+
+  @override
+  String get womenSafetyMeasures => 'Women & Safety Measures';
+
+  @override
+  String get womenSafetyDescription => 'Women empowerment & security';
+
+  @override
+  String get useThisTemplate => 'Use This Template';
+
+  @override
+  String get cleanWaterGoodRoads => 'स्वच्छ पाणी व चांगले रस्ते';
+
+  @override
+  String get provideCleanWater => 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.';
+
+  @override
+  String get potholeFreeRoads => 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.';
+
+  @override
+  String get transparencyAccountabilityTitle => 'पारदर्शकता आणि जबाबदारी';
+
+  @override
+  String get regularMeetings => 'नियमित सार्वजनिक बैठक आणि अद्यतने';
+
+  @override
+  String get openBudgetDiscussion => 'खुला बजेट चर्चा';
+
+  @override
+  String get educationYouthTitle => 'शिक्षण आणि युवा विकास';
+
+  @override
+  String get digitalLibrary => 'डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र';
+
+  @override
+  String get skillTrainingPrograms => 'कौशल्य प्रशिक्षण कार्यक्रम';
+
+  @override
+  String get womenSafetyTitle => 'महिला आणि सुरक्षा';
+
+  @override
+  String get specialHealthCenter => 'महिलांसाठी विशेष आरोग्य केंद्र';
+
+  @override
+  String get cctvCameras => 'प्रत्येक चौकात CCTV कॅमेरे';
+
+  @override
+  String get willBeDeletedWhenYouSave => 'Will be deleted when you save';
+
+  @override
+  String get markPdfForDeletion => 'Mark PDF for Deletion';
+
+  @override
+  String get pdfDeletionWarning => 'This PDF will be permanently deleted when you save changes. This action cannot be undone.';
+
+  @override
+  String get markForDeletion => 'Mark for Deletion';
+
+  @override
+  String get pdfMarkedForDeletion => 'PDF marked for deletion. Press Save to confirm.';
+
+  @override
+  String get markImageForDeletion => 'Mark Image for Deletion';
+
+  @override
+  String get imageDeletionWarning => 'This image will be permanently deleted when you save changes. This action cannot be undone.';
+
+  @override
+  String get imageMarkedForDeletion => 'Image marked for deletion. Press Save to confirm.';
+
+  @override
+  String get markVideoForDeletion => 'Mark Video for Deletion';
+
+  @override
+  String get videoDeletionWarning => 'This video will be permanently deleted when you save changes. This action cannot be undone.';
+
+  @override
+  String get videoMarkedForDeletion => 'Video marked for deletion. Press Save to confirm.';
+
+  @override
+  String get premiumFeatureMultiResolution => 'Premium Feature - Multi-resolution video processing';
 }

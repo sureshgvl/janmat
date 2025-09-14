@@ -3,11 +3,11 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../models/candidate_model.dart';
-import '../../controllers/candidate_data_controller.dart';
-import '../../repositories/event_repository.dart';
-import '../../services/event_notification_service.dart';
-import '../../services/gamification_service.dart';
+import '../../../models/candidate_model.dart';
+import '../../../controllers/candidate_data_controller.dart';
+import '../../../repositories/event_repository.dart';
+import '../../../services/event_notification_service.dart';
+import '../../../services/gamification_service.dart';
 
 class VoterEventsSection extends StatefulWidget {
   final Candidate candidateData;

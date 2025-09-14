@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
-import '../../models/candidate_model.dart';
-import '../../utils/symbol_utils.dart';
-import '../../services/file_upload_service.dart';
+import '../../../models/candidate_model.dart';
+import '../../../utils/symbol_utils.dart';
+import '../../../services/file_upload_service.dart';
 
 class BasicInfoSection extends StatefulWidget {
   final Candidate candidateData;

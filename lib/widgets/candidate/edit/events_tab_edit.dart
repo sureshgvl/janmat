@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../models/candidate_model.dart';
-import '../../controllers/candidate_data_controller.dart';
-import '../../repositories/event_repository.dart';
-import 'event_creation_dialog.dart';
+import '../../../models/candidate_model.dart';
+import '../../../controllers/candidate_data_controller.dart';
+import '../../../repositories/event_repository.dart';
+import '../event_creation_dialog.dart';
 
 class EventsSection extends StatefulWidget {
   final Candidate candidateData;

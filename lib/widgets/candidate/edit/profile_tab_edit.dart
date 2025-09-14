@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/candidate_model.dart';
-import 'demo_data_modal.dart';
+import '../../../models/candidate_model.dart';
+import '../demo_data_modal.dart';
 
 class ProfileSection extends StatefulWidget {
   final Candidate candidateData;

@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Colors
-  static const Color primary = Color(0xFF1f2937);
-  static const Color secondary = Color(0xFF3b82f6);
-  static const Color accent = Color(0xFFf59e0b);
+  // Primary Colors - Neutral Patriotic Theme
+  static const Color primary = Color(0xFFFF9933); // Deep saffron
+  static const Color secondary = Color(0xFF138808); // Forest green
+  static const Color accent = Color(0xFFFFFFFF); // White
 
   // Background Colors
   static const Color background = Color(0xFFf9fafb);
@@ -26,6 +26,13 @@ class AppColors {
   static const Color error = Color(0xFFef4444);
   static const Color warning = Color(0xFFf59e0b);
   static const Color info = Color(0xFF3b82f6);
+
+  // SnackBar Colors
+  static const Color snackBarSuccess = Color(0xFF4CAF50); // Green
+  static const Color snackBarError = Color(0xFFF44336); // Red
+  static const Color snackBarWarning = Color(0xFFFFC107); // Yellow
+  static const Color snackBarTextLight = Colors.white;
+  static const Color snackBarTextDark = Colors.black;
 
   // Social Colors
   static const Color facebook = Color(0xFF1877f2);

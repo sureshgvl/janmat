@@ -49,14 +49,14 @@ class ManifestoData {
   final String? title;
   final List<Map<String, dynamic>>? promises;
   final String? pdfUrl;
-  final List<String>? images;
+  final String? image;
   final String? videoUrl;
 
   ManifestoData({
     this.title,
     this.promises,
     this.pdfUrl,
-    this.images,
+    this.image,
     this.videoUrl,
   });
 
@@ -65,7 +65,7 @@ class ManifestoData {
       title: json['title'],
       promises: json['promises'] != null ? _parsePromises(json['promises']) : null,
       pdfUrl: json['pdfUrl'],
-      images: json['images'] != null ? List<String>.from(json['images']) : null,
+      image: json['image'] ?? json['images']?.first, // Backward compatibility
       videoUrl: json['videoUrl'],
     );
   }
@@ -101,7 +101,7 @@ class ManifestoData {
       'title': title,
       'promises': promises,
       'pdfUrl': pdfUrl,
-      'images': images,
+      'image': image,
       'videoUrl': videoUrl,
     };
   }
@@ -110,14 +110,14 @@ class ManifestoData {
     String? title,
     List<Map<String, dynamic>>? promises,
     String? pdfUrl,
-    List<String>? images,
+    String? image,
     String? videoUrl,
   }) {
     return ManifestoData(
       title: title ?? this.title,
       promises: promises ?? this.promises,
       pdfUrl: pdfUrl ?? this.pdfUrl,
-      images: images ?? this.images,
+      image: image ?? this.image,
       videoUrl: videoUrl ?? this.videoUrl,
     );
   }

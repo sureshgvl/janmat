@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../utils/symbol_utils.dart';
+import '../../l10n/app_localizations.dart';
 import 'candidate_dashboard_info.dart';
 import 'candidate_dashboard_profile.dart';
 import 'candidate_dashboard_achievements.dart';
@@ -54,16 +55,19 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          tabs: const [
-            Tab(text: 'Basic Info'),
-            Tab(text: 'Profile'),
-            Tab(text: 'Achievements'),
-            Tab(text: 'Manifesto'),
-            Tab(text: 'Contact'),
-            Tab(text: 'Media'),
-            Tab(text: 'Events'),
-            Tab(text: 'Highlight'),
-            Tab(text: 'Analytics'),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.black,
+          indicatorColor: Colors.blue,
+          tabs: [
+            Tab(text: AppLocalizations.of(context)!.basicInfo),
+            Tab(text: AppLocalizations.of(context)!.profile),
+            Tab(text: AppLocalizations.of(context)!.achievements),
+            Tab(text: AppLocalizations.of(context)!.manifesto),
+            Tab(text: AppLocalizations.of(context)!.contact),
+            Tab(text: AppLocalizations.of(context)!.media),
+            Tab(text: AppLocalizations.of(context)!.events),
+            Tab(text: AppLocalizations.of(context)!.highlight),
+            Tab(text: AppLocalizations.of(context)!.analytics),
           ],
         ),
         actions: null,

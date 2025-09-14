@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
-import '../../widgets/candidate/profile_section.dart';
+import '../../widgets/candidate/edit/profile_tab_edit.dart';
 
 class CandidateProfileEditScreen extends StatefulWidget {
   const CandidateProfileEditScreen({super.key});
