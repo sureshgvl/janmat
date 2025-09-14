@@ -75,10 +75,15 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
       // Load existing symbol image URL from extraInfo.media
       if (widget.currentCandidate!.extraInfo?.media != null &&
-          widget.currentCandidate!.extraInfo!.media!['symbolImageUrl'] != null &&
-          widget.currentCandidate!.extraInfo!.media!['symbolImageUrl']!.isNotEmpty) {
-        symbolImageUrl = widget.currentCandidate!.extraInfo!.media!['symbolImageUrl']!.first.url;
-        debugPrint('   Symbol image URL loaded: ${symbolImageUrl ?? 'none'}');
+          widget.currentCandidate!.extraInfo!.media!.isNotEmpty) {
+        final symbolImageItem = widget.currentCandidate!.extraInfo!.media!.firstWhere(
+          (item) => item['type'] == 'symbolImage',
+          orElse: () => <String, dynamic>{},
+        );
+        if (symbolImageItem.isNotEmpty) {
+          symbolImageUrl = symbolImageItem['url'] as String?;
+          debugPrint('   Symbol image URL loaded: ${symbolImageUrl ?? 'none'}');
+        }
       }
 
       isIndependent = widget.currentCandidate!.party.toLowerCase().contains('independent');
@@ -272,16 +277,30 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       debugPrint('👤 ChangePartySymbolScreen: Updating candidate: ${widget.currentCandidate!.candidateId}');
 
       // Update candidate with new party and symbol
-      final updatedMedia = {...?widget.currentCandidate!.extraInfo?.media};
+      final currentMedia = widget.currentCandidate!.extraInfo?.media ?? [];
+      final updatedMedia = List<Map<String, dynamic>>.from(currentMedia);
+
+      // Remove existing symbol image if present
+      updatedMedia.removeWhere((item) => item['type'] == 'symbolImage');
+
+      // Add new symbol image if provided
       if (symbolImageUrl != null) {
-        updatedMedia['symbolImageUrl'] = [MediaItem(url: symbolImageUrl!)];
-      } else {
-        updatedMedia.remove('symbolImageUrl');
+        updatedMedia.add({
+          'type': 'symbolImage',
+          'url': symbolImageUrl!,
+          'title': 'Party Symbol',
+          'uploadedAt': DateTime.now().toIso8601String(),
+        });
       }
 
       final updatedExtraInfo = widget.currentCandidate!.extraInfo?.copyWith(
         media: updatedMedia,
-      ) ?? (symbolImageUrl != null ? ExtraInfo(media: {'symbolImageUrl': [MediaItem(url: symbolImageUrl!)]}) : ExtraInfo());
+      ) ?? (symbolImageUrl != null ? ExtraInfo(media: [{
+        'type': 'symbolImage',
+        'url': symbolImageUrl!,
+        'title': 'Party Symbol',
+        'uploadedAt': DateTime.now().toIso8601String(),
+      }]) : ExtraInfo());
 
       final updatedCandidate = widget.currentCandidate!.copyWith(
         party: selectedParty!.name,
@@ -292,7 +311,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       debugPrint('💾 ChangePartySymbolScreen: Data to be saved:');
       debugPrint('   Party: ${updatedCandidate.party}');
       debugPrint('   Symbol: ${updatedCandidate.symbol}');
-      debugPrint('   Symbol Image URL: ${updatedCandidate.extraInfo?.media?['symbolImageUrl']}');
+      debugPrint('   Symbol Image URL: ${updatedCandidate.extraInfo?.media}');
 
       debugPrint('📤 ChangePartySymbolScreen: Sending update to database...');
       // Update candidate in database
@@ -421,10 +440,15 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                           } else {
                             // Load existing symbol image URL for independent candidates
                             if (widget.currentCandidate!.extraInfo?.media != null &&
-                                widget.currentCandidate!.extraInfo!.media!['symbolImageUrl'] != null &&
-                                widget.currentCandidate!.extraInfo!.media!['symbolImageUrl']!.isNotEmpty) {
-                              symbolImageUrl = widget.currentCandidate!.extraInfo!.media!['symbolImageUrl']!.first.url;
-                              debugPrint('   Loaded existing symbol image URL for independent party');
+                                widget.currentCandidate!.extraInfo!.media!.isNotEmpty) {
+                              final symbolImageItem = widget.currentCandidate!.extraInfo!.media!.firstWhere(
+                                (item) => item['type'] == 'symbolImage',
+                                orElse: () => <String, dynamic>{},
+                              );
+                              if (symbolImageItem.isNotEmpty) {
+                                symbolImageUrl = symbolImageItem['url'] as String?;
+                                debugPrint('   Loaded existing symbol image URL for independent party');
+                              }
                             }
                           }
                         });

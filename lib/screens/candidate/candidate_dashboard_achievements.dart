@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/edit/achievements_tab_edit.dart';
+import '../../widgets/candidate/view/achievements_tab_view.dart';
 import '../../widgets/common/save_button.dart';
 import '../../widgets/loading_overlay.dart';
 
@@ -18,11 +19,8 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
   bool isEditing = false;
   bool isSaving = false;
 
-  // Callback for cleanup when editing is cancelled
-  Future<void> _onCancelEditing() async {
-    // This will be called by the AchievementsSection when editing is cancelled
-    debugPrint('🧹 Cleaning up dangling photos on cancel');
-  }
+  // Global key to access achievements section for file uploads
+  final GlobalKey<AchievementsTabEditState> _achievementsSectionKey = GlobalKey<AchievementsTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -36,18 +34,21 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
       }
 
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Achievements'),
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-        ),
-        body: AchievementsSection(
-          candidateData: controller.candidateData.value!,
-          editedData: controller.editedData.value,
-          isEditing: isEditing,
-          onAchievementsChange: (achievements) => controller.updateExtraInfo('achievements', achievements),
-          onCancelEditing: _onCancelEditing,
-        ),
+       
+        body: isEditing
+            ? SingleChildScrollView(
+                child: AchievementsTabEdit(
+                  key: _achievementsSectionKey,
+                  candidateData: controller.candidateData.value!,
+                  editedData: controller.editedData.value,
+                  isEditing: isEditing,
+                  onAchievementsChange: (achievements) => controller.updateExtraInfo('achievements', achievements),
+                ),
+              )
+            : AchievementsTabView(
+                candidate: controller.candidateData.value!,
+                isOwnProfile: true,
+              ),
         floatingActionButton: isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
@@ -59,16 +60,24 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                       onPressed: () async {
                         // Create a stream controller for progress updates
                         final messageController = StreamController<String>();
-                        messageController.add('Preparing to save...');
+                        messageController.add('Preparing to save achievements...');
 
                         // Show loading dialog with message stream
                         LoadingDialog.show(
                           context,
-                          initialMessage: 'Preparing to save...',
+                          initialMessage: 'Preparing to save achievements...',
                           messageStream: messageController.stream,
                         );
 
                         try {
+                          // First, upload any pending local files to Firebase
+                          final achievementsSectionState = _achievementsSectionKey.currentState;
+                          if (achievementsSectionState != null) {
+                            messageController.add('Uploading photos to cloud...');
+                            await achievementsSectionState.uploadPendingFiles();
+                          }
+
+                          // Then save the achievements data
                           final success = await controller.saveExtraInfo(
                             onProgress: (message) => messageController.add(message),
                           );
@@ -83,7 +92,7 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Achievements updated successfully');
+                              Get.snackbar('Success', 'Achievements updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
                             }
                           } else {
                             if (context.mounted) {

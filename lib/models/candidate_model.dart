@@ -455,7 +455,7 @@ class ExtraInfo {
   final List<Achievement>? achievements;
   final ManifestoData? manifesto;
   final ExtendedContact? contact;
-  final Map<String, List<MediaItem>>? media;
+  final List<Map<String, dynamic>>? media;
   final List<EventData>? events;
   final HighlightData? highlight;
   final AnalyticsData? analytics;
@@ -552,18 +552,31 @@ class ExtraInfo {
     );
   }
 
-  static Map<String, List<MediaItem>>? _parseMediaData(dynamic data) {
-    if (data == null || data is! Map<String, dynamic>) return null;
+  static List<Map<String, dynamic>>? _parseMediaData(dynamic data) {
+    if (data == null) return null;
 
-    final Map<String, List<MediaItem>> result = {};
+    // Handle List format (current format from edit component)
+    if (data is List) {
+      return data.map((item) {
+        if (item is Map<String, dynamic>) {
+          return item;
+        }
+        return <String, dynamic>{};
+      }).toList();
+    }
 
-    data.forEach((key, value) {
-      if (value is List) {
-        result[key] = value.map((item) => MediaItem.fromJson(item as Map<String, dynamic>)).toList();
-      }
-    });
+    // Handle legacy Map format for backward compatibility
+    if (data is Map<String, dynamic>) {
+      final List<Map<String, dynamic>> result = [];
+      data.forEach((key, value) {
+        if (value is List) {
+          result.addAll(value.map((item) => item as Map<String, dynamic>));
+        }
+      });
+      return result;
+    }
 
-    return result;
+    return null;
   }
 
   // Helper method to parse manifesto promises from different formats
@@ -609,7 +622,7 @@ class ExtraInfo {
       'achievements': achievements?.map((a) => a.toJson()).toList(),
       'manifesto': manifesto?.toJson(),
       'contact': contact?.toJson(),
-      'media': media?.map((key, value) => MapEntry(key, value.map((item) => item.toJson()).toList())),
+      'media': media, // media is already List<Map<String, dynamic>>
       'events': events?.map((e) => e.toJson()).toList(),
       'highlight': highlight?.toJson(),
       'analytics': analytics?.toJson(),
@@ -622,7 +635,7 @@ class ExtraInfo {
     List<Achievement>? achievements,
     ManifestoData? manifesto,
     ExtendedContact? contact,
-    Map<String, List<MediaItem>>? media,
+    List<Map<String, dynamic>>? media,
     List<EventData>? events,
     HighlightData? highlight,
     AnalyticsData? analytics,

@@ -29,7 +29,6 @@ class ModalSelector<T> extends StatefulWidget {
 class _ModalSelectorState<T> extends State<ModalSelector<T>> {
   final TextEditingController _searchController = TextEditingController();
   List<DropdownMenuItem<T>> _filteredItems = [];
-  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -48,7 +47,6 @@ class _ModalSelectorState<T> extends State<ModalSelector<T>> {
 
   @override
   void dispose() {
-    _isDisposed = true;
     _searchController.dispose();
     super.dispose();
   }

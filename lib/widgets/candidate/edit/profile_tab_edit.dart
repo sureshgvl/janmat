@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../models/candidate_model.dart';
 import '../demo_data_modal.dart';
 
-class ProfileSection extends StatefulWidget {
+// Main ProfileTabEdit Widget
+class ProfileTabEdit extends StatefulWidget {
   final Candidate candidateData;
   final Candidate? editedData;
   final bool isEditing;
   final Function(String) onBioChange;
 
-  const ProfileSection({
+  const ProfileTabEdit({
     super.key,
     required this.candidateData,
     this.editedData,
@@ -17,10 +18,10 @@ class ProfileSection extends StatefulWidget {
   });
 
   @override
-  State<ProfileSection> createState() => _ProfileSectionState();
+  State<ProfileTabEdit> createState() => ProfileTabEditState();
 }
 
-class _ProfileSectionState extends State<ProfileSection> {
+class ProfileTabEditState extends State<ProfileTabEdit> {
   late TextEditingController _bioController;
 
   @override
@@ -32,7 +33,7 @@ class _ProfileSectionState extends State<ProfileSection> {
   }
 
   @override
-  void didUpdateWidget(ProfileSection oldWidget) {
+  void didUpdateWidget(ProfileTabEdit oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.editedData != widget.editedData ||
         oldWidget.candidateData != widget.candidateData) {
@@ -42,11 +43,16 @@ class _ProfileSectionState extends State<ProfileSection> {
     }
   }
 
-
   @override
   void dispose() {
     _bioController.dispose();
     super.dispose();
+  }
+
+  // Method to upload pending files (required by dashboard pattern)
+  Future<void> uploadPendingFiles() async {
+    // Profile doesn't have file uploads, so this is a no-op
+    debugPrint('📤 [Profile] No pending files to upload');
   }
 
   @override

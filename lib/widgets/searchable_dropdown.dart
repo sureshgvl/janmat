@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class SearchableDropdown<T> extends StatefulWidget {
   final String label;
@@ -36,7 +35,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   List<DropdownMenuItem<T>> _filteredItems = [];
   bool _isDisposed = false;
   late final _KeyboardVisibilityObserver _keyboardObserver;
-  bool _shouldFocusSearchField = false;
 
   @override
   void initState() {

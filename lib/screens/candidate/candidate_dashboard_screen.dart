@@ -30,7 +30,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     // Refresh data when dashboard is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.refreshCandidateData();
@@ -60,14 +60,14 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
           indicatorColor: Colors.blue,
           tabs: [
             Tab(text: AppLocalizations.of(context)!.basicInfo),
-            Tab(text: AppLocalizations.of(context)!.profile),
-            Tab(text: AppLocalizations.of(context)!.achievements),
             Tab(text: AppLocalizations.of(context)!.manifesto),
-            Tab(text: AppLocalizations.of(context)!.contact),
+            Tab(text: AppLocalizations.of(context)!.achievements),
             Tab(text: AppLocalizations.of(context)!.media),
+            Tab(text: AppLocalizations.of(context)!.contact),
             Tab(text: AppLocalizations.of(context)!.events),
-            Tab(text: AppLocalizations.of(context)!.highlight),
             Tab(text: AppLocalizations.of(context)!.analytics),
+            //Tab(text: AppLocalizations.of(context)!.highlight),
+            //Tab(text: AppLocalizations.of(context)!.profile),
           ],
         ),
         actions: null,
@@ -85,14 +85,14 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
           controller: _tabController,
           children: const [
             CandidateDashboardInfo(),
-            CandidateDashboardProfile(),
-            CandidateDashboardAchievements(),
             CandidateDashboardManifesto(),
-            CandidateDashboardContact(),
+            CandidateDashboardAchievements(),
             CandidateDashboardMedia(),
+            CandidateDashboardContact(),
             CandidateDashboardEvents(),
-            CandidateDashboardHighlight(),
             CandidateDashboardAnalytics(),
+            //CandidateDashboardProfile(),
+            //CandidateDashboardHighlight(),
           ],
         );
       }),

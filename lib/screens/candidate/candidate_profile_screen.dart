@@ -10,6 +10,7 @@ import '../../controllers/candidate_controller.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/view/info_tab_view.dart';
 import '../../widgets/candidate/view/manifesto_tab_view.dart';
+import '../../widgets/candidate/view/profile_tab_view.dart';
 import '../../widgets/candidate/view/media_tab_view.dart';
 import '../../widgets/candidate/view/contact_tab_view.dart';
 import '../../widgets/candidate/edit/profile_tab_edit.dart';
@@ -23,6 +24,7 @@ import '../../repositories/candidate_repository.dart';
 import '../../screens/candidate/followers_list_screen.dart';
 import '../../screens/candidate/candidate_dashboard_screen.dart';
 import '../../screens/home/home_navigation.dart';
+
 
 class CandidateProfileScreen extends StatefulWidget {
   const CandidateProfileScreen({super.key});
@@ -46,7 +48,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
     super.initState();
 
     // Initialize TabController for performance monitoring
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _tabController?.addListener(_onTabChanged);
 
     // Check if arguments are provided
@@ -92,7 +94,18 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
   void _onTabChanged() {
     if (_tabController?.indexIsChanging == false) {
       // Only log when tab change is complete
-      final tabNames = ['Info', 'Profile', 'Achievements', 'Manifesto', 'Contact', 'Media', 'Events', 'Highlight', 'Analytics'];
+      //final tabNames = ['Info', 'Profile', 'Achievements', 'Manifesto', 'Contact', 'Media', 'Events', 'Highlight', 'Analytics'];
+      final tabNames = [
+        'Info',
+        'Manifesto',
+        'Achievements',
+        'Media',
+        'Contact',
+        'Events',
+        'Analytics',
+        //'Profile',
+        //'Highlight',
+      ];
       final currentTab = tabNames[_tabController!.index];
 
       // Only log in debug mode
@@ -598,6 +611,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   controller: _tabController,
                   isScrollable: true,
                   tabs: const [
+                    //basic info
                     Tab(
                       child: Text(
                         'Info',
@@ -608,26 +622,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                         ),
                       ),
                     ),
-                    Tab(
-                      child: Text(
-                        'Profile',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Tab(
-                      child: Text(
-                        'Achievements',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+
+                    //Manifesto
                     Tab(
                       child: Text(
                         'Manifesto',
@@ -638,9 +634,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                         ),
                       ),
                     ),
+
+                    //Profile
                     Tab(
                       child: Text(
-                        'Contact',
+                        'Profile',
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 14,
@@ -648,6 +646,20 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                         ),
                       ),
                     ),
+
+                    //Achievements
+                    Tab(
+                      child: Text(
+                        'Achievements',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    //Media
                     Tab(
                       child: Text(
                         'Media',
@@ -658,6 +670,20 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                         ),
                       ),
                     ),
+
+                    //Contact
+                    Tab(
+                      child: Text(
+                        'Contact',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    //Events
                     Tab(
                       child: Text(
                         'Events',
@@ -668,16 +694,20 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                         ),
                       ),
                     ),
-                    Tab(
-                      child: Text(
-                        'Highlight',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+
+                    //Highlight
+                    // Tab(
+                    //   child: Text(
+                    //     'Highlight',
+                    //     style: TextStyle(
+                    //       color: Colors.black,
+                    //       fontSize: 14,
+                    //       fontWeight: FontWeight.w500,
+                    //     ),
+                    //   ),
+                    // ),
+
+                    //Analytics
                     Tab(
                       child: Text(
                         'Analytics',
@@ -725,20 +755,61 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   );
                 },
               ),
-              // Profile Tab (Bio section)
+              
+              // Manifesto Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Bio: ${candidate!.extraInfo?.bio ?? "No bio available"}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Has Bio: ${candidate!.extraInfo?.bio?.isNotEmpty ?? false}');
-                  return ProfileSection(
-                    candidateData: candidate!,
-                    editedData: null,
-                    isEditing: false,
-                    onBioChange: (value) {},
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Has Manifesto: ${candidate!.manifesto?.isNotEmpty ?? false}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Manifesto Length: ${candidate!.manifesto?.length ?? 0}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Has Structured Manifesto: ${candidate!.extraInfo?.manifesto != null}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Manifesto Promises Count: ${candidate!.extraInfo?.manifesto?.promises?.length ?? 0}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Has PDF: ${candidate!.extraInfo?.manifesto?.pdfUrl?.isNotEmpty ?? false}',
+                  );
+
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Has Video: ${candidate!.extraInfo?.manifesto?.videoUrl?.isNotEmpty ?? false}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Manifesto Tab - Is Own Profile: ${_isOwnProfile}',
+                  );
+                  return ManifestoTabView(
+                    candidate: candidate!,
+                    isOwnProfile: _isOwnProfile,
+                    showVoterInteractions:
+                        true, // Show voter interactions in profile view
                   );
                 },
               ),
+
+              // Profile Tab
+              Builder(
+                builder: (context) {
+                  debugPrint('📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Is Own Profile: ${_isOwnProfile}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Has Basic Info: ${candidate!.extraInfo?.basicInfo != null}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Age: ${candidate!.extraInfo?.basicInfo?.age ?? "Not available"}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Gender: ${candidate!.extraInfo?.basicInfo?.gender ?? "Not available"}');
+                  debugPrint('📊 [TAB LOG] Profile Tab - Education: ${candidate!.extraInfo?.basicInfo?.education ?? "Not available"}');
+                  return ProfileTabView(
+                    candidate: candidate!,
+                    isOwnProfile: _isOwnProfile,
+                    showVoterInteractions: !_isOwnProfile, // Show like/share buttons for voters only
+                  );
+                },
+              ),
+
               // Achievements Tab
               Builder(
                 builder: (context) {
@@ -755,25 +826,27 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   );
                 },
               ),
-              // Manifesto Tab
+              
+
+              // Media Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has Manifesto: ${candidate!.manifesto?.isNotEmpty ?? false}');
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Manifesto Length: ${candidate!.manifesto?.length ?? 0}');
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has Structured Manifesto: ${candidate!.extraInfo?.manifesto != null}');
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Manifesto Promises Count: ${candidate!.extraInfo?.manifesto?.promises?.length ?? 0}');
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has PDF: ${candidate!.extraInfo?.manifesto?.pdfUrl?.isNotEmpty ?? false}');
-
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Has Video: ${candidate!.extraInfo?.manifesto?.videoUrl?.isNotEmpty ?? false}');
-                  debugPrint('📊 [TAB LOG] Manifesto Tab - Is Own Profile: ${_isOwnProfile}');
-                  return ManifestoTabView(
+                  debugPrint(
+                    '📊 [TAB LOG] Media Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Media Tab - Has Media: ${candidate!.extraInfo?.media != null}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Media Tab - Media Items Count: ${candidate!.extraInfo?.media?.length ?? 0}',
+                  );
+                  return MediaTabView(
                     candidate: candidate!,
-                    isOwnProfile: _isOwnProfile,
-                    showVoterInteractions: true, // Show voter interactions in profile view
+                    isOwnProfile: false,
                   );
                 },
               ),
+
               // Contact Tab
               Builder(
                 builder: (context) {
@@ -786,16 +859,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   return ContactTab(candidate: candidate!);
                 },
               ),
-              // Media Tab
-              Builder(
-                builder: (context) {
-                  debugPrint('📊 [TAB LOG] Media Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Media Tab - Has Media: ${candidate!.extraInfo?.media != null}');
-                  debugPrint('📊 [TAB LOG] Media Tab - Images Count: ${candidate!.extraInfo?.media?['images']?.length ?? 0}');
-                  debugPrint('📊 [TAB LOG] Media Tab - Videos Count: ${candidate!.extraInfo?.media?['videos']?.length ?? 0}');
-                  return MediaTab(candidate: candidate!);
-                },
-              ),
+
               // Events Tab
               Builder(
                 builder: (context) {
@@ -806,12 +870,12 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                     debugPrint('📊 [TAB LOG] Events Tab - First Event: ${candidate!.extraInfo!.events!.first.title}');
                   }
                   if (currentUserId == candidate!.userId) {
-                    return EventsSection(
-                      candidateData: candidate!,
-                      editedData: null,
-                      isEditing: false,
-                      onEventsChange: (value) {},
-                    );
+                  return EventsTabEdit(
+                    candidateData: candidate!,
+                    editedData: null,
+                    isEditing: false,
+                    onEventsChange: (value) {},
+                  );
                   } else {
                     return VoterEventsSection(
                       candidateData: candidate!,
@@ -819,20 +883,22 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   }
                 },
               ),
+              
               // Highlight Tab
-              Builder(
-                builder: (context) {
-                  debugPrint('📊 [TAB LOG] Highlight Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Highlight Tab - Has Highlight: ${candidate!.extraInfo?.highlight != null}');
-                  debugPrint('📊 [TAB LOG] Highlight Tab - Highlight Enabled: ${candidate!.extraInfo?.highlight?.enabled ?? false}');
-                  return HighlightSection(
-                    candidateData: candidate!,
-                    editedData: null,
-                    isEditing: false,
-                    onHighlightChange: (value) {},
-                  );
-                },
-              ),
+              // Builder(
+              //   builder: (context) {
+              //     debugPrint('📊 [TAB LOG] Highlight Tab - Candidate: ${candidate!.name}');
+              //     debugPrint('📊 [TAB LOG] Highlight Tab - Has Highlight: ${candidate!.extraInfo?.highlight != null}');
+              //     debugPrint('📊 [TAB LOG] Highlight Tab - Highlight Enabled: ${candidate!.extraInfo?.highlight?.enabled ?? false}');
+              //     return HighlightTabEdit(
+              //       candidateData: candidate!,
+              //       editedData: null,
+              //       isEditing: false,
+              //       onHighlightChange: (value) {},
+              //     );
+              //   },
+              // ),
+              
               // Analytics Tab
               Builder(
                 builder: (context) {
@@ -845,83 +911,26 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   );
                 },
               ),
+
+              // Profile Tab (Bio section)
+              // Builder(
+              //   builder: (context) {
+              //     debugPrint('📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}');
+              //     debugPrint('📊 [TAB LOG] Profile Tab - Bio: ${candidate!.extraInfo?.bio ?? "No bio available"}');
+              //     debugPrint('📊 [TAB LOG] Profile Tab - Has Bio: ${candidate!.extraInfo?.bio?.isNotEmpty ?? false}');
+              //     return ProfileTabEdit(
+              //       candidateData: candidate!,
+              //       editedData: null,
+              //       isEditing: false,
+              //       onBioChange: (value) {},
+              //     );
+              //   },
+              // ),
             ],
           ),
         ),
       ),
     );
-  }
-
-
-  Future<void> _changeProfilePhoto() async {
-    if (candidate == null || currentUserId == null) return;
-
-    setState(() {
-      _isUploadingPhoto = true;
-    });
-
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-      if (image != null) {
-        // Check image file size (5MB limit)
-        final file = File(image.path);
-        final fileSize = await file.length();
-        const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-
-        if (fileSize > maxSizeInBytes) {
-          Get.snackbar(
-            AppLocalizations.of(context)!.error,
-            AppLocalizations.of(context)!.imageSizeMustBeLessThan5MB,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-          setState(() {
-            _isUploadingPhoto = false;
-          });
-          return;
-        }
-
-        // Upload to Firebase Storage
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('candidate_photos')
-            .child('${currentUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-
-        final uploadTask = storageRef.putFile(File(image.path));
-        final snapshot = await uploadTask.whenComplete(() => null);
-
-        final downloadUrl = await snapshot.ref.getDownloadURL();
-
-        // Update candidate with new photo URL
-        final updatedCandidate = candidate!.copyWith(photo: downloadUrl);
-        await candidateRepository.updateCandidateExtraInfo(updatedCandidate);
-
-        // Update local state
-        setState(() {
-          candidate = updatedCandidate;
-        });
-
-        Get.snackbar(
-          AppLocalizations.of(context)!.success,
-          'Profile photo updated successfully!',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        AppLocalizations.of(context)!.error,
-        'Failed to update profile photo: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    } finally {
-      setState(() {
-        _isUploadingPhoto = false;
-      });
-    }
   }
 
 }

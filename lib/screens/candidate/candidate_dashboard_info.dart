@@ -31,11 +31,7 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
       }
 
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Basic Info'),
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-        ),
+        
         body: SingleChildScrollView(
           child: BasicInfoSection(
             candidateData: controller.candidateData.value!,

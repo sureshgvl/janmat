@@ -34,11 +34,14 @@ class SymbolUtils {
       debugPrint('🎯 [SymbolUtils] Independent candidate detected');
 
       // For independent candidates, check if there's a symbol image URL in extraInfo
-      if (candidate.extraInfo?.media != null) {
-        final symbolImageList = candidate.extraInfo!.media!['symbolImageUrl'];
-        if (symbolImageList != null && symbolImageList.isNotEmpty) {
-          final symbolImageUrl = symbolImageList.first.url;
-          if (symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
+      if (candidate.extraInfo?.media != null && candidate.extraInfo!.media!.isNotEmpty) {
+        final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
+          (item) => item['type'] == 'symbolImage',
+          orElse: () => <String, dynamic>{},
+        );
+        if (symbolImageItem.isNotEmpty) {
+          final symbolImageUrl = symbolImageItem['url'] as String?;
+          if (symbolImageUrl != null && symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
             debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
             _symbolCache[cacheKey] = symbolImageUrl;
             return symbolImageUrl; // Return the Firebase Storage URL
@@ -161,11 +164,14 @@ class SymbolUtils {
       debugPrint('🎯 [SymbolUtils] Independent candidate detected');
 
       // For independent candidates, check if there's a symbol image URL in extraInfo
-      if (candidate.extraInfo?.media != null) {
-        final symbolImageList = candidate.extraInfo!.media!['symbolImageUrl'];
-        if (symbolImageList != null && symbolImageList.isNotEmpty) {
-          final symbolImageUrl = symbolImageList.first.url;
-          if (symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
+      if (candidate.extraInfo?.media != null && candidate.extraInfo!.media!.isNotEmpty) {
+        final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
+          (item) => item['type'] == 'symbolImage',
+          orElse: () => <String, dynamic>{},
+        );
+        if (symbolImageItem.isNotEmpty) {
+          final symbolImageUrl = symbolImageItem['url'] as String?;
+          if (symbolImageUrl != null && symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
             debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
             _symbolCache[cacheKey] = symbolImageUrl;
             return symbolImageUrl; // Return the Firebase Storage URL

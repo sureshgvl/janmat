@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
 import '../../../models/candidate_model.dart';
 import '../../../services/demo_data_service.dart';
 import '../../../controllers/candidate_data_controller.dart';
@@ -42,6 +39,11 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
     'youth_education': 0,
     'women_safety': 0,
   };
+
+  // Comments functionality
+  final TextEditingController _commentController = TextEditingController();
+  final List<Map<String, dynamic>> _comments = [];
+  bool _showComments = false;
 
   @override
   void initState() {
@@ -86,6 +88,87 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
     );
+  }
+
+  void _shareManifesto() {
+    final manifestoTitle = widget.candidate.extraInfo?.manifesto?.title ?? 'Manifesto';
+    final manifestoText = '''
+Check out ${widget.candidate.name}'s manifesto!
+
+"${manifestoTitle}"
+
+${widget.candidate.party.isNotEmpty ? 'Party: ${widget.candidate.party}' : 'Independent Candidate'}
+Location: ${widget.candidate.districtId}, ${widget.candidate.wardId}
+
+Read their complete manifesto and learn about their vision at: [Your App URL]
+''';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Share functionality would open native share dialog'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _addComment() {
+    if (_commentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a comment'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _comments.add({
+        'text': _commentController.text.trim(),
+        'timestamp': DateTime.now(),
+        'likes': 0,
+        'isLiked': false,
+      });
+      _commentController.clear();
+    });
+
+    // Award XP for commenting
+    Get.snackbar(
+      'XP Earned! 🎉',
+      'You earned 5 XP for sharing your thoughts',
+      backgroundColor: Colors.blue.shade100,
+      colorText: Colors.blue.shade800,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _toggleCommentLike(int index) {
+    setState(() {
+      final comment = _comments[index];
+      comment['isLiked'] = !comment['isLiked'];
+      comment['likes'] = (comment['likes'] as int) + (comment['isLiked'] ? 1 : -1);
+    });
+  }
+
+  void _toggleCommentsVisibility() {
+    setState(() {
+      _showComments = !_showComments;
+    });
+  }
+
+  String _formatCommentTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 
   // Video player functionality
@@ -232,25 +315,48 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Display Manifesto Title
+                      // Display Manifesto Title with Share Button
                       if (widget.candidate.extraInfo?.manifesto?.title != null && widget.candidate.extraInfo!.manifesto!.title!.isNotEmpty) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Text(
-                            widget.candidate.extraInfo!.manifesto!.title!,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1f2937),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue.shade200),
+                                ),
+                                child: Text(
+                                  widget.candidate.extraInfo!.manifesto!.title!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1f2937),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
+                            const SizedBox(width: 12),
+                            // Share Button
+                            GestureDetector(
+                              onTap: _shareManifesto,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue.shade200),
+                                ),
+                                child: const Icon(
+                                  Icons.share,
+                                  size: 20,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                       ] else ...[
@@ -785,6 +891,223 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
                               _buildPollOption('women_safety', 'Women & Safety'),
                             ],
                           ),
+
+                          const SizedBox(height: 24),
+
+                          // Comments Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Comments',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF374151),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: _toggleCommentsVisibility,
+                                icon: Icon(
+                                  _showComments ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  _showComments ? 'Hide Comments' : 'Show Comments (${_comments.length})',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.blue.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Add Comment Input
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                TextField(
+                                  controller: _commentController,
+                                  maxLines: 3,
+                                  maxLength: 500,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Share your thoughts about this manifesto...',
+                                    border: InputBorder.none,
+                                    counterText: '',
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () => _commentController.clear(),
+                                      child: const Text('Cancel'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      onPressed: _addComment,
+                                      icon: const Icon(Icons.send, size: 16),
+                                      label: const Text('Post Comment'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue.shade600,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Comments List
+                          if (_showComments) ...[
+                            if (_comments.isEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'No comments yet. Be the first to share your thoughts!',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              ..._comments.map((comment) {
+                                final index = _comments.indexOf(comment);
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const CircleAvatar(
+                                            radius: 16,
+                                            backgroundColor: Colors.blue,
+                                            child: Icon(
+                                              Icons.person,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Expanded(
+                                            child: Text(
+                                              'Anonymous Voter',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                                color: Color(0xFF374151),
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatCommentTime(comment['timestamp'] as DateTime),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        comment['text'] as String,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          height: 1.4,
+                                          color: Color(0xFF374151),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => _toggleCommentLike(index),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  comment['isLiked'] as bool ? Icons.favorite : Icons.favorite_border,
+                                                  size: 16,
+                                                  color: comment['isLiked'] as bool ? Colors.red : Colors.grey,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${comment['likes']}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          GestureDetector(
+                                            onTap: () {
+                                              // Reply functionality could be added here
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Reply functionality coming soon!'),
+                                                  duration: Duration(seconds: 2),
+                                                ),
+                                              );
+                                            },
+                                            child: const Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.reply,
+                                                  size: 16,
+                                                  color: Colors.grey,
+                                                ),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Reply',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ],
                         ],
                       ),
                     ),
@@ -820,5 +1143,3 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
     );
   }
 }
-
-

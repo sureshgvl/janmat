@@ -496,6 +496,92 @@ class FileUploadService {
       );
     }
   }
+
+  // Validate media file size with specific limits for images and videos
+  Future<FileSizeValidation> validateMediaFileSize(String filePath, String fileType) async {
+    try {
+      final file = File(filePath.replaceFirst('local:', ''));
+      final fileSize = await file.length();
+      final fileSizeMB = fileSize / (1024 * 1024);
+
+      double maxSizeMB;
+      String fileTypeName;
+
+      switch (fileType) {
+        case 'image':
+          maxSizeMB = 10.0; // 10MB for images
+          fileTypeName = 'image';
+          break;
+        case 'video':
+          maxSizeMB = 3.0; // 3MB for videos
+          fileTypeName = 'video';
+          break;
+        default:
+          maxSizeMB = 20.0; // Default fallback
+          fileTypeName = 'file';
+      }
+
+      if (fileSizeMB > maxSizeMB) {
+        return FileSizeValidation(
+          isValid: false,
+          fileSizeMB: fileSizeMB,
+          message: '$fileTypeName is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is ${maxSizeMB.toStringAsFixed(1)}MB.',
+          recommendation: 'Please choose a smaller $fileTypeName or compress the current one.',
+        );
+      } else if (fileSizeMB > maxSizeMB * 0.8) {
+        return FileSizeValidation(
+          isValid: true,
+          fileSizeMB: fileSizeMB,
+          message: 'Large $fileTypeName detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+          recommendation: 'Consider compressing the $fileTypeName for faster uploads.',
+          warning: true,
+        );
+      } else {
+        return FileSizeValidation(
+          isValid: true,
+          fileSizeMB: fileSizeMB,
+          message: 'Optimal $fileTypeName size (${fileSizeMB.toStringAsFixed(1)}MB).',
+          recommendation: null,
+        );
+      }
+    } catch (e) {
+      return FileSizeValidation(
+        isValid: false,
+        fileSizeMB: 0,
+        message: 'Unable to validate file size: $e',
+        recommendation: 'Please try again or choose a different file.',
+      );
+    }
+  }
+
+  // Save existing file to local storage (for media tab)
+  Future<String?> saveExistingFileLocally(String sourceFilePath, String candidateId, String fileName) async {
+    try {
+      debugPrint('💾 [Local Storage] Saving existing file locally...');
+
+      // Get application documents directory
+      final directory = await getApplicationDocumentsDirectory();
+      final localDir = Directory('${directory.path}/media_temp');
+      if (!await localDir.exists()) {
+        await localDir.create(recursive: true);
+        debugPrint('💾 [Local Storage] Created media temp directory: ${localDir.path}');
+      }
+
+      // Generate unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final localFileName = '${fileName}_${candidateId}_$timestamp';
+      final localPath = '${localDir.path}/$localFileName';
+
+      // Copy the source file to local storage
+      await File(sourceFilePath).copy(localPath);
+
+      debugPrint('💾 [Local Storage] File saved successfully at: $localPath');
+      return 'local:$localPath';
+    } catch (e) {
+      debugPrint('💾 [Local Storage] Error saving existing file locally: $e');
+      return null;
+    }
+  }
 }
 
 // File size validation result

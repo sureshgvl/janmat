@@ -29,11 +29,7 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
       }
 
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Contact'),
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-        ),
+        
         body: SingleChildScrollView(
           child: ContactSection(
             candidateData: controller.candidateData.value!,
@@ -78,7 +74,7 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Contact updated successfully');
+                              Get.snackbar('Success', 'Contact updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
                             }
                           } else {
                             if (context.mounted) {

@@ -64,7 +64,7 @@ class _CandidateProfileEditScreenState extends State<CandidateProfileEditScreen>
         }
 
         return SingleChildScrollView(
-          child: ProfileSection(
+          child: ProfileTabEdit(
             candidateData: controller.candidateData.value!,
             editedData: controller.editedData.value,
             isEditing: isEditing,

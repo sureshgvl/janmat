@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/scheduler.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/language_selection_screen.dart';
 import 'screens/auth/role_selection_screen.dart';
-import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/profile_completion_screen.dart';
 import 'screens/candidate/candidate_profile_screen.dart';

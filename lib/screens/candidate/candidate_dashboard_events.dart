@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/edit/events_tab_edit.dart';
+import '../../widgets/candidate/view/events_tab_view.dart';
 import '../../widgets/loading_overlay.dart';
 
 class CandidateDashboardEvents extends StatefulWidget {
@@ -16,6 +17,9 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
 
+  // Global key to access events section for file uploads
+  final GlobalKey<EventsTabEditState> _eventsSectionKey = GlobalKey<EventsTabEditState>();
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -28,20 +32,22 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
       }
 
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Events'),
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-        ),
-        body: SingleChildScrollView(
-          child: EventsSection(
-            candidateData: controller.candidateData.value!,
-            editedData: controller.editedData.value,
-            isEditing: isEditing,
-            onEventsChange: (events) => controller.updateExtraInfo('events', events),
-          ),
-        ),
-        floatingActionButton: /* controller.isPaid.value ? */ (isEditing
+        
+        body: isEditing
+            ? SingleChildScrollView(
+                child: EventsTabEdit(
+                  key: _eventsSectionKey,
+                  candidateData: controller.candidateData.value!,
+                  editedData: controller.editedData.value,
+                  isEditing: isEditing,
+                  onEventsChange: (events) => controller.updateExtraInfo('events', events),
+                ),
+              )
+            : EventsTabView(
+                candidate: controller.candidateData.value!,
+                isOwnProfile: true,
+              ),
+        floatingActionButton: isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
                 child: Row(
@@ -62,6 +68,14 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                         );
 
                         try {
+                          // First, upload any pending local files to Firebase
+                          final eventsSectionState = _eventsSectionKey.currentState;
+                          if (eventsSectionState != null) {
+                            messageController.add('Uploading files to cloud...');
+                            await eventsSectionState.uploadPendingFiles();
+                          }
+
+                          // Then save the events data
                           final success = await controller.saveExtraInfo(
                             onProgress: (message) => messageController.add(message),
                           );
@@ -76,7 +90,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Events updated successfully');
+                              Get.snackbar('Success', 'Events updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
                             }
                           } else {
                             if (context.mounted) {
@@ -121,7 +135,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Events',
                 ),
-              )) /* : null */,
+              ),
       );
     });
   }

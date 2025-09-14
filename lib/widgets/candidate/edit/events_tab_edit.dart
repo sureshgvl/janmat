@@ -7,13 +7,14 @@ import '../../../controllers/candidate_data_controller.dart';
 import '../../../repositories/event_repository.dart';
 import '../event_creation_dialog.dart';
 
-class EventsSection extends StatefulWidget {
+// Main EventsTabEdit Widget
+class EventsTabEdit extends StatefulWidget {
   final Candidate candidateData;
   final Candidate? editedData;
   final bool isEditing;
   final Function(List<Map<String, dynamic>>) onEventsChange;
 
-  const EventsSection({
+  const EventsTabEdit({
     super.key,
     required this.candidateData,
     this.editedData,
@@ -22,10 +23,10 @@ class EventsSection extends StatefulWidget {
   });
 
   @override
-  State<EventsSection> createState() => _EventsSectionState();
+  State<EventsTabEdit> createState() => EventsTabEditState();
 }
 
-class _EventsSectionState extends State<EventsSection> {
+class EventsTabEditState extends State<EventsTabEdit> {
   final CandidateDataController _controller = Get.find<CandidateDataController>();
   late Worker _eventsWorker;
 
@@ -327,5 +328,11 @@ class _EventsSectionState extends State<EventsSection> {
     } else {
       Get.snackbar('Error', 'Could not open map link');
     }
+  }
+
+  // Method to upload pending files (required by dashboard pattern)
+  Future<void> uploadPendingFiles() async {
+    // Events don't have file uploads, so this is a no-op
+    debugPrint('📤 [Events] No pending files to upload');
   }
 }

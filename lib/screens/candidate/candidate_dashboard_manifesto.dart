@@ -34,6 +34,7 @@ class _CandidateDashboardManifestoState extends State<CandidateDashboardManifest
       }
 
       return Scaffold(
+ 
         body: isEditing
             ? SingleChildScrollView(
                 child: ManifestoTabEdit(
@@ -97,7 +98,7 @@ class _CandidateDashboardManifestoState extends State<CandidateDashboardManifest
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Manifesto updated successfully');
+                              Get.snackbar('Success', 'Manifesto updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
                             }
                           } else {
                             if (context.mounted) {
