@@ -11,7 +11,7 @@ class UserModel {
   final String wardId;
   final String? districtId;
   final String? bodyId;
-  final String cityId; // Keep for backward compatibility
+  final String? area;
   final int xpPoints;
   final bool premium;
   final String? subscriptionPlanId; // current active subscription
@@ -36,7 +36,7 @@ class UserModel {
     required this.wardId,
     this.districtId,
     this.bodyId,
-    required this.cityId,
+    this.area,
     required this.xpPoints,
     required this.premium,
     this.subscriptionPlanId,
@@ -87,7 +87,7 @@ class UserModel {
       wardId: json['wardId'] ?? '',
       districtId: json['districtId'],
       bodyId: json['bodyId'],
-      cityId: json['cityId'] ?? '',
+      area: json['area'],
       xpPoints: json['xpPoints'] ?? 0,
       premium: json['premium'] ?? false,
       subscriptionPlanId: json['subscriptionPlanId'],
@@ -114,7 +114,7 @@ class UserModel {
       'wardId': wardId,
       'districtId': districtId,
       'bodyId': bodyId,
-      'cityId': cityId,
+      'area': area,
       'xpPoints': xpPoints,
       'premium': premium,
       'subscriptionPlanId': subscriptionPlanId,
@@ -140,7 +140,7 @@ class UserModel {
     String? wardId,
     String? districtId,
     String? bodyId,
-    String? cityId,
+    String? area,
     int? xpPoints,
     bool? premium,
     String? subscriptionPlanId,
@@ -164,7 +164,7 @@ class UserModel {
       wardId: wardId ?? this.wardId,
       districtId: districtId ?? this.districtId,
       bodyId: bodyId ?? this.bodyId,
-      cityId: cityId ?? this.cityId,
+      area: area ?? this.area,
       xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
       subscriptionPlanId: subscriptionPlanId ?? this.subscriptionPlanId,

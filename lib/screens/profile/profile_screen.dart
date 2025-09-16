@@ -8,13 +8,18 @@ import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
 import '../../controllers/chat_controller.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final User? currentUser = FirebaseAuth.instance.currentUser;
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isLoggingOut = false; // Add loading state for logout
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -41,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
           // If no cached user, show loading and fetch
           if (userModel == null) {
             return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).get(),
+              future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -66,6 +71,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildProfileContent(BuildContext context, UserModel userModel) {
     return SingleChildScrollView(
@@ -219,38 +225,69 @@ class ProfileScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () async {
+              onPressed: _isLoggingOut ? null : () async {
+                debugPrint('🔘 Profile logout button pressed');
+                setState(() => _isLoggingOut = true);
+
                 try {
                   final authRepository = AuthRepository();
                   await authRepository.signOut();
 
-                  // Reset login controller state
-                  final loginController = Get.find<LoginController>();
-                  loginController.phoneController.clear();
-                  loginController.otpController.clear();
-                  loginController.isOTPScreen.value = false;
-                  loginController.verificationId.value = '';
+                  // Reset login controller state (if available)
+                  try {
+                    if (Get.isRegistered<LoginController>()) {
+                      final loginController = Get.find<LoginController>();
+                      loginController.phoneController.clear();
+                      loginController.otpController.clear();
+                      loginController.isOTPScreen.value = false;
+                      loginController.verificationId.value = '';
+                    } else {
+                      debugPrint('ℹ️ Login controller not available - skipping state reset');
+                    }
+                  } catch (e) {
+                    debugPrint('⚠️ Could not reset login controller: $e');
+                  }
 
                   Get.offAllNamed('/login');
                 } catch (e) {
                   Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
+                } finally {
+                  if (mounted) {
+                    setState(() => _isLoggingOut = false);
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFEE2E2),
-                foregroundColor: const Color(0xFFDC2626),
+                backgroundColor: _isLoggingOut ? Colors.grey : const Color(0xFFFEE2E2),
+                foregroundColor: _isLoggingOut ? Colors.white : const Color(0xFFDC2626),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(
-                AppLocalizations.of(context)!.logOut,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: _isLoggingOut
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Logging out...'),
+                      ],
+                    )
+                  : Text(
+                      AppLocalizations.of(context)!.logOut,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ],

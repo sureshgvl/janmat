@@ -20,7 +20,7 @@ class HomeDrawer extends StatelessWidget {
   final UserModel? userModel;
   final Candidate? candidateModel;
   final User? currentUser;
-  final Function(BuildContext, UserModel?) onDeleteAccount;
+  final Future<void> Function(BuildContext, UserModel?) onDeleteAccount;
 
   const HomeDrawer({
     super.key,

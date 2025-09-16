@@ -219,7 +219,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         });
 
         debugPrint('🎉 ChangePartySymbolScreen: Image upload process completed successfully');
-        Get.snackbar(localizations.success, localizations.symbolUploadSuccess);
+        Get.snackbar(localizations.success, localizations.symbolUploadSuccess, backgroundColor: Colors.green.shade100, colorText: Colors.green.shade800);
       } else {
         debugPrint('❌ ChangePartySymbolScreen: No image selected by user');
         setState(() {

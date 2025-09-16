@@ -25,6 +25,7 @@ import 'services/language_service.dart';
 import 'services/background_initializer.dart';
 import 'l10n/app_localizations.dart';
 import 'utils/performance_monitor.dart';
+import 'repositories/auth_repository.dart';
 
 void main() async {
   // Start performance monitoring
@@ -72,6 +73,15 @@ void main() async {
     }
 
     debugPrint('✅ Firebase initialized synchronously for controller compatibility');
+
+    // Analyze and cleanup storage on app startup
+    try {
+      final authRepository = AuthRepository();
+      await authRepository.analyzeAndCleanupStorage();
+    } catch (e) {
+      debugPrint('ℹ️ Storage analysis failed: $e');
+    }
+
   } catch (e) {
     debugPrint('❌ Firebase initialization failed: $e');
   }
@@ -233,10 +243,11 @@ class MyApp extends StatelessWidget {
       if (userDoc.exists) {
         final userData = userDoc.data()!;
         final role = userData['role'] as String? ?? '';
-        final cityId = userData['cityId'] as String? ?? '';
+        final districtId = userData['districtId'] as String? ?? '';
+        final bodyId = userData['bodyId'] as String? ?? '';
         final wardId = userData['wardId'] as String? ?? '';
 
-        debugPrint('🔍 User state check - Role: "$role", City: "$cityId", Ward: "$wardId"');
+        debugPrint('🔍 User state check - Role: "$role", District: "$districtId", Body: "$bodyId", Ward: "$wardId"');
 
         // Step 1: Check if role is selected
         if (role.isEmpty) {

@@ -407,8 +407,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get info => 'Info';
 
   @override
-  String wardInfo(Object cityId, Object wardId) {
-    return 'Ward $wardId • $cityId';
+  String wardInfo(Object bodyId, Object wardId) {
+    return 'Ward $wardId • $bodyId';
   }
 
   @override

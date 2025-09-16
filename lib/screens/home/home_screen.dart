@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final HomeServices _homeServices = HomeServices();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
   bool _shouldRefreshData = false;
+  bool _isLoggingOut = false; // Add loading state for logout
 
   @override
   void didChangeDependencies() {
@@ -49,70 +50,116 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
-    return RefreshIndicator(
-      key: _refreshIndicatorKey,
-      onRefresh: () async {
-        // Force refresh by clearing any cached data
-        setState(() {});
-        // Add a small delay to show the refresh indicator
-        await Future.delayed(const Duration(milliseconds: 500));
-      },
-      child: FutureBuilder<Map<String, dynamic>>(
-        future: _homeServices.getUserData(currentUser?.uid),
-        builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.home),
+        actions: [
+          IconButton(
+            icon: _isLoggingOut
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.logout),
+            tooltip: _isLoggingOut ? 'Logging out...' : 'Logout',
+            onPressed: _isLoggingOut ? null : () async {
+              debugPrint('🔘 Logout button pressed');
+              setState(() => _isLoggingOut = true);
 
-        UserModel? userModel;
-        Candidate? candidateModel;
+              try {
+                final authRepository = AuthRepository();
+                await authRepository.signOut();
 
-        if (snapshot.hasData) {
-          userModel = snapshot.data!['user'];
-          candidateModel = snapshot.data!['candidate'];
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(AppLocalizations.of(context)!.home),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () async {
-                  try {
-                    final authRepository = AuthRepository();
-                    await authRepository.signOut();
-
-                    // Reset login controller state
+                // Reset login controller state (if available)
+                try {
+                  if (Get.isRegistered<LoginController>()) {
                     final loginController = Get.find<LoginController>();
                     loginController.phoneController.clear();
                     loginController.otpController.clear();
                     loginController.isOTPScreen.value = false;
                     loginController.verificationId.value = '';
-
-                    Get.offAllNamed('/login');
-                  } catch (e) {
-                    Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
+                    debugPrint('✅ Login controller state reset');
+                  } else {
+                    debugPrint('ℹ️ Login controller not available - skipping state reset');
                   }
-                },
-              ),
-            ],
+                } catch (e) {
+                  debugPrint('⚠️ Could not reset login controller: $e');
+                }
+
+                // Small delay to ensure auth state change has propagated
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                // Force navigation to login screen
+                Get.offAllNamed('/login');
+              } catch (e) {
+                debugPrint('❌ Logout failed: $e');
+                Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
+              } finally {
+                if (mounted) {
+                  setState(() => _isLoggingOut = false);
+                }
+              }
+            },
           ),
-          drawer: HomeDrawer(
+        ],
+      ),
+      drawer: FutureBuilder<Map<String, dynamic>>(
+        future: _homeServices.getUserData(currentUser?.uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          UserModel? userModel;
+          Candidate? candidateModel;
+
+          if (snapshot.hasData) {
+            userModel = snapshot.data!['user'];
+            candidateModel = snapshot.data!['candidate'];
+          }
+
+          return HomeDrawer(
             userModel: userModel,
             candidateModel: candidateModel,
             currentUser: currentUser,
-            onDeleteAccount: (context, userModel) => HomeActions.showDeleteAccountDialog(context, userModel, AppLocalizations.of(context)!),
-          ),
-          body: HomeBody(
-            userModel: userModel,
-            candidateModel: candidateModel,
-            currentUser: currentUser,
-          ),
-        );
-      },
+            onDeleteAccount: (context, userModel) async => await HomeActions.showDeleteAccountDialog(context, userModel, AppLocalizations.of(context)!),
+          );
+        },
+      ),
+      body: RefreshIndicator(
+        key: _refreshIndicatorKey,
+        onRefresh: () async {
+          // Force refresh by clearing any cached data
+          setState(() {});
+          // Add a small delay to show the refresh indicator
+          await Future.delayed(const Duration(milliseconds: 500));
+        },
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _homeServices.getUserData(currentUser?.uid),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            UserModel? userModel;
+            Candidate? candidateModel;
+
+            if (snapshot.hasData) {
+              userModel = snapshot.data!['user'];
+              candidateModel = snapshot.data!['candidate'];
+            }
+
+            return HomeBody(
+              userModel: userModel,
+              candidateModel: candidateModel,
+              currentUser: currentUser,
+            );
+          },
+        ),
       ),
     );
   }

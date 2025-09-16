@@ -32,51 +32,51 @@ class _ChatListScreenState extends State<ChatListScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.chatRooms),
         actions: [
-          // Initialize sample data button (admin only)
-          // GetBuilder<ChatController>(
-          //   builder: (controller) {
-          //     final user = controller.currentUser;
-          //     if (user != null && user.role == 'admin') {
-          //       return Row(
-          //         children: [
-          //           IconButton(
-          //             icon: const Icon(Icons.refresh),
-          //             tooltip: AppLocalizations.of(context)!.initializeSampleData,
-          //             onPressed: () => ChatDialogs.showInitializeDataDialog(context),
-          //           ),
-          //           IconButton(
-          //             icon: const Icon(Icons.sync),
-          //             tooltip: AppLocalizations.of(context)!.refreshWardRoom,
-          //             onPressed: () async {
-          //               await controller.refreshUserDataAndChat();
-          //               Get.snackbar(AppLocalizations.of(context)!.debug, AppLocalizations.of(context)!.userDataRefreshed);
-          //             },
-          //           ),
-          //         ],
-          //       );
-          //     }
-          //     return IconButton(
-          //       icon: const Icon(Icons.sync),
-          //       tooltip: AppLocalizations.of(context)!.refreshWardRoom,
-          //       onPressed: () async {
-          //         await controller.refreshUserDataAndChat();
-          //         Get.snackbar(AppLocalizations.of(context)!.debug, AppLocalizations.of(context)!.userDataRefreshed);
-          //       },
-          //     );
-          //   },
-          // ),
+          // Manual ward room creation button (only for candidates)
+          GetBuilder<ChatController>(
+            builder: (controller) {
+              final user = controller.currentUser;
+              if (user != null && user.role == 'candidate') {
+                return IconButton(
+                  icon: const Icon(Icons.home_work),
+                  tooltip: 'Create Ward Room',
+                  onPressed: () async {
+                    await controller.manuallyCreateWardRoom();
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
 
           // Quota indicator and refresh button
           Row(
             children: [
-              // Refresh button
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: AppLocalizations.of(context)!.refreshChatRooms,
-                onPressed: () async {
-                  await controller.refreshChatRooms();
-                  Get.snackbar(AppLocalizations.of(context)!.refreshed, AppLocalizations.of(context)!.chatRoomsUpdated);
-                },
+              // Refresh button with consistent styling
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.refresh,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
+                  tooltip: AppLocalizations.of(context)!.refreshChatRooms,
+                  onPressed: () async {
+                    await controller.refreshChatRooms();
+                    Get.snackbar(
+                      AppLocalizations.of(context)!.refreshed,
+                      AppLocalizations.of(context)!.chatRoomsUpdated,
+                      backgroundColor: Colors.green.shade100,
+                      colorText: Colors.green.shade800,
+                      duration: const Duration(seconds: 2),
+                    );
+                  },
+                ),
               ),
 
               // Quota indicator

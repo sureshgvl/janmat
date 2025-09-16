@@ -866,8 +866,8 @@ abstract class AppLocalizations {
   /// No description provided for @wardInfo.
   ///
   /// In en, this message translates to:
-  /// **'Ward {wardId} • {cityId}'**
-  String wardInfo(Object cityId, Object wardId);
+  /// **'Ward {wardId} • {bodyId}'**
+  String wardInfo(Object bodyId, Object wardId);
 
   /// No description provided for @joinedDate.
   ///

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../l10n/app_localizations.dart';
@@ -19,6 +20,9 @@ class ChatRoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<ChatController>();
     final chatRoom = displayInfo.room;
+
+    // Debug: Print unread count for this room
+    debugPrint('🎯 ChatRoomCard for ${chatRoom.roomId}: unreadCount=${displayInfo.unreadCount}, hasUnread=${displayInfo.hasUnreadMessages}');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 1), // Minimal margin like WhatsApp

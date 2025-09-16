@@ -457,7 +457,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         districtId: selectedDistrictId!,
         bodyId: selectedBodyId!,
         wardId: selectedWard!.wardId,
-        cityId: '', // Keep for backward compatibility
         xpPoints: 0,
         premium: false,
         createdAt: DateTime.now(),
@@ -476,13 +475,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
             'profileCompleted': true,
           });
 
-      // Refresh chat controller with new user data and create ward room
+      // Refresh chat controller with new user data (creates ward rooms only for candidates)
       try {
         await chatController.refreshUserDataAndChat();
-      debugPrint('✅ Ward chat room created successfully for user: ${currentUser.uid}');
+      debugPrint('✅ Chat data refreshed successfully for user: ${currentUser.uid}');
       } catch (e) {
-      debugPrint('⚠️ Failed to create ward room, but profile saved: $e');
-        // Don't fail the entire process if room creation fails
+      debugPrint('⚠️ Failed to refresh chat data, but profile saved: $e');
+        // Don't fail the entire process if chat refresh fails
       }
 
       // If user is a candidate, create basic candidate record immediately
@@ -561,9 +560,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           duration: const Duration(seconds: 4),
         );
       } else {
+        // For voters, don't mention ward chat creation since they don't create rooms
         Get.snackbar(
           localizations.success,
-          localizations.profileCompletedWardChatCreated,
+          localizations.profileCompleted,
           duration: const Duration(seconds: 4),
         );
       }

@@ -39,7 +39,7 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
             isEditing: isEditing,
             getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: controller.candidateData.value),
             onNameChange: (value) => controller.updateBasicInfo('name', value),
-            onCityChange: (value) => controller.updateBasicInfo('cityId', value),
+            onCityChange: (value) => controller.updateBasicInfo('districtId', value),
             onWardChange: (value) => controller.updateBasicInfo('wardId', value),
             onPartyChange: (value) => controller.updateBasicInfo('party', value),
             onPhotoChange: (value) => controller.updatePhoto(value),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/chat_model.dart';
 import '../../repositories/chat_repository.dart';
+import '../../l10n/app_localizations.dart';
 
 // Stateful widget for poll voting dialog
 class PollVotingDialog extends StatefulWidget {
@@ -443,12 +444,13 @@ class CreatePollDialogState extends State<CreatePollDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Row(
         children: [
           const Icon(Icons.poll, color: Colors.blue),
           const SizedBox(width: 8),
-          const Text('Create Poll'),
+          Text(localizations.createPoll),
         ],
       ),
       content: SizedBox(
@@ -618,7 +620,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(localizations.cancel),
         ),
         ElevatedButton(
           onPressed: () {
@@ -630,7 +632,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
 
             if (question.isEmpty) {
               Get.snackbar(
-                'Question Required',
+                localizations.error,
                 'Please enter a poll question',
                 backgroundColor: Colors.orange.shade100,
                 colorText: Colors.orange.shade800,
@@ -640,7 +642,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
 
             if (options.length < 2) {
               Get.snackbar(
-                'More Options Needed',
+                localizations.error,
                 'Please add at least 2 options',
                 backgroundColor: Colors.orange.shade100,
                 colorText: Colors.orange.shade800,
@@ -658,7 +660,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
             backgroundColor: Colors.blue.shade600,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Create Poll'),
+          child: Text(localizations.createPoll),
         ),
       ],
     );

@@ -1,5 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum MessageStatus {
+  sending,
+  sent,
+  failed,
+}
+
 class ChatRoom {
   final String roomId;
   final DateTime createdAt;
@@ -100,6 +106,8 @@ class Message {
   final Map<String, dynamic>? metadata;
   final bool? isDeleted;
   final List<MessageReaction>? reactions;
+  final MessageStatus status; // 'sending', 'sent', 'failed'
+  final int retryCount; // Number of retry attempts
 
   Message({
     required this.messageId,
@@ -112,6 +120,8 @@ class Message {
     this.metadata,
     this.isDeleted = false,
     this.reactions,
+    this.status = MessageStatus.sent,
+    this.retryCount = 0,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
@@ -141,6 +151,11 @@ class Message {
               .map((r) => MessageReaction.fromJson(r))
               .toList()
           : null,
+      status: MessageStatus.values.firstWhere(
+        (e) => e.toString() == 'MessageStatus.${json['status'] ?? 'sent'}',
+        orElse: () => MessageStatus.sent,
+      ),
+      retryCount: json['retryCount'] ?? 0,
     );
   }
 
@@ -156,6 +171,8 @@ class Message {
       'metadata': metadata,
       'isDeleted': isDeleted,
       'reactions': reactions?.map((r) => r.toJson()).toList(),
+      'status': status.toString().split('.').last,
+      'retryCount': retryCount,
     };
   }
 
@@ -170,6 +187,8 @@ class Message {
     Map<String, dynamic>? metadata,
     bool? isDeleted,
     List<MessageReaction>? reactions,
+    MessageStatus? status,
+    int? retryCount,
   }) {
     return Message(
       messageId: messageId ?? this.messageId,
@@ -182,6 +201,8 @@ class Message {
       metadata: metadata ?? this.metadata,
       isDeleted: isDeleted ?? this.isDeleted,
       reactions: reactions ?? this.reactions,
+      status: status ?? this.status,
+      retryCount: retryCount ?? this.retryCount,
     );
   }
 }

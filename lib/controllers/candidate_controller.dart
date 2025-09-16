@@ -4,6 +4,7 @@ import '../models/candidate_model.dart';
 import '../models/ward_model.dart';
 import '../models/city_model.dart';
 import '../repositories/candidate_repository.dart';
+import '../controllers/chat_controller.dart';
 
 class CandidateController extends GetxController {
   final CandidateRepository _repository = CandidateRepository();
@@ -151,8 +152,16 @@ class CandidateController extends GetxController {
       }
 
     debugPrint('✅ [Controller] Successfully followed candidate: $candidateId');
+
+      // Notify chat controller to refresh cache since followed candidates changed
+      try {
+        final chatController = Get.find<ChatController>();
+        chatController.invalidateUserCache(userId);
+      } catch (e) {
+        debugPrint('⚠️ Could not notify chat controller: $e');
+      }
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to follow candidate: $e');
+      debugPrint('❌ [Controller] Failed to follow candidate: $e');
       errorMessage = 'Failed to follow candidate: $e';
     }
 
@@ -181,8 +190,16 @@ class CandidateController extends GetxController {
       }
 
     debugPrint('✅ [Controller] Successfully unfollowed candidate: $candidateId');
+
+      // Notify chat controller to refresh cache since followed candidates changed
+      try {
+        final chatController = Get.find<ChatController>();
+        chatController.invalidateUserCache(userId);
+      } catch (e) {
+        debugPrint('⚠️ Could not notify chat controller: $e');
+      }
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to unfollow candidate: $e');
+      debugPrint('❌ [Controller] Failed to unfollow candidate: $e');
       errorMessage = 'Failed to unfollow candidate: $e';
     }
 
@@ -205,6 +222,15 @@ class CandidateController extends GetxController {
   Future<void> updateFollowNotificationSettings(String userId, String candidateId, bool notificationsEnabled) async {
     try {
       await _repository.updateFollowNotificationSettings(userId, candidateId, notificationsEnabled);
+
+      // Notify chat controller to refresh cache since follow relationship changed
+      try {
+        final chatController = Get.find<ChatController>();
+        chatController.invalidateUserCache(userId);
+      } catch (e) {
+        debugPrint('⚠️ Could not notify chat controller: $e');
+      }
+
     debugPrint('✅ [Controller] Updated notification settings for candidate: $candidateId');
     } catch (e) {
     debugPrint('❌ [Controller] Failed to update notification settings: $e');

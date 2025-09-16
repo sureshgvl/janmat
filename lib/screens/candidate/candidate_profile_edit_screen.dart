@@ -34,7 +34,7 @@ class _CandidateProfileEditScreenState extends State<CandidateProfileEditScreen>
                       final success = await controller.saveExtraInfo();
                       if (success) {
                         Get.back();
-                        Get.snackbar('Success', 'Profile updated successfully');
+                        Get.snackbar('Success', 'Profile updated successfully', backgroundColor: Colors.green.shade100, colorText: Colors.green.shade800);
                       } else {
                         Get.snackbar('Error', 'Failed to update profile');
                       }

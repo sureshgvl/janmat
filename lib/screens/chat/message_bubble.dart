@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:just_audio/just_audio.dart';
 import '../../models/chat_model.dart';
 import '../../controllers/chat_controller.dart';
+import '../../widgets/common/reusable_image_widget.dart';
 import 'poll_dialogs.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends StatefulWidget {
   final Message message;
   final bool isCurrentUser;
   final ChatController controller;
@@ -19,19 +23,194 @@ class MessageBubble extends StatelessWidget {
   });
 
   @override
+  MessageBubbleState createState() => MessageBubbleState();
+}
+
+class MessageBubbleState extends State<MessageBubble> {
+  Map<String, dynamic>? _senderInfo;
+  bool _isLoadingSenderInfo = false;
+
+  // Audio playback state
+  AudioPlayer? _audioPlayer;
+  bool _isPlaying = false;
+  Duration _audioDuration = Duration.zero;
+  Duration _currentPosition = Duration.zero;
+  bool _isLoadingAudio = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Only fetch sender info if this is not the current user's message
+    if (!widget.isCurrentUser) {
+      _loadSenderInfo();
+    }
+    // Initialize audio player for audio messages
+    if (widget.message.type == 'audio') {
+      _initializeAudioPlayer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSenderInfo() async {
+    if (_isLoadingSenderInfo) return;
+
+    setState(() {
+      _isLoadingSenderInfo = true;
+    });
+
+    try {
+      final senderInfo = await widget.controller.getSenderInfo(widget.message.senderId);
+      if (mounted) {
+        setState(() {
+          _senderInfo = senderInfo;
+          _isLoadingSenderInfo = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSenderInfo = false;
+        });
+      }
+    }
+  }
+
+  void _initializeAudioPlayer() {
+    _audioPlayer = AudioPlayer();
+
+    // Listen to player state changes
+    _audioPlayer?.playerStateStream.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state.playing;
+        });
+      }
+    });
+
+    // Listen to position changes
+    _audioPlayer?.positionStream.listen((position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    });
+
+    // Listen to duration changes
+    _audioPlayer?.durationStream.listen((duration) {
+      if (mounted && duration != null) {
+        setState(() {
+          _audioDuration = duration;
+        });
+      }
+    });
+  }
+
+  Future<void> _playPauseAudio() async {
+    if (_audioPlayer == null || widget.message.mediaUrl == null) return;
+
+    try {
+      if (_isPlaying) {
+        await _audioPlayer!.pause();
+      } else {
+        if (_audioPlayer!.audioSource == null) {
+          setState(() {
+            _isLoadingAudio = true;
+          });
+
+          await _audioPlayer!.setUrl(widget.message.mediaUrl!);
+
+          setState(() {
+            _isLoadingAudio = false;
+          });
+        }
+
+        await _audioPlayer!.play();
+      }
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+      setState(() {
+        _isLoadingAudio = false;
+      });
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDeleted = message.isDeleted ?? false;
+    final isDeleted = widget.message.isDeleted ?? false;
 
     return Align(
-      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: widget.isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 4, left: 8, right: 8),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         child: Column(
-          crossAxisAlignment: isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: widget.isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
+            // Sender info (only for non-current user messages)
+            if (!widget.isCurrentUser && _senderInfo != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Role indicator for candidates
+                    if (_senderInfo!['role'] == 'candidate')
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'CANDIDATE',
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                      ),
+                    // Sender name
+                    Text(
+                      _senderInfo!['name'] ?? 'Unknown',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    // Phone number (only visible to candidates for moderation)
+                    if (widget.controller.currentUser?.role == 'candidate' && _senderInfo!['phone'] != null && _senderInfo!['phone'].isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          '(${_senderInfo!['phone']})',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
             // Message bubble
             GestureDetector(
               onLongPress: isDeleted ? null : () => _showMessageOptions(context),
@@ -40,12 +219,12 @@ class MessageBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isDeleted
                       ? Colors.grey.shade200
-                      : (isCurrentUser ? const Color(0xFF005C4B) : Colors.white),
+                      : (widget.isCurrentUser ? const Color(0xFFDCF8C6) : Colors.white),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(8),
                     topRight: const Radius.circular(8),
-                    bottomLeft: isCurrentUser ? const Radius.circular(8) : const Radius.circular(4),
-                    bottomRight: isCurrentUser ? const Radius.circular(4) : const Radius.circular(8),
+                    bottomLeft: widget.isCurrentUser ? const Radius.circular(8) : const Radius.circular(4),
+                    bottomRight: widget.isCurrentUser ? const Radius.circular(4) : const Radius.circular(8),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -80,43 +259,67 @@ class MessageBubble extends StatelessWidget {
                           )
                         : _buildMessageContent(),
 
-                    // Timestamp and read status in same row
+                    // Timestamp and status indicators in same row
                     const SizedBox(height: 4),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          timeago.format(message.createdAt),
+                          timeago.format(widget.message.createdAt),
                           style: TextStyle(
                             fontSize: 11,
                             color: isDeleted
                                 ? Colors.grey.shade500
-                                : (isCurrentUser ? Colors.white.withOpacity(0.7) : Colors.grey.shade600),
+                                : (widget.isCurrentUser ? Colors.grey.shade600 : Colors.grey.shade600),
                           ),
                         ),
-                        if (isCurrentUser && !isDeleted) ...[
+                        if (widget.isCurrentUser && !isDeleted) ...[
                           const SizedBox(width: 4),
-                          Icon(
-                            message.readBy.length > 1 ? Icons.done_all : Icons.done,
-                            size: 14,
-                            color: message.readBy.length > 1 ? Colors.lightBlue : Colors.white.withOpacity(0.7),
-                          ),
+                          // Show message status indicators
+                          if (widget.message.status == MessageStatus.sending) ...[
+                            const SizedBox(width: 2),
+                            const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                              ),
+                            ),
+                          ] else if (widget.message.status == MessageStatus.failed) ...[
+                            const SizedBox(width: 2),
+                            GestureDetector(
+                              onTap: () => widget.controller.retryMessage(widget.message.messageId),
+                              child: Icon(
+                                Icons.refresh,
+                                size: 14,
+                                color: Colors.red.shade600,
+                              ),
+                            ),
+                          ] else ...[
+                            // Sent status
+                            Icon(
+                              widget.message.readBy.length > 1 ? Icons.done_all : Icons.done,
+                              size: 14,
+                              color: widget.message.readBy.length > 1 ? Colors.lightBlue : Colors.grey.shade600,
+                            ),
+                          ],
                         ],
                       ],
                     ),
 
                     // Reactions (only show if message is not deleted)
-                    if (!isDeleted && message.reactions != null && message.reactions!.isNotEmpty)
+                    if (!isDeleted && widget.message.reactions != null && widget.message.reactions!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Wrap(
                           spacing: 4,
                           runSpacing: 2,
-                          children: message.reactions!.map((reaction) {
+                          children: widget.message.reactions!.map((reaction) {
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isCurrentUser ? Colors.white.withOpacity(0.2) : Colors.grey.shade100,
+                                color: widget.isCurrentUser ? Colors.white.withOpacity(0.5) : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -138,54 +341,30 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildMessageContent() {
-    final textColor = isCurrentUser ? Colors.white : Colors.black87;
+    final textColor = widget.isCurrentUser ? Colors.black87 : Colors.black87;
 
-    switch (message.type) {
+    switch (widget.message.type) {
       case 'text':
-        return Text(
-          message.text,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            height: 1.3,
-          ),
-        );
+        return _buildTextMessage(widget.message.text, textColor);
 
       case 'image':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (message.mediaUrl != null)
-              ClipRRect(
+            if (widget.message.mediaUrl != null)
+              ReusableImageWidget(
+                imageUrl: widget.message.mediaUrl!,
+                fit: BoxFit.cover,
+                maxWidth: 200,
+                maxHeight: 200,
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  message.mediaUrl!,
-                  width: 200,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: 200,
-                      height: 200,
-                      color: Colors.grey.shade300,
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 200,
-                      height: 200,
-                      color: Colors.grey.shade300,
-                      child: const Icon(Icons.broken_image),
-                    );
-                  },
-                ),
+                enableFullScreenView: true,
+                fullScreenTitle: 'Chat Image',
               ),
-            if (message.text.isNotEmpty) ...[
+            if (widget.message.text.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                message.text,
+                widget.message.text,
                 style: TextStyle(
                   color: textColor,
                   fontSize: 16,
@@ -197,26 +376,67 @@ class MessageBubble extends StatelessWidget {
         );
 
       case 'audio':
-        return Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                Icons.play_arrow,
-                color: textColor,
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: widget.isCurrentUser ? Colors.green.shade50 : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Play/Pause button
+              IconButton(
+                icon: _isLoadingAudio
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        _isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: widget.isCurrentUser ? Colors.green.shade700 : Colors.blue.shade600,
+                        size: 24,
+                      ),
+                onPressed: _playPauseAudio,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-              onPressed: () {
-                // TODO: Implement audio playback
-              },
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Voice message',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 16,
+
+              // Waveform visualization (simplified)
+              Container(
+                width: 60,
+                height: 24,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(
+                    8,
+                    (index) => Container(
+                      width: 2,
+                      height: _isPlaying ? (8 + (index % 3) * 4).toDouble() : 4,
+                      decoration: BoxDecoration(
+                        color: widget.isCurrentUser ? Colors.green.shade400 : Colors.blue.shade400,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+
+              // Duration display
+              Text(
+                _audioDuration != Duration.zero
+                    ? '${_formatDuration(_currentPosition)} / ${_formatDuration(_audioDuration)}'
+                    : 'Voice message',
+                style: TextStyle(
+                  color: widget.isCurrentUser ? Colors.green.shade700 : Colors.blue.shade600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         );
 
       case 'poll':
@@ -224,7 +444,7 @@ class MessageBubble extends StatelessWidget {
 
       default:
         return Text(
-          message.text,
+          widget.message.text,
           style: TextStyle(
             color: textColor,
             fontSize: 16,
@@ -235,31 +455,31 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildPollContent() {
-    final pollId = message.metadata?['pollId'] as String?;
+    final pollId = widget.message.metadata?['pollId'] as String?;
 
     if (pollId == null) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isCurrentUser ? Colors.white.withOpacity(0.1) : Colors.blue.shade50,
+          color: widget.isCurrentUser ? Colors.white.withOpacity(0.3) : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isCurrentUser ? Colors.white.withOpacity(0.3) : Colors.blue.shade200,
+            color: widget.isCurrentUser ? Colors.grey.shade300 : Colors.blue.shade200,
           ),
         ),
         child: Row(
           children: [
             Icon(
               Icons.poll,
-              color: isCurrentUser ? Colors.white : Colors.blue.shade600,
+              color: widget.isCurrentUser ? Colors.black87 : Colors.blue.shade600,
               size: 20,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                message.text.isNotEmpty ? message.text : 'Poll created',
+                widget.message.text.isNotEmpty ? widget.message.text : 'Poll created',
                 style: TextStyle(
-                  color: isCurrentUser ? Colors.white : Colors.black87,
+                  color: widget.isCurrentUser ? Colors.black87 : Colors.black87,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -275,10 +495,10 @@ class MessageBubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isCurrentUser ? Colors.white.withOpacity(0.1) : Colors.blue.shade50,
+          color: widget.isCurrentUser ? Colors.white.withOpacity(0.1) : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isCurrentUser ? Colors.white.withOpacity(0.3) : Colors.blue.shade200,
+            color: widget.isCurrentUser ? Colors.white.withOpacity(0.3) : Colors.blue.shade200,
           ),
         ),
         child: Column(
@@ -288,15 +508,15 @@ class MessageBubble extends StatelessWidget {
               children: [
                 Icon(
                   Icons.poll,
-                  color: isCurrentUser ? Colors.white : Colors.blue.shade600,
+                  color: widget.isCurrentUser ? Colors.black87 : Colors.blue.shade600,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    message.text.replaceFirst('📊 ', ''),
+                    widget.message.text.replaceFirst('📊 ', ''),
                     style: TextStyle(
-                      color: isCurrentUser ? Colors.white : Colors.black87,
+                      color: widget.isCurrentUser ? Colors.black87 : Colors.black87,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -308,7 +528,7 @@ class MessageBubble extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isCurrentUser ? Colors.white.withOpacity(0.2) : Colors.white,
+                color: widget.isCurrentUser ? Colors.white.withOpacity(0.5) : Colors.white,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -320,14 +540,14 @@ class MessageBubble extends StatelessWidget {
                         Text(
                           'Tap to vote on this poll',
                           style: TextStyle(
-                            color: isCurrentUser ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                            color: widget.isCurrentUser ? Colors.black87 : Colors.grey.shade600,
                             fontSize: 12,
                           ),
                         ),
                         Text(
                           'May have expiration settings',
                           style: TextStyle(
-                            color: isCurrentUser ? Colors.white.withOpacity(0.6) : Colors.grey.shade500,
+                            color: widget.isCurrentUser ? Colors.grey.shade600 : Colors.grey.shade500,
                             fontSize: 10,
                           ),
                         ),
@@ -336,7 +556,7 @@ class MessageBubble extends StatelessWidget {
                   ),
                   Icon(
                     Icons.arrow_forward_ios,
-                    color: isCurrentUser ? Colors.white.withOpacity(0.7) : Colors.grey.shade400,
+                    color: widget.isCurrentUser ? Colors.grey.shade600 : Colors.grey.shade400,
                     size: 14,
                   ),
                 ],
@@ -349,7 +569,7 @@ class MessageBubble extends StatelessWidget {
   }
 
   void _showMessageOptions(BuildContext context) {
-    final isDeleted = message.isDeleted ?? false;
+    final isDeleted = widget.message.isDeleted ?? false;
 
     showModalBottomSheet(
       context: context,
@@ -376,7 +596,18 @@ class MessageBubble extends StatelessWidget {
                 },
               ),
             ],
-            if (message.senderId == controller.currentUser?.uid && !isDeleted) ...[
+            if (widget.message.senderId == widget.controller.currentUser?.uid && !isDeleted) ...[
+              // Show retry option for failed messages
+              if (widget.message.status == MessageStatus.failed) ...[
+                ListTile(
+                  leading: Icon(Icons.refresh, color: Colors.red.shade600),
+                  title: const Text('Retry Send'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.controller.retryMessage(widget.message.messageId);
+                  },
+                ),
+              ],
               ListTile(
                 leading: const Icon(Icons.delete),
                 title: const Text('Delete Message'),
@@ -423,7 +654,7 @@ class MessageBubble extends StatelessWidget {
                 return GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
-                    controller.addReaction(message.messageId, emoji);
+                    widget.controller.addReaction(widget.message.messageId, emoji);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(12),
@@ -447,20 +678,120 @@ class MessageBubble extends StatelessWidget {
       context: context,
       builder: (context) => PollVotingDialog(
         pollId: pollId,
-        question: message.text.replaceFirst('📊 ', ''),
-        currentUserId: controller.currentUser?.uid ?? '',
+        question: widget.message.text.replaceFirst('📊 ', ''),
+        currentUserId: widget.controller.currentUser?.uid ?? '',
       ),
     ).then((_) {
       // Refresh messages to show updated poll results
-      controller.refreshCurrentChatMessages();
+      widget.controller.refreshCurrentChatMessages();
     });
   }
 
   void _reportMessage() {
-    controller.reportMessage(message.messageId, 'Reported by user');
+    widget.controller.reportMessage(widget.message.messageId, 'Reported by user');
   }
 
   void _deleteMessage() {
-    controller.deleteMessage(message.messageId);
+    widget.controller.deleteMessage(widget.message.messageId);
+  }
+
+  Widget _buildTextMessage(String text, Color textColor) {
+    const int maxLength = 500; // WhatsApp-like truncation length
+    final bool isLongMessage = text.length > maxLength;
+
+    if (!isLongMessage) {
+      return Linkify(
+        text: text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 16,
+          height: 1.3,
+        ),
+        linkStyle: TextStyle(
+          color: Colors.blue.shade600,
+          fontSize: 16,
+          height: 1.3,
+          decoration: TextDecoration.underline,
+        ),
+        onOpen: (link) async {
+          if (await canLaunchUrl(Uri.parse(link.url))) {
+            await launchUrl(Uri.parse(link.url), mode: LaunchMode.externalApplication);
+          }
+        },
+      );
+    }
+
+    // For long messages, show truncated version with "Read more"
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Linkify(
+          text: '${text.substring(0, maxLength)}...',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 16,
+            height: 1.3,
+          ),
+          linkStyle: TextStyle(
+            color: Colors.blue.shade600,
+            fontSize: 16,
+            height: 1.3,
+            decoration: TextDecoration.underline,
+          ),
+          onOpen: (link) async {
+            if (await canLaunchUrl(Uri.parse(link.url))) {
+              await launchUrl(Uri.parse(link.url), mode: LaunchMode.externalApplication);
+            }
+          },
+        ),
+        const SizedBox(height: 4),
+        GestureDetector(
+          onTap: () => _showFullMessage(text),
+          child: Text(
+            'Read more',
+            style: TextStyle(
+              color: Colors.blue.shade600,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFullMessage(String fullText) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Full Message'),
+        content: SingleChildScrollView(
+          child: Linkify(
+            text: fullText,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.4,
+            ),
+            linkStyle: TextStyle(
+              color: Colors.blue.shade600,
+              fontSize: 16,
+              height: 1.4,
+              decoration: TextDecoration.underline,
+            ),
+            onOpen: (link) async {
+              if (await canLaunchUrl(Uri.parse(link.url))) {
+                await launchUrl(Uri.parse(link.url), mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -7,6 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../models/chat_model.dart';
 import '../models/user_model.dart';
 import '../models/plan_model.dart';
@@ -31,6 +33,7 @@ class ChatController extends GetxController {
   UserQuota? userQuota;
   bool isLoading = false;
   bool isSendingMessage = false;
+  bool isRecording = false; // Track recording state
   String? errorMessage;
   String? currentRecordingPath;
   bool _isInitialLoadComplete = false; // Flag to prevent real-time override during initial load
@@ -55,10 +58,16 @@ class ChatController extends GetxController {
   // Cached complete user data
   UserModel? _cachedUser;
 
+  // Cache for sender information to avoid repeated database calls
+  final Map<String, Map<String, dynamic>> _senderInfoCache = {};
+
   // Flag to prevent repeated debug logging
   bool _canSendMessageLogged = false;
 
-  // Current user (returns cached complete data or fallback)
+  // Real-time listener management
+  StreamSubscription<QuerySnapshot>? _roomChangesSubscription;
+
+  // Current user (returns cached complete data or fetches from Firestore)
   UserModel? get currentUser {
     if (_cachedUser != null) {
       return _cachedUser;
@@ -67,27 +76,77 @@ class ChatController extends GetxController {
     // ⚠️ WARNING: This fallback should rarely be used
     // If this is called frequently, it means user data is not being cached properly
     debugPrint('⚠️ FALLBACK: Using incomplete user data - this indicates caching issue');
+
+    // Instead of using incomplete Firebase Auth data, try to fetch complete data
+    // This will prevent role detection issues
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser != null) {
+      // Try to get complete user data from Firestore asynchronously
+      // Don't block the UI - let it return basic data first
+      getCompleteUserData().then((user) {
+        if (user != null) {
+          final previousRole = _cachedUser?.role ?? 'unknown';
+          _cachedUser = user;
+          debugPrint('✅ Fetched complete user data in fallback: ${user.name} (${user.role})');
+
+          // Check if role changed and restart real-time listener if needed
+          if (previousRole != user.role && _isInitialLoadComplete) {
+            debugPrint('🔄 User role changed from $previousRole to ${user.role}, restarting real-time listener');
+            _restartRealTimeListener();
+          }
+
+          update(); // Trigger UI update with complete data
+        }
+      }).catchError((e) {
+        debugPrint('❌ Failed to fetch complete user data in fallback: $e');
+      });
+    }
+
+    // Return basic Firebase Auth data as temporary fallback
     return _getCurrentUser();
   }
 
   // Unread count management methods
   void _incrementUnreadCount(String roomId, Message message) {
     final user = currentUser;
-    if (user == null || currentChatRoom?.roomId == roomId) return; // Don't count if user is in the room
+    if (user == null) {
+      debugPrint('⚠️ Cannot increment unread count: user is null');
+      return;
+    }
 
-    _unreadCounts[roomId] = (_unreadCounts[roomId] ?? 0) + 1;
+    // Don't count if user is currently in this room
+    if (currentChatRoom?.roomId == roomId) {
+      debugPrint('📨 Skipping unread count increment - user is in room: $roomId');
+      return;
+    }
+
+    // Don't count user's own messages
+    if (message.senderId == user.uid) {
+      debugPrint('📨 Skipping unread count increment - own message in room: $roomId');
+      return;
+    }
+
+    // Increment unread count
+    final currentCount = _unreadCounts[roomId] ?? 0;
+    _unreadCounts[roomId] = currentCount + 1;
+
+    // Update last message info
     _lastMessageTimes[roomId] = message.createdAt;
     _lastMessagePreviews[roomId] = _getMessagePreview(message);
     _lastMessageSenders[roomId] = message.senderId;
 
+    // Update display info (UI update will be handled by debounced timer)
     _updateChatRoomDisplayInfos();
-    debugPrint('📨 Unread count for room $roomId: ${_unreadCounts[roomId]}');
+
+    debugPrint('📨 Unread count incremented for room $roomId: ${currentCount + 1}');
   }
 
   void _resetUnreadCount(String roomId) {
+    final previousCount = _unreadCounts[roomId] ?? 0;
     _unreadCounts[roomId] = 0;
     _updateChatRoomDisplayInfos();
-    debugPrint('✅ Reset unread count for room $roomId');
+    update(); // Force UI update
+    debugPrint('✅ Reset unread count for room $roomId: $previousCount → 0');
   }
 
   String _getMessagePreview(Message message) {
@@ -140,6 +199,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _audioRecorder.dispose();
+    _roomChangesSubscription?.cancel();
     super.onClose();
   }
 
@@ -196,8 +256,10 @@ class ChatController extends GetxController {
         final appData = await _repository.initializeAppData(
           user.uid,
           user.role,
-          cityId: user.cityId,
-          wardId: user.wardId
+          districtId: user.districtId,
+          bodyId: user.bodyId,
+          wardId: user.wardId,
+          area: user.area
         );
 
         // Update local state with batch results
@@ -206,16 +268,28 @@ class ChatController extends GetxController {
 
         debugPrint('✅ BATCH: Chat initialized with ${chatRooms.length} rooms');
 
-        // Ensure ward room exists for users with complete profiles (both voters and candidates)
-        if ((user.role == 'voter' || user.role == 'candidate') && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
-          debugPrint('🏛️ BREAKPOINT FALLBACK-1: Ensuring ward room exists for ${user.role}: ward_${user.cityId}_${user.wardId}');
-          debugPrint('🏛️ BREAKPOINT FALLBACK-1: User details - Name: ${user.name}, Role: ${user.role}, Ward: ${user.wardId}, City: ${user.cityId}');
+        // Ensure ward room exists for candidates with complete profiles (removed voter room creation)
+        final districtId = user.districtId; // Use districtId
+        if (user.role == 'candidate' &&
+            user.wardId.isNotEmpty &&
+            (user.bodyId?.isNotEmpty ?? false) &&
+            (districtId?.isNotEmpty ?? false)) {
+          debugPrint('🏛️ BREAKPOINT FALLBACK-1: Ensuring ward room exists for ${user.role}: ward_${districtId}_${user.wardId}');
+          debugPrint('🏛️ BREAKPOINT FALLBACK-1: User details - Name: ${user.name}, Role: ${user.role}, Ward: ${user.wardId}, District: $districtId');
           ensureWardRoomExists();
-        } else if (user.role == 'voter' || user.role == 'candidate') {
-          debugPrint('⚠️ BREAKPOINT FALLBACK-2: ${user.role} profile incomplete - missing ward or city info');
-          debugPrint('⚠️ BREAKPOINT FALLBACK-2: User details - Name: ${user.name}, Ward: ${user.wardId}, City: ${user.cityId}');
+        } else if (user.role == 'candidate') {
+          debugPrint('⚠️ BREAKPOINT FALLBACK-2: ${user.role} profile incomplete - missing ward or district info');
+          debugPrint('⚠️ BREAKPOINT FALLBACK-2: User details - Name: ${user.name}, Ward: ${user.wardId}, District: $districtId');
         } else {
-          debugPrint('🏛️ BREAKPOINT FALLBACK-3: User is not a voter or candidate - Role: ${user.role}');
+          debugPrint('🏛️ BREAKPOINT FALLBACK-3: User is not a candidate - Role: ${user.role}');
+        }
+
+        // Ensure area room exists for users with area field
+        if (user.area != null && user.area!.isNotEmpty) {
+          debugPrint('🏠 BREAKPOINT AREA-1: Ensuring area room exists for user with area: ${user.area}');
+          ensureAreaRoomExists();
+        } else {
+          debugPrint('🏠 BREAKPOINT AREA-2: User has no area field or area is empty');
         }
       } else {
         debugPrint('❌ CRITICAL: Failed to get complete user data from Firestore');
@@ -244,16 +318,28 @@ class ChatController extends GetxController {
       fetchUserQuota();
       fetchChatRooms();
 
-      // Ensure ward room exists for users with complete profiles (both voters and candidates)
-      if ((user.role == 'voter' || user.role == 'candidate') && user.wardId.isNotEmpty && user.cityId.isNotEmpty) {
-        debugPrint('🏛️ BREAKPOINT INIT-1: Ensuring ward room exists for ${user.role}: ward_${user.cityId}_${user.wardId}');
-        debugPrint('🏛️ BREAKPOINT INIT-1: User details - Name: ${user.name}, Role: ${user.role}, Ward: ${user.wardId}, City: ${user.cityId}');
+      // Ensure ward room exists for candidates with complete profiles (removed voter room creation)
+      final districtId = user.districtId; // Use districtId
+      if (user.role == 'candidate' &&
+          user.wardId.isNotEmpty &&
+          (user.bodyId?.isNotEmpty ?? false) &&
+          (districtId?.isNotEmpty ?? false)) {
+        debugPrint('🏛️ BREAKPOINT INIT-1: Ensuring ward room exists for ${user.role}: ward_${districtId}_${user.wardId}');
+        debugPrint('🏛️ BREAKPOINT INIT-1: User details - Name: ${user.name}, Role: ${user.role}, Ward: ${user.wardId}, District: $districtId');
         ensureWardRoomExists();
-      } else if (user.role == 'voter' || user.role == 'candidate') {
-        debugPrint('⚠️ BREAKPOINT INIT-2: ${user.role} profile incomplete - missing ward or city info');
-        debugPrint('⚠️ BREAKPOINT INIT-2: User details - Name: ${user.name}, Ward: ${user.wardId}, City: ${user.cityId}');
+      } else if (user.role == 'candidate') {
+        debugPrint('⚠️ BREAKPOINT INIT-2: ${user.role} profile incomplete - missing ward or district info');
+        debugPrint('⚠️ BREAKPOINT INIT-2: User details - Name: ${user.name}, Ward: ${user.wardId}, District: $districtId');
       } else {
-        debugPrint('🏛️ BREAKPOINT INIT-3: User is not a voter or candidate - Role: ${user.role}');
+        debugPrint('🏛️ BREAKPOINT INIT-3: User is not a candidate - Role: ${user.role}');
+      }
+
+      // Ensure area room exists for users with area field
+      if (user.area != null && user.area!.isNotEmpty) {
+        debugPrint('🏠 BREAKPOINT AREA-INIT-1: Ensuring area room exists for user with area: ${user.area}');
+        ensureAreaRoomExists();
+      } else {
+        debugPrint('🏠 BREAKPOINT AREA-INIT-2: User has no area field or area is empty');
       }
     } else {
       debugPrint('❌ CRITICAL: Failed to get complete user data from Firestore');
@@ -291,7 +377,7 @@ class ChatController extends GetxController {
       roleSelected: false,
       profileCompleted: false,
       wardId: '', // Will be updated after profile completion
-      cityId: '', // Will be updated after profile completion
+      districtId: '', // Will be updated after profile completion
       xpPoints: 0, // INCORRECT - actual users have XP
       premium: false, // INCORRECT - actual users may be premium
       createdAt: DateTime.now(),
@@ -329,7 +415,9 @@ class ChatController extends GetxController {
           roleSelected: data['roleSelected'] ?? false,
           profileCompleted: data['profileCompleted'] ?? false,
           wardId: data['wardId'] ?? '',
-          cityId: data['cityId'] ?? '',
+          districtId: data['districtId'] ?? '',
+          bodyId: data['bodyId'] ?? '',
+          area: data['area'], // Keep area as nullable
           xpPoints: data['xpPoints'] ?? 0,
           premium: data['premium'] ?? false,
           createdAt: data['createdAt'] != null
@@ -340,7 +428,7 @@ class ChatController extends GetxController {
 
         // Cache the complete user data
         _cachedUser = completeUser;
-        debugPrint('✅ Cached complete user data: XP=${completeUser.xpPoints}');
+        debugPrint('✅ Cached complete user data: Role=${completeUser.role}, Area=${completeUser.area}, XP=${completeUser.xpPoints}');
 
         return completeUser;
       }
@@ -350,6 +438,52 @@ class ChatController extends GetxController {
 
     debugPrint('⚠️ Falling back to basic Firebase Auth data');
     return _getCurrentUser(); // Fallback to basic data
+  }
+
+  // Get user data synchronously from cache (no Firebase call)
+  UserModel? getUserDataFromCache() {
+    return _cachedUser;
+  }
+
+  // Fetch sender information for displaying in message bubbles
+  Future<Map<String, dynamic>?> getSenderInfo(String senderId) async {
+    // Check cache first
+    if (_senderInfoCache.containsKey(senderId)) {
+      return _senderInfoCache[senderId];
+    }
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(senderId)
+          .get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        final senderInfo = {
+          'name': data['name'] ?? 'Unknown',
+          'phone': data['phone'] ?? '',
+          'role': data['role'] ?? 'voter',
+          'districtId': data['districtId'],
+          'bodyId': data['bodyId'],
+          'wardId': data['wardId'],
+        };
+
+        // Cache the sender info
+        _senderInfoCache[senderId] = senderInfo;
+        return senderInfo;
+      }
+    } catch (e) {
+      debugPrint('Error fetching sender info for $senderId: $e');
+    }
+
+    return null;
+  }
+
+  // Clear sender info cache when user data changes
+  void clearSenderInfoCache() {
+    _senderInfoCache.clear();
+    debugPrint('🧹 Cleared sender info cache');
   }
 
   // Fetch chat rooms for current user
@@ -376,13 +510,16 @@ class ChatController extends GetxController {
     try {
       // BREAKPOINT FETCH-3: Before repository call
       debugPrint('🔍 BREAKPOINT FETCH-3: Calling repository.getChatRoomsForUser()');
-      debugPrint('🔍 BREAKPOINT FETCH-3: Parameters - UID: ${user.uid}, Role: ${user.role}, City: ${user.cityId}, Ward: ${user.wardId}');
+      final districtId = user.districtId; // Use districtId
+      debugPrint('🔍 BREAKPOINT FETCH-3: Parameters - UID: ${user.uid}, Role: ${user.role}, District: $districtId, Body: ${user.bodyId}, Ward: ${user.wardId}');
 
       chatRooms = await _repository.getChatRoomsForUser(
         user.uid,
         user.role,
-        cityId: user.cityId,
-        wardId: user.wardId
+        districtId: user.districtId, // Use districtId
+        bodyId: user.bodyId,
+        wardId: user.wardId,
+        area: user.area
       );
 
       // BREAKPOINT FETCH-4: After repository call
@@ -420,6 +557,9 @@ class ChatController extends GetxController {
 
   // Listen for real-time room changes (deletions, updates)
   void _listenForRoomChanges(String userId, String userRole) {
+    // Cancel existing subscription if any
+    _roomChangesSubscription?.cancel();
+
     // Use a filtered query based on user role to avoid permission issues
     // This prevents trying to read rooms the user doesn't have access to
 
@@ -430,9 +570,31 @@ class ChatController extends GetxController {
       query = query.where('type', isEqualTo: 'public');
     }
 
-    query.snapshots().listen((snapshot) async {
+    _roomChangesSubscription = query.snapshots().listen((snapshot) async {
       await _handleAllRoomChanges(snapshot, userId, userRole);
     });
+
+    debugPrint('👂 Started real-time listener for user role: $userRole');
+  }
+
+  // Restart real-time listener when user role changes
+  void _restartRealTimeListener() {
+    final user = currentUser;
+    if (user == null) return;
+
+    debugPrint('🔄 Restarting real-time listener for user: ${user.name} (${user.role})');
+
+    // Clear existing unread counts to prevent stale data
+    _unreadCounts.clear();
+    _lastMessageTimes.clear();
+    _lastMessagePreviews.clear();
+    _lastMessageSenders.clear();
+
+    // Restart the listener with correct role
+    _listenForRoomChanges(user.uid, user.role);
+
+    // Refresh chat rooms to ensure consistency
+    fetchChatRooms();
   }
 
   // Handle all room changes with proper filtering
@@ -448,11 +610,72 @@ class ChatController extends GetxController {
       return ChatRoom.fromJson(data);
     }).toList();
 
-    // Filter rooms based on user permissions
+    // Get current user data for location-based filtering
+    final user = currentUser;
+    if (user == null) {
+      debugPrint('⚠️ No user data available for real-time room filtering');
+      return;
+    }
+
+    // Always use the current user role, not the role passed to this method
+    // This ensures real-time updates use the most current role information
+    final currentUserRole = user.role;
+    if (currentUserRole != userRole) {
+      debugPrint('🔄 User role changed during real-time update ($userRole -> $currentUserRole), using current role');
+    }
+
+    // Apply the same filtering logic as getChatRoomsForUser
     final accessibleRooms = allRooms.where((room) {
       // Public rooms are accessible to all authenticated users
       if (room.type == 'public') {
-        return true;
+        // For candidates, apply strict location-based filtering
+        if (currentUserRole == 'candidate') {
+          final isOwnRoom = room.createdBy == userId;
+          final isWardRoom = user.districtId != null && user.bodyId != null && user.wardId != null &&
+                            room.roomId == 'ward_${user.districtId}_${user.bodyId}_${user.wardId}';
+          final isAreaRoom = user.districtId != null && user.bodyId != null && user.wardId != null && user.area != null &&
+                            room.roomId == 'area_${user.districtId}_${user.bodyId}_${user.wardId}_${user.area}';
+
+          // For candidates, include all area rooms in their district/body, not just their specific location
+          final isAnyAreaRoom = user.districtId != null && user.bodyId != null && user.wardId != null &&
+                               room.roomId.startsWith('area_${user.districtId}_${user.bodyId}_${user.wardId}_');
+
+          // Only include rooms that are relevant to this candidate's location
+          return isOwnRoom || isWardRoom || isAreaRoom || isAnyAreaRoom;
+        }
+        // For voters, apply location-based filtering
+        else if (currentUserRole == 'voter') {
+          if (user.districtId != null && user.bodyId != null && user.wardId != null) {
+            final wardRoomId = 'ward_${user.districtId}_${user.bodyId}_${user.wardId}';
+            final areaRoomId = user.area != null ? 'area_${user.districtId}_${user.bodyId}_${user.wardId}_${user.area}' : null;
+
+            // Include ward room
+            if (room.roomId == wardRoomId) {
+              return true;
+            }
+
+            // Include area room if user has area
+            if (areaRoomId != null && room.roomId == areaRoomId) {
+              return true;
+            }
+
+            // Include rooms created by followed candidates in the same ward
+            // For real-time updates, we'll include candidate rooms that match the pattern
+            if (room.roomId.startsWith('candidate_')) {
+              return true; // Include all candidate rooms for now (could be optimized)
+            }
+          } else {
+            // No location data - only show general public rooms
+            return !room.roomId.startsWith('ward_') &&
+                   !room.roomId.startsWith('area_') &&
+                   !room.roomId.startsWith('candidate_');
+          }
+        }
+        // For admins, include all public rooms
+        else if (currentUserRole == 'admin') {
+          return true;
+        }
+        return false;
       }
 
       // Private rooms are only accessible to members
@@ -461,7 +684,7 @@ class ChatController extends GetxController {
       }
 
       // For candidates and admins, they can also access rooms they created
-      if (userRole == 'candidate' || userRole == 'admin') {
+      if (currentUserRole == 'candidate' || currentUserRole == 'admin') {
         return room.createdBy == userId;
       }
 
@@ -471,20 +694,34 @@ class ChatController extends GetxController {
     // Sort rooms by creation date (newest first)
     accessibleRooms.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+    // Remove duplicates from accessibleRooms to prevent showing the same room multiple times
+    final uniqueRooms = <String, ChatRoom>{};
+    for (final room in accessibleRooms) {
+      uniqueRooms[room.roomId] = room;
+    }
+    final deduplicatedRooms = uniqueRooms.values.toList();
+
+    // Sort rooms by creation date (newest first)
+    deduplicatedRooms.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
     // Only update if there are actual changes to prevent unnecessary UI updates
     final currentRoomIds = chatRooms.map((r) => r.roomId).toSet();
-    final newRoomIds = accessibleRooms.map((r) => r.roomId).toSet();
+    final newRoomIds = deduplicatedRooms.map((r) => r.roomId).toSet();
 
-    if (currentRoomIds != newRoomIds) {
+    if (currentRoomIds != newRoomIds || chatRooms.length != deduplicatedRooms.length) {
       // Update local chat rooms list
-      chatRooms = accessibleRooms;
-      chatRoomsStream.value = accessibleRooms;
+      chatRooms = deduplicatedRooms;
+      chatRoomsStream.value = deduplicatedRooms;
+
+      // Update display info to maintain consistency
+      _updateChatRoomDisplayInfos();
+
       update();
 
       // Show notification for new rooms
       final addedRooms = newRoomIds.difference(currentRoomIds);
       if (addedRooms.isNotEmpty) {
-      debugPrint('🆕 New chat rooms available: ${addedRooms.length}');
+        debugPrint('🆕 New chat rooms available: ${addedRooms.length}');
       }
 
       // Show notification for deleted rooms
@@ -498,6 +735,8 @@ class ChatController extends GetxController {
           duration: const Duration(seconds: 3),
         );
       }
+
+      debugPrint('📋 Real-time update: ${deduplicatedRooms.length} unique rooms (was ${chatRooms.length})');
     }
   }
 
@@ -545,10 +784,17 @@ class ChatController extends GetxController {
 
   // Select a chat room
   void selectChatRoom(ChatRoom chatRoom) {
+    debugPrint('🏠 Selecting chat room: ${chatRoom.roomId}');
+
+    // Set current chat room first
     currentChatRoom = chatRoom;
 
-    // Reset unread count for this room
+    // Reset unread count for this room immediately
     _resetUnreadCount(chatRoom.roomId);
+    debugPrint('✅ Reset unread count for room: ${chatRoom.roomId}');
+
+    // Update display info (UI update will be handled by debounced timer in message listener)
+    _updateChatRoomDisplayInfos();
 
     // Check if we have cached messages for this room
     if (_hasValidCachedMessages(chatRoom.roomId)) {
@@ -570,6 +816,10 @@ class ChatController extends GetxController {
       _listenToMessages(chatRoom.roomId, useCache: false);
     }
 
+    // Mark all messages in this room as read immediately
+    _markMessagesAsReadForRoom(chatRoom.roomId);
+
+    // Single UI update at the end
     update();
   }
 
@@ -604,34 +854,35 @@ class ChatController extends GetxController {
   void _listenToMessages(String roomId, {bool useCache = false}) {
     debugPrint('👂 Starting message listener for room: $roomId (useCache: $useCache)');
 
+    // Debounce UI updates to prevent excessive rebuilds
+    Timer? _updateDebounceTimer;
+
     _repository.getMessagesForRoom(roomId).listen((messagesList) {
-    final cacheStatus = useCache ? ' (cache hit)' : ' (from Firebase)';
-    debugPrint('📨 Received ${messagesList.length} messages for room $roomId$cacheStatus');
+      final cacheStatus = useCache ? ' (cache hit)' : ' (from Firebase)';
+      debugPrint('📨 Received ${messagesList.length} messages for room $roomId$cacheStatus');
 
-      // Filter out deleted messages
+      // Filter out deleted messages efficiently
       final activeMessages = messagesList.where((msg) => !(msg.isDeleted ?? false)).toList();
-      debugPrint('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
 
-      // Debug: Print message details (only first few for performance)
-      for (var i = 0; i < activeMessages.length && i < 3; i++) {
-        final msg = activeMessages[i];
-        debugPrint('   Message ${i + 1}: "${msg.text.length > 50 ? msg.text.substring(0, 50) + '...' : msg.text}" by ${msg.senderId}');
+      // Early exit if no changes
+      final previousMessageCount = _messageCache[roomId]?.length ?? 0;
+      if (activeMessages.length == previousMessageCount && useCache) {
+        debugPrint('⚡ No message changes detected, skipping update');
+        return;
       }
 
-      // Check for new messages and increment unread counts
-      final previousMessageCount = _messageCache[roomId]?.length ?? 0;
-      final newMessages = activeMessages.length - previousMessageCount;
+      debugPrint('   Active messages: ${activeMessages.length} (filtered ${messagesList.length - activeMessages.length} deleted)');
 
+      // Batch process new messages for better performance
+      final newMessages = activeMessages.length - previousMessageCount;
       if (newMessages > 0 && activeMessages.isNotEmpty) {
-        // Increment unread count for new messages
-        for (int i = previousMessageCount; i < activeMessages.length; i++) {
-          _incrementUnreadCount(roomId, activeMessages[i]);
-        }
+        _processNewMessagesBatch(roomId, activeMessages, previousMessageCount);
       }
 
       // Cache the messages for future use
       _cacheMessages(roomId, activeMessages);
 
+      // Update local state
       messages = activeMessages;
       messagesStream.value = activeMessages;
 
@@ -640,12 +891,76 @@ class ChatController extends GetxController {
         _markUnreadMessagesAsRead();
       }
 
-      update(); // Force UI update
+      // Debounced UI update to prevent excessive rebuilds
+      _updateDebounceTimer?.cancel();
+      _updateDebounceTimer = Timer(const Duration(milliseconds: 100), () {
+        update(); // Force UI update
+        debugPrint('✅ UI updated for room: $roomId');
+      });
+
     }, onError: (error) {
       debugPrint('❌ Error in message listener: $error');
     }, onDone: () {
       debugPrint('🔚 Message listener completed for room: $roomId');
+      _updateDebounceTimer?.cancel();
     });
+  }
+
+  // Batch process new messages for better performance
+  void _processNewMessagesBatch(String roomId, List<Message> activeMessages, int previousMessageCount) {
+    final user = currentUser;
+    if (user == null) return;
+
+    // Pre-calculate if user is in current room to avoid repeated checks
+    final isUserInRoom = currentChatRoom?.roomId == roomId;
+
+    // Batch unread count updates
+    int unreadIncrement = 0;
+    DateTime? latestMessageTime;
+    String? latestMessagePreview;
+    String? latestMessageSender;
+
+    for (int i = previousMessageCount; i < activeMessages.length; i++) {
+      final message = activeMessages[i];
+
+      // Skip own messages
+      if (message.senderId == user.uid) continue;
+
+      // Skip if user is currently in this room
+      if (isUserInRoom) continue;
+
+      // Count as unread
+      unreadIncrement++;
+
+      // Track latest message info
+      if (latestMessageTime == null || message.createdAt.isAfter(latestMessageTime)) {
+        latestMessageTime = message.createdAt;
+        latestMessagePreview = _getMessagePreview(message);
+        latestMessageSender = message.senderId;
+      }
+    }
+
+    // Apply batch updates
+    if (unreadIncrement > 0) {
+      final currentCount = _unreadCounts[roomId] ?? 0;
+      _unreadCounts[roomId] = currentCount + unreadIncrement;
+
+      // Update last message info if we have new messages
+      if (latestMessageTime != null) {
+        _lastMessageTimes[roomId] = latestMessageTime;
+        if (latestMessagePreview != null) {
+          _lastMessagePreviews[roomId] = latestMessagePreview!;
+        }
+        if (latestMessageSender != null) {
+          _lastMessageSenders[roomId] = latestMessageSender!;
+        }
+      }
+
+      // Update display info once for the batch
+      _updateChatRoomDisplayInfos();
+
+      debugPrint('📨 Batch updated unread count for room $roomId: +$unreadIncrement (total: ${currentCount + unreadIncrement})');
+    }
   }
 
   // Mark unread messages as read
@@ -662,10 +977,42 @@ class ChatController extends GetxController {
     }
   }
 
+  // Mark all messages in a specific room as read
+  void _markMessagesAsReadForRoom(String roomId) {
+    final user = currentUser;
+    if (user == null) return;
+
+    // Get cached messages for this room
+    final cachedMessages = _messageCache[roomId];
+    if (cachedMessages == null) return;
+
+    final unreadMessages = cachedMessages.where((msg) =>
+      !msg.readBy.contains(user.uid) && msg.senderId != user.uid
+    ).toList();
+
+    debugPrint('📖 Marking ${unreadMessages.length} messages as read in room: $roomId');
+
+    for (final message in unreadMessages) {
+      _repository.markMessageAsRead(roomId, message.messageId, user.uid);
+    }
+  }
+
   // Send text message
   Future<void> sendTextMessage(String text) async {
     if (text.trim().isEmpty || currentChatRoom == null) {
     debugPrint('❌ Cannot send message: empty text or no chat room selected');
+      return;
+    }
+
+    // Check character limit (WhatsApp-like limit)
+    if (text.length > 4096) {
+      Get.snackbar(
+        'Message Too Long',
+        'Messages cannot exceed 4096 characters',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
       return;
     }
 
@@ -701,15 +1048,25 @@ class ChatController extends GetxController {
     isSendingMessage = true;
     update();
 
+    final messageId = _uuid.v4();
+
     try {
       final message = Message(
-        messageId: _uuid.v4(),
+        messageId: messageId,
         text: text.trim(),
         senderId: user.uid,
         type: 'text',
         createdAt: DateTime.now(),
         readBy: [user.uid],
+        status: MessageStatus.sending,
+        retryCount: 0,
       );
+
+      // OPTIMIZATION: Immediately add message to local state for instant UI feedback
+      final optimisticMessages = List<Message>.from(messages)..add(message);
+      messages = optimisticMessages;
+      messagesStream.value = optimisticMessages;
+      debugPrint('⚡ OPTIMISTIC: Added message to local state immediately');
 
       // Determine if we should use quota or XP
       final useQuota = userQuota != null && userQuota!.canSendMessage;
@@ -724,6 +1081,9 @@ class ChatController extends GetxController {
         useQuota,
         useXP
       );
+
+      // Update message status to sent
+      _updateMessageStatus(messageId, MessageStatus.sent);
 
       // Update local quota if it was modified
       if (result['quota'] != null) {
@@ -741,20 +1101,26 @@ class ChatController extends GetxController {
       debugPrint('✅ Message sent with batch operation');
 
     } catch (e) {
-    debugPrint('❌ Failed to send message: $e');
+      debugPrint('❌ Failed to send message: $e');
+
+      // Update message status to failed and show retry option
+      _updateMessageStatus(messageId, MessageStatus.failed);
+
       errorMessage = e.toString();
 
       Get.snackbar(
         'Message Failed',
-        'Failed to send message. Please try again.',
+        'Failed to send message. Tap to retry.',
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade800,
         duration: const Duration(seconds: 3),
+        onTap: (_) => retryMessage(messageId),
       );
+    } finally {
+      // Always reset the sending flag and update UI
+      isSendingMessage = false;
+      update();
     }
-
-    isSendingMessage = false;
-    update();
   }
 
   // Send image message (with batch operations)
@@ -854,33 +1220,74 @@ class ChatController extends GetxController {
       }
     } catch (e) {
       errorMessage = e.toString();
+    } finally {
+      // Always reset the sending flag and update UI
+      isSendingMessage = false;
+      update();
     }
-
-    isSendingMessage = false;
-    update();
   }
 
   // Start voice recording
   Future<void> startVoiceRecording() async {
     try {
       if (await _audioRecorder.hasPermission()) {
+        // Get the temporary directory for storing the recording
+        final tempDir = await getTemporaryDirectory();
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.m4a';
-        currentRecordingPath = fileName;
+        final fullPath = path.join(tempDir.path, fileName);
+        currentRecordingPath = fullPath;
+
+        debugPrint('🎤 Starting voice recording to: $fullPath');
 
         await _audioRecorder.start(
           const RecordConfig(),
-          path: fileName,
+          path: fullPath,
+        );
+
+        isRecording = true;
+        update();
+
+        debugPrint('✅ Voice recording started successfully');
+
+        // Show recording started feedback
+        Get.snackbar(
+          'Recording Started',
+          'Tap the mic button again to stop recording',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+          duration: const Duration(seconds: 2),
+        );
+      } else {
+        debugPrint('❌ Microphone permission denied');
+        Get.snackbar(
+          'Permission Denied',
+          'Microphone permission is required for voice recording',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+          duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
+      debugPrint('❌ Failed to start recording: $e');
       errorMessage = 'Failed to start recording: $e';
       update();
+
+      Get.snackbar(
+        'Recording Error',
+        'Failed to start voice recording. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 
   // Stop voice recording and send
   Future<void> stopVoiceRecording() async {
-    if (currentChatRoom == null || currentRecordingPath == null) return;
+    if (currentChatRoom == null || currentRecordingPath == null) {
+      debugPrint('❌ Cannot stop recording: missing chat room or recording path');
+      return;
+    }
 
     // Check if user can send message before proceeding
     if (!canSendMessage) {
@@ -896,17 +1303,66 @@ class ChatController extends GetxController {
     }
 
     try {
-      final path = await _audioRecorder.stop();
-      if (path == null) return;
+      debugPrint('🛑 Stopping voice recording...');
+      final recordingPath = await _audioRecorder.stop();
+      if (recordingPath == null) {
+        debugPrint('❌ No recording path returned from recorder');
+        return;
+      }
 
+      debugPrint('✅ Recording stopped, file saved to: $recordingPath');
+
+      // Verify the file exists and is readable
+      final audioFile = File(recordingPath);
+      if (!await audioFile.exists()) {
+        debugPrint('❌ Recorded file does not exist: $recordingPath');
+        Get.snackbar(
+          'Recording Error',
+          'Failed to save voice recording. Please try again.',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+          duration: const Duration(seconds: 3),
+        );
+        return;
+      }
+
+      final fileSize = await audioFile.length();
+      debugPrint('📊 Recording file size: $fileSize bytes');
+
+      if (fileSize == 0) {
+        debugPrint('❌ Recording file is empty');
+        Get.snackbar(
+          'Recording Error',
+          'Voice recording is empty. Please try recording again.',
+          backgroundColor: Colors.orange.shade100,
+          colorText: Colors.orange.shade800,
+          duration: const Duration(seconds: 3),
+        );
+        return;
+      }
+
+      isRecording = false; // Stop recording state
       isSendingMessage = true;
       update();
+
+      // Show recording stopped feedback
+      Get.snackbar(
+        'Recording Stopped',
+        'Sending voice message...',
+        backgroundColor: Colors.blue.shade100,
+        colorText: Colors.blue.shade800,
+        duration: const Duration(seconds: 2),
+      );
+
+      // Get filename from the full path for upload
+      final fileName = path.basename(recordingPath);
+      debugPrint('📤 Uploading voice recording: $fileName');
 
       // Upload audio to Firebase Storage
       final downloadUrl = await _repository.uploadMediaFile(
         currentChatRoom!.roomId,
-        path,
-        currentRecordingPath!,
+        recordingPath,
+        fileName,
         'audio/m4a',
       );
 
@@ -961,10 +1417,11 @@ class ChatController extends GetxController {
       currentRecordingPath = null;
     } catch (e) {
       errorMessage = e.toString();
+    } finally {
+      // Always reset the sending flag and update UI
+      isSendingMessage = false;
+      update();
     }
-
-    isSendingMessage = false;
-    update();
   }
 
   // Add reaction to message
@@ -1196,8 +1653,14 @@ class ChatController extends GetxController {
     }
   }
 
-  // Create new chat room (admin/candidate only)
+  // Create new chat room (candidate only - removed admin support)
   Future<void> createChatRoom(ChatRoom chatRoom) async {
+    final user = currentUser;
+    if (user == null || user.role != 'candidate') {
+      debugPrint('⚠️ Chat room creation only allowed for candidates');
+      return;
+    }
+
     try {
       await _repository.createChatRoom(chatRoom);
       await fetchChatRooms(); // Refresh list
@@ -1207,35 +1670,41 @@ class ChatController extends GetxController {
     }
   }
 
-  // Create ward-based chat room (automatic)
-  Future<void> createWardChatRoom(String wardId, String cityId) async {
+  // Create ward-based chat room (for candidates only)
+  Future<void> createWardChatRoom(String wardId, String districtId) async {
     final user = currentUser;
-    if (user == null) return;
+    if (user == null || user.role != 'candidate') {
+      debugPrint('⚠️ Ward room creation only allowed for candidates');
+      return;
+    }
 
     try {
       final chatRoom = ChatRoom(
-        roomId: 'ward_${cityId}_$wardId',
+        roomId: 'ward_${districtId}_$wardId',
         createdAt: DateTime.now(),
         createdBy: user.uid,
         type: 'public',
-        title: 'Ward $wardId ($cityId) Discussion',
-        description: 'Public discussion forum for Ward $wardId residents in $cityId',
+        title: 'Ward $wardId ($districtId) Discussion',
+        description: 'Public discussion forum for Ward $wardId residents in $districtId',
       );
 
       await _repository.createChatRoom(chatRoom);
-      print('✅ Ward chat room created: ${chatRoom.roomId}');
+      debugPrint('✅ Ward chat room created: ${chatRoom.roomId}');
       await fetchChatRooms();
-      print('📋 Refreshed chat rooms after ward room creation');
+      debugPrint('📋 Refreshed chat rooms after ward room creation');
     } catch (e) {
       errorMessage = e.toString();
       update();
     }
   }
 
-  // Create candidate-specific chat room
+  // Create candidate-specific chat room (only for the candidate themselves)
   Future<void> createCandidateChatRoom(String candidateId, String candidateName) async {
     final user = currentUser;
-    if (user == null || user.uid != candidateId) return;
+    if (user == null || user.role != 'candidate' || user.uid != candidateId) {
+      debugPrint('⚠️ Candidate room creation only allowed for the candidate themselves');
+      return;
+    }
 
     try {
       final chatRoom = ChatRoom(
@@ -1247,21 +1716,23 @@ class ChatController extends GetxController {
         description: 'Official updates and discussions with $candidateName',
       );
 
-
-    print('🏗️ Creating candidate chat room for $candidateName');
+      debugPrint('🏗️ Creating candidate chat room for $candidateName');
       await _repository.createChatRoom(chatRoom);
       await fetchChatRooms();
-    print('✅ Candidate chat room created and chat rooms refreshed');
+      debugPrint('✅ Candidate chat room created and chat rooms refreshed');
     } catch (e) {
       errorMessage = e.toString();
       update();
     }
   }
 
-  // Create private conversation
+  // Create private conversation (for candidates only)
   Future<void> createPrivateChatRoom(String otherUserId, String roomName) async {
     final user = currentUser;
-    if (user == null) return;
+    if (user == null || user.role != 'candidate') {
+      debugPrint('⚠️ Private room creation only allowed for candidates');
+      return;
+    }
 
     try {
       final roomId = 'private_${user.uid}_$otherUserId';
@@ -1283,129 +1754,194 @@ class ChatController extends GetxController {
     }
   }
 
-  // Get or create ward room for current user
-  Future<void> ensureWardRoomExists() async {
-    // BREAKPOINT 1: Start of ward room creation
-    debugPrint('🔍 BREAKPOINT 1: Starting ensureWardRoomExists()');
+  // Get or create area room for users with area field
+  Future<void> ensureAreaRoomExists() async {
+    debugPrint('🏠 Starting area room creation process');
 
     try {
-      // Use cached user data if available and complete, otherwise fetch from Firestore
-      UserModel? user = currentUser;
+      // Get current user data from cache first (no Firebase fetch needed)
+      UserModel? user = _cachedUser;
 
-      // BREAKPOINT 2: Check user data availability
-      debugPrint('🔍 BREAKPOINT 2: Current user data - Name: ${user?.name}, UID: ${user?.uid}, Role: ${user?.role}');
-      debugPrint('🔍 BREAKPOINT 2: Ward ID: ${user?.wardId}, City ID: ${user?.cityId}');
-
-      // If cached user data is incomplete (missing ward/city), fetch fresh data
-      if (user == null || user.wardId.isEmpty || user.cityId.isEmpty) {
-        debugPrint('🔄 Cached user data incomplete, fetching fresh data...');
-        user = await getCompleteUserData();
-
-        // BREAKPOINT 3: After fetching fresh user data
-        debugPrint('🔍 BREAKPOINT 3: Fresh user data - Name: ${user?.name}, Ward: ${user?.wardId}, City: ${user?.cityId}');
+      // If no cached user data, try to get from currentUser property
+      if (user == null) {
+        user = currentUser;
       }
 
       if (user == null) {
-      debugPrint('❌ No user found for ward room creation');
+        debugPrint('❌ No user found for area room creation');
         return;
       }
 
-      if (user.wardId.isEmpty || user.cityId.isEmpty) {
-      debugPrint('⚠️ User profile incomplete - wardId or cityId missing');
-        return;
+      final districtId = user.districtId;
+      final area = user.area;
+      if (user.wardId.isEmpty || (user.bodyId?.isEmpty ?? true) || (districtId?.isEmpty ?? true) || (area?.isEmpty ?? true)) {
+        debugPrint('⚠️ User profile incomplete - wardId, bodyId, districtId, or area missing');
+        debugPrint('   Ward: ${user.wardId}, Body: ${user.bodyId}, District: $districtId, Area: $area');
+
+        // Try to update area field if missing
+        if (area?.isEmpty ?? true) {
+          debugPrint('🔄 Attempting to update missing area field');
+          await _updateUserAreaField(user.uid);
+          // Refresh cached user data after update
+          user = await getCompleteUserData();
+        }
+
+        if (user == null || (user.area?.isEmpty ?? true)) {
+          debugPrint('⚠️ Still no area field available, skipping area room creation');
+          return;
+        }
       }
 
-    debugPrint('🔍 Checking ward room for user: ${user.name}, ward: ${user.wardId}, city: ${user.cityId}');
+      debugPrint('🔍 Ensuring area room exists for user ${user.name} in area ${user.area}, ward ${user.wardId}, district $districtId');
 
-      // Check if ward room exists
-      final wardRoomId = 'ward_${user.cityId}_${user.wardId}';
+      // Use repository method for efficient area room creation
+      final success = await _repository.createAreaRoomIfNeeded(districtId!, user.bodyId!, user.wardId, area!, user.uid);
 
-      // BREAKPOINT 4: Before checking existing rooms
-      debugPrint('🔍 BREAKPOINT 4: Checking for existing ward room: $wardRoomId');
-
-      final existingRooms = await _repository.getChatRoomsForUser(
-        user.uid,
-        user.role,
-        cityId: user.cityId,
-        wardId: user.wardId
-      );
-
-      // BREAKPOINT 5: After fetching existing rooms
-      debugPrint('🔍 BREAKPOINT 5: Found ${existingRooms.length} existing rooms');
-      existingRooms.forEach((room) => debugPrint('   Room: ${room.roomId} - ${room.title}'));
-
-      final wardRoomExists = existingRooms.any((room) => room.roomId == wardRoomId);
-
-      // BREAKPOINT 6: Ward room existence check result
-      debugPrint('🔍 BREAKPOINT 6: Ward room exists: $wardRoomExists');
-
-      if (wardRoomExists) {
-      debugPrint('✅ Ward room already exists: $wardRoomId');
-        return;
+      if (success) {
+        debugPrint('✅ Area room creation process completed successfully');
+        // Refresh chat rooms list to show the new area room
+        await fetchChatRooms();
+      } else {
+        debugPrint('❌ Area room creation failed');
       }
-
-    debugPrint('🏗️ Creating new ward room: $wardRoomId');
-
-      // Get city and ward names for better display
-      final cityName = await _getCityName(user.cityId);
-      final wardName = await _getWardName(user.cityId, user.wardId);
-
-      // BREAKPOINT 7: Before creating chat room
-      debugPrint('🔍 BREAKPOINT 7: Creating ward room - City: $cityName, Ward: $wardName');
-
-      // Create ward room if it doesn't exist
-      final chatRoom = ChatRoom(
-        roomId: wardRoomId,
-        createdAt: DateTime.now(),
-        createdBy: user.uid,
-        type: 'public',
-        title: cityName.isNotEmpty ? cityName : user.cityId.toUpperCase(),
-        description: wardName.isNotEmpty ? wardName : 'Ward ${user.wardId}',
-      );
-
-      // BREAKPOINT 8: Before repository call
-      debugPrint('🔍 BREAKPOINT 8: Calling repository.createChatRoom()');
-
-      await _repository.createChatRoom(chatRoom);
-
-      // BREAKPOINT 9: After successful creation
-      debugPrint('✅ BREAKPOINT 9: Ward room created successfully: $wardRoomId');
-
-      // Refresh chat rooms list
-      await fetchChatRooms();
-
-      // BREAKPOINT 10: After refresh
-      debugPrint('✅ BREAKPOINT 10: Chat rooms refreshed after ward room creation');
 
     } catch (e) {
-    debugPrint('❌ Failed to ensure ward room exists: $e');
+      debugPrint('❌ Failed to ensure area room exists: $e');
+      // Don't rethrow - area room creation failure shouldn't break the app
     }
   }
 
-  // Get city name from city ID
-  Future<String> _getCityName(String cityId) async {
+  // Update user's area field if missing (for backward compatibility)
+  Future<void> _updateUserAreaField(String userId) async {
     try {
-      final cityDoc = await FirebaseFirestore.instance
-          .collection('cities')
-          .doc(cityId)
+      debugPrint('🔄 Checking if user has area field in profile');
+
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        final currentArea = data['area'];
+
+        if (currentArea == null || (currentArea is String && currentArea.isEmpty)) {
+          debugPrint('📝 User missing area field, attempting to set default area');
+
+          // Try to get area from user's location or set a default
+          // For now, we'll set a default area - this should be updated based on user location
+          const defaultArea = 'area_1'; // Default area
+
+          await FirebaseFirestore.instance.collection('users').doc(userId).update({
+            'area': defaultArea,
+          });
+
+          debugPrint('✅ Updated user area field to: $defaultArea');
+
+          // Invalidate cached user data
+          _cachedUser = null;
+        } else {
+          debugPrint('✅ User already has area field: $currentArea');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to update user area field: $e');
+    }
+  }
+
+  // Get or create ward room for candidates only (removed voter room creation)
+  Future<void> ensureWardRoomExists() async {
+    debugPrint('🏛️ Starting ward room creation process for candidates');
+
+    try {
+      // Get current user data
+      UserModel? user = currentUser;
+
+      // If cached user data is incomplete, fetch fresh data
+      if (user == null || user.wardId.isEmpty || (user.districtId?.isEmpty ?? true) || (user.bodyId?.isEmpty ?? true)) {
+        debugPrint('🔄 Fetching fresh user data for ward room creation');
+        user = await getCompleteUserData();
+      }
+
+      if (user == null) {
+        debugPrint('❌ No user found for ward room creation');
+        return;
+      }
+
+      // Only allow candidates to create ward rooms
+      if (user.role != 'candidate') {
+        debugPrint('⚠️ Ward room creation only allowed for candidates, current role: ${user.role}');
+        return;
+      }
+
+      final districtId = user.districtId; // Use districtId
+      if (user.wardId.isEmpty || (user.bodyId?.isEmpty ?? true) || (districtId?.isEmpty ?? true)) {
+        debugPrint('⚠️ User profile incomplete - wardId, bodyId, or districtId missing');
+        debugPrint('   Ward: ${user.wardId}, Body: ${user.bodyId}, District: $districtId');
+        return;
+      }
+
+      debugPrint('🔍 Ensuring ward room exists for candidate ${user.name} in ward ${user.wardId}, district $districtId');
+
+      // Use repository method for efficient ward room creation
+      final success = await _repository.createWardRoomIfNeeded(districtId!, user.bodyId!, user.wardId, user.uid);
+
+      if (success) {
+        debugPrint('✅ Ward room creation process completed successfully');
+        // Refresh chat rooms list to show the new ward room
+        await fetchChatRooms();
+      } else {
+        debugPrint('❌ Ward room creation failed');
+      }
+
+    } catch (e) {
+      debugPrint('❌ Failed to ensure ward room exists: $e');
+      // Don't rethrow - ward room creation failure shouldn't break the app
+    }
+  }
+
+  // Get district name from district ID
+  Future<String> _getDistrictName(String districtId) async {
+    try {
+      final districtDoc = await FirebaseFirestore.instance
+          .collection('districts')
+          .doc(districtId)
           .get();
 
-      if (cityDoc.exists) {
-        final data = cityDoc.data();
-        return data?['name'] ?? cityId.toUpperCase();
+      if (districtDoc.exists) {
+        final data = districtDoc.data();
+        return data?['name'] ?? districtId.toUpperCase();
       }
     } catch (e) {
-    debugPrint('Error fetching city name: $e');
+      debugPrint('Error fetching district name: $e');
     }
-    return cityId.toUpperCase();
+    return districtId.toUpperCase();
   }
 
-  // Get ward name from city ID and ward ID
-  Future<String> _getWardName(String cityId, String wardId) async {
+  // Get body name from district ID and body ID
+  Future<String> _getBodyName(String districtId, String bodyId) async {
+    try {
+      final bodyDoc = await FirebaseFirestore.instance
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .get();
+
+      if (bodyDoc.exists) {
+        final data = bodyDoc.data();
+        return data?['name'] ?? bodyId;
+      }
+    } catch (e) {
+      debugPrint('Error fetching body name: $e');
+    }
+    return bodyId;
+  }
+
+  // Get ward name from district ID, body ID and ward ID
+  Future<String> _getWardName(String districtId, String bodyId, String wardId) async {
     try {
       final wardDoc = await FirebaseFirestore.instance
-          .collection('cities')
-          .doc(cityId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
           .collection('wards')
           .doc(wardId)
           .get();
@@ -1415,7 +1951,7 @@ class ChatController extends GetxController {
         return data?['name'] ?? 'Ward $wardId';
       }
     } catch (e) {
-    debugPrint('Error fetching ward name: $e');
+      debugPrint('Error fetching ward name: $e');
     }
     return 'Ward $wardId';
   }
@@ -1425,7 +1961,8 @@ class ChatController extends GetxController {
     final user = currentUser;
     if (user == null) return 0;
 
-    return await _repository.getUnreadMessageCount(user.uid);
+    final districtId = user.districtId; // Use districtId
+    return await _repository.getUnreadMessageCount(user.uid, districtId: districtId, bodyId: user.bodyId, wardId: user.wardId, area: user.area);
   }
 
   // Initialize sample data (for testing/admin purposes)
@@ -1466,6 +2003,27 @@ class ChatController extends GetxController {
     messages = [];
     messagesStream.value = [];
     update();
+  }
+
+  // Ensure navigation consistency - called when returning to chat screen
+  void ensureNavigationConsistency() {
+    final user = currentUser;
+    if (user == null) return;
+
+    // Ensure we have the latest room data
+    if (chatRooms.isEmpty && _isInitialLoadComplete) {
+      debugPrint('🔄 Navigation: Refreshing chat rooms for consistency');
+      fetchChatRooms();
+    }
+
+    // Ensure real-time listener is active
+    if (_roomChangesSubscription == null || _roomChangesSubscription!.isPaused) {
+      debugPrint('🔄 Navigation: Restarting real-time listener for consistency');
+      _listenForRoomChanges(user.uid, user.role);
+    }
+
+    // Update display info to ensure consistency
+    _updateChatRoomDisplayInfos();
   }
 
   // Clear message cache for a specific room
@@ -1529,6 +2087,9 @@ class ChatController extends GetxController {
     _lastMessagePreviews.clear();
     _lastMessageSenders.clear();
 
+    // Clear sender info cache
+    clearSenderInfoCache();
+
     debugPrint('🗑️ Cleared all message caches and unread counts');
 
     update();
@@ -1557,7 +2118,7 @@ class ChatController extends GetxController {
 
   // Refresh user data and reinitialize chat (call after profile completion)
   Future<void> refreshUserDataAndChat() async {
-  debugPrint('🔄 Refreshing user data and chat after profile completion');
+    debugPrint('🔄 Refreshing user data and chat after profile completion');
     _isInitialLoadComplete = false; // Reset flag for fresh load
 
     // Clear cached user data to force refresh
@@ -1569,13 +2130,51 @@ class ChatController extends GetxController {
       _repository.invalidateUserCache(currentUser.uid);
     }
 
+    // Force refresh user data from Firestore
+    await getCompleteUserData();
+
     await _initializeChat();
+  }
+
+  // Manual trigger for ward room creation (for candidates only - testing/debugging)
+  Future<void> manuallyCreateWardRoom() async {
+    final user = currentUser;
+    if (user == null || user.role != 'candidate') {
+      Get.snackbar(
+        'Permission Denied',
+        'Ward room creation is only available for candidates.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    debugPrint('🔧 Manual ward room creation triggered for candidate');
+    await ensureWardRoomExists();
+    Get.snackbar(
+      'Ward Room Creation',
+      'Attempted to create ward room. Check logs for details.',
+      backgroundColor: Colors.green.shade100,
+      colorText: Colors.green.shade800,
+      duration: const Duration(seconds: 3),
+    );
   }
 
   // Manual refresh of chat rooms (for debugging/admin purposes)
   Future<void> refreshChatRooms() async {
-  debugPrint('🔄 Manual refresh of chat rooms requested');
+    debugPrint('🔄 Manual refresh of chat rooms requested');
     _isInitialLoadComplete = false; // Reset flag
+
+    // Clear repository cache to force fresh fetch
+    _repository.invalidateUserCache(currentUser?.uid ?? '');
+
+    // Clear local unread counts to prevent stale data
+    _unreadCounts.clear();
+    _lastMessageTimes.clear();
+    _lastMessagePreviews.clear();
+    _lastMessageSenders.clear();
+
     await fetchChatRooms();
   }
 
@@ -1948,6 +2547,19 @@ class ChatController extends GetxController {
     }
   }
 
+  // Invalidate user cache (called when follow relationships change)
+  void invalidateUserCache(String userId) {
+    debugPrint('🗑️ Invalidating chat cache for user: $userId');
+    _repository.invalidateUserCache(userId);
+
+    // Refresh chat rooms if current user matches
+    final currentUser = this.currentUser;
+    if (currentUser != null && currentUser.uid == userId) {
+      debugPrint('🔄 Refreshing chat rooms due to cache invalidation');
+      fetchChatRooms();
+    }
+  }
+
   // Refresh current chat messages (called after poll voting)
   void refreshCurrentChatMessages() {
     if (currentChatRoom != null) {
@@ -1992,5 +2604,188 @@ class ChatController extends GetxController {
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
     );
+  }
+
+  // Update message status in local state
+  void _updateMessageStatus(String messageId, MessageStatus status) {
+    final updatedMessages = messages.map((msg) {
+      if (msg.messageId == messageId) {
+        return msg.copyWith(status: status);
+      }
+      return msg;
+    }).toList();
+
+    messages = updatedMessages;
+    messagesStream.value = updatedMessages;
+    debugPrint('📝 Updated message $messageId status to: $status');
+  }
+
+  // Retry sending a failed message
+  Future<void> retryMessage(String messageId) async {
+    final messageIndex = messages.indexWhere((msg) => msg.messageId == messageId);
+    if (messageIndex == -1) {
+      debugPrint('❌ Message not found for retry: $messageId');
+      return;
+    }
+
+    final message = messages[messageIndex];
+    if (message.status != MessageStatus.failed) {
+      debugPrint('⚠️ Message is not in failed state: ${message.status}');
+      return;
+    }
+
+    final user = currentUser;
+    if (user == null || currentChatRoom == null) {
+      debugPrint('❌ Cannot retry message: user or chat room is null');
+      return;
+    }
+
+    // Check if user can send message
+    if (!canSendMessage) {
+      Get.snackbar(
+        'Cannot Retry',
+        'You have no remaining messages or XP.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    try {
+      // Update message status to sending
+      _updateMessageStatus(messageId, MessageStatus.sending);
+
+      // Increment retry count
+      final updatedMessage = message.copyWith(retryCount: message.retryCount + 1);
+
+      // Update the message in local state
+      final updatedMessages = List<Message>.from(messages);
+      updatedMessages[messageIndex] = updatedMessage;
+      messages = updatedMessages;
+      messagesStream.value = updatedMessages;
+
+      // Determine if we should use quota or XP
+      final useQuota = userQuota != null && userQuota!.canSendMessage;
+      final useXP = !useQuota && user.xpPoints > 0;
+
+      // Retry sending the message
+      debugPrint('🔄 Retrying message: ${message.text} (attempt ${updatedMessage.retryCount})');
+      final result = await _repository.sendMessageWithQuotaUpdate(
+        currentChatRoom!.roomId,
+        updatedMessage,
+        user.uid,
+        useQuota,
+        useXP
+      );
+
+      // Update message status to sent
+      _updateMessageStatus(messageId, MessageStatus.sent);
+
+      // Update local quota if it was modified
+      if (result['quota'] != null) {
+        userQuota = result['quota'] as UserQuota?;
+        userQuotaStream.value = userQuota;
+      }
+
+      // If XP was used, refresh user data
+      if (useXP) {
+        await getCompleteUserData();
+        _repository.invalidateUserCache(user.uid);
+      }
+
+      debugPrint('✅ Message retry successful');
+
+      Get.snackbar(
+        'Message Sent',
+        'Message sent successfully!',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 2),
+      );
+
+    } catch (e) {
+      debugPrint('❌ Message retry failed: $e');
+
+      // Update message status back to failed
+      _updateMessageStatus(messageId, MessageStatus.failed);
+
+      // Show retry snackbar again
+      Get.snackbar(
+        'Retry Failed',
+        'Failed to send message. Tap to retry again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+        onTap: (_) => retryMessage(messageId),
+      );
+    }
+  }
+
+  // Debug user profile completion status
+  void debugUserProfileStatus() {
+    final user = currentUser;
+    final firebaseUser = _auth.currentUser;
+
+    debugPrint('🔍 User Profile Debug Info:');
+    debugPrint('   Firebase Auth User: ${firebaseUser?.displayName ?? 'null'} (${firebaseUser?.uid ?? 'null'})');
+    debugPrint('   Current user: ${user?.name ?? 'null'} (${user?.uid ?? 'null'})');
+    debugPrint('   Cached user: ${_cachedUser?.name ?? 'null'} (${_cachedUser?.uid ?? 'null'})');
+    debugPrint('   Profile completed: ${user?.profileCompleted ?? 'null'}');
+    debugPrint('   Role: ${user?.role ?? 'null'}');
+    debugPrint('   Ward ID: ${user?.wardId ?? 'null'}');
+    debugPrint('   District ID: ${user?.districtId ?? 'null'}');
+    debugPrint('   Body ID: ${user?.bodyId ?? 'null'}');
+
+    final districtId = user?.districtId; // Use districtId
+    final hasCompleteLocation = (user?.wardId.isNotEmpty ?? false) &&
+                               (user?.bodyId?.isNotEmpty ?? false) &&
+                               (districtId?.isNotEmpty ?? false);
+    debugPrint('   Has complete location data: $hasCompleteLocation');
+
+    Get.snackbar(
+      'Profile Debug',
+      'Profile: ${user?.profileCompleted ?? false}, Location: $hasCompleteLocation, District: $districtId',
+      backgroundColor: Colors.blue.shade100,
+      colorText: Colors.blue.shade800,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  // Debug unread message counts
+  void debugUnreadCounts() {
+    debugPrint('🔍 Unread Counts Debug Info:');
+    debugPrint('   Current room: ${currentChatRoom?.roomId ?? 'null'}');
+    debugPrint('   Total unread counts: ${_unreadCounts.length}');
+    _unreadCounts.forEach((roomId, count) {
+      debugPrint('     Room $roomId: $count unread messages');
+    });
+    debugPrint('   Chat room display infos: ${chatRoomDisplayInfos.length}');
+    chatRoomDisplayInfos.forEach((info) {
+      debugPrint('     Room ${info.room.roomId}: unread=${info.unreadCount}, hasUnread=${info.hasUnreadMessages}');
+    });
+
+    Get.snackbar(
+      'Unread Debug',
+      'Total unread: ${_unreadCounts.values.fold(0, (sum, count) => sum + count)}',
+      backgroundColor: Colors.green.shade100,
+      colorText: Colors.green.shade800,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  // Test method to manually increment unread count for debugging
+  void testIncrementUnreadCount(String roomId) {
+    final testMessage = Message(
+      messageId: 'test_${DateTime.now().millisecondsSinceEpoch}',
+      text: 'Test message',
+      senderId: 'test_sender',
+      type: 'text',
+      createdAt: DateTime.now(),
+      readBy: [],
+    );
+
+    _incrementUnreadCount(roomId, testMessage);
+    debugPrint('🧪 Manually incremented unread count for room: $roomId');
   }
 }

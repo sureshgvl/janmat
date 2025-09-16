@@ -94,7 +94,7 @@ class _CandidateDashboardHighlightState extends State<CandidateDashboardHighligh
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Highlight updated successfully');
+                              Get.snackbar('Success', 'Highlight updated successfully', backgroundColor: Colors.green.shade100, colorText: Colors.green.shade800);
                             }
                           } else {
                             if (context.mounted) {

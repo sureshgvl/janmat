@@ -182,9 +182,10 @@ class DeviceService {
           .doc(userId)
           .collection('devices');
 
+      // Get all inactive devices first, then filter by deviceToken in code
+      // This avoids the compound query that requires an index
       final querySnapshot = await devicesRef
           .where('isActive', isEqualTo: false)
-          .where('deviceToken', isNotEqualTo: '')
           .get();
 
       for (var doc in querySnapshot.docs) {

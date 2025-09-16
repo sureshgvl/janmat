@@ -3,36 +3,24 @@ import 'package:get/get.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../repositories/auth_repository.dart';
+import '../../widgets/common/confirmation_dialog.dart';
 
 class HomeActions {
-  static void showDeleteAccountDialog(BuildContext context, UserModel? userModel, AppLocalizations localizations) {
-    Navigator.pop(context); // Close drawer first
-
-    showDialog(
+  static Future<void> showDeleteAccountDialog(BuildContext context, UserModel? userModel, AppLocalizations localizations) async {
+    final result = await ConfirmationDialog.show(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(localizations.deleteAccount),
-          content: Text(localizations.deleteAccountConfirmation),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations.cancel),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context); // Close dialog
-                await _deleteAccount(context, localizations);
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              child: Text(localizations.deleteAccount),
-            ),
-          ],
-        );
-      },
+      title: localizations.deleteAccount,
+      content: localizations.deleteAccountConfirmation,
+      cancelText: localizations.cancel,
+      confirmText: localizations.deleteAccount,
+      isDestructive: true,
     );
+
+    if (result == true) {
+      // Close drawer after confirmation
+      Navigator.pop(context);
+      await _deleteAccount(context, localizations);
+    }
   }
 
   static Future<void> _deleteAccount(BuildContext context, AppLocalizations localizations) async {
@@ -52,48 +40,30 @@ class HomeActions {
       final authRepository = AuthRepository();
       await authRepository.deleteAccount();
 
-      // Close loading dialog using stored context
-      if (dialogContext != null && Navigator.canPop(dialogContext!)) {
-        Navigator.of(dialogContext!).pop();
-      } else if (Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-      }
+      // Note: Dialog will be automatically dismissed by Get.offAllNamed clearing all routes
 
-      // Show success message
-      Get.snackbar(
-        localizations.success,
-        localizations.accountDeletedSuccessfully,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 3),
-      );
-
-      // After account deletion, navigate to language selection since SharedPreferences are cleared
-      await Future.delayed(const Duration(seconds: 2)); // Give time for snackbar to show
-
-      // Clear all routes and navigate to language selection (first-time user flow)
+      // Navigate first, then show success message to avoid context issues
       Get.offAllNamed('/language-selection');
 
+      // Show success message after navigation using WidgetsBinding to ensure context is ready
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(
+          localizations.success,
+          localizations.accountDeletedSuccessfully,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
+      });
+
     } catch (e) {
-      // Close loading dialog using stored context or fallback
-      try {
-        if (dialogContext != null && Navigator.canPop(dialogContext!)) {
-          Navigator.of(dialogContext!).pop();
-        } else if (Navigator.canPop(context)) {
-          Navigator.of(context).pop();
-        } else {
-          // Last resort - try Get.back()
-          Get.back();
-        }
-      } catch (dialogError) {
-        // Ignore dialog dismissal errors
-      debugPrint('Warning: Could not dismiss loading dialog: $dialogError');
-      }
+      // Note: Dialog will be automatically dismissed by Get.offAllNamed clearing all routes
 
       // Only show error if it's not the expected "no current user" error
       if (!e.toString().contains('no-current-user') &&
           !e.toString().contains('failed-precondition') &&
           !e.toString().contains('permission-denied')) {
+        // Show error message immediately since we're not navigating
         Get.snackbar(
           localizations.error,
           localizations.failedToDeleteAccount(e.toString()),
@@ -103,17 +73,19 @@ class HomeActions {
         );
       } else {
         // For expected errors, still show success since account was deleted
-        Get.snackbar(
-          localizations.success,
-          localizations.accountDeletedSuccessfully,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
-        );
-
-        // Still navigate to language selection
-        await Future.delayed(const Duration(seconds: 2));
+        // Navigate first, then show success message to avoid context issues
         Get.offAllNamed('/language-selection');
+
+        // Show success message after navigation using WidgetsBinding to ensure context is ready
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.snackbar(
+            localizations.success,
+            localizations.accountDeletedSuccessfully,
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 3),
+          );
+        });
       }
     }
   }
