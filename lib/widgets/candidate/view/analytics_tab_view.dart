@@ -6,16 +6,17 @@ class AnalyticsTabView extends StatefulWidget {
   final bool isOwnProfile;
 
   const AnalyticsTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-  }) : super(key: key);
+  });
 
   @override
   State<AnalyticsTabView> createState() => _AnalyticsTabViewState();
 }
 
-class _AnalyticsTabViewState extends State<AnalyticsTabView> with AutomaticKeepAliveClientMixin {
+class _AnalyticsTabViewState extends State<AnalyticsTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -123,7 +124,8 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView> with AutomaticKeepA
               Expanded(
                 child: _buildMetricCard(
                   title: 'Engagement Rate',
-                  value: '${analytics?.engagementRate?.toStringAsFixed(1) ?? '0.0'}%',
+                  value:
+                      '${analytics?.engagementRate?.toStringAsFixed(1) ?? '0.0'}%',
                   icon: Icons.trending_up,
                   color: Colors.orange,
                   subtitle: 'Voter interaction rate',
@@ -263,10 +265,7 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView> with AutomaticKeepA
                     ),
                     child: const Text(
                       'Top performing content analysis will be displayed here',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1f2937),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF1f2937)),
                     ),
                   ),
                 ] else ...[
@@ -351,10 +350,7 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView> with AutomaticKeepA
                     ),
                     child: const Text(
                       'Demographic insights will be displayed here',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1f2937),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF1f2937)),
                     ),
                   ),
                 ] else ...[
@@ -428,11 +424,7 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView> with AutomaticKeepA
                   color: color.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  color: color.shade600,
-                  size: 20,
-                ),
+                child: Icon(icon, color: color.shade600, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -464,10 +456,7 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView> with AutomaticKeepA
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
           ),
         ],
       ),

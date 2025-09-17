@@ -15,10 +15,13 @@ class VideoProcessingService {
   final Uuid _uuid = const Uuid();
 
   // Cloudinary configuration - should be moved to environment variables
-  static const String _cloudName = 'your_cloud_name'; // Replace with actual cloud name
+  static const String _cloudName =
+      'your_cloud_name'; // Replace with actual cloud name
   static const String _apiKey = 'your_api_key'; // Replace with actual API key
-  static const String _apiSecret = 'your_api_secret'; // Replace with actual API secret
-  static const String _uploadPreset = 'manifesto_videos'; // Cloudinary upload preset
+  static const String _apiSecret =
+      'your_api_secret'; // Replace with actual API secret
+  static const String _uploadPreset =
+      'manifesto_videos'; // Cloudinary upload preset
 
   /// Upload and process video through Cloudinary
   Future<ProcessedVideo> uploadAndProcessVideo(
@@ -48,7 +51,10 @@ class VideoProcessingService {
       );
 
       // Step 4: Create ProcessedVideo object
-      final processedVideo = ProcessedVideo.fromCloudinary(cloudinaryResponse, videoId);
+      final processedVideo = ProcessedVideo.fromCloudinary(
+        cloudinaryResponse,
+        videoId,
+      );
 
       // Step 5: Save metadata to Firestore
       await _saveVideoMetadata(processedVideo, candidateId);
@@ -57,7 +63,6 @@ class VideoProcessingService {
       await _updateCandidateManifesto(candidateId, processedVideo);
 
       return processedVideo;
-
     } catch (e) {
       // Save error state to Firestore
       await _saveVideoError(videoId, candidateId, e.toString());
@@ -68,7 +73,10 @@ class VideoProcessingService {
   /// Get processed video by ID
   Future<ProcessedVideo?> getProcessedVideo(String videoId) async {
     try {
-      final doc = await _firestore.collection('processed_videos').doc(videoId).get();
+      final doc = await _firestore
+          .collection('processed_videos')
+          .doc(videoId)
+          .get();
       if (doc.exists) {
         return ProcessedVideo.fromFirestore(doc);
       }
@@ -116,9 +124,7 @@ class VideoProcessingService {
         final updatedAnalytics = video.analytics;
         updatedAnalytics.watchTime += watchDuration;
 
-        await videoRef.update({
-          'analytics': updatedAnalytics.toMap(),
-        });
+        await videoRef.update({'analytics': updatedAnalytics.toMap()});
       }
     } catch (e) {
       print('Error recording video view: $e');
@@ -165,7 +171,9 @@ class VideoProcessingService {
   /// Get optimal video URL based on network conditions
   Future<String> getOptimalVideoUrl(String videoId) async {
     final connectivityResult = await _connectivity.checkConnectivity();
-    final connectionType = connectivityResult == ConnectivityResult.wifi ? 'wifi' : 'mobile';
+    final connectionType = connectivityResult == ConnectivityResult.wifi
+        ? 'wifi'
+        : 'mobile';
 
     final video = await getProcessedVideo(videoId);
     if (video != null) {
@@ -177,19 +185,26 @@ class VideoProcessingService {
 
   // Private helper methods
 
-  Future<void> _validateVideoFile(File videoFile, VideoProcessingConfig config) async {
+  Future<void> _validateVideoFile(
+    File videoFile,
+    VideoProcessingConfig config,
+  ) async {
     // Check file size
     final fileSize = await videoFile.length();
     final fileSizeMB = fileSize / (1024 * 1024);
 
     if (fileSizeMB > config.maxFileSize) {
-      throw Exception('Video file too large: ${fileSizeMB.toStringAsFixed(1)}MB (max: ${config.maxFileSize}MB)');
+      throw Exception(
+        'Video file too large: ${fileSizeMB.toStringAsFixed(1)}MB (max: ${config.maxFileSize}MB)',
+      );
     }
 
     // Check file extension
     final extension = videoFile.path.split('.').last.toLowerCase();
     if (!config.allowedFormats.contains(extension)) {
-      throw Exception('Unsupported video format: $extension. Allowed: ${config.allowedFormats.join(', ')}');
+      throw Exception(
+        'Unsupported video format: $extension. Allowed: ${config.allowedFormats.join(', ')}',
+      );
     }
 
     // Additional validation could be added here
@@ -203,7 +218,9 @@ class VideoProcessingService {
     String videoId, {
     Function(double)? onProgress,
   }) async {
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/video/upload');
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$_cloudName/video/upload',
+    );
 
     final request = http.MultipartRequest('POST', url)
       ..fields['upload_preset'] = _uploadPreset
@@ -212,15 +229,45 @@ class VideoProcessingService {
       // Add transformation parameters for multiple resolutions
       ..fields['eager'] = jsonEncode([
         // 1080p
-        {'width': 1920, 'height': 1080, 'crop': 'limit', 'quality': 'auto', 'bitrate': '4000k'},
+        {
+          'width': 1920,
+          'height': 1080,
+          'crop': 'limit',
+          'quality': 'auto',
+          'bitrate': '4000k',
+        },
         // 720p
-        {'width': 1280, 'height': 720, 'crop': 'limit', 'quality': 'auto', 'bitrate': '2500k'},
+        {
+          'width': 1280,
+          'height': 720,
+          'crop': 'limit',
+          'quality': 'auto',
+          'bitrate': '2500k',
+        },
         // 480p
-        {'width': 854, 'height': 480, 'crop': 'limit', 'quality': 'auto', 'bitrate': '1200k'},
+        {
+          'width': 854,
+          'height': 480,
+          'crop': 'limit',
+          'quality': 'auto',
+          'bitrate': '1200k',
+        },
         // 360p
-        {'width': 640, 'height': 360, 'crop': 'limit', 'quality': 'auto', 'bitrate': '800k'},
+        {
+          'width': 640,
+          'height': 360,
+          'crop': 'limit',
+          'quality': 'auto',
+          'bitrate': '800k',
+        },
         // 240p
-        {'width': 426, 'height': 240, 'crop': 'limit', 'quality': 'auto', 'bitrate': '400k'},
+        {
+          'width': 426,
+          'height': 240,
+          'crop': 'limit',
+          'quality': 'auto',
+          'bitrate': '400k',
+        },
       ])
       ..files.add(await http.MultipartFile.fromPath('file', videoFile.path));
 
@@ -233,7 +280,9 @@ class VideoProcessingService {
         print('Cloudinary upload successful for video: $videoId');
         return responseData;
       } else {
-        throw Exception('Cloudinary upload failed: ${response.statusCode} - ${response.body}');
+        throw Exception(
+          'Cloudinary upload failed: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('Error uploading to Cloudinary: $e');
@@ -241,7 +290,10 @@ class VideoProcessingService {
     }
   }
 
-  Future<void> _saveVideoMetadata(ProcessedVideo video, String candidateId) async {
+  Future<void> _saveVideoMetadata(
+    ProcessedVideo video,
+    String candidateId,
+  ) async {
     try {
       await _firestore.collection('processed_videos').doc(video.id).set({
         ...video.toFirestore(),
@@ -254,7 +306,11 @@ class VideoProcessingService {
     }
   }
 
-  Future<void> _saveVideoError(String videoId, String candidateId, String error) async {
+  Future<void> _saveVideoError(
+    String videoId,
+    String candidateId,
+    String error,
+  ) async {
     try {
       await _firestore.collection('processed_videos').doc(videoId).set({
         'id': videoId,
@@ -268,14 +324,18 @@ class VideoProcessingService {
     }
   }
 
-  Future<void> _updateCandidateManifesto(String candidateId, ProcessedVideo video) async {
+  Future<void> _updateCandidateManifesto(
+    String candidateId,
+    ProcessedVideo video,
+  ) async {
     try {
       final candidateRef = _firestore.collection('candidates').doc(candidateId);
       final candidateDoc = await candidateRef.get();
 
       if (candidateDoc.exists) {
         final candidateData = candidateDoc.data() as Map<String, dynamic>;
-        final manifesto = candidateData['manifesto'] as Map<String, dynamic>? ?? {};
+        final manifesto =
+            candidateData['manifesto'] as Map<String, dynamic>? ?? {};
 
         // Update manifesto with video information
         manifesto['videoUrl'] = video.originalUrl;
@@ -296,14 +356,18 @@ class VideoProcessingService {
     }
   }
 
-  Future<void> _removeVideoFromCandidateManifesto(String candidateId, String videoId) async {
+  Future<void> _removeVideoFromCandidateManifesto(
+    String candidateId,
+    String videoId,
+  ) async {
     try {
       final candidateRef = _firestore.collection('candidates').doc(candidateId);
       final candidateDoc = await candidateRef.get();
 
       if (candidateDoc.exists) {
         final candidateData = candidateDoc.data() as Map<String, dynamic>;
-        final manifesto = candidateData['manifesto'] as Map<String, dynamic>? ?? {};
+        final manifesto =
+            candidateData['manifesto'] as Map<String, dynamic>? ?? {};
 
         // Remove video information
         manifesto.remove('videoUrl');
@@ -331,7 +395,9 @@ class VideoProcessingService {
           : '';
 
       if (publicId.isNotEmpty) {
-        final deleteUrl = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/video/destroy');
+        final deleteUrl = Uri.parse(
+          'https://api.cloudinary.com/v1_1/$_cloudName/video/destroy',
+        );
 
         final response = await http.post(
           deleteUrl,
@@ -383,7 +449,10 @@ class VideoProcessingService {
         'averageWatchTime': totalViews > 0 ? totalWatchTime / totalViews : 0,
         'qualityUsage': qualityUsage,
         'deviceUsage': deviceUsage,
-        'storageUsed': videos.fold<int>(0, (sum, video) => sum + video.getFileSize('720p')),
+        'storageUsed': videos.fold<int>(
+          0,
+          (sum, video) => sum + video.getFileSize('720p'),
+        ),
       };
     } catch (e) {
       print('Error getting processing stats: $e');
@@ -450,7 +519,10 @@ class VideoProcessingResult {
     this.compressionRatio = 1.0,
   });
 
-  factory VideoProcessingResult.success(ProcessedVideo video, double compressionRatio) {
+  factory VideoProcessingResult.success(
+    ProcessedVideo video,
+    double compressionRatio,
+  ) {
     return VideoProcessingResult(
       success: true,
       video: video,
@@ -459,9 +531,6 @@ class VideoProcessingResult {
   }
 
   factory VideoProcessingResult.failure(String error) {
-    return VideoProcessingResult(
-      success: false,
-      error: error,
-    );
+    return VideoProcessingResult(success: false, error: error);
   }
 }

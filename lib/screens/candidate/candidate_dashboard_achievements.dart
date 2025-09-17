@@ -4,23 +4,25 @@ import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/edit/achievements_tab_edit.dart';
 import '../../widgets/candidate/view/achievements_tab_view.dart';
-import '../../widgets/common/save_button.dart';
 import '../../widgets/loading_overlay.dart';
 
 class CandidateDashboardAchievements extends StatefulWidget {
   const CandidateDashboardAchievements({super.key});
 
   @override
-  State<CandidateDashboardAchievements> createState() => _CandidateDashboardAchievementsState();
+  State<CandidateDashboardAchievements> createState() =>
+      _CandidateDashboardAchievementsState();
 }
 
-class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchievements> {
+class _CandidateDashboardAchievementsState
+    extends State<CandidateDashboardAchievements> {
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
   bool isSaving = false;
 
   // Global key to access achievements section for file uploads
-  final GlobalKey<AchievementsTabEditState> _achievementsSectionKey = GlobalKey<AchievementsTabEditState>();
+  final GlobalKey<AchievementsTabEditState> _achievementsSectionKey =
+      GlobalKey<AchievementsTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,6 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
       }
 
       return Scaffold(
-       
         body: isEditing
             ? SingleChildScrollView(
                 child: AchievementsTabEdit(
@@ -42,7 +43,8 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onAchievementsChange: (achievements) => controller.updateExtraInfo('achievements', achievements),
+                  onAchievementsChange: (achievements) =>
+                      controller.updateExtraInfo('achievements', achievements),
                 ),
               )
             : AchievementsTabView(
@@ -60,7 +62,9 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                       onPressed: () async {
                         // Create a stream controller for progress updates
                         final messageController = StreamController<String>();
-                        messageController.add('Preparing to save achievements...');
+                        messageController.add(
+                          'Preparing to save achievements...',
+                        );
 
                         // Show loading dialog with message stream
                         LoadingDialog.show(
@@ -71,33 +75,53 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
 
                         try {
                           // First, upload any pending local files to Firebase
-                          final achievementsSectionState = _achievementsSectionKey.currentState;
+                          final achievementsSectionState =
+                              _achievementsSectionKey.currentState;
                           if (achievementsSectionState != null) {
-                            messageController.add('Uploading photos to cloud...');
+                            messageController.add(
+                              'Uploading photos to cloud...',
+                            );
                             await achievementsSectionState.uploadPendingFiles();
                           }
 
                           // Then save the achievements data
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
                             // Update progress: Success
-                            messageController.add('Achievements saved successfully!');
+                            messageController.add(
+                              'Achievements saved successfully!',
+                            );
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Achievements updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
+                              Get.snackbar(
+                                'Success',
+                                'Achievements updated successfully',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
-                              Get.snackbar('Error', 'Failed to update achievements');
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
+                              Get.snackbar(
+                                'Error',
+                                'Failed to update achievements',
+                              );
                             }
                           }
                         } catch (e) {
@@ -111,8 +135,8 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -122,8 +146,8 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -134,8 +158,8 @@ class _CandidateDashboardAchievementsState extends State<CandidateDashboardAchie
                   heroTag: 'edit_achievements',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Achievements',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

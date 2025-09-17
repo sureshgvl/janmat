@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../models/candidate_model.dart';
 import '../../../models/achievement_model.dart';
@@ -102,14 +101,12 @@ class AchievementItemWidget extends StatelessWidget {
                 else
                   Text(
                     'Year: ${achievement.year}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
               ],
             ),
-            if (achievement.photoUrl != null && achievement.photoUrl!.isNotEmpty) ...[
+            if (achievement.photoUrl != null &&
+                achievement.photoUrl!.isNotEmpty) ...[
               const SizedBox(height: 12),
               ReusableImageWidget(
                 imageUrl: achievement.photoUrl!,
@@ -133,9 +130,13 @@ class AchievementItemWidget extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.photo_camera),
-                  label: Text(isUploading
-                      ? 'Uploading...'
-                      : (achievement.photoUrl != null ? 'Change Photo' : 'Add Photo (Optional)')),
+                  label: Text(
+                    isUploading
+                        ? 'Uploading...'
+                        : (achievement.photoUrl != null
+                              ? 'Change Photo'
+                              : 'Add Photo (Optional)'),
+                  ),
                 ),
               ),
           ],
@@ -149,7 +150,9 @@ class AchievementItemWidget extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Achievement'),
-        content: const Text('Are you sure you want to delete this achievement?'),
+        content: const Text(
+          'Are you sure you want to delete this achievement?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -243,11 +246,9 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
 
   void _addAchievement() {
     setState(() {
-      _achievements.add(Achievement(
-        title: '',
-        description: '',
-        year: DateTime.now().year,
-      ));
+      _achievements.add(
+        Achievement(title: '', description: '', year: DateTime.now().year),
+      );
     });
     _updateAchievements();
   }
@@ -331,10 +332,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
       }
 
       _uploadedPhotoUrls.add(localPath);
-      _updateAchievement(
-        index,
-        achievement.copyWith(photoUrl: localPath),
-      );
+      _updateAchievement(index, achievement.copyWith(photoUrl: localPath));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Photo saved locally'),
@@ -342,9 +340,9 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save photo: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save photo: $e')));
     } finally {
       setState(() {
         _uploadingPhotos[index] = false;
@@ -360,11 +358,13 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
       if (achievement.photoUrl != null &&
           _fileUploadService.isLocalPath(achievement.photoUrl!) &&
           !_uploadedPhotoUrls.contains(achievement.photoUrl!)) {
-
         try {
-          debugPrint('📤 [Achievements] Uploading photo for achievement: ${achievement.title}');
+          debugPrint(
+            '📤 [Achievements] Uploading photo for achievement: ${achievement.title}',
+          );
 
-          final fileName = 'achievement_${widget.candidateData.candidateId}_${achievement.title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final fileName =
+              'achievement_${widget.candidateData.candidateId}_${achievement.title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg';
           final storagePath = 'achievements/$fileName';
 
           final downloadUrl = await _fileUploadService.uploadFile(
@@ -375,10 +375,14 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
 
           if (downloadUrl != null) {
             _updateAchievement(i, achievement.copyWith(photoUrl: downloadUrl));
-            debugPrint('📤 [Achievements] Successfully uploaded photo for: ${achievement.title}');
+            debugPrint(
+              '📤 [Achievements] Successfully uploaded photo for: ${achievement.title}',
+            );
           }
         } catch (e) {
-          debugPrint('📤 [Achievements] Failed to upload photo for ${achievement.title}: $e');
+          debugPrint(
+            '📤 [Achievements] Failed to upload photo for ${achievement.title}: $e',
+          );
         }
       }
     }
@@ -426,10 +430,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
-                        Icons.lightbulb,
-                        color: Colors.amber,
-                      ),
+                      icon: const Icon(Icons.lightbulb, color: Colors.amber),
                       onPressed: _showDemoDataModal,
                       tooltip: 'Use demo achievements',
                     ),
@@ -449,7 +450,9 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
                 child: Center(
                   child: Column(
                     children: [
-                      const Text('No achievements yet. Add your first achievement!'),
+                      const Text(
+                        'No achievements yet. Add your first achievement!',
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: _addAchievement,
@@ -487,7 +490,8 @@ class AchievementsSection extends StatefulWidget {
   final Candidate? editedData;
   final bool isEditing;
   final Function(List<Achievement>) onAchievementsChange;
-  final Function()? onCancelEditing; // Callback for cleanup when editing is cancelled
+  final Function()?
+  onCancelEditing; // Callback for cleanup when editing is cancelled
 
   const AchievementsSection({
     super.key,
@@ -505,8 +509,10 @@ class AchievementsSection extends StatefulWidget {
 class _AchievementsSectionState extends State<AchievementsSection> {
   late List<Achievement> _achievements;
   final FileUploadService _fileUploadService = FileUploadService();
-  final Map<int, bool> _uploadingPhotos = {}; // Track uploading state per achievement
-  final Set<String> _uploadedPhotoUrls = {}; // Track photos uploaded in this session
+  final Map<int, bool> _uploadingPhotos =
+      {}; // Track uploading state per achievement
+  final Set<String> _uploadedPhotoUrls =
+      {}; // Track photos uploaded in this session
 
   @override
   void initState() {
@@ -523,7 +529,9 @@ class _AchievementsSectionState extends State<AchievementsSection> {
     }
 
     // Check if editing was cancelled (isEditing changed from true to false)
-    if (oldWidget.isEditing && !widget.isEditing && widget.onCancelEditing != null) {
+    if (oldWidget.isEditing &&
+        !widget.isEditing &&
+        widget.onCancelEditing != null) {
       _cleanupDanglingPhotos();
     }
   }
@@ -566,15 +574,11 @@ class _AchievementsSectionState extends State<AchievementsSection> {
     }
   }
 
-
-
   void _addAchievement() {
     setState(() {
-      _achievements.add(Achievement(
-        title: '',
-        description: '',
-        year: DateTime.now().year,
-      ));
+      _achievements.add(
+        Achievement(title: '', description: '', year: DateTime.now().year),
+      );
     });
     _updateAchievements();
   }
@@ -609,7 +613,9 @@ class _AchievementsSectionState extends State<AchievementsSection> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Achievement'),
-        content: const Text('Are you sure you want to delete this achievement?'),
+        content: const Text(
+          'Are you sure you want to delete this achievement?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -698,10 +704,7 @@ class _AchievementsSectionState extends State<AchievementsSection> {
       // Track this local photo path
       _uploadedPhotoUrls.add(localPath);
 
-      _updateAchievement(
-        index,
-        achievement.copyWith(photoUrl: localPath),
-      );
+      _updateAchievement(index, achievement.copyWith(photoUrl: localPath));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Photo saved locally'),
@@ -709,9 +712,9 @@ class _AchievementsSectionState extends State<AchievementsSection> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save photo: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save photo: $e')));
     } finally {
       setState(() {
         _uploadingPhotos[index] = false;
@@ -733,19 +736,13 @@ class _AchievementsSectionState extends State<AchievementsSection> {
               children: [
                 const Text(
                   'Achievements',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 if (widget.isEditing)
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(
-                          Icons.lightbulb,
-                          color: Colors.amber,
-                        ),
+                        icon: const Icon(Icons.lightbulb, color: Colors.amber),
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -785,7 +782,9 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                 child: Center(
                   child: Column(
                     children: [
-                      const Text('No achievements yet. Add your first achievement!'),
+                      const Text(
+                        'No achievements yet. Add your first achievement!',
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: _addAchievement,
@@ -803,7 +802,9 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                     children: List.generate(_achievements.length, (index) {
                       final achievement = _achievements[index];
                       return Card(
-                        key: widget.isEditing ? ValueKey(achievement.title + index.toString()) : null,
+                        key: widget.isEditing
+                            ? ValueKey(achievement.title + index.toString())
+                            : null,
                         margin: const EdgeInsets.only(bottom: 8),
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -829,8 +830,12 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => _showDeleteConfirmation(index),
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () =>
+                                          _showDeleteConfirmation(index),
                                       tooltip: 'Remove achievement',
                                     ),
                                   ],
@@ -867,14 +872,17 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                   if (widget.isEditing)
                                     Expanded(
                                       child: TextFormField(
-                                        initialValue: achievement.year.toString(),
+                                        initialValue: achievement.year
+                                            .toString(),
                                         decoration: const InputDecoration(
                                           labelText: 'Year',
                                           border: OutlineInputBorder(),
                                         ),
                                         keyboardType: TextInputType.number,
                                         onChanged: (value) {
-                                          final year = int.tryParse(value) ?? achievement.year;
+                                          final year =
+                                              int.tryParse(value) ??
+                                              achievement.year;
                                           _updateAchievement(
                                             index,
                                             achievement.copyWith(year: year),
@@ -892,11 +900,14 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                     ),
                                 ],
                               ),
-                              if (achievement.photoUrl != null && achievement.photoUrl!.isNotEmpty) ...[
+                              if (achievement.photoUrl != null &&
+                                  achievement.photoUrl!.isNotEmpty) ...[
                                 const SizedBox(height: 12),
                                 ReusableImageWidget(
                                   imageUrl: achievement.photoUrl!,
-                                  isLocal: _fileUploadService.isLocalPath(achievement.photoUrl!),
+                                  isLocal: _fileUploadService.isLocalPath(
+                                    achievement.photoUrl!,
+                                  ),
                                   fit: BoxFit.contain,
                                   minHeight: 120,
                                   maxHeight: 200,
@@ -908,17 +919,25 @@ class _AchievementsSectionState extends State<AchievementsSection> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: OutlinedButton.icon(
-                                    onPressed: _uploadingPhotos[index] == true ? null : () => _uploadPhoto(index),
+                                    onPressed: _uploadingPhotos[index] == true
+                                        ? null
+                                        : () => _uploadPhoto(index),
                                     icon: _uploadingPhotos[index] == true
                                         ? const SizedBox(
                                             width: 20,
                                             height: 20,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
                                           )
                                         : const Icon(Icons.photo_camera),
-                                    label: Text(_uploadingPhotos[index] == true
-                                        ? 'Uploading...'
-                                        : (achievement.photoUrl != null ? 'Change Photo' : 'Add Photo (Optional)')),
+                                    label: Text(
+                                      _uploadingPhotos[index] == true
+                                          ? 'Uploading...'
+                                          : (achievement.photoUrl != null
+                                                ? 'Change Photo'
+                                                : 'Add Photo (Optional)'),
+                                    ),
                                   ),
                                 ),
                             ],

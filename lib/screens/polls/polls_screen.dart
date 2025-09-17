@@ -25,7 +25,12 @@ class PollsScreen extends StatelessWidget {
             context,
             'Ward Development Survey',
             'How should we prioritize ward development?',
-            ['Roads & Infrastructure', 'Education', 'Healthcare', 'Environment'],
+            [
+              'Roads & Infrastructure',
+              'Education',
+              'Healthcare',
+              'Environment',
+            ],
             [35, 25, 20, 20],
             120,
           ),
@@ -43,7 +48,12 @@ class PollsScreen extends StatelessWidget {
             context,
             'Budget Allocation',
             'Where should we allocate more funds?',
-            ['Public Transport', 'Parks & Recreation', 'Public Safety', 'Education'],
+            [
+              'Public Transport',
+              'Parks & Recreation',
+              'Public Safety',
+              'Education',
+            ],
             [28, 22, 30, 20],
             95,
           ),
@@ -52,8 +62,14 @@ class PollsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPollCard(BuildContext context, String title, String question,
-      List<String> options, List<int> votes, int totalVotes) {
+  Widget _buildPollCard(
+    BuildContext context,
+    String title,
+    String question,
+    List<String> options,
+    List<int> votes,
+    int totalVotes,
+  ) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -63,25 +79,24 @@ class PollsScreen extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
-              question,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(question, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 16),
             Text(
               '$totalVotes ${AppLocalizations.of(context)?.votes ?? 'votes'}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
             ),
             const SizedBox(height: 12),
             ...List.generate(options.length, (index) {
-              final percentage = totalVotes > 0 ? (votes[index] / totalVotes * 100).round() : 0;
+              final percentage = totalVotes > 0
+                  ? (votes[index] / totalVotes * 100).round()
+                  : 0;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Column(
@@ -89,9 +104,7 @@ class PollsScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(options[index]),
-                        ),
+                        Expanded(child: Text(options[index])),
                         Text('$percentage%'),
                       ],
                     ),

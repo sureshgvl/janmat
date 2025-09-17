@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../l10n/app_localizations.dart';
 import 'home/home_screen.dart';
 import 'candidate/candidate_list_screen.dart';
 import 'chat/chat_list_screen.dart';
 import 'polls/polls_screen.dart';
-import 'profile/profile_screen.dart';
 
 class MainTabNavigation extends StatefulWidget {
   const MainTabNavigation({super.key});
@@ -33,52 +31,49 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // If not on home tab, navigate to home tab instead of closing app
-        if (_selectedIndex != 0) {
+    return PopScope(
+      canPop: _selectedIndex == 0, // Allow pop only when on home tab
+      onPopInvoked: (didPop) {
+        if (!didPop && _selectedIndex != 0) {
+          // If not on home tab, navigate to home tab instead of closing app
           setState(() {
             _selectedIndex = 0;
           });
-          return false; // Prevent app from closing
         }
-        // If already on home tab, allow app to close
-        return true;
       },
       child: Scaffold(
         body: _widgetOptions.elementAt(_selectedIndex),
         bottomNavigationBar: BottomNavigationBar(
           items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: AppLocalizations.of(context)?.home ?? 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.people),
-            label: AppLocalizations.of(context)?.candidates ?? 'Candidates',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.chat),
-            label: AppLocalizations.of(context)?.chatRooms ?? 'Chat Rooms',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.poll),
-            label: AppLocalizations.of(context)?.polls ?? 'Polls',
-          ),
-          // BottomNavigationBarItem(
-          //   icon: const Icon(Icons.person),
-          //   label: AppLocalizations.of(context)?.profile ?? 'Profile',
-          // ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.home),
+              label: AppLocalizations.of(context)?.home ?? 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.people),
+              label: AppLocalizations.of(context)?.candidates ?? 'Candidates',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.chat),
+              label: AppLocalizations.of(context)?.chatRooms ?? 'Chat Rooms',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.poll),
+              label: AppLocalizations.of(context)?.polls ?? 'Polls',
+            ),
+            // BottomNavigationBarItem(
+            //   icon: const Icon(Icons.person),
+            //   label: AppLocalizations.of(context)?.profile ?? 'Profile',
+            // ),
           ],
           currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        showUnselectedLabels: true,
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.grey,
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+          showUnselectedLabels: true,
         ),
       ),
     );
   }
-
 }

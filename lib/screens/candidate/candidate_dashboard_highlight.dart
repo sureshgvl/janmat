@@ -10,15 +10,18 @@ class CandidateDashboardHighlight extends StatefulWidget {
   const CandidateDashboardHighlight({super.key});
 
   @override
-  State<CandidateDashboardHighlight> createState() => _CandidateDashboardHighlightState();
+  State<CandidateDashboardHighlight> createState() =>
+      _CandidateDashboardHighlightState();
 }
 
-class _CandidateDashboardHighlightState extends State<CandidateDashboardHighlight> {
+class _CandidateDashboardHighlightState
+    extends State<CandidateDashboardHighlight> {
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
 
   // Global key to access highlight section for file uploads
-  final GlobalKey<HighlightTabEditState> _highlightSectionKey = GlobalKey<HighlightTabEditState>();
+  final GlobalKey<HighlightTabEditState> _highlightSectionKey =
+      GlobalKey<HighlightTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +47,8 @@ class _CandidateDashboardHighlightState extends State<CandidateDashboardHighligh
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onHighlightChange: (highlight) => controller.updateExtraInfo('highlight', highlight),
+                  onHighlightChange: (highlight) =>
+                      controller.updateExtraInfo('highlight', highlight),
                 ),
               )
             : HighlightTabView(
@@ -73,33 +77,53 @@ class _CandidateDashboardHighlightState extends State<CandidateDashboardHighligh
 
                         try {
                           // First, upload any pending local files to Firebase
-                          final highlightSectionState = _highlightSectionKey.currentState;
+                          final highlightSectionState =
+                              _highlightSectionKey.currentState;
                           if (highlightSectionState != null) {
-                            messageController.add('Uploading files to cloud...');
+                            messageController.add(
+                              'Uploading files to cloud...',
+                            );
                             await highlightSectionState.uploadPendingFiles();
                           }
 
                           // Then save the highlight data
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
                             // Update progress: Success
-                            messageController.add('Highlight saved successfully!');
+                            messageController.add(
+                              'Highlight saved successfully!',
+                            );
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Highlight updated successfully', backgroundColor: Colors.green.shade100, colorText: Colors.green.shade800);
+                              Get.snackbar(
+                                'Success',
+                                'Highlight updated successfully',
+                                backgroundColor: Colors.green.shade100,
+                                colorText: Colors.green.shade800,
+                              );
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
-                              Get.snackbar('Error', 'Failed to update highlight');
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
+                              Get.snackbar(
+                                'Error',
+                                'Failed to update highlight',
+                              );
                             }
                           }
                         } catch (e) {
@@ -113,8 +137,8 @@ class _CandidateDashboardHighlightState extends State<CandidateDashboardHighligh
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -124,8 +148,8 @@ class _CandidateDashboardHighlightState extends State<CandidateDashboardHighligh
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -136,8 +160,8 @@ class _CandidateDashboardHighlightState extends State<CandidateDashboardHighligh
                   heroTag: 'edit_highlight',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Highlight',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

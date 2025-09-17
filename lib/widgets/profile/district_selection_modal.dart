@@ -94,7 +94,9 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
     final districtLower = districtName.toLowerCase();
     final equivalents = marathiEquivalents[query] ?? [];
 
-    return equivalents.any((equivalent) => districtLower.contains(equivalent.toLowerCase()));
+    return equivalents.any(
+      (equivalent) => districtLower.contains(equivalent.toLowerCase()),
+    );
   }
 
   @override
@@ -213,31 +215,44 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                     itemCount: filteredDistricts.length,
                     itemBuilder: (context, index) {
                       final district = filteredDistricts[index];
-                      final isSelected = widget.selectedDistrictId == district.districtId;
-                      final hasBodies = widget.districtBodies[district.districtId]?.isNotEmpty ?? false;
+                      final isSelected =
+                          widget.selectedDistrictId == district.districtId;
+                      final hasBodies =
+                          widget
+                              .districtBodies[district.districtId]
+                              ?.isNotEmpty ??
+                          false;
                       final isDisabled = !hasBodies;
 
                       return InkWell(
-                        onTap: isDisabled ? null : () {
-                          widget.onDistrictSelected(district.districtId);
-                          Navigator.of(context).pop();
-                        },
+                        onTap: isDisabled
+                            ? null
+                            : () {
+                                widget.onDistrictSelected(district.districtId);
+                                Navigator.of(context).pop();
+                              },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Colors.blue.shade50
                                 : isDisabled
-                                    ? Colors.grey.shade100
-                                    : Colors.white,
+                                ? Colors.grey.shade100
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
                                   ? Colors.blue.shade200
                                   : isDisabled
-                                      ? Colors.grey.shade300
-                                      : Colors.grey.shade200,
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: isSelected
@@ -246,7 +261,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                       color: Colors.blue.shade100,
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -254,7 +269,9 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                             children: [
                               Icon(
                                 Icons.location_city,
-                                color: isDisabled ? Colors.grey.shade400 : Colors.blue,
+                                color: isDisabled
+                                    ? Colors.grey.shade400
+                                    : Colors.blue,
                                 size: 24,
                               ),
                               const SizedBox(width: 16),
@@ -270,8 +287,8 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                         color: isSelected
                                             ? Colors.blue.shade800
                                             : isDisabled
-                                                ? Colors.grey.shade500
-                                                : Colors.black87,
+                                            ? Colors.grey.shade500
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -281,16 +298,22 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                           district.districtId.toUpperCase(),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: isDisabled ? Colors.grey.shade400 : Colors.grey.shade600,
+                                            color: isDisabled
+                                                ? Colors.grey.shade400
+                                                : Colors.grey.shade600,
                                           ),
                                         ),
                                         if (isDisabled) ...[
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: Colors.red.shade100,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             child: Text(
                                               'No Areas',

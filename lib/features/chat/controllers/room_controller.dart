@@ -18,7 +18,9 @@ class RoomController extends GetxController {
   final Map<String, String> _lastMessageSenders = {};
 
   // Load chat rooms for user
-  Future<void> loadChatRooms(String userId, String userRole, {
+  Future<void> loadChatRooms(
+    String userId,
+    String userRole, {
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -69,7 +71,8 @@ class RoomController extends GetxController {
   }
 
   // Update last message info
-  void updateLastMessageInfo(String roomId, {
+  void updateLastMessageInfo(
+    String roomId, {
     DateTime? time,
     String? preview,
     String? sender,
@@ -96,12 +99,11 @@ class RoomController extends GetxController {
           lastMessagePreview: _lastMessagePreviews[room.roomId],
           lastMessageSender: _lastMessageSenders[room.roomId],
         );
-      }).toList()
-        ..sort((a, b) {
-          final aTime = a.lastMessageTime ?? a.room.createdAt;
-          final bTime = b.lastMessageTime ?? b.room.createdAt;
-          return bTime.compareTo(aTime);
-        })
+      }).toList()..sort((a, b) {
+        final aTime = a.lastMessageTime ?? a.room.createdAt;
+        final bTime = b.lastMessageTime ?? b.room.createdAt;
+        return bTime.compareTo(aTime);
+      }),
     );
   }
 

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class DeviceInfo {
@@ -141,15 +140,17 @@ class DeviceService {
 
       // Send sign-out notifications to other devices
       await _notifyOtherDevicesSignOut(userId, deviceId);
-
     } catch (e) {
-    debugPrint('Error registering device: $e');
+      debugPrint('Error registering device: $e');
       throw Exception('Failed to register device');
     }
   }
 
   // Deactivate all other devices
-  Future<void> _deactivateOtherDevices(String userId, String currentDeviceId) async {
+  Future<void> _deactivateOtherDevices(
+    String userId,
+    String currentDeviceId,
+  ) async {
     try {
       final devicesRef = _firestore
           .collection('users')
@@ -170,12 +171,15 @@ class DeviceService {
 
       await batch.commit();
     } catch (e) {
-    debugPrint('Error deactivating other devices: $e');
+      debugPrint('Error deactivating other devices: $e');
     }
   }
 
   // Send sign-out notifications to other devices
-  Future<void> _notifyOtherDevicesSignOut(String userId, String currentDeviceId) async {
+  Future<void> _notifyOtherDevicesSignOut(
+    String userId,
+    String currentDeviceId,
+  ) async {
     try {
       final devicesRef = _firestore
           .collection('users')
@@ -197,7 +201,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-    debugPrint('Error sending sign-out notifications: $e');
+      debugPrint('Error sending sign-out notifications: $e');
     }
   }
 
@@ -206,7 +210,7 @@ class DeviceService {
     try {
       // Note: In a real implementation, you'd send this via your backend
       // For now, we'll just print the token for demonstration
-    debugPrint('Would send sign-out notification to device: $deviceToken');
+      debugPrint('Would send sign-out notification to device: $deviceToken');
 
       // You can implement FCM message sending here or via cloud functions
       // Example:
@@ -218,9 +222,8 @@ class DeviceService {
             'message': 'You have been signed out due to login from another device'
           });
       */
-
     } catch (e) {
-    debugPrint('Error sending FCM notification: $e');
+      debugPrint('Error sending FCM notification: $e');
     }
   }
 
@@ -242,7 +245,7 @@ class DeviceService {
 
       return false;
     } catch (e) {
-    debugPrint('Error checking device status: $e');
+      debugPrint('Error checking device status: $e');
       return false;
     }
   }
@@ -261,7 +264,7 @@ class DeviceService {
           .map((doc) => DeviceInfo.fromMap(doc.data()))
           .toList();
     } catch (e) {
-    debugPrint('Error getting user devices: $e');
+      debugPrint('Error getting user devices: $e');
       return [];
     }
   }
@@ -291,7 +294,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-    debugPrint('Error signing out device: $e');
+      debugPrint('Error signing out device: $e');
       throw Exception('Failed to sign out device');
     }
   }
@@ -324,7 +327,10 @@ class DeviceService {
   }
 
   // Clean up inactive devices (optional maintenance function)
-  Future<void> cleanupInactiveDevices(String userId, {Duration maxAge = const Duration(days: 30)}) async {
+  Future<void> cleanupInactiveDevices(
+    String userId, {
+    Duration maxAge = const Duration(days: 30),
+  }) async {
     try {
       final cutoffDate = DateTime.now().subtract(maxAge);
 
@@ -344,7 +350,7 @@ class DeviceService {
 
       await batch.commit();
     } catch (e) {
-    debugPrint('Error cleaning up inactive devices: $e');
+      debugPrint('Error cleaning up inactive devices: $e');
     }
   }
 }

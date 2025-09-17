@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../l10n/app_localizations.dart';
 import '../../controllers/login_controller.dart';
 import '../../controllers/chat_controller.dart';
-import '../../models/user_model.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -24,7 +23,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     final localizations = AppLocalizations.of(context)!;
 
     if (selectedRole == null) {
-      Get.snackbar(localizations.error, localizations.pleaseSelectARoleToContinue);
+      Get.snackbar(
+        localizations.error,
+        localizations.pleaseSelectARoleToContinue,
+      );
       return;
     }
 
@@ -42,10 +44,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
-          .update({
-            'role': selectedRole,
-            'roleSelected': true,
-          });
+          .update({'role': selectedRole, 'roleSelected': true});
 
       // After role selection, navigate to profile completion
       if (selectedRole == 'candidate') {
@@ -64,9 +63,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           duration: const Duration(seconds: 3),
         );
       }
-
     } catch (e) {
-      Get.snackbar(localizations.error, localizations.failedToSaveRole(e.toString()));
+      Get.snackbar(
+        localizations.error,
+        localizations.failedToSaveRole(e.toString()),
+      );
     }
 
     setState(() {
@@ -83,7 +84,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         'id': 'voter',
         'title': localizations.voter,
         'subtitle': localizations.stayInformedAndParticipateInDiscussions,
-        'description': localizations.accessWardDiscussionsPollsAndCommunityUpdates,
+        'description':
+            localizations.accessWardDiscussionsPollsAndCommunityUpdates,
         'icon': Icons.how_to_vote,
         'color': Colors.blue,
       },
@@ -91,7 +93,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         'id': 'candidate',
         'title': localizations.candidate,
         'subtitle': localizations.runForOfficeAndConnectWithVoters,
-        'description': localizations.createYourProfileShareManifestoAndEngageWithCommunity,
+        'description':
+            localizations.createYourProfileShareManifestoAndEngageWithCommunity,
         'icon': Icons.account_balance,
         'color': Colors.green,
       },
@@ -120,10 +123,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               const SizedBox(height: 8),
               Text(
                 localizations.selectYourRoleToCustomizeExperience,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
               const SizedBox(height: 32),
 
@@ -141,7 +141,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: isSelected ? role['color'] : Colors.transparent,
+                          color: isSelected
+                              ? role['color']
+                              : Colors.transparent,
                           width: 2,
                         ),
                       ),
@@ -182,7 +184,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
-                                        color: isSelected ? role['color'] : Colors.black87,
+                                        color: isSelected
+                                            ? role['color']
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -228,7 +232,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : _saveRole,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: selectedRole != null ? Colors.blue : Colors.grey,
+                    backgroundColor: selectedRole != null
+                        ? Colors.blue
+                        : Colors.grey,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -236,12 +242,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                             localizations.continueButton,
-                             style: TextStyle(
-                               fontSize: 16,
-                               fontWeight: FontWeight.bold,
-                             ),
-                           ),
+                          localizations.continueButton,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 

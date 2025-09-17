@@ -23,12 +23,11 @@ class MediaItem {
     List<String>? videos,
     List<String>? youtubeLinks,
     Map<String, int>? likes,
-  }) :
-    date = date ?? DateTime.now().toIso8601String().split('T')[0],
-    images = images ?? [],
-    videos = videos ?? [],
-    youtubeLinks = youtubeLinks ?? [],
-    likes = likes ?? {};
+  }) : date = date ?? DateTime.now().toIso8601String().split('T')[0],
+       images = images ?? [],
+       videos = videos ?? [],
+       youtubeLinks = youtubeLinks ?? [],
+       likes = likes ?? {};
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     return MediaItem(
@@ -47,16 +46,17 @@ class MediaTabView extends StatefulWidget {
   final bool isOwnProfile;
 
   const MediaTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-  }) : super(key: key);
+  });
 
   @override
   State<MediaTabView> createState() => _MediaTabViewState();
 }
 
-class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClientMixin {
+class _MediaTabViewState extends State<MediaTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -68,11 +68,11 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
     List<MediaItem> mediaItems = [];
     try {
       final media = widget.candidate.extraInfo?.media;
-      if (media != null && media is List<dynamic> && media.isNotEmpty) {
+      if (media != null && media.isNotEmpty) {
         // Handle current format - List of media items (from edit component)
         final List<dynamic> mediaList = media;
-        mediaItems = mediaList.where((item) => item is Map<String, dynamic>).map((item) {
-          return MediaItem.fromJson(item as Map<String, dynamic>);
+        mediaItems = mediaList.whereType<Map<String, dynamic>>().map((item) {
+          return MediaItem.fromJson(item);
         }).toList();
       }
     } catch (e) {
@@ -111,10 +111,7 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                   const SizedBox(height: 8),
                   Text(
                     'Photos and videos will appear here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -146,7 +143,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () async {
-                      final youtubeUrl = widget.candidate.contact.socialLinks!['YouTube']!;
+                      final youtubeUrl =
+                          widget.candidate.contact.socialLinks!['YouTube']!;
                       if (await canLaunch(youtubeUrl)) {
                         await launch(youtubeUrl);
                       }
@@ -214,9 +212,7 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
       margin: const EdgeInsets.only(bottom: 20),
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -248,11 +244,7 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.event,
-                    color: Colors.blue.shade600,
-                    size: 24,
-                  ),
+                  Icon(Icons.event, color: Colors.blue.shade600, size: 24),
                 ],
               ),
               const SizedBox(height: 20),
@@ -272,7 +264,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, // Changed from 2 to 3 to show more photos
+                    crossAxisCount:
+                        3, // Changed from 2 to 3 to show more photos
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                     childAspectRatio: 1.0,
@@ -308,7 +301,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                 minHeight: 100,
                                 maxHeight: 100,
                                 borderColor: Colors.transparent,
-                                fullScreenTitle: '${item.title} - Photo ${index + 1}',
+                                fullScreenTitle:
+                                    '${item.title} - Photo ${index + 1}',
                               ),
                               Container(
                                 decoration: BoxDecoration(
@@ -329,12 +323,17 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                       top: 6,
                                       right: 6,
                                       child: GestureDetector(
-                                        onTap: () => _toggleLike(item, 'image_$index'),
+                                        onTap: () =>
+                                            _toggleLike(item, 'image_$index'),
                                         child: Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.9),
-                                            borderRadius: BorderRadius.circular(16),
+                                            color: Colors.white.withOpacity(
+                                              0.9,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -342,7 +341,9 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                               Icon(
                                                 Icons.favorite,
                                                 size: 14,
-                                                color: photoLikes > 0 ? Colors.red : Colors.grey[600],
+                                                color: photoLikes > 0
+                                                    ? Colors.red
+                                                    : Colors.grey[600],
                                               ),
                                               const SizedBox(width: 2),
                                               Text(
@@ -364,10 +365,15 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                       left: 6,
                                       right: 6,
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 3,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.black.withOpacity(0.6),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         child: Text(
                                           'Photo ${index + 1}',
@@ -420,7 +426,9 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                 height: 180,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade300),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
@@ -451,7 +459,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                 top: 8,
                                 right: 8,
                                 child: GestureDetector(
-                                  onTap: () => _toggleLike(item, 'video_$videoIndex'),
+                                  onTap: () =>
+                                      _toggleLike(item, 'video_$videoIndex'),
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
@@ -464,7 +473,9 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                         Icon(
                                           Icons.favorite,
                                           size: 16,
-                                          color: videoLikes > 0 ? Colors.red : Colors.grey[600],
+                                          color: videoLikes > 0
+                                              ? Colors.red
+                                              : Colors.grey[600],
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -496,10 +507,13 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                               ),
                               TextButton.icon(
                                 onPressed: () {
-                                  Get.to(() => VideoPlayerScreen(
-                                    videoUrl: videoUrl,
-                                    title: '${item.title} - Video ${videoIndex + 1}',
-                                  ));
+                                  Get.to(
+                                    () => VideoPlayerScreen(
+                                      videoUrl: videoUrl,
+                                      title:
+                                          '${item.title} - Video ${videoIndex + 1}',
+                                    ),
+                                  );
                                 },
                                 icon: const Icon(Icons.fullscreen, size: 12),
                                 label: const Text('Fullscreen'),
@@ -529,7 +543,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                             top: 8,
                             right: 8,
                             child: GestureDetector(
-                              onTap: () => _toggleLike(item, 'video_$videoIndex'),
+                              onTap: () =>
+                                  _toggleLike(item, 'video_$videoIndex'),
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -542,7 +557,9 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                     Icon(
                                       Icons.favorite,
                                       size: 16,
-                                      color: videoLikes > 0 ? Colors.red : Colors.grey[600],
+                                      color: videoLikes > 0
+                                          ? Colors.red
+                                          : Colors.grey[600],
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -591,7 +608,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                       child: Column(
                         children: [
                           // YouTube video preview (if it's a valid YouTube URL)
-                          if (YoutubePlayer.convertUrlToId(youtubeUrl) != null) ...[
+                          if (YoutubePlayer.convertUrlToId(youtubeUrl) !=
+                              null) ...[
                             Container(
                               height: 120,
                               decoration: BoxDecoration(
@@ -600,7 +618,10 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                   topRight: Radius.circular(10),
                                 ),
                                 border: Border(
-                                  bottom: BorderSide(color: Colors.red.shade200, width: 1),
+                                  bottom: BorderSide(
+                                    color: Colors.red.shade200,
+                                    width: 1,
+                                  ),
                                 ),
                               ),
                               child: ClipRRect(
@@ -612,7 +633,10 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                   children: [
                                     YoutubePlayer(
                                       controller: YoutubePlayerController(
-                                        initialVideoId: YoutubePlayer.convertUrlToId(youtubeUrl)!,
+                                        initialVideoId:
+                                            YoutubePlayer.convertUrlToId(
+                                              youtubeUrl,
+                                            )!,
                                         flags: const YoutubePlayerFlags(
                                           autoPlay: false,
                                           mute: true,
@@ -627,12 +651,19 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                       top: 6,
                                       right: 6,
                                       child: GestureDetector(
-                                        onTap: () => _toggleLike(item, 'youtube_$linkIndex'),
+                                        onTap: () => _toggleLike(
+                                          item,
+                                          'youtube_$linkIndex',
+                                        ),
                                         child: Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.9),
-                                            borderRadius: BorderRadius.circular(16),
+                                            color: Colors.white.withOpacity(
+                                              0.9,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -640,7 +671,9 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                               Icon(
                                                 Icons.favorite,
                                                 size: 14,
-                                                color: youtubeLikes > 0 ? Colors.red : Colors.grey[600],
+                                                color: youtubeLikes > 0
+                                                    ? Colors.red
+                                                    : Colors.grey[600],
                                               ),
                                               const SizedBox(width: 2),
                                               Text(
@@ -680,7 +713,8 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'YouTube Video ${linkIndex + 1}',
@@ -741,7 +775,11 @@ class _MediaTabViewState extends State<MediaTabView> with AutomaticKeepAliveClie
     );
   }
 
-  void _showImageViewer(BuildContext context, String imageUrl, int initialIndex) {
+  void _showImageViewer(
+    BuildContext context,
+    String imageUrl,
+    int initialIndex,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {

@@ -27,7 +27,10 @@ class ProcessedVideo {
   });
 
   /// Create from Cloudinary response
-  factory ProcessedVideo.fromCloudinary(Map<String, dynamic> data, String videoId) {
+  factory ProcessedVideo.fromCloudinary(
+    Map<String, dynamic> data,
+    String videoId,
+  ) {
     final resolutions = <String, VideoResolution>{};
 
     // Parse different resolution formats from Cloudinary
@@ -41,14 +44,20 @@ class ProcessedVideo {
           final url = item['secure_url'] as String?;
           final bytes = item['bytes'] as int?;
 
-          if (format == 'mp4' && url != null && width != null && height != null) {
+          if (format == 'mp4' &&
+              url != null &&
+              width != null &&
+              height != null) {
             final resolution = _getResolutionKey(width, height);
             resolutions[resolution] = VideoResolution(
               url: url,
               width: width,
               height: height,
               size: bytes ?? 0,
-              bitrate: _calculateBitrate(bytes ?? 0, data['duration'] as num? ?? 0),
+              bitrate: _calculateBitrate(
+                bytes ?? 0,
+                data['duration'] as num? ?? 0,
+              ),
             );
           }
         }
@@ -88,8 +97,11 @@ class ProcessedVideo {
       hlsUrl: data['hlsUrl'] as String?,
       duration: data['duration'] as int? ?? 0,
       thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
-      analytics: VideoAnalytics.fromMap(data['analytics'] as Map<String, dynamic>? ?? {}),
-      processedAt: (data['processedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      analytics: VideoAnalytics.fromMap(
+        data['analytics'] as Map<String, dynamic>? ?? {},
+      ),
+      processedAt:
+          (data['processedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: data['status'] as String? ?? 'processing',
       errorMessage: data['errorMessage'] as String?,
     );
@@ -120,14 +132,14 @@ class ProcessedVideo {
     // Return highest quality for WiFi, lower quality for mobile
     if (connectionType == 'wifi') {
       return resolutions['1080p']?.url ??
-             resolutions['720p']?.url ??
-             resolutions['480p']?.url ??
-             originalUrl;
+          resolutions['720p']?.url ??
+          resolutions['480p']?.url ??
+          originalUrl;
     } else {
       return resolutions['480p']?.url ??
-             resolutions['360p']?.url ??
-             resolutions['240p']?.url ??
-             originalUrl;
+          resolutions['360p']?.url ??
+          resolutions['240p']?.url ??
+          originalUrl;
     }
   }
 
@@ -158,7 +170,10 @@ class ProcessedVideo {
   static String _generateThumbnailUrl(String videoUrl) {
     // Generate thumbnail URL from video URL (Cloudinary format)
     if (videoUrl.contains('cloudinary.com')) {
-      return videoUrl.replaceAll('/upload/', '/upload/so_0,eo_1,f_jpg,w_320,h_180,c_fill/');
+      return videoUrl.replaceAll(
+        '/upload/',
+        '/upload/so_0,eo_1,f_jpg,w_320,h_180,c_fill/',
+      );
     }
     return videoUrl; // Fallback
   }
@@ -308,7 +323,11 @@ class VideoProcessingConfig {
     this.maxFileSize = 500,
     this.allowedFormats = const ['mp4', 'mov', 'avi', 'mkv'],
     this.qualitySettings = const {
-      '1080p': VideoQualitySettings(width: 1920, height: 1080, bitrate: 4000000),
+      '1080p': VideoQualitySettings(
+        width: 1920,
+        height: 1080,
+        bitrate: 4000000,
+      ),
       '720p': VideoQualitySettings(width: 1280, height: 720, bitrate: 2500000),
       '480p': VideoQualitySettings(width: 854, height: 480, bitrate: 1200000),
       '360p': VideoQualitySettings(width: 640, height: 360, bitrate: 800000),
@@ -332,5 +351,6 @@ class VideoQualitySettings {
   });
 
   String get resolutionLabel => '${height}p';
-  String get formattedBitrate => '${(bitrate / 1000000).toStringAsFixed(1)} Mbps';
+  String get formattedBitrate =>
+      '${(bitrate / 1000000).toStringAsFixed(1)} Mbps';
 }

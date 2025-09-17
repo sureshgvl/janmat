@@ -9,14 +9,15 @@ import '../../widgets/candidate/follow_button.dart';
 import 'candidate_profile_screen.dart';
 
 class MyAreaCandidatesScreen extends StatefulWidget {
-  const MyAreaCandidatesScreen({Key? key}) : super(key: key);
+  const MyAreaCandidatesScreen({super.key});
 
   @override
   State<MyAreaCandidatesScreen> createState() => _MyAreaCandidatesScreenState();
 }
 
 class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
-  final CandidateController candidateController = Get.find<CandidateController>();
+  final CandidateController candidateController =
+      Get.find<CandidateController>();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   UserModel? currentUser;
 
@@ -42,7 +43,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
           await candidateController.fetchCandidatesByWard(
             currentUser!.districtId!,
             currentUser!.bodyId!,
-            currentUser!.wardId
+            currentUser!.wardId,
           );
 
           // If current user is a candidate, add them to the list
@@ -51,7 +52,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
           }
         }
       } catch (e) {
-      debugPrint('Error loading user data: $e');
+        debugPrint('Error loading user data: $e');
       }
     }
   }
@@ -59,12 +60,14 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
   Future<void> _addCurrentUserToCandidatesList() async {
     try {
       // Get current user's candidate data using the repository method
-      final currentUserCandidate = await candidateController.candidateRepository.getCandidateData(currentUserId!);
+      final currentUserCandidate = await candidateController.candidateRepository
+          .getCandidateData(currentUserId!);
 
       if (currentUserCandidate != null) {
         // Check if current user is already in the list (avoid duplicates)
-        final existingIndex = candidateController.candidates
-            .indexWhere((c) => c.candidateId == currentUserCandidate.candidateId);
+        final existingIndex = candidateController.candidates.indexWhere(
+          (c) => c.candidateId == currentUserCandidate.candidateId,
+        );
 
         if (existingIndex == -1) {
           // Add current user to the beginning of the list
@@ -73,7 +76,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         }
       }
     } catch (e) {
-    debugPrint('Error adding current user to candidates list: $e');
+      debugPrint('Error adding current user to candidates list: $e');
     }
   }
 
@@ -89,9 +92,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
       body: GetBuilder<CandidateController>(
         builder: (controller) {
           if (controller.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (controller.errorMessage != null) {
@@ -99,11 +100,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'Failed to load candidates',
@@ -116,10 +113,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                   const SizedBox(height: 8),
                   Text(
                     controller.errorMessage!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -137,11 +131,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No candidates in your area',
@@ -154,10 +144,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'There are no registered candidates in your ward yet.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -187,9 +174,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: isCurrentUser ? 4 : 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Get.to(() => const CandidateProfileScreen(), arguments: candidate);
@@ -198,7 +183,9 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: isCurrentUser ? Border.all(color: Colors.blue, width: 2) : null,
+            border: isCurrentUser
+                ? Border.all(color: Colors.blue, width: 2)
+                : null,
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -215,18 +202,24 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isCurrentUser ? Colors.blue : Colors.grey.shade300,
+                          color: isCurrentUser
+                              ? Colors.blue
+                              : Colors.grey.shade300,
                           width: isCurrentUser ? 3 : 1,
                         ),
                       ),
                       child: ClipOval(
-                        child: candidate.photo != null && candidate.photo!.isNotEmpty
+                        child:
+                            candidate.photo != null &&
+                                candidate.photo!.isNotEmpty
                             ? Image.network(
                                 candidate.photo!,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return CircleAvatar(
-                                    backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                                    backgroundColor: candidate.sponsored
+                                        ? Colors.grey.shade600
+                                        : Colors.blue,
                                     child: Text(
                                       candidate.name[0].toUpperCase(),
                                       style: const TextStyle(
@@ -239,7 +232,9 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                                 },
                               )
                             : CircleAvatar(
-                                backgroundColor: candidate.sponsored ? Colors.grey.shade600 : Colors.blue,
+                                backgroundColor: candidate.sponsored
+                                    ? Colors.grey.shade600
+                                    : Colors.blue,
                                 child: Text(
                                   candidate.name[0].toUpperCase(),
                                   style: const TextStyle(
@@ -268,7 +263,9 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: isCurrentUser ? Colors.blue : const Color(0xFF1f2937),
+                                          color: isCurrentUser
+                                              ? Colors.blue
+                                              : const Color(0xFF1f2937),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -277,10 +274,15 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                                     if (isCurrentUser) ...[
                                       const SizedBox(width: 8),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade100,
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: const Text(
                                           'YOU',
@@ -299,7 +301,10 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                                 Flexible(
                                   child: Container(
                                     margin: const EdgeInsets.only(left: 8),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.circular(8),
@@ -331,66 +336,67 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                     ),
                   ],
                 ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // Stats Row
-              Row(
-                children: [
-                  _buildStatItem('${candidate.followersCount}', 'Followers'),
-                  const SizedBox(width: 16),
-                  _buildStatItem('${candidate.followingCount}', 'Following'),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Manifesto preview
-              if (candidate.manifesto != null && candidate.manifesto!.isNotEmpty)
-                Text(
-                  candidate.manifesto!.length > 100
-                      ? '${candidate.manifesto!.substring(0, 100)}...'
-                      : candidate.manifesto!,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF374151),
-                    height: 1.4,
-                  ),
+                // Stats Row
+                Row(
+                  children: [
+                    _buildStatItem('${candidate.followersCount}', 'Followers'),
+                    const SizedBox(width: 16),
+                    _buildStatItem('${candidate.followingCount}', 'Following'),
+                  ],
                 ),
+                const SizedBox(height: 12),
 
-              const SizedBox(height: 16),
-
-              // Follow Button (don't show for current user)
-              if (currentUserId != null && !isCurrentUser)
-                SizedBox(
-                  width: double.infinity,
-                  child: FollowButton(
-                    candidateId: candidate.candidateId,
-                    userId: currentUserId!,
-                    showFollowersCount: false,
-                    onFollowChanged: () {
-                      setState(() {});
-                    },
+                // Manifesto preview
+                if (candidate.manifesto != null &&
+                    candidate.manifesto!.isNotEmpty)
+                  Text(
+                    candidate.manifesto!.length > 100
+                        ? '${candidate.manifesto!.substring(0, 100)}...'
+                        : candidate.manifesto!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF374151),
+                      height: 1.4,
+                    ),
                   ),
-                ),
 
-              // Current user indicator
-              if (isCurrentUser)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 16),
+
+                // Follow Button (don't show for current user)
+                if (currentUserId != null && !isCurrentUser)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FollowButton(
+                      candidateId: candidate.candidateId,
+                      userId: currentUserId!,
+                      showFollowersCount: false,
+                      onFollowChanged: () {
+                        setState(() {});
+                      },
+                    ),
                   ),
-                  child: const Center(
-                    child: Text(
-                      'This is your profile',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
+
+                // Current user indicator
+                if (isCurrentUser)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'This is your profile',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -413,10 +419,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF6b7280),
-          ),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6b7280)),
         ),
       ],
     );

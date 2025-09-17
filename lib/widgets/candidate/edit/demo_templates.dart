@@ -8,7 +8,8 @@ class DemoTemplates {
       {
         'id': 'demo_education',
         'title': 'Education for All',
-        'description': 'Free quality education from kindergarten to university level. Increased funding for schools and teacher training programs.',
+        'description':
+            'Free quality education from kindergarten to university level. Increased funding for schools and teacher training programs.',
         'category': 'Education',
         'priority': 1,
         'isCompleted': false,
@@ -18,7 +19,8 @@ class DemoTemplates {
       {
         'id': 'demo_healthcare',
         'title': 'Universal Healthcare',
-        'description': 'Comprehensive healthcare coverage for all citizens. Building new hospitals and upgrading existing medical facilities.',
+        'description':
+            'Comprehensive healthcare coverage for all citizens. Building new hospitals and upgrading existing medical facilities.',
         'category': 'Healthcare',
         'priority': 2,
         'isCompleted': false,
@@ -28,7 +30,8 @@ class DemoTemplates {
       {
         'id': 'demo_economy',
         'title': 'Economic Growth',
-        'description': 'Creating jobs through infrastructure development and supporting local businesses. Focus on sustainable economic policies.',
+        'description':
+            'Creating jobs through infrastructure development and supporting local businesses. Focus on sustainable economic policies.',
         'category': 'Economy',
         'priority': 3,
         'isCompleted': false,
@@ -38,7 +41,8 @@ class DemoTemplates {
       {
         'id': 'demo_environment',
         'title': 'Green Environment',
-        'description': 'Protecting our environment through renewable energy initiatives and sustainable development practices.',
+        'description':
+            'Protecting our environment through renewable energy initiatives and sustainable development practices.',
         'category': 'Environment',
         'priority': 4,
         'isCompleted': false,
@@ -48,7 +52,8 @@ class DemoTemplates {
       {
         'id': 'demo_infrastructure',
         'title': 'Modern Infrastructure',
-        'description': 'Building world-class roads, bridges, and public transportation systems to improve connectivity and quality of life.',
+        'description':
+            'Building world-class roads, bridges, and public transportation systems to improve connectivity and quality of life.',
         'category': 'Infrastructure',
         'priority': 5,
         'isCompleted': false,
@@ -78,11 +83,7 @@ class DemoTemplates {
 
   /// Get demo file sizes (in MB)
   static Map<String, double> getDemoFileSizes() {
-    return {
-      'pdf': 2.5,
-      'image': 1.8,
-      'video': 15.3,
-    };
+    return {'pdf': 2.5, 'image': 1.8, 'video': 15.3};
   }
 
   /// Get sample manifesto text content
@@ -144,11 +145,7 @@ Sincerely,
 
   /// Get sample priority levels
   static List<String> getPriorityLevels() {
-    return [
-      'High Priority',
-      'Medium Priority',
-      'Low Priority',
-    ];
+    return ['High Priority', 'Medium Priority', 'Low Priority'];
   }
 
   /// Get sample timeline options

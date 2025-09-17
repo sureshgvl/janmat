@@ -1,7 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Reusable file upload components for candidate profile editing

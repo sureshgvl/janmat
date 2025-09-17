@@ -14,7 +14,8 @@ class AreaInWardSelectionModal extends StatefulWidget {
   });
 
   @override
-  State<AreaInWardSelectionModal> createState() => _AreaInWardSelectionModalState();
+  State<AreaInWardSelectionModal> createState() =>
+      _AreaInWardSelectionModalState();
 }
 
 class _AreaInWardSelectionModalState extends State<AreaInWardSelectionModal> {
@@ -40,9 +41,9 @@ class _AreaInWardSelectionModalState extends State<AreaInWardSelectionModal> {
 
         // Search in both original and transliterated forms
         return areaLower.contains(query.toLowerCase()) ||
-               areaTransliterated.contains(transliteratedQuery) ||
-               areaLower.contains(transliteratedQuery) ||
-               areaTransliterated.contains(query.toLowerCase());
+            areaTransliterated.contains(transliteratedQuery) ||
+            areaLower.contains(transliteratedQuery) ||
+            areaTransliterated.contains(query.toLowerCase());
       }).toList();
     }
     setState(() {});
@@ -247,13 +248,23 @@ class _AreaInWardSelectionModalState extends State<AreaInWardSelectionModal> {
                           Navigator.of(context).pop();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? Colors.green.shade50 : Colors.white,
+                            color: isSelected
+                                ? Colors.green.shade50
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? Colors.green.shade200 : Colors.grey.shade200,
+                              color: isSelected
+                                  ? Colors.green.shade200
+                                  : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: isSelected
@@ -262,7 +273,7 @@ class _AreaInWardSelectionModalState extends State<AreaInWardSelectionModal> {
                                       color: Colors.green.shade100,
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -280,7 +291,9 @@ class _AreaInWardSelectionModalState extends State<AreaInWardSelectionModal> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
-                                    color: isSelected ? Colors.green.shade800 : Colors.black87,
+                                    color: isSelected
+                                        ? Colors.green.shade800
+                                        : Colors.black87,
                                   ),
                                 ),
                               ),

@@ -81,7 +81,11 @@ class ChatRoomHelpers {
   }
 
   // Get message status icon
-  static IconData? getMessageStatusIcon(bool isCurrentUser, List<String> readBy, int totalMembers) {
+  static IconData? getMessageStatusIcon(
+    bool isCurrentUser,
+    List<String> readBy,
+    int totalMembers,
+  ) {
     if (!isCurrentUser) return null;
 
     if (readBy.length > 1) {
@@ -92,7 +96,11 @@ class ChatRoomHelpers {
   }
 
   // Get message status color
-  static Color getMessageStatusColor(bool isCurrentUser, List<String> readBy, int totalMembers) {
+  static Color getMessageStatusColor(
+    bool isCurrentUser,
+    List<String> readBy,
+    int totalMembers,
+  ) {
     if (!isCurrentUser) return Colors.transparent;
 
     if (readBy.length > 1) {
@@ -191,7 +199,9 @@ class ChatRoomHelpers {
       return 'Poll cannot have more than 10 options';
     }
 
-    final validOptions = options.where((option) => option.trim().isNotEmpty).toList();
+    final validOptions = options
+        .where((option) => option.trim().isNotEmpty)
+        .toList();
     if (validOptions.length < 2) {
       return 'Poll must have at least 2 valid options';
     }
@@ -213,32 +223,16 @@ class ChatRoomHelpers {
   // Get attachment option icons
   static List<Map<String, dynamic>> getAttachmentOptions() {
     return [
-      {
-        'icon': Icons.image,
-        'label': 'Send Image',
-        'action': 'image',
-      },
-      {
-        'icon': Icons.poll,
-        'label': 'Create Poll',
-        'action': 'poll',
-      },
+      {'icon': Icons.image, 'label': 'Send Image', 'action': 'image'},
+      {'icon': Icons.poll, 'label': 'Create Poll', 'action': 'poll'},
     ];
   }
 
   // Get room action options
   static List<Map<String, dynamic>> getRoomActionOptions() {
     return [
-      {
-        'icon': Icons.info,
-        'label': 'Room Info',
-        'action': 'info',
-      },
-      {
-        'icon': Icons.exit_to_app,
-        'label': 'Leave Room',
-        'action': 'leave',
-      },
+      {'icon': Icons.info, 'label': 'Room Info', 'action': 'info'},
+      {'icon': Icons.exit_to_app, 'label': 'Leave Room', 'action': 'leave'},
     ];
   }
 
@@ -256,11 +250,7 @@ class ChatRoomHelpers {
           'label': 'Add Reaction',
           'action': 'react',
         },
-        {
-          'icon': Icons.report,
-          'label': 'Report Message',
-          'action': 'report',
-        },
+        {'icon': Icons.report, 'label': 'Report Message', 'action': 'report'},
       ]);
     }
 

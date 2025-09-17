@@ -31,19 +31,25 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
       }
 
       return Scaffold(
-        
         body: SingleChildScrollView(
           child: BasicInfoSection(
             candidateData: controller.candidateData.value!,
             editedData: controller.editedData.value,
             isEditing: isEditing,
-            getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: controller.candidateData.value),
+            getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(
+              party,
+              candidate: controller.candidateData.value,
+            ),
             onNameChange: (value) => controller.updateBasicInfo('name', value),
-            onCityChange: (value) => controller.updateBasicInfo('districtId', value),
-            onWardChange: (value) => controller.updateBasicInfo('wardId', value),
-            onPartyChange: (value) => controller.updateBasicInfo('party', value),
+            onCityChange: (value) =>
+                controller.updateBasicInfo('districtId', value),
+            onWardChange: (value) =>
+                controller.updateBasicInfo('wardId', value),
+            onPartyChange: (value) =>
+                controller.updateBasicInfo('party', value),
             onPhotoChange: (value) => controller.updatePhoto(value),
-            onBasicInfoChange: (field, value) => controller.updateBasicInfo(field, value),
+            onBasicInfoChange: (field, value) =>
+                controller.updateBasicInfo(field, value),
           ),
         ),
         floatingActionButton: isEditing
@@ -57,7 +63,9 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
                       onPressed: () async {
                         // Create a stream controller for progress updates
                         final messageController = StreamController<String>();
-                        messageController.add('Preparing to save basic info...');
+                        messageController.add(
+                          'Preparing to save basic info...',
+                        );
 
                         // Show loading dialog with message stream
                         LoadingDialog.show(
@@ -68,22 +76,31 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
 
                         try {
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
                             // Update progress: Success
-                            messageController.add('Basic info saved successfully!');
+                            messageController.add(
+                              'Basic info saved successfully!',
+                            );
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
                               Get.snackbar(
                                 AppLocalizations.of(context)!.success,
-                                AppLocalizations.of(context)!.basicInfoUpdatedSuccessfully,
+                                AppLocalizations.of(
+                                  context,
+                                )!.basicInfoUpdatedSuccessfully,
                                 backgroundColor: Colors.green.shade600,
                                 colorText: Colors.white,
                                 snackPosition: SnackPosition.TOP,
@@ -92,7 +109,9 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               Get.snackbar(
                                 AppLocalizations.of(context)!.error,
                                 'Failed to update basic info',
@@ -119,8 +138,8 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -130,8 +149,8 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -142,8 +161,8 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
                   heroTag: 'edit_info',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Basic Info',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

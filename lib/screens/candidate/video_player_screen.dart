@@ -7,10 +7,10 @@ class VideoPlayerScreen extends StatefulWidget {
   final String title;
 
   const VideoPlayerScreen({
-    Key? key,
+    super.key,
     required this.videoUrl,
     required this.title,
-  }) : super(key: key);
+  });
 
   @override
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -52,9 +52,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void dispose() {
     // Reset orientation to portrait when leaving video player
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _controller.dispose();
     super.dispose();
   }
@@ -80,11 +78,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           ),
           onReady: () {
             // Video is ready to play
-          debugPrint('Video is ready to play');
+            debugPrint('Video is ready to play');
           },
           onEnded: (data) {
             // Video has ended
-          debugPrint('Video has ended');
+            debugPrint('Video has ended');
           },
         ),
       ),

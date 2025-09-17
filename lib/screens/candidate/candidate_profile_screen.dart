@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
 import '../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_controller.dart';
@@ -13,18 +10,15 @@ import '../../widgets/candidate/view/manifesto_tab_view.dart';
 import '../../widgets/candidate/view/profile_tab_view.dart';
 import '../../widgets/candidate/view/media_tab_view.dart';
 import '../../widgets/candidate/view/contact_tab_view.dart';
-import '../../widgets/candidate/edit/profile_tab_edit.dart';
 import '../../widgets/candidate/edit/achievements_tab_edit.dart';
 import '../../widgets/candidate/edit/events_tab_edit.dart';
 import '../../widgets/candidate/view/voter_events_tab_view.dart';
-import '../../widgets/candidate/edit/highlight_tab_edit.dart';
 import '../../widgets/candidate/view/followers_analytics_tab_view.dart';
 import '../../utils/symbol_utils.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../screens/candidate/followers_list_screen.dart';
 import '../../screens/candidate/candidate_dashboard_screen.dart';
 import '../../screens/home/home_navigation.dart';
-
 
 class CandidateProfileScreen extends StatefulWidget {
   const CandidateProfileScreen({super.key});
@@ -33,14 +27,16 @@ class CandidateProfileScreen extends StatefulWidget {
   State<CandidateProfileScreen> createState() => _CandidateProfileScreenState();
 }
 
-class _CandidateProfileScreenState extends State<CandidateProfileScreen> with TickerProviderStateMixin {
+class _CandidateProfileScreenState extends State<CandidateProfileScreen>
+    with TickerProviderStateMixin {
   Candidate? candidate;
   final CandidateController controller = Get.find<CandidateController>();
-  final CandidateDataController dataController = Get.find<CandidateDataController>();
+  final CandidateDataController dataController =
+      Get.find<CandidateDataController>();
   final CandidateRepository candidateRepository = CandidateRepository();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   TabController? _tabController;
-  bool _isUploadingPhoto = false;
+  final bool _isUploadingPhoto = false;
   bool _isOwnProfile = false;
 
   @override
@@ -56,7 +52,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
       // Handle the case where no candidate data is provided
       // You might want to show an error or navigate back
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.candidateDataNotFound);
+        Get.snackbar(
+          AppLocalizations.of(context)!.error,
+          AppLocalizations.of(context)!.candidateDataNotFound,
+        );
         Get.back();
       });
       return;
@@ -65,7 +64,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
     candidate = Get.arguments as Candidate;
 
     // Determine if this is the user's own profile
-    _isOwnProfile = currentUserId != null && candidate != null && currentUserId == candidate!.userId;
+    _isOwnProfile =
+        currentUserId != null &&
+        candidate != null &&
+        currentUserId == candidate!.userId;
 
     // Add dummy data for demonstration if data is missing
     _addDummyDataIfNeeded();
@@ -129,11 +131,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
       return value;
     }
   }
+
   void _addDummyDataIfNeeded() {
     // Removed all dummy data - now showing actual Firebase data only
     // The app will display real data from Firestore or show empty states
   }
-
 
   // Format date
   String formatDate(DateTime date) {
@@ -161,7 +163,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
 
       // Refresh follow status if user is logged in
       if (currentUserId != null && candidate != null) {
-        await controller.checkFollowStatus(currentUserId!, candidate!.candidateId);
+        await controller.checkFollowStatus(
+          currentUserId!,
+          candidate!.candidateId,
+        );
       }
 
       // Simulate a brief delay for refresh animation
@@ -207,9 +212,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
     return Scaffold(
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
         ),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
@@ -219,10 +222,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
           selectedLabelStyle: const TextStyle(fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(
               icon: Icon(Icons.groups),
               label: 'Candidates',
@@ -273,11 +273,17 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                     children: [
                       // Back Button and Edit Button Row
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+                              icon: const Icon(
+                                Icons.arrow_back_ios,
+                                color: Colors.black,
+                              ),
                               onPressed: () => Navigator.of(context).pop(),
                               tooltip: 'Back',
                             ),
@@ -285,10 +291,15 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                             // Edit Party & Symbol Button (Own Profile Only)
                             if (currentUserId == candidate!.userId)
                               IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.black),
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.black,
+                                ),
                                 onPressed: () {
                                   // Navigate to candidate dashboard screen
-                                  HomeNavigation.toRightToLeft(const CandidateDashboardScreen());
+                                  HomeNavigation.toRightToLeft(
+                                    const CandidateDashboardScreen(),
+                                  );
                                 },
                                 tooltip: 'Edit Profile',
                               ),
@@ -343,26 +354,33 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                                     ],
                                   ),
                                   child: ClipOval(
-                                    child: candidate!.photo != null && candidate!.photo!.isNotEmpty
+                                    child:
+                                        candidate!.photo != null &&
+                                            candidate!.photo!.isNotEmpty
                                         ? Image.network(
                                             candidate!.photo!,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return CircleAvatar(
-                                                backgroundColor: Colors.blue.shade100,
-                                                child: Text(
-                                                  candidate!.name[0].toUpperCase(),
-                                                  style: const TextStyle(
-                                                    color: Colors.blue,
-                                                    fontSize: 32,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              );
-                                            },
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return CircleAvatar(
+                                                    backgroundColor:
+                                                        Colors.blue.shade100,
+                                                    child: Text(
+                                                      candidate!.name[0]
+                                                          .toUpperCase(),
+                                                      style: const TextStyle(
+                                                        color: Colors.blue,
+                                                        fontSize: 32,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
                                           )
                                         : CircleAvatar(
-                                            backgroundColor: Colors.blue.shade100,
+                                            backgroundColor:
+                                                Colors.blue.shade100,
                                             child: Text(
                                               candidate!.name[0].toUpperCase(),
                                               style: const TextStyle(
@@ -399,7 +417,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                                       decoration: BoxDecoration(
                                         color: Colors.blue.shade600,
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
                                       ),
                                       child: const Icon(
                                         Icons.verified,
@@ -452,7 +473,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
 
                       // Follow/Followers/Following Row
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -460,17 +484,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                             if (currentUserId != candidate!.userId)
                               Expanded(
                                 child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                   child: ElevatedButton.icon(
                                     onPressed: () {
                                       // TODO: Implement follow functionality
                                     },
-                                    icon: const Icon(Icons.person_add, size: 16),
+                                    icon: const Icon(
+                                      Icons.person_add,
+                                      size: 16,
+                                    ),
                                     label: const Text('Follow'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -483,18 +514,26 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                             Expanded(
                               child: InkWell(
                                 onTap: () {
-                                  Get.to(() => FollowersListScreen(
-                                    candidateId: candidate!.candidateId,
-                                    candidateName: candidate!.name,
-                                  ));
+                                  Get.to(
+                                    () => FollowersListScreen(
+                                      candidateId: candidate!.candidateId,
+                                      candidateName: candidate!.name,
+                                    ),
+                                  );
                                 },
                                 child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   child: Column(
                                     children: [
                                       Text(
-                                        _formatNumber(candidate!.followersCount.toString()),
+                                        _formatNumber(
+                                          candidate!.followersCount.toString(),
+                                        ),
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -520,7 +559,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                                 onTap: () async {
                                   // Debug: Log all candidate data in system
                                   try {
-                                    final controller = Get.find<CandidateDataController>();
+                                    final controller =
+                                        Get.find<CandidateDataController>();
                                     await controller.logAllCandidateData();
 
                                     // Show detailed candidate info in a dialog
@@ -528,32 +568,56 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                                       context: context,
                                       builder: (BuildContext context) {
                                         return AlertDialog(
-                                          title: const Text('Candidate Data Audit'),
+                                          title: const Text(
+                                            'Candidate Data Audit',
+                                          ),
                                           content: SingleChildScrollView(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Text('Current Candidate: ${candidate!.name}'),
-                                                Text('Party: ${candidate!.party}'),
-                                                Text('ID: ${candidate!.candidateId}'),
-                                                Text('User ID: ${candidate!.userId}'),
-                                                Text('District: ${candidate!.districtId}'),
-                                                Text('Ward: ${candidate!.wardId}'),
-                                                Text('Approved: ${candidate!.approved}'),
-                                                Text('Status: ${candidate!.status}'),
-                                                Text('Followers: ${candidate!.followersCount}'),
+                                                Text(
+                                                  'Current Candidate: ${candidate!.name}',
+                                                ),
+                                                Text(
+                                                  'Party: ${candidate!.party}',
+                                                ),
+                                                Text(
+                                                  'ID: ${candidate!.candidateId}',
+                                                ),
+                                                Text(
+                                                  'User ID: ${candidate!.userId}',
+                                                ),
+                                                Text(
+                                                  'District: ${candidate!.districtId}',
+                                                ),
+                                                Text(
+                                                  'Ward: ${candidate!.wardId}',
+                                                ),
+                                                Text(
+                                                  'Approved: ${candidate!.approved}',
+                                                ),
+                                                Text(
+                                                  'Status: ${candidate!.status}',
+                                                ),
+                                                Text(
+                                                  'Followers: ${candidate!.followersCount}',
+                                                ),
                                                 const SizedBox(height: 16),
                                                 const Text(
                                                   '📊 System audit completed! Check console logs for full details.',
-                                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ],
                                             ),
                                           ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.of(context).pop(),
+                                              onPressed: () =>
+                                                  Navigator.of(context).pop(),
                                               child: const Text('OK'),
                                             ),
                                           ],
@@ -570,12 +634,18 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                                   }
                                 },
                                 child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   child: Column(
                                     children: [
                                       Text(
-                                        _formatNumber(candidate!.followingCount.toString()),
+                                        _formatNumber(
+                                          candidate!.followingCount.toString(),
+                                        ),
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -724,7 +794,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   unselectedLabelColor: Colors.grey,
                   indicatorWeight: 2,
                   labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  labelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                   unselectedLabelStyle: const TextStyle(fontSize: 14),
                   tabAlignment: TabAlignment.start,
                 ),
@@ -740,22 +813,42 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               // Info Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Info Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Info Tab - Party: ${candidate!.party}');
-                  debugPrint('📊 [TAB LOG] Info Tab - District: ${candidate!.districtId}');
-                  debugPrint('📊 [TAB LOG] Info Tab - Ward: ${candidate!.wardId}');
-                  debugPrint('📊 [TAB LOG] Info Tab - Followers: ${candidate!.followersCount}');
-                  debugPrint('📊 [TAB LOG] Info Tab - Following: ${candidate!.followingCount}');
-                  debugPrint('📊 [TAB LOG] Info Tab - Has Basic Info: ${candidate!.extraInfo?.basicInfo != null}');
-                  debugPrint('📊 [TAB LOG] Info Tab - Has Events: ${candidate!.extraInfo?.events?.isNotEmpty ?? false}');
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Party: ${candidate!.party}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - District: ${candidate!.districtId}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Ward: ${candidate!.wardId}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Followers: ${candidate!.followersCount}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Following: ${candidate!.followingCount}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Has Basic Info: ${candidate!.extraInfo?.basicInfo != null}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Info Tab - Has Events: ${candidate!.extraInfo?.events?.isNotEmpty ?? false}',
+                  );
                   return InfoTab(
                     candidate: candidate!,
-                    getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(party, candidate: candidate),
+                    getPartySymbolPath: (party) =>
+                        SymbolUtils.getPartySymbolPath(
+                          party,
+                          candidate: candidate,
+                        ),
                     formatDate: formatDate,
                   );
                 },
               ),
-              
+
               // Manifesto Tab
               Builder(
                 builder: (context) {
@@ -782,7 +875,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                     '📊 [TAB LOG] Manifesto Tab - Has Video: ${candidate!.extraInfo?.manifesto?.videoUrl?.isNotEmpty ?? false}',
                   );
                   debugPrint(
-                    '📊 [TAB LOG] Manifesto Tab - Is Own Profile: ${_isOwnProfile}',
+                    '📊 [TAB LOG] Manifesto Tab - Is Own Profile: $_isOwnProfile',
                   );
                   return ManifestoTabView(
                     candidate: candidate!,
@@ -796,16 +889,29 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               // Profile Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Is Own Profile: ${_isOwnProfile}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Has Basic Info: ${candidate!.extraInfo?.basicInfo != null}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Age: ${candidate!.extraInfo?.basicInfo?.age ?? "Not available"}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Gender: ${candidate!.extraInfo?.basicInfo?.gender ?? "Not available"}');
-                  debugPrint('📊 [TAB LOG] Profile Tab - Education: ${candidate!.extraInfo?.basicInfo?.education ?? "Not available"}');
+                  debugPrint(
+                    '📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Profile Tab - Is Own Profile: $_isOwnProfile',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Profile Tab - Has Basic Info: ${candidate!.extraInfo?.basicInfo != null}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Profile Tab - Age: ${candidate!.extraInfo?.basicInfo?.age ?? "Not available"}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Profile Tab - Gender: ${candidate!.extraInfo?.basicInfo?.gender ?? "Not available"}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Profile Tab - Education: ${candidate!.extraInfo?.basicInfo?.education ?? "Not available"}',
+                  );
                   return ProfileTabView(
                     candidate: candidate!,
                     isOwnProfile: _isOwnProfile,
-                    showVoterInteractions: !_isOwnProfile, // Show like/share buttons for voters only
+                    showVoterInteractions:
+                        !_isOwnProfile, // Show like/share buttons for voters only
                   );
                 },
               ),
@@ -813,10 +919,16 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               // Achievements Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Achievements Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Achievements Tab - Achievement Count: ${candidate!.extraInfo?.achievements?.length ?? 0}');
+                  debugPrint(
+                    '📊 [TAB LOG] Achievements Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Achievements Tab - Achievement Count: ${candidate!.extraInfo?.achievements?.length ?? 0}',
+                  );
                   if (candidate!.extraInfo?.achievements?.isNotEmpty ?? false) {
-                    debugPrint('📊 [TAB LOG] Achievements Tab - First Achievement: ${candidate!.extraInfo!.achievements!.first.title}');
+                    debugPrint(
+                      '📊 [TAB LOG] Achievements Tab - First Achievement: ${candidate!.extraInfo!.achievements!.first.title}',
+                    );
                   }
                   return AchievementsSection(
                     candidateData: candidate!,
@@ -826,7 +938,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
                   );
                 },
               ),
-              
 
               // Media Tab
               Builder(
@@ -850,12 +961,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               // Contact Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Contact Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Contact Tab - Has Contact Info: ${candidate!.extraInfo?.contact != null}');
-                  debugPrint('📊 [TAB LOG] Contact Tab - Phone: ${candidate!.extraInfo?.contact?.phone ?? "Not available"}');
-                  debugPrint('📊 [TAB LOG] Contact Tab - Email: ${candidate!.extraInfo?.contact?.email ?? "Not available"}');
-                  debugPrint('📊 [TAB LOG] Contact Tab - Address: ${candidate!.extraInfo?.contact?.address ?? "Not available"}');
-                  debugPrint('📊 [TAB LOG] Contact Tab - Has Social Links: ${candidate!.extraInfo?.contact?.socialLinks?.isNotEmpty ?? false}');
+                  debugPrint(
+                    '📊 [TAB LOG] Contact Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Contact Tab - Has Contact Info: ${candidate!.extraInfo?.contact != null}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Contact Tab - Phone: ${candidate!.extraInfo?.contact?.phone ?? "Not available"}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Contact Tab - Email: ${candidate!.extraInfo?.contact?.email ?? "Not available"}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Contact Tab - Address: ${candidate!.extraInfo?.contact?.address ?? "Not available"}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Contact Tab - Has Social Links: ${candidate!.extraInfo?.contact?.socialLinks?.isNotEmpty ?? false}',
+                  );
                   return ContactTab(candidate: candidate!);
                 },
               ),
@@ -863,27 +986,33 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               // Events Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Events Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Events Tab - Is Own Profile: ${currentUserId == candidate!.userId}');
-                  debugPrint('📊 [TAB LOG] Events Tab - Events Count: ${candidate!.extraInfo?.events?.length ?? 0}');
+                  debugPrint(
+                    '📊 [TAB LOG] Events Tab - Candidate: ${candidate!.name}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Events Tab - Is Own Profile: ${currentUserId == candidate!.userId}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Events Tab - Events Count: ${candidate!.extraInfo?.events?.length ?? 0}',
+                  );
                   if (candidate!.extraInfo?.events?.isNotEmpty ?? false) {
-                    debugPrint('📊 [TAB LOG] Events Tab - First Event: ${candidate!.extraInfo!.events!.first.title}');
+                    debugPrint(
+                      '📊 [TAB LOG] Events Tab - First Event: ${candidate!.extraInfo!.events!.first.title}',
+                    );
                   }
                   if (currentUserId == candidate!.userId) {
-                  return EventsTabEdit(
-                    candidateData: candidate!,
-                    editedData: null,
-                    isEditing: false,
-                    onEventsChange: (value) {},
-                  );
-                  } else {
-                    return VoterEventsSection(
+                    return EventsTabEdit(
                       candidateData: candidate!,
+                      editedData: null,
+                      isEditing: false,
+                      onEventsChange: (value) {},
                     );
+                  } else {
+                    return VoterEventsSection(candidateData: candidate!);
                   }
                 },
               ),
-              
+
               // Highlight Tab
               // Builder(
               //   builder: (context) {
@@ -898,17 +1027,23 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
               //     );
               //   },
               // ),
-              
+
               // Analytics Tab
               Builder(
                 builder: (context) {
-                  debugPrint('📊 [TAB LOG] Analytics Tab - Candidate: ${candidate!.name}');
-                  debugPrint('📊 [TAB LOG] Analytics Tab - Followers Count: ${candidate!.followersCount}');
-                  debugPrint('📊 [TAB LOG] Analytics Tab - Following Count: ${candidate!.followingCount}');
-                  debugPrint('📊 [TAB LOG] Analytics Tab - Has Analytics: ${candidate!.extraInfo?.analytics != null}');
-                  return FollowersAnalyticsSection(
-                    candidateData: candidate!,
+                  debugPrint(
+                    '📊 [TAB LOG] Analytics Tab - Candidate: ${candidate!.name}',
                   );
+                  debugPrint(
+                    '📊 [TAB LOG] Analytics Tab - Followers Count: ${candidate!.followersCount}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Analytics Tab - Following Count: ${candidate!.followingCount}',
+                  );
+                  debugPrint(
+                    '📊 [TAB LOG] Analytics Tab - Has Analytics: ${candidate!.extraInfo?.analytics != null}',
+                  );
+                  return FollowersAnalyticsSection(candidateData: candidate!);
                 },
               ),
 
@@ -932,7 +1067,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen> with Ti
       ),
     );
   }
-
 }
 
 // Helper class for SliverPersistentHeader
@@ -948,11 +1082,11 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.white,
-      child: _tabBar,
-    );
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.white, child: _tabBar);
   }
 
   @override

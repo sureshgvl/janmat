@@ -6,16 +6,17 @@ class HighlightTabView extends StatefulWidget {
   final bool isOwnProfile;
 
   const HighlightTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-  }) : super(key: key);
+  });
 
   @override
   State<HighlightTabView> createState() => _HighlightTabViewState();
 }
 
-class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepAliveClientMixin {
+class _HighlightTabViewState extends State<HighlightTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -76,7 +77,9 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            highlight?.enabled == true ? 'Active highlight message' : 'No active highlights',
+                            highlight?.enabled == true
+                                ? 'Active highlight message'
+                                : 'No active highlights',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
@@ -115,11 +118,18 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                   // Priority Badge
                   if (highlight.priority != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: _getPriorityColor(highlight.priority!).shade50,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _getPriorityColor(highlight.priority!).shade200),
+                        border: Border.all(
+                          color: _getPriorityColor(
+                            highlight.priority!,
+                          ).shade200,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -127,7 +137,9 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                           Icon(
                             _getPriorityIcon(highlight.priority!),
                             size: 16,
-                            color: _getPriorityColor(highlight.priority!).shade600,
+                            color: _getPriorityColor(
+                              highlight.priority!,
+                            ).shade600,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -135,7 +147,9 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: _getPriorityColor(highlight.priority!).shade800,
+                              color: _getPriorityColor(
+                                highlight.priority!,
+                              ).shade800,
                             ),
                           ),
                         ],
@@ -145,7 +159,8 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                   ],
 
                   // Title
-                  if (highlight.title != null && highlight.title!.isNotEmpty) ...[
+                  if (highlight.title != null &&
+                      highlight.title!.isNotEmpty) ...[
                     Text(
                       highlight.title!,
                       style: const TextStyle(
@@ -158,7 +173,8 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                   ],
 
                   // Message
-                  if (highlight.message != null && highlight.message!.isNotEmpty) ...[
+                  if (highlight.message != null &&
+                      highlight.message!.isNotEmpty) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -179,7 +195,8 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                   ],
 
                   // Image
-                  if (highlight.imageUrl != null && highlight.imageUrl!.isNotEmpty) ...[
+                  if (highlight.imageUrl != null &&
+                      highlight.imageUrl!.isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       height: 200,
@@ -301,10 +318,7 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
                   const SizedBox(height: 8),
                   Text(
                     'Important announcements and highlights will be displayed here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -348,8 +362,18 @@ class _HighlightTabViewState extends State<HighlightTabView> with AutomaticKeepA
     try {
       final date = DateTime.parse(dateString);
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (e) {

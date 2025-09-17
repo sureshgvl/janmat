@@ -9,7 +9,8 @@ class CandidateDashboardContact extends StatefulWidget {
   const CandidateDashboardContact({super.key});
 
   @override
-  State<CandidateDashboardContact> createState() => _CandidateDashboardContactState();
+  State<CandidateDashboardContact> createState() =>
+      _CandidateDashboardContactState();
 }
 
 class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
@@ -29,14 +30,15 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
       }
 
       return Scaffold(
-        
         body: SingleChildScrollView(
           child: ContactSection(
             candidateData: controller.candidateData.value!,
             editedData: controller.editedData.value,
             isEditing: isEditing,
-            onContactChange: (field, value) => controller.updateContact(field, value),
-            onSocialChange: (field, value) => controller.updateContact('social_$field', value),
+            onContactChange: (field, value) =>
+                controller.updateContact(field, value),
+            onSocialChange: (field, value) =>
+                controller.updateContact('social_$field', value),
           ),
         ),
         floatingActionButton: isEditing
@@ -61,24 +63,38 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
 
                         try {
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
                             // Update progress: Success
-                            messageController.add('Contact saved successfully!');
+                            messageController.add(
+                              'Contact saved successfully!',
+                            );
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Contact updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
+                              Get.snackbar(
+                                'Success',
+                                'Contact updated successfully',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               Get.snackbar('Error', 'Failed to update contact');
                             }
                           }
@@ -93,8 +109,8 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -104,8 +120,8 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -116,8 +132,8 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                   heroTag: 'edit_contact',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Contact',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

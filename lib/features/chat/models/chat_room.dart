@@ -36,7 +36,9 @@ class ChatRoom {
       type: json['type'] ?? 'public',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      members: json['members'] != null ? List<String>.from(json['members']) : null,
+      members: json['members'] != null
+          ? List<String>.from(json['members'])
+          : null,
     );
   }
 

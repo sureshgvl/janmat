@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../../repositories/candidate_repository.dart';
@@ -25,7 +24,8 @@ class EventCreationDialog extends StatefulWidget {
 class _EventCreationDialogState extends State<EventCreationDialog> {
   final _formKey = GlobalKey<FormState>();
   final CandidateRepository _candidateRepository = CandidateRepository();
-  final CandidateDataController _controller = Get.find<CandidateDataController>();
+  final CandidateDataController _controller =
+      Get.find<CandidateDataController>();
 
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
@@ -40,15 +40,26 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.eventToEdit?.title ?? '');
-    _descriptionController = TextEditingController(text: widget.eventToEdit?.description ?? '');
-    _venueController = TextEditingController(text: widget.eventToEdit?.venue ?? '');
-    _mapLinkController = TextEditingController(text: widget.eventToEdit?.mapLink ?? '');
-    _timeController = TextEditingController(text: widget.eventToEdit?.time ?? '');
+    _titleController = TextEditingController(
+      text: widget.eventToEdit?.title ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.eventToEdit?.description ?? '',
+    );
+    _venueController = TextEditingController(
+      text: widget.eventToEdit?.venue ?? '',
+    );
+    _mapLinkController = TextEditingController(
+      text: widget.eventToEdit?.mapLink ?? '',
+    );
+    _timeController = TextEditingController(
+      text: widget.eventToEdit?.time ?? '',
+    );
 
     if (widget.eventToEdit != null) {
       _selectedDate = DateTime.tryParse(widget.eventToEdit!.date);
-      if (widget.eventToEdit!.time != null && widget.eventToEdit!.time!.isNotEmpty) {
+      if (widget.eventToEdit!.time != null &&
+          widget.eventToEdit!.time!.isNotEmpty) {
         final timeParts = widget.eventToEdit!.time!.split(':');
         if (timeParts.length == 2) {
           final hour = int.tryParse(timeParts[0]) ?? 0;
@@ -91,7 +102,8 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     if (picked != null && picked != _selectedTime) {
       setState(() {
         _selectedTime = picked;
-        _timeController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+        _timeController.text =
+            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       });
     }
   }
@@ -109,40 +121,60 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     });
 
     try {
-      debugPrint('🎪 Event Creation: Starting save process for candidateId: ${widget.candidateId}');
-
-      final eventData = EventData(
-        id: widget.eventToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.isNotEmpty ? _descriptionController.text.trim() : null,
-        date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
-        time: _timeController.text.isNotEmpty ? _timeController.text : null,
-        venue: _venueController.text.isNotEmpty ? _venueController.text.trim() : null,
-        mapLink: _mapLinkController.text.isNotEmpty ? _mapLinkController.text.trim() : null,
-        type: 'public_event',
-        status: 'upcoming',
-        rsvp: widget.eventToEdit?.rsvp ?? {
-          'interested': [],
-          'going': [],
-          'not_going': [],
-        },
+      debugPrint(
+        '🎪 Event Creation: Starting save process for candidateId: ${widget.candidateId}',
       );
 
-      debugPrint('📝 Event Data Created: ${eventData.title} on ${eventData.date}');
+      final eventData = EventData(
+        id:
+            widget.eventToEdit?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.isNotEmpty
+            ? _descriptionController.text.trim()
+            : null,
+        date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        time: _timeController.text.isNotEmpty ? _timeController.text : null,
+        venue: _venueController.text.isNotEmpty
+            ? _venueController.text.trim()
+            : null,
+        mapLink: _mapLinkController.text.isNotEmpty
+            ? _mapLinkController.text.trim()
+            : null,
+        type: 'public_event',
+        status: 'upcoming',
+        rsvp:
+            widget.eventToEdit?.rsvp ??
+            {'interested': [], 'going': [], 'not_going': []},
+      );
+
+      debugPrint(
+        '📝 Event Data Created: ${eventData.title} on ${eventData.date}',
+      );
 
       // Ensure user document exists before proceeding
       debugPrint('🔧 Ensuring user document exists for: ${widget.candidateId}');
       await _candidateRepository.ensureUserDocumentExists(widget.candidateId);
 
       // Get current candidate data by candidateId
-      debugPrint('🔍 Getting candidate data for candidateId: ${widget.candidateId}');
-      final candidate = await _candidateRepository.getCandidateDataById(widget.candidateId);
+      debugPrint(
+        '🔍 Getting candidate data for candidateId: ${widget.candidateId}',
+      );
+      final candidate = await _candidateRepository.getCandidateDataById(
+        widget.candidateId,
+      );
       if (candidate == null) {
-        debugPrint('❌ Candidate lookup failed for candidateId: ${widget.candidateId}');
-        throw Exception('Unable to load candidate data. Please ensure your profile is complete and try again.');
+        debugPrint(
+          '❌ Candidate lookup failed for candidateId: ${widget.candidateId}',
+        );
+        throw Exception(
+          'Unable to load candidate data. Please ensure your profile is complete and try again.',
+        );
       }
 
-      debugPrint('✅ Found candidate: ${candidate.name} (ID: ${candidate.candidateId})');
+      debugPrint(
+        '✅ Found candidate: ${candidate.name} (ID: ${candidate.candidateId})',
+      );
 
       // Update events in extra_info
       final currentEvents = candidate.extraInfo?.events ?? [];
@@ -157,13 +189,15 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
       updatedEvents.add(eventData);
 
       // Update candidate extra info
-      final updatedExtraInfo = candidate.extraInfo?.copyWith(
-        events: updatedEvents,
-      ) ?? ExtraInfo(events: updatedEvents);
+      final updatedExtraInfo =
+          candidate.extraInfo?.copyWith(events: updatedEvents) ??
+          ExtraInfo(events: updatedEvents);
 
       final updatedCandidate = candidate.copyWith(extraInfo: updatedExtraInfo);
 
-      final success = await _candidateRepository.updateCandidateExtraInfo(updatedCandidate);
+      final success = await _candidateRepository.updateCandidateExtraInfo(
+        updatedCandidate,
+      );
 
       if (success) {
         // Refresh the controller's events cache
@@ -173,7 +207,9 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
         Get.back();
         Get.snackbar(
           'Success',
-          widget.eventToEdit != null ? 'Event updated successfully' : 'Event created successfully',
+          widget.eventToEdit != null
+              ? 'Event updated successfully'
+              : 'Event created successfully',
         );
       } else {
         throw Exception('Failed to save event');
@@ -190,9 +226,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
         child: Padding(
@@ -205,7 +239,9 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.eventToEdit != null ? 'Edit Event' : 'Create New Event',
+                    widget.eventToEdit != null
+                        ? 'Edit Event'
+                        : 'Create New Event',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -244,7 +280,9 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
                             ? DateFormat('dd/MM/yyyy').format(_selectedDate!)
                             : 'Select date',
                         style: TextStyle(
-                          color: _selectedDate != null ? Colors.black : Colors.grey,
+                          color: _selectedDate != null
+                              ? Colors.black
+                              : Colors.grey,
                         ),
                       ),
                     ),
@@ -265,7 +303,9 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
                             ? _selectedTime!.format(context)
                             : 'Select time (optional)',
                         style: TextStyle(
-                          color: _selectedTime != null ? Colors.black : Colors.grey,
+                          color: _selectedTime != null
+                              ? Colors.black
+                              : Colors.grey,
                         ),
                       ),
                     ),
@@ -320,7 +360,10 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -331,7 +374,11 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
                                   color: Colors.white,
                                 ),
                               )
-                            : Text(widget.eventToEdit != null ? 'Update Event' : 'Create Event'),
+                            : Text(
+                                widget.eventToEdit != null
+                                    ? 'Update Event'
+                                    : 'Create Event',
+                              ),
                       ),
                     ],
                   ),

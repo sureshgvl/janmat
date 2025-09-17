@@ -136,19 +136,13 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
           ),
           child: _hasError
               ? (widget.errorWidget ??
-                  const Center(
-                    child: Icon(
-                      Icons.error,
-                      color: Colors.red,
-                      size: 48,
-                    ),
-                  ))
+                    const Center(
+                      child: Icon(Icons.error, color: Colors.red, size: 48),
+                    ))
               : (_isLoading
-                  ? (widget.placeholder ??
-                      const Center(
-                        child: CircularProgressIndicator(),
-                      ))
-                  : null),
+                    ? (widget.placeholder ??
+                          const Center(child: CircularProgressIndicator()))
+                    : null),
         ),
       ),
     );
@@ -169,10 +163,7 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
           );
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
+          return FadeTransition(opacity: animation, child: child);
         },
       ),
     );
@@ -181,7 +172,9 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap ?? (widget.enableFullScreenView ? _showFullScreenView : null),
+      onTap:
+          widget.onTap ??
+          (widget.enableFullScreenView ? _showFullScreenView : null),
       child: _buildImage(),
     );
   }

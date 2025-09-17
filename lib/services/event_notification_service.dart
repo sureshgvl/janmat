@@ -21,7 +21,9 @@ class EventNotificationService {
       if (event == null) return;
 
       // Get candidate details
-      final candidate = await _candidateRepository.getCandidateDataById(candidateId);
+      final candidate = await _candidateRepository.getCandidateDataById(
+        candidateId,
+      );
       if (candidate == null) return;
 
       // Get user's FCM token
@@ -30,7 +32,8 @@ class EventNotificationService {
 
       // Create notification message
       final title = 'RSVP Confirmed!';
-      final body = 'You are $rsvpType for "${event.title}" by ${candidate.name}';
+      final body =
+          'You are $rsvpType for "${event.title}" by ${candidate.name}';
 
       // Send push notification
       await _sendPushNotification(userToken, title, body, {
@@ -49,7 +52,6 @@ class EventNotificationService {
         'eventTitle': event.title,
         'candidateName': candidate.name,
       });
-
     } catch (e) {
       print('Error sending RSVP notification: $e');
     }
@@ -67,7 +69,9 @@ class EventNotificationService {
       if (event == null) return;
 
       // Get candidate details
-      final candidate = await _candidateRepository.getCandidateDataById(candidateId);
+      final candidate = await _candidateRepository.getCandidateDataById(
+        candidateId,
+      );
       if (candidate == null) return;
 
       // Get user's FCM token
@@ -76,7 +80,8 @@ class EventNotificationService {
 
       // Create notification message
       final title = 'Event Reminder';
-      final body = 'Don\'t forget: "${event.title}" by ${candidate.name} is tomorrow!';
+      final body =
+          'Don\'t forget: "${event.title}" by ${candidate.name} is tomorrow!';
 
       // Send push notification
       await _sendPushNotification(userToken, title, body, {
@@ -93,7 +98,6 @@ class EventNotificationService {
         'eventTitle': event.title,
         'candidateName': candidate.name,
       });
-
     } catch (e) {
       print('Error sending event reminder: $e');
     }
@@ -112,7 +116,9 @@ class EventNotificationService {
       if (event == null) return;
 
       // Get candidate details
-      final candidate = await _candidateRepository.getCandidateDataById(candidateId);
+      final candidate = await _candidateRepository.getCandidateDataById(
+        candidateId,
+      );
       if (candidate == null) return;
 
       // Get candidate's FCM token
@@ -144,14 +150,16 @@ class EventNotificationService {
         'eventTitle': event.title,
         'userName': userName,
       });
-
     } catch (e) {
       print('Error sending candidate RSVP notification: $e');
     }
   }
 
   // Helper method to get event details (supports events stored as List)
-  Future<EventData?> _getEventDetails(String candidateId, String eventId) async {
+  Future<EventData?> _getEventDetails(
+    String candidateId,
+    String eventId,
+  ) async {
     try {
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) return null;
@@ -168,7 +176,8 @@ class EventNotificationService {
       if (!candidateDoc.exists) return null;
 
       final candidateData = candidateDoc.data()!;
-      final extraInfo = (candidateData['extra_info'] as Map?)?.cast<String, dynamic>();
+      final extraInfo = (candidateData['extra_info'] as Map?)
+          ?.cast<String, dynamic>();
       final eventsList = (extraInfo?['events'] as List?)?.cast<dynamic>();
 
       if (eventsList == null) return null;
@@ -193,7 +202,9 @@ class EventNotificationService {
   }
 
   // Helper method to find candidate location
-  Future<Map<String, String>?> _findCandidateLocation(String candidateId) async {
+  Future<Map<String, String>?> _findCandidateLocation(
+    String candidateId,
+  ) async {
     try {
       final citiesSnapshot = await _firestore.collection('cities').get();
 
@@ -207,10 +218,7 @@ class EventNotificationService {
               .get();
 
           if (candidateDoc.exists) {
-            return {
-              'cityId': cityDoc.id,
-              'wardId': wardDoc.id,
-            };
+            return {'cityId': cityDoc.id, 'wardId': wardDoc.id};
           }
         }
       }
@@ -238,7 +246,12 @@ class EventNotificationService {
   }
 
   // Helper method to send push notification
-  Future<void> _sendPushNotification(String token, String title, String body, Map<String, dynamic> data) async {
+  Future<void> _sendPushNotification(
+    String token,
+    String title,
+    String body,
+    Map<String, dynamic> data,
+  ) async {
     try {
       // Note: In a real implementation, you would send this to your backend
       // which would then use FCM to send the notification
@@ -257,14 +270,18 @@ class EventNotificationService {
       //   'body': body,
       //   'data': jsonEncode(data),
       // });
-
     } catch (e) {
       print('Error sending push notification: $e');
     }
   }
 
   // Helper method to store notification in database
-  Future<void> _storeNotification(String userId, String title, String body, Map<String, dynamic> data) async {
+  Future<void> _storeNotification(
+    String userId,
+    String title,
+    String body,
+    Map<String, dynamic> data,
+  ) async {
     try {
       await _firestore
           .collection('users')
@@ -305,7 +322,10 @@ class EventNotificationService {
   }
 
   // Mark notification as read
-  Future<void> markNotificationAsRead(String userId, String notificationId) async {
+  Future<void> markNotificationAsRead(
+    String userId,
+    String notificationId,
+  ) async {
     try {
       await _firestore
           .collection('users')
@@ -334,31 +354,42 @@ class EventNotificationService {
         final wardsSnapshot = await cityDoc.reference.collection('wards').get();
 
         for (var wardDoc in wardsSnapshot.docs) {
-          final candidatesSnapshot = await wardDoc.reference.collection('candidates').get();
+          final candidatesSnapshot = await wardDoc.reference
+              .collection('candidates')
+              .get();
 
           for (var candidateDoc in candidatesSnapshot.docs) {
             final candidateData = candidateDoc.data();
-            final extraInfo = (candidateData['extra_info'] as Map?)?.cast<String, dynamic>();
-            final eventsList = (extraInfo?['events'] as List?)?.cast<dynamic>() ?? const <dynamic>[];
-    
+            final extraInfo = (candidateData['extra_info'] as Map?)
+                ?.cast<String, dynamic>();
+            final eventsList =
+                (extraInfo?['events'] as List?)?.cast<dynamic>() ??
+                const <dynamic>[];
+
             for (var i = 0; i < eventsList.length; i++) {
               final raw = eventsList[i];
               if (raw is! Map) continue;
-              final map = Map<String, dynamic>.from(raw.cast<String, dynamic>());
+              final map = Map<String, dynamic>.from(
+                raw.cast<String, dynamic>(),
+              );
               final event = EventData.fromJson(map);
               final eventDate = DateTime.tryParse(event.date);
               final eventId = (map['id'] as String?) ?? 'event_$i';
-    
+
               if (eventDate != null &&
                   eventDate.year == tomorrow.year &&
                   eventDate.month == tomorrow.month &&
                   eventDate.day == tomorrow.day) {
                 final rsvp = event.rsvp;
                 if (rsvp != null) {
-                  final interested = (rsvp['interested'] as List?)?.cast<String>() ?? const <String>[];
-                  final going = (rsvp['going'] as List?)?.cast<String>() ?? const <String>[];
+                  final interested =
+                      (rsvp['interested'] as List?)?.cast<String>() ??
+                      const <String>[];
+                  final going =
+                      (rsvp['going'] as List?)?.cast<String>() ??
+                      const <String>[];
                   final allUsers = <String>{...interested, ...going}.toList();
-    
+
                   for (final userId in allUsers) {
                     await sendEventReminder(
                       userId: userId,

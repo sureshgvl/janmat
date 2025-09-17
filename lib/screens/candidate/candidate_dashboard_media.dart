@@ -10,7 +10,8 @@ class CandidateDashboardMedia extends StatefulWidget {
   const CandidateDashboardMedia({super.key});
 
   @override
-  State<CandidateDashboardMedia> createState() => _CandidateDashboardMediaState();
+  State<CandidateDashboardMedia> createState() =>
+      _CandidateDashboardMediaState();
 }
 
 class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
@@ -18,7 +19,8 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
   bool isEditing = false;
 
   // Global key to access media section for file uploads
-  final GlobalKey<MediaTabEditState> _mediaSectionKey = GlobalKey<MediaTabEditState>();
+  final GlobalKey<MediaTabEditState> _mediaSectionKey =
+      GlobalKey<MediaTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,6 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
       }
 
       return Scaffold(
-        
         body: isEditing
             ? SingleChildScrollView(
                 child: MediaTabEdit(
@@ -40,7 +41,8 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onMediaChange: (media) => controller.updateExtraInfo('media', media),
+                  onMediaChange: (media) =>
+                      controller.updateExtraInfo('media', media),
                 ),
               )
             : MediaTabView(
@@ -69,15 +71,19 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
 
                         try {
                           // First, upload any pending local files to Firebase
-                          final mediaSectionState = _mediaSectionKey.currentState;
+                          final mediaSectionState =
+                              _mediaSectionKey.currentState;
                           if (mediaSectionState != null) {
-                            messageController.add('Uploading files to cloud...');
+                            messageController.add(
+                              'Uploading files to cloud...',
+                            );
                             await mediaSectionState.uploadPendingFiles();
                           }
 
                           // Then save the media data
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
@@ -85,16 +91,27 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                             messageController.add('Media saved successfully!');
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Media updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
+                              Get.snackbar(
+                                'Success',
+                                'Media updated successfully',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               Get.snackbar('Error', 'Failed to update media');
                             }
                           }
@@ -109,8 +126,8 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -120,8 +137,8 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -132,8 +149,8 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                   heroTag: 'edit_media',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Media',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

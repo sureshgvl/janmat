@@ -30,17 +30,27 @@ class ChatDialogs {
                 controller: descriptionController,
                 decoration: InputDecoration(
                   labelText: AppLocalizations.of(context)!.descriptionOptional,
-                  hintText: AppLocalizations.of(context)!.briefDescriptionOfRoom,
+                  hintText: AppLocalizations.of(
+                    context,
+                  )!.briefDescriptionOfRoom,
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: roomType,
-                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.roomType),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.roomType,
+                ),
                 items: [
-                  DropdownMenuItem(value: 'public', child: Text(AppLocalizations.of(context)!.publicRoom)),
-                  DropdownMenuItem(value: 'private', child: Text(AppLocalizations.of(context)!.privateRoom)),
+                  DropdownMenuItem(
+                    value: 'public',
+                    child: Text(AppLocalizations.of(context)!.publicRoom),
+                  ),
+                  DropdownMenuItem(
+                    value: 'private',
+                    child: Text(AppLocalizations.of(context)!.privateRoom),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -65,13 +75,15 @@ class ChatDialogs {
                 final user = controller.currentUser;
                 if (user != null) {
                   final chatRoom = ChatRoom(
-                    roomId: 'custom_${user.uid}_${DateTime.now().millisecondsSinceEpoch}',
+                    roomId:
+                        'custom_${user.uid}_${DateTime.now().millisecondsSinceEpoch}',
                     createdAt: DateTime.now(),
                     createdBy: user.uid,
                     type: roomType,
                     title: title,
-                    description: (descriptionController.text?.trim().isNotEmpty ?? false)
-                        ? descriptionController.text!.trim()
+                    description:
+                        (descriptionController.text.trim().isNotEmpty ?? false)
+                        ? descriptionController.text.trim()
                         : '',
                   );
 
@@ -95,12 +107,12 @@ class ChatDialogs {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              AppLocalizations.of(context)!.messageLimitReachedDescription,
-            ),
+            Text(AppLocalizations.of(context)!.messageLimitReachedDescription),
             const SizedBox(height: 16),
             Text(
-              AppLocalizations.of(context)!.remainingMessages(controller.remainingMessages.toString()),
+              AppLocalizations.of(
+                context,
+              )!.remainingMessages(controller.remainingMessages.toString()),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
@@ -117,9 +129,7 @@ class ChatDialogs {
             },
             icon: const Icon(Icons.play_circle_outline),
             label: Text(AppLocalizations.of(context)!.watchAdForXP),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.green,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
           ),
 
           // Option 2: Buy XP
@@ -130,9 +140,7 @@ class ChatDialogs {
             },
             icon: const Icon(Icons.shopping_cart),
             label: Text(AppLocalizations.of(context)!.buyXP),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blue,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.blue),
           ),
 
           // Option 3: Cancel

@@ -6,19 +6,28 @@ import '../utils/chat_constants.dart';
 class MediaUtils {
   // Check if file is supported image
   static bool isSupportedImage(String filePath) {
-    final extension = path.extension(filePath).toLowerCase().replaceAll('.', '');
+    final extension = path
+        .extension(filePath)
+        .toLowerCase()
+        .replaceAll('.', '');
     return ChatConstants.supportedImageExtensions.contains(extension);
   }
 
   // Check if file is supported video
   static bool isSupportedVideo(String filePath) {
-    final extension = path.extension(filePath).toLowerCase().replaceAll('.', '');
+    final extension = path
+        .extension(filePath)
+        .toLowerCase()
+        .replaceAll('.', '');
     return ChatConstants.supportedVideoExtensions.contains(extension);
   }
 
   // Check if file is supported audio
   static bool isSupportedAudio(String filePath) {
-    final extension = path.extension(filePath).toLowerCase().replaceAll('.', '');
+    final extension = path
+        .extension(filePath)
+        .toLowerCase()
+        .replaceAll('.', '');
     return ChatConstants.supportedAudioExtensions.contains(extension);
   }
 
@@ -41,7 +50,10 @@ class MediaUtils {
   }
 
   // Check if file size is within limits
-  static Future<bool> isValidFileSize(String filePath, {int maxSize = ChatConstants.maxFileSize}) async {
+  static Future<bool> isValidFileSize(
+    String filePath, {
+    int maxSize = ChatConstants.maxFileSize,
+  }) async {
     final size = await getFileSize(filePath);
     return size != null && size <= maxSize;
   }
@@ -155,7 +167,10 @@ class MediaUtils {
   }
 
   // Compress image (placeholder - would need image processing library)
-  static Future<String?> compressImage(String filePath, {int quality = 80}) async {
+  static Future<String?> compressImage(
+    String filePath, {
+    int quality = 80,
+  }) async {
     // TODO: Implement with flutter_image_compress
     // For now, return original path
     return filePath;

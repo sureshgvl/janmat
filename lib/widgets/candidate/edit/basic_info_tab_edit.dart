@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'dart:io';
 import '../../../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../services/file_upload_service.dart';
@@ -57,10 +56,18 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
     _nameController = TextEditingController(text: data.name);
     _cityController = TextEditingController(text: data.districtId);
     _wardController = TextEditingController(text: data.wardId);
-    _ageController = TextEditingController(text: extraInfo?.basicInfo?.age?.toString() ?? '');
-    _genderController = TextEditingController(text: extraInfo?.basicInfo?.gender ?? '');
-    _educationController = TextEditingController(text: extraInfo?.basicInfo?.education ?? '');
-    _addressController = TextEditingController(text: extraInfo?.contact?.address ?? '');
+    _ageController = TextEditingController(
+      text: extraInfo?.basicInfo?.age?.toString() ?? '',
+    );
+    _genderController = TextEditingController(
+      text: extraInfo?.basicInfo?.gender ?? '',
+    );
+    _educationController = TextEditingController(
+      text: extraInfo?.basicInfo?.education ?? '',
+    );
+    _addressController = TextEditingController(
+      text: extraInfo?.contact?.address ?? '',
+    );
   }
 
   @override
@@ -128,7 +135,6 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
 
       final String imagePath = croppedFile?.path ?? pickedFile.path;
       await _uploadCroppedPhoto(imagePath);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -156,7 +162,8 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
     });
 
     try {
-      final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storagePath = 'profile_photos/$fileName';
       final photoUrl = await _fileUploadService.uploadFile(
         imagePath,
@@ -310,10 +317,7 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                           decoration: BoxDecoration(
                             color: Theme.of(context).primaryColor,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
                           child: _isUploadingPhoto
                               ? const SizedBox(
@@ -321,7 +325,9 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                                   height: 16,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(
@@ -356,7 +362,10 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                   child: GestureDetector(
                     onTap: () => _selectBirthDate(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade400),
                         borderRadius: BorderRadius.circular(4),
@@ -375,10 +384,14 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                                   ),
                                 ),
                                 Text(
-                                  _ageController.text.isNotEmpty ? _ageController.text : 'Tap to select birth date',
+                                  _ageController.text.isNotEmpty
+                                      ? _ageController.text
+                                      : 'Tap to select birth date',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: _ageController.text.isNotEmpty ? Colors.black : Colors.grey.shade500,
+                                    color: _ageController.text.isNotEmpty
+                                        ? Colors.black
+                                        : Colors.grey.shade500,
                                   ),
                                 ),
                               ],
@@ -399,7 +412,10 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                   child: GestureDetector(
                     onTap: () => _selectGender(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade400),
                         borderRadius: BorderRadius.circular(4),
@@ -418,10 +434,14 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                                   ),
                                 ),
                                 Text(
-                                  _genderController.text.isNotEmpty ? _genderController.text : 'Tap to select gender',
+                                  _genderController.text.isNotEmpty
+                                      ? _genderController.text
+                                      : 'Tap to select gender',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: _genderController.text.isNotEmpty ? Colors.black : Colors.grey.shade500,
+                                    color: _genderController.text.isNotEmpty
+                                        ? Colors.black
+                                        : Colors.grey.shade500,
                                   ),
                                 ),
                               ],
@@ -448,7 +468,8 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                 labelText: 'Education',
                 border: OutlineInputBorder(),
               ),
-              onChanged: (value) => widget.onBasicInfoChange('education', value),
+              onChanged: (value) =>
+                  widget.onBasicInfoChange('education', value),
             ),
             const SizedBox(height: 16),
 
@@ -477,7 +498,8 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                 children: [
                   Row(
                     children: [
-                      if (data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty)
+                      if (data.party.toLowerCase().contains('independent') ||
+                          data.party.trim().isEmpty)
                         Container(
                           width: 40,
                           height: 40,
@@ -499,7 +521,10 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                             borderRadius: BorderRadius.circular(8),
                             image: DecorationImage(
                               image: SymbolUtils.getSymbolImageProvider(
-                                SymbolUtils.getPartySymbolPath(data.party, candidate: data)
+                                SymbolUtils.getPartySymbolPath(
+                                  data.party,
+                                  candidate: data,
+                                ),
                               ),
                               fit: BoxFit.cover,
                             ),
@@ -511,12 +536,19 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty
+                              data.party.toLowerCase().contains(
+                                        'independent',
+                                      ) ||
+                                      data.party.trim().isEmpty
                                   ? 'Independent Candidate'
                                   : data.party,
                               style: TextStyle(
                                 fontSize: 16,
-                                color: data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty
+                                color:
+                                    data.party.toLowerCase().contains(
+                                          'independent',
+                                        ) ||
+                                        data.party.trim().isEmpty
                                     ? Colors.grey.shade700
                                     : Colors.blue,
                                 fontWeight: FontWeight.w500,

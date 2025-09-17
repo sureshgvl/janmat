@@ -44,23 +44,41 @@ class Party {
       case 'bjp':
         return locale == 'mr' ? 'भारतीय जनता पक्ष' : 'Bharatiya Janata Party';
       case 'inc':
-        return locale == 'mr' ? 'भारतीय राष्ट्रीय काँग्रेस' : 'Indian National Congress';
+        return locale == 'mr'
+            ? 'भारतीय राष्ट्रीय काँग्रेस'
+            : 'Indian National Congress';
       case 'ss_ubt':
-        return locale == 'mr' ? 'शिवसेना (उद्धव बाळासाहेब ठाकरे)' : 'Shiv Sena (Uddhav Balasaheb Thackeray)';
+        return locale == 'mr'
+            ? 'शिवसेना (उद्धव बाळासाहेब ठाकरे)'
+            : 'Shiv Sena (Uddhav Balasaheb Thackeray)';
       case 'ss_shinde':
-        return locale == 'mr' ? 'शिवसेना (एकनाथ शिंदे)' : 'Shiv Sena (Eknath Shinde)';
+        return locale == 'mr'
+            ? 'शिवसेना (एकनाथ शिंदे)'
+            : 'Shiv Sena (Eknath Shinde)';
       case 'ncp_ajit':
-        return locale == 'mr' ? 'राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)' : 'Nationalist Congress Party (Ajit Pawar)';
+        return locale == 'mr'
+            ? 'राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)'
+            : 'Nationalist Congress Party (Ajit Pawar)';
       case 'ncp_sp':
-        return locale == 'mr' ? 'राष्ट्रवादी काँग्रेस पक्ष (शरदचंद्र पवार)' : 'Nationalist Congress Party (Sharad Pawar)';
+        return locale == 'mr'
+            ? 'राष्ट्रवादी काँग्रेस पक्ष (शरदचंद्र पवार)'
+            : 'Nationalist Congress Party (Sharad Pawar)';
       case 'mns':
-        return locale == 'mr' ? 'महाराष्ट्र नवनिर्माण सेना' : 'Maharashtra Navnirman Sena';
+        return locale == 'mr'
+            ? 'महाराष्ट्र नवनिर्माण सेना'
+            : 'Maharashtra Navnirman Sena';
       case 'pwpi':
-        return locale == 'mr' ? 'शेतकरी कामगार पक्ष' : 'Peasants and Workers Party of India';
+        return locale == 'mr'
+            ? 'शेतकरी कामगार पक्ष'
+            : 'Peasants and Workers Party of India';
       case 'cpi_m':
-        return locale == 'mr' ? 'भारतीय कम्युनिस्ट पक्ष (मार्क्सवादी)' : 'Communist Party of India (Marxist)';
+        return locale == 'mr'
+            ? 'भारतीय कम्युनिस्ट पक्ष (मार्क्सवादी)'
+            : 'Communist Party of India (Marxist)';
       case 'rsp':
-        return locale == 'mr' ? 'राष्ट्रीय समाज पक्ष' : 'Rashtriya Samaj Paksha';
+        return locale == 'mr'
+            ? 'राष्ट्रीय समाज पक्ष'
+            : 'Rashtriya Samaj Paksha';
       case 'sp':
         return locale == 'mr' ? 'समाजवादी पक्ष' : 'Samajwadi Party';
       case 'bsp':

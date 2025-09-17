@@ -40,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-    debugPrint('Error loading stored language: $e');
+      debugPrint('Error loading stored language: $e');
       // Fallback to current locale
       final locale = Localizations.localeOf(context);
       if (mounted) {
@@ -80,9 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (_isChangingLanguage)
             Container(
               color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -97,9 +95,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             AppLocalizations.of(context)?.language ?? 'Language',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         RadioListTile<String>(
@@ -133,7 +131,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.notifications),
-          title: Text(AppLocalizations.of(context)?.notifications ?? 'Notifications'),
+          title: Text(
+            AppLocalizations.of(context)?.notifications ?? 'Notifications',
+          ),
           trailing: Switch(
             value: true, // You can connect this to actual settings
             onChanged: (value) {
@@ -196,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
-    debugPrint('Error changing language: $e');
+      debugPrint('Error changing language: $e');
 
       // Revert to previous language on error
       if (mounted) {

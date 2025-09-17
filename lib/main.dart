@@ -27,6 +27,14 @@ import 'l10n/app_localizations.dart';
 import 'utils/performance_monitor.dart';
 import 'repositories/auth_repository.dart';
 
+// Import optimization systems
+import 'utils/error_recovery_manager.dart';
+import 'utils/advanced_analytics.dart';
+import 'utils/memory_manager.dart';
+import 'utils/multi_level_cache.dart';
+import 'utils/ab_testing_framework.dart';
+import 'utils/data_compression.dart';
+
 void main() async {
   // Start performance monitoring
   startPerformanceTimer('app_startup');
@@ -40,7 +48,28 @@ void main() async {
   // CRITICAL: Initialize Firebase BEFORE creating any controllers
   startPerformanceTimer('firebase_init');
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Enable Firestore offline persistence with optimized settings
+    try {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        // Enable local cache for better offline performance
+        host: null, // Use default host
+        sslEnabled: true,
+      );
+
+      // Configure offline cache persistence for better performance
+      // Note: Persistence is now enabled via Settings above
+      debugPrint('ℹ️ Firestore persistence configured via Settings');
+
+      debugPrint('✅ Firestore offline persistence enabled with optimizations');
+    } catch (e) {
+      debugPrint('⚠️ Failed to enable Firestore offline persistence: $e');
+    }
 
     // Initialize Firebase App Check with error handling
     try {
@@ -53,14 +82,18 @@ void main() async {
       debugPrint('✅ Firebase App Check activated successfully');
     } catch (e) {
       debugPrint('⚠️ Firebase App Check activation failed: $e');
-      debugPrint('ℹ️ Continuing without App Check - this is normal if not configured in Firebase console');
+      debugPrint(
+        'ℹ️ Continuing without App Check - this is normal if not configured in Firebase console',
+      );
 
       // In debug mode, we can safely continue without App Check
       if (kDebugMode) {
         debugPrint('🔧 Running in debug mode without App Check');
       } else {
         // In release mode, App Check should be properly configured
-        debugPrint('⚠️ WARNING: App Check failed in release mode - authentication may be affected');
+        debugPrint(
+          '⚠️ WARNING: App Check failed in release mode - authentication may be affected',
+        );
       }
     }
 
@@ -69,10 +102,65 @@ void main() async {
       // In debug mode, we can safely ignore App Check warnings
       // as they don't affect functionality, just show warnings
       debugPrint('🔧 Firebase configured for development mode');
-      debugPrint('ℹ️ App Check warnings are normal in development and can be ignored');
+      debugPrint(
+        'ℹ️ App Check warnings are normal in development and can be ignored',
+      );
     }
 
-    debugPrint('✅ Firebase initialized synchronously for controller compatibility');
+    debugPrint(
+      '✅ Firebase initialized synchronously for controller compatibility',
+    );
+
+    // Initialize Firebase optimization systems
+    startPerformanceTimer('optimizations_init');
+    try {
+      // Initialize error recovery system
+      final errorRecovery = ErrorRecoveryManager();
+      debugPrint('✅ Error recovery system initialized');
+
+      // Initialize analytics system
+      final analytics = AdvancedAnalyticsManager();
+      debugPrint('✅ Advanced analytics system initialized');
+
+      // Initialize memory management system
+      final memoryManager = MemoryManager();
+      debugPrint('✅ Memory management system initialized');
+
+      // Initialize multi-level caching system
+      final cache = MultiLevelCache();
+      debugPrint('✅ Multi-level cache system initialized');
+
+      // Initialize A/B testing framework
+      final abTesting = ABTestingFramework();
+      debugPrint('✅ A/B testing framework initialized');
+
+      // Initialize data compression system
+      final dataCompression = DataCompressionManager();
+      debugPrint('✅ Data compression system initialized');
+
+      // Start user session tracking if user is logged in
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        analytics.startUserSession(
+          currentUser.uid,
+          'unknown',
+        ); // Role will be updated when loaded
+        debugPrint('✅ User session tracking started for: ${currentUser.uid}');
+      }
+
+      // Warm up cache with essential data
+      await cache.warmup([
+        'app_config',
+        'user_settings',
+        'districts_list',
+        'cities_list',
+      ]);
+      debugPrint('✅ Cache warmup completed');
+    } catch (e) {
+      debugPrint('⚠️ Optimization system initialization failed: $e');
+      // Continue with app startup even if optimizations fail
+    }
+    stopPerformanceTimer('optimizations_init');
 
     // Analyze and cleanup storage on app startup
     try {
@@ -81,7 +169,6 @@ void main() async {
     } catch (e) {
       debugPrint('ℹ️ Storage analysis failed: $e');
     }
-
   } catch (e) {
     debugPrint('❌ Firebase initialization failed: $e');
   }
@@ -104,9 +191,7 @@ class MyApp extends StatelessWidget {
       future: _getInitialAppData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const MaterialApp(
-            home: AnimatedSplashScreen(),
-          );
+          return const MaterialApp(home: AnimatedSplashScreen());
         }
 
         final appData = snapshot.data ?? {'route': '/login', 'locale': null};
@@ -120,20 +205,24 @@ class MyApp extends StatelessWidget {
             colorScheme: const ColorScheme.light(
               primary: Color(0xFFFF9933), // Deep saffron
               secondary: Color(0xFF138808), // Forest green
-              surface: Colors.white,
-              background: Color(0xFFF9FAFB), // Light neutral gray
+              surface: Colors.white, // Light neutral gray
               onPrimary: Colors.white,
               onSecondary: Colors.white,
               onSurface: Color(0xFF1F2937), // Dark charcoal
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF9933), // Consistent saffron buttons
+                backgroundColor: const Color(
+                  0xFFFF9933,
+                ), // Consistent saffron buttons
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
             outlinedButtonTheme: OutlinedButtonThemeData(
@@ -143,7 +232,10 @@ class MyApp extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
             textButtonTheme: TextButtonThemeData(
@@ -152,7 +244,10 @@ class MyApp extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
             cardTheme: CardThemeData(
@@ -174,14 +269,26 @@ class MyApp extends StatelessWidget {
           initialBinding: AppBindings(),
           initialRoute: initialRoute,
           getPages: [
-            GetPage(name: '/language-selection', page: () => const LanguageSelectionScreen()),
+            GetPage(
+              name: '/language-selection',
+              page: () => const LanguageSelectionScreen(),
+            ),
             GetPage(name: '/login', page: () => const LoginScreen()),
-            GetPage(name: '/role-selection', page: () => const RoleSelectionScreen()),
+            GetPage(
+              name: '/role-selection',
+              page: () => const RoleSelectionScreen(),
+            ),
             GetPage(name: '/home', page: () => const MainTabNavigation()),
             GetPage(name: '/profile', page: () => const ProfileScreen()),
-            GetPage(name: '/profile-completion', page: () => const ProfileCompletionScreen()),
+            GetPage(
+              name: '/profile-completion',
+              page: () => const ProfileCompletionScreen(),
+            ),
 
-            GetPage(name: '/candidate-profile', page: () => const CandidateProfileScreen()),
+            GetPage(
+              name: '/candidate-profile',
+              page: () => const CandidateProfileScreen(),
+            ),
             GetPage(
               name: '/change-party-symbol',
               page: () {
@@ -194,9 +301,15 @@ class MyApp extends StatelessWidget {
               },
             ),
             GetPage(name: '/chat', page: () => const ChatListScreen()),
-            GetPage(name: '/monetization', page: () => const MonetizationScreen()),
+            GetPage(
+              name: '/monetization',
+              page: () => const MonetizationScreen(),
+            ),
             GetPage(name: '/settings', page: () => const SettingsScreen()),
-            GetPage(name: '/device-management', page: () => const DeviceManagementScreen()),
+            GetPage(
+              name: '/device-management',
+              page: () => const DeviceManagementScreen(),
+            ),
           ],
           debugShowCheckedModeBanner: false,
         );
@@ -212,10 +325,7 @@ class MyApp extends StatelessWidget {
     if (isFirstTime) {
       // Set default language to English for first-time users
       await languageService.setDefaultLanguage('en');
-      return {
-        'route': '/language-selection',
-        'locale': const Locale('en'),
-      };
+      return {'route': '/language-selection', 'locale': const Locale('en')};
     }
 
     // Get stored language preference (fast local check)
@@ -226,10 +336,7 @@ class MyApp extends StatelessWidget {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     if (currentUser == null) {
-      return {
-        'route': '/login',
-        'locale': locale,
-      };
+      return {'route': '/login', 'locale': locale};
     }
 
     // For authenticated users, check their completion status
@@ -247,15 +354,14 @@ class MyApp extends StatelessWidget {
         final bodyId = userData['bodyId'] as String? ?? '';
         final wardId = userData['wardId'] as String? ?? '';
 
-        debugPrint('🔍 User state check - Role: "$role", District: "$districtId", Body: "$bodyId", Ward: "$wardId"');
+        debugPrint(
+          '🔍 User state check - Role: "$role", District: "$districtId", Body: "$bodyId", Ward: "$wardId"',
+        );
 
         // Step 1: Check if role is selected
         if (role.isEmpty) {
           debugPrint('🎯 Redirecting to role selection - role is empty');
-          return {
-            'route': '/role-selection',
-            'locale': locale,
-          };
+          return {'route': '/role-selection', 'locale': locale};
         }
 
         // Step 2: Check if profile is completed
@@ -264,7 +370,9 @@ class MyApp extends StatelessWidget {
 
         if (!profileCompleted) {
           // Profile not completed, go to profile completion
-          debugPrint('🎯 Redirecting to profile completion - profile not completed');
+          debugPrint(
+            '🎯 Redirecting to profile completion - profile not completed',
+          );
           return {
             'route': '/profile-completion',
             'locale': locale,
@@ -277,24 +385,15 @@ class MyApp extends StatelessWidget {
 
         // All checks passed - user can go to home
         debugPrint('✅ All user checks passed - redirecting to home');
-        return {
-          'route': '/home',
-          'locale': locale,
-        };
+        return {'route': '/home', 'locale': locale};
       } else {
         debugPrint('⚠️ User document not found - redirecting to login');
-        return {
-          'route': '/login',
-          'locale': locale,
-        };
+        return {'route': '/login', 'locale': locale};
       }
     } catch (e) {
       debugPrint('⚠️ Error checking user state: $e');
       // On error, redirect to login to be safe
-      return {
-        'route': '/login',
-        'locale': locale,
-      };
+      return {'route': '/login', 'locale': locale};
     }
   }
 }

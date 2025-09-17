@@ -20,11 +20,7 @@ class PlanFeature {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'description': description,
-      'enabled': enabled,
-    };
+    return {'name': name, 'description': description, 'enabled': enabled};
   }
 }
 
@@ -79,7 +75,8 @@ class SubscriptionPlan {
       xpAmount: json['xpAmount'],
       features: json['features'] != null
           ? List<PlanFeature>.from(
-              (json['features'] as List).map((x) => PlanFeature.fromJson(x)))
+              (json['features'] as List).map((x) => PlanFeature.fromJson(x)),
+            )
           : [],
       isActive: json['isActive'] ?? true,
       createdAt: createdAt,

@@ -54,9 +54,7 @@ class DemoDataModal extends StatelessWidget {
               'https://example.com/demo_cleanliness_2.jpg',
               'https://example.com/demo_cleanliness_3.jpg',
             ],
-            'videos': [
-              'https://example.com/demo_campaign_video.mp4',
-            ],
+            'videos': ['https://example.com/demo_campaign_video.mp4'],
             'youtubeLinks': [
               'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
               'https://www.youtube.com/watch?v=oHg5SJYRHA0',
@@ -73,12 +71,8 @@ class DemoDataModal extends StatelessWidget {
               'https://example.com/demo_infrastructure_1.jpg',
               'https://example.com/demo_infrastructure_2.jpg',
             ],
-            'videos': [
-              'https://example.com/demo_progress_video.mp4',
-            ],
-            'youtubeLinks': [
-              'https://www.youtube.com/watch?v=9bZkp7q19f0',
-            ],
+            'videos': ['https://example.com/demo_progress_video.mp4'],
+            'youtubeLinks': ['https://www.youtube.com/watch?v=9bZkp7q19f0'],
           },
         ),
         const SizedBox(height: 12),
@@ -114,9 +108,9 @@ class DemoDataModal extends StatelessWidget {
       onTap: () {
         onDataSelected(demoData);
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Demo $title data loaded')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Demo $title data loaded')));
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -142,10 +136,7 @@ class DemoDataModal extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ),

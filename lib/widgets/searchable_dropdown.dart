@@ -129,11 +129,19 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     // Calculate available space
-    final availableHeight = screenSize.height - keyboardHeight - offset.dy - size.height - 50; // 50 for padding
-    final maxHeight = availableHeight > 0 ? availableHeight.clamp(100, 350).toDouble() : 200.0;
+    final availableHeight =
+        screenSize.height -
+        keyboardHeight -
+        offset.dy -
+        size.height -
+        50; // 50 for padding
+    final maxHeight = availableHeight > 0
+        ? availableHeight.clamp(100, 350).toDouble()
+        : 200.0;
 
     // Determine if dropdown should open upwards or downwards
-    final spaceBelow = screenSize.height - offset.dy - size.height - keyboardHeight;
+    final spaceBelow =
+        screenSize.height - offset.dy - size.height - keyboardHeight;
     final spaceAbove = offset.dy;
     final shouldOpenUpwards = spaceBelow < 100 && spaceAbove > spaceBelow;
 
@@ -270,9 +278,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   @override
   Widget build(BuildContext context) {
     final selectedItem = widget.items.cast<DropdownMenuItem<T>?>().firstWhere(
-          (item) => item?.value == widget.value,
-          orElse: () => null,
-        );
+      (item) => item?.value == widget.value,
+      orElse: () => null,
+    );
 
     return CompositedTransformTarget(
       link: _layerLink,

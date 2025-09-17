@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'dart:io';
 import '../../../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../services/file_upload_service.dart';
@@ -58,16 +56,26 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     debugPrint('🎯 BasicInfoSection initState - Education debug:');
     debugPrint('   extraInfo exists: ${extraInfo != null}');
     debugPrint('   basicInfo exists: ${extraInfo?.basicInfo != null}');
-    debugPrint('   education from basicInfo: ${extraInfo?.basicInfo?.education}');
+    debugPrint(
+      '   education from basicInfo: ${extraInfo?.basicInfo?.education}',
+    );
     debugPrint('   address from contact: ${extraInfo?.contact?.address}');
 
     _nameController = TextEditingController(text: data.name);
     _cityController = TextEditingController(text: data.districtId);
     _wardController = TextEditingController(text: data.wardId);
-    _ageController = TextEditingController(text: extraInfo?.basicInfo?.age?.toString() ?? '');
-    _genderController = TextEditingController(text: extraInfo?.basicInfo?.gender ?? '');
-    _educationController = TextEditingController(text: extraInfo?.basicInfo?.education ?? '');
-    _addressController = TextEditingController(text: extraInfo?.contact?.address ?? '');
+    _ageController = TextEditingController(
+      text: extraInfo?.basicInfo?.age?.toString() ?? '',
+    );
+    _genderController = TextEditingController(
+      text: extraInfo?.basicInfo?.gender ?? '',
+    );
+    _educationController = TextEditingController(
+      text: extraInfo?.basicInfo?.education ?? '',
+    );
+    _addressController = TextEditingController(
+      text: extraInfo?.contact?.address ?? '',
+    );
   }
 
   @override
@@ -116,7 +124,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
       try {
         croppedFile = await ImageCropper().cropImage(
           sourcePath: pickedFile.path,
-          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Square aspect ratio for profile photo
+          aspectRatio: const CropAspectRatio(
+            ratioX: 1,
+            ratioY: 1,
+          ), // Square aspect ratio for profile photo
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Crop Profile Photo',
@@ -147,7 +158,6 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
 
       // Upload the image
       await _uploadCroppedPhoto(imagePath);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -175,7 +185,8 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     });
 
     try {
-      final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storagePath = 'profile_photos/$fileName';
       final photoUrl = await _fileUploadService.uploadFile(
         imagePath,
@@ -209,7 +220,9 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
   Future<void> _selectBirthDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 25)), // Default to 25 years ago
+      initialDate: DateTime.now().subtract(
+        const Duration(days: 365 * 25),
+      ), // Default to 25 years ago
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -289,7 +302,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
     widget.onNameChange('राहुल पाटील');
     widget.onBasicInfoChange('age', 42);
     widget.onBasicInfoChange('gender', 'पुरुष');
-    widget.onBasicInfoChange('dateOfBirth', '1982-01-15T00:00:00.000Z'); // Demo birthdate
+    widget.onBasicInfoChange(
+      'dateOfBirth',
+      '1982-01-15T00:00:00.000Z',
+    ); // Demo birthdate
     widget.onBasicInfoChange('education', 'B.A. Political Science');
     widget.onBasicInfoChange('address', 'पुणे, महाराष्ट्र');
   }
@@ -350,10 +366,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
           children: [
             const Text(
               'Basic Information',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             // Photo and Name Section
@@ -386,10 +399,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                             decoration: BoxDecoration(
                               color: Theme.of(context).primaryColor,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 2,
-                              ),
+                              border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.2),
@@ -404,7 +414,9 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                     height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
                                     ),
                                   )
                                 : const Icon(
@@ -442,7 +454,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          if (data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty)
+                          if (data.party.toLowerCase().contains(
+                                'independent',
+                              ) ||
+                              data.party.trim().isEmpty)
                             Container(
                               width: 60,
                               height: 60,
@@ -464,7 +479,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                 borderRadius: BorderRadius.circular(8),
                                 image: DecorationImage(
                                   image: SymbolUtils.getSymbolImageProvider(
-                                    SymbolUtils.getPartySymbolPath(data.party, candidate: data)
+                                    SymbolUtils.getPartySymbolPath(
+                                      data.party,
+                                      candidate: data,
+                                    ),
                                   ),
                                   fit: BoxFit.cover,
                                 ),
@@ -476,20 +494,32 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty
+                                  data.party.toLowerCase().contains(
+                                            'independent',
+                                          ) ||
+                                          data.party.trim().isEmpty
                                       ? 'Independent Candidate'
                                       : data.party,
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty
+                                    color:
+                                        data.party.toLowerCase().contains(
+                                              'independent',
+                                            ) ||
+                                            data.party.trim().isEmpty
                                         ? Colors.grey.shade700
                                         : Colors.blue,
-                                    fontWeight: data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty
+                                    fontWeight:
+                                        data.party.toLowerCase().contains(
+                                              'independent',
+                                            ) ||
+                                            data.party.trim().isEmpty
                                         ? FontWeight.w500
                                         : FontWeight.normal,
                                   ),
                                 ),
-                                if (data.symbol != null && data.symbol!.isNotEmpty)
+                                if (data.symbol != null &&
+                                    data.symbol!.isNotEmpty)
                                   Text(
                                     'Symbol: ${data.symbol}',
                                     style: const TextStyle(
@@ -517,7 +547,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                     child: GestureDetector(
                       onTap: () => _selectBirthDate(context),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade400),
                           borderRadius: BorderRadius.circular(4),
@@ -536,10 +569,14 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                     ),
                                   ),
                                   Text(
-                                    _ageController.text.isNotEmpty ? _ageController.text : 'Tap to select birth date',
+                                    _ageController.text.isNotEmpty
+                                        ? _ageController.text
+                                        : 'Tap to select birth date',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: _ageController.text.isNotEmpty ? Colors.black : Colors.grey.shade500,
+                                      color: _ageController.text.isNotEmpty
+                                          ? Colors.black
+                                          : Colors.grey.shade500,
                                     ),
                                   ),
                                 ],
@@ -560,7 +597,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                     child: GestureDetector(
                       onTap: () => _selectGender(context),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade400),
                           borderRadius: BorderRadius.circular(4),
@@ -579,10 +619,14 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                     ),
                                   ),
                                   Text(
-                                    _genderController.text.isNotEmpty ? _genderController.text : 'Tap to select gender',
+                                    _genderController.text.isNotEmpty
+                                        ? _genderController.text
+                                        : 'Tap to select gender',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: _genderController.text.isNotEmpty ? Colors.black : Colors.grey.shade500,
+                                      color: _genderController.text.isNotEmpty
+                                          ? Colors.black
+                                          : Colors.grey.shade500,
                                     ),
                                   ),
                                 ],
@@ -608,7 +652,8 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                   labelText: 'Education',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) => widget.onBasicInfoChange('education', value),
+                onChanged: (value) =>
+                    widget.onBasicInfoChange('education', value),
               ),
               const SizedBox(height: 16),
               // Address field
@@ -619,7 +664,8 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
-                onChanged: (value) => widget.onBasicInfoChange('address', value),
+                onChanged: (value) =>
+                    widget.onBasicInfoChange('address', value),
               ),
               const SizedBox(height: 16),
               // Demo Data Button
@@ -679,7 +725,8 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
               // Display additional info fields
               if (data.extraInfo != null) ...[
                 const SizedBox(height: 16),
-                if (data.extraInfo!.basicInfo?.age != null || data.extraInfo!.basicInfo?.gender != null) ...[
+                if (data.extraInfo!.basicInfo?.age != null ||
+                    data.extraInfo!.basicInfo?.gender != null) ...[
                   Row(
                     children: [
                       if (data.extraInfo!.basicInfo?.age != null)
@@ -704,7 +751,8 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                             ],
                           ),
                         ),
-                      if (data.extraInfo!.basicInfo?.age != null && data.extraInfo!.basicInfo?.gender != null)
+                      if (data.extraInfo!.basicInfo?.age != null &&
+                          data.extraInfo!.basicInfo?.gender != null)
                         const SizedBox(width: 16),
                       if (data.extraInfo!.basicInfo?.gender != null)
                         Expanded(
@@ -738,10 +786,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                     children: [
                       const Text(
                         'Education',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       Text(
                         data.extraInfo!.basicInfo!.education!,
@@ -760,10 +805,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                     children: [
                       const Text(
                         'Address',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       Text(
                         data.extraInfo!.contact!.address!,
@@ -787,10 +829,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                       children: [
                         const Text(
                           'City',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
                           data.districtId,

@@ -35,7 +35,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
 
   Future<void> _loadPollData() async {
     try {
-    debugPrint('🔍 Loading poll data for pollId: ${widget.pollId}');
+      debugPrint('🔍 Loading poll data for pollId: ${widget.pollId}');
 
       // Get poll data from repository
       final chatRepository = ChatRepository();
@@ -44,7 +44,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
       final poll = await chatRepository.getPollById(widget.pollId);
 
       if (poll != null) {
-      debugPrint('✅ Poll found: ${poll.question}');
+        debugPrint('✅ Poll found: ${poll.question}');
 
         setState(() {
           _poll = poll;
@@ -53,9 +53,11 @@ class PollVotingDialogState extends State<PollVotingDialog> {
           _isLoading = false;
         });
 
-      debugPrint('📊 Poll loaded - Has voted: $_hasVoted, Selected: $_selectedOption');
+        debugPrint(
+          '📊 Poll loaded - Has voted: $_hasVoted, Selected: $_selectedOption',
+        );
       } else {
-      debugPrint('❌ Poll not found with ID: ${widget.pollId}');
+        debugPrint('❌ Poll not found with ID: ${widget.pollId}');
         setState(() {
           _isLoading = false;
         });
@@ -67,7 +69,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         );
       }
     } catch (e) {
-    debugPrint('❌ Error loading poll data: $e');
+      debugPrint('❌ Error loading poll data: $e');
       setState(() {
         _isLoading = false;
       });
@@ -85,7 +87,11 @@ class PollVotingDialogState extends State<PollVotingDialog> {
 
     try {
       final chatRepository = ChatRepository();
-      await chatRepository.voteOnPoll(widget.pollId, widget.currentUserId, option);
+      await chatRepository.voteOnPoll(
+        widget.pollId,
+        widget.currentUserId,
+        option,
+      );
 
       // Update local poll data immediately
       setState(() {
@@ -95,10 +101,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         if (_poll != null) {
           _poll = _poll!.copyWith(
             userVotes: {..._poll!.userVotes, widget.currentUserId: option},
-            votes: {
-              ..._poll!.votes,
-              option: (_poll!.votes[option] ?? 0) + 1,
-            },
+            votes: {..._poll!.votes, option: (_poll!.votes[option] ?? 0) + 1},
           );
         }
       });
@@ -117,7 +120,6 @@ class PollVotingDialogState extends State<PollVotingDialog> {
           Navigator.of(context).pop();
         }
       });
-
     } catch (e) {
       Get.snackbar(
         'Vote Failed',
@@ -168,200 +170,208 @@ class PollVotingDialogState extends State<PollVotingDialog> {
                 ),
               )
             : _poll == null
-                ? const Center(
-                    child: Text('Poll not found'),
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_getTotalVotes()} vote${_getTotalVotes() != 1 ? 's' : ''}',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
+            ? const Center(child: Text('Poll not found'))
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_getTotalVotes()} vote${_getTotalVotes() != 1 ? 's' : ''}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  // Expiration status
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _poll!.isExpired
+                          ? Colors.red.shade50
+                          : _poll!.timeRemaining != null &&
+                                _poll!.timeRemaining!.inHours < 24
+                          ? Colors.orange.shade50
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _poll!.isExpired
+                            ? Colors.red.shade200
+                            : _poll!.timeRemaining != null &&
+                                  _poll!.timeRemaining!.inHours < 24
+                            ? Colors.orange.shade200
+                            : Colors.grey.shade300,
                       ),
-                      const SizedBox(height: 8),
-                      // Expiration status
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _poll!.isExpired
-                              ? Colors.red.shade50
-                              : _poll!.timeRemaining != null && _poll!.timeRemaining!.inHours < 24
-                                  ? Colors.orange.shade50
-                                  : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _poll!.isExpired
-                                ? Colors.red.shade200
-                                : _poll!.timeRemaining != null && _poll!.timeRemaining!.inHours < 24
-                                    ? Colors.orange.shade200
-                                    : Colors.grey.shade300,
-                          ),
-                        ),
-                        child: Text(
-                          _poll!.expirationStatus,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: _poll!.isExpired
-                                ? Colors.red.shade700
-                                : _poll!.timeRemaining != null && _poll!.timeRemaining!.inHours < 24
-                                    ? Colors.orange.shade700
-                                    : Colors.grey.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                    ),
+                    child: Text(
+                      _poll!.expirationStatus,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _poll!.isExpired
+                            ? Colors.red.shade700
+                            : _poll!.timeRemaining != null &&
+                                  _poll!.timeRemaining!.inHours < 24
+                            ? Colors.orange.shade700
+                            : Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(height: 8),
-                      ..._poll!.options.map((option) {
-                        final voteCount = _poll!.votes[option] ?? 0;
-                        final percentage = _getVotePercentage(option);
-                        final isSelected = _selectedOption == option;
-                        final isUserChoice = _poll!.userVotes[widget.currentUserId] == option;
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._poll!.options.map((option) {
+                    final voteCount = _poll!.votes[option] ?? 0;
+                    final percentage = _getVotePercentage(option);
+                    final isSelected = _selectedOption == option;
+                    final isUserChoice =
+                        _poll!.userVotes[widget.currentUserId] == option;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: (_hasVoted || _isLoading || _poll!.isExpired) ? null : () => _voteOnPoll(option),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        onTap: (_hasVoted || _isLoading || _poll!.isExpired)
+                            ? null
+                            : () => _voteOnPoll(option),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: _poll!.isExpired
+                                  ? Colors.grey.shade300
+                                  : isSelected
+                                  ? Colors.blue.shade300
+                                  : Colors.grey.shade300,
+                            ),
                             borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: _poll!.isExpired
-                                      ? Colors.grey.shade300
-                                      : isSelected
-                                          ? Colors.blue.shade300
-                                          : Colors.grey.shade300,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                                color: _poll!.isExpired
-                                    ? Colors.grey.shade50
-                                    : isUserChoice
-                                        ? Colors.blue.shade50
-                                        : isSelected
-                                            ? Colors.grey.shade50
-                                            : Colors.white,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            color: _poll!.isExpired
+                                ? Colors.grey.shade50
+                                : isUserChoice
+                                ? Colors.blue.shade50
+                                : isSelected
+                                ? Colors.grey.shade50
+                                : Colors.white,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          option,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                          ),
-                                        ),
-                                      ),
-                                      if (_hasVoted) ...[
-                                        Text(
-                                          '$voteCount',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        if (isUserChoice)
-                                          Icon(
-                                            Icons.check_circle,
-                                            color: Colors.green.shade600,
-                                            size: 16,
-                                          ),
-                                      ],
-                                    ],
-                                  ),
-                                  if (_hasVoted && _getTotalVotes() > 0) ...[
-                                    const SizedBox(height: 8),
-                                    LinearProgressIndicator(
-                                      value: percentage,
-                                      backgroundColor: Colors.grey.shade200,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        isUserChoice ? Colors.green.shade400 : Colors.blue.shade400,
+                                  Expanded(
+                                    child: Text(
+                                      option,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                  ),
+                                  if (_hasVoted) ...[
                                     Text(
-                                      '${(percentage * 100).round()}%',
+                                      '$voteCount',
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         color: Colors.grey.shade600,
                                       ),
                                     ),
+                                    const SizedBox(width: 4),
+                                    if (isUserChoice)
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green.shade600,
+                                        size: 16,
+                                      ),
                                   ],
                                 ],
                               ),
+                              if (_hasVoted && _getTotalVotes() > 0) ...[
+                                const SizedBox(height: 8),
+                                LinearProgressIndicator(
+                                  value: percentage,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isUserChoice
+                                        ? Colors.green.shade400
+                                        : Colors.blue.shade400,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${(percentage * 100).round()}%',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  if (_poll!.isExpired) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.timer_off,
+                            color: Colors.red.shade600,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'This poll has expired. Voting is no longer available.',
+                              style: TextStyle(
+                                color: Color(0xFFB71C1C),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                        );
-                      }).toList(),
-                      if (_poll!.isExpired) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.shade200),
+                        ],
+                      ),
+                    ),
+                  ] else if (_hasVoted) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green.shade600,
+                            size: 20,
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.timer_off,
-                                color: Colors.red.shade600,
-                                size: 20,
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Thank you for voting!',
+                              style: TextStyle(
+                                color: Color(0xFF2E7D32),
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'This poll has expired. Voting is no longer available.',
-                                  style: TextStyle(
-                                    color: Color(0xFFB71C1C),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ] else if (_hasVoted) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.green.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                color: Colors.green.shade600,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'Thank you for voting!',
-                                  style: TextStyle(
-                                    color: const Color(0xFF2E7D32),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
       ),
       actions: [
         TextButton(
@@ -375,7 +385,8 @@ class PollVotingDialogState extends State<PollVotingDialog> {
 
 // Stateful widget for poll creation dialog
 class CreatePollDialog extends StatefulWidget {
-  final Function(String question, List<String> options, {DateTime? expiresAt}) onPollCreated;
+  final Function(String question, List<String> options, {DateTime? expiresAt})
+  onPollCreated;
 
   const CreatePollDialog({super.key, required this.onPollCreated});
 
@@ -405,7 +416,8 @@ class CreatePollDialogState extends State<CreatePollDialog> {
   }
 
   void _addOption() {
-    if (optionControllers.length < 10) { // Limit to 10 options max
+    if (optionControllers.length < 10) {
+      // Limit to 10 options max
       setState(() {
         optionControllers.add(TextEditingController());
       });
@@ -436,9 +448,13 @@ class CreatePollDialogState extends State<CreatePollDialog> {
   }
 
   String _getExpirationDateTime() {
-    final expirationDateTime = DateTime.now().add(Duration(hours: _expirationHours));
-    final formattedDate = '${expirationDateTime.day}/${expirationDateTime.month}/${expirationDateTime.year}';
-    final formattedTime = '${expirationDateTime.hour.toString().padLeft(2, '0')}:${expirationDateTime.minute.toString().padLeft(2, '0')}';
+    final expirationDateTime = DateTime.now().add(
+      Duration(hours: _expirationHours),
+    );
+    final formattedDate =
+        '${expirationDateTime.day}/${expirationDateTime.month}/${expirationDateTime.year}';
+    final formattedTime =
+        '${expirationDateTime.hour.toString().padLeft(2, '0')}:${expirationDateTime.minute.toString().padLeft(2, '0')}';
     return '$formattedDate at $formattedTime';
   }
 
@@ -490,7 +506,10 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                           decoration: InputDecoration(
                             labelText: localizations.optionLabel(index + 1),
                             border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                           textCapitalization: TextCapitalization.sentences,
                         ),
@@ -513,10 +532,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
               Center(
                 child: TextButton.icon(
                   onPressed: _addOption,
-                  icon: Icon(
-                    Icons.add_circle,
-                    color: Colors.blue.shade600,
-                  ),
+                  icon: Icon(Icons.add_circle, color: Colors.blue.shade600),
                   label: Text(
                     localizations.addOption(optionControllers.length, 10),
                     style: TextStyle(color: Colors.blue.shade600),
@@ -583,10 +599,10 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                               hours < 24
                                   ? '${hours}h'
                                   : hours == 24
-                                      ? '1 day'
-                                      : hours == 168
-                                          ? '1 week'
-                                          : '${hours ~/ 24} days',
+                                  ? '1 day'
+                                  : hours == 168
+                                  ? '1 week'
+                                  : '${hours ~/ 24} days',
                             ),
                             selected: isSelected,
                             onSelected: (selected) {

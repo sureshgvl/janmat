@@ -6,12 +6,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/user_model.dart';
-import '../controllers/login_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/candidate_controller.dart';
 import '../services/admob_service.dart';
-import '../services/background_initializer.dart';
 import '../utils/performance_monitor.dart';
 
 class AuthRepository {
@@ -24,7 +23,10 @@ class AuthRepository {
   bool _forceAccountPicker = false;
 
   // Phone Authentication
-  Future<void> verifyPhoneNumber(String phoneNumber, Function(String) onCodeSent) async {
+  Future<void> verifyPhoneNumber(
+    String phoneNumber,
+    Function(String) onCodeSent,
+  ) async {
     await _firebaseAuth.verifyPhoneNumber(
       phoneNumber: '+91$phoneNumber',
       verificationCompleted: (PhoneAuthCredential credential) async {
@@ -40,7 +42,10 @@ class AuthRepository {
     );
   }
 
-  Future<UserCredential> signInWithOTP(String verificationId, String smsCode) async {
+  Future<UserCredential> signInWithOTP(
+    String verificationId,
+    String smsCode,
+  ) async {
     PhoneAuthCredential credential = PhoneAuthProvider.credential(
       verificationId: verificationId,
       smsCode: smsCode,
@@ -48,75 +53,111 @@ class AuthRepository {
     return await _firebaseAuth.signInWithCredential(credential);
   }
 
-  // Google Sign-In - Ultra-optimized for zero-frame performance
+  // Check network connectivity before attempting Google Sign-In
+  Future<bool> _checkConnectivity() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult != ConnectivityResult.none;
+      debugPrint('🌐 Network connectivity check: ${hasConnection ? 'Connected' : 'No connection'}');
+      return hasConnection;
+    } catch (e) {
+      debugPrint('⚠️ Could not check connectivity: $e');
+      return true; // Assume connected if check fails
+    }
+  }
+
+  // Google Sign-In - Enhanced with better timeout handling, retry logic, and connectivity checks
   Future<UserCredential?> signInWithGoogle() async {
     startPerformanceTimer('google_signin');
 
     try {
-      debugPrint('🚀 Starting ultra-optimized Google Sign-In');
+      debugPrint('🚀 Starting enhanced Google Sign-In with improved timeout handling');
 
-      // Step 1: Google Sign-In (fast operation with timeout)
+      // Step 0: Check network connectivity
+      debugPrint('🌐 Checking network connectivity...');
+      final hasConnectivity = await _checkConnectivity();
+      if (!hasConnectivity) {
+        throw Exception('No internet connection detected. Please check your network and try again.');
+      }
+
+      // Step 1: Google Sign-In with enhanced timeout and retry logic
       debugPrint('📱 Requesting Google account selection...');
 
-      // Force account picker if flag is set (after logout)
       GoogleSignInAccount? googleUser;
-      if (_forceAccountPicker) {
-        debugPrint('🎯 Force account picker enabled - ensuring fresh account selection');
+      int retryCount = 0;
+      const maxRetries = 2;
 
-        // Step 1: Check if user is already signed in silently
-        String? previousUserId;
+      while (retryCount <= maxRetries) {
         try {
-          final silentUser = await _googleSignIn.signInSilently();
-          if (silentUser != null) {
-            previousUserId = silentUser.id;
-            debugPrint('📋 Previous user detected: ${silentUser.displayName} (${silentUser.id})');
-          }
-        } catch (e) {
-          debugPrint('ℹ️ No existing silent session (normal): $e');
-        }
+          // Force account picker if flag is set (after logout)
+          if (_forceAccountPicker) {
+            debugPrint('🎯 Force account picker enabled - ensuring fresh account selection');
 
-        // Step 2: If we have a previous user, we need to force account picker
-        if (previousUserId != null) {
-          debugPrint('🔄 Previous user found, forcing account picker...');
+            // Check if user is already signed in silently
+            String? previousUserId;
+            try {
+              final silentUser = await _googleSignIn.signInSilently();
+              if (silentUser != null) {
+                previousUserId = silentUser.id;
+                debugPrint('📋 Previous user detected: ${silentUser.displayName} (${silentUser.id})');
+              }
+            } catch (e) {
+              debugPrint('ℹ️ No existing silent session (normal): $e');
+            }
 
-          // Disconnect to clear the cached authentication
-          await _googleSignIn.disconnect();
-          debugPrint('✅ Disconnected previous session');
+            // If we have a previous user, force account picker
+            if (previousUserId != null) {
+              debugPrint('🔄 Previous user found, forcing account picker...');
+              await _googleSignIn.disconnect();
+              debugPrint('✅ Disconnected previous session');
+              await Future.delayed(const Duration(milliseconds: 500)); // Increased delay
+            }
 
-          // Small delay to ensure disconnection
-          await Future.delayed(const Duration(milliseconds: 300));
-        }
+            debugPrint('📱 Showing account picker...');
+            googleUser = await _googleSignIn.signIn().timeout(
+              const Duration(seconds: 90), // Increased timeout to 90 seconds
+              onTimeout: () {
+                debugPrint('⏰ Google Sign-In timeout after 90 seconds');
+                throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
+              },
+            );
 
-        // Step 3: Now show the account picker
-        debugPrint('📱 Showing account picker...');
-        googleUser = await _googleSignIn.signIn().timeout(
-          const Duration(seconds: 60), // Increased timeout for account selection
-          onTimeout: () {
-            debugPrint('⏰ Google Sign-In timeout after 60 seconds');
-            throw 'Google Sign-In timed out. Please try selecting an account within 60 seconds.';
-          },
-        );
+            // Verify we got a different user
+            if (googleUser != null && previousUserId != null) {
+              if (googleUser.id == previousUserId) {
+                debugPrint('⚠️ Same user selected, but account picker was shown');
+              } else {
+                debugPrint('✅ Different user selected: ${googleUser.displayName}');
+              }
+            }
 
-        // Step 4: Verify we got a different user (if we had a previous user)
-        if (googleUser != null && previousUserId != null) {
-          if (googleUser.id == previousUserId) {
-            debugPrint('⚠️ Same user selected, but account picker was shown');
+            _forceAccountPicker = false;
+            debugPrint('✅ Account picker flag reset');
           } else {
-            debugPrint('✅ Different user selected: ${googleUser.displayName}');
+            googleUser = await _googleSignIn.signIn().timeout(
+              const Duration(seconds: 90), // Increased timeout to 90 seconds
+              onTimeout: () {
+                debugPrint('⏰ Google Sign-In timeout after 90 seconds');
+                throw Exception('Google Sign-In timed out. Please check your internet connection and try again.');
+              },
+            );
+          }
+
+          // If successful, break out of retry loop
+          if (googleUser != null) {
+            break;
+          }
+
+        } catch (e) {
+          retryCount++;
+          if (retryCount <= maxRetries && e.toString().contains('timed out')) {
+            debugPrint('🔄 Google Sign-In timeout, retrying... (attempt $retryCount/$maxRetries)');
+            await Future.delayed(Duration(seconds: retryCount * 2)); // Exponential backoff
+            continue;
+          } else {
+            rethrow;
           }
         }
-
-        // Reset the flag after use
-        _forceAccountPicker = false;
-        debugPrint('✅ Account picker flag reset');
-      } else {
-        googleUser = await _googleSignIn.signIn().timeout(
-          const Duration(seconds: 60),
-          onTimeout: () {
-            debugPrint('⏰ Google Sign-In timeout');
-            throw 'Google Sign-In timed out. Please try again within 60 seconds.';
-          },
-        );
       }
 
       if (googleUser == null) {
@@ -129,7 +170,8 @@ class AuthRepository {
 
       // Step 2: Get authentication tokens (optimized)
       debugPrint('🔑 Retrieving authentication tokens...');
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
         throw 'Failed to retrieve authentication tokens from Google';
@@ -142,29 +184,33 @@ class AuthRepository {
         idToken: googleAuth.idToken,
       );
 
-      // Step 4: Firebase authentication (can be slow - optimized)
+      // Step 4: Firebase authentication with enhanced timeout handling
       debugPrint('🔐 Authenticating with Firebase...');
 
-      // Use a longer timeout to handle App Check delays
+      // Use a longer timeout to handle App Check delays and network issues
       final UserCredential userCredential = await _firebaseAuth
           .signInWithCredential(credential)
           .timeout(
-            const Duration(seconds: 45),
+            const Duration(seconds: 60), // Increased to 60 seconds for better reliability
             onTimeout: () {
-              debugPrint('⏰ Firebase authentication timeout');
+              debugPrint('⏰ Firebase authentication timeout after 60 seconds');
 
               // Check if authentication actually succeeded despite the timeout
               final currentUser = _firebaseAuth.currentUser;
               if (currentUser != null) {
-                debugPrint('✅ Authentication succeeded despite timeout - proceeding');
+                debugPrint(
+                  '✅ Authentication succeeded despite timeout - proceeding with current user',
+                );
                 throw 'AUTH_SUCCESS_BUT_TIMEOUT'; // Special exception to handle in catch block
               } else {
-                throw 'Firebase authentication timed out. Please check your internet connection.';
+                throw Exception('Firebase authentication timed out. Please check your internet connection and try again.');
               }
             },
           );
 
-      debugPrint('✅ Firebase authentication successful for: ${userCredential.user?.displayName}');
+      debugPrint(
+        '✅ Firebase authentication successful for: ${userCredential.user?.displayName}',
+      );
 
       // Step 5: User data operations (synchronous to avoid isolate issues)
       debugPrint('👤 Processing user data synchronously...');
@@ -184,7 +230,9 @@ class AuthRepository {
 
         final currentUser = _firebaseAuth.currentUser;
         if (currentUser != null) {
-          debugPrint('✅ Proceeding with authenticated user: ${currentUser.displayName}');
+          debugPrint(
+            '✅ Proceeding with authenticated user: ${currentUser.displayName}',
+          );
 
           // Step 5: User data operations for successful auth
           debugPrint('👤 Processing user data synchronously...');
@@ -196,7 +244,8 @@ class AuthRepository {
       }
 
       // Provide more specific error messages
-      if (e.toString().contains('network') || e.toString().contains('timeout')) {
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
         throw 'Network error during sign-in. Please check your internet connection and try again.';
       } else if (e.toString().contains('cancelled')) {
         throw 'Sign-in was cancelled.';
@@ -207,7 +256,11 @@ class AuthRepository {
   }
 
   // Create or update user in Firestore - Optimized for performance
-  Future<void> createOrUpdateUser(User firebaseUser, {String? name, String? role}) async {
+  Future<void> createOrUpdateUser(
+    User firebaseUser, {
+    String? name,
+    String? role,
+  }) async {
     startPerformanceTimer('user_data_setup');
 
     try {
@@ -253,7 +306,7 @@ class AuthRepository {
 
         // Only update non-null values to minimize data transfer
         final filteredData = Map<String, dynamic>.fromEntries(
-          updatedData.entries.where((entry) => entry.value != null)
+          updatedData.entries.where((entry) => entry.value != null),
         );
 
         if (filteredData.isNotEmpty) {
@@ -336,9 +389,21 @@ class AuthRepository {
       final appSupportDir = await getApplicationSupportDirectory();
 
       final info = <String, dynamic>{
-        'cache': <String, dynamic>{'files': 0, 'size': 0, 'path': cacheDir.path},
-        'appDocuments': <String, dynamic>{'files': 0, 'size': 0, 'path': appDir.path},
-        'appSupport': <String, dynamic>{'files': 0, 'size': 0, 'path': appSupportDir.path},
+        'cache': <String, dynamic>{
+          'files': 0,
+          'size': 0,
+          'path': cacheDir.path,
+        },
+        'appDocuments': <String, dynamic>{
+          'files': 0,
+          'size': 0,
+          'path': appDir.path,
+        },
+        'appSupport': <String, dynamic>{
+          'files': 0,
+          'size': 0,
+          'path': appSupportDir.path,
+        },
         'total': <String, dynamic>{'files': 0, 'size': 0},
       };
 
@@ -349,7 +414,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              info['cache']!['size'] = (info['cache']!['size'] as int) + await file.length();
+              info['cache']!['size'] =
+                  (info['cache']!['size'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -364,7 +430,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              info['appDocuments']!['size'] = (info['appDocuments']!['size'] as int) + await file.length();
+              info['appDocuments']!['size'] =
+                  (info['appDocuments']!['size'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -379,7 +446,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              info['appSupport']!['size'] = (info['appSupport']!['size'] as int) + await file.length();
+              info['appSupport']!['size'] =
+                  (info['appSupport']!['size'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -388,16 +456,17 @@ class AuthRepository {
       }
 
       // Calculate totals
-      info['total']!['files'] = (info['cache']!['files'] as int) +
-                              (info['appDocuments']!['files'] as int) +
-                              (info['appSupport']!['files'] as int);
+      info['total']!['files'] =
+          (info['cache']!['files'] as int) +
+          (info['appDocuments']!['files'] as int) +
+          (info['appSupport']!['files'] as int);
 
-      info['total']!['size'] = (info['cache']!['size'] as int) +
-                             (info['appDocuments']!['size'] as int) +
-                             (info['appSupport']!['size'] as int);
+      info['total']!['size'] =
+          (info['cache']!['size'] as int) +
+          (info['appDocuments']!['size'] as int) +
+          (info['appSupport']!['size'] as int);
 
       return info;
-
     } catch (e) {
       debugPrint('❌ Could not get storage info: $e');
       return <String, dynamic>{
@@ -432,7 +501,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              result['initialSize'] = (result['initialSize'] as int) + await file.length();
+              result['initialSize'] =
+                  (result['initialSize'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -445,7 +515,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              result['initialSize'] = (result['initialSize'] as int) + await file.length();
+              result['initialSize'] =
+                  (result['initialSize'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -470,7 +541,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              result['finalSize'] = (result['finalSize'] as int) + await file.length();
+              result['finalSize'] =
+                  (result['finalSize'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -483,7 +555,8 @@ class AuthRepository {
         for (final file in files) {
           if (file is File) {
             try {
-              result['finalSize'] = (result['finalSize'] as int) + await file.length();
+              result['finalSize'] =
+                  (result['finalSize'] as int) + await file.length();
             } catch (e) {
               // Skip
             }
@@ -491,15 +564,21 @@ class AuthRepository {
         }
       }
 
-      result['cleanedSize'] = (result['initialSize'] as int) - (result['finalSize'] as int);
+      result['cleanedSize'] =
+          (result['initialSize'] as int) - (result['finalSize'] as int);
 
       debugPrint('✅ Manual cleanup completed:');
-      debugPrint('   Initial size: ${(result['initialSize'] as int) / 1024 / 1024} MB');
-      debugPrint('   Final size: ${(result['finalSize'] as int) / 1024 / 1024} MB');
-      debugPrint('   Cleaned: ${(result['cleanedSize'] as int) / 1024 / 1024} MB');
+      debugPrint(
+        '   Initial size: ${(result['initialSize'] as int) / 1024 / 1024} MB',
+      );
+      debugPrint(
+        '   Final size: ${(result['finalSize'] as int) / 1024 / 1024} MB',
+      );
+      debugPrint(
+        '   Cleaned: ${(result['cleanedSize'] as int) / 1024 / 1024} MB',
+      );
 
       return result;
-
     } catch (e) {
       debugPrint('❌ Manual storage cleanup failed: $e');
       return <String, dynamic>{
@@ -557,12 +636,15 @@ class AuthRepository {
 
       // If storage is excessive (>50MB), clean it up
       if (totalSize > 50 * 1024 * 1024) {
-        debugPrint('⚠️ Excessive storage detected (${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB), cleaning up...');
+        debugPrint(
+          '⚠️ Excessive storage detected (${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB), cleaning up...',
+        );
         await _cleanupExcessiveStorage();
       } else {
-        debugPrint('✅ Storage usage normal (${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB)');
+        debugPrint(
+          '✅ Storage usage normal (${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB)',
+        );
       }
-
     } catch (e) {
       debugPrint('ℹ️ Could not analyze storage: $e');
     }
@@ -593,10 +675,14 @@ class AuthRepository {
                 await file.delete();
                 cleanedSize += size;
                 deletedFiles++;
-                debugPrint('🗑️ Deleted old cache file: ${file.path} (${(size / 1024).round()} KB)');
+                debugPrint(
+                  '🗑️ Deleted old cache file: ${file.path} (${(size / 1024).round()} KB)',
+                );
               }
             } catch (e) {
-              debugPrint('Warning: Could not delete cache file ${file.path}: $e');
+              debugPrint(
+                'Warning: Could not delete cache file ${file.path}: $e',
+              );
             }
           }
         }
@@ -620,7 +706,9 @@ class AuthRepository {
 
         // If Firebase cache is >20MB, clear it
         if (firebaseSize > 20 * 1024 * 1024) {
-          debugPrint('🔥 Firebase cache too large (${(firebaseSize / 1024 / 1024).toStringAsFixed(2)} MB), clearing...');
+          debugPrint(
+            '🔥 Firebase cache too large (${(firebaseSize / 1024 / 1024).toStringAsFixed(2)} MB), clearing...',
+          );
           try {
             await _firestore.clearPersistence();
             cleanedSize += firebaseSize;
@@ -632,11 +720,12 @@ class AuthRepository {
       }
 
       if (cleanedSize > 0) {
-        debugPrint('✅ Cleaned up ${(cleanedSize / 1024 / 1024).toStringAsFixed(2)} MB, deleted $deletedFiles files');
+        debugPrint(
+          '✅ Cleaned up ${(cleanedSize / 1024 / 1024).toStringAsFixed(2)} MB, deleted $deletedFiles files',
+        );
       } else {
         debugPrint('ℹ️ No excessive storage found to clean');
       }
-
     } catch (e) {
       debugPrint('Warning: Could not cleanup excessive storage: $e');
     }
@@ -683,7 +772,9 @@ class AuthRepository {
       await quotaRef.set(quotaData, SetOptions(merge: true));
       debugPrint('✅ Created optimized default quota for new user: $userId');
     } catch (e) {
-      debugPrint('❌ Failed to create optimized default quota for user $userId: $e');
+      debugPrint(
+        '❌ Failed to create optimized default quota for user $userId: $e',
+      );
       // Fallback to original method
       await _createDefaultUserQuota(userId);
     }
@@ -729,7 +820,6 @@ class AuthRepository {
       await _clearAllControllers();
 
       debugPrint('✅ Account deletion completed successfully');
-
     } catch (e) {
       debugPrint('❌ Account deletion failed: $e');
 
@@ -755,7 +845,8 @@ class AuthRepository {
         }
       }
       // Don't throw Firestore errors if they are just permission/indexing issues
-      if (!e.toString().contains('failed-precondition') && !e.toString().contains('permission-denied')) {
+      if (!e.toString().contains('failed-precondition') &&
+          !e.toString().contains('permission-denied')) {
         throw 'Failed to delete user data: $e';
       }
     }
@@ -768,7 +859,7 @@ class AuthRepository {
     int currentBatchIndex = 0;
 
     // Helper function to get or create batch
-    WriteBatch _getCurrentBatch() {
+    WriteBatch getCurrentBatch() {
       if (currentBatchIndex >= batches.length) {
         batches.add(_firestore.batch());
       }
@@ -776,59 +867,83 @@ class AuthRepository {
     }
 
     // Helper function to commit current batch if it's getting full
-    Future<void> _commitIfNeeded() async {
+    Future<void> commitIfNeeded() async {
       final currentBatch = batches[currentBatchIndex];
       // We can't check exact size, so we'll commit periodically
       // This is a simplified approach - in production, you'd track operations count
       if (batches.length > currentBatchIndex + 1) {
         await batches[currentBatchIndex].commit();
         currentBatchIndex++;
-        debugPrint('📦 Committed batch ${currentBatchIndex}');
+        debugPrint('📦 Committed batch $currentBatchIndex');
       }
     }
 
     try {
       // 1. Delete user document and subcollections
       debugPrint('📄 Deleting user document and subcollections...');
-      await _deleteUserDocumentChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteUserDocumentChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // 2. Delete conversations and messages (this can be large)
       debugPrint('💬 Deleting conversations and messages...');
-      await _deleteConversationsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteConversationsChunked(
+        userId,
+        getCurrentBatch,
+        commitIfNeeded,
+      );
 
       // 3. Delete rewards
       debugPrint('🏆 Deleting rewards...');
-      await _deleteRewardsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteRewardsChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // 4. Delete XP transactions
       debugPrint('⭐ Deleting XP transactions...');
-      await _deleteXpTransactionsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteXpTransactionsChunked(
+        userId,
+        getCurrentBatch,
+        commitIfNeeded,
+      );
 
       // 5. If user is a candidate, delete candidate data
       if (isCandidate) {
         debugPrint('👥 Deleting candidate data...');
-        await _deleteCandidateDataChunked(userId, _getCurrentBatch, _commitIfNeeded);
+        await _deleteCandidateDataChunked(
+          userId,
+          getCurrentBatch,
+          commitIfNeeded,
+        );
       }
 
       // 6. Delete chat rooms created by the user
       debugPrint('🏠 Deleting user chat rooms...');
-      await _deleteUserChatRoomsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteUserChatRoomsChunked(
+        userId,
+        getCurrentBatch,
+        commitIfNeeded,
+      );
 
       // 7. Delete user quota data
       debugPrint('📊 Deleting user quota...');
-      await _deleteUserQuota(userId, _getCurrentBatch());
+      await _deleteUserQuota(userId, getCurrentBatch());
 
       // 8. Delete reported messages by the user
       debugPrint('🚨 Deleting reported messages...');
-      await _deleteUserReportedMessagesChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteUserReportedMessagesChunked(
+        userId,
+        getCurrentBatch,
+        commitIfNeeded,
+      );
 
       // 9. Delete user subscriptions
       debugPrint('💳 Deleting user subscriptions...');
-      await _deleteUserSubscriptionsChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteUserSubscriptionsChunked(
+        userId,
+        getCurrentBatch,
+        commitIfNeeded,
+      );
 
       // 10. Delete user devices
       debugPrint('📱 Deleting user devices...');
-      await _deleteUserDevicesChunked(userId, _getCurrentBatch, _commitIfNeeded);
+      await _deleteUserDevicesChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // Commit all remaining batches
       for (int i = currentBatchIndex; i < batches.length; i++) {
@@ -837,7 +952,6 @@ class AuthRepository {
       }
 
       debugPrint('✅ All user data deleted successfully');
-
     } catch (e) {
       debugPrint('❌ Error during chunked deletion: $e');
       // Try to commit any pending batches
@@ -872,7 +986,9 @@ class AuthRepository {
         if (errorMessage.contains('failed-precondition') ||
             errorMessage.contains('not in a state') ||
             errorMessage.contains('Operation was rejected')) {
-          debugPrint('ℹ️ Firebase cache clearing skipped (normal after account deletion)');
+          debugPrint(
+            'ℹ️ Firebase cache clearing skipped (normal after account deletion)',
+          );
         } else {
           debugPrint('Warning: Firebase cache clearing failed: $cacheError');
         }
@@ -898,9 +1014,8 @@ class AuthRepository {
       await _clearAllAppDirectories();
 
       debugPrint('✅ Comprehensive cache cleanup completed');
-
     } catch (e) {
-    debugPrint('Warning: Failed to clear some cache: $e');
+      debugPrint('Warning: Failed to clear some cache: $e');
       // Don't throw here as cache clearing failure shouldn't stop account deletion
     }
   }
@@ -920,9 +1035,11 @@ class AuthRepository {
         Get.delete<AdMobService>(force: true);
       }
 
-      debugPrint('✅ Controllers cleared (LoginController preserved for login screen)');
+      debugPrint(
+        '✅ Controllers cleared (LoginController preserved for login screen)',
+      );
     } catch (e) {
-    debugPrint('Warning: Failed to clear some controllers: $e');
+      debugPrint('Warning: Failed to clear some controllers: $e');
     }
   }
 
@@ -944,7 +1061,9 @@ class AuthRepository {
         if (errorMessage.contains('failed-precondition') ||
             errorMessage.contains('not in a state') ||
             errorMessage.contains('Operation was rejected')) {
-          debugPrint('ℹ️ Firebase cache clearing skipped (normal after sign-out)');
+          debugPrint(
+            'ℹ️ Firebase cache clearing skipped (normal after sign-out)',
+          );
         } else {
           debugPrint('Warning: Firebase cache clearing failed: $cacheError');
         }
@@ -976,9 +1095,13 @@ class AuthRepository {
                 final size = await file.length();
                 await file.delete();
                 deletedFiles++;
-                debugPrint('🗑️ Deleted cache file: ${file.path} (${size} bytes)');
+                debugPrint(
+                  '🗑️ Deleted cache file: ${file.path} ($size bytes)',
+                );
               } catch (e) {
-                debugPrint('Warning: Failed to delete cache file ${file.path}: $e');
+                debugPrint(
+                  'Warning: Failed to delete cache file ${file.path}: $e',
+                );
               }
             } else if (file is Directory) {
               try {
@@ -986,11 +1109,15 @@ class AuthRepository {
                 deletedDirs++;
                 debugPrint('🗑️ Deleted cache directory: ${file.path}');
               } catch (e) {
-                debugPrint('Warning: Failed to delete cache directory ${file.path}: $e');
+                debugPrint(
+                  'Warning: Failed to delete cache directory ${file.path}: $e',
+                );
               }
             }
           }
-          debugPrint('✅ Cache directory cleared - deleted $deletedFiles files and $deletedDirs directories');
+          debugPrint(
+            '✅ Cache directory cleared - deleted $deletedFiles files and $deletedDirs directories',
+          );
         } else {
           debugPrint('ℹ️ Cache directory does not exist');
         }
@@ -1048,11 +1175,9 @@ class AuthRepository {
         debugPrint('   Cache directory: $cacheItems items remaining');
         debugPrint('   App temp dirs: $appTempItems items remaining');
         debugPrint('   ✅ Session data cleared successfully');
-
       } catch (e) {
         debugPrint('ℹ️ Could not generate cleanup summary: $e');
       }
-
     } catch (e) {
       debugPrint('Warning: Failed to clear some logout cache: $e');
     }
@@ -1113,23 +1238,33 @@ class AuthRepository {
       final totalSize = cacheSize + appSupportSize;
 
       debugPrint('📊 Storage state $context:');
-      debugPrint('   Cache directory: $cacheFiles files (${(cacheSize / 1024).round()} KB)');
+      debugPrint(
+        '   Cache directory: $cacheFiles files (${(cacheSize / 1024).round()} KB)',
+      );
       debugPrint('   App temp files: $appTempFiles items');
-      debugPrint('   App support: $appSupportFiles files (${(appSupportSize / 1024).round()} KB)');
-      debugPrint('   📈 Total estimated: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+      debugPrint(
+        '   App support: $appSupportFiles files (${(appSupportSize / 1024).round()} KB)',
+      );
+      debugPrint(
+        '   📈 Total estimated: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB',
+      );
 
       // Detailed breakdown if size is significant
-      if (totalSize > 10 * 1024 * 1024) { // > 10MB
+      if (totalSize > 10 * 1024 * 1024) {
+        // > 10MB
         await _analyzeLargeStorage(cacheDir, appDir, appSupportDir);
       }
-
     } catch (e) {
       debugPrint('ℹ️ Could not log storage state: $e');
     }
   }
 
   // Analyze what's taking up large amounts of storage
-  Future<void> _analyzeLargeStorage(Directory cacheDir, Directory appDir, Directory appSupportDir) async {
+  Future<void> _analyzeLargeStorage(
+    Directory cacheDir,
+    Directory appDir,
+    Directory appSupportDir,
+  ) async {
     try {
       debugPrint('🔍 Analyzing large storage usage...');
 
@@ -1149,14 +1284,20 @@ class AuthRepository {
                 }
               }
             }
-            if (dirSize > 1024 * 1024) { // > 1MB
-              debugPrint('   📁 Large cache dir: ${item.path} (${(dirSize / 1024 / 1024).toStringAsFixed(2)} MB, ${files.length} files)');
+            if (dirSize > 1024 * 1024) {
+              // > 1MB
+              debugPrint(
+                '   📁 Large cache dir: ${item.path} (${(dirSize / 1024 / 1024).toStringAsFixed(2)} MB, ${files.length} files)',
+              );
             }
           } else if (item is File) {
             try {
               final size = await item.length();
-              if (size > 1024 * 1024) { // > 1MB
-                debugPrint('   📄 Large cache file: ${item.path} (${(size / 1024 / 1024).toStringAsFixed(2)} MB)');
+              if (size > 1024 * 1024) {
+                // > 1MB
+                debugPrint(
+                  '   📄 Large cache file: ${item.path} (${(size / 1024 / 1024).toStringAsFixed(2)} MB)',
+                );
               }
             } catch (e) {
               // Skip
@@ -1181,14 +1322,20 @@ class AuthRepository {
                 }
               }
             }
-            if (dirSize > 1024 * 1024) { // > 1MB
-              debugPrint('   📁 Large support dir: ${item.path} (${(dirSize / 1024 / 1024).toStringAsFixed(2)} MB, ${files.length} files)');
+            if (dirSize > 1024 * 1024) {
+              // > 1MB
+              debugPrint(
+                '   📁 Large support dir: ${item.path} (${(dirSize / 1024 / 1024).toStringAsFixed(2)} MB, ${files.length} files)',
+              );
             }
           } else if (item is File) {
             try {
               final size = await item.length();
-              if (size > 1024 * 1024) { // > 1MB
-                debugPrint('   📄 Large support file: ${item.path} (${(size / 1024 / 1024).toStringAsFixed(2)} MB)');
+              if (size > 1024 * 1024) {
+                // > 1MB
+                debugPrint(
+                  '   📄 Large support file: ${item.path} (${(size / 1024 / 1024).toStringAsFixed(2)} MB)',
+                );
               }
             } catch (e) {
               // Skip
@@ -1211,9 +1358,10 @@ class AuthRepository {
             }
           }
         }
-        debugPrint('   🔥 Firebase cache: ${firebaseFiles.length} files (${(firebaseSize / 1024 / 1024).toStringAsFixed(2)} MB)');
+        debugPrint(
+          '   🔥 Firebase cache: ${firebaseFiles.length} files (${(firebaseSize / 1024 / 1024).toStringAsFixed(2)} MB)',
+        );
       }
-
     } catch (e) {
       debugPrint('ℹ️ Could not analyze large storage: $e');
     }
@@ -1229,7 +1377,6 @@ class AuthRepository {
 
       // Note: If using cached_network_image package, you would also clear its cache:
       // await DefaultCacheManager().emptyCache();
-
     } catch (e) {
       debugPrint('Warning: Failed to clear image cache: $e');
     }
@@ -1240,8 +1387,9 @@ class AuthRepository {
     try {
       // Note: Flutter doesn't have a built-in HTTP cache, but if you're using
       // packages like dio with cache interceptors, you would clear them here
-      debugPrint('ℹ️ HTTP cache clearing not implemented (no HTTP caching detected)');
-
+      debugPrint(
+        'ℹ️ HTTP cache clearing not implemented (no HTTP caching detected)',
+      );
     } catch (e) {
       debugPrint('Warning: Failed to clear HTTP cache: $e');
     }
@@ -1290,7 +1438,6 @@ class AuthRepository {
           debugPrint('ℹ️ No old temp files to clear');
         }
       }
-
     } catch (e) {
       debugPrint('Warning: Failed to clear temp files: $e');
     }
@@ -1325,7 +1472,6 @@ class AuthRepository {
       } catch (e) {
         debugPrint('Warning: Failed to clear media temp files: $e');
       }
-
     } catch (e) {
       debugPrint('Warning: Failed to clear file upload temp files: $e');
     }
@@ -1363,7 +1509,9 @@ class AuthRepository {
               try {
                 await file.delete();
               } catch (e) {
-                debugPrint('Warning: Failed to delete cache file ${file.path}: $e');
+                debugPrint(
+                  'Warning: Failed to delete cache file ${file.path}: $e',
+                );
               }
             }
           }
@@ -1375,14 +1523,17 @@ class AuthRepository {
 
       // Note: External storage cache clearing removed to avoid import complexity
       // In production, you might want to add this back with proper platform-specific imports
-
     } catch (e) {
       debugPrint('Warning: Failed to clear app directories: $e');
     }
   }
 
   // Chunked deletion methods to handle large datasets
-  Future<void> _deleteUserDocumentChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteUserDocumentChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     final userRef = _firestore.collection('users').doc(userId);
 
     // Delete following subcollection
@@ -1396,7 +1547,11 @@ class AuthRepository {
     getBatch().delete(userRef);
   }
 
-  Future<void> _deleteConversationsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteConversationsChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     final conversationsSnapshot = await _firestore
         .collection('conversations')
         .where('userId', isEqualTo: userId)
@@ -1404,7 +1559,9 @@ class AuthRepository {
 
     for (final conversationDoc in conversationsSnapshot.docs) {
       // Delete messages subcollection (this can be very large)
-      final messagesSnapshot = await conversationDoc.reference.collection('messages').get();
+      final messagesSnapshot = await conversationDoc.reference
+          .collection('messages')
+          .get();
       for (final messageDoc in messagesSnapshot.docs) {
         getBatch().delete(messageDoc.reference);
         await commitIfNeeded();
@@ -1416,7 +1573,11 @@ class AuthRepository {
     }
   }
 
-  Future<void> _deleteRewardsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteRewardsChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     final rewardsSnapshot = await _firestore
         .collection('rewards')
         .where('userId', isEqualTo: userId)
@@ -1428,7 +1589,11 @@ class AuthRepository {
     }
   }
 
-  Future<void> _deleteXpTransactionsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteXpTransactionsChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     final xpTransactionsSnapshot = await _firestore
         .collection('xp_transactions')
         .where('userId', isEqualTo: userId)
@@ -1440,7 +1605,11 @@ class AuthRepository {
     }
   }
 
-  Future<void> _deleteCandidateDataChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteCandidateDataChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     try {
       // Find candidate document in hierarchical structure
       // First, search through all cities and wards to find the candidate
@@ -1460,7 +1629,9 @@ class AuthRepository {
             final candidateDoc = candidateSnapshot.docs.first;
 
             // Delete followers subcollection
-            final followersSnapshot = await candidateDoc.reference.collection('followers').get();
+            final followersSnapshot = await candidateDoc.reference
+                .collection('followers')
+                .get();
             for (final followerDoc in followersSnapshot.docs) {
               getBatch().delete(followerDoc.reference);
               await commitIfNeeded();
@@ -1470,7 +1641,9 @@ class AuthRepository {
             getBatch().delete(candidateDoc.reference);
             await commitIfNeeded();
 
-            debugPrint('✅ Deleted candidate data from: /cities/${cityDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}');
+            debugPrint(
+              '✅ Deleted candidate data from: /cities/${cityDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}',
+            );
             return; // Found and deleted, no need to continue searching
           }
         }
@@ -1483,7 +1656,11 @@ class AuthRepository {
     }
   }
 
-  Future<void> _deleteUserChatRoomsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteUserChatRoomsChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     try {
       // Find all chat rooms created by the user
       final chatRoomsSnapshot = await _firestore
@@ -1495,7 +1672,9 @@ class AuthRepository {
         final roomId = roomDoc.id;
 
         // Delete all messages in the room (can be very large)
-        final messagesSnapshot = await roomDoc.reference.collection('messages').get();
+        final messagesSnapshot = await roomDoc.reference
+            .collection('messages')
+            .get();
         for (final messageDoc in messagesSnapshot.docs) {
           getBatch().delete(messageDoc.reference);
           await commitIfNeeded();
@@ -1512,10 +1691,14 @@ class AuthRepository {
         getBatch().delete(roomDoc.reference);
         await commitIfNeeded();
 
-        debugPrint('✅ Deleted chat room: $roomId with ${messagesSnapshot.docs.length} messages and ${pollsSnapshot.docs.length} polls');
+        debugPrint(
+          '✅ Deleted chat room: $roomId with ${messagesSnapshot.docs.length} messages and ${pollsSnapshot.docs.length} polls',
+        );
       }
 
-      debugPrint('✅ Deleted ${chatRoomsSnapshot.docs.length} chat rooms created by user: $userId');
+      debugPrint(
+        '✅ Deleted ${chatRoomsSnapshot.docs.length} chat rooms created by user: $userId',
+      );
     } catch (e) {
       debugPrint('❌ Error deleting user chat rooms: $e');
       // Don't throw here as we want to continue with other deletions
@@ -1526,14 +1709,18 @@ class AuthRepository {
     try {
       final quotaRef = _firestore.collection('user_quotas').doc(userId);
       batch.delete(quotaRef);
-    debugPrint('✅ Deleted user quota for: $userId');
+      debugPrint('✅ Deleted user quota for: $userId');
     } catch (e) {
-    debugPrint('❌ Error deleting user quota: $e');
+      debugPrint('❌ Error deleting user quota: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserReportedMessagesChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteUserReportedMessagesChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     try {
       // Find all reported messages by the user
       final reportsSnapshot = await _firestore
@@ -1546,14 +1733,20 @@ class AuthRepository {
         await commitIfNeeded();
       }
 
-      debugPrint('✅ Deleted ${reportsSnapshot.docs.length} reported messages by user: $userId');
+      debugPrint(
+        '✅ Deleted ${reportsSnapshot.docs.length} reported messages by user: $userId',
+      );
     } catch (e) {
       debugPrint('❌ Error deleting user reported messages: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserSubscriptionsChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteUserSubscriptionsChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     try {
       // Find all subscriptions for the user
       final subscriptionsSnapshot = await _firestore
@@ -1566,14 +1759,20 @@ class AuthRepository {
         await commitIfNeeded();
       }
 
-      debugPrint('✅ Deleted ${subscriptionsSnapshot.docs.length} subscriptions for user: $userId');
+      debugPrint(
+        '✅ Deleted ${subscriptionsSnapshot.docs.length} subscriptions for user: $userId',
+      );
     } catch (e) {
       debugPrint('❌ Error deleting user subscriptions: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
 
-  Future<void> _deleteUserDevicesChunked(String userId, WriteBatch Function() getBatch, Future<void> Function() commitIfNeeded) async {
+  Future<void> _deleteUserDevicesChunked(
+    String userId,
+    WriteBatch Function() getBatch,
+    Future<void> Function() commitIfNeeded,
+  ) async {
     try {
       final userRef = _firestore.collection('users').doc(userId);
 
@@ -1584,7 +1783,9 @@ class AuthRepository {
         await commitIfNeeded();
       }
 
-      debugPrint('✅ Deleted ${devicesSnapshot.docs.length} devices for user: $userId');
+      debugPrint(
+        '✅ Deleted ${devicesSnapshot.docs.length} devices for user: $userId',
+      );
     } catch (e) {
       debugPrint('❌ Error deleting user devices: $e');
       // Don't throw here as we want to continue with other deletions
@@ -1596,16 +1797,17 @@ class AuthRepository {
       // Note: Firebase Storage deletion is more complex and might require
       // listing all files in the user's media folder and deleting them individually
       // For now, we'll log this as a reminder that media files should be cleaned up
-    debugPrint('📝 Reminder: Media files in Firebase Storage for user $userId should be manually cleaned up');
-    debugPrint('   Location: chat_media/ and other user-uploaded files');
+      debugPrint(
+        '📝 Reminder: Media files in Firebase Storage for user $userId should be manually cleaned up',
+      );
+      debugPrint('   Location: chat_media/ and other user-uploaded files');
 
       // In a production app, you would:
       // 1. List all files in user's media folders
       // 2. Delete each file individually
       // 3. This can be expensive, so consider doing it asynchronously
-
     } catch (e) {
-    debugPrint('❌ Error deleting user media files: $e');
+      debugPrint('❌ Error deleting user media files: $e');
       // Don't throw here as media cleanup is not critical
     }
   }

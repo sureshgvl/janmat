@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
@@ -13,7 +12,6 @@ import '../candidate/my_area_candidates_screen.dart';
 import '../monetization/monetization_screen.dart';
 import 'home_widgets.dart';
 import 'home_navigation.dart';
-
 
 class HomeBody extends StatelessWidget {
   final UserModel? userModel;
@@ -38,7 +36,8 @@ class HomeBody extends StatelessWidget {
           _buildWelcomeSection(context),
 
           // Trial Status Banner (only for candidates with active trials)
-          if (userModel?.role == 'candidate' && userModel?.isTrialActive == true)
+          if (userModel?.role == 'candidate' &&
+              userModel?.isTrialActive == true)
             _buildTrialBanner(context),
 
           const SizedBox(height: 32),
@@ -90,7 +89,10 @@ class HomeBody extends StatelessWidget {
                   borderRadius: BorderRadius.circular(7),
                   child: Image(
                     image: SymbolUtils.getSymbolImageProvider(
-                      SymbolUtils.getPartySymbolPath(candidateModel!.party, candidate: candidateModel)
+                      SymbolUtils.getPartySymbolPath(
+                        candidateModel!.party,
+                        candidate: candidateModel,
+                      ),
                     ),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
@@ -108,12 +110,13 @@ class HomeBody extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           userModel?.role == 'candidate'
-              ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
-              : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
+              ? AppLocalizations.of(
+                  context,
+                )!.manageYourCampaignAndConnectWithVoters
+              : AppLocalizations.of(
+                  context,
+                )!.stayInformedAboutYourLocalCandidates,
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       ],
     );
@@ -130,20 +133,19 @@ class HomeBody extends StatelessWidget {
           margin: const EdgeInsets.only(top: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [const Color(0xFFFF9933).withOpacity(0.8), const Color(0xFFFF9933)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFFFF9933).withOpacity(0.8),
+                const Color(0xFFFF9933),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.star,
-                color: Colors.white,
-                size: 24,
-              ),
+              const Icon(Icons.star, color: Colors.white, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -161,11 +163,10 @@ class HomeBody extends StatelessWidget {
                     Text(
                       daysRemaining == 1
                           ? AppLocalizations.of(context)!.oneDayRemainingUpgrade
-                          : AppLocalizations.of(context)!.daysRemainingInTrial(daysRemaining.toString()),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
+                          : AppLocalizations.of(
+                              context,
+                            )!.daysRemainingInTrial(daysRemaining.toString()),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ],
                 ),
@@ -176,13 +177,18 @@ class HomeBody extends StatelessWidget {
                     // TODO: Navigate to premium upgrade screen
                     Helpers.showWarningSnackBar(
                       context,
-                      AppLocalizations.of(context)!.premiumUpgradeFeatureComingSoon,
+                      AppLocalizations.of(
+                        context,
+                      )!.premiumUpgradeFeatureComingSoon,
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                   ),
                   child: Text(AppLocalizations.of(context)!.upgrade),
                 ),
@@ -199,7 +205,10 @@ class HomeBody extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [const Color(0xFF138808).withOpacity(0.8), const Color(0xFF138808)],
+            colors: [
+              const Color(0xFF138808).withOpacity(0.8),
+              const Color(0xFF138808),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -212,11 +221,7 @@ class HomeBody extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
-                    Icons.star,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                  const Icon(Icons.star, color: Colors.white, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -234,9 +239,15 @@ class HomeBody extends StatelessWidget {
                         Text(
                           userModel?.role == 'candidate'
                               ? (userModel?.isTrialActive == true
-                                  ? AppLocalizations.of(context)!.enjoyFullPremiumFeaturesDuringTrial
-                                  : AppLocalizations.of(context)!.getPremiumVisibilityAndAnalytics)
-                              : AppLocalizations.of(context)!.accessExclusiveContentAndFeatures,
+                                    ? AppLocalizations.of(
+                                        context,
+                                      )!.enjoyFullPremiumFeaturesDuringTrial
+                                    : AppLocalizations.of(
+                                        context,
+                                      )!.getPremiumVisibilityAndAnalytics)
+                              : AppLocalizations.of(
+                                  context,
+                                )!.accessExclusiveContentAndFeatures,
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
@@ -251,7 +262,8 @@ class HomeBody extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => HomeNavigation.toRightToLeft(const MonetizationScreen()),
+                  onPressed: () =>
+                      HomeNavigation.toRightToLeft(const MonetizationScreen()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFFFF9933),
@@ -262,10 +274,7 @@ class HomeBody extends StatelessWidget {
                   ),
                   child: Text(
                     AppLocalizations.of(context)!.explorePremium,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -282,10 +291,7 @@ class HomeBody extends StatelessWidget {
       children: [
         Text(
           AppLocalizations.of(context)!.quickActions,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         GridView.count(
@@ -327,10 +333,7 @@ class HomeBody extends StatelessWidget {
       children: [
         Text(
           AppLocalizations.of(context)!.candidateDashboard,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Card(
@@ -338,9 +341,12 @@ class HomeBody extends StatelessWidget {
           child: ListTile(
             leading: const Icon(Icons.dashboard, color: Color(0xFFFF9933)),
             title: Text(AppLocalizations.of(context)!.manageYourCampaign),
-            subtitle: Text(AppLocalizations.of(context)!.viewAnalyticsAndUpdateYourProfile),
+            subtitle: Text(
+              AppLocalizations.of(context)!.viewAnalyticsAndUpdateYourProfile,
+            ),
             trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () => HomeNavigation.toRightToLeft(const CandidateDashboardScreen()),
+            onTap: () =>
+                HomeNavigation.toRightToLeft(const CandidateDashboardScreen()),
           ),
         ),
       ],

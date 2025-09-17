@@ -3,11 +3,8 @@
 // TODO: Remove this file after all screens are migrated to use the new controllers directly
 
 import 'dart:async';
-import 'dart:developer';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../features/chat/controllers/message_controller.dart';
@@ -15,7 +12,6 @@ import '../features/chat/controllers/room_controller.dart';
 import '../features/chat/models/chat_message.dart';
 import '../features/chat/models/chat_room.dart';
 import '../features/chat/models/user_quota.dart';
-import '../features/chat/models/poll.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/chat_repository.dart';
@@ -31,18 +27,18 @@ class ChatController extends GetxController {
 
   // Delegate properties to new controllers with reactive bridging
   List<ChatRoom> get chatRooms => _roomController.chatRooms;
-  List<ChatRoomDisplayInfo> get chatRoomDisplayInfos => _reactiveChatRoomDisplayInfos;
+  List<ChatRoomDisplayInfo> get chatRoomDisplayInfos =>
+      _reactiveChatRoomDisplayInfos;
   Rx<ChatRoom?> get currentChatRoom => _roomController.currentChatRoom;
   List<Message> get messages => _messageController.messages;
   Rx<UserQuota?> get userQuota => _messageController.userQuota;
 
   // Reactive variables to bridge updates
-  var _reactiveChatRoomDisplayInfos = <ChatRoomDisplayInfo>[].obs;
-  var _reactiveIsLoading = false.obs;
+  final _reactiveChatRoomDisplayInfos = <ChatRoomDisplayInfo>[].obs;
+  final _reactiveIsLoading = false.obs;
 
   // Cached user data
   UserModel? _cachedUser;
-
 
   // Set up listeners for reactive streams from new controllers
   void _setupReactiveListeners() {
@@ -154,7 +150,9 @@ class ChatController extends GetxController {
                 : DateTime.now(),
             photoURL: data['photoURL'] ?? firebaseUser.photoURL,
           );
-          debugPrint('✅ Loaded complete user data: ${_cachedUser!.name} (${_cachedUser!.role})');
+          debugPrint(
+            '✅ Loaded complete user data: ${_cachedUser!.name} (${_cachedUser!.role})',
+          );
           update(); // Trigger UI update
         }
       }
@@ -176,7 +174,7 @@ class ChatController extends GetxController {
         districtId: user.districtId,
         bodyId: user.bodyId,
         wardId: user.wardId,
-        area: user.area
+        area: user.area,
       );
 
       // Load user quota
@@ -184,7 +182,9 @@ class ChatController extends GetxController {
         final quota = await _repository.getUserQuota(user.uid);
         if (quota != null) {
           userQuota.value = quota;
-          debugPrint('📊 Loaded user quota: ${quota.remainingMessages} messages remaining');
+          debugPrint(
+            '📊 Loaded user quota: ${quota.remainingMessages} messages remaining',
+          );
         } else {
           // Create default quota
           final defaultQuota = UserQuota(
@@ -213,7 +213,7 @@ class ChatController extends GetxController {
         districtId: user.districtId,
         bodyId: user.bodyId,
         wardId: user.wardId,
-        area: user.area
+        area: user.area,
       );
     } else {
       debugPrint('⚠️ No user data available for fetching chat rooms');
@@ -230,15 +230,27 @@ class ChatController extends GetxController {
     if (message.type == 'text') {
       await _messageController.sendTextMessage(roomId, message.text, userId);
     } else if (message.type == 'image') {
-      await _messageController.sendImageMessage(roomId, message.mediaUrl!, userId);
+      await _messageController.sendImageMessage(
+        roomId,
+        message.mediaUrl!,
+        userId,
+      );
     } else if (message.type == 'audio') {
-      await _messageController.sendVoiceMessage(roomId, message.mediaUrl!, userId);
+      await _messageController.sendVoiceMessage(
+        roomId,
+        message.mediaUrl!,
+        userId,
+      );
     }
   }
 
   Future<void> sendRecordedVoiceMessage(String filePath) async {
     if (currentChatRoom.value != null && _cachedUser != null) {
-      await _messageController.sendVoiceMessage(currentChatRoom.value!.roomId, filePath, _cachedUser!.uid);
+      await _messageController.sendVoiceMessage(
+        currentChatRoom.value!.roomId,
+        filePath,
+        _cachedUser!.uid,
+      );
     }
   }
 
@@ -304,9 +316,12 @@ class ChatController extends GetxController {
       const maxWaitTime = Duration(seconds: 15);
       final startTime = DateTime.now();
 
-      while (!adMobService.isAdAvailable && DateTime.now().difference(startTime) < maxWaitTime) {
+      while (!adMobService.isAdAvailable &&
+          DateTime.now().difference(startTime) < maxWaitTime) {
         await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint('🎬 Still waiting for ad... (${DateTime.now().difference(startTime).inSeconds}s)');
+        debugPrint(
+          '🎬 Still waiting for ad... (${DateTime.now().difference(startTime).inSeconds}s)',
+        );
       }
 
       // Close loading dialog
@@ -367,13 +382,17 @@ class ChatController extends GetxController {
 
       // For testing: if ad fails, offer simulation
       if (rewardXP == null || rewardXP == 0) {
-        debugPrint('🎯 Ad failed or returned no reward, offering simulation for testing');
+        debugPrint(
+          '🎯 Ad failed or returned no reward, offering simulation for testing',
+        );
 
         // Show dialog asking if user wants to simulate reward for testing
         final shouldSimulate = await Get.dialog<bool>(
           AlertDialog(
             title: const Text('Ad Not Available'),
-            content: const Text('The rewarded ad could not be shown. Would you like to simulate a reward for testing purposes?'),
+            content: const Text(
+              'The rewarded ad could not be shown. Would you like to simulate a reward for testing purposes?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Get.back(result: false),
@@ -421,7 +440,9 @@ class ChatController extends GetxController {
           );
         }
       } else {
-        debugPrint('⚠️ Ad was shown but no reward was earned - this might be normal for test ads');
+        debugPrint(
+          '⚠️ Ad was shown but no reward was earned - this might be normal for test ads',
+        );
 
         // For test ads, still award some XP as fallback
         if (adMobService.isTestAdUnit()) {
@@ -449,7 +470,6 @@ class ChatController extends GetxController {
           );
         }
       }
-
     } catch (e) {
       debugPrint('❌ Error in rewarded ad flow: $e');
 
@@ -498,7 +518,7 @@ class ChatController extends GetxController {
         districtId: user.districtId,
         bodyId: user.bodyId,
         wardId: user.wardId,
-        area: user.area
+        area: user.area,
       );
     } else {
       debugPrint('⚠️ No user data available for refreshing chat rooms');
@@ -605,11 +625,15 @@ class ChatController extends GetxController {
 
     try {
       // Determine resource usage
-      final useQuota = userQuota.value != null && userQuota.value!.canSendMessage;
+      final useQuota =
+          userQuota.value != null && userQuota.value!.canSendMessage;
       final useXP = !useQuota && user.xpPoints > 0;
 
       // Use MessageController for immediate local storage and UI update
-      await _messageController.addMessageToUI(message, currentChatRoom.value!.roomId);
+      await _messageController.addMessageToUI(
+        message,
+        currentChatRoom.value!.roomId,
+      );
 
       // Deduct resources locally first
       if (useQuota && userQuota.value != null) {
@@ -617,7 +641,9 @@ class ChatController extends GetxController {
           messagesSent: userQuota.value!.messagesSent + 1,
         );
         userQuota.value = updatedQuota;
-        debugPrint('📊 Local quota updated: ${updatedQuota.remainingMessages} remaining');
+        debugPrint(
+          '📊 Local quota updated: ${updatedQuota.remainingMessages} remaining',
+        );
       } else if (useXP) {
         // XP deduction will be handled by the repository method
         debugPrint('⭐ Will deduct 1 XP for message');
@@ -633,10 +659,10 @@ class ChatController extends GetxController {
       } else if (useXP) {
         // Update XP via Firestore transaction
         await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-          transaction.update(userRef, {
-            'xpPoints': FieldValue.increment(-1),
-          });
+          final userRef = FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid);
+          transaction.update(userRef, {'xpPoints': FieldValue.increment(-1)});
         });
         // Refresh user data to reflect XP change
         await getCompleteUserData();
@@ -644,15 +670,20 @@ class ChatController extends GetxController {
       }
 
       // Update message status to sent
-      await _messageController.updateMessageStatus(message.messageId, MessageStatus.sent);
+      await _messageController.updateMessageStatus(
+        message.messageId,
+        MessageStatus.sent,
+      );
 
       debugPrint('✅ Text message sent successfully');
-
     } catch (e) {
       debugPrint('❌ Failed to send text message: $e');
 
       // Update message status to failed
-      await _messageController.updateMessageStatus(message.messageId, MessageStatus.failed);
+      await _messageController.updateMessageStatus(
+        message.messageId,
+        MessageStatus.failed,
+      );
 
       Get.snackbar(
         'Message Failed',
@@ -690,7 +721,6 @@ class ChatController extends GetxController {
       debugPrint('✅ Successfully awarded $xpAmount XP to user: ${user.uid}');
       debugPrint('   Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
       return true;
-
     } catch (e) {
       debugPrint('❌ Error awarding XP from ad: $e');
       debugPrint('   Error details: ${e.toString()}');
@@ -703,12 +733,22 @@ class ChatController extends GetxController {
     final imagePicker = ImagePicker();
     final pickedFile = await imagePicker.pickImage(source: ImageSource.gallery);
 
-    if (pickedFile != null && currentChatRoom.value != null && _cachedUser != null) {
-      await _messageController.sendImageMessage(currentChatRoom.value!.roomId, pickedFile.path, _cachedUser!.uid);
+    if (pickedFile != null &&
+        currentChatRoom.value != null &&
+        _cachedUser != null) {
+      await _messageController.sendImageMessage(
+        currentChatRoom.value!.roomId,
+        pickedFile.path,
+        _cachedUser!.uid,
+      );
     }
   }
 
-  Future<void> createPoll(String question, List<String> options, {DateTime? expiresAt}) async {
+  Future<void> createPoll(
+    String question,
+    List<String> options, {
+    DateTime? expiresAt,
+  }) async {
     // Basic implementation - will be replaced when screens migrate
     debugPrint('createPoll called with question: $question');
   }
@@ -718,7 +758,10 @@ class ChatController extends GetxController {
     debugPrint('clearCurrentChat called');
   }
 
-  Future<void> createCandidateChatRoom(String candidateId, [String? name]) async {
+  Future<void> createCandidateChatRoom(
+    String candidateId, [
+    String? name,
+  ]) async {
     // Placeholder implementation
   }
 

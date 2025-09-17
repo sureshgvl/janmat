@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -35,7 +34,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
   bool _isUploadingPdf = false;
   bool _isUploadingImage = false;
   bool _isUploadingVideo = false;
-  List<Map<String, dynamic>> _localFiles = [];
+  final List<Map<String, dynamic>> _localFiles = [];
 
   Future<void> _uploadManifestoPdf() async {
     debugPrint('📄 [PDF Upload] Starting PDF selection process...');
@@ -47,11 +46,14 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     try {
       // Step 1: Pick file from device
       debugPrint('📄 [PDF Upload] Step 1: Picking file from device...');
-      file_picker.FilePickerResult? result = await file_picker.FilePicker.platform.pickFiles(
-        type: file_picker.FileType.custom,
-        allowedExtensions: ['pdf'],
-        allowMultiple: false,
-      );
+      file_picker.FilePickerResult? result = await file_picker
+          .FilePicker
+          .platform
+          .pickFiles(
+            type: file_picker.FileType.custom,
+            allowedExtensions: ['pdf'],
+            allowMultiple: false,
+          );
 
       if (result == null || result.files.isEmpty) {
         debugPrint('📄 [PDF Upload] User cancelled file selection');
@@ -65,15 +67,21 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       final fileSize = file.size;
       final fileSizeMB = fileSize / (1024 * 1024);
 
-      debugPrint('📄 [PDF Upload] File selected: ${file.name}, Size: ${fileSizeMB.toStringAsFixed(2)} MB');
+      debugPrint(
+        '📄 [PDF Upload] File selected: ${file.name}, Size: ${fileSizeMB.toStringAsFixed(2)} MB',
+      );
 
       // Step 2: Validate file size locally
       debugPrint('📄 [PDF Upload] Step 2: Validating file size...');
       if (fileSizeMB > 20.0) {
-        debugPrint('📄 [PDF Upload] File too large: ${fileSizeMB.toStringAsFixed(1)}MB > 20MB limit');
+        debugPrint(
+          '📄 [PDF Upload] File too large: ${fileSizeMB.toStringAsFixed(1)}MB > 20MB limit',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.'),
+            content: Text(
+              'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -110,7 +118,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('PDF selected and ready for upload. Press Save to upload to server.'),
+          content: Text(
+            'PDF selected and ready for upload. Press Save to upload to server.',
+          ),
           backgroundColor: Colors.blue,
         ),
       );
@@ -156,16 +166,25 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         return;
       }
 
-      debugPrint('🖼️ [Image Upload] Image selected: ${image.name}, Path: ${image.path}');
+      debugPrint(
+        '🖼️ [Image Upload] Image selected: ${image.name}, Path: ${image.path}',
+      );
 
       // Step 2: Optimize image for manifesto (higher quality than achievements)
-      debugPrint('🖼️ [Image Upload] Step 2: Optimizing image for manifesto...');
+      debugPrint(
+        '🖼️ [Image Upload] Step 2: Optimizing image for manifesto...',
+      );
       final optimizedImage = await _optimizeManifestoImage(image);
       debugPrint('🖼️ [Image Upload] Image optimization completed');
 
       // Step 3: Validate file size with optimized image
-      debugPrint('🖼️ [Image Upload] Step 3: Validating optimized file size...');
-      final validation = await _validateManifestoFileSize(optimizedImage.path, 'image');
+      debugPrint(
+        '🖼️ [Image Upload] Step 3: Validating optimized file size...',
+      );
+      final validation = await _validateManifestoFileSize(
+        optimizedImage.path,
+        'image',
+      );
 
       if (!validation.isValid) {
         debugPrint('🖼️ [Image Upload] File too large after optimization');
@@ -197,7 +216,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       debugPrint('🖼️ [Image Upload] File size validation passed');
 
       // Step 4: Save optimized image to local storage
-      debugPrint('🖼️ [Image Upload] Step 4: Saving optimized image to local storage...');
+      debugPrint(
+        '🖼️ [Image Upload] Step 4: Saving optimized image to local storage...',
+      );
       final localPath = await _saveFileLocally(optimizedImage, 'image');
       if (localPath == null) {
         debugPrint('🖼️ [Image Upload] Failed to save locally');
@@ -217,11 +238,15 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       widget.onLocalFilesUpdate(_localFiles);
 
-      debugPrint('🖼️ [Image Upload] Optimized image saved locally and added to display list');
+      debugPrint(
+        '🖼️ [Image Upload] Optimized image saved locally and added to display list',
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.'),
+          content: Text(
+            'Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
+          ),
           backgroundColor: Colors.blue,
         ),
       );
@@ -254,7 +279,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       final ImagePicker imagePicker = ImagePicker();
       final XFile? video = await imagePicker.pickVideo(
         source: ImageSource.gallery,
-        maxDuration: const Duration(minutes: 5), // Limit to 5 minutes for manifesto videos
+        maxDuration: const Duration(
+          minutes: 5,
+        ), // Limit to 5 minutes for manifesto videos
       );
 
       if (video == null) {
@@ -265,7 +292,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         return;
       }
 
-      debugPrint('🎥 [Video Upload] Video selected: ${video.name}, Path: ${video.path}');
+      debugPrint(
+        '🎥 [Video Upload] Video selected: ${video.name}, Path: ${video.path}',
+      );
 
       // Step 2: Validate video file size
       debugPrint('🎥 [Video Upload] Step 2: Validating video file size...');
@@ -322,11 +351,15 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       widget.onLocalFilesUpdate(_localFiles);
 
-      debugPrint('🎥 [Video Upload] Video saved locally and added to display list');
+      debugPrint(
+        '🎥 [Video Upload] Video saved locally and added to display list',
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.'),
+          content: Text(
+            'Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
+          ),
           backgroundColor: Colors.blue,
         ),
       );
@@ -356,13 +389,16 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       final localDir = Directory('${directory.path}/manifesto_temp');
       if (!await localDir.exists()) {
         await localDir.create(recursive: true);
-        debugPrint('💾 [Local Storage] Created temp directory: ${localDir.path}');
+        debugPrint(
+          '💾 [Local Storage] Created temp directory: ${localDir.path}',
+        );
       }
 
       // Generate unique filename
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final userId = widget.candidateData.userId ?? 'unknown_user';
-      final fileName = 'temp_${type}_${userId}_$timestamp.${type == 'pdf' ? 'pdf' : 'tmp'}';
+      final fileName =
+          'temp_${type}_${userId}_$timestamp.${type == 'pdf' ? 'pdf' : 'tmp'}';
       final localPath = '${localDir.path}/$fileName';
 
       // Save file locally
@@ -407,7 +443,10 @@ class _FileUploadSectionState extends State<FileUploadSection> {
   }
 
   // File size validation for manifesto files
-  Future<FileSizeValidation> _validateManifestoFileSize(String filePath, String type) async {
+  Future<FileSizeValidation> _validateManifestoFileSize(
+    String filePath,
+    String type,
+  ) async {
     try {
       final file = File(filePath.replaceFirst('local:', ''));
       final fileSize = await file.length();
@@ -419,15 +458,19 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             return FileSizeValidation(
               isValid: false,
               fileSizeMB: fileSizeMB,
-              message: 'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-              recommendation: 'Please choose a smaller PDF or compress the current one.',
+              message:
+                  'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
+              recommendation:
+                  'Please choose a smaller PDF or compress the current one.',
             );
           } else if (fileSizeMB > 10.0) {
             return FileSizeValidation(
               isValid: true,
               fileSizeMB: fileSizeMB,
-              message: 'Large PDF detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-              recommendation: 'Consider compressing the PDF for faster uploads.',
+              message:
+                  'Large PDF detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+              recommendation:
+                  'Consider compressing the PDF for faster uploads.',
               warning: true,
             );
           }
@@ -438,15 +481,19 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             return FileSizeValidation(
               isValid: false,
               fileSizeMB: fileSizeMB,
-              message: 'Image file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 10MB.',
-              recommendation: 'Please choose a smaller image or compress the current one.',
+              message:
+                  'Image file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 10MB.',
+              recommendation:
+                  'Please choose a smaller image or compress the current one.',
             );
           } else if (fileSizeMB > 5.0) {
             return FileSizeValidation(
               isValid: true,
               fileSizeMB: fileSizeMB,
-              message: 'Large image detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-              recommendation: 'Consider compressing the image for faster uploads.',
+              message:
+                  'Large image detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+              recommendation:
+                  'Consider compressing the image for faster uploads.',
               warning: true,
             );
           }
@@ -457,15 +504,19 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             return FileSizeValidation(
               isValid: false,
               fileSizeMB: fileSizeMB,
-              message: 'Video file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 100MB.',
-              recommendation: 'Please choose a smaller video or compress the current one.',
+              message:
+                  'Video file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 100MB.',
+              recommendation:
+                  'Please choose a smaller video or compress the current one.',
             );
           } else if (fileSizeMB > 50.0) {
             return FileSizeValidation(
               isValid: true,
               fileSizeMB: fileSizeMB,
-              message: 'Large video detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-              recommendation: 'Consider compressing the video for faster uploads.',
+              message:
+                  'Large video detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+              recommendation:
+                  'Consider compressing the video for faster uploads.',
               warning: true,
             );
           }
@@ -475,7 +526,8 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       return FileSizeValidation(
         isValid: true,
         fileSizeMB: fileSizeMB,
-        message: 'File size is acceptable (${fileSizeMB.toStringAsFixed(1)}MB).',
+        message:
+            'File size is acceptable (${fileSizeMB.toStringAsFixed(1)}MB).',
         recommendation: null,
       );
     } catch (e) {
@@ -489,7 +541,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
   }
 
   // Show file size warning dialog
-  Future<bool?> _showFileSizeWarningDialog(FileSizeValidation validation) async {
+  Future<bool?> _showFileSizeWarningDialog(
+    FileSizeValidation validation,
+  ) async {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -534,7 +588,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       final fileSize = await file.length();
       final fileSizeMB = fileSize / (1024 * 1024);
 
-      debugPrint('🖼️ [Manifesto Image] Original size: ${fileSizeMB.toStringAsFixed(2)} MB');
+      debugPrint(
+        '🖼️ [Manifesto Image] Original size: ${fileSizeMB.toStringAsFixed(2)} MB',
+      );
 
       // Manifesto images need higher quality than achievement photos
       int quality = 85; // Higher than achievements (80)
@@ -546,16 +602,22 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         quality = 75;
         maxWidth = 1600;
         maxHeight = 1600;
-        debugPrint('🖼️ [Manifesto Image] Large file detected (>8MB), applying moderate optimization');
+        debugPrint(
+          '🖼️ [Manifesto Image] Large file detected (>8MB), applying moderate optimization',
+        );
       } else if (fileSizeMB > 4.0) {
         // Large files (4-8MB) - light optimization
         quality = 80;
         maxWidth = 2000;
         maxHeight = 2000;
-        debugPrint('🖼️ [Manifesto Image] Large file detected (4-8MB), applying light optimization');
+        debugPrint(
+          '🖼️ [Manifesto Image] Large file detected (4-8MB), applying light optimization',
+        );
       } else {
         // Small files - no optimization needed
-        debugPrint('🖼️ [Manifesto Image] File size acceptable, no optimization needed');
+        debugPrint(
+          '🖼️ [Manifesto Image] File size acceptable, no optimization needed',
+        );
         return image;
       }
 
@@ -563,8 +625,8 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       final ImagePicker imagePicker = ImagePicker();
       final optimizedImage = await imagePicker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: maxWidth?.toDouble(),
-        maxHeight: maxHeight?.toDouble(),
+        maxWidth: maxWidth.toDouble(),
+        maxHeight: maxHeight.toDouble(),
         imageQuality: quality,
       );
 
@@ -573,15 +635,18 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         final optimizedSize = await optimizedFile.length();
         final optimizedSizeMB = optimizedSize / (1024 * 1024);
 
-        debugPrint('🖼️ [Manifesto Image] Optimized size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)');
+        debugPrint(
+          '🖼️ [Manifesto Image] Optimized size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)',
+        );
         return optimizedImage;
       }
 
       // If optimization failed, return original
       return image;
-
     } catch (e) {
-      debugPrint('⚠️ [Manifesto Image] Optimization failed, using original: $e');
+      debugPrint(
+        '⚠️ [Manifesto Image] Optimization failed, using original: $e',
+      );
       return image;
     }
   }
@@ -614,7 +679,11 @@ class _FileUploadSectionState extends State<FileUploadSection> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.picture_as_pdf, color: Colors.red.shade700, size: 24),
+                  Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.red.shade700,
+                    size: 24,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -647,7 +716,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Icon(Icons.upload_file),
@@ -698,14 +769,18 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: !_isUploadingImage ? _uploadManifestoImage : null,
+                    onPressed: !_isUploadingImage
+                        ? _uploadManifestoImage
+                        : null,
                     icon: _isUploadingImage
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Icon(Icons.photo_camera),
@@ -760,14 +835,18 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: !_isUploadingVideo ? _uploadManifestoVideo : null,
+                    onPressed: !_isUploadingVideo
+                        ? _uploadManifestoVideo
+                        : null,
                     icon: _isUploadingVideo
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Icon(Icons.videocam),
@@ -802,7 +881,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     Icon(Icons.pending, color: Colors.amber.shade700, size: 24),
                     const SizedBox(width: 12),
                     Text(
-                      AppLocalizations.of(context)!.filesReadyForUpload(_localFiles.length),
+                      AppLocalizations.of(
+                        context,
+                      )!.filesReadyForUpload(_localFiles.length),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -814,10 +895,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                 const SizedBox(height: 12),
                 Text(
                   AppLocalizations.of(context)!.filesUploadMessage,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 12),
                 ..._localFiles.map((localFile) {
@@ -884,7 +962,11 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                              size: 20,
+                            ),
                             onPressed: () {
                               setState(() {
                                 _localFiles.remove(localFile);
@@ -894,7 +976,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                               _cleanupLocalFile(localPath);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('$fileName removed from upload queue'),
+                                  content: Text(
+                                    '$fileName removed from upload queue',
+                                  ),
                                   backgroundColor: Colors.blue,
                                 ),
                               );
@@ -905,7 +989,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),

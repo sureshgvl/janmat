@@ -8,13 +8,11 @@ import '../../../screens/candidate/followers_list_screen.dart';
 class FollowersAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;
 
-  const FollowersAnalyticsSection({
-    Key? key,
-    required this.candidateData,
-  }) : super(key: key);
+  const FollowersAnalyticsSection({super.key, required this.candidateData});
 
   @override
-  State<FollowersAnalyticsSection> createState() => _FollowersAnalyticsSectionState();
+  State<FollowersAnalyticsSection> createState() =>
+      _FollowersAnalyticsSectionState();
 }
 
 class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
@@ -36,7 +34,9 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
         isLoadingFollowers = true;
       });
 
-      followers = await controller.getCandidateFollowers(widget.candidateData.candidateId);
+      followers = await controller.getCandidateFollowers(
+        widget.candidateData.candidateId,
+      );
 
       // Fetch user data for all followers
       for (var follower in followers) {
@@ -53,7 +53,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
       setState(() {
         isLoadingFollowers = false;
       });
-    debugPrint('Error loading followers: $e');
+      debugPrint('Error loading followers: $e');
     }
   }
 
@@ -71,10 +71,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
               const SizedBox(width: 12),
               const Text(
                 'Followers Analytics',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -110,17 +107,16 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
             children: [
               const Text(
                 'Recent Followers',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               TextButton(
                 onPressed: () {
-                  Get.to(() => FollowersListScreen(
-                    candidateId: widget.candidateData.candidateId,
-                    candidateName: widget.candidateData.name,
-                  ));
+                  Get.to(
+                    () => FollowersListScreen(
+                      candidateId: widget.candidateData.candidateId,
+                      candidateName: widget.candidateData.name,
+                    ),
+                  );
                 },
                 child: const Text('View All'),
               ),
@@ -153,9 +149,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
   }) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -173,10 +167,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
             const SizedBox(height: 4),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -195,11 +186,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.people_outline,
-            size: 48,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No followers yet',
@@ -212,10 +199,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
           const SizedBox(height: 8),
           Text(
             'Share your profile to attract followers!',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -245,26 +229,16 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
                   ? NetworkImage(userData['photoURL'])
                   : null,
               child: userData == null || userData['photoURL'] == null
-                  ? Icon(
-                      Icons.person,
-                      color: Theme.of(context).primaryColor,
-                    )
+                  ? Icon(Icons.person, color: Theme.of(context).primaryColor)
                   : null,
             ),
             title: Text(displayName),
             subtitle: Text(
               'Followed ${_formatDate(follower['followedAt'])}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             trailing: follower['notificationsEnabled'] == true
-                ? Icon(
-                    Icons.notifications,
-                    size: 16,
-                    color: Colors.grey[600],
-                  )
+                ? Icon(Icons.notifications, size: 16, color: Colors.grey[600])
                 : null,
           ),
         );
@@ -316,10 +290,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
           Expanded(
             child: Text(
               tip,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.blue[800],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.blue[800]),
             ),
           ),
         ],

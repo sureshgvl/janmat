@@ -30,7 +30,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final downloadUrl = await _fileUploadService.uploadProfilePhoto(currentUser.uid);
+      final downloadUrl = await _fileUploadService.uploadProfilePhoto(
+        currentUser.uid,
+      );
 
       if (downloadUrl != null) {
         // Update the user's photoURL in Firebase Auth
@@ -93,16 +95,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // If no cached user, show loading and fetch
           if (userModel == null) {
             return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).get(),
+              future: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser?.uid)
+                  .get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
+                  return Center(
+                    child: Text(
+                      '${AppLocalizations.of(context)!.error}: ${snapshot.error}',
+                    ),
+                  );
                 }
                 if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return Center(child: Text(AppLocalizations.of(context)!.userDataNotFound));
+                  return Center(
+                    child: Text(AppLocalizations.of(context)!.userDataNotFound),
+                  );
                 }
 
                 final userData = snapshot.data!.data() as Map<String, dynamic>;
@@ -119,7 +130,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   Widget _buildProfileContent(BuildContext context, UserModel userModel) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -134,22 +144,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 64,
                       backgroundColor: Colors.blue,
-                      backgroundImage: userModel.photoURL != null ? NetworkImage(userModel.photoURL!) : null,
-                      child: userModel.photoURL == null ? Text(
-                        (userModel.name.isEmpty ? 'U' : userModel.name[0]).toUpperCase(),
-                        style: const TextStyle(fontSize: 40, color: Colors.white),
-                      ) : null,
+                      backgroundImage: userModel.photoURL != null
+                          ? NetworkImage(userModel.photoURL!)
+                          : null,
+                      child: userModel.photoURL == null
+                          ? Text(
+                              (userModel.name.isEmpty ? 'U' : userModel.name[0])
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 40,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: GestureDetector(
-                        onTap: _isUploadingPhoto ? null : () => _changeProfilePhoto(context),
+                        onTap: _isUploadingPhoto
+                            ? null
+                            : () => _changeProfilePhoto(context),
                         child: Container(
                           height: 32,
                           width: 32,
                           decoration: BoxDecoration(
-                            color: _isUploadingPhoto ? Colors.grey : Colors.orange,
+                            color: _isUploadingPhoto
+                                ? Colors.grey
+                                : Colors.orange,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
@@ -159,7 +181,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   height: 16,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(
@@ -219,7 +243,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       if (userModel.premium)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(20),
@@ -284,41 +311,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isLoggingOut ? null : () async {
-                debugPrint('🔘 Profile logout button pressed');
-                setState(() => _isLoggingOut = true);
+              onPressed: _isLoggingOut
+                  ? null
+                  : () async {
+                      debugPrint('🔘 Profile logout button pressed');
+                      setState(() => _isLoggingOut = true);
 
-                try {
-                  final authRepository = AuthRepository();
-                  await authRepository.signOut();
+                      try {
+                        final authRepository = AuthRepository();
+                        await authRepository.signOut();
 
-                  // Reset login controller state (if available)
-                  try {
-                    if (Get.isRegistered<LoginController>()) {
-                      final loginController = Get.find<LoginController>();
-                      loginController.phoneController.clear();
-                      loginController.otpController.clear();
-                      loginController.isOTPScreen.value = false;
-                      loginController.verificationId.value = '';
-                    } else {
-                      debugPrint('ℹ️ Login controller not available - skipping state reset');
-                    }
-                  } catch (e) {
-                    debugPrint('⚠️ Could not reset login controller: $e');
-                  }
+                        // Reset login controller state (if available)
+                        try {
+                          if (Get.isRegistered<LoginController>()) {
+                            final loginController = Get.find<LoginController>();
+                            loginController.phoneController.clear();
+                            loginController.otpController.clear();
+                            loginController.isOTPScreen.value = false;
+                            loginController.verificationId.value = '';
+                          } else {
+                            debugPrint(
+                              'ℹ️ Login controller not available - skipping state reset',
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint('⚠️ Could not reset login controller: $e');
+                        }
 
-                  Get.offAllNamed('/login');
-                } catch (e) {
-                  Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
-                } finally {
-                  if (mounted) {
-                    setState(() => _isLoggingOut = false);
-                  }
-                }
-              },
+                        Get.offAllNamed('/login');
+                      } catch (e) {
+                        Get.snackbar(
+                          AppLocalizations.of(context)!.error,
+                          AppLocalizations.of(
+                            context,
+                          )!.failedToLogout(e.toString()),
+                        );
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isLoggingOut = false);
+                        }
+                      }
+                    },
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isLoggingOut ? Colors.grey : const Color(0xFFFEE2E2),
-                foregroundColor: _isLoggingOut ? Colors.white : const Color(0xFFDC2626),
+                backgroundColor: _isLoggingOut
+                    ? Colors.grey
+                    : const Color(0xFFFEE2E2),
+                foregroundColor: _isLoggingOut
+                    ? Colors.white
+                    : const Color(0xFFDC2626),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -333,7 +373,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -372,11 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: const Color(0xFFDBEAFE),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 24,
-            ),
+            child: Icon(icon, color: iconColor, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(

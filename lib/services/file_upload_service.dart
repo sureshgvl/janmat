@@ -22,7 +22,8 @@ class FileUploadService {
 
       if (image == null) return null;
 
-      final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = _storage.ref().child('profile_photos/$fileName');
 
       final uploadTask = storageRef.putFile(
@@ -35,7 +36,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading profile photo: $e');
+      debugPrint('Error uploading profile photo: $e');
       throw Exception('Failed to upload profile photo: $e');
     }
   }
@@ -52,7 +53,8 @@ class FileUploadService {
       if (result == null || result.files.isEmpty) return null;
 
       final file = result.files.first;
-      final fileName = 'manifesto_${userId}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final fileName =
+          'manifesto_${userId}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final storageRef = _storage.ref().child('manifestos/$fileName');
 
       UploadTask uploadTask;
@@ -75,7 +77,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading manifesto PDF: $e');
+      debugPrint('Error uploading manifesto PDF: $e');
       throw Exception('Failed to upload manifesto PDF: $e');
     }
   }
@@ -92,7 +94,8 @@ class FileUploadService {
 
       if (image == null) return null;
 
-      final fileName = 'candidate_${candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          'candidate_${candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = _storage.ref().child('candidate_photos/$fileName');
 
       final uploadTask = storageRef.putFile(
@@ -105,13 +108,16 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading candidate photo: $e');
+      debugPrint('Error uploading candidate photo: $e');
       throw Exception('Failed to upload candidate photo: $e');
     }
   }
 
   // Upload achievement photo with smart optimization
-  Future<String?> uploadAchievementPhoto(String candidateId, String achievementTitle) async {
+  Future<String?> uploadAchievementPhoto(
+    String candidateId,
+    String achievementTitle,
+  ) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -126,15 +132,20 @@ class FileUploadService {
       final fileSizeMB = fileSize / (1024 * 1024);
 
       if (fileSizeMB > 15.0) {
-        debugPrint('⚠️ Very large file detected: ${fileSizeMB.toStringAsFixed(2)} MB');
+        debugPrint(
+          '⚠️ Very large file detected: ${fileSizeMB.toStringAsFixed(2)} MB',
+        );
         // Could show a warning dialog here, but for now just log it
       }
 
       // Optimize the image if needed
       final optimizedImage = await _optimizeImageForStorage(image);
 
-      final sanitizedTitle = achievementTitle.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(' ', '_');
-      final fileName = 'achievement_${candidateId}_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final sanitizedTitle = achievementTitle
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .replaceAll(' ', '_');
+      final fileName =
+          'achievement_${candidateId}_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = _storage.ref().child('achievement_photos/$fileName');
 
       final uploadTask = storageRef.putFile(
@@ -156,7 +167,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading achievement photo: $e');
+      debugPrint('Error uploading achievement photo: $e');
       throw Exception('Failed to upload achievement photo: $e');
     }
   }
@@ -173,7 +184,8 @@ class FileUploadService {
 
       if (image == null) return null;
 
-      final fileName = 'manifesto_image_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          'manifesto_image_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = _storage.ref().child('manifesto_images/$fileName');
 
       final uploadTask = storageRef.putFile(
@@ -186,7 +198,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading manifesto image: $e');
+      debugPrint('Error uploading manifesto image: $e');
       throw Exception('Failed to upload manifesto image: $e');
     }
   }
@@ -202,7 +214,8 @@ class FileUploadService {
       if (result == null || result.files.isEmpty) return null;
 
       final file = result.files.first;
-      final fileName = 'manifesto_video_${userId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final fileName =
+          'manifesto_video_${userId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
       final storageRef = _storage.ref().child('manifesto_videos/$fileName');
 
       UploadTask uploadTask;
@@ -225,7 +238,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading manifesto video: $e');
+      debugPrint('Error uploading manifesto video: $e');
       throw Exception('Failed to upload manifesto video: $e');
     }
   }
@@ -250,7 +263,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading file: $e');
+      debugPrint('Error uploading file: $e');
       throw Exception('Failed to upload file: $e');
     }
   }
@@ -261,7 +274,7 @@ class FileUploadService {
       final ref = _storage.refFromURL(fileUrl);
       await ref.delete();
     } catch (e) {
-    debugPrint('Error deleting file: $e');
+      debugPrint('Error deleting file: $e');
       // Don't throw error for delete failures as file might not exist
     }
   }
@@ -272,7 +285,7 @@ class FileUploadService {
       final ref = _storage.ref().child(storagePath);
       return await ref.getDownloadURL();
     } catch (e) {
-    debugPrint('Error getting download URL: $e');
+      debugPrint('Error getting download URL: $e');
       return null;
     }
   }
@@ -290,7 +303,10 @@ class FileUploadService {
   }
 
   // Save photo to local storage temporarily with smart optimization
-  Future<String?> savePhotoLocally(String candidateId, String achievementTitle) async {
+  Future<String?> savePhotoLocally(
+    String candidateId,
+    String achievementTitle,
+  ) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -303,9 +319,12 @@ class FileUploadService {
       final optimizedImage = await _optimizeImageForStorage(image);
 
       final tempDir = await _getLocalTempDirectory();
-      final sanitizedTitle = achievementTitle.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(' ', '_');
+      final sanitizedTitle = achievementTitle
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .replaceAll(' ', '_');
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'temp_achievement_${candidateId}_${sanitizedTitle}_$timestamp.jpg';
+      final fileName =
+          'temp_achievement_${candidateId}_${sanitizedTitle}_$timestamp.jpg';
       final localFile = File('${tempDir.path}/$fileName');
 
       // Copy the optimized image to local storage
@@ -323,7 +342,7 @@ class FileUploadService {
       // Return the local file path (prefixed with 'local:' to distinguish from Firebase URLs)
       return 'local:${localFile.path}';
     } catch (e) {
-    debugPrint('Error saving photo locally: $e');
+      debugPrint('Error saving photo locally: $e');
       throw Exception('Failed to save photo locally: $e');
     }
   }
@@ -354,26 +373,32 @@ class FileUploadService {
         quality = 60;
         maxWidth = 1200;
         maxHeight = 1200;
-        debugPrint('📸 Large file detected (>10MB), applying aggressive optimization');
+        debugPrint(
+          '📸 Large file detected (>10MB), applying aggressive optimization',
+        );
       } else if (fileSizeMB > 5.0) {
         // Large files (5-10MB) - moderate optimization
         quality = 70;
         maxWidth = 1600;
         maxHeight = 1600;
-        debugPrint('📸 Large file detected (5-10MB), applying moderate optimization');
+        debugPrint(
+          '📸 Large file detected (5-10MB), applying moderate optimization',
+        );
       } else {
         // Medium files (2-5MB) - light optimization
         quality = 75;
         maxWidth = 2000;
         maxHeight = 2000;
-        debugPrint('📸 Medium file detected (2-5MB), applying light optimization');
+        debugPrint(
+          '📸 Medium file detected (2-5MB), applying light optimization',
+        );
       }
 
       // Create optimized version
       final optimizedImage = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: maxWidth?.toDouble(),
-        maxHeight: maxHeight?.toDouble(),
+        maxWidth: maxWidth.toDouble(),
+        maxHeight: maxHeight.toDouble(),
         imageQuality: quality,
       );
 
@@ -382,13 +407,14 @@ class FileUploadService {
         final optimizedSize = await optimizedFile.length();
         final optimizedSizeMB = optimizedSize / (1024 * 1024);
 
-        debugPrint('📸 Optimized image size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)');
+        debugPrint(
+          '📸 Optimized image size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)',
+        );
         return optimizedImage;
       }
 
       // If optimization failed, return original
       return image;
-
     } catch (e) {
       debugPrint('Warning: Image optimization failed, using original: $e');
       return image;
@@ -423,7 +449,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-    debugPrint('Error uploading local photo to Firebase: $e');
+      debugPrint('Error uploading local photo to Firebase: $e');
       throw Exception('Failed to upload local photo to Firebase: $e');
     }
   }
@@ -441,7 +467,7 @@ class FileUploadService {
         }
       }
     } catch (e) {
-    debugPrint('Error cleaning up temp photos: $e');
+      debugPrint('Error cleaning up temp photos: $e');
     }
   }
 
@@ -461,14 +487,17 @@ class FileUploadService {
         return FileSizeValidation(
           isValid: false,
           fileSizeMB: fileSizeMB,
-          message: 'File is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-          recommendation: 'Please choose a smaller image or compress the current one.',
+          message:
+              'File is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
+          recommendation:
+              'Please choose a smaller image or compress the current one.',
         );
       } else if (fileSizeMB > 10.0) {
         return FileSizeValidation(
           isValid: true,
           fileSizeMB: fileSizeMB,
-          message: 'Large file detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+          message:
+              'Large file detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
           recommendation: 'Consider compressing the image for faster uploads.',
           warning: true,
         );
@@ -498,7 +527,10 @@ class FileUploadService {
   }
 
   // Validate media file size with specific limits for images and videos
-  Future<FileSizeValidation> validateMediaFileSize(String filePath, String fileType) async {
+  Future<FileSizeValidation> validateMediaFileSize(
+    String filePath,
+    String fileType,
+  ) async {
     try {
       final file = File(filePath.replaceFirst('local:', ''));
       final fileSize = await file.length();
@@ -525,22 +557,27 @@ class FileUploadService {
         return FileSizeValidation(
           isValid: false,
           fileSizeMB: fileSizeMB,
-          message: '$fileTypeName is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is ${maxSizeMB.toStringAsFixed(1)}MB.',
-          recommendation: 'Please choose a smaller $fileTypeName or compress the current one.',
+          message:
+              '$fileTypeName is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is ${maxSizeMB.toStringAsFixed(1)}MB.',
+          recommendation:
+              'Please choose a smaller $fileTypeName or compress the current one.',
         );
       } else if (fileSizeMB > maxSizeMB * 0.8) {
         return FileSizeValidation(
           isValid: true,
           fileSizeMB: fileSizeMB,
-          message: 'Large $fileTypeName detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-          recommendation: 'Consider compressing the $fileTypeName for faster uploads.',
+          message:
+              'Large $fileTypeName detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+          recommendation:
+              'Consider compressing the $fileTypeName for faster uploads.',
           warning: true,
         );
       } else {
         return FileSizeValidation(
           isValid: true,
           fileSizeMB: fileSizeMB,
-          message: 'Optimal $fileTypeName size (${fileSizeMB.toStringAsFixed(1)}MB).',
+          message:
+              'Optimal $fileTypeName size (${fileSizeMB.toStringAsFixed(1)}MB).',
           recommendation: null,
         );
       }
@@ -555,7 +592,11 @@ class FileUploadService {
   }
 
   // Save existing file to local storage (for media tab)
-  Future<String?> saveExistingFileLocally(String sourceFilePath, String candidateId, String fileName) async {
+  Future<String?> saveExistingFileLocally(
+    String sourceFilePath,
+    String candidateId,
+    String fileName,
+  ) async {
     try {
       debugPrint('💾 [Local Storage] Saving existing file locally...');
 
@@ -564,7 +605,9 @@ class FileUploadService {
       final localDir = Directory('${directory.path}/media_temp');
       if (!await localDir.exists()) {
         await localDir.create(recursive: true);
-        debugPrint('💾 [Local Storage] Created media temp directory: ${localDir.path}');
+        debugPrint(
+          '💾 [Local Storage] Created media temp directory: ${localDir.path}',
+        );
       }
 
       // Generate unique filename

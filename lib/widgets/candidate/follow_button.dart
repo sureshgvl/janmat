@@ -10,12 +10,12 @@ class FollowButton extends StatelessWidget {
   final VoidCallback? onFollowChanged;
 
   const FollowButton({
-    Key? key,
+    super.key,
     required this.candidateId,
     required this.userId,
     this.showFollowersCount = true,
     this.onFollowChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +60,11 @@ class FollowButton extends StatelessWidget {
                           ),
                         ).then((_) {
                           // After dialog closes, perform the follow action
-                          controller.followCandidate(userId, candidateId, notificationsEnabled: true);
+                          controller.followCandidate(
+                            userId,
+                            candidateId,
+                            notificationsEnabled: true,
+                          );
                           onFollowChanged?.call();
                         });
                       } else {
@@ -69,9 +73,14 @@ class FollowButton extends StatelessWidget {
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isFollowing ? Colors.grey[300] : Theme.of(context).primaryColor,
+                backgroundColor: isFollowing
+                    ? Colors.grey[300]
+                    : Theme.of(context).primaryColor,
                 foregroundColor: isFollowing ? Colors.black : Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

@@ -12,14 +12,14 @@ class ReusableVideoWidget extends StatefulWidget {
   final VoidCallback? onPlayPressed;
 
   const ReusableVideoWidget({
-    Key? key,
+    super.key,
     required this.videoUrl,
     this.title,
     this.aspectRatio,
     this.autoPlay = false,
     this.showControls = true,
     this.onPlayPressed,
-  }) : super(key: key);
+  });
 
   @override
   State<ReusableVideoWidget> createState() => _ReusableVideoWidgetState();
@@ -39,7 +39,9 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
 
   Future<void> _initializePlayer() async {
     try {
-      debugPrint('🎥 [Video Player] Initializing video player for: ${widget.videoUrl}');
+      debugPrint(
+        '🎥 [Video Player] Initializing video player for: ${widget.videoUrl}',
+      );
 
       _videoPlayerController = VideoPlayerController.networkUrl(
         Uri.parse(widget.videoUrl),
@@ -67,9 +69,7 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
         placeholder: Container(
           color: Colors.black,
           child: const Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-            ),
+            child: CircularProgressIndicator(color: Colors.white),
           ),
         ),
         errorBuilder: (context, errorMessage) {
@@ -79,18 +79,11 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.error,
-                    color: Colors.red,
-                    size: 48,
-                  ),
+                  const Icon(Icons.error, color: Colors.red, size: 48),
                   const SizedBox(height: 16),
                   Text(
                     errorMessage,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -136,7 +129,7 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
     return Dialog(
       insetPadding: EdgeInsets.zero,
       backgroundColor: Colors.black,
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
         height: MediaQuery.of(context).size.height,
         child: Column(
@@ -177,9 +170,7 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
+                            CircularProgressIndicator(color: Colors.white),
                             SizedBox(height: 16),
                             Text(
                               'Loading video...',
@@ -193,45 +184,36 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
                       ),
                     )
                   : _hasError
-                      ? Container(
-                          color: Colors.black,
-                          child: const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error,
-                                  color: Colors.red,
-                                  size: 48,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Failed to load video',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : _chewieController != null
-                          ? Chewie(
-                              controller: _chewieController!,
-                            )
-                          : Container(
-                              color: Colors.black,
-                              child: const Center(
-                                child: Text(
-                                  'Video player not available',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                  ? Container(
+                      color: Colors.black,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error, color: Colors.red, size: 48),
+                            SizedBox(height: 16),
+                            Text(
+                              'Failed to load video',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _chewieController != null
+                  ? Chewie(controller: _chewieController!)
+                  : Container(
+                      color: Colors.black,
+                      child: const Center(
+                        child: Text(
+                          'Video player not available',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -250,14 +232,14 @@ class VideoPreviewWidget extends StatelessWidget {
   final String? durationText;
 
   const VideoPreviewWidget({
-    Key? key,
+    super.key,
     required this.videoUrl,
     this.title,
     this.aspectRatio,
     this.onPlayPressed,
     this.showDuration = true,
     this.durationText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -276,11 +258,7 @@ class VideoPreviewWidget extends StatelessWidget {
             Container(
               color: Colors.purple.shade50,
               child: const Center(
-                child: Icon(
-                  Icons.video_call,
-                  color: Colors.purple,
-                  size: 64,
-                ),
+                child: Icon(Icons.video_call, color: Colors.purple, size: 64),
               ),
             ),
             // Duration indicator
@@ -289,7 +267,10 @@ class VideoPreviewWidget extends StatelessWidget {
                 bottom: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(4),
@@ -306,15 +287,15 @@ class VideoPreviewWidget extends StatelessWidget {
               ),
             // Play button overlay
             GestureDetector(
-              onTap: onPlayPressed ?? () {
-                showDialog(
-                  context: context,
-                  builder: (context) => ReusableVideoWidget(
-                    videoUrl: videoUrl,
-                    title: title,
-                  ),
-                );
-              },
+              onTap:
+                  onPlayPressed ??
+                  () {
+                    showDialog(
+                      context: context,
+                      builder: (context) =>
+                          ReusableVideoWidget(videoUrl: videoUrl, title: title),
+                    );
+                  },
               child: Container(
                 width: 80,
                 height: 80,

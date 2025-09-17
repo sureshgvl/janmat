@@ -12,11 +12,11 @@ class InfoTab extends StatefulWidget {
   final String Function(DateTime) formatDate;
 
   const InfoTab({
-    Key? key,
+    super.key,
     required this.candidate,
     required this.getPartySymbolPath,
     required this.formatDate,
-  }) : super(key: key);
+  });
 
   @override
   State<InfoTab> createState() => _InfoTabState();
@@ -53,7 +53,10 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     borderRadius: BorderRadius.circular(8),
                     image: DecorationImage(
                       image: SymbolUtils.getSymbolImageProvider(
-                        SymbolUtils.getPartySymbolPath(widget.candidate.party, candidate: widget.candidate)
+                        SymbolUtils.getPartySymbolPath(
+                          widget.candidate.party,
+                          candidate: widget.candidate,
+                        ),
                       ),
                       fit: BoxFit.cover,
                     ),
@@ -74,7 +77,10 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        AppLocalizations.of(context)!.wardInfo(widget.candidate.wardId.toString(), widget.candidate.districtId),
+                        AppLocalizations.of(context)!.wardInfo(
+                          widget.candidate.wardId.toString(),
+                          widget.candidate.districtId,
+                        ),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6b7280),
@@ -82,7 +88,9 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        AppLocalizations.of(context)!.joinedDate(widget.formatDate(widget.candidate.createdAt)),
+                        AppLocalizations.of(context)!.joinedDate(
+                          widget.formatDate(widget.candidate.createdAt),
+                        ),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF9ca3af),
@@ -153,11 +161,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            Icons.person,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
+                          Icon(Icons.person, size: 16, color: Colors.grey[600]),
                           const SizedBox(width: 8),
                           Text(
                             'Full Name',
@@ -187,10 +191,9 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
 
           const SizedBox(height: 20),
 
-
-
           // Events (if available)
-          if (widget.candidate.extraInfo?.events != null && widget.candidate.extraInfo!.events!.isNotEmpty) ...[
+          if (widget.candidate.extraInfo?.events != null &&
+              widget.candidate.extraInfo!.events!.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(24),
@@ -235,83 +238,86 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  ...widget.candidate.extraInfo!.events!.map((event) => Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          margin: const EdgeInsets.only(top: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade500,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.green.shade200,
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                event.title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1f2937),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              if (event.date.isNotEmpty)
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today,
-                                      size: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      event.date,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFF6b7280),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              if (event.description != null && event.description!.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  event.description!,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF374151),
-                                    height: 1.4,
-                                  ),
+                  ...widget.candidate.extraInfo!.events!.map(
+                    (event) => Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            margin: const EdgeInsets.only(top: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade500,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.shade200,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1f2937),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                if (event.date.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today,
+                                        size: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        event.date,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF6b7280),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                if (event.description != null &&
+                                    event.description!.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    event.description!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF374151),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                 ],
               ),
             ),
@@ -367,10 +373,13 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                   ),
                   const SizedBox(height: 20),
                   // Age and Gender Row
-                  if (widget.candidate.extraInfo?.basicInfo?.age != null || widget.candidate.extraInfo?.basicInfo?.gender != null) ...[
+                  if (widget.candidate.extraInfo?.basicInfo?.age != null ||
+                      widget.candidate.extraInfo?.basicInfo?.gender !=
+                          null) ...[
                     Row(
                       children: [
-                        if (widget.candidate.extraInfo?.basicInfo?.age != null) ...[
+                        if (widget.candidate.extraInfo?.basicInfo?.age !=
+                            null) ...[
                           Expanded(
                             child: Container(
                               padding: const EdgeInsets.all(16),
@@ -413,10 +422,12 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                               ),
                             ),
                           ),
-                          if (widget.candidate.extraInfo?.basicInfo?.gender != null)
+                          if (widget.candidate.extraInfo?.basicInfo?.gender !=
+                              null)
                             const SizedBox(width: 12),
                         ],
-                        if (widget.candidate.extraInfo?.basicInfo?.gender != null) ...[
+                        if (widget.candidate.extraInfo?.basicInfo?.gender !=
+                            null) ...[
                           Expanded(
                             child: Container(
                               padding: const EdgeInsets.all(16),
@@ -448,7 +459,11 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    widget.candidate.extraInfo!.basicInfo!.gender!,
+                                    widget
+                                        .candidate
+                                        .extraInfo!
+                                        .basicInfo!
+                                        .gender!,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -465,7 +480,8 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     const SizedBox(height: 16),
                   ],
                   // Education
-                  if (widget.candidate.extraInfo?.basicInfo?.education != null) ...[
+                  if (widget.candidate.extraInfo?.basicInfo?.education !=
+                      null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

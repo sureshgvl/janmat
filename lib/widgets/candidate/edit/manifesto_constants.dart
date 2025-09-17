@@ -47,12 +47,25 @@ class ManifestoConstants {
 
   // File type extensions
   static const List<String> pdfExtensions = ['pdf'];
-  static const List<String> imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-  static const List<String> videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm'];
+  static const List<String> imageExtensions = [
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
+  ];
+  static const List<String> videoExtensions = [
+    'mp4',
+    'mov',
+    'avi',
+    'mkv',
+    'webm',
+  ];
 
   // Strings
   static const String manifestoTitle = 'Manifesto';
-  static const String manifestoSubtitle = 'Share your vision and promises with voters';
+  static const String manifestoSubtitle =
+      'Share your vision and promises with voters';
   static const String uploadPdfTitle = 'Upload PDF Document';
   static const String uploadImageTitle = 'Upload Image';
   static const String uploadVideoTitle = 'Upload Video';
@@ -80,8 +93,10 @@ class ManifestoConstants {
   static const String fileTooLargeError = 'File size exceeds the maximum limit';
   static const String invalidFileTypeError = 'Invalid file type selected';
   static const String uploadFailedError = 'Upload failed. Please try again';
-  static const String networkError = 'Network error. Please check your connection';
-  static const String permissionDeniedError = 'Permission denied. Please grant access';
+  static const String networkError =
+      'Network error. Please check your connection';
+  static const String permissionDeniedError =
+      'Permission denied. Please grant access';
   static const String fileNotFoundError = 'File not found';
   static const String unknownError = 'An unknown error occurred';
 
@@ -91,8 +106,10 @@ class ManifestoConstants {
   static const String deleteSuccess = 'File deleted successfully';
 
   // Confirmation messages
-  static const String deleteConfirmation = 'Are you sure you want to delete this file?';
-  static const String cancelConfirmation = 'Are you sure you want to cancel? All changes will be lost.';
+  static const String deleteConfirmation =
+      'Are you sure you want to delete this file?';
+  static const String cancelConfirmation =
+      'Are you sure you want to cancel? All changes will be lost.';
   static const String saveConfirmation = 'Save changes?';
 
   // Demo data
@@ -100,8 +117,10 @@ class ManifestoConstants {
   static const String demoImageName = 'sample_manifesto_image.jpg';
   static const String demoVideoName = 'sample_manifesto_video.mp4';
   static const String demoPdfUrl = 'https://example.com/sample_manifesto.pdf';
-  static const String demoImageUrl = 'https://example.com/sample_manifesto_image.jpg';
-  static const String demoVideoUrl = 'https://example.com/sample_manifesto_video.mp4';
+  static const String demoImageUrl =
+      'https://example.com/sample_manifesto_image.jpg';
+  static const String demoVideoUrl =
+      'https://example.com/sample_manifesto_video.mp4';
 
   // Animation durations
   static const Duration shortAnimationDuration = Duration(milliseconds: 200);
@@ -112,38 +131,39 @@ class ManifestoConstants {
   static const EdgeInsets smallPadding = EdgeInsets.all(smallSpacing);
   static const EdgeInsets mediumPadding = EdgeInsets.all(mediumSpacing);
   static const EdgeInsets largePadding = EdgeInsets.all(largeSpacing);
-  static const EdgeInsets horizontalPadding = EdgeInsets.symmetric(horizontal: mediumSpacing);
-  static const EdgeInsets verticalPadding = EdgeInsets.symmetric(vertical: mediumSpacing);
+  static const EdgeInsets horizontalPadding = EdgeInsets.symmetric(
+    horizontal: mediumSpacing,
+  );
+  static const EdgeInsets verticalPadding = EdgeInsets.symmetric(
+    vertical: mediumSpacing,
+  );
 
   // Box shadows
   static const List<BoxShadow> lightShadow = [
-    BoxShadow(
-      color: Color(0x0F000000),
-      blurRadius: 4,
-      offset: Offset(0, 2),
-    ),
+    BoxShadow(color: Color(0x0F000000), blurRadius: 4, offset: Offset(0, 2)),
   ];
 
   static const List<BoxShadow> mediumShadow = [
-    BoxShadow(
-      color: Color(0x1F000000),
-      blurRadius: 8,
-      offset: Offset(0, 4),
-    ),
+    BoxShadow(color: Color(0x1F000000), blurRadius: 8, offset: Offset(0, 4)),
   ];
 
   static const List<BoxShadow> heavyShadow = [
-    BoxShadow(
-      color: Color(0x2F000000),
-      blurRadius: 12,
-      offset: Offset(0, 6),
-    ),
+    BoxShadow(color: Color(0x2F000000), blurRadius: 12, offset: Offset(0, 6)),
   ];
 
   // Border styles
-  static const BorderSide thinBorder = BorderSide(width: 1, color: Color(0xFFE5E7EB));
-  static const BorderSide mediumBorder = BorderSide(width: 2, color: Color(0xFFD1D5DB));
-  static const BorderSide thickBorder = BorderSide(width: 3, color: Color(0xFF9CA3AF));
+  static const BorderSide thinBorder = BorderSide(
+    width: 1,
+    color: Color(0xFFE5E7EB),
+  );
+  static const BorderSide mediumBorder = BorderSide(
+    width: 2,
+    color: Color(0xFFD1D5DB),
+  );
+  static const BorderSide thickBorder = BorderSide(
+    width: 3,
+    color: Color(0xFF9CA3AF),
+  );
 
   // Text styles
   static const TextStyle titleStyle = TextStyle(

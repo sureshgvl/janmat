@@ -20,7 +20,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final HomeServices _homeServices = HomeServices();
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
   bool _shouldRefreshData = false;
   bool _isLoggingOut = false; // Add loading state for logout
 
@@ -66,44 +67,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 : const Icon(Icons.logout),
             tooltip: _isLoggingOut ? 'Logging out...' : 'Logout',
-            onPressed: _isLoggingOut ? null : () async {
-              debugPrint('🔘 Logout button pressed');
-              setState(() => _isLoggingOut = true);
+            onPressed: _isLoggingOut
+                ? null
+                : () async {
+                    debugPrint('🔘 Logout button pressed');
+                    setState(() => _isLoggingOut = true);
 
-              try {
-                final authRepository = AuthRepository();
-                await authRepository.signOut();
+                    try {
+                      final authRepository = AuthRepository();
+                      await authRepository.signOut();
 
-                // Reset login controller state (if available)
-                try {
-                  if (Get.isRegistered<LoginController>()) {
-                    final loginController = Get.find<LoginController>();
-                    loginController.phoneController.clear();
-                    loginController.otpController.clear();
-                    loginController.isOTPScreen.value = false;
-                    loginController.verificationId.value = '';
-                    debugPrint('✅ Login controller state reset');
-                  } else {
-                    debugPrint('ℹ️ Login controller not available - skipping state reset');
-                  }
-                } catch (e) {
-                  debugPrint('⚠️ Could not reset login controller: $e');
-                }
+                      // Reset login controller state (if available)
+                      try {
+                        if (Get.isRegistered<LoginController>()) {
+                          final loginController = Get.find<LoginController>();
+                          loginController.phoneController.clear();
+                          loginController.otpController.clear();
+                          loginController.isOTPScreen.value = false;
+                          loginController.verificationId.value = '';
+                          debugPrint('✅ Login controller state reset');
+                        } else {
+                          debugPrint(
+                            'ℹ️ Login controller not available - skipping state reset',
+                          );
+                        }
+                      } catch (e) {
+                        debugPrint('⚠️ Could not reset login controller: $e');
+                      }
 
-                // Small delay to ensure auth state change has propagated
-                await Future.delayed(const Duration(milliseconds: 500));
+                      // Small delay to ensure auth state change has propagated
+                      await Future.delayed(const Duration(milliseconds: 500));
 
-                // Force navigation to login screen
-                Get.offAllNamed('/login');
-              } catch (e) {
-                debugPrint('❌ Logout failed: $e');
-                Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToLogout(e.toString()));
-              } finally {
-                if (mounted) {
-                  setState(() => _isLoggingOut = false);
-                }
-              }
-            },
+                      // Force navigation to login screen
+                      Get.offAllNamed('/login');
+                    } catch (e) {
+                      debugPrint('❌ Logout failed: $e');
+                      Get.snackbar(
+                        AppLocalizations.of(context)!.error,
+                        AppLocalizations.of(
+                          context,
+                        )!.failedToLogout(e.toString()),
+                      );
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoggingOut = false);
+                      }
+                    }
+                  },
           ),
         ],
       ),
@@ -126,7 +136,12 @@ class _HomeScreenState extends State<HomeScreen> {
             userModel: userModel,
             candidateModel: candidateModel,
             currentUser: currentUser,
-            onDeleteAccount: (context, userModel) async => await HomeActions.showDeleteAccountDialog(context, userModel, AppLocalizations.of(context)!),
+            onDeleteAccount: (context, userModel) async =>
+                await HomeActions.showDeleteAccountDialog(
+                  context,
+                  userModel,
+                  AppLocalizations.of(context)!,
+                ),
           );
         },
       ),
@@ -163,5 +178,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 }

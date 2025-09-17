@@ -22,7 +22,9 @@ class GamificationService {
     required String rsvpType,
   }) async {
     try {
-      final points = rsvpType == 'going' ? POINTS_EVENT_GOING : POINTS_EVENT_INTERESTED;
+      final points = rsvpType == 'going'
+          ? POINTS_EVENT_GOING
+          : POINTS_EVENT_INTERESTED;
 
       // Check if this is the user's first RSVP
       final isFirstRSVP = await _isFirstRSVP(userId);
@@ -32,13 +34,18 @@ class GamificationService {
       await _updateUserPoints(userId, totalPoints);
 
       // Record the RSVP activity
-      await _recordRSVPActivity(userId, eventId, candidateId, rsvpType, totalPoints);
+      await _recordRSVPActivity(
+        userId,
+        eventId,
+        candidateId,
+        rsvpType,
+        totalPoints,
+      );
 
       // Check for achievements
       await _checkAndAwardAchievements(userId);
 
       print('Awarded $totalPoints points to user $userId for RSVP');
-
     } catch (e) {
       print('Error awarding RSVP points: $e');
     }
@@ -75,7 +82,6 @@ class GamificationService {
 
         print('Removed $points points from user $userId for cancelled RSVP');
       }
-
     } catch (e) {
       print('Error removing RSVP points: $e');
     }
@@ -106,7 +112,6 @@ class GamificationService {
         'achievements': achievements,
         'nextLevelPoints': _getNextLevelPoints(level),
       };
-
     } catch (e) {
       print('Error getting user gamification data: $e');
       return {
@@ -139,7 +144,6 @@ class GamificationService {
       }
 
       return leaderboard;
-
     } catch (e) {
       print('Error getting leaderboard: $e');
       return [];
@@ -159,7 +163,6 @@ class GamificationService {
           .get();
 
       return activitiesSnapshot.docs.isEmpty;
-
     } catch (e) {
       print('Error checking first RSVP: $e');
       return false;
@@ -240,7 +243,6 @@ class GamificationService {
         // You could send achievement notifications here
         print('User $userId earned achievements: $newAchievements');
       }
-
     } catch (e) {
       print('Error checking achievements: $e');
     }
@@ -280,7 +282,6 @@ class GamificationService {
 
         print('User $userId lost achievements: $achievementsToRemove');
       }
-
     } catch (e) {
       print('Error revoking achievements: $e');
     }

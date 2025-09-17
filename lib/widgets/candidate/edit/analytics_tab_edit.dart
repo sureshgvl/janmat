@@ -31,13 +31,13 @@ class _AnalyticsTabEditState extends State<AnalyticsTabEdit> {
     final analytics = data.extraInfo?.analytics;
 
     _profileViewsController = TextEditingController(
-      text: analytics?.profileViews?.toString() ?? '0'
+      text: analytics?.profileViews?.toString() ?? '0',
     );
     _manifestoViewsController = TextEditingController(
-      text: analytics?.manifestoViews?.toString() ?? '0'
+      text: analytics?.manifestoViews?.toString() ?? '0',
     );
     _engagementRateController = TextEditingController(
-      text: analytics?.engagementRate?.toStringAsFixed(1) ?? '0.0'
+      text: analytics?.engagementRate?.toStringAsFixed(1) ?? '0.0',
     );
   }
 
@@ -50,8 +50,10 @@ class _AnalyticsTabEditState extends State<AnalyticsTabEdit> {
       final analytics = data.extraInfo?.analytics;
 
       _profileViewsController.text = analytics?.profileViews?.toString() ?? '0';
-      _manifestoViewsController.text = analytics?.manifestoViews?.toString() ?? '0';
-      _engagementRateController.text = analytics?.engagementRate?.toStringAsFixed(1) ?? '0.0';
+      _manifestoViewsController.text =
+          analytics?.manifestoViews?.toString() ?? '0';
+      _engagementRateController.text =
+          analytics?.engagementRate?.toStringAsFixed(1) ?? '0.0';
     }
   }
 
@@ -101,10 +103,7 @@ class _AnalyticsTabEditState extends State<AnalyticsTabEdit> {
             const SizedBox(height: 8),
             Text(
               'Configure analytics tracking for your candidate profile',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
 

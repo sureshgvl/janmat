@@ -53,7 +53,8 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     DateTime? subscriptionExpiresAt;
     if (json['subscriptionExpiresAt'] is Timestamp) {
-      subscriptionExpiresAt = (json['subscriptionExpiresAt'] as Timestamp).toDate();
+      subscriptionExpiresAt = (json['subscriptionExpiresAt'] as Timestamp)
+          .toDate();
     } else if (json['subscriptionExpiresAt'] is String) {
       subscriptionExpiresAt = DateTime.parse(json['subscriptionExpiresAt']);
     }
@@ -92,7 +93,9 @@ class UserModel {
       premium: json['premium'] ?? false,
       subscriptionPlanId: json['subscriptionPlanId'],
       subscriptionExpiresAt: subscriptionExpiresAt,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
       photoURL: json['photoURL'],
       followingCount: json['followingCount']?.toInt() ?? 0,
       trialStartedAt: trialStartedAt,
@@ -168,14 +171,16 @@ class UserModel {
       xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
       subscriptionPlanId: subscriptionPlanId ?? this.subscriptionPlanId,
-      subscriptionExpiresAt: subscriptionExpiresAt ?? this.subscriptionExpiresAt,
+      subscriptionExpiresAt:
+          subscriptionExpiresAt ?? this.subscriptionExpiresAt,
       createdAt: createdAt ?? this.createdAt,
       photoURL: photoURL ?? this.photoURL,
       followingCount: followingCount ?? this.followingCount,
       trialStartedAt: trialStartedAt ?? this.trialStartedAt,
       trialExpiresAt: trialExpiresAt ?? this.trialExpiresAt,
       isTrialActive: isTrialActive ?? this.isTrialActive,
-      hasConvertedFromTrial: hasConvertedFromTrial ?? this.hasConvertedFromTrial,
+      hasConvertedFromTrial:
+          hasConvertedFromTrial ?? this.hasConvertedFromTrial,
     );
   }
 }

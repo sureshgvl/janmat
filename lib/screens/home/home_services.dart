@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
@@ -14,7 +13,10 @@ class HomeServices {
     // Add a small delay to ensure any recent updates are reflected
     await Future.delayed(const Duration(milliseconds: 500));
 
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     UserModel? userModel;
     Candidate? candidateModel;
 
@@ -26,11 +28,13 @@ class HomeServices {
       if (userModel.role == 'candidate') {
         try {
           candidateModel = await _candidateRepository.getCandidateData(uid);
-        debugPrint('🏛️ Home Screen: Fetched candidate data for ${userModel.name}');
-        debugPrint('   Party: ${candidateModel?.party ?? 'No party data'}');
-        debugPrint('   Symbol path: ${candidateModel?.party ?? ''}');
+          debugPrint(
+            '🏛️ Home Screen: Fetched candidate data for ${userModel.name}',
+          );
+          debugPrint('   Party: ${candidateModel?.party ?? 'No party data'}');
+          debugPrint('   Symbol path: ${candidateModel?.party ?? ''}');
         } catch (e) {
-        debugPrint('❌ Error fetching candidate data: $e');
+          debugPrint('❌ Error fetching candidate data: $e');
           // Continue without candidate data if there's an error
         }
       }

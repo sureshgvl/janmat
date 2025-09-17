@@ -28,13 +28,16 @@ class MessageController extends GetxController {
     _loadUserQuota();
   }
 
-
   // Message state
   var messages = <Message>[].obs;
   var userQuota = Rx<UserQuota?>(null);
 
   // Message sending
-  Future<void> sendTextMessage(String roomId, String text, String senderId) async {
+  Future<void> sendTextMessage(
+    String roomId,
+    String text,
+    String senderId,
+  ) async {
     if (text.trim().isEmpty) return;
 
     final message = Message(
@@ -63,10 +66,16 @@ class MessageController extends GetxController {
       await _updateUserQuotaAfterMessage();
 
       // Update status to sent
-      await _localMessageService.updateMessageStatus(message.messageId, MessageStatus.sent);
+      await _localMessageService.updateMessageStatus(
+        message.messageId,
+        MessageStatus.sent,
+      );
     } catch (e) {
       // Update status to failed
-      await _localMessageService.updateMessageStatus(message.messageId, MessageStatus.failed);
+      await _localMessageService.updateMessageStatus(
+        message.messageId,
+        MessageStatus.failed,
+      );
       debugPrint('MessageController: Failed to send message: $e');
     }
   }
@@ -95,7 +104,9 @@ class MessageController extends GetxController {
         // Update in repository
         await _repository.updateUserQuota(updatedQuota);
 
-        debugPrint('MessageController: Updated quota - sent: ${updatedQuota.messagesSent}, remaining: ${updatedQuota.remainingMessages}');
+        debugPrint(
+          'MessageController: Updated quota - sent: ${updatedQuota.messagesSent}, remaining: ${updatedQuota.remainingMessages}',
+        );
       }
     } catch (e) {
       debugPrint('MessageController: Failed to update quota: $e');
@@ -107,7 +118,9 @@ class MessageController extends GetxController {
     try {
       if (await _audioRecorder.hasPermission()) {
         final appDir = await getApplicationDocumentsDirectory();
-        final recordingsDir = Directory(path.join(appDir.path, 'voice_recordings'));
+        final recordingsDir = Directory(
+          path.join(appDir.path, 'voice_recordings'),
+        );
 
         if (!await recordingsDir.exists()) {
           await recordingsDir.create(recursive: true);
@@ -125,14 +138,16 @@ class MessageController extends GetxController {
         await _audioRecorder.start(config, path: currentRecordingPath!);
         isRecording.value = true;
 
-        debugPrint('MessageController: Started voice recording: $currentRecordingPath');
+        debugPrint(
+          'MessageController: Started voice recording: $currentRecordingPath',
+        );
       } else {
         throw Exception('Microphone permission not granted');
       }
     } catch (e) {
       debugPrint('MessageController: Failed to start voice recording: $e');
       isRecording.value = false;
-      throw e;
+      rethrow;
     }
   }
 
@@ -145,7 +160,9 @@ class MessageController extends GetxController {
         debugPrint('MessageController: Stopped voice recording: $path');
         return path;
       } else {
-        debugPrint('MessageController: Voice recording failed - no path returned');
+        debugPrint(
+          'MessageController: Voice recording failed - no path returned',
+        );
         return null;
       }
     } catch (e) {
@@ -155,8 +172,11 @@ class MessageController extends GetxController {
     }
   }
 
-
-  Future<void> sendImageMessage(String roomId, String imagePath, String senderId) async {
+  Future<void> sendImageMessage(
+    String roomId,
+    String imagePath,
+    String senderId,
+  ) async {
     final message = Message(
       messageId: _generateMessageId(),
       text: 'Image',
@@ -171,44 +191,75 @@ class MessageController extends GetxController {
     // Save locally immediately and add to UI
     await _localMessageService.saveMessage(message, roomId);
     messages.add(message);
-    debugPrint('📝 MessageController: Added voice message to UI, total messages: ${messages.length}');
+    debugPrint(
+      '📝 MessageController: Added voice message to UI, total messages: ${messages.length}',
+    );
     update(); // Force UI update
-    debugPrint('📝 MessageController: Added image message to UI, total messages: ${messages.length}');
+    debugPrint(
+      '📝 MessageController: Added image message to UI, total messages: ${messages.length}',
+    );
     update(); // Force UI update
-    debugPrint('📝 MessageController: Added message to UI, total messages: ${messages.length}');
+    debugPrint(
+      '📝 MessageController: Added message to UI, total messages: ${messages.length}',
+    );
     update(); // Force UI update
 
     // Send to server asynchronously (don't block UI)
     _sendImageMessageToServer(message, roomId, imagePath);
   }
 
-  Future<void> _sendImageMessageToServer(Message message, String roomId, String imagePath) async {
+  Future<void> _sendImageMessageToServer(
+    Message message,
+    String roomId,
+    String imagePath,
+  ) async {
     try {
       // Upload to Firebase Storage
       final fileName = path.basename(imagePath);
-      final remoteUrl = await _mediaService.uploadMediaFile(roomId, imagePath, fileName, 'image/jpeg');
+      final remoteUrl = await _mediaService.uploadMediaFile(
+        roomId,
+        imagePath,
+        fileName,
+        'image/jpeg',
+      );
 
       // Update message with remote URL
-      await _localMessageService.updateMessageMediaUrl(message.messageId, remoteUrl);
+      await _localMessageService.updateMessageMediaUrl(
+        message.messageId,
+        remoteUrl,
+      );
 
       // Send to server
-      await _repository.sendMessage(roomId, message.copyWith(mediaUrl: remoteUrl));
+      await _repository.sendMessage(
+        roomId,
+        message.copyWith(mediaUrl: remoteUrl),
+      );
 
       // Update local quota
       await _updateUserQuotaAfterMessage();
 
       // Update status to sent
-      await _localMessageService.updateMessageStatus(message.messageId, MessageStatus.sent);
+      await _localMessageService.updateMessageStatus(
+        message.messageId,
+        MessageStatus.sent,
+      );
 
       debugPrint('MessageController: Image message sent successfully');
     } catch (e) {
       // Update status to failed
-      await _localMessageService.updateMessageStatus(message.messageId, MessageStatus.failed);
+      await _localMessageService.updateMessageStatus(
+        message.messageId,
+        MessageStatus.failed,
+      );
       debugPrint('MessageController: Failed to send image message: $e');
     }
   }
 
-  Future<void> sendVoiceMessage(String roomId, String audioPath, String senderId) async {
+  Future<void> sendVoiceMessage(
+    String roomId,
+    String audioPath,
+    String senderId,
+  ) async {
     final message = Message(
       messageId: _generateMessageId(),
       text: 'Voice message',
@@ -228,51 +279,83 @@ class MessageController extends GetxController {
     _sendVoiceMessageToServer(message, roomId, audioPath);
   }
 
-  Future<void> _sendVoiceMessageToServer(Message message, String roomId, String audioPath) async {
+  Future<void> _sendVoiceMessageToServer(
+    Message message,
+    String roomId,
+    String audioPath,
+  ) async {
     try {
       // Upload to Firebase Storage
       final fileName = path.basename(audioPath);
-      final remoteUrl = await _mediaService.uploadMediaFile(roomId, audioPath, fileName, 'audio/m4a');
+      final remoteUrl = await _mediaService.uploadMediaFile(
+        roomId,
+        audioPath,
+        fileName,
+        'audio/m4a',
+      );
 
       // Update message with remote URL
-      await _localMessageService.updateMessageMediaUrl(message.messageId, remoteUrl);
+      await _localMessageService.updateMessageMediaUrl(
+        message.messageId,
+        remoteUrl,
+      );
 
       // Send to server
-      await _repository.sendMessage(roomId, message.copyWith(mediaUrl: remoteUrl));
+      await _repository.sendMessage(
+        roomId,
+        message.copyWith(mediaUrl: remoteUrl),
+      );
 
       // Update local quota
       await _updateUserQuotaAfterMessage();
 
       // Update status to sent
-      await _localMessageService.updateMessageStatus(message.messageId, MessageStatus.sent);
+      await _localMessageService.updateMessageStatus(
+        message.messageId,
+        MessageStatus.sent,
+      );
 
       debugPrint('MessageController: Voice message sent successfully');
     } catch (e) {
       // Update status to failed
-      await _localMessageService.updateMessageStatus(message.messageId, MessageStatus.failed);
+      await _localMessageService.updateMessageStatus(
+        message.messageId,
+        MessageStatus.failed,
+      );
       debugPrint('MessageController: Failed to send voice message: $e');
     }
   }
 
   // Message reactions
-  Future<void> addReaction(String roomId, String messageId, String userId, String emoji) async {
+  Future<void> addReaction(
+    String roomId,
+    String messageId,
+    String userId,
+    String emoji,
+  ) async {
     await _repository.addReactionToMessage(roomId, messageId, userId, emoji);
     // Update local message
     final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
       final message = messages[messageIndex];
       final reactions = List<MessageReaction>.from(message.reactions ?? []);
-      reactions.add(MessageReaction(
-        emoji: emoji,
-        userId: userId,
-        createdAt: DateTime.now(),
-      ));
+      reactions.add(
+        MessageReaction(
+          emoji: emoji,
+          userId: userId,
+          createdAt: DateTime.now(),
+        ),
+      );
       messages[messageIndex] = message.copyWith(reactions: reactions);
     }
   }
 
   // Message status updates
-  Future<void> markMessageAsRead(String roomId, String messageId, String userId) async {
+  Future<void> markMessageAsRead(
+    String roomId,
+    String messageId,
+    String userId,
+  ) async {
     await _repository.markMessageAsRead(roomId, messageId, userId);
     // Update local message
     final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
@@ -297,10 +380,16 @@ class MessageController extends GetxController {
     try {
       await _repository.sendMessage(roomId, message);
       messages[messageIndex] = message.copyWith(status: MessageStatus.sent);
-      await _localMessageService.updateMessageStatus(messageId, MessageStatus.sent);
+      await _localMessageService.updateMessageStatus(
+        messageId,
+        MessageStatus.sent,
+      );
     } catch (e) {
       messages[messageIndex] = message.copyWith(status: MessageStatus.failed);
-      await _localMessageService.updateMessageStatus(messageId, MessageStatus.failed);
+      await _localMessageService.updateMessageStatus(
+        messageId,
+        MessageStatus.failed,
+      );
     }
   }
 
@@ -315,7 +404,12 @@ class MessageController extends GetxController {
   }
 
   // Report message
-  Future<void> reportMessage(String roomId, String messageId, String reporterId, String reason) async {
+  Future<void> reportMessage(
+    String roomId,
+    String messageId,
+    String reporterId,
+    String reason,
+  ) async {
     await _repository.reportMessage(roomId, messageId, reporterId, reason);
   }
 
@@ -328,17 +422,24 @@ class MessageController extends GetxController {
   Future<void> addMessageToUI(Message message, String roomId) async {
     await _localMessageService.saveMessage(message, roomId);
     messages.add(message);
-    debugPrint('📝 MessageController: Added message to UI, total messages: ${messages.length}');
+    debugPrint(
+      '📝 MessageController: Added message to UI, total messages: ${messages.length}',
+    );
     update(); // Force UI update
   }
 
   // Update message status
-  Future<void> updateMessageStatus(String messageId, MessageStatus status) async {
+  Future<void> updateMessageStatus(
+    String messageId,
+    MessageStatus status,
+  ) async {
     await _localMessageService.updateMessageStatus(messageId, status);
     final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
       messages[messageIndex] = messages[messageIndex].copyWith(status: status);
-      debugPrint('📝 MessageController: Updated message $messageId status to $status');
+      debugPrint(
+        '📝 MessageController: Updated message $messageId status to $status',
+      );
       update(); // Force UI update
     }
   }
@@ -359,7 +460,10 @@ class MessageController extends GetxController {
     });
   }
 
-  List<Message> _mergeMessages(List<Message> localMessages, List<Message> serverMessages) {
+  List<Message> _mergeMessages(
+    List<Message> localMessages,
+    List<Message> serverMessages,
+  ) {
     final merged = <String, Message>{};
 
     // Add local messages
@@ -372,7 +476,8 @@ class MessageController extends GetxController {
       merged[message.messageId] = message;
     }
 
-    return merged.values.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return merged.values.toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
   String _generateMessageId() {

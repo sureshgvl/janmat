@@ -130,7 +130,9 @@ class _ModalSelectorState<T> extends State<ModalSelector<T>> {
 
                 // Items list
                 Expanded(
-                  child: _filteredItems.isEmpty && _searchController.text.isNotEmpty
+                  child:
+                      _filteredItems.isEmpty &&
+                          _searchController.text.isNotEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -171,7 +173,9 @@ class _ModalSelectorState<T> extends State<ModalSelector<T>> {
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? Theme.of(context).primaryColor.withOpacity(0.1)
+                                      ? Theme.of(
+                                          context,
+                                        ).primaryColor.withOpacity(0.1)
                                       : Colors.white,
                                   border: Border.all(
                                     color: isSelected
@@ -220,9 +224,9 @@ class _ModalSelectorState<T> extends State<ModalSelector<T>> {
   @override
   Widget build(BuildContext context) {
     final selectedItem = widget.items.cast<DropdownMenuItem<T>?>().firstWhere(
-          (item) => item?.value == widget.value,
-          orElse: () => null,
-        );
+      (item) => item?.value == widget.value,
+      orElse: () => null,
+    );
 
     return InkWell(
       onTap: widget.enabled ? _showModal : null,

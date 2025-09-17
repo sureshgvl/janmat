@@ -2,10 +2,7 @@ class District {
   final String districtId;
   final String name;
 
-  District({
-    required this.districtId,
-    required this.name,
-  });
+  District({required this.districtId, required this.name});
 
   factory District.fromJson(Map<String, dynamic> json) {
     return District(
@@ -15,16 +12,10 @@ class District {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'districtId': districtId,
-      'name': name,
-    };
+    return {'districtId': districtId, 'name': name};
   }
 
-  District copyWith({
-    String? districtId,
-    String? name,
-  }) {
+  District copyWith({String? districtId, String? name}) {
     return District(
       districtId: districtId ?? this.districtId,
       name: name ?? this.name,

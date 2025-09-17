@@ -9,24 +9,25 @@ class EventsTabView extends StatefulWidget {
   final bool isOwnProfile;
 
   const EventsTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-  }) : super(key: key);
+  });
 
   @override
   State<EventsTabView> createState() => _EventsTabViewState();
 }
 
-class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveClientMixin {
+class _EventsTabViewState extends State<EventsTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
   // RSVP state for each event
-  Map<int, RSVPStatus> _rsvpStatuses = {};
-  Map<int, int> _interestedCounts = {};
-  Map<int, int> _goingCounts = {};
-  Map<int, int> _maybeCounts = {};
+  final Map<int, RSVPStatus> _rsvpStatuses = {};
+  final Map<int, int> _interestedCounts = {};
+  final Map<int, int> _goingCounts = {};
+  final Map<int, int> _maybeCounts = {};
 
   @override
   void initState() {
@@ -47,7 +48,8 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
 
       // Remove from old count
       if (oldStatus == RSVPStatus.interested) {
-        _interestedCounts[eventIndex] = (_interestedCounts[eventIndex] ?? 0) - 1;
+        _interestedCounts[eventIndex] =
+            (_interestedCounts[eventIndex] ?? 0) - 1;
       } else if (oldStatus == RSVPStatus.going) {
         _goingCounts[eventIndex] = (_goingCounts[eventIndex] ?? 0) - 1;
       } else if (oldStatus == RSVPStatus.maybe) {
@@ -56,7 +58,8 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
 
       // Add to new count
       if (newStatus == RSVPStatus.interested) {
-        _interestedCounts[eventIndex] = (_interestedCounts[eventIndex] ?? 0) + 1;
+        _interestedCounts[eventIndex] =
+            (_interestedCounts[eventIndex] ?? 0) + 1;
       } else if (newStatus == RSVPStatus.going) {
         _goingCounts[eventIndex] = (_goingCounts[eventIndex] ?? 0) + 1;
       } else if (newStatus == RSVPStatus.maybe) {
@@ -227,10 +230,10 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                   color: Color(0xFF1f2937),
                                 ),
                               ),
-                              if (event.date != null) ...[
+                              ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  _formatDate(event.date!),
+                                  _formatDate(event.date),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade600,
@@ -241,7 +244,10 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: color.shade100,
                             borderRadius: BorderRadius.circular(20),
@@ -258,7 +264,8 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                         ),
                       ],
                     ),
-                    if (event.description != null && event.description!.isNotEmpty) ...[
+                    if (event.description != null &&
+                        event.description!.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -350,19 +357,26 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                 child: GestureDetector(
                                   onTap: () => _updateRSVP(
                                     index,
-                                    _rsvpStatuses[index] == RSVPStatus.interested
+                                    _rsvpStatuses[index] ==
+                                            RSVPStatus.interested
                                         ? RSVPStatus.none
                                         : RSVPStatus.interested,
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: _rsvpStatuses[index] == RSVPStatus.interested
+                                      color:
+                                          _rsvpStatuses[index] ==
+                                              RSVPStatus.interested
                                           ? Colors.blue.shade100
                                           : Colors.white,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: _rsvpStatuses[index] == RSVPStatus.interested
+                                        color:
+                                            _rsvpStatuses[index] ==
+                                                RSVPStatus.interested
                                             ? Colors.blue.shade300
                                             : Colors.grey.shade300,
                                       ),
@@ -372,7 +386,9 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                         Icon(
                                           Icons.star,
                                           size: 16,
-                                          color: _rsvpStatuses[index] == RSVPStatus.interested
+                                          color:
+                                              _rsvpStatuses[index] ==
+                                                  RSVPStatus.interested
                                               ? Colors.blue
                                               : Colors.grey[600],
                                         ),
@@ -382,7 +398,9 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
-                                            color: _rsvpStatuses[index] == RSVPStatus.interested
+                                            color:
+                                                _rsvpStatuses[index] ==
+                                                    RSVPStatus.interested
                                                 ? Colors.blue.shade800
                                                 : Colors.grey[700],
                                           ),
@@ -410,14 +428,20 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                         : RSVPStatus.going,
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: _rsvpStatuses[index] == RSVPStatus.going
+                                      color:
+                                          _rsvpStatuses[index] ==
+                                              RSVPStatus.going
                                           ? Colors.green.shade100
                                           : Colors.white,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: _rsvpStatuses[index] == RSVPStatus.going
+                                        color:
+                                            _rsvpStatuses[index] ==
+                                                RSVPStatus.going
                                             ? Colors.green.shade300
                                             : Colors.grey.shade300,
                                       ),
@@ -427,7 +451,9 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                         Icon(
                                           Icons.check_circle,
                                           size: 16,
-                                          color: _rsvpStatuses[index] == RSVPStatus.going
+                                          color:
+                                              _rsvpStatuses[index] ==
+                                                  RSVPStatus.going
                                               ? Colors.green
                                               : Colors.grey[600],
                                         ),
@@ -437,7 +463,9 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
-                                            color: _rsvpStatuses[index] == RSVPStatus.going
+                                            color:
+                                                _rsvpStatuses[index] ==
+                                                    RSVPStatus.going
                                                 ? Colors.green.shade800
                                                 : Colors.grey[700],
                                           ),
@@ -465,14 +493,20 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                         : RSVPStatus.maybe,
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: _rsvpStatuses[index] == RSVPStatus.maybe
+                                      color:
+                                          _rsvpStatuses[index] ==
+                                              RSVPStatus.maybe
                                           ? Colors.orange.shade100
                                           : Colors.white,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: _rsvpStatuses[index] == RSVPStatus.maybe
+                                        color:
+                                            _rsvpStatuses[index] ==
+                                                RSVPStatus.maybe
                                             ? Colors.orange.shade300
                                             : Colors.grey.shade300,
                                       ),
@@ -482,7 +516,9 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                         Icon(
                                           Icons.question_mark,
                                           size: 16,
-                                          color: _rsvpStatuses[index] == RSVPStatus.maybe
+                                          color:
+                                              _rsvpStatuses[index] ==
+                                                  RSVPStatus.maybe
                                               ? Colors.orange
                                               : Colors.grey[600],
                                         ),
@@ -492,7 +528,9 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
-                                            color: _rsvpStatuses[index] == RSVPStatus.maybe
+                                            color:
+                                                _rsvpStatuses[index] ==
+                                                    RSVPStatus.maybe
                                                 ? Colors.orange.shade800
                                                 : Colors.grey[700],
                                           ),
@@ -517,7 +555,7 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ] else ...[
             // No events placeholder
             Container(
@@ -555,10 +593,7 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
                   const SizedBox(height: 8),
                   Text(
                     'Upcoming events and activities will be displayed here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -576,8 +611,18 @@ class _EventsTabViewState extends State<EventsTabView> with AutomaticKeepAliveCl
     try {
       final date = DateTime.parse(dateString);
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (e) {

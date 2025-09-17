@@ -50,7 +50,8 @@ class PermissionUtils {
   }
 
   // Request all media permissions
-  static Future<Map<Permission, PermissionStatus>> requestMediaPermissions() async {
+  static Future<Map<Permission, PermissionStatus>>
+  requestMediaPermissions() async {
     return await [
       Permission.camera,
       Permission.microphone,
@@ -61,12 +62,12 @@ class PermissionUtils {
 
   // Check if all media permissions are granted
   static Future<bool> hasAllMediaPermissions() async {
-    final statuses = await [
+    final statuses = await Future.wait([
       Permission.camera.status,
       Permission.microphone.status,
       Permission.storage.status,
       Permission.photos.status,
-    ];
+    ]);
 
     return statuses.every((status) => status.isGranted);
   }
@@ -88,7 +89,10 @@ class PermissionUtils {
   }
 
   // Get permission status message
-  static String getPermissionStatusMessage(Permission permission, PermissionStatus status) {
+  static String getPermissionStatusMessage(
+    Permission permission,
+    PermissionStatus status,
+  ) {
     if (status.isGranted) {
       return '${permission.toString().split('.').last} permission granted';
     } else if (status.isDenied) {

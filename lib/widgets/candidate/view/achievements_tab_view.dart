@@ -6,22 +6,23 @@ class AchievementsTabView extends StatefulWidget {
   final bool isOwnProfile;
 
   const AchievementsTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-  }) : super(key: key);
+  });
 
   @override
   State<AchievementsTabView> createState() => _AchievementsTabViewState();
 }
 
-class _AchievementsTabViewState extends State<AchievementsTabView> with AutomaticKeepAliveClientMixin {
+class _AchievementsTabViewState extends State<AchievementsTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
   // Like and share state for each achievement
-  Map<int, bool> _likedAchievements = {};
-  Map<int, int> _achievementLikes = {};
+  final Map<int, bool> _likedAchievements = {};
+  final Map<int, int> _achievementLikes = {};
 
   @override
   void initState() {
@@ -37,15 +38,18 @@ class _AchievementsTabViewState extends State<AchievementsTabView> with Automati
   void _toggleAchievementLike(int index) {
     setState(() {
       _likedAchievements[index] = !_likedAchievements[index]!;
-      _achievementLikes[index] = (_achievementLikes[index] ?? 0) +
+      _achievementLikes[index] =
+          (_achievementLikes[index] ?? 0) +
           (_likedAchievements[index]! ? 1 : -1);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_likedAchievements[index]!
-            ? 'Achievement liked!'
-            : 'Achievement unliked'),
+        content: Text(
+          _likedAchievements[index]!
+              ? 'Achievement liked!'
+              : 'Achievement unliked',
+        ),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -53,7 +57,8 @@ class _AchievementsTabViewState extends State<AchievementsTabView> with Automati
 
   void _shareAchievement(int index) {
     final achievement = widget.candidate.extraInfo?.achievements?[index];
-    final achievementText = '''
+    final achievementText =
+        '''
 Check out this achievement by ${widget.candidate.name}!
 
 "${achievement?.title ?? 'Achievement'}" (${achievement?.year ?? 'N/A'})
@@ -220,7 +225,10 @@ View their complete profile and achievements at: [Your App URL]
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: color.shade100,
                             borderRadius: BorderRadius.circular(20),
@@ -237,7 +245,7 @@ View their complete profile and achievements at: [Your App URL]
                         ),
                       ],
                     ),
-                    if (achievement.description != null && achievement.description!.isNotEmpty) ...[
+                    if (achievement.description.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -247,7 +255,7 @@ View their complete profile and achievements at: [Your App URL]
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Text(
-                          achievement.description!,
+                          achievement.description,
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,
@@ -265,7 +273,10 @@ View their complete profile and achievements at: [Your App URL]
                         GestureDetector(
                           onTap: () => _toggleAchievementLike(index),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: (_likedAchievements[index] ?? false)
                                   ? Colors.red.shade50
@@ -305,7 +316,10 @@ View their complete profile and achievements at: [Your App URL]
                         GestureDetector(
                           onTap: () => _shareAchievement(index),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.blue.shade50,
                               borderRadius: BorderRadius.circular(20),
@@ -314,11 +328,7 @@ View their complete profile and achievements at: [Your App URL]
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.share,
-                                  size: 16,
-                                  color: Colors.blue,
-                                ),
+                                Icon(Icons.share, size: 16, color: Colors.blue),
                                 SizedBox(width: 6),
                                 Text(
                                   'Share',
@@ -334,11 +344,10 @@ View their complete profile and achievements at: [Your App URL]
                         ),
                       ],
                     ),
-
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ] else ...[
             // No achievements placeholder
             Container(
@@ -376,10 +385,7 @@ View their complete profile and achievements at: [Your App URL]
                   const SizedBox(height: 8),
                   Text(
                     'Achievements and accomplishments will be displayed here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -397,8 +403,18 @@ View their complete profile and achievements at: [Your App URL]
     try {
       final date = DateTime.parse(dateString);
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${months[date.month - 1]} ${date.year}';
     } catch (e) {

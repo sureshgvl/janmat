@@ -93,9 +93,7 @@ class _LoadingDialogState extends State<LoadingDialog> {
       canPop: false, // Prevent back button from dismissing
       child: Dialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -107,7 +105,9 @@ class _LoadingDialogState extends State<LoadingDialog> {
                   child: LinearProgressIndicator(
                     value: _currentProgress,
                     backgroundColor: Colors.grey.shade300,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.blue,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),

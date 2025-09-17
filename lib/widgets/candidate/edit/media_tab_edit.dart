@@ -1,9 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:file_picker/file_picker.dart' as file_picker;
-import 'package:path_provider/path_provider.dart';
 import '../../../models/candidate_model.dart';
 import '../../../services/file_upload_service.dart';
 import '../../common/reusable_image_widget.dart';
@@ -27,12 +23,11 @@ class MediaItem {
     List<String>? videos,
     List<String>? youtubeLinks,
     Map<String, int>? likes,
-  }) :
-    date = date ?? DateTime.now().toIso8601String().split('T')[0],
-    images = images ?? [],
-    videos = videos ?? [],
-    youtubeLinks = youtubeLinks ?? [],
-    likes = likes ?? {};
+  }) : date = date ?? DateTime.now().toIso8601String().split('T')[0],
+       images = images ?? [],
+       videos = videos ?? [],
+       youtubeLinks = youtubeLinks ?? [],
+       likes = likes ?? {};
 
   Map<String, dynamic> toJson() {
     return {
@@ -123,7 +118,9 @@ class MediaItemWidget extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: isMarkedForDeletion ? Colors.red.shade700 : null,
-                        decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
+                        decoration: isMarkedForDeletion
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                     ),
                   ),
@@ -134,8 +131,10 @@ class MediaItemWidget extends StatelessWidget {
                         if (checked == true) {
                           final confirmed = await ConfirmationDialog.show(
                             context: context,
-                            title: 'Mark ${type[0].toUpperCase() + type.substring(1)} for Deletion',
-                            content: 'This ${type.toLowerCase()} will be deleted when you save. Are you sure?',
+                            title:
+                                'Mark ${type[0].toUpperCase() + type.substring(1)} for Deletion',
+                            content:
+                                'This ${type.toLowerCase()} will be deleted when you save. Are you sure?',
                             confirmText: 'Mark for Deletion',
                           );
                           if (confirmed == true) {
@@ -143,7 +142,9 @@ class MediaItemWidget extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('${type[0].toUpperCase() + type.substring(1)} marked for deletion'),
+                                  content: Text(
+                                    '${type[0].toUpperCase() + type.substring(1)} marked for deletion',
+                                  ),
                                   backgroundColor: Colors.orange,
                                 ),
                               );
@@ -246,23 +247,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
     final data = widget.editedData ?? widget.candidateData;
     final media = data.extraInfo?.media ?? [];
 
-    if (media is List) {
-      _mediaItems = media.map((item) => MediaItem.fromJson(item as Map<String, dynamic>)).toList();
-    } else {
-      // Handle legacy format - convert old structure to new
-      _mediaItems = [];
-      if ((media as Map<String, dynamic>)['images'] != null ||
-          (media as Map<String, dynamic>)['videos'] != null ||
-          (media as Map<String, dynamic>)['youtubeLinks'] != null) {
-        final legacyItem = MediaItem(
-          title: 'Legacy Media',
-          images: List<String>.from((media as Map<String, dynamic>)['images'] ?? []),
-          videos: List<String>.from((media as Map<String, dynamic>)['videos'] ?? []),
-          youtubeLinks: List<String>.from((media as Map<String, dynamic>)['youtubeLinks'] ?? []),
-        );
-        _mediaItems.add(legacyItem);
-      }
-    }
+    _mediaItems = media.map((item) => MediaItem.fromJson(item)).toList();
 
     // Collect all media URLs for upload tracking
     _uploadedMediaUrls.clear();
@@ -321,7 +306,8 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
   void _addImageToItem(int itemIndex, String imageUrl) {
     setState(() {
-      if (_mediaItems[itemIndex].images.length < 10) { // Changed from 3 to 10
+      if (_mediaItems[itemIndex].images.length < 10) {
+        // Changed from 3 to 10
         _mediaItems[itemIndex].images.add(imageUrl);
         _updateMedia();
       }
@@ -330,7 +316,8 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
   void _addVideoToItem(int itemIndex, String videoUrl) {
     setState(() {
-      if (_mediaItems[itemIndex].videos.length < 1) { // Changed from 3 to 1
+      if (_mediaItems[itemIndex].videos.isEmpty) {
+        // Changed from 3 to 1
         _mediaItems[itemIndex].videos.add(videoUrl);
         _updateMedia();
       }
@@ -378,7 +365,6 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
       // Skip cropping - directly save the selected image locally
       await _saveImageLocally(itemIndex, pickedFile.path);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -395,7 +381,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
       // Step 1: Validate file size
       debugPrint('💾 [Media Image] Step 1: Validating file size...');
-      final validation = await _fileUploadService.validateMediaFileSize(imagePath, 'image');
+      final validation = await _fileUploadService.validateMediaFileSize(
+        imagePath,
+        'image',
+      );
 
       if (!validation.isValid) {
         debugPrint('💾 [Media Image] File too large');
@@ -435,7 +424,9 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Image saved locally (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.'),
+          content: Text(
+            'Image saved locally (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
+          ),
           backgroundColor: Colors.blue,
         ),
       );
@@ -460,7 +451,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
       if (localPath == null) return;
 
-      final validation = await _fileUploadService.validateMediaFileSize(localPath, 'image');
+      final validation = await _fileUploadService.validateMediaFileSize(
+        localPath,
+        'image',
+      );
 
       if (!validation.isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -483,9 +477,9 @@ class MediaTabEditState extends State<MediaTabEdit> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save image: $e')));
     }
   }
 
@@ -499,7 +493,6 @@ class MediaTabEditState extends State<MediaTabEdit> {
       if (pickedFile == null) return;
 
       await _uploadVideoToItem(itemIndex, pickedFile.path);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -513,7 +506,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
   Future<void> _uploadVideoToItem(int itemIndex, String videoPath) async {
     try {
       // Validate video file size (3MB limit)
-      final validation = await _fileUploadService.validateMediaFileSize(videoPath, 'video');
+      final validation = await _fileUploadService.validateMediaFileSize(
+        videoPath,
+        'video',
+      );
 
       if (!validation.isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -537,9 +533,9 @@ class MediaTabEditState extends State<MediaTabEdit> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add video: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to add video: $e')));
     }
   }
 
@@ -554,11 +550,11 @@ class MediaTabEditState extends State<MediaTabEdit> {
         final imageUrl = item.images[i];
         if (_fileUploadService.isLocalPath(imageUrl) &&
             !_uploadedMediaUrls.contains(imageUrl)) {
-
           try {
-            debugPrint('📤 [Media] Uploading image: ${imageUrl}');
+            debugPrint('📤 [Media] Uploading image: $imageUrl');
 
-            final fileName = 'media_image_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final fileName =
+                'media_image_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
             final storagePath = 'media/images/$fileName';
 
             final downloadUrl = await _fileUploadService.uploadFile(
@@ -584,11 +580,11 @@ class MediaTabEditState extends State<MediaTabEdit> {
         final videoUrl = item.videos[i];
         if (_fileUploadService.isLocalPath(videoUrl) &&
             !_uploadedMediaUrls.contains(videoUrl)) {
-
           try {
-            debugPrint('📤 [Media] Uploading video: ${videoUrl}');
+            debugPrint('📤 [Media] Uploading video: $videoUrl');
 
-            final fileName = 'media_video_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+            final fileName =
+                'media_video_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
             final storagePath = 'media/videos/$fileName';
 
             final downloadUrl = await _fileUploadService.uploadFile(
@@ -676,7 +672,11 @@ class MediaTabEditState extends State<MediaTabEdit> {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, String itemType, VoidCallback onConfirm) {
+  void _showDeleteConfirmation(
+    BuildContext context,
+    String itemType,
+    VoidCallback onConfirm,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -740,10 +740,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
-                        Icons.lightbulb,
-                        color: Colors.amber,
-                      ),
+                      icon: const Icon(Icons.lightbulb, color: Colors.amber),
                       onPressed: _showDemoDataModal,
                       tooltip: 'Use demo media',
                     ),
@@ -776,7 +773,9 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 child: Center(
                   child: Column(
                     children: [
-                      const Text('No media items yet. Add your first media item!'),
+                      const Text(
+                        'No media items yet. Add your first media item!',
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: _addNewMediaItem,
@@ -814,7 +813,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
                         decoration: const InputDecoration(
                           labelText: 'Media Title',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                         ),
                         onChanged: (value) {
                           final updatedItem = MediaItem(
@@ -833,7 +835,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
                         decoration: const InputDecoration(
                           labelText: 'Date (YYYY-MM-DD)',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                         ),
                         onChanged: (value) {
                           final updatedItem = MediaItem(
@@ -877,21 +882,33 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 runSpacing: 8,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: item.images.length >= 10 ? null : () => _pickAndUploadImage(itemIndex),
+                    onPressed: item.images.length >= 10
+                        ? null
+                        : () => _pickAndUploadImage(itemIndex),
                     icon: const Icon(Icons.add_photo_alternate),
                     label: Text('Add Image (${item.images.length}/10)'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: item.images.length >= 10 ? Colors.grey : Colors.green,
-                      foregroundColor: item.images.length >= 10 ? Colors.grey[600] : Colors.white,
+                      backgroundColor: item.images.length >= 10
+                          ? Colors.grey
+                          : Colors.green,
+                      foregroundColor: item.images.length >= 10
+                          ? Colors.grey[600]
+                          : Colors.white,
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: item.videos.length >= 1 ? null : () => _pickAndUploadVideo(itemIndex),
+                    onPressed: item.videos.isNotEmpty
+                        ? null
+                        : () => _pickAndUploadVideo(itemIndex),
                     icon: const Icon(Icons.video_call),
                     label: Text('Add Video (${item.videos.length}/1)'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: item.videos.length >= 1 ? Colors.grey : Colors.purple,
-                      foregroundColor: item.videos.length >= 1 ? Colors.grey[600] : Colors.white,
+                      backgroundColor: item.videos.isNotEmpty
+                          ? Colors.grey
+                          : Colors.purple,
+                      foregroundColor: item.videos.isNotEmpty
+                          ? Colors.grey[600]
+                          : Colors.white,
                     ),
                   ),
                   ElevatedButton.icon(
@@ -1070,7 +1087,8 @@ class MediaTabEditState extends State<MediaTabEdit> {
                   if (widget.isEditing)
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removeYoutubeLinkFromItem(itemIndex, index),
+                      onPressed: () =>
+                          _removeYoutubeLinkFromItem(itemIndex, index),
                       tooltip: 'Remove YouTube link',
                     ),
                 ],

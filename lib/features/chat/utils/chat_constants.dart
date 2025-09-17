@@ -44,9 +44,25 @@ class ChatConstants {
   static const String messageTypePoll = 'poll';
 
   // File extensions
-  static const List<String> supportedImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-  static const List<String> supportedVideoExtensions = ['mp4', 'mov', 'avi', 'mkv'];
-  static const List<String> supportedAudioExtensions = ['mp3', 'wav', 'aac', 'm4a'];
+  static const List<String> supportedImageExtensions = [
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
+  ];
+  static const List<String> supportedVideoExtensions = [
+    'mp4',
+    'mov',
+    'avi',
+    'mkv',
+  ];
+  static const List<String> supportedAudioExtensions = [
+    'mp3',
+    'wav',
+    'aac',
+    'm4a',
+  ];
 
   // Firebase collection names
   static const String collectionChats = 'chats';

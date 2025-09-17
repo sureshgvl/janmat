@@ -5,9 +5,15 @@ import '../models/ward_model.dart';
 import '../models/city_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../controllers/chat_controller.dart';
+import '../utils/advanced_analytics.dart';
+import '../utils/memory_manager.dart';
 
 class CandidateController extends GetxController {
   final CandidateRepository _repository = CandidateRepository();
+
+  // Optimization systems
+  final AdvancedAnalyticsManager _analytics = AdvancedAnalyticsManager();
+  final MemoryManager _memoryManager = MemoryManager();
 
   // Public getter for repository access
   CandidateRepository get candidateRepository => _repository;
@@ -22,18 +28,74 @@ class CandidateController extends GetxController {
   Map<String, bool> followStatus = {}; // candidateId -> isFollowing
   Map<String, bool> followLoading = {}; // candidateId -> isLoading
 
-  // Fetch candidates by ward
-  Future<void> fetchCandidatesByWard(String districtId, String bodyId, String wardId) async {
-  debugPrint('🔄 [Controller] Fetching candidates for district: $districtId, body: $bodyId, ward: $wardId');
+  // Fetch candidates by ward with analytics
+  Future<void> fetchCandidatesByWard(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
+    debugPrint(
+      '🔄 [Controller] Fetching candidates for district: $districtId, body: $bodyId, ward: $wardId',
+    );
+
+    // Track user interaction
+    _analytics.trackUserInteraction(
+      'fetch_candidates',
+      'candidate_list_screen',
+      metadata: {'districtId': districtId, 'bodyId': bodyId, 'wardId': wardId},
+    );
+
     isLoading = true;
     errorMessage = null;
     update();
 
+    final startTime = DateTime.now();
+
     try {
-      candidates = await _repository.getCandidatesByWard(districtId, bodyId, wardId);
-    debugPrint('✅ [Controller] Found ${candidates.length} candidates in district: $districtId, body: $bodyId, ward: $wardId');
+      candidates = await _repository.getCandidatesByWard(
+        districtId,
+        bodyId,
+        wardId,
+      );
+
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+
+      debugPrint(
+        '✅ [Controller] Found ${candidates.length} candidates in district: $districtId, body: $bodyId, ward: $wardId',
+      );
+
+      // Track successful operation
+      _analytics.trackPerformanceMetric(
+        'candidate_load_time',
+        loadTime.toDouble(),
+      );
+      _analytics.trackFirebaseOperation(
+        'read',
+        'candidates',
+        candidates.length,
+        success: true,
+      );
+
+      // Memory management - register for cleanup
+      _memoryManager.registerObject(
+        'candidates_${districtId}_${bodyId}_$wardId',
+        candidates,
+        ttl: Duration(minutes: 15),
+        category: 'candidates',
+        metadata: {'count': candidates.length},
+      );
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to fetch candidates: $e');
+      debugPrint('❌ [Controller] Failed to fetch candidates: $e');
+
+      // Track failed operation
+      _analytics.trackFirebaseOperation(
+        'read',
+        'candidates',
+        0,
+        success: false,
+        error: e.toString(),
+      );
+
       errorMessage = e.toString();
       candidates = [];
     }
@@ -61,13 +123,15 @@ class CandidateController extends GetxController {
 
   // Fetch wards for a city
   Future<void> fetchWardsByCity(String cityId) async {
-  debugPrint('🔄 [Controller] Fetching wards for city: $cityId');
+    debugPrint('🔄 [Controller] Fetching wards for city: $cityId');
     try {
       wards = await _repository.getWardsByCity(cityId);
-    debugPrint('✅ [Controller] Loaded ${wards.length} wards for city: $cityId');
+      debugPrint(
+        '✅ [Controller] Loaded ${wards.length} wards for city: $cityId',
+      );
       update();
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to load wards for city $cityId: $e');
+      debugPrint('❌ [Controller] Failed to load wards for city $cityId: $e');
       errorMessage = 'Failed to load wards: $e';
       wards = [];
       update();
@@ -76,13 +140,13 @@ class CandidateController extends GetxController {
 
   // Fetch all cities
   Future<void> fetchAllCities() async {
-  debugPrint('🔄 [Controller] Fetching all cities...');
+    debugPrint('🔄 [Controller] Fetching all cities...');
     try {
       cities = await _repository.getAllCities();
-    debugPrint('✅ [Controller] Loaded ${cities.length} cities');
+      debugPrint('✅ [Controller] Loaded ${cities.length} cities');
       update();
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to load cities: $e');
+      debugPrint('❌ [Controller] Failed to load cities: $e');
       errorMessage = 'Failed to load cities: $e';
       cities = [];
       update();
@@ -90,13 +154,21 @@ class CandidateController extends GetxController {
   }
 
   // Search candidates
-  Future<void> searchCandidates(String query, {String? cityId, String? wardId}) async {
+  Future<void> searchCandidates(
+    String query, {
+    String? cityId,
+    String? wardId,
+  }) async {
     isLoading = true;
     errorMessage = null;
     update();
 
     try {
-      candidates = await _repository.searchCandidates(query, cityId: cityId, wardId: wardId);
+      candidates = await _repository.searchCandidates(
+        query,
+        cityId: cityId,
+        wardId: wardId,
+      );
     } catch (e) {
       errorMessage = e.toString();
       candidates = [];
@@ -123,27 +195,40 @@ class CandidateController extends GetxController {
   // Check if user is following a candidate
   Future<void> checkFollowStatus(String userId, String candidateId) async {
     try {
-      final isFollowing = await _repository.isUserFollowingCandidate(userId, candidateId);
+      final isFollowing = await _repository.isUserFollowingCandidate(
+        userId,
+        candidateId,
+      );
       followStatus[candidateId] = isFollowing;
       update();
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to check follow status: $e');
+      debugPrint('❌ [Controller] Failed to check follow status: $e');
     }
   }
 
   // Follow a candidate
-  Future<void> followCandidate(String userId, String candidateId, {bool notificationsEnabled = true}) async {
+  Future<void> followCandidate(
+    String userId,
+    String candidateId, {
+    bool notificationsEnabled = true,
+  }) async {
     if (followLoading[candidateId] == true) return;
 
     followLoading[candidateId] = true;
     update();
 
     try {
-      await _repository.followCandidate(userId, candidateId, notificationsEnabled: notificationsEnabled);
+      await _repository.followCandidate(
+        userId,
+        candidateId,
+        notificationsEnabled: notificationsEnabled,
+      );
       followStatus[candidateId] = true;
 
       // Update candidate's followers count in the list
-      final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
+      final candidateIndex = candidates.indexWhere(
+        (c) => c.candidateId == candidateId,
+      );
       if (candidateIndex != -1) {
         final updatedCandidate = candidates[candidateIndex].copyWith(
           followersCount: candidates[candidateIndex].followersCount + 1,
@@ -151,7 +236,9 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-    debugPrint('✅ [Controller] Successfully followed candidate: $candidateId');
+      debugPrint(
+        '✅ [Controller] Successfully followed candidate: $candidateId',
+      );
 
       // Notify chat controller to refresh cache since followed candidates changed
       try {
@@ -181,7 +268,9 @@ class CandidateController extends GetxController {
       followStatus[candidateId] = false;
 
       // Update candidate's followers count in the list
-      final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
+      final candidateIndex = candidates.indexWhere(
+        (c) => c.candidateId == candidateId,
+      );
       if (candidateIndex != -1) {
         final updatedCandidate = candidates[candidateIndex].copyWith(
           followersCount: candidates[candidateIndex].followersCount - 1,
@@ -189,7 +278,9 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-    debugPrint('✅ [Controller] Successfully unfollowed candidate: $candidateId');
+      debugPrint(
+        '✅ [Controller] Successfully unfollowed candidate: $candidateId',
+      );
 
       // Notify chat controller to refresh cache since followed candidates changed
       try {
@@ -208,20 +299,36 @@ class CandidateController extends GetxController {
   }
 
   // Toggle follow/unfollow
-  Future<void> toggleFollow(String userId, String candidateId, {bool notificationsEnabled = true}) async {
+  Future<void> toggleFollow(
+    String userId,
+    String candidateId, {
+    bool notificationsEnabled = true,
+  }) async {
     final isFollowing = followStatus[candidateId] ?? false;
 
     if (isFollowing) {
       await unfollowCandidate(userId, candidateId);
     } else {
-      await followCandidate(userId, candidateId, notificationsEnabled: notificationsEnabled);
+      await followCandidate(
+        userId,
+        candidateId,
+        notificationsEnabled: notificationsEnabled,
+      );
     }
   }
 
   // Update notification settings for a follow relationship
-  Future<void> updateFollowNotificationSettings(String userId, String candidateId, bool notificationsEnabled) async {
+  Future<void> updateFollowNotificationSettings(
+    String userId,
+    String candidateId,
+    bool notificationsEnabled,
+  ) async {
     try {
-      await _repository.updateFollowNotificationSettings(userId, candidateId, notificationsEnabled);
+      await _repository.updateFollowNotificationSettings(
+        userId,
+        candidateId,
+        notificationsEnabled,
+      );
 
       // Notify chat controller to refresh cache since follow relationship changed
       try {
@@ -231,20 +338,24 @@ class CandidateController extends GetxController {
         debugPrint('⚠️ Could not notify chat controller: $e');
       }
 
-    debugPrint('✅ [Controller] Updated notification settings for candidate: $candidateId');
+      debugPrint(
+        '✅ [Controller] Updated notification settings for candidate: $candidateId',
+      );
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to update notification settings: $e');
+      debugPrint('❌ [Controller] Failed to update notification settings: $e');
       errorMessage = 'Failed to update notification settings: $e';
       update();
     }
   }
 
   // Get followers list for a candidate
-  Future<List<Map<String, dynamic>>> getCandidateFollowers(String candidateId) async {
+  Future<List<Map<String, dynamic>>> getCandidateFollowers(
+    String candidateId,
+  ) async {
     try {
       return await _repository.getCandidateFollowers(candidateId);
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to get followers: $e');
+      debugPrint('❌ [Controller] Failed to get followers: $e');
       errorMessage = 'Failed to get followers: $e';
       update();
       return [];
@@ -256,7 +367,7 @@ class CandidateController extends GetxController {
     try {
       return await _repository.getUserFollowing(userId);
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to get following list: $e');
+      debugPrint('❌ [Controller] Failed to get following list: $e');
       errorMessage = 'Failed to get following list: $e';
       update();
       return [];
@@ -276,10 +387,10 @@ class CandidateController extends GetxController {
   Future<String?> createCandidate(Candidate candidate) async {
     try {
       final candidateId = await _repository.createCandidate(candidate);
-    debugPrint('✅ [Controller] Successfully created candidate: $candidateId');
+      debugPrint('✅ [Controller] Successfully created candidate: $candidateId');
       return candidateId;
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to create candidate: $e');
+      debugPrint('❌ [Controller] Failed to create candidate: $e');
       errorMessage = 'Failed to create candidate: $e';
       update();
       return null;
@@ -287,16 +398,28 @@ class CandidateController extends GetxController {
   }
 
   // Get candidates by status
-  Future<void> fetchCandidatesByStatus(String districtId, String bodyId, String wardId, String status) async {
+  Future<void> fetchCandidatesByStatus(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String status,
+  ) async {
     isLoading = true;
     errorMessage = null;
     update();
 
     try {
-      candidates = await _repository.getCandidatesByStatus(districtId, bodyId, wardId, status);
-    debugPrint('✅ [Controller] Found ${candidates.length} candidates with status: $status');
+      candidates = await _repository.getCandidatesByStatus(
+        districtId,
+        bodyId,
+        wardId,
+        status,
+      );
+      debugPrint(
+        '✅ [Controller] Found ${candidates.length} candidates with status: $status',
+      );
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to fetch candidates by status: $e');
+      debugPrint('❌ [Controller] Failed to fetch candidates by status: $e');
       errorMessage = e.toString();
       candidates = [];
     }
@@ -306,12 +429,26 @@ class CandidateController extends GetxController {
   }
 
   // Approve or reject a candidate
-  Future<void> updateCandidateApproval(String districtId, String bodyId, String wardId, String candidateId, bool approved) async {
+  Future<void> updateCandidateApproval(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String candidateId,
+    bool approved,
+  ) async {
     try {
-      await _repository.updateCandidateApproval(districtId, bodyId, wardId, candidateId, approved);
+      await _repository.updateCandidateApproval(
+        districtId,
+        bodyId,
+        wardId,
+        candidateId,
+        approved,
+      );
 
       // Update the candidate in the current list if it exists
-      final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
+      final candidateIndex = candidates.indexWhere(
+        (c) => c.candidateId == candidateId,
+      );
       if (candidateIndex != -1) {
         final updatedCandidate = candidates[candidateIndex].copyWith(
           approved: approved,
@@ -320,23 +457,37 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-    debugPrint('✅ [Controller] Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId');
+      debugPrint(
+        '✅ [Controller] Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId',
+      );
       update();
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to update candidate approval: $e');
+      debugPrint('❌ [Controller] Failed to update candidate approval: $e');
       errorMessage = 'Failed to update candidate approval: $e';
       update();
     }
   }
 
   // Finalize candidates
-  Future<void> finalizeCandidates(String districtId, String bodyId, String wardId, List<String> candidateIds) async {
+  Future<void> finalizeCandidates(
+    String districtId,
+    String bodyId,
+    String wardId,
+    List<String> candidateIds,
+  ) async {
     try {
-      await _repository.finalizeCandidates(districtId, bodyId, wardId, candidateIds);
+      await _repository.finalizeCandidates(
+        districtId,
+        bodyId,
+        wardId,
+        candidateIds,
+      );
 
       // Update the candidates in the current list
       for (final candidateId in candidateIds) {
-        final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
+        final candidateIndex = candidates.indexWhere(
+          (c) => c.candidateId == candidateId,
+        );
         if (candidateIndex != -1) {
           final updatedCandidate = candidates[candidateIndex].copyWith(
             status: 'finalized',
@@ -346,10 +497,12 @@ class CandidateController extends GetxController {
         }
       }
 
-    debugPrint('✅ [Controller] Successfully finalized ${candidateIds.length} candidates');
+      debugPrint(
+        '✅ [Controller] Successfully finalized ${candidateIds.length} candidates',
+      );
       update();
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to finalize candidates: $e');
+      debugPrint('❌ [Controller] Failed to finalize candidates: $e');
       errorMessage = 'Failed to finalize candidates: $e';
       update();
     }
@@ -360,7 +513,9 @@ class CandidateController extends GetxController {
     try {
       return await _repository.getPendingApprovalCandidates();
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to get pending approval candidates: $e');
+      debugPrint(
+        '❌ [Controller] Failed to get pending approval candidates: $e',
+      );
       errorMessage = 'Failed to get pending approval candidates: $e';
       update();
       return [];
@@ -372,7 +527,9 @@ class CandidateController extends GetxController {
     try {
       return await _repository.hasUserRegisteredAsCandidate(userId);
     } catch (e) {
-    debugPrint('❌ [Controller] Failed to check user candidate registration: $e');
+      debugPrint(
+        '❌ [Controller] Failed to check user candidate registration: $e',
+      );
       return false;
     }
   }

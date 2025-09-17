@@ -35,7 +35,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
-
   @override
   void dispose() {
     messageController.dispose();
@@ -80,7 +79,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       children: [
                         // Main title (User name for private chats, room name for public)
                         Text(
-                          data['title'] ?? _getRoomDisplayTitle(widget.chatRoom),
+                          data['title'] ??
+                              _getRoomDisplayTitle(widget.chatRoom),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -91,7 +91,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         ),
                         // Subtitle (Phone for private chats, description for public)
                         Text(
-                          data['subtitle'] ?? _getRoomDisplaySubtitle(widget.chatRoom),
+                          data['subtitle'] ??
+                              _getRoomDisplaySubtitle(widget.chatRoom),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -149,69 +150,79 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: GetBuilder<MessageController>(
               builder: (messageController) {
                 return Obx(() {
-                  debugPrint('🔄 ChatRoomScreen: Rebuilding with ${messageController.messages.length} messages');
+                  debugPrint(
+                    '🔄 ChatRoomScreen: Rebuilding with ${messageController.messages.length} messages',
+                  );
                   final messages = messageController.messages;
 
-                // Show loading indicator only when we're actively loading and have no cached data
-                if (messages.isEmpty && controller.isLoading.value) {
-                  _previousMessageCount = 0;
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.loadingMessages,
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                  // Show loading indicator only when we're actively loading and have no cached data
+                  if (messages.isEmpty && controller.isLoading.value) {
+                    _previousMessageCount = 0;
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(context)!.loadingMessages,
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // Show empty state if messages are loaded but empty (not loading anymore)
+                  if (messages.isEmpty && !controller.isLoading.value) {
+                    _previousMessageCount = 0;
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.chat_bubble_outline,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(context)!.noMessagesYet,
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            AppLocalizations.of(context)!.startConversation(
+                              widget.chatRoom.title ??
+                                  _getDefaultRoomTitle(widget.chatRoom),
+                            ),
+                            style: const TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // Check if messages increased (new message received)
+                  if (messages.length > _previousMessageCount) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _scrollToBottom();
+                    });
+                  }
+                  _previousMessageCount = messages.length;
+
+                  return ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      final isCurrentUser =
+                          message.senderId == controller.currentUser?.uid;
+                      return _buildMessageBubble(message, isCurrentUser);
+                    },
                   );
-                }
-
-                // Show empty state if messages are loaded but empty (not loading anymore)
-                if (messages.isEmpty && !controller.isLoading.value) {
-                  _previousMessageCount = 0;
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.noMessagesYet,
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          AppLocalizations.of(context)!.startConversation(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
-                          style: const TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                // Check if messages increased (new message received)
-                if (messages.length > _previousMessageCount) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToBottom();
-                  });
-                }
-                _previousMessageCount = messages.length;
-
-                return ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isCurrentUser = message.senderId == controller.currentUser?.uid;
-                    return _buildMessageBubble(message, isCurrentUser);
-                  },
-                );
                 });
               },
             ),
@@ -232,7 +243,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       context: context,
     );
   }
-
 
   void _showPollVotingDialog(Message message, String pollId) {
     showDialog(
@@ -256,7 +266,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _sendMessage() async {
     final text = messageController.text.trim();
-    if (text.isNotEmpty && controller.currentChatRoom.value != null && controller.currentUser != null) {
+    if (text.isNotEmpty &&
+        controller.currentChatRoom.value != null &&
+        controller.currentUser != null) {
       // Use ChatController's send method which handles quota/XP
       await controller.sendTextMessage(text);
       messageController.clear(); // Clear the text controller
@@ -294,14 +306,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-
-
   void _showCreatePollDialog() {
     showDialog(
       context: context,
       builder: (context) => CreatePollDialog(
         onPollCreated: (question, options, {DateTime? expiresAt}) {
-        debugPrint('📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}');
+          debugPrint(
+            '📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}',
+          );
           controller.createPoll(question, options, expiresAt: expiresAt);
           Navigator.of(context).pop(); // Close the poll creation dialog
 
@@ -352,14 +364,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
+        title: Text(
+          widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${AppLocalizations.of(context)!.type}: ${widget.chatRoom.type == 'public' ? AppLocalizations.of(context)!.public : AppLocalizations.of(context)!.private}'),
-            if (widget.chatRoom.description != null)
-              Text('Description: ${widget.chatRoom.description}'),
+            Text(
+              '${AppLocalizations.of(context)!.type}: ${widget.chatRoom.type == 'public' ? AppLocalizations.of(context)!.public : AppLocalizations.of(context)!.private}',
+            ),
+            Text('Description: ${widget.chatRoom.description}'),
             Text('Created: ${timeago.format(widget.chatRoom.createdAt)}'),
             if (widget.chatRoom.members != null)
               Text('Members: ${widget.chatRoom.members!.length}'),
@@ -379,7 +394,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     controller.clearCurrentChat();
     Get.back();
   }
-
 
   void _scrollToBottom() {
     ChatRoomHelpers.scrollToBottom(scrollController);

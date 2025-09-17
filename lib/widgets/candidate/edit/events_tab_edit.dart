@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/candidate_model.dart';
 import '../../../controllers/candidate_data_controller.dart';
-import '../../../repositories/event_repository.dart';
 import '../event_creation_dialog.dart';
 
 // Main EventsTabEdit Widget
@@ -27,7 +26,8 @@ class EventsTabEdit extends StatefulWidget {
 }
 
 class EventsTabEditState extends State<EventsTabEdit> {
-  final CandidateDataController _controller = Get.find<CandidateDataController>();
+  final CandidateDataController _controller =
+      Get.find<CandidateDataController>();
   late Worker _eventsWorker;
 
   @override
@@ -95,7 +95,9 @@ class EventsTabEditState extends State<EventsTabEdit> {
       try {
         // Remove event from candidate's events
         final currentEvents = _controller.events.toList();
-        final updatedEvents = currentEvents.where((e) => e.id != eventId).toList();
+        final updatedEvents = currentEvents
+            .where((e) => e.id != eventId)
+            .toList();
         widget.onEventsChange(updatedEvents.map((e) => e.toJson()).toList());
 
         // Update controller's cache
@@ -111,7 +113,8 @@ class EventsTabEditState extends State<EventsTabEdit> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final displayEvents = widget.editedData?.extraInfo?.events ?? _controller.events.toList();
+      final displayEvents =
+          widget.editedData?.extraInfo?.events ?? _controller.events.toList();
 
       return Card(
         margin: const EdgeInsets.all(16),
@@ -125,10 +128,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
                 children: [
                   const Text(
                     'Upcoming Events',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   if (widget.isEditing)
                     IconButton(
@@ -192,7 +192,9 @@ class EventsTabEditState extends State<EventsTabEdit> {
 
   Widget _buildEventCard(EventData event) {
     final date = DateTime.tryParse(event.date);
-    final formattedDate = date != null ? DateFormat('dd MMM yyyy').format(date) : event.date;
+    final formattedDate = date != null
+        ? DateFormat('dd MMM yyyy').format(date)
+        : event.date;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -234,18 +236,12 @@ class EventsTabEditState extends State<EventsTabEdit> {
               children: [
                 const Icon(Icons.calendar_today, size: 16, color: Colors.blue),
                 const SizedBox(width: 8),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(fontSize: 14),
-                ),
+                Text(formattedDate, style: const TextStyle(fontSize: 14)),
                 if (event.time != null && event.time!.isNotEmpty) ...[
                   const SizedBox(width: 16),
                   const Icon(Icons.access_time, size: 16, color: Colors.blue),
                   const SizedBox(width: 8),
-                  Text(
-                    event.time!,
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  Text(event.time!, style: const TextStyle(fontSize: 14)),
                 ],
               ],
             ),
@@ -278,10 +274,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
               const SizedBox(height: 8),
               Text(
                 event.description!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
 
@@ -291,7 +284,11 @@ class EventsTabEditState extends State<EventsTabEdit> {
               children: [
                 _buildRSVPCount('Going', event.getGoingCount(), Colors.green),
                 const SizedBox(width: 16),
-                _buildRSVPCount('Interested', event.getInterestedCount(), Colors.orange),
+                _buildRSVPCount(
+                  'Interested',
+                  event.getInterestedCount(),
+                  Colors.orange,
+                ),
               ],
             ),
           ],
@@ -303,11 +300,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
   Widget _buildRSVPCount(String label, int count, Color color) {
     return Row(
       children: [
-        Icon(
-          Icons.people,
-          size: 14,
-          color: color,
-        ),
+        Icon(Icons.people, size: 14, color: color),
         const SizedBox(width: 4),
         Text(
           '$count $label',

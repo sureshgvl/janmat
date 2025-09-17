@@ -3,13 +3,17 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:firebase_storage/firebase_storage.dart';
-import '../models/chat_message.dart';
 
 class MediaService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Upload media file to Firebase Storage
-  Future<String> uploadMediaFile(String roomId, String filePath, String fileName, String contentType) async {
+  Future<String> uploadMediaFile(
+    String roomId,
+    String filePath,
+    String fileName,
+    String contentType,
+  ) async {
     try {
       final storageRef = _storage.ref().child('chat_media/$roomId/$fileName');
       final uploadTask = storageRef.putFile(
@@ -26,7 +30,11 @@ class MediaService {
   }
 
   // Download and cache media file locally
-  Future<String?> downloadAndCacheMedia(String messageId, String remoteUrl, String fileName) async {
+  Future<String?> downloadAndCacheMedia(
+    String messageId,
+    String remoteUrl,
+    String fileName,
+  ) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final mediaDir = Directory(path.join(appDir.path, 'chat_media'));
@@ -49,7 +57,9 @@ class MediaService {
         await file.writeAsBytes(response.bodyBytes);
         return localPath;
       } else {
-        throw Exception('Failed to download media: HTTP ${response.statusCode}');
+        throw Exception(
+          'Failed to download media: HTTP ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Failed to cache media: $e');
@@ -116,7 +126,12 @@ class MediaService {
   }
 
   // Compress image before upload
-  Future<String?> compressImage(String filePath, {int quality = 80, int maxWidth = 1920, int maxHeight = 1080}) async {
+  Future<String?> compressImage(
+    String filePath, {
+    int quality = 80,
+    int maxWidth = 1920,
+    int maxHeight = 1080,
+  }) async {
     // TODO: Implement image compression using flutter_image_compress
     // For now, return original path
     return filePath;

@@ -83,20 +83,31 @@ class _ChatListScreenState extends State<ChatListScreen> {
               GetBuilder<ChatController>(
                 builder: (controller) => Container(
                   margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: controller.canSendMessage ? Colors.green.shade100 : Colors.red.shade100,
+                    color: controller.canSendMessage
+                        ? Colors.green.shade100
+                        : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: controller.canSendMessage ? Colors.green.shade300 : Colors.red.shade300,
+                      color: controller.canSendMessage
+                          ? Colors.green.shade300
+                          : Colors.red.shade300,
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        controller.canSendMessage ? Icons.message : Icons.warning,
+                        controller.canSendMessage
+                            ? Icons.message
+                            : Icons.warning,
                         size: 16,
-                        color: controller.canSendMessage ? Colors.green.shade700 : Colors.red.shade700,
+                        color: controller.canSendMessage
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -104,7 +115,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: controller.canSendMessage ? Colors.green.shade700 : Colors.red.shade700,
+                          color: controller.canSendMessage
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
                         ),
                       ),
                     ],
@@ -176,7 +189,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
+                  const Icon(
+                    Icons.chat_bubble_outline,
+                    size: 48,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context)!.noChatRoomsAvailable,
@@ -184,7 +201,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    AppLocalizations.of(context)!.chatRoomsWillAppearHere(controller.currentUser?.name ?? 'Unknown'),
+                    AppLocalizations.of(context)!.chatRoomsWillAppearHere(
+                      controller.currentUser?.name ?? 'Unknown',
+                    ),
                     style: const TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
@@ -210,11 +229,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 // Debug info (only show in debug mode)
                 if (controller.chatRoomDisplayInfos.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     color: Colors.blue.shade50,
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: Colors.blue.shade700,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           '${controller.chatRoomDisplayInfos.length} chat rooms • ${controller.currentUser?.role ?? 'Unknown'}',
@@ -232,7 +258,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: controller.chatRoomDisplayInfos.length,
                     itemBuilder: (context, index) {
-                      final displayInfo = controller.chatRoomDisplayInfos[index];
+                      final displayInfo =
+                          controller.chatRoomDisplayInfos[index];
                       return ChatRoomCard(displayInfo: displayInfo);
                     },
                   ),
@@ -245,7 +272,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          if (ChatHelpers.canCreateRooms(controller.currentUser?.role)) _buildCreateRoomButton(),
+          if (ChatHelpers.canCreateRooms(controller.currentUser?.role))
+            _buildCreateRoomButton(),
           const SizedBox(height: 16),
           _buildQuotaWarningButtonExtended(),
         ].whereType<Widget>().toList(),
@@ -257,8 +285,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return FloatingActionButton(
       onPressed: () => ChatDialogs.showCreateRoomDialog(context),
       backgroundColor: Colors.blue,
-      child: const Icon(Icons.add),
       tooltip: AppLocalizations.of(context)!.createNewChatRoom,
+      child: const Icon(Icons.add),
     );
   }
 

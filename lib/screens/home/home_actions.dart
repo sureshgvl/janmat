@@ -6,7 +6,11 @@ import '../../repositories/auth_repository.dart';
 import '../../widgets/common/confirmation_dialog.dart';
 
 class HomeActions {
-  static Future<void> showDeleteAccountDialog(BuildContext context, UserModel? userModel, AppLocalizations localizations) async {
+  static Future<void> showDeleteAccountDialog(
+    BuildContext context,
+    UserModel? userModel,
+    AppLocalizations localizations,
+  ) async {
     final result = await ConfirmationDialog.show(
       context: context,
       title: localizations.deleteAccount,
@@ -23,7 +27,10 @@ class HomeActions {
     }
   }
 
-  static Future<void> _deleteAccount(BuildContext context, AppLocalizations localizations) async {
+  static Future<void> _deleteAccount(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) async {
     BuildContext? dialogContext;
 
     try {
@@ -55,7 +62,6 @@ class HomeActions {
           duration: const Duration(seconds: 3),
         );
       });
-
     } catch (e) {
       // Note: Dialog will be automatically dismissed by Get.offAllNamed clearing all routes
 

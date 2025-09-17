@@ -4,14 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../firebase_options.dart';
 
 /// Background Initializer Service for Zero Frame Skipping
 /// Uses Flutter isolates and compute functions to eliminate all frame drops
 class BackgroundInitializer {
-  static final BackgroundInitializer _instance = BackgroundInitializer._internal();
+  static final BackgroundInitializer _instance =
+      BackgroundInitializer._internal();
   factory BackgroundInitializer() => _instance;
   BackgroundInitializer._internal();
 
@@ -62,7 +61,10 @@ class BackgroundInitializer {
   }
 
   /// Handle messages in isolate
-  static void _handleIsolateMessage(Map<String, dynamic> message, SendPort sendPort) {
+  static void _handleIsolateMessage(
+    Map<String, dynamic> message,
+    SendPort sendPort,
+  ) {
     final action = message['action'];
 
     switch (action) {
@@ -93,21 +95,30 @@ class BackgroundInitializer {
       SchedulerBinding.instance.addPostFrameCallback((_) async {
         debugPrint('🔄 Initializing Firebase in background isolate');
         // Firebase must be initialized on main thread due to platform channels
-        await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
         debugPrint('✅ Firebase initialized with zero frames');
       });
     } catch (e) {
       debugPrint('❌ Firebase initialization failed: $e');
       // Fallback to immediate initialization
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     }
   }
 
   /// Initialize services with zero frame impact
-  Future<void> initializeServiceWithZeroFrames(String serviceName, Future<void> Function() initializer) async {
+  Future<void> initializeServiceWithZeroFrames(
+    String serviceName,
+    Future<void> Function() initializer,
+  ) async {
     try {
       // For Firebase-related services, use deferred scheduling instead of isolates
-      if (serviceName.contains('Firebase') || serviceName.contains('Chat') || serviceName.contains('AdMob')) {
+      if (serviceName.contains('Firebase') ||
+          serviceName.contains('Chat') ||
+          serviceName.contains('AdMob')) {
         SchedulerBinding.instance.addPostFrameCallback((_) async {
           debugPrint('🔄 Initializing $serviceName with zero frames');
           await initializer();
@@ -115,7 +126,10 @@ class BackgroundInitializer {
         });
       } else {
         // Use compute for other services
-        await compute(_runServiceInitializer, {'service': serviceName, 'initializer': initializer});
+        await compute(_runServiceInitializer, {
+          'service': serviceName,
+          'initializer': initializer,
+        });
         debugPrint('✅ $serviceName initialized with zero frames');
       }
     } catch (e) {
@@ -126,7 +140,9 @@ class BackgroundInitializer {
   }
 
   /// Run service initializer in compute isolate
-  static Future<void> _runServiceInitializer(Map<String, dynamic> params) async {
+  static Future<void> _runServiceInitializer(
+    Map<String, dynamic> params,
+  ) async {
     final serviceName = params['service'] as String;
     final initializer = params['initializer'] as Future<void> Function();
 
@@ -178,7 +194,8 @@ class BackgroundInitializer {
     final responsePort = ReceivePort();
 
     responsePort.listen((message) {
-      if (message is Map<String, dynamic> && message['result'] == 'computation_done') {
+      if (message is Map<String, dynamic> &&
+          message['result'] == 'computation_done') {
         completer.complete(message['data'] as T);
       }
       responsePort.close();

@@ -24,7 +24,8 @@ class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
 
   @override
-  State<ProfileCompletionScreen> createState() => _ProfileCompletionScreenState();
+  State<ProfileCompletionScreen> createState() =>
+      _ProfileCompletionScreenState();
 }
 
 class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
@@ -71,11 +72,15 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       _passedUserData = args['userData'];
       _profileCompleted = _passedUserData?['profileCompleted'] ?? false;
 
-      debugPrint('📥 Received user data from main.dart: profileCompleted = $_profileCompleted');
+      debugPrint(
+        '📥 Received user data from main.dart: profileCompleted = $_profileCompleted',
+      );
 
       // If profile is already completed, navigate to home immediately
       if (_profileCompleted) {
-        debugPrint('✅ Profile already completed (from passed data), navigating to home');
+        debugPrint(
+          '✅ Profile already completed (from passed data), navigating to home',
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Get.offAllNamed('/home');
         });
@@ -125,14 +130,14 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
-
   // Pre-fill user data from Firebase Auth
   void _preFillUserData() {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
     // Pre-fill name from display name (Google login) or email prefix
-    if (currentUser.displayName != null && currentUser.displayName!.isNotEmpty) {
+    if (currentUser.displayName != null &&
+        currentUser.displayName!.isNotEmpty) {
       nameController.text = currentUser.displayName!;
       _isNamePreFilled = true;
     } else if (currentUser.email != null && currentUser.email!.isNotEmpty) {
@@ -140,34 +145,42 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       final emailPrefix = currentUser.email!.split('@').first;
       // Capitalize first letter of each word
       final nameParts = emailPrefix.split('.');
-      final formattedName = nameParts.map((part) {
-        if (part.isNotEmpty) {
-          return part[0].toUpperCase() + part.substring(1).toLowerCase();
-        }
-        return part;
-      }).join(' ');
+      final formattedName = nameParts
+          .map((part) {
+            if (part.isNotEmpty) {
+              return part[0].toUpperCase() + part.substring(1).toLowerCase();
+            }
+            return part;
+          })
+          .join(' ');
       nameController.text = formattedName;
       _isNamePreFilled = true;
     }
 
     // Pre-fill phone number from Firebase Auth (remove +91 prefix for display)
-    if (currentUser.phoneNumber != null && currentUser.phoneNumber!.isNotEmpty) {
+    if (currentUser.phoneNumber != null &&
+        currentUser.phoneNumber!.isNotEmpty) {
       phoneController.text = currentUser.phoneNumber!.replaceFirst('+91', '');
       _isPhonePreFilled = true;
     }
 
-  debugPrint('🔍 Pre-filled user data:');
-  debugPrint('  Name: ${nameController.text} (${_isNamePreFilled ? 'from auth' : 'manual'})');
-  debugPrint('  Phone: ${phoneController.text} (${_isPhonePreFilled ? 'from auth' : 'manual'})');
-  debugPrint('  Email: ${currentUser.email}');
-  debugPrint('  Photo: ${currentUser.photoURL}');
+    debugPrint('🔍 Pre-filled user data:');
+    debugPrint(
+      '  Name: ${nameController.text} (${_isNamePreFilled ? 'from auth' : 'manual'})',
+    );
+    debugPrint(
+      '  Phone: ${phoneController.text} (${_isPhonePreFilled ? 'from auth' : 'manual'})',
+    );
+    debugPrint('  Email: ${currentUser.email}');
+    debugPrint('  Photo: ${currentUser.photoURL}');
 
     // Trigger rebuild to show helper text
     setState(() {});
   }
 
   // Build input decoration with dynamic helper text
-  InputDecoration _buildInputDecoration(BuildContext context, {
+  InputDecoration _buildInputDecoration(
+    BuildContext context, {
     required String label,
     required String hint,
     required IconData icon,
@@ -180,11 +193,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       hintText: hint,
       border: const OutlineInputBorder(),
       prefixIcon: Icon(icon),
-      helperText: showPreFilledHelper ? localizations.autoFilledFromAccount : null,
-      helperStyle: const TextStyle(
-        color: Colors.blue,
-        fontSize: 12,
-      ),
+      helperText: showPreFilledHelper
+          ? localizations.autoFilledFromAccount
+          : null,
+      helperStyle: const TextStyle(color: Colors.blue, fontSize: 12),
     );
   }
 
@@ -199,13 +211,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   Future<void> _loadDistricts() async {
     try {
       // Load districts from Firestore
-      final districtsSnapshot = await FirebaseFirestore.instance.collection('districts').get();
+      final districtsSnapshot = await FirebaseFirestore.instance
+          .collection('districts')
+          .get();
       districts = districtsSnapshot.docs.map((doc) {
         final data = doc.data();
-        return District.fromJson({
-          'districtId': doc.id,
-          ...data,
-        });
+        return District.fromJson({'districtId': doc.id, ...data});
       }).toList();
 
       // Load bodies for each district
@@ -271,30 +282,45 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
-  Future<void> _loadWards(String districtId, String bodyId, BuildContext context) async {
+  Future<void> _loadWards(
+    String districtId,
+    String bodyId,
+    BuildContext context,
+  ) async {
     final localizations = AppLocalizations.of(context)!;
 
     try {
-      final wards = await candidateRepository.getWardsByDistrictAndBody(districtId, bodyId);
+      final wards = await candidateRepository.getWardsByDistrictAndBody(
+        districtId,
+        bodyId,
+      );
       bodyWards[bodyId] = wards;
       setState(() {});
     } catch (e) {
-      Get.snackbar(localizations.error, localizations.failedToLoadWards(e.toString()));
+      Get.snackbar(
+        localizations.error,
+        localizations.failedToLoadWards(e.toString()),
+      );
     }
   }
 
   Future<void> _selectBirthDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)), // 18 years ago
+      initialDate: DateTime.now().subtract(
+        const Duration(days: 365 * 18),
+      ), // 18 years ago
       firstDate: DateTime(1900),
-      lastDate: DateTime.now().subtract(const Duration(days: 365 * 13)), // 13 years ago (minimum age)
+      lastDate: DateTime.now().subtract(
+        const Duration(days: 365 * 13),
+      ), // 13 years ago (minimum age)
     );
 
     if (picked != null) {
       setState(() {
         selectedBirthDate = picked;
-        birthDateController.text = '${picked.day}/${picked.month}/${picked.year}';
+        birthDateController.text =
+            '${picked.day}/${picked.month}/${picked.year}';
       });
     }
   }
@@ -354,7 +380,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           wards: bodyWards[selectedBodyId!] ?? [],
           selectedWardId: selectedWard?.wardId,
           onWardSelected: (wardId) {
-            final ward = bodyWards[selectedBodyId!]!.firstWhere((w) => w.wardId == wardId);
+            final ward = bodyWards[selectedBodyId!]!.firstWhere(
+              (w) => w.wardId == wardId,
+            );
             setState(() {
               selectedWard = ward;
               selectedArea = null; // Reset area when ward changes
@@ -384,8 +412,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     );
   }
 
-
-
   void _showPartySelectionModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -397,7 +423,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           selectedPartyId: selectedParty?.id,
           onPartySelected: (partyId) {
             setState(() {
-              selectedParty = parties.firstWhere((party) => party.id == partyId);
+              selectedParty = parties.firstWhere(
+                (party) => party.id == partyId,
+              );
             });
           },
         );
@@ -410,20 +438,32 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    if (selectedDistrictId == null || selectedBodyId == null || selectedWard == null || selectedGender == null) {
-      Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+    if (selectedDistrictId == null ||
+        selectedBodyId == null ||
+        selectedWard == null ||
+        selectedGender == null) {
+      Get.snackbar(
+        localizations.error,
+        localizations.pleaseFillAllRequiredFields,
+      );
       return;
     }
 
     // Check if area selection is required and selected (only for non-candidates)
-    if (currentUserRole != 'candidate' && selectedWard!.areas != null && selectedWard!.areas!.isNotEmpty && selectedArea == null) {
+    if (currentUserRole != 'candidate' &&
+        selectedWard!.areas != null &&
+        selectedWard!.areas!.isNotEmpty &&
+        selectedArea == null) {
       Get.snackbar(localizations.error, localizations.selectYourArea);
       return;
     }
 
     // For candidates, party selection is required
     if (currentUserRole == 'candidate' && selectedParty == null) {
-      Get.snackbar(localizations.error, localizations.pleaseSelectYourPoliticalParty);
+      Get.snackbar(
+        localizations.error,
+        localizations.pleaseSelectYourPoliticalParty,
+      );
       return;
     }
 
@@ -478,9 +518,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       // Refresh chat controller with new user data (creates ward rooms only for candidates)
       try {
         await chatController.refreshUserDataAndChat();
-      debugPrint('✅ Chat data refreshed successfully for user: ${currentUser.uid}');
+        debugPrint(
+          '✅ Chat data refreshed successfully for user: ${currentUser.uid}',
+        );
       } catch (e) {
-      debugPrint('⚠️ Failed to refresh chat data, but profile saved: $e');
+        debugPrint('⚠️ Failed to refresh chat data, but profile saved: $e');
         // Don't fail the entire process if chat refresh fails
       }
 
@@ -493,7 +535,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
             final now = DateTime.now();
             age = now.year - selectedBirthDate!.year;
             if (now.month < selectedBirthDate!.month ||
-                (now.month == selectedBirthDate!.month && now.day < selectedBirthDate!.day)) {
+                (now.month == selectedBirthDate!.month &&
+                    now.day < selectedBirthDate!.day)) {
               age--;
             }
           }
@@ -526,27 +569,37 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           );
 
           // Save basic candidate record to make them visible to voters
-        debugPrint('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
-        debugPrint('   District: ${candidate.districtId}, Body: ${candidate.bodyId}, Ward: ${candidate.wardId}');
-        debugPrint('   Temp ID: ${candidate.candidateId}');
+          debugPrint(
+            '🏗️ Profile Completion: Creating candidate record for ${candidate.name}',
+          );
+          debugPrint(
+            '   District: ${candidate.districtId}, Body: ${candidate.bodyId}, Ward: ${candidate.wardId}',
+          );
+          debugPrint('   Temp ID: ${candidate.candidateId}');
           //create candidate and get actual ID
-          final actualCandidateId = await candidateRepository.createCandidate(candidate);
+          final actualCandidateId = await candidateRepository.createCandidate(
+            candidate,
+          );
 
           // here we have to create candidate chat room as well
-           chatController.createCandidateChatRoom(actualCandidateId, candidate.name);
-        debugPrint('✅ Basic candidate record created with ID: $actualCandidateId');
+          chatController.createCandidateChatRoom(
+            actualCandidateId,
+            candidate.name,
+          );
+          debugPrint(
+            '✅ Basic candidate record created with ID: $actualCandidateId',
+          );
 
           // Update user document with the actual candidateId
           await FirebaseFirestore.instance
               .collection('users')
               .doc(currentUser.uid)
-              .update({
-                'candidateId': actualCandidateId,
-              });
-        debugPrint('✅ User document updated with candidateId: $actualCandidateId');
-
+              .update({'candidateId': actualCandidateId});
+          debugPrint(
+            '✅ User document updated with candidateId: $actualCandidateId',
+          );
         } catch (e) {
-        debugPrint('⚠️ Failed to create basic candidate record: $e');
+          debugPrint('⚠️ Failed to create basic candidate record: $e');
           // Continue with navigation even if candidate creation fails
         }
       }
@@ -567,9 +620,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           duration: const Duration(seconds: 4),
         );
       }
-
     } catch (e) {
-      Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
+      Get.snackbar(
+        localizations.error,
+        localizations.failedToSaveProfile(e.toString()),
+      );
     }
 
     setState(() {
@@ -620,10 +675,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
                     return Text(
                       localizations.preFilledFromAccount(loginMethod),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
                     );
                   },
                 ),
@@ -632,7 +684,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 // Name Field
                 TextFormField(
                   controller: nameController,
-                  decoration: _buildInputDecoration(context,
+                  decoration: _buildInputDecoration(
+                    context,
                     label: localizations.fullNameRequired,
                     hint: localizations.enterYourFullName,
                     icon: Icons.person,
@@ -655,14 +708,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
-                  decoration: _buildInputDecoration(context,
+                  decoration: _buildInputDecoration(
+                    context,
                     label: localizations.phoneNumberRequired,
                     hint: localizations.enterYourPhoneNumber,
                     icon: Icons.phone,
                     showPreFilledHelper: _isPhonePreFilled,
-                  ).copyWith(
-                    prefixText: '+91 ',
-                  ),
+                  ).copyWith(prefixText: '+91 '),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return localizations.pleaseEnterYourPhoneNumber;
@@ -708,10 +760,22 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     prefixIcon: Icon(Icons.people),
                   ),
                   items: [
-                    DropdownMenuItem(value: 'Male', child: Text(localizations.male)),
-                    DropdownMenuItem(value: 'Female', child: Text(localizations.female)),
-                    DropdownMenuItem(value: 'Other', child: Text(localizations.other)),
-                    DropdownMenuItem(value: 'Prefer Not to Say', child: Text(localizations.preferNotToSay)),
+                    DropdownMenuItem(
+                      value: 'Male',
+                      child: Text(localizations.male),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Female',
+                      child: Text(localizations.female),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Other',
+                      child: Text(localizations.other),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Prefer Not to Say',
+                      child: Text(localizations.preferNotToSay),
+                    ),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -742,7 +806,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       ),
                       child: selectedDistrictId != null
                           ? Text(
-                              districts.firstWhere((d) => d.districtId == selectedDistrictId).name,
+                              districts
+                                  .firstWhere(
+                                    (d) => d.districtId == selectedDistrictId,
+                                  )
+                                  .name,
                               style: const TextStyle(fontSize: 16),
                             )
                           : Text(
@@ -757,7 +825,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 24),
 
                 // Area Selection
-                if (selectedDistrictId != null && districtBodies[selectedDistrictId!] != null && districtBodies[selectedDistrictId!]!.isNotEmpty)
+                if (selectedDistrictId != null &&
+                    districtBodies[selectedDistrictId!] != null &&
+                    districtBodies[selectedDistrictId!]!.isNotEmpty)
                   InkWell(
                     onTap: () => _showBodySelectionModal(context),
                     child: InputDecorator(
@@ -770,12 +840,22 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       child: selectedBodyId != null
                           ? Builder(
                               builder: (context) {
-                                final body = districtBodies[selectedDistrictId!]!.firstWhere(
-                                  (b) => b.bodyId == selectedBodyId,
-                                  orElse: () => Body(bodyId: '', districtId: '', name: '', type: '', wardCount: 0),
-                                );
+                                final body =
+                                    districtBodies[selectedDistrictId!]!
+                                        .firstWhere(
+                                          (b) => b.bodyId == selectedBodyId,
+                                          orElse: () => Body(
+                                            bodyId: '',
+                                            districtId: '',
+                                            name: '',
+                                            type: '',
+                                            wardCount: 0,
+                                          ),
+                                        );
                                 return Text(
-                                  body.bodyId.isNotEmpty ? '${body.name} (${body.type})' : selectedBodyId!,
+                                  body.bodyId.isNotEmpty
+                                      ? '${body.name} (${body.type})'
+                                      : selectedBodyId!,
                                   style: const TextStyle(fontSize: 16),
                                 );
                               },
@@ -791,7 +871,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(4),
@@ -803,9 +886,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         Text(
                           selectedDistrictId == null
                               ? 'Select district first'
-                              : districtBodies[selectedDistrictId!] == null || districtBodies[selectedDistrictId!]!.isEmpty
-                                  ? 'No areas available in this district'
-                                  : 'Select Area (विभाग)',
+                              : districtBodies[selectedDistrictId!] == null ||
+                                    districtBodies[selectedDistrictId!]!.isEmpty
+                              ? 'No areas available in this district'
+                              : 'Select Area (विभाग)',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 16,
@@ -817,7 +901,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 24),
 
                 // Ward Selection
-                if (selectedBodyId != null && bodyWards[selectedBodyId!] != null && bodyWards[selectedBodyId!]!.isNotEmpty)
+                if (selectedBodyId != null &&
+                    bodyWards[selectedBodyId!] != null &&
+                    bodyWards[selectedBodyId!]!.isNotEmpty)
                   InkWell(
                     onTap: () => _showWardSelectionModal(context),
                     child: InputDecorator(
@@ -831,7 +917,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           ? Builder(
                               builder: (context) {
                                 // Format ward display like "वॉर्ड 1 - Ward Name"
-                                final numberMatch = RegExp(r'ward_(\d+)').firstMatch(selectedWard!.wardId.toLowerCase());
+                                final numberMatch = RegExp(r'ward_(\d+)')
+                                    .firstMatch(
+                                      selectedWard!.wardId.toLowerCase(),
+                                    );
                                 final displayText = numberMatch != null
                                     ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
                                     : selectedWard!.name;
@@ -852,7 +941,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(4),
@@ -864,9 +956,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         Text(
                           selectedBodyId == null
                               ? 'Select area first'
-                              : bodyWards[selectedBodyId!] == null || bodyWards[selectedBodyId!]!.isEmpty
-                                  ? 'No wards available in this area'
-                                  : 'Select Ward (वॉर्ड)',
+                              : bodyWards[selectedBodyId!] == null ||
+                                    bodyWards[selectedBodyId!]!.isEmpty
+                              ? 'No wards available in this area'
+                              : 'Select Ward (वॉर्ड)',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 16,
@@ -878,7 +971,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 24),
 
                 // Area Selection (only show if ward has areas and user is not a candidate)
-                if (selectedWard != null && selectedWard!.areas != null && selectedWard!.areas!.isNotEmpty && currentUserRole != 'candidate') ...[
+                if (selectedWard != null &&
+                    selectedWard!.areas != null &&
+                    selectedWard!.areas!.isNotEmpty &&
+                    currentUserRole != 'candidate') ...[
                   InkWell(
                     onTap: () => _showAreaSelectionModal(context),
                     child: InputDecorator(
@@ -929,22 +1025,29 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                     margin: const EdgeInsets.only(right: 12),
                                     child: Image(
                                       image: SymbolUtils.getSymbolImageProvider(
-                                        SymbolUtils.getPartySymbolPathFromParty(selectedParty!)
+                                        SymbolUtils.getPartySymbolPathFromParty(
+                                          selectedParty!,
+                                        ),
                                       ),
                                       fit: BoxFit.contain,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(
-                                          Icons.flag,
-                                          size: 28,
-                                          color: Colors.grey,
-                                        );
-                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.flag,
+                                              size: 28,
+                                              color: Colors.grey,
+                                            );
+                                          },
                                     ),
                                   ),
                                   // Selected Party Name
                                   Expanded(
                                     child: Text(
-                                      selectedParty!.getDisplayName(Localizations.localeOf(context).languageCode),
+                                      selectedParty!.getDisplayName(
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode,
+                                      ),
                                       style: const TextStyle(fontSize: 16),
                                     ),
                                   ),

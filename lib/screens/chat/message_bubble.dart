@@ -64,7 +64,9 @@ class MessageBubbleState extends State<MessageBubble> {
     });
 
     try {
-      final senderInfo = await widget.controller.getSenderInfo(widget.message.senderId);
+      final senderInfo = await widget.controller.getSenderInfo(
+        widget.message.senderId,
+      );
       if (mounted) {
         setState(() {
           _senderInfo = senderInfo;
@@ -124,7 +126,10 @@ class MessageBubbleState extends State<MessageBubble> {
           });
 
           // Use local media path if available, otherwise remote URL
-          final mediaUrl = widget.controller.getMediaUrl(widget.message.messageId, widget.message.mediaUrl);
+          final mediaUrl = widget.controller.getMediaUrl(
+            widget.message.messageId,
+            widget.message.mediaUrl,
+          );
           if (mediaUrl != null) {
             await _audioPlayer!.setUrl(mediaUrl);
           }
@@ -156,14 +161,18 @@ class MessageBubbleState extends State<MessageBubble> {
     final isDeleted = widget.message.isDeleted ?? false;
 
     return Align(
-      alignment: widget.isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: widget.isCurrentUser
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 4, left: 8, right: 8),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         child: Column(
-          crossAxisAlignment: widget.isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: widget.isCurrentUser
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             // Sender info (only for non-current user messages)
             if (!widget.isCurrentUser && _senderInfo != null)
@@ -175,7 +184,10 @@ class MessageBubbleState extends State<MessageBubble> {
                     // Role indicator for candidates
                     if (_senderInfo!['role'] == 'candidate')
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         margin: const EdgeInsets.only(right: 4),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade100,
@@ -200,7 +212,9 @@ class MessageBubbleState extends State<MessageBubble> {
                       ),
                     ),
                     // Phone number (only visible to candidates for moderation)
-                    if (widget.controller.currentUser?.role == 'candidate' && _senderInfo!['phone'] != null && _senderInfo!['phone'].isNotEmpty)
+                    if (widget.controller.currentUser?.role == 'candidate' &&
+                        _senderInfo!['phone'] != null &&
+                        _senderInfo!['phone'].isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(left: 4),
                         child: Text(
@@ -217,18 +231,29 @@ class MessageBubbleState extends State<MessageBubble> {
 
             // Message bubble
             GestureDetector(
-              onLongPress: isDeleted ? null : () => _showMessageOptions(context),
+              onLongPress: isDeleted
+                  ? null
+                  : () => _showMessageOptions(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isDeleted
                       ? Colors.grey.shade200
-                      : (widget.isCurrentUser ? const Color(0xFFDCF8C6) : Colors.white),
+                      : (widget.isCurrentUser
+                            ? const Color(0xFFDCF8C6)
+                            : Colors.white),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(8),
                     topRight: const Radius.circular(8),
-                    bottomLeft: widget.isCurrentUser ? const Radius.circular(8) : const Radius.circular(4),
-                    bottomRight: widget.isCurrentUser ? const Radius.circular(4) : const Radius.circular(8),
+                    bottomLeft: widget.isCurrentUser
+                        ? const Radius.circular(8)
+                        : const Radius.circular(4),
+                    bottomRight: widget.isCurrentUser
+                        ? const Radius.circular(4)
+                        : const Radius.circular(8),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -274,26 +299,34 @@ class MessageBubbleState extends State<MessageBubble> {
                             fontSize: 11,
                             color: isDeleted
                                 ? Colors.grey.shade500
-                                : (widget.isCurrentUser ? Colors.grey.shade600 : Colors.grey.shade600),
+                                : (widget.isCurrentUser
+                                      ? Colors.grey.shade600
+                                      : Colors.grey.shade600),
                           ),
                         ),
                         if (widget.isCurrentUser && !isDeleted) ...[
                           const SizedBox(width: 4),
                           // Show message status indicators
-                          if (widget.message.status == MessageStatus.sending) ...[
+                          if (widget.message.status ==
+                              MessageStatus.sending) ...[
                             const SizedBox(width: 2),
                             const SizedBox(
                               width: 12,
                               height: 12,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.grey,
+                                ),
                               ),
                             ),
-                          ] else if (widget.message.status == MessageStatus.failed) ...[
+                          ] else if (widget.message.status ==
+                              MessageStatus.failed) ...[
                             const SizedBox(width: 2),
                             GestureDetector(
-                              onTap: () => widget.controller.retryMessage(widget.message.messageId),
+                              onTap: () => widget.controller.retryMessage(
+                                widget.message.messageId,
+                              ),
                               child: Icon(
                                 Icons.refresh,
                                 size: 14,
@@ -303,9 +336,13 @@ class MessageBubbleState extends State<MessageBubble> {
                           ] else ...[
                             // Sent status
                             Icon(
-                              widget.message.readBy.length > 1 ? Icons.done_all : Icons.done,
+                              widget.message.readBy.length > 1
+                                  ? Icons.done_all
+                                  : Icons.done,
                               size: 14,
-                              color: widget.message.readBy.length > 1 ? Colors.lightBlue : Colors.grey.shade600,
+                              color: widget.message.readBy.length > 1
+                                  ? Colors.lightBlue
+                                  : Colors.grey.shade600,
                             ),
                           ],
                         ],
@@ -313,7 +350,9 @@ class MessageBubbleState extends State<MessageBubble> {
                     ),
 
                     // Reactions (only show if message is not deleted)
-                    if (!isDeleted && widget.message.reactions != null && widget.message.reactions!.isNotEmpty)
+                    if (!isDeleted &&
+                        widget.message.reactions != null &&
+                        widget.message.reactions!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Wrap(
@@ -321,9 +360,14 @@ class MessageBubbleState extends State<MessageBubble> {
                           runSpacing: 2,
                           children: widget.message.reactions!.map((reaction) {
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: widget.isCurrentUser ? Colors.white.withOpacity(0.5) : Colors.grey.shade100,
+                                color: widget.isCurrentUser
+                                    ? Colors.white.withOpacity(0.5)
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -357,7 +401,10 @@ class MessageBubbleState extends State<MessageBubble> {
           children: [
             if (widget.message.mediaUrl != null)
               ReusableImageWidget(
-                imageUrl: widget.controller.getMediaUrl(widget.message.messageId, widget.message.mediaUrl)!,
+                imageUrl: widget.controller.getMediaUrl(
+                  widget.message.messageId,
+                  widget.message.mediaUrl,
+                )!,
                 fit: BoxFit.cover,
                 maxWidth: 200,
                 maxHeight: 200,
@@ -369,11 +416,7 @@ class MessageBubbleState extends State<MessageBubble> {
               const SizedBox(height: 8),
               Text(
                 widget.message.text,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  height: 1.3,
-                ),
+                style: TextStyle(color: textColor, fontSize: 16, height: 1.3),
               ),
             ],
           ],
@@ -383,7 +426,9 @@ class MessageBubbleState extends State<MessageBubble> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: widget.isCurrentUser ? Colors.green.shade50 : Colors.grey.shade100,
+            color: widget.isCurrentUser
+                ? Colors.green.shade50
+                : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -399,7 +444,9 @@ class MessageBubbleState extends State<MessageBubble> {
                       )
                     : Icon(
                         _isPlaying ? Icons.pause : Icons.play_arrow,
-                        color: widget.isCurrentUser ? Colors.green.shade700 : Colors.blue.shade600,
+                        color: widget.isCurrentUser
+                            ? Colors.green.shade700
+                            : Colors.blue.shade600,
                         size: 24,
                       ),
                 onPressed: _playPauseAudio,
@@ -420,7 +467,9 @@ class MessageBubbleState extends State<MessageBubble> {
                       width: 2,
                       height: _isPlaying ? (8 + (index % 3) * 4).toDouble() : 4,
                       decoration: BoxDecoration(
-                        color: widget.isCurrentUser ? Colors.green.shade400 : Colors.blue.shade400,
+                        color: widget.isCurrentUser
+                            ? Colors.green.shade400
+                            : Colors.blue.shade400,
                         borderRadius: BorderRadius.circular(1),
                       ),
                     ),
@@ -434,7 +483,9 @@ class MessageBubbleState extends State<MessageBubble> {
                     ? '${_formatDuration(_currentPosition)} / ${_formatDuration(_audioDuration)}'
                     : 'Voice message',
                 style: TextStyle(
-                  color: widget.isCurrentUser ? Colors.green.shade700 : Colors.blue.shade600,
+                  color: widget.isCurrentUser
+                      ? Colors.green.shade700
+                      : Colors.blue.shade600,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -449,11 +500,7 @@ class MessageBubbleState extends State<MessageBubble> {
       default:
         return Text(
           widget.message.text,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            height: 1.3,
-          ),
+          style: TextStyle(color: textColor, fontSize: 16, height: 1.3),
         );
     }
   }
@@ -465,23 +512,31 @@ class MessageBubbleState extends State<MessageBubble> {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: widget.isCurrentUser ? Colors.white.withOpacity(0.3) : Colors.blue.shade50,
+          color: widget.isCurrentUser
+              ? Colors.white.withOpacity(0.3)
+              : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: widget.isCurrentUser ? Colors.grey.shade300 : Colors.blue.shade200,
+            color: widget.isCurrentUser
+                ? Colors.grey.shade300
+                : Colors.blue.shade200,
           ),
         ),
         child: Row(
           children: [
             Icon(
               Icons.poll,
-              color: widget.isCurrentUser ? Colors.black87 : Colors.blue.shade600,
+              color: widget.isCurrentUser
+                  ? Colors.black87
+                  : Colors.blue.shade600,
               size: 20,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                widget.message.text.isNotEmpty ? widget.message.text : 'Poll created',
+                widget.message.text.isNotEmpty
+                    ? widget.message.text
+                    : 'Poll created',
                 style: TextStyle(
                   color: widget.isCurrentUser ? Colors.black87 : Colors.black87,
                   fontSize: 14,
@@ -499,10 +554,14 @@ class MessageBubbleState extends State<MessageBubble> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: widget.isCurrentUser ? Colors.white.withOpacity(0.1) : Colors.blue.shade50,
+          color: widget.isCurrentUser
+              ? Colors.white.withOpacity(0.1)
+              : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: widget.isCurrentUser ? Colors.white.withOpacity(0.3) : Colors.blue.shade200,
+            color: widget.isCurrentUser
+                ? Colors.white.withOpacity(0.3)
+                : Colors.blue.shade200,
           ),
         ),
         child: Column(
@@ -512,7 +571,9 @@ class MessageBubbleState extends State<MessageBubble> {
               children: [
                 Icon(
                   Icons.poll,
-                  color: widget.isCurrentUser ? Colors.black87 : Colors.blue.shade600,
+                  color: widget.isCurrentUser
+                      ? Colors.black87
+                      : Colors.blue.shade600,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -520,7 +581,9 @@ class MessageBubbleState extends State<MessageBubble> {
                   child: Text(
                     widget.message.text.replaceFirst('📊 ', ''),
                     style: TextStyle(
-                      color: widget.isCurrentUser ? Colors.black87 : Colors.black87,
+                      color: widget.isCurrentUser
+                          ? Colors.black87
+                          : Colors.black87,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -532,7 +595,9 @@ class MessageBubbleState extends State<MessageBubble> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: widget.isCurrentUser ? Colors.white.withOpacity(0.5) : Colors.white,
+                color: widget.isCurrentUser
+                    ? Colors.white.withOpacity(0.5)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -544,14 +609,18 @@ class MessageBubbleState extends State<MessageBubble> {
                         Text(
                           'Tap to vote on this poll',
                           style: TextStyle(
-                            color: widget.isCurrentUser ? Colors.black87 : Colors.grey.shade600,
+                            color: widget.isCurrentUser
+                                ? Colors.black87
+                                : Colors.grey.shade600,
                             fontSize: 12,
                           ),
                         ),
                         Text(
                           'May have expiration settings',
                           style: TextStyle(
-                            color: widget.isCurrentUser ? Colors.grey.shade600 : Colors.grey.shade500,
+                            color: widget.isCurrentUser
+                                ? Colors.grey.shade600
+                                : Colors.grey.shade500,
                             fontSize: 10,
                           ),
                         ),
@@ -560,7 +629,9 @@ class MessageBubbleState extends State<MessageBubble> {
                   ),
                   Icon(
                     Icons.arrow_forward_ios,
-                    color: widget.isCurrentUser ? Colors.grey.shade600 : Colors.grey.shade400,
+                    color: widget.isCurrentUser
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade400,
                     size: 14,
                   ),
                 ],
@@ -600,7 +671,8 @@ class MessageBubbleState extends State<MessageBubble> {
                 },
               ),
             ],
-            if (widget.message.senderId == widget.controller.currentUser?.uid && !isDeleted) ...[
+            if (widget.message.senderId == widget.controller.currentUser?.uid &&
+                !isDeleted) ...[
               // Show retry option for failed messages
               if (widget.message.status == MessageStatus.failed) ...[
                 ListTile(
@@ -650,7 +722,10 @@ class MessageBubbleState extends State<MessageBubble> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Add Reaction', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Add Reaction',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -658,7 +733,10 @@ class MessageBubbleState extends State<MessageBubble> {
                 return GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
-                    widget.controller.addReaction(widget.message.messageId, emoji);
+                    widget.controller.addReaction(
+                      widget.message.messageId,
+                      emoji,
+                    );
                   },
                   child: Container(
                     padding: const EdgeInsets.all(12),
@@ -692,7 +770,10 @@ class MessageBubbleState extends State<MessageBubble> {
   }
 
   void _reportMessage() {
-    widget.controller.reportMessage(widget.message.messageId, 'Reported by user');
+    widget.controller.reportMessage(
+      widget.message.messageId,
+      'Reported by user',
+    );
   }
 
   void _deleteMessage() {
@@ -706,11 +787,7 @@ class MessageBubbleState extends State<MessageBubble> {
     if (!isLongMessage) {
       return Linkify(
         text: text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 16,
-          height: 1.3,
-        ),
+        style: TextStyle(color: textColor, fontSize: 16, height: 1.3),
         linkStyle: TextStyle(
           color: Colors.blue.shade600,
           fontSize: 16,
@@ -719,7 +796,10 @@ class MessageBubbleState extends State<MessageBubble> {
         ),
         onOpen: (link) async {
           if (await canLaunchUrl(Uri.parse(link.url))) {
-            await launchUrl(Uri.parse(link.url), mode: LaunchMode.externalApplication);
+            await launchUrl(
+              Uri.parse(link.url),
+              mode: LaunchMode.externalApplication,
+            );
           }
         },
       );
@@ -731,11 +811,7 @@ class MessageBubbleState extends State<MessageBubble> {
       children: [
         Linkify(
           text: '${text.substring(0, maxLength)}...',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            height: 1.3,
-          ),
+          style: TextStyle(color: textColor, fontSize: 16, height: 1.3),
           linkStyle: TextStyle(
             color: Colors.blue.shade600,
             fontSize: 16,
@@ -744,7 +820,10 @@ class MessageBubbleState extends State<MessageBubble> {
           ),
           onOpen: (link) async {
             if (await canLaunchUrl(Uri.parse(link.url))) {
-              await launchUrl(Uri.parse(link.url), mode: LaunchMode.externalApplication);
+              await launchUrl(
+                Uri.parse(link.url),
+                mode: LaunchMode.externalApplication,
+              );
             }
           },
         ),
@@ -772,10 +851,7 @@ class MessageBubbleState extends State<MessageBubble> {
         content: SingleChildScrollView(
           child: Linkify(
             text: fullText,
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.4,
-            ),
+            style: const TextStyle(fontSize: 16, height: 1.4),
             linkStyle: TextStyle(
               color: Colors.blue.shade600,
               fontSize: 16,
@@ -784,7 +860,10 @@ class MessageBubbleState extends State<MessageBubble> {
             ),
             onOpen: (link) async {
               if (await canLaunchUrl(Uri.parse(link.url))) {
-                await launchUrl(Uri.parse(link.url), mode: LaunchMode.externalApplication);
+                await launchUrl(
+                  Uri.parse(link.url),
+                  mode: LaunchMode.externalApplication,
+                );
               }
             },
           ),

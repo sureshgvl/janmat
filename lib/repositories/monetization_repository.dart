@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/plan_model.dart';
-import '../models/user_model.dart';
 
 class MonetizationRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -57,7 +56,9 @@ class MonetizationRepository {
 
   Future<String> createSubscription(UserSubscription subscription) async {
     try {
-      final docRef = await _firestore.collection('subscriptions').add(subscription.toJson());
+      final docRef = await _firestore
+          .collection('subscriptions')
+          .add(subscription.toJson());
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to create subscription: $e');
@@ -82,7 +83,10 @@ class MonetizationRepository {
     }
   }
 
-  Future<UserSubscription?> getActiveSubscription(String userId, String planType) async {
+  Future<UserSubscription?> getActiveSubscription(
+    String userId,
+    String planType,
+  ) async {
     try {
       final snapshot = await _firestore
           .collection('subscriptions')
@@ -104,7 +108,10 @@ class MonetizationRepository {
     }
   }
 
-  Future<void> updateSubscriptionStatus(String subscriptionId, bool isActive) async {
+  Future<void> updateSubscriptionStatus(
+    String subscriptionId,
+    bool isActive,
+  ) async {
     try {
       await _firestore.collection('subscriptions').doc(subscriptionId).update({
         'isActive': isActive,
@@ -118,14 +125,19 @@ class MonetizationRepository {
 
   Future<String> createXPTransaction(XPTransaction transaction) async {
     try {
-      final docRef = await _firestore.collection('xp_transactions').add(transaction.toJson());
+      final docRef = await _firestore
+          .collection('xp_transactions')
+          .add(transaction.toJson());
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to create XP transaction: $e');
     }
   }
 
-  Future<List<XPTransaction>> getUserXPTransactions(String userId, {int limit = 50}) async {
+  Future<List<XPTransaction>> getUserXPTransactions(
+    String userId, {
+    int limit = 50,
+  }) async {
     try {
       final snapshot = await _firestore
           .collection('xp_transactions')
@@ -165,7 +177,7 @@ class MonetizationRepository {
 
   Future<void> updateUserXPBalance(String userId, int xpAmount) async {
     try {
-    debugPrint('💰 Updating XP balance for user $userId: $xpAmount');
+      debugPrint('💰 Updating XP balance for user $userId: $xpAmount');
 
       // Create transaction record
       final transaction = XPTransaction(
@@ -178,24 +190,26 @@ class MonetizationRepository {
       );
 
       final transactionId = await createXPTransaction(transaction);
-    debugPrint('✅ Created XP transaction: $transactionId');
+      debugPrint('✅ Created XP transaction: $transactionId');
 
       // Update user XP balance
       final userRef = _firestore.collection('users').doc(userId);
-      await userRef.update({
-        'xpPoints': FieldValue.increment(xpAmount),
-      });
+      await userRef.update({'xpPoints': FieldValue.increment(xpAmount)});
 
-    debugPrint('✅ Updated user XP balance: +$xpAmount');
+      debugPrint('✅ Updated user XP balance: +$xpAmount');
     } catch (e) {
-    debugPrint('❌ Failed to update XP balance: $e');
+      debugPrint('❌ Failed to update XP balance: $e');
       throw Exception('Failed to update XP balance: $e');
     }
   }
 
   // User Subscription Updates
 
-  Future<void> updateUserSubscription(String userId, String planId, DateTime? expiresAt) async {
+  Future<void> updateUserSubscription(
+    String userId,
+    String planId,
+    DateTime? expiresAt,
+  ) async {
     try {
       final userRef = _firestore.collection('users').doc(userId);
       await userRef.update({
@@ -211,10 +225,7 @@ class MonetizationRepository {
   Future<void> upgradeUserToPremiumCandidate(String userId) async {
     try {
       final userRef = _firestore.collection('users').doc(userId);
-      await userRef.update({
-        'role': 'candidate_premium',
-        'premium': true,
-      });
+      await userRef.update({'role': 'candidate_premium', 'premium': true});
     } catch (e) {
       throw Exception('Failed to upgrade user to premium candidate: $e');
     }
@@ -268,34 +279,78 @@ class MonetizationRepository {
       final batch = _firestore.batch();
 
       // Candidate plans
-      final candidateFirst1000 = _firestore.collection('plans').doc('candidate_first_1000');
+      final candidateFirst1000 = _firestore
+          .collection('plans')
+          .doc('candidate_first_1000');
       batch.set(candidateFirst1000, {
         'name': 'Premium Candidate (First 1000)',
         'type': 'candidate',
         'price': 1999,
         'limit': 1000,
         'features': [
-          {'name': 'Manifesto CRUD', 'description': 'Create and edit manifesto', 'enabled': true},
-          {'name': 'Media Upload', 'description': 'Upload images and videos', 'enabled': true},
-          {'name': 'Contact Info', 'description': 'Display contact information', 'enabled': true},
-          {'name': 'Followers Analytics', 'description': 'View follower statistics', 'enabled': true},
-          {'name': 'Sponsored Tag', 'description': 'Get sponsored visibility', 'enabled': true},
+          {
+            'name': 'Manifesto CRUD',
+            'description': 'Create and edit manifesto',
+            'enabled': true,
+          },
+          {
+            'name': 'Media Upload',
+            'description': 'Upload images and videos',
+            'enabled': true,
+          },
+          {
+            'name': 'Contact Info',
+            'description': 'Display contact information',
+            'enabled': true,
+          },
+          {
+            'name': 'Followers Analytics',
+            'description': 'View follower statistics',
+            'enabled': true,
+          },
+          {
+            'name': 'Sponsored Tag',
+            'description': 'Get sponsored visibility',
+            'enabled': true,
+          },
         ],
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      final candidateAfter1000 = _firestore.collection('plans').doc('candidate_after_1000');
+      final candidateAfter1000 = _firestore
+          .collection('plans')
+          .doc('candidate_after_1000');
       batch.set(candidateAfter1000, {
         'name': 'Premium Candidate',
         'type': 'candidate',
         'price': 5000,
         'features': [
-          {'name': 'Manifesto CRUD', 'description': 'Create and edit manifesto', 'enabled': true},
-          {'name': 'Media Upload', 'description': 'Upload images and videos', 'enabled': true},
-          {'name': 'Contact Info', 'description': 'Display contact information', 'enabled': true},
-          {'name': 'Followers Analytics', 'description': 'View follower statistics', 'enabled': true},
-          {'name': 'Sponsored Tag', 'description': 'Get sponsored visibility', 'enabled': true},
+          {
+            'name': 'Manifesto CRUD',
+            'description': 'Create and edit manifesto',
+            'enabled': true,
+          },
+          {
+            'name': 'Media Upload',
+            'description': 'Upload images and videos',
+            'enabled': true,
+          },
+          {
+            'name': 'Contact Info',
+            'description': 'Display contact information',
+            'enabled': true,
+          },
+          {
+            'name': 'Followers Analytics',
+            'description': 'View follower statistics',
+            'enabled': true,
+          },
+          {
+            'name': 'Sponsored Tag',
+            'description': 'Get sponsored visibility',
+            'enabled': true,
+          },
         ],
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
@@ -309,10 +364,26 @@ class MonetizationRepository {
         'price': 299,
         'xpAmount': 100,
         'features': [
-          {'name': 'Unlock Premium Content', 'description': 'Access premium candidate content', 'enabled': true},
-          {'name': 'Join Chat Rooms', 'description': 'Participate in premium chat rooms', 'enabled': true},
-          {'name': 'Vote in Polls', 'description': 'Vote in exclusive polls', 'enabled': true},
-          {'name': 'Reward Other Voters', 'description': 'Give XP to other users', 'enabled': true},
+          {
+            'name': 'Unlock Premium Content',
+            'description': 'Access premium candidate content',
+            'enabled': true,
+          },
+          {
+            'name': 'Join Chat Rooms',
+            'description': 'Participate in premium chat rooms',
+            'enabled': true,
+          },
+          {
+            'name': 'Vote in Polls',
+            'description': 'Vote in exclusive polls',
+            'enabled': true,
+          },
+          {
+            'name': 'Reward Other Voters',
+            'description': 'Give XP to other users',
+            'enabled': true,
+          },
         ],
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),

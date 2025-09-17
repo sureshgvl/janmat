@@ -4,7 +4,11 @@ import 'theme_constants.dart';
 enum SnackBarType { success, error, warning }
 
 class Helpers {
-  static void showSnackBar(BuildContext context, String message, {bool isError = false}) {
+  static void showSnackBar(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -15,7 +19,11 @@ class Helpers {
   }
 
   // Enhanced snack bar with proper colors
-  static void showCustomSnackBar(BuildContext context, String message, SnackBarType type) {
+  static void showCustomSnackBar(
+    BuildContext context,
+    String message,
+    SnackBarType type,
+  ) {
     Color backgroundColor;
     Color textColor;
 
@@ -36,16 +44,11 @@ class Helpers {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(color: textColor),
-        ),
+        content: Text(message, style: TextStyle(color: textColor)),
         backgroundColor: backgroundColor,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

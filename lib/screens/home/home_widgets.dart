@@ -20,11 +20,7 @@ class HomeWidgets {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: Colors.blue,
-              ),
+              Icon(icon, size: 32, color: Colors.blue),
               const SizedBox(height: 8),
               Text(
                 title,
@@ -68,7 +64,10 @@ class HomeWidgets {
                 HomeNavigation.toRightToLeft(const SettingsScreen());
                 break;
               default:
-                HomeNavigation.toNamedRightToLeft(routeName, arguments: arguments);
+                HomeNavigation.toNamedRightToLeft(
+                  routeName,
+                  arguments: arguments,
+                );
             }
           }
         },
@@ -78,11 +77,7 @@ class HomeWidgets {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: Colors.blue,
-              ),
+              Icon(icon, size: 32, color: Colors.blue),
               const SizedBox(height: 8),
               Text(
                 title,

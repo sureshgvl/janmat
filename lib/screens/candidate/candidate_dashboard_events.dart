@@ -10,7 +10,8 @@ class CandidateDashboardEvents extends StatefulWidget {
   const CandidateDashboardEvents({super.key});
 
   @override
-  State<CandidateDashboardEvents> createState() => _CandidateDashboardEventsState();
+  State<CandidateDashboardEvents> createState() =>
+      _CandidateDashboardEventsState();
 }
 
 class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
@@ -18,7 +19,8 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
   bool isEditing = false;
 
   // Global key to access events section for file uploads
-  final GlobalKey<EventsTabEditState> _eventsSectionKey = GlobalKey<EventsTabEditState>();
+  final GlobalKey<EventsTabEditState> _eventsSectionKey =
+      GlobalKey<EventsTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,6 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
       }
 
       return Scaffold(
-        
         body: isEditing
             ? SingleChildScrollView(
                 child: EventsTabEdit(
@@ -40,7 +41,8 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onEventsChange: (events) => controller.updateExtraInfo('events', events),
+                  onEventsChange: (events) =>
+                      controller.updateExtraInfo('events', events),
                 ),
               )
             : EventsTabView(
@@ -69,15 +71,19 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
 
                         try {
                           // First, upload any pending local files to Firebase
-                          final eventsSectionState = _eventsSectionKey.currentState;
+                          final eventsSectionState =
+                              _eventsSectionKey.currentState;
                           if (eventsSectionState != null) {
-                            messageController.add('Uploading files to cloud...');
+                            messageController.add(
+                              'Uploading files to cloud...',
+                            );
                             await eventsSectionState.uploadPendingFiles();
                           }
 
                           // Then save the events data
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
@@ -85,16 +91,27 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                             messageController.add('Events saved successfully!');
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Events updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
+                              Get.snackbar(
+                                'Success',
+                                'Events updated successfully',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               Get.snackbar('Error', 'Failed to update events');
                             }
                           }
@@ -109,8 +126,8 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -120,8 +137,8 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -132,8 +149,8 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   heroTag: 'edit_events',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Events',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

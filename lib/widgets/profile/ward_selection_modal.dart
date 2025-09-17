@@ -40,16 +40,21 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
         final idMatch = ward.wardId.toLowerCase().contains(lowerQuery);
 
         // Search in areas
-        final areaMatch = ward.areas != null &&
-                         ward.areas!.any((area) => area.toLowerCase().contains(lowerQuery));
+        final areaMatch =
+            ward.areas != null &&
+            ward.areas!.any((area) => area.toLowerCase().contains(lowerQuery));
 
         // Search in Marathi ward number (e.g., "ward 10" should find "वॉर्ड 10")
-        final numberMatch = RegExp(r'ward\s*(\d+)').firstMatch(lowerQuery) != null &&
-                           ward.wardId.toLowerCase().contains('ward_${RegExp(r'ward\s*(\d+)').firstMatch(lowerQuery)!.group(1)}');
+        final numberMatch =
+            RegExp(r'ward\s*(\d+)').firstMatch(lowerQuery) != null &&
+            ward.wardId.toLowerCase().contains(
+              'ward_${RegExp(r'ward\s*(\d+)').firstMatch(lowerQuery)!.group(1)}',
+            );
 
         // Search in Marathi "वॉर्ड X" format
-        final marathiMatch = lowerQuery.contains('वॉर्ड') &&
-                            ward.wardId.toLowerCase().contains('ward_');
+        final marathiMatch =
+            lowerQuery.contains('वॉर्ड') &&
+            ward.wardId.toLowerCase().contains('ward_');
 
         return nameMatch || idMatch || areaMatch || numberMatch || marathiMatch;
       }).toList();
@@ -102,11 +107,7 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.home,
-                      color: Colors.purple,
-                      size: 28,
-                    ),
+                    const Icon(Icons.home, color: Colors.purple, size: 28),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -191,13 +192,23 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                           Navigator.of(context).pop();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? Colors.purple.shade50 : Colors.white,
+                            color: isSelected
+                                ? Colors.purple.shade50
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? Colors.purple.shade200 : Colors.grey.shade200,
+                              color: isSelected
+                                  ? Colors.purple.shade200
+                                  : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: isSelected
@@ -206,7 +217,7 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                                       color: Colors.purple.shade100,
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -223,11 +234,16 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _formatWardDisplay(ward.wardId, ward.name),
+                                      _formatWardDisplay(
+                                        ward.wardId,
+                                        ward.name,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: isSelected ? Colors.purple.shade800 : Colors.black87,
+                                        color: isSelected
+                                            ? Colors.purple.shade800
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -240,13 +256,18 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                                             color: Colors.grey.shade600,
                                           ),
                                         ),
-                                        if (ward.areas != null && ward.areas!.isNotEmpty) ...[
+                                        if (ward.areas != null &&
+                                            ward.areas!.isNotEmpty) ...[
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: Colors.green.shade100,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             child: Text(
                                               '${ward.areas!.length} areas',
@@ -261,7 +282,8 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                                       ],
                                     ),
                                     // Show areas preview if available
-                                    if (ward.areas != null && ward.areas!.isNotEmpty) ...[
+                                    if (ward.areas != null &&
+                                        ward.areas!.isNotEmpty) ...[
                                       const SizedBox(height: 4),
                                       Text(
                                         'Areas: ${ward.areas!.take(3).join(", ")}${ward.areas!.length > 3 ? " +${ward.areas!.length - 3} more" : ""}',

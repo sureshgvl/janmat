@@ -12,7 +12,8 @@ class MonetizationScreen extends StatefulWidget {
   State<MonetizationScreen> createState() => _MonetizationScreenState();
 }
 
-class _MonetizationScreenState extends State<MonetizationScreen> with SingleTickerProviderStateMixin {
+class _MonetizationScreenState extends State<MonetizationScreen>
+    with SingleTickerProviderStateMixin {
   final MonetizationController _controller = Get.put(MonetizationController());
   late TabController _tabController;
 
@@ -45,7 +46,6 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,10 +64,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
           isLoading: _controller.isLoading.value,
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildCandidatePlans(),
-              _buildVoterPlans(),
-            ],
+            children: [_buildCandidatePlans(), _buildVoterPlans()],
           ),
         );
       }),
@@ -105,7 +102,9 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
             }
 
             return Column(
-              children: candidatePlans.map((plan) => _buildPlanCard(plan)).toList(),
+              children: candidatePlans
+                  .map((plan) => _buildPlanCard(plan))
+                  .toList(),
             );
           }),
         ],
@@ -280,7 +279,10 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
                   children: [
                     const Text(
                       'Your XP Balance',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '${_controller.userXPBalance.value} XP',
@@ -302,7 +304,8 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
 
   Widget _buildPlanCard(SubscriptionPlan plan) {
     final isCandidatePlan = plan.type == 'candidate';
-    final isLimitedOffer = isCandidatePlan && _controller.isFirst1000PlanAvailable;
+    final isLimitedOffer =
+        isCandidatePlan && _controller.isFirst1000PlanAvailable;
 
     return Card(
       elevation: 2,
@@ -325,7 +328,10 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
                 ),
                 if (isLimitedOffer)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange,
                       borderRadius: BorderRadius.circular(12),
@@ -356,10 +362,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
             if (plan.xpAmount != null)
               Text(
                 '${plan.xpAmount} XP Points',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.blue),
               ),
 
             const SizedBox(height: 16),
@@ -371,25 +374,27 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
 
             const SizedBox(height: 8),
 
-            ...plan.features.map((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Icon(
-                    feature.enabled ? Icons.check_circle : Icons.cancel,
-                    color: feature.enabled ? Colors.green : Colors.red,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feature.name,
-                      style: const TextStyle(fontSize: 14),
+            ...plan.features.map(
+              (feature) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      feature.enabled ? Icons.check_circle : Icons.cancel,
+                      color: feature.enabled ? Colors.green : Colors.red,
+                      size: 16,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        feature.name,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
 
             const SizedBox(height: 16),
 
@@ -426,10 +431,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
           children: [
             const Text(
               'How to use XP Points',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 12),
@@ -492,10 +494,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -540,7 +539,10 @@ class _MonetizationScreenState extends State<MonetizationScreen> with SingleTick
 
     if (confirmed == true) {
       // Process the purchase
-      final success = await _controller.purchaseSubscription(currentUser.uid, plan);
+      final success = await _controller.purchaseSubscription(
+        currentUser.uid,
+        plan,
+      );
 
       if (success) {
         Get.snackbar(

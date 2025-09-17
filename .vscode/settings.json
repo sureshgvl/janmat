@@ -1,3 +1,9 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "dart.flutterAdditionalArgs": [
+        "--enable-impeller"
+    ],
+    "dart.flutterRunAdditionalArgs": [
+        "--enable-impeller"
+    ]
 }

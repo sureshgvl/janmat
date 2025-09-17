@@ -16,7 +16,9 @@ class ChatRepository {
   // Repository-level caching
   static final Map<String, List<ChatRoom>> _roomCache = {};
   static final Map<String, DateTime> _roomTimestamps = {};
-  static const Duration _cacheValidityDuration = Duration(minutes: 15); // Longer than controller cache
+  static const Duration _cacheValidityDuration = Duration(
+    minutes: 15,
+  ); // Longer than controller cache
 
   // Check if cache is valid
   bool _isCacheValid(String cacheKey) {
@@ -38,43 +40,59 @@ class ChatRepository {
 
   // Invalidate cache for a user
   void invalidateUserCache(String userId) {
-    final keysToRemove = _roomCache.keys.where((key) => key.contains(userId)).toList();
+    final keysToRemove = _roomCache.keys
+        .where((key) => key.contains(userId))
+        .toList();
     for (final key in keysToRemove) {
       _roomCache.remove(key);
       _roomTimestamps.remove(key);
     }
-    debugPrint('🗑️ Invalidated ${keysToRemove.length} cache entries for user: $userId');
+    debugPrint(
+      '🗑️ Invalidated ${keysToRemove.length} cache entries for user: $userId',
+    );
   }
 
   // Invalidate cache for a specific role
   void invalidateRoleCache(String userRole) {
-    final keysToRemove = _roomCache.keys.where((key) => key.contains('_${userRole}_')).toList();
+    final keysToRemove = _roomCache.keys
+        .where((key) => key.contains('_${userRole}_'))
+        .toList();
     for (final key in keysToRemove) {
       _roomCache.remove(key);
       _roomTimestamps.remove(key);
     }
-    debugPrint('🗑️ Invalidated ${keysToRemove.length} cache entries for role: $userRole');
+    debugPrint(
+      '🗑️ Invalidated ${keysToRemove.length} cache entries for role: $userRole',
+    );
   }
 
   // Invalidate cache for a specific location
   void invalidateLocationCache(String cityId, String wardId) {
-    final locationPattern = '${cityId}_${wardId}';
-    final keysToRemove = _roomCache.keys.where((key) => key.contains(locationPattern)).toList();
+    final locationPattern = '${cityId}_$wardId';
+    final keysToRemove = _roomCache.keys
+        .where((key) => key.contains(locationPattern))
+        .toList();
     for (final key in keysToRemove) {
       _roomCache.remove(key);
       _roomTimestamps.remove(key);
     }
-    debugPrint('🗑️ Invalidated ${keysToRemove.length} cache entries for location: $locationPattern');
+    debugPrint(
+      '🗑️ Invalidated ${keysToRemove.length} cache entries for location: $locationPattern',
+    );
   }
 
   // Invalidate cache when user follows/unfollows a candidate
   void invalidateUserFollowCache(String userId) {
-    final keysToRemove = _roomCache.keys.where((key) => key.startsWith('${userId}_voter_')).toList();
+    final keysToRemove = _roomCache.keys
+        .where((key) => key.startsWith('${userId}_voter_'))
+        .toList();
     for (final key in keysToRemove) {
       _roomCache.remove(key);
       _roomTimestamps.remove(key);
     }
-    debugPrint('🗑️ Invalidated ${keysToRemove.length} cache entries for user follow changes: $userId');
+    debugPrint(
+      '🗑️ Invalidated ${keysToRemove.length} cache entries for user follow changes: $userId',
+    );
   }
 
   // Clear all expired cache entries
@@ -102,9 +120,13 @@ class ChatRepository {
   Map<String, dynamic> getCacheStats() {
     return {
       'total_entries': _roomCache.length,
-      'cache_size_mb': (_roomCache.values
-          .map((rooms) => rooms.length * 1024) // Rough estimate: 1KB per room
-          .fold(0, (a, b) => a + b) / (1024 * 1024)),
+      'cache_size_mb':
+          (_roomCache.values
+              .map(
+                (rooms) => rooms.length * 1024,
+              ) // Rough estimate: 1KB per room
+              .fold(0, (a, b) => a + b) /
+          (1024 * 1024)),
       'oldest_entry': _roomTimestamps.values.isNotEmpty
           ? _roomTimestamps.values.reduce((a, b) => a.isBefore(b) ? a : b)
           : null,
@@ -115,10 +137,19 @@ class ChatRepository {
   }
 
   // Get chat rooms for a user
-  Future<List<ChatRoom>> getChatRoomsForUser(String userId, String userRole, {String? districtId, String? bodyId, String? wardId, String? area}) async {
+  Future<List<ChatRoom>> getChatRoomsForUser(
+    String userId,
+    String userRole, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  }) async {
     // BREAKPOINT REPO-1: Start of getChatRoomsForUser
     debugPrint('🔍 BREAKPOINT REPO-1: getChatRoomsForUser called');
-    debugPrint('🔍 BREAKPOINT REPO-1: User ID: $userId, Role: $userRole, District: $districtId, Body: $bodyId, Ward: $wardId');
+    debugPrint(
+      '🔍 BREAKPOINT REPO-1: User ID: $userId, Role: $userRole, District: $districtId, Body: $bodyId, Ward: $wardId',
+    );
 
     // Create cache key based on user and parameters
     final cacheKey = userRole == 'voter'
@@ -131,34 +162,48 @@ class ChatRepository {
     // Check cache first
     final cachedRooms = _getCachedRooms(cacheKey);
     if (cachedRooms != null) {
-      debugPrint('⚡ REPOSITORY CACHE HIT: Returning ${cachedRooms.length} cached rooms for $userRole');
+      debugPrint(
+        '⚡ REPOSITORY CACHE HIT: Returning ${cachedRooms.length} cached rooms for $userRole',
+      );
       return cachedRooms;
     }
 
-    debugPrint('🔄 REPOSITORY CACHE MISS: Fetching rooms from Firebase for $userRole');
+    debugPrint(
+      '🔄 REPOSITORY CACHE MISS: Fetching rooms from Firebase for $userRole',
+    );
 
     try {
       // BREAKPOINT REPO-3: Location data check
-      debugPrint('🔍 BREAKPOINT REPO-3: Initial location data - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area');
+      debugPrint(
+        '🔍 BREAKPOINT REPO-3: Initial location data - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+      );
 
       // If location data is not provided, try to get it from user profile
       if (districtId == null || bodyId == null || wardId == null) {
-        debugPrint('🔍 BREAKPOINT REPO-4: Fetching location data from user profile');
+        debugPrint(
+          '🔍 BREAKPOINT REPO-4: Fetching location data from user profile',
+        );
         final userDoc = await _firestore.collection('users').doc(userId).get();
         if (userDoc.exists) {
           final userData = userDoc.data()!;
-          districtId = userData['districtId'] ?? userData['cityId']; // Backward compatibility
+          districtId =
+              userData['districtId'] ??
+              userData['cityId']; // Backward compatibility
           bodyId = userData['bodyId'];
           wardId = userData['wardId'];
           area = userData['area'];
-          debugPrint('🔍 BREAKPOINT REPO-4: Updated location data - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area');
+          debugPrint(
+            '🔍 BREAKPOINT REPO-4: Updated location data - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+          );
         } else {
           debugPrint('🔍 BREAKPOINT REPO-4: User document not found');
         }
       }
 
       // BREAKPOINT REPO-5: Before Firebase query
-      debugPrint('🔍 BREAKPOINT REPO-5: Querying Firebase for rooms - Role: $userRole');
+      debugPrint(
+        '🔍 BREAKPOINT REPO-5: Querying Firebase for rooms - Role: $userRole',
+      );
 
       List<ChatRoom> allRooms = [];
       Query query = _firestore.collection('chats');
@@ -173,10 +218,14 @@ class ChatRepository {
           data['roomId'] = doc.id;
           return ChatRoom.fromJson(data);
         }).toList();
-        debugPrint('🔍 BREAKPOINT REPO-6: Admin fetched ${allRooms.length} rooms');
+        debugPrint(
+          '🔍 BREAKPOINT REPO-6: Admin fetched ${allRooms.length} rooms',
+        );
       } else {
         // BREAKPOINT REPO-7: Non-admin query
-        debugPrint('🔍 BREAKPOINT REPO-7: Non-admin user - fetching public rooms');
+        debugPrint(
+          '🔍 BREAKPOINT REPO-7: Non-admin user - fetching public rooms',
+        );
         query = query.where('type', isEqualTo: 'public');
         final snapshot = await query.get();
         allRooms = snapshot.docs.map((doc) {
@@ -184,88 +233,138 @@ class ChatRepository {
           data['roomId'] = doc.id;
           return ChatRoom.fromJson(data);
         }).toList();
-        debugPrint('🔍 BREAKPOINT REPO-7: Fetched ${allRooms.length} public rooms');
+        debugPrint(
+          '🔍 BREAKPOINT REPO-7: Fetched ${allRooms.length} public rooms',
+        );
 
         // Filter based on user role and location
         if (userRole == 'candidate') {
           // BREAKPOINT REPO-8: Candidate filtering
           debugPrint('🔍 BREAKPOINT REPO-8: Filtering rooms for candidate');
-          debugPrint('🔍 BREAKPOINT REPO-8: User location - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area');
+          debugPrint(
+            '🔍 BREAKPOINT REPO-8: User location - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+          );
 
           allRooms = allRooms.where((room) {
             final isOwnRoom = room.createdBy == userId;
-            final isWardRoom = districtId != null && bodyId != null && wardId != null &&
-                              room.roomId == 'ward_${districtId}_${bodyId}_${wardId}';
-            final isAreaRoom = districtId != null && bodyId != null && wardId != null &&
-                              room.roomId.startsWith('area_${districtId}_${bodyId}_${wardId}_');
-            final isCandidateRoom = room.roomId.startsWith('candidate_') && room.createdBy == userId;
+            final isWardRoom =
+                districtId != null &&
+                bodyId != null &&
+                wardId != null &&
+                room.roomId == 'ward_${districtId}_${bodyId}_$wardId';
+            final isAreaRoom =
+                districtId != null &&
+                bodyId != null &&
+                wardId != null &&
+                room.roomId.startsWith(
+                  'area_${districtId}_${bodyId}_${wardId}_',
+                );
+            final isCandidateRoom =
+                room.roomId.startsWith('candidate_') &&
+                room.createdBy == userId;
 
             // Include rooms that are relevant to this candidate's location or their own candidate room
-            final shouldInclude = isOwnRoom || isWardRoom || isAreaRoom || isCandidateRoom;
+            final shouldInclude =
+                isOwnRoom || isWardRoom || isAreaRoom || isCandidateRoom;
 
             if (shouldInclude) {
-              debugPrint('🔍 BREAKPOINT REPO-8: Including room: ${room.roomId} (own: $isOwnRoom, ward: $isWardRoom, area: $isAreaRoom, candidate: $isCandidateRoom)');
+              debugPrint(
+                '🔍 BREAKPOINT REPO-8: Including room: ${room.roomId} (own: $isOwnRoom, ward: $isWardRoom, area: $isAreaRoom, candidate: $isCandidateRoom)',
+              );
             }
 
             return shouldInclude;
           }).toList();
-          debugPrint('🔍 BREAKPOINT REPO-8: Candidate filtered to ${allRooms.length} rooms');
+          debugPrint(
+            '🔍 BREAKPOINT REPO-8: Candidate filtered to ${allRooms.length} rooms',
+          );
         } else {
           // BREAKPOINT REPO-9: Voter filtering
           debugPrint('🔍 BREAKPOINT REPO-9: Filtering rooms for voter');
           if (districtId != null && bodyId != null && wardId != null) {
-            final wardRoomId = 'ward_${districtId}_${bodyId}_${wardId}';
-            final areaRoomId = area != null ? 'area_${districtId}_${bodyId}_${wardId}_${area}' : null;
-            debugPrint('🔍 BREAKPOINT REPO-9: Looking for ward room: $wardRoomId');
+            final wardRoomId = 'ward_${districtId}_${bodyId}_$wardId';
+            final areaRoomId = area != null
+                ? 'area_${districtId}_${bodyId}_${wardId}_$area'
+                : null;
+            debugPrint(
+              '🔍 BREAKPOINT REPO-9: Looking for ward room: $wardRoomId',
+            );
             if (areaRoomId != null) {
-              debugPrint('🔍 BREAKPOINT REPO-9: Looking for area room: $areaRoomId');
+              debugPrint(
+                '🔍 BREAKPOINT REPO-9: Looking for area room: $areaRoomId',
+              );
             }
 
             // Get list of candidates the voter is following
-            final followedCandidateIds = await _candidateRepository.getUserFollowing(userId);
-            debugPrint('🔍 BREAKPOINT REPO-9: Voter follows ${followedCandidateIds.length} candidates');
+            final followedCandidateIds = await _candidateRepository
+                .getUserFollowing(userId);
+            debugPrint(
+              '🔍 BREAKPOINT REPO-9: Voter follows ${followedCandidateIds.length} candidates',
+            );
 
             // Get list of candidate user IDs in the same ward (for filtering followed candidates)
-            final wardCandidateIds = await _getCandidateIdsInWard(districtId, bodyId, wardId);
-            debugPrint('🔍 BREAKPOINT REPO-9: Found ${wardCandidateIds.length} candidates in ward');
+            final wardCandidateIds = await _getCandidateIdsInWard(
+              districtId,
+              bodyId,
+              wardId,
+            );
+            debugPrint(
+              '🔍 BREAKPOINT REPO-9: Found ${wardCandidateIds.length} candidates in ward',
+            );
 
             // Only include candidates that are both followed AND in the same ward
-            final relevantCandidateIds = followedCandidateIds.where((candidateId) =>
-              wardCandidateIds.contains(candidateId)).toList();
-            debugPrint('🔍 BREAKPOINT REPO-9: Found ${relevantCandidateIds.length} followed candidates in ward');
+            final relevantCandidateIds = followedCandidateIds
+                .where((candidateId) => wardCandidateIds.contains(candidateId))
+                .toList();
+            debugPrint(
+              '🔍 BREAKPOINT REPO-9: Found ${relevantCandidateIds.length} followed candidates in ward',
+            );
 
             allRooms = allRooms.where((room) {
               // Include ward room
               if (room.roomId == wardRoomId) {
-                debugPrint('🔍 BREAKPOINT REPO-9: Including ward room: ${room.roomId}');
+                debugPrint(
+                  '🔍 BREAKPOINT REPO-9: Including ward room: ${room.roomId}',
+                );
                 return true;
               }
 
               // Include area room if user has area
               if (areaRoomId != null && room.roomId == areaRoomId) {
-                debugPrint('🔍 BREAKPOINT REPO-9: Including area room: ${room.roomId}');
+                debugPrint(
+                  '🔍 BREAKPOINT REPO-9: Including area room: ${room.roomId}',
+                );
                 return true;
               }
 
               // Include rooms created by followed candidates in the same ward
               if (relevantCandidateIds.contains(room.createdBy)) {
-                debugPrint('🔍 BREAKPOINT REPO-9: Including followed candidate room: ${room.roomId} by ${room.createdBy}');
+                debugPrint(
+                  '🔍 BREAKPOINT REPO-9: Including followed candidate room: ${room.roomId} by ${room.createdBy}',
+                );
                 return true;
               }
 
               return false;
             }).toList();
-            debugPrint('🔍 BREAKPOINT REPO-9: Voter filtered to ${allRooms.length} rooms');
+            debugPrint(
+              '🔍 BREAKPOINT REPO-9: Voter filtered to ${allRooms.length} rooms',
+            );
           } else {
             // BREAKPOINT REPO-10: No location data
-            debugPrint('🔍 BREAKPOINT REPO-10: No location data - showing only general public rooms');
+            debugPrint(
+              '🔍 BREAKPOINT REPO-10: No location data - showing only general public rooms',
+            );
             // Only show general public rooms, not location-specific ones
-            allRooms = allRooms.where((room) =>
-              room.type == 'public' &&
-              !room.roomId.startsWith('ward_') &&
-              !room.roomId.startsWith('area_') &&
-              !room.roomId.startsWith('candidate_')
-            ).toList();
+            allRooms = allRooms
+                .where(
+                  (room) =>
+                      room.type == 'public' &&
+                      !room.roomId.startsWith('ward_') &&
+                      !room.roomId.startsWith('area_') &&
+                      !room.roomId.startsWith('candidate_'),
+                )
+                .toList();
           }
         }
       }
@@ -281,15 +380,23 @@ class ChatRepository {
       allRooms.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       // BREAKPOINT REPO-11: Final result before caching
-      debugPrint('🔍 BREAKPOINT REPO-11: Final rooms list - ${allRooms.length} unique rooms');
-      allRooms.forEach((room) => debugPrint('   Final room: ${room.roomId} - ${room.title} (${room.type})'));
+      debugPrint(
+        '🔍 BREAKPOINT REPO-11: Final rooms list - ${allRooms.length} unique rooms',
+      );
+      for (var room in allRooms) {
+        debugPrint(
+          '   Final room: ${room.roomId} - ${room.title} (${room.type})',
+        );
+      }
 
       // Cache the results
       _cacheRooms(cacheKey, allRooms);
       debugPrint('💾 Cached ${allRooms.length} rooms for cache key: $cacheKey');
 
       // BREAKPOINT REPO-12: Returning result
-      debugPrint('🔍 BREAKPOINT REPO-12: Returning ${allRooms.length} rooms to controller');
+      debugPrint(
+        '🔍 BREAKPOINT REPO-12: Returning ${allRooms.length} rooms to controller',
+      );
       return allRooms;
     } catch (e) {
       throw Exception('Failed to fetch chat rooms: $e');
@@ -300,7 +407,9 @@ class ChatRepository {
   Future<ChatRoom> createChatRoom(ChatRoom chatRoom) async {
     // BREAKPOINT CREATE-1: Start of createChatRoom
     debugPrint('🔍 BREAKPOINT CREATE-1: createChatRoom called');
-    debugPrint('🔍 BREAKPOINT CREATE-1: Room ID: ${chatRoom.roomId}, Title: ${chatRoom.title}, Type: ${chatRoom.type}');
+    debugPrint(
+      '🔍 BREAKPOINT CREATE-1: Room ID: ${chatRoom.roomId}, Title: ${chatRoom.title}, Type: ${chatRoom.type}',
+    );
     debugPrint('🔍 BREAKPOINT CREATE-1: Created by: ${chatRoom.createdBy}');
 
     try {
@@ -310,14 +419,20 @@ class ChatRepository {
       await docRef.set(chatRoom.toJson());
 
       // BREAKPOINT CREATE-3: After successful creation
-      debugPrint('🔍 BREAKPOINT CREATE-3: Room successfully created in Firestore');
+      debugPrint(
+        '🔍 BREAKPOINT CREATE-3: Room successfully created in Firestore',
+      );
 
       // Invalidate cache for the creator (they might see new rooms)
       invalidateUserCache(chatRoom.createdBy);
-      debugPrint('🗑️ Invalidated cache for user ${chatRoom.createdBy} after room creation');
+      debugPrint(
+        '🗑️ Invalidated cache for user ${chatRoom.createdBy} after room creation',
+      );
 
       // BREAKPOINT CREATE-4: Returning result
-      debugPrint('🔍 BREAKPOINT CREATE-4: Returning created room: ${chatRoom.roomId}');
+      debugPrint(
+        '🔍 BREAKPOINT CREATE-4: Returning created room: ${chatRoom.roomId}',
+      );
       return chatRoom;
     } catch (e) {
       // BREAKPOINT CREATE-5: Error occurred
@@ -327,9 +442,14 @@ class ChatRepository {
   }
 
   // Batch: Create room and add initial members
-  Future<ChatRoom> createRoomWithMembers(ChatRoom chatRoom, List<String> memberIds) async {
+  Future<ChatRoom> createRoomWithMembers(
+    ChatRoom chatRoom,
+    List<String> memberIds,
+  ) async {
     try {
-      debugPrint('📦 BATCH: Creating room with ${memberIds.length} initial members');
+      debugPrint(
+        '📦 BATCH: Creating room with ${memberIds.length} initial members',
+      );
 
       await _firestore.runTransaction((transaction) async {
         // Create the room
@@ -355,22 +475,45 @@ class ChatRepository {
   }
 
   // Batch: Initialize app data (user + quota + rooms)
-  Future<Map<String, dynamic>> initializeAppData(String userId, String userRole, {String? districtId, String? bodyId, String? wardId, String? area}) async {
+  Future<Map<String, dynamic>> initializeAppData(
+    String userId,
+    String userRole, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  }) async {
     try {
       debugPrint('📦 BATCH: Initializing app data for user');
 
       // Parallel fetch of all required data
       final results = await Future.wait([
         getUserDataAndQuota(userId),
-        getChatRoomsForUser(userId, userRole, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area),
-        getUnreadMessageCount(userId, userRole: userRole, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area),
+        getChatRoomsForUser(
+          userId,
+          userRole,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+          area: area,
+        ),
+        getUnreadMessageCount(
+          userId,
+          userRole: userRole,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+          area: area,
+        ),
       ]);
 
       final userData = results[0] as Map<String, dynamic>;
       final rooms = results[1] as List<ChatRoom>;
       final unreadCount = results[2] as int;
 
-      debugPrint('✅ BATCH: App data initialized - ${rooms.length} rooms, $unreadCount unread messages');
+      debugPrint(
+        '✅ BATCH: App data initialized - ${rooms.length} rooms, $unreadCount unread messages',
+      );
 
       return {
         'user': userData['user'],
@@ -394,7 +537,7 @@ class ChatRepository {
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
             data['messageId'] = doc.id;
             return Message.fromJson(data);
           }).toList();
@@ -406,7 +549,9 @@ class ChatRepository {
     try {
       // Only log in debug mode
       assert(() {
-        debugPrint('💾 Repository: Sending message "${message.text}" to room $roomId');
+        debugPrint(
+          '💾 Repository: Sending message "${message.text}" to room $roomId',
+        );
         return true;
       }());
 
@@ -443,7 +588,7 @@ class ChatRepository {
     Message message,
     String userId,
     bool useQuota,
-    bool useXP
+    bool useXP,
   ) async {
     try {
       debugPrint('📦 BATCH: Sending message with quota/XP update');
@@ -457,7 +602,9 @@ class ChatRepository {
           final quotaSnapshot = await transaction.get(quotaRef);
           if (quotaSnapshot.exists) {
             currentQuota = UserQuota.fromJson(quotaSnapshot.data()!);
-            debugPrint('📊 Current quota before update: ${currentQuota!.remainingMessages} messages');
+            debugPrint(
+              '📊 Current quota before update: ${currentQuota.remainingMessages} messages',
+            );
           } else {
             debugPrint('📊 No quota found, will create default quota');
           }
@@ -484,7 +631,9 @@ class ChatRepository {
               messagesSent: currentQuota.messagesSent + 1,
             );
             transaction.set(quotaRef, updatedQuota.toJson());
-            debugPrint('📊 Updated quota: ${updatedQuota.remainingMessages} messages remaining');
+            debugPrint(
+              '📊 Updated quota: ${updatedQuota.remainingMessages} messages remaining',
+            );
           } else {
             // No quota exists - create default with 1 message already sent
             debugPrint('📊 Creating default quota with 1 message sent');
@@ -497,26 +646,25 @@ class ChatRepository {
               createdAt: DateTime.now(),
             );
             transaction.set(quotaRef, updatedQuota.toJson());
-            debugPrint('📊 Created new quota: ${updatedQuota.remainingMessages} messages remaining');
+            debugPrint(
+              '📊 Created new quota: ${updatedQuota.remainingMessages} messages remaining',
+            );
           }
         }
 
         // 3. Update XP if needed
         if (useXP) {
           final userRef = _firestore.collection('users').doc(userId);
-          transaction.update(userRef, {
-            'xpPoints': FieldValue.increment(-1),
-          });
+          transaction.update(userRef, {'xpPoints': FieldValue.increment(-1)});
           debugPrint('⭐ XP decremented by 1');
         }
 
-        return {
-          'message': message,
-          'quota': updatedQuota,
-        };
+        return {'message': message, 'quota': updatedQuota};
       });
 
-      debugPrint('✅ BATCH: Message sent with quota/XP update in single transaction');
+      debugPrint(
+        '✅ BATCH: Message sent with quota/XP update in single transaction',
+      );
       return result;
     } catch (e) {
       debugPrint('❌ BATCH: Failed to send message with quota update: $e');
@@ -525,7 +673,11 @@ class ChatRepository {
   }
 
   // Mark message as read
-  Future<void> markMessageAsRead(String roomId, String messageId, String userId) async {
+  Future<void> markMessageAsRead(
+    String roomId,
+    String messageId,
+    String userId,
+  ) async {
     try {
       final docRef = _firestore
           .collection('chats')
@@ -550,7 +702,12 @@ class ChatRepository {
   }
 
   // Upload media file
-  Future<String> uploadMediaFile(String roomId, String filePath, String fileName, String contentType) async {
+  Future<String> uploadMediaFile(
+    String roomId,
+    String filePath,
+    String fileName,
+    String contentType,
+  ) async {
     try {
       final storageRef = _storage.ref().child('chat_media/$roomId/$fileName');
       final uploadTask = storageRef.putFile(
@@ -636,7 +793,10 @@ class ChatRepository {
   // Create or update user quota
   Future<void> updateUserQuota(UserQuota quota) async {
     try {
-      await _firestore.collection('user_quotas').doc(quota.userId).set(quota.toJson());
+      await _firestore
+          .collection('user_quotas')
+          .doc(quota.userId)
+          .set(quota.toJson());
     } catch (e) {
       throw Exception('Failed to update user quota: $e');
     }
@@ -670,7 +830,7 @@ class ChatRepository {
     }
   }
 
-  // Create a poll
+  // Create a poll - Optimized with indexing
   Future<Poll> createPoll(String roomId, Poll poll) async {
     try {
       final docRef = _firestore
@@ -680,6 +840,11 @@ class ChatRepository {
           .doc(poll.pollId);
 
       await docRef.set(poll.toJson());
+
+      // Update poll index for faster lookups
+      await _updatePollIndex(poll.pollId, roomId);
+
+      debugPrint('✅ Poll created and indexed: ${poll.pollId} in room $roomId');
       return poll;
     } catch (e) {
       throw Exception('Failed to create poll: $e');
@@ -696,25 +861,59 @@ class ChatRepository {
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
             data['pollId'] = doc.id;
             return Poll.fromJson(data);
           }).toList();
         });
   }
 
-  // Get a specific poll by ID from any room
+  // Get a specific poll by ID from any room - Optimized with indexing
   Future<Poll?> getPollById(String pollId) async {
     try {
-      // Since polls are stored per room, we need to find which room contains this poll
-      // This is a simplified approach - in production, you'd want to index polls differently
-      final roomsSnapshot = await _firestore.collection('chats').get();
+      // First, try to get location from poll index
+      final indexDoc = await _firestore
+          .collection('poll_index')
+          .doc(pollId)
+          .get();
 
-      for (final roomDoc in roomsSnapshot.docs) {
-        final pollDoc = await roomDoc.reference.collection('polls').doc(pollId).get();
+      if (indexDoc.exists) {
+        final indexData = indexDoc.data()!;
+        final roomId = indexData['roomId'];
+
+        debugPrint('🎯 Found poll in indexed room: $roomId');
+
+        // Direct query using room ID from index
+        final pollDoc = await _firestore
+            .collection('chats')
+            .doc(roomId)
+            .collection('polls')
+            .doc(pollId)
+            .get();
+
         if (pollDoc.exists) {
           final data = pollDoc.data() as Map<String, dynamic>;
           data['pollId'] = pollDoc.id;
+          return Poll.fromJson(data);
+        }
+      }
+
+      // Fallback: Optimized search with early termination
+      debugPrint('🔄 Poll index not found, using optimized search');
+      final roomsSnapshot = await _firestore.collection('chats').get();
+
+      for (final roomDoc in roomsSnapshot.docs) {
+        final pollDoc = await roomDoc.reference
+            .collection('polls')
+            .doc(pollId)
+            .get();
+        if (pollDoc.exists) {
+          final data = pollDoc.data() as Map<String, dynamic>;
+          data['pollId'] = pollDoc.id;
+
+          // Update index for future queries
+          await _updatePollIndex(pollId, roomDoc.id);
+
           return Poll.fromJson(data);
         }
       }
@@ -725,18 +924,50 @@ class ChatRepository {
     }
   }
 
-  // Vote on a poll (finds the poll in any room)
+  // Update poll index for faster lookups
+  Future<void> _updatePollIndex(String pollId, String roomId) async {
+    try {
+      await _firestore.collection('poll_index').doc(pollId).set({
+        'roomId': roomId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('⚠️ Failed to update poll index: $e');
+      // Don't throw - this is not critical
+    }
+  }
+
+  // Vote on a poll (finds the poll in any room) - Optimized with indexing
   Future<void> voteOnPoll(String pollId, String userId, String option) async {
     try {
-      // Find which room contains this poll
-      final roomsSnapshot = await _firestore.collection('chats').get();
+      // First try to get room ID from poll index
+      final indexDoc = await _firestore
+          .collection('poll_index')
+          .doc(pollId)
+          .get();
       String? roomId;
 
-      for (final roomDoc in roomsSnapshot.docs) {
-        final pollDoc = await roomDoc.reference.collection('polls').doc(pollId).get();
-        if (pollDoc.exists) {
-          roomId = roomDoc.id;
-          break;
+      if (indexDoc.exists) {
+        final indexData = indexDoc.data()!;
+        roomId = indexData['roomId'];
+        debugPrint('🎯 Found poll room from index: $roomId');
+      } else {
+        // Fallback: Optimized search
+        debugPrint('🔄 Poll index not found, using optimized search');
+        final roomsSnapshot = await _firestore.collection('chats').get();
+
+        for (final roomDoc in roomsSnapshot.docs) {
+          final pollDoc = await roomDoc.reference
+              .collection('polls')
+              .doc(pollId)
+              .get();
+          if (pollDoc.exists) {
+            roomId = roomDoc.id;
+
+            // Update index for future queries
+            await _updatePollIndex(pollId, roomId);
+            break;
+          }
         }
       }
 
@@ -774,13 +1005,20 @@ class ChatRepository {
           'userVotes': poll.userVotes,
         });
       });
+
+      debugPrint('✅ Vote recorded for poll $pollId by user $userId');
     } catch (e) {
       throw Exception('Failed to vote on poll: $e');
     }
   }
 
   // Add reaction to message
-  Future<void> addReactionToMessage(String roomId, String messageId, String userId, String emoji) async {
+  Future<void> addReactionToMessage(
+    String roomId,
+    String messageId,
+    String userId,
+    String emoji,
+  ) async {
     try {
       final messageRef = _firestore
           .collection('chats')
@@ -817,7 +1055,12 @@ class ChatRepository {
   }
 
   // Report a message
-  Future<void> reportMessage(String roomId, String messageId, String reporterId, String reason) async {
+  Future<void> reportMessage(
+    String roomId,
+    String messageId,
+    String reporterId,
+    String reason,
+  ) async {
     try {
       final reportId = _uuid.v4();
       await _firestore.collection('reported_messages').doc(reportId).set({
@@ -912,14 +1155,23 @@ class ChatRepository {
   }
 
   // Get candidate user IDs in a specific ward
-  Future<List<String>> _getCandidateIdsInWard(String districtId, String bodyId, String wardId) async {
+  Future<List<String>> _getCandidateIdsInWard(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
     // BREAKPOINT CANDIDATE-1: Start of _getCandidateIdsInWard
-    debugPrint('🔍 BREAKPOINT CANDIDATE-1: Getting candidates for ward $wardId in body $bodyId, district $districtId');
+    debugPrint(
+      '🔍 BREAKPOINT CANDIDATE-1: Getting candidates for ward $wardId in body $bodyId, district $districtId',
+    );
 
     try {
       // BREAKPOINT CANDIDATE-2: Before Firestore query
-      debugPrint('🔍 BREAKPOINT CANDIDATE-2: Querying Firestore for candidates');
-      final query = _firestore.collection('users')
+      debugPrint(
+        '🔍 BREAKPOINT CANDIDATE-2: Querying Firestore for candidates',
+      );
+      final query = _firestore
+          .collection('users')
           .where('role', isEqualTo: 'candidate')
           .where('districtId', isEqualTo: districtId)
           .where('bodyId', isEqualTo: bodyId)
@@ -928,23 +1180,33 @@ class ChatRepository {
       final snapshot = await query.get();
 
       // BREAKPOINT CANDIDATE-3: After query results
-      debugPrint('🔍 BREAKPOINT CANDIDATE-3: Found ${snapshot.docs.length} candidate documents');
+      debugPrint(
+        '🔍 BREAKPOINT CANDIDATE-3: Found ${snapshot.docs.length} candidate documents',
+      );
       final candidateIds = snapshot.docs.map((doc) => doc.id).toList();
       debugPrint('🔍 BREAKPOINT CANDIDATE-3: Candidate IDs: $candidateIds');
 
       // BREAKPOINT CANDIDATE-4: Returning result
-      debugPrint('🔍 BREAKPOINT CANDIDATE-4: Returning ${candidateIds.length} candidate IDs');
+      debugPrint(
+        '🔍 BREAKPOINT CANDIDATE-4: Returning ${candidateIds.length} candidate IDs',
+      );
       return candidateIds;
     } catch (e) {
-      debugPrint('❌ BREAKPOINT CANDIDATE-5: Error getting candidate IDs in ward: $e');
+      debugPrint(
+        '❌ BREAKPOINT CANDIDATE-5: Error getting candidate IDs in ward: $e',
+      );
       return [];
     }
   }
 
   // Check if ward room exists
-  Future<bool> wardRoomExists(String districtId, String bodyId, String wardId) async {
+  Future<bool> wardRoomExists(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
     try {
-      final wardRoomId = 'ward_${districtId}_${bodyId}_${wardId}';
+      final wardRoomId = 'ward_${districtId}_${bodyId}_$wardId';
       final doc = await _firestore.collection('chats').doc(wardRoomId).get();
       return doc.exists;
     } catch (e) {
@@ -954,9 +1216,14 @@ class ChatRepository {
   }
 
   // Check if area room exists
-  Future<bool> areaRoomExists(String districtId, String bodyId, String wardId, String areaId) async {
+  Future<bool> areaRoomExists(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String areaId,
+  ) async {
     try {
-      final areaRoomId = 'area_${districtId}_${bodyId}_${wardId}_${areaId}';
+      final areaRoomId = 'area_${districtId}_${bodyId}_${wardId}_$areaId';
       final doc = await _firestore.collection('chats').doc(areaRoomId).get();
       return doc.exists;
     } catch (e) {
@@ -966,9 +1233,15 @@ class ChatRepository {
   }
 
   // Create area room if it doesn't exist
-  Future<bool> createAreaRoomIfNeeded(String districtId, String bodyId, String wardId, String areaId, String creatorId) async {
+  Future<bool> createAreaRoomIfNeeded(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String areaId,
+    String creatorId,
+  ) async {
     try {
-      final areaRoomId = 'area_${districtId}_${bodyId}_${wardId}_${areaId}';
+      final areaRoomId = 'area_${districtId}_${bodyId}_${wardId}_$areaId';
 
       // Check if room already exists
       if (await areaRoomExists(districtId, bodyId, wardId, areaId)) {
@@ -1008,9 +1281,14 @@ class ChatRepository {
   }
 
   // Create ward room if it doesn't exist
-  Future<bool> createWardRoomIfNeeded(String districtId, String bodyId, String wardId, String creatorId) async {
+  Future<bool> createWardRoomIfNeeded(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String creatorId,
+  ) async {
     try {
-      final wardRoomId = 'ward_${districtId}_${bodyId}_${wardId}';
+      final wardRoomId = 'ward_${districtId}_${bodyId}_$wardId';
 
       // Check if room already exists
       if (await wardRoomExists(districtId, bodyId, wardId)) {
@@ -1029,7 +1307,9 @@ class ChatRepository {
         createdAt: DateTime.now(),
         createdBy: creatorId,
         type: 'public',
-        title: (districtName.isNotEmpty && wardName.isNotEmpty) ? '$districtName - $wardName' : 'Ward $wardId',
+        title: (districtName.isNotEmpty && wardName.isNotEmpty)
+            ? '$districtName - $wardName'
+            : 'Ward $wardId',
         description: wardName.isNotEmpty
             ? 'Public discussion for $wardName in $bodyName'
             : 'Public discussion forum for Ward $wardId residents in $bodyName',
@@ -1051,7 +1331,10 @@ class ChatRepository {
   // Helper methods for district, body and ward names
   Future<String> _getDistrictName(String districtId) async {
     try {
-      final districtDoc = await _firestore.collection('districts').doc(districtId).get();
+      final districtDoc = await _firestore
+          .collection('districts')
+          .doc(districtId)
+          .get();
       if (districtDoc.exists) {
         final data = districtDoc.data();
         return data?['name'] ?? districtId.toUpperCase();
@@ -1080,7 +1363,11 @@ class ChatRepository {
     return bodyId;
   }
 
-  Future<String> _getWardName(String districtId, String bodyId, String wardId) async {
+  Future<String> _getWardName(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
     try {
       // Get from districts -> bodies -> wards structure
       final wardDoc = await _firestore
@@ -1115,7 +1402,12 @@ class ChatRepository {
   }
 
   // Get area name from district ID, body ID, ward ID and area ID
-  Future<String> _getAreaName(String districtId, String bodyId, String wardId, String areaId) async {
+  Future<String> _getAreaName(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String areaId,
+  ) async {
     try {
       // Get from districts -> bodies -> wards -> areas structure
       final areaDoc = await _firestore
@@ -1140,15 +1432,27 @@ class ChatRepository {
   }
 
   // Get unread message count for user
-  Future<int> getUnreadMessageCount(String userId, {String? userRole, String? districtId, String? bodyId, String? wardId, String? area}) async {
+  Future<int> getUnreadMessageCount(
+    String userId, {
+    String? userRole,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  }) async {
     try {
       // Get user's role and location if not provided
-      if (userRole == null || districtId == null || wardId == null || area == null) {
+      if (userRole == null ||
+          districtId == null ||
+          wardId == null ||
+          area == null) {
         final userDoc = await _firestore.collection('users').doc(userId).get();
         if (userDoc.exists) {
           final userData = userDoc.data()!;
           userRole ??= userData['role'] ?? 'voter';
-          districtId ??= userData['districtId'] ?? userData['cityId']; // Backward compatibility
+          districtId ??=
+              userData['districtId'] ??
+              userData['cityId']; // Backward compatibility
           bodyId ??= userData['bodyId'];
           wardId ??= userData['wardId'];
           area ??= userData['area'];
@@ -1156,8 +1460,14 @@ class ChatRepository {
       }
 
       // Get accessible rooms for this user (this will now use selective candidate filtering)
-      final rooms = await getChatRoomsForUser(userId, userRole ?? 'voter',
-        districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
+      final rooms = await getChatRoomsForUser(
+        userId,
+        userRole ?? 'voter',
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+        area: area,
+      );
       int totalUnread = 0;
 
       for (final room in rooms) {

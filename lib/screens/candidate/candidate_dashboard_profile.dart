@@ -10,7 +10,8 @@ class CandidateDashboardProfile extends StatefulWidget {
   const CandidateDashboardProfile({super.key});
 
   @override
-  State<CandidateDashboardProfile> createState() => _CandidateDashboardProfileState();
+  State<CandidateDashboardProfile> createState() =>
+      _CandidateDashboardProfileState();
 }
 
 class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
@@ -18,7 +19,8 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
   bool isEditing = false;
 
   // Global key to access profile section for file uploads
-  final GlobalKey<ProfileTabEditState> _profileSectionKey = GlobalKey<ProfileTabEditState>();
+  final GlobalKey<ProfileTabEditState> _profileSectionKey =
+      GlobalKey<ProfileTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -73,32 +75,49 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
 
                         try {
                           // First, upload any pending local files to Firebase
-                          final profileSectionState = _profileSectionKey.currentState;
+                          final profileSectionState =
+                              _profileSectionKey.currentState;
                           if (profileSectionState != null) {
-                            messageController.add('Uploading files to cloud...');
+                            messageController.add(
+                              'Uploading files to cloud...',
+                            );
                             await profileSectionState.uploadPendingFiles();
                           }
 
                           // Then save the profile data
                           final success = await controller.saveExtraInfo(
-                            onProgress: (message) => messageController.add(message),
+                            onProgress: (message) =>
+                                messageController.add(message),
                           );
 
                           if (success) {
                             // Update progress: Success
-                            messageController.add('Profile saved successfully!');
+                            messageController.add(
+                              'Profile saved successfully!',
+                            );
 
                             // Wait a moment to show success message
-                            await Future.delayed(const Duration(milliseconds: 800));
+                            await Future.delayed(
+                              const Duration(milliseconds: 800),
+                            );
 
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar('Success', 'Profile updated successfully', backgroundColor: Colors.green, colorText: Colors.white);
+                              Get.snackbar(
+                                'Success',
+                                'Profile updated successfully',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
                             }
                           } else {
                             if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close loading dialog
                               Get.snackbar('Error', 'Failed to update profile');
                             }
                           }
@@ -113,8 +132,8 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                         }
                       },
                       backgroundColor: Colors.green,
-                      child: const Icon(Icons.save, size: 28),
                       tooltip: 'Save Changes',
+                      child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
                     FloatingActionButton(
@@ -124,8 +143,8 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      child: const Icon(Icons.cancel, size: 28),
                       tooltip: 'Cancel',
+                      child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
                 ),
@@ -136,8 +155,8 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                   heroTag: 'edit_profile',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.edit, size: 28),
                   tooltip: 'Edit Profile',
+                  child: const Icon(Icons.edit, size: 28),
                 ),
               ),
       );

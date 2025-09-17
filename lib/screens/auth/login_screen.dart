@@ -15,9 +15,7 @@ class LoginScreen extends StatelessWidget {
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -32,9 +30,11 @@ class LoginScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 40),
-                    Obx(() => controller.isOTPScreen.value
-                        ? _buildOTPScreen(context, controller)
-                        : _buildPhoneInputScreen(context, controller)),
+                    Obx(
+                      () => controller.isOTPScreen.value
+                          ? _buildOTPScreen(context, controller)
+                          : _buildPhoneInputScreen(context, controller),
+                    ),
                     const SizedBox(height: 20),
                     _buildGoogleSignInButton(context, controller),
                   ],
@@ -47,7 +47,10 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPhoneInputScreen(BuildContext context, LoginController controller) {
+  Widget _buildPhoneInputScreen(
+    BuildContext context,
+    LoginController controller,
+  ) {
     return Column(
       children: [
         TextField(
@@ -61,29 +64,33 @@ class LoginScreen extends StatelessWidget {
           maxLength: 10,
         ),
         const SizedBox(height: 20),
-        Obx(() => ElevatedButton(
-          onPressed: controller.isLoading.value ? null : controller.sendOTP,
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 50),
-          ),
-          child: controller.isLoading.value
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        Obx(
+          () => ElevatedButton(
+            onPressed: controller.isLoading.value ? null : controller.sendOTP,
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+            ),
+            child: controller.isLoading.value
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 10),
-                    Text(AppLocalizations.of(context)!.sending),
-                  ],
-                )
-              : Text(AppLocalizations.of(context)!.sendOTP),
-        )),
+                      SizedBox(width: 10),
+                      Text(AppLocalizations.of(context)!.sending),
+                    ],
+                  )
+                : Text(AppLocalizations.of(context)!.sendOTP),
+          ),
+        ),
       ],
     );
   }
@@ -92,7 +99,9 @@ class LoginScreen extends StatelessWidget {
     return Column(
       children: [
         Text(
-          AppLocalizations.of(context)!.enterOTP(controller.phoneController.text),
+          AppLocalizations.of(
+            context,
+          )!.enterOTP(controller.phoneController.text),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
@@ -109,29 +118,35 @@ class LoginScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Obx(() => ElevatedButton(
-                onPressed: controller.isLoading.value ? null : controller.verifyOTP,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: controller.isLoading.value
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              child: Obx(
+                () => ElevatedButton(
+                  onPressed: controller.isLoading.value
+                      ? null
+                      : controller.verifyOTP,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: controller.isLoading.value
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 10),
-                          Text(AppLocalizations.of(context)!.verifying),
-                        ],
-                      )
-                    : Text(AppLocalizations.of(context)!.verifyOTP),
-              )),
+                            SizedBox(width: 10),
+                            Text(AppLocalizations.of(context)!.verifying),
+                          ],
+                        )
+                      : Text(AppLocalizations.of(context)!.verifyOTP),
+                ),
+              ),
             ),
           ],
         ),
@@ -144,24 +159,31 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGoogleSignInButton(BuildContext context, LoginController controller) {
-    return Obx(() => OutlinedButton.icon(
-      onPressed: controller.isLoading.value ? null : controller.signInWithGoogle,
-      icon: controller.isLoading.value
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.login),
-      label: Text(
-        controller.isLoading.value
-            ? 'Signing in...'
-            : AppLocalizations.of(context)!.signInWithGoogle,
+  Widget _buildGoogleSignInButton(
+    BuildContext context,
+    LoginController controller,
+  ) {
+    return Obx(
+      () => OutlinedButton.icon(
+        onPressed: controller.isLoading.value
+            ? null
+            : controller.signInWithGoogle,
+        icon: controller.isLoading.value
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.login),
+        label: Text(
+          controller.isLoading.value
+              ? 'Signing in...'
+              : AppLocalizations.of(context)!.signInWithGoogle,
+        ),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 50),
+        ),
       ),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 50),
-      ),
-    ));
+    );
   }
 }

@@ -9,10 +9,10 @@ class FollowersListScreen extends StatefulWidget {
   final String candidateName;
 
   const FollowersListScreen({
-    Key? key,
+    super.key,
     required this.candidateId,
     required this.candidateName,
-  }) : super(key: key);
+  });
 
   @override
   State<FollowersListScreen> createState() => _FollowersListScreenState();
@@ -58,7 +58,9 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
       });
 
       // Add timeout to prevent infinite loading
-      final followersFuture = controller.getCandidateFollowers(widget.candidateId);
+      final followersFuture = controller.getCandidateFollowers(
+        widget.candidateId,
+      );
       followers = await followersFuture.timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -121,10 +123,7 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
                     _isLoadingLong
                         ? 'Loading is taking longer than expected...'
                         : 'Loading followers...',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   if (_isLoadingLong) ...[
                     const SizedBox(height: 8),
@@ -142,143 +141,143 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
               ),
             )
           : errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadFollowers,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
                   ),
-                )
-              : followers.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No followers yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Be the first to follow ${widget.candidateName}!',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadFollowers,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : followers.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No followers yet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Be the first to follow ${widget.candidateName}!',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadFollowers,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: followers.length,
+                itemBuilder: (context, index) {
+                  final follower = followers[index];
+                  final userId = follower['userId'] as String;
+                  final userData = userDataCache[userId];
+                  final followedAt = follower['followedAt'] as Timestamp?;
+                  final notificationsEnabled =
+                      follower['notificationsEnabled'] as bool? ?? true;
+
+                  // Get user display name
+                  final displayName = userData != null
+                      ? (userData['name'] as String?) ?? 'Unknown User'
+                      : 'Loading...';
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).primaryColor.withOpacity(0.1),
+                        backgroundImage:
+                            userData != null && userData['photoURL'] != null
+                            ? NetworkImage(userData['photoURL'])
+                            : null,
+                        child: userData == null || userData['photoURL'] == null
+                            ? Icon(
+                                Icons.person,
+                                color: Theme.of(context).primaryColor,
+                              )
+                            : null,
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadFollowers,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: followers.length,
-                        itemBuilder: (context, index) {
-                          final follower = followers[index];
-                          final userId = follower['userId'] as String;
-                          final userData = userDataCache[userId];
-                          final followedAt = follower['followedAt'] as Timestamp?;
-                          final notificationsEnabled = follower['notificationsEnabled'] as bool? ?? true;
-
-                          // Get user display name
-                          final displayName = userData != null
-                              ? (userData['name'] as String?) ?? 'Unknown User'
-                              : 'Loading...';
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                                backgroundImage: userData != null && userData['photoURL'] != null
-                                    ? NetworkImage(userData['photoURL'])
-                                    : null,
-                                child: userData == null || userData['photoURL'] == null
-                                    ? Icon(
-                                        Icons.person,
-                                        color: Theme.of(context).primaryColor,
-                                      )
-                                    : null,
+                      title: Text(
+                        displayName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (followedAt != null)
+                            Text(
+                              'Followed ${_formatDate(followedAt.toDate())}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
                               ),
-                              title: Text(
-                                displayName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
+                            ),
+                          if (notificationsEnabled)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.notifications,
+                                  size: 14,
+                                  color: Colors.grey[600],
                                 ),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (followedAt != null)
-                                    Text(
-                                      'Followed ${_formatDate(followedAt.toDate())}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  if (notificationsEnabled)
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.notifications,
-                                          size: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Notifications enabled',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Follower',
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Notifications enabled',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Theme.of(context).primaryColor,
-                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[600],
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          );
-                        },
+                        ],
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Follower',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 

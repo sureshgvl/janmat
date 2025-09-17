@@ -21,9 +21,15 @@ class ContactSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = editedData ?? candidateData;
     final contact = data.extraInfo?.contact ?? data.contact;
-    final phone = contact is ExtendedContact ? contact.phone : (contact as Contact).phone;
-    final email = contact is ExtendedContact ? contact.email : (contact as Contact).email;
-    final socialLinks = contact is ExtendedContact ? contact.socialLinks : (contact as Contact).socialLinks;
+    final phone = contact is ExtendedContact
+        ? contact.phone
+        : (contact as Contact).phone;
+    final email = contact is ExtendedContact
+        ? contact.email
+        : (contact as Contact).email;
+    final socialLinks = contact is ExtendedContact
+        ? contact.socialLinks
+        : (contact as Contact).socialLinks;
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -34,10 +40,7 @@ class ContactSection extends StatelessWidget {
           children: [
             const Text(
               'Contact Information',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             if (isEditing) ...[
@@ -60,7 +63,10 @@ class ContactSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               // Social links
-              const Text('Social Links', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Social Links',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               TextFormField(
                 initialValue: socialLinks?['facebook'] ?? '',
                 decoration: const InputDecoration(

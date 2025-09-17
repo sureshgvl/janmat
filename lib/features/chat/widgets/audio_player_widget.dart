@@ -97,7 +97,9 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: widget.isCurrentUser ? Colors.green.shade50 : Colors.grey.shade100,
+        color: widget.isCurrentUser
+            ? Colors.green.shade50
+            : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -113,7 +115,9 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   )
                 : Icon(
                     _isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: widget.isCurrentUser ? Colors.green.shade700 : Colors.blue.shade600,
+                    color: widget.isCurrentUser
+                        ? Colors.green.shade700
+                        : Colors.blue.shade600,
                     size: 24,
                   ),
             onPressed: _playPauseAudio,
@@ -134,7 +138,9 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   width: 2,
                   height: _isPlaying ? (8 + (index % 3) * 4).toDouble() : 4,
                   decoration: BoxDecoration(
-                    color: widget.isCurrentUser ? Colors.green.shade400 : Colors.blue.shade400,
+                    color: widget.isCurrentUser
+                        ? Colors.green.shade400
+                        : Colors.blue.shade400,
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
@@ -148,7 +154,9 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                 ? '${MessageFormatter.formatDuration(_currentPosition)} / ${MessageFormatter.formatDuration(_audioDuration)}'
                 : 'Voice message',
             style: TextStyle(
-              color: widget.isCurrentUser ? Colors.green.shade700 : Colors.blue.shade600,
+              color: widget.isCurrentUser
+                  ? Colors.green.shade700
+                  : Colors.blue.shade600,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

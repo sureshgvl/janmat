@@ -69,10 +69,7 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
           children: [
             const Text(
               'Profile Details',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             if (widget.isEditing)
@@ -84,10 +81,7 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
                     labelText: 'Bio',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: const Icon(
-                        Icons.lightbulb,
-                        color: Colors.amber,
-                      ),
+                      icon: const Icon(Icons.lightbulb, color: Colors.amber),
                       onPressed: () {
                         showDialog(
                           context: context,

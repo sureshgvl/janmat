@@ -131,13 +131,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumFeatures => 'Premium Features';
 
   @override
-  String get upgradeToUnlockPremiumFeatures => 'Upgrade to unlock premium features';
+  String get upgradeToUnlockPremiumFeatures =>
+      'Upgrade to unlock premium features';
 
   @override
   String get deleteAccount => 'Delete Account';
 
   @override
-  String get permanentlyDeleteYourAccountAndData => 'Permanently delete your account and data';
+  String get permanentlyDeleteYourAccountAndData =>
+      'Permanently delete your account and data';
 
   @override
   String get error => 'Error';
@@ -148,16 +150,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get manageYourCampaignAndConnectWithVoters => 'Manage your campaign and connect with voters';
+  String get manageYourCampaignAndConnectWithVoters =>
+      'Manage your campaign and connect with voters';
 
   @override
-  String get stayInformedAboutYourLocalCandidates => 'Stay informed about your local candidates';
+  String get stayInformedAboutYourLocalCandidates =>
+      'Stay informed about your local candidates';
 
   @override
   String get premiumTrialActive => 'Premium Trial Active';
 
   @override
-  String get oneDayRemainingUpgrade => '1 day remaining - Upgrade to continue premium features!';
+  String get oneDayRemainingUpgrade =>
+      '1 day remaining - Upgrade to continue premium features!';
 
   @override
   String daysRemainingInTrial(Object days) {
@@ -171,19 +176,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upgradeAvailable => 'Upgrade Available';
 
   @override
-  String get premiumUpgradeFeatureComingSoon => 'Premium upgrade feature coming soon!';
+  String get premiumUpgradeFeatureComingSoon =>
+      'Premium upgrade feature coming soon!';
 
   @override
   String get unlockPremiumFeatures => 'Unlock Premium Features';
 
   @override
-  String get enjoyFullPremiumFeaturesDuringTrial => 'Enjoy full premium features during your trial';
+  String get enjoyFullPremiumFeaturesDuringTrial =>
+      'Enjoy full premium features during your trial';
 
   @override
-  String get getPremiumVisibilityAndAnalytics => 'Get premium visibility and analytics';
+  String get getPremiumVisibilityAndAnalytics =>
+      'Get premium visibility and analytics';
 
   @override
-  String get accessExclusiveContentAndFeatures => 'Access exclusive content and features';
+  String get accessExclusiveContentAndFeatures =>
+      'Access exclusive content and features';
 
   @override
   String get explorePremium => 'Explore Premium';
@@ -198,10 +207,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageYourCampaign => 'Manage Your Campaign';
 
   @override
-  String get viewAnalyticsAndUpdateYourProfile => 'View analytics and update your profile';
+  String get viewAnalyticsAndUpdateYourProfile =>
+      'View analytics and update your profile';
 
   @override
-  String get deleteAccountConfirmation => 'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including:\n\n• Your profile information\n• Chat conversations and messages\n• XP points and rewards\n• Following/followers data\n\nThis action is irreversible.';
+  String get deleteAccountConfirmation =>
+      'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including:\n\n• Your profile information\n• Chat conversations and messages\n• XP points and rewards\n• Following/followers data\n\nThis action is irreversible.';
 
   @override
   String get cancel => 'Cancel';
@@ -210,7 +221,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get success => 'Success';
 
   @override
-  String get accountDeletedSuccessfully => 'Your account has been deleted successfully.';
+  String get accountDeletedSuccessfully =>
+      'Your account has been deleted successfully.';
 
   @override
   String failedToDeleteAccount(Object error) {
@@ -333,7 +345,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageLimitReached => 'Message Limit Reached';
 
   @override
-  String get messageLimitReachedDescription => 'You have reached your daily message limit. Choose an option to continue:';
+  String get messageLimitReachedDescription =>
+      'You have reached your daily message limit. Choose an option to continue:';
 
   @override
   String remainingMessages(Object count) {
@@ -380,7 +393,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get create => 'Create';
 
   @override
-  String get initializeSampleDataDescription => 'This will create sample chat rooms and messages for testing purposes. This is only available for admin users.\n\nContinue?';
+  String get initializeSampleDataDescription =>
+      'This will create sample chat rooms and messages for testing purposes. This is only available for admin users.\n\nContinue?';
 
   @override
   String get initialize => 'Initialize';
@@ -452,7 +466,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fullscreen => 'Fullscreen';
 
   @override
-  String get janMatAppDemoDescription => 'JanMat App Demo - Watch how our platform works';
+  String get janMatAppDemoDescription =>
+      'JanMat App Demo - Watch how our platform works';
 
   @override
   String get videos => 'Videos';
@@ -539,7 +554,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updatePartyAffiliationHeader => 'Update Your Party Affiliation';
 
   @override
-  String get updatePartyAffiliationSubtitle => 'Change your party or become independent with a custom symbol.';
+  String get updatePartyAffiliationSubtitle =>
+      'Change your party or become independent with a custom symbol.';
 
   @override
   String get currentParty => 'Current Party';
@@ -562,13 +578,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get symbolNameHint => 'e.g., Table, Chair, Whistle, Book, etc.';
 
   @override
-  String get symbolNameValidation => 'Please enter a symbol name for independent candidates';
+  String get symbolNameValidation =>
+      'Please enter a symbol name for independent candidates';
 
   @override
   String get symbolImageOptional => 'Symbol Image (Optional)';
 
   @override
-  String get symbolImageDescription => 'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
+  String get symbolImageDescription =>
+      'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
 
   @override
   String get uploadSymbolImage => 'Upload Symbol Image';
@@ -577,10 +595,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importantNotice => 'Important Notice';
 
   @override
-  String get partyChangeWarning => 'Changing your party affiliation will update your profile immediately. This change will be visible to all voters.';
+  String get partyChangeWarning =>
+      'Changing your party affiliation will update your profile immediately. This change will be visible to all voters.';
 
   @override
-  String get partyUpdateSuccess => 'Your party and symbol have been updated successfully!';
+  String get partyUpdateSuccess =>
+      'Your party and symbol have been updated successfully!';
 
   @override
   String partyUpdateError(Object error) {
@@ -596,46 +616,55 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get symbolImageSizeLimitError => 'Image size must be less than 5MB. Please select a smaller image.';
+  String get symbolImageSizeLimitError =>
+      'Image size must be less than 5MB. Please select a smaller image.';
 
   @override
   String get updatingText => 'Updating...';
 
   @override
-  String get updateInstructionText => 'Tap update to save your party and symbol changes';
+  String get updateInstructionText =>
+      'Tap update to save your party and symbol changes';
 
   @override
   String get chooseYourRole => 'Choose Your Role';
 
   @override
-  String get howWouldYouLikeToParticipate => 'How would you like to participate?';
+  String get howWouldYouLikeToParticipate =>
+      'How would you like to participate?';
 
   @override
-  String get selectYourRoleToCustomizeExperience => 'Select your role to customize your experience in the community.';
+  String get selectYourRoleToCustomizeExperience =>
+      'Select your role to customize your experience in the community.';
 
   @override
   String get voter => 'Voter';
 
   @override
-  String get stayInformedAndParticipateInDiscussions => 'Stay informed and participate in discussions';
+  String get stayInformedAndParticipateInDiscussions =>
+      'Stay informed and participate in discussions';
 
   @override
-  String get accessWardDiscussionsPollsAndCommunityUpdates => 'Access ward discussions, polls, and community updates';
+  String get accessWardDiscussionsPollsAndCommunityUpdates =>
+      'Access ward discussions, polls, and community updates';
 
   @override
   String get candidate => 'Candidate';
 
   @override
-  String get runForOfficeAndConnectWithVoters => 'Run for office and connect with voters';
+  String get runForOfficeAndConnectWithVoters =>
+      'Run for office and connect with voters';
 
   @override
-  String get createYourProfileShareManifestoAndEngageWithCommunity => 'Create your profile, share manifesto, and engage with community';
+  String get createYourProfileShareManifestoAndEngageWithCommunity =>
+      'Create your profile, share manifesto, and engage with community';
 
   @override
   String get continueButton => 'Continue';
 
   @override
-  String get youCanChangeYourRoleLaterInSettings => 'You can change your role later in settings';
+  String get youCanChangeYourRoleLaterInSettings =>
+      'You can change your role later in settings';
 
   @override
   String get pleaseSelectARoleToContinue => 'Please select a role to continue';
@@ -644,10 +673,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roleSelected => 'Role Selected!';
 
   @override
-  String get youSelectedCandidatePleaseCompleteYourProfile => 'You selected Candidate. Please complete your profile.';
+  String get youSelectedCandidatePleaseCompleteYourProfile =>
+      'You selected Candidate. Please complete your profile.';
 
   @override
-  String get youSelectedVoterPleaseCompleteYourProfile => 'You selected Voter. Please complete your profile.';
+  String get youSelectedVoterPleaseCompleteYourProfile =>
+      'You selected Voter. Please complete your profile.';
 
   @override
   String failedToSaveRole(Object error) {
@@ -658,7 +689,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completeYourProfile => 'Complete Your Profile';
 
   @override
-  String get welcomeCompleteYourProfile => 'Welcome! Please complete your profile to continue.';
+  String get welcomeCompleteYourProfile =>
+      'Welcome! Please complete your profile to continue.';
 
   @override
   String preFilledFromAccount(Object loginMethod) {
@@ -744,7 +776,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseEnterYourName => 'Please enter your name';
 
   @override
-  String get nameMustBeAtLeast2Characters => 'Name must be at least 2 characters';
+  String get nameMustBeAtLeast2Characters =>
+      'Name must be at least 2 characters';
 
   @override
   String get pleaseEnterYourPhoneNumber => 'Please enter your phone number';
@@ -783,10 +816,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileCompleted => 'Profile Completed!';
 
   @override
-  String get basicProfileCompletedSetupCandidate => 'Basic profile completed. Now set up your candidate profile.';
+  String get basicProfileCompletedSetupCandidate =>
+      'Basic profile completed. Now set up your candidate profile.';
 
   @override
-  String get profileCompletedWardChatCreated => 'Profile completed! Your ward chat room has been created.';
+  String get profileCompletedWardChatCreated =>
+      'Profile completed! Your ward chat room has been created.';
 
   @override
   String get autoFilledFromAccount => 'Auto-filled from your account';
@@ -798,10 +833,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completeYourCandidateProfile => 'Complete Your Candidate Profile';
 
   @override
-  String get fillDetailsCreateCandidateProfile => 'Fill in your details to create your candidate profile and start engaging with voters.';
+  String get fillDetailsCreateCandidateProfile =>
+      'Fill in your details to create your candidate profile and start engaging with voters.';
 
   @override
-  String get enterFullNameAsOnBallot => 'Enter your full name as it appears on ballot';
+  String get enterFullNameAsOnBallot =>
+      'Enter your full name as it appears on ballot';
 
   @override
   String get politicalPartyRequired => 'Political Party *';
@@ -813,7 +850,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manifestoOptional => 'Manifesto (Optional)';
 
   @override
-  String get brieflyDescribeKeyPromises => 'Briefly describe your key promises and vision for the community';
+  String get brieflyDescribeKeyPromises =>
+      'Briefly describe your key promises and vision for the community';
 
   @override
   String get updateCandidateProfile => 'Update Candidate Profile';
@@ -822,7 +860,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get whatHappensNext => 'What happens next?';
 
   @override
-  String get candidateProfileBenefits => '• Your profile will be created and visible to voters\n• You can access the Candidate Dashboard to manage your campaign\n• Premium features will be available for enhanced visibility\n• You can update your manifesto, contact info, and media anytime';
+  String get candidateProfileBenefits =>
+      '• Your profile will be created and visible to voters\n• You can access the Candidate Dashboard to manage your campaign\n• Premium features will be available for enhanced visibility\n• You can update your manifesto, contact info, and media anytime';
 
   @override
   String get changeRoleSelection => 'Change Role Selection';
@@ -836,7 +875,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get imageSizeMustBeLessThan5MB => 'Image size must be less than 5MB. Please select a smaller image.';
+  String get imageSizeMustBeLessThan5MB =>
+      'Image size must be less than 5MB. Please select a smaller image.';
 
   @override
   String failedToUploadSymbolImage(Object error) {
@@ -847,13 +887,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get candidateProfileUpdated => 'Success!';
 
   @override
-  String get candidateProfileUpdatedMessage => 'Your candidate profile has been updated! You have 3 days of premium access to try all features.';
+  String get candidateProfileUpdatedMessage =>
+      'Your candidate profile has been updated! You have 3 days of premium access to try all features.';
 
   @override
   String get basicInfoUpdatedSuccessfully => 'Basic info updated successfully';
 
   @override
-  String get symbolImageUploadedSuccessfully => 'Symbol image uploaded successfully';
+  String get symbolImageUploadedSuccessfully =>
+      'Symbol image uploaded successfully';
 
   @override
   String get uploading => 'Uploading...';
@@ -862,19 +904,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get max5MB => 'Max 5MB';
 
   @override
-  String get uploadImageOfChosenSymbol => 'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
+  String get uploadImageOfChosenSymbol =>
+      'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
 
   @override
-  String get supportedFormatsJPGPNGMax5MB => 'Supported formats: JPG, PNG. Maximum file size: 5MB.';
+  String get supportedFormatsJPGPNGMax5MB =>
+      'Supported formats: JPG, PNG. Maximum file size: 5MB.';
 
   @override
   String get imageUploadedSuccessfully => 'Image uploaded successfully';
 
   @override
-  String get pleaseEnterSymbolNameForIndependent => 'Please enter a symbol name for independent candidates';
+  String get pleaseEnterSymbolNameForIndependent =>
+      'Please enter a symbol name for independent candidates';
 
   @override
-  String get pleaseSelectYourPoliticalParty => 'Please select your political party';
+  String get pleaseSelectYourPoliticalParty =>
+      'Please select your political party';
 
   @override
   String get manifestoTitle => 'Manifesto Title';
@@ -883,7 +929,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manifestoTitleLabel => 'Manifesto Title';
 
   @override
-  String get manifestoTitleHint => 'e.g., Ward 23 Development & Transparency Plan';
+  String get manifestoTitleHint =>
+      'e.g., Ward 23 Development & Transparency Plan';
 
   @override
   String get useDemoTitle => 'Use demo title';
@@ -973,7 +1020,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get filesUploadMessage => 'These files will be uploaded to the server when you press Save.';
+  String get filesUploadMessage =>
+      'These files will be uploaded to the server when you press Save.';
 
   @override
   String get readyForUpload => 'Ready for upload';
@@ -1030,7 +1078,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get standardDevelopmentFocus => 'Standard development focus';
 
   @override
-  String get developmentWithTransparency => 'Development with transparency focus';
+  String get developmentWithTransparency =>
+      'Development with transparency focus';
 
   @override
   String get focusOnProgress => 'Focus on progress and growth';
@@ -1045,13 +1094,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get infrastructureCleanliness => 'Infrastructure & Cleanliness';
 
   @override
-  String get infrastructureDescription => 'Clean water, roads & waste management';
+  String get infrastructureDescription =>
+      'Clean water, roads & waste management';
 
   @override
   String get transparencyAccountability => 'Transparency & Accountability';
 
   @override
-  String get transparencyDescription => 'Open governance & citizen participation';
+  String get transparencyDescription =>
+      'Open governance & citizen participation';
 
   @override
   String get educationYouthDevelopment => 'Education & Youth Development';
@@ -1111,34 +1162,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get markPdfForDeletion => 'Mark PDF for Deletion';
 
   @override
-  String get pdfDeletionWarning => 'This PDF will be permanently deleted when you save changes. This action cannot be undone.';
+  String get pdfDeletionWarning =>
+      'This PDF will be permanently deleted when you save changes. This action cannot be undone.';
 
   @override
   String get markForDeletion => 'Mark for Deletion';
 
   @override
-  String get pdfMarkedForDeletion => 'PDF marked for deletion. Press Save to confirm.';
+  String get pdfMarkedForDeletion =>
+      'PDF marked for deletion. Press Save to confirm.';
 
   @override
   String get markImageForDeletion => 'Mark Image for Deletion';
 
   @override
-  String get imageDeletionWarning => 'This image will be permanently deleted when you save changes. This action cannot be undone.';
+  String get imageDeletionWarning =>
+      'This image will be permanently deleted when you save changes. This action cannot be undone.';
 
   @override
-  String get imageMarkedForDeletion => 'Image marked for deletion. Press Save to confirm.';
+  String get imageMarkedForDeletion =>
+      'Image marked for deletion. Press Save to confirm.';
 
   @override
   String get markVideoForDeletion => 'Mark Video for Deletion';
 
   @override
-  String get videoDeletionWarning => 'This video will be permanently deleted when you save changes. This action cannot be undone.';
+  String get videoDeletionWarning =>
+      'This video will be permanently deleted when you save changes. This action cannot be undone.';
 
   @override
-  String get videoMarkedForDeletion => 'Video marked for deletion. Press Save to confirm.';
+  String get videoMarkedForDeletion =>
+      'Video marked for deletion. Press Save to confirm.';
 
   @override
-  String get premiumFeatureMultiResolution => 'Premium Feature - Multi-resolution video processing';
+  String get premiumFeatureMultiResolution =>
+      'Premium Feature - Multi-resolution video processing';
 
   @override
   String get selectDistrict => 'Select District';
@@ -1180,13 +1238,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectAreaFirst => 'Select area first';
 
   @override
-  String get noAreasAvailableInDistrict => 'No areas available in this district';
+  String get noAreasAvailableInDistrict =>
+      'No areas available in this district';
 
   @override
   String get noWardsAvailableInArea => 'No wards available in this area';
 
   @override
-  String get profilePhotoUpdatedSuccessfully => 'Profile photo updated successfully!';
+  String get profilePhotoUpdatedSuccessfully =>
+      'Profile photo updated successfully!';
 
   @override
   String get pollQuestion => 'Poll Question';
@@ -1246,10 +1306,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voteFailed => 'Vote Failed';
 
   @override
-  String get voteFailedMessage => 'Failed to record your vote. Please try again.';
+  String get voteFailedMessage =>
+      'Failed to record your vote. Please try again.';
 
   @override
-  String get pollExpiredMessage => 'This poll has expired. Voting is no longer available.';
+  String get pollExpiredMessage =>
+      'This poll has expired. Voting is no longer available.';
 
   @override
   String get thankYouForVoting => 'Thank you for voting!';
@@ -1276,7 +1338,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadVideo => 'Failed to load video';
 
   @override
-  String get shareFunctionalityComingSoon => 'Share functionality would open native share dialog';
+  String get shareFunctionalityComingSoon =>
+      'Share functionality would open native share dialog';
 
   @override
   String get pleaseEnterAComment => 'Please enter a comment';
@@ -1300,7 +1363,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteEvent => 'Delete Event';
 
   @override
-  String get areYouSureYouWantToDeleteThisEvent => 'Are you sure you want to delete this event?';
+  String get areYouSureYouWantToDeleteThisEvent =>
+      'Are you sure you want to delete this event?';
 
   @override
   String get addYouTubeLink => 'Add YouTube Link';
@@ -1312,13 +1376,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addVideo => 'Add Video';
 
   @override
-  String get noMediaItemsYet => 'No media items yet. Add your first media item!';
+  String get noMediaItemsYet =>
+      'No media items yet. Add your first media item!';
 
   @override
   String get addMediaItem => 'Add Media Item';
 
   @override
-  String get promiseViewModeNotImplementedYet => 'Promise view mode not implemented yet';
+  String get promiseViewModeNotImplementedYet =>
+      'Promise view mode not implemented yet';
 
   @override
   String get largeFileWarning => 'Large File Warning';
@@ -1339,7 +1405,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToSavePhoto => 'Failed to save photo';
 
   @override
-  String get noAchievementsYet => 'No achievements yet. Add your first achievement!';
+  String get noAchievementsYet =>
+      'No achievements yet. Add your first achievement!';
 
   @override
   String get addAchievement => 'Add Achievement';
@@ -1354,7 +1421,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordingStarted => 'Recording Started';
 
   @override
-  String get tapMicButtonToStopRecording => 'Tap the mic button again to stop recording';
+  String get tapMicButtonToStopRecording =>
+      'Tap the mic button again to stop recording';
 
   @override
   String get recordingStopped => 'Recording Stopped';
@@ -1363,37 +1431,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendingVoiceMessage => 'Sending voice message...';
 
   @override
-  String get failedToGetRecordingPath => 'Failed to get recording file path. Please try again.';
+  String get failedToGetRecordingPath =>
+      'Failed to get recording file path. Please try again.';
 
   @override
-  String get recordingFileEmpty => 'Voice recording is empty. Please try recording again.';
+  String get recordingFileEmpty =>
+      'Voice recording is empty. Please try recording again.';
 
   @override
-  String get failedToSaveVoiceRecording => 'Failed to save voice recording. Please try again.';
+  String get failedToSaveVoiceRecording =>
+      'Failed to save voice recording. Please try again.';
 
   @override
   String get permissionDenied => 'Permission Denied';
 
   @override
-  String get microphonePermissionRequired => 'Microphone permission is required for voice recording';
+  String get microphonePermissionRequired =>
+      'Microphone permission is required for voice recording';
 
   @override
   String get recordingError => 'Recording Error';
 
   @override
-  String get failedToStartVoiceRecording => 'Failed to start voice recording. Please try again.';
+  String get failedToStartVoiceRecording =>
+      'Failed to start voice recording. Please try again.';
 
   @override
   String get messageTooLong => 'Message Too Long';
 
   @override
-  String get messagesCannotExceed4096Characters => 'Messages cannot exceed 4096 characters';
+  String get messagesCannotExceed4096Characters =>
+      'Messages cannot exceed 4096 characters';
 
   @override
   String get cannotSendMessage => 'Cannot Send Message';
 
   @override
-  String get insufficientQuotaOrXP => 'You have no remaining messages or XP. Please watch an ad to earn XP.';
+  String get insufficientQuotaOrXP =>
+      'You have no remaining messages or XP. Please watch an ad to earn XP.';
 
   @override
   String get messageFailed => 'Message Failed';
@@ -1411,13 +1486,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retryFailed => 'Retry Failed';
 
   @override
-  String get failedToSendMessageRetry => 'Failed to send message. Tap to retry again.';
+  String get failedToSendMessageRetry =>
+      'Failed to send message. Tap to retry again.';
 
   @override
   String get cannotRetry => 'Cannot Retry';
 
   @override
-  String get youHaveNoRemainingMessagesOrXP => 'You have no remaining messages or XP.';
+  String get youHaveNoRemainingMessagesOrXP =>
+      'You have no remaining messages or XP.';
 
   @override
   String get messageDeleted => 'Message Deleted';
@@ -1429,13 +1506,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteFailed => 'Delete Failed';
 
   @override
-  String get failedToDeleteMessage => 'Failed to delete message. Please try again.';
+  String get failedToDeleteMessage =>
+      'Failed to delete message. Please try again.';
 
   @override
   String get permissionDeniedDelete => 'Permission Denied';
 
   @override
-  String get youCanOnlyDeleteYourOwnMessages => 'You can only delete your own messages';
+  String get youCanOnlyDeleteYourOwnMessages =>
+      'You can only delete your own messages';
 
   @override
   String get pollCreationFailed => 'Poll Creation Failed';

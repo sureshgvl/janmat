@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/language_service.dart';
-import '../../l10n/app_localizations.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
-  State<LanguageSelectionScreen> createState() => _LanguageSelectionScreenState();
+  State<LanguageSelectionScreen> createState() =>
+      _LanguageSelectionScreenState();
 }
 
 class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
@@ -143,7 +143,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.white.withOpacity(0.1),
+          color: isSelected
+              ? Colors.white.withOpacity(0.2)
+              : Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? Colors.white : Colors.transparent,
@@ -152,10 +154,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
         ),
         child: Row(
           children: [
-            Text(
-              flag,
-              style: const TextStyle(fontSize: 32),
-            ),
+            Text(flag, style: const TextStyle(fontSize: 32)),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -166,7 +165,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.9),
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.9),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -174,18 +175,16 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isSelected ? Colors.white.withOpacity(0.9) : Colors.white.withOpacity(0.7),
+                      color: isSelected
+                          ? Colors.white.withOpacity(0.9)
+                          : Colors.white.withOpacity(0.7),
                     ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Colors.white,
-                size: 28,
-              ),
+              const Icon(Icons.check_circle, color: Colors.white, size: 28),
           ],
         ),
       ),

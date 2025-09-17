@@ -5,16 +5,14 @@ import '../../../models/candidate_model.dart';
 class ContactTab extends StatefulWidget {
   final Candidate candidate;
 
-  const ContactTab({
-    Key? key,
-    required this.candidate,
-  }) : super(key: key);
+  const ContactTab({super.key, required this.candidate});
 
   @override
   State<ContactTab> createState() => _ContactTabState();
 }
 
-class _ContactTabState extends State<ContactTab> with AutomaticKeepAliveClientMixin {
+class _ContactTabState extends State<ContactTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -124,8 +122,8 @@ class _ContactTabState extends State<ContactTab> with AutomaticKeepAliveClientMi
                             scheme: 'tel',
                             path: widget.candidate.contact.phone,
                           );
-                          if (await canLaunch(launchUri.toString())) {
-                            await launch(launchUri.toString());
+                          if (await canLaunchUrl(launchUri)) {
+                            await launchUrl(launchUri);
                           }
                         },
                         icon: Icon(
@@ -137,7 +135,8 @@ class _ContactTabState extends State<ContactTab> with AutomaticKeepAliveClientMi
                     ],
                   ),
                 ),
-                if (widget.candidate.contact.email != null && widget.candidate.contact.email!.isNotEmpty) ...[
+                if (widget.candidate.contact.email != null &&
+                    widget.candidate.contact.email!.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -193,8 +192,8 @@ class _ContactTabState extends State<ContactTab> with AutomaticKeepAliveClientMi
                               scheme: 'mailto',
                               path: widget.candidate.contact.email,
                             );
-                            if (await canLaunch(launchUri.toString())) {
-                              await launch(launchUri.toString());
+                            if (await canLaunchUrl(launchUri)) {
+                              await launchUrl(launchUri);
                             }
                           },
                           icon: Icon(
@@ -212,7 +211,8 @@ class _ContactTabState extends State<ContactTab> with AutomaticKeepAliveClientMi
           ),
 
           // Social Links
-          if (widget.candidate.contact.socialLinks != null && widget.candidate.contact.socialLinks!.isNotEmpty) ...[
+          if (widget.candidate.contact.socialLinks != null &&
+              widget.candidate.contact.socialLinks!.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
@@ -236,43 +236,49 @@ class _ContactTabState extends State<ContactTab> with AutomaticKeepAliveClientMi
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: widget.candidate.contact.socialLinks!.entries.map((entry) {
-                      return InkWell(
-                        onTap: () async {
-                          final url = entry.value;
-                          if (await canLaunch(url)) {
-                            await launch(url);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _getSocialIcon(entry.key),
-                                size: 16,
-                                color: Colors.blue.shade600,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                entry.key,
-                                style: TextStyle(
-                                  fontSize: 12,
+                    children: widget.candidate.contact.socialLinks!.entries.map(
+                      (entry) {
+                        return InkWell(
+                          onTap: () async {
+                            final url = entry.value;
+                            final uri = Uri.parse(url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getSocialIcon(entry.key),
+                                  size: 16,
                                   color: Colors.blue.shade600,
-                                  fontWeight: FontWeight.w500,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  entry.key,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      },
+                    ).toList(),
                   ),
                 ],
               ),

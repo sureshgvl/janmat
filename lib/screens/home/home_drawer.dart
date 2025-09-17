@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../models/candidate_model.dart';
-import '../../utils/symbol_utils.dart';
 import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
 import '../candidate/my_area_candidates_screen.dart';
@@ -14,7 +12,6 @@ import '../settings/settings_screen.dart';
 import '../monetization/monetization_screen.dart';
 import '../chat/chat_list_screen.dart';
 import 'home_navigation.dart';
-
 
 class HomeDrawer extends StatelessWidget {
   final UserModel? userModel;
@@ -73,30 +70,41 @@ class HomeDrawer extends StatelessWidget {
                 ],
               ],
             ),
-            accountEmail: Text(userModel?.email ?? currentUser?.email ?? currentUser?.phoneNumber ?? ''),
+            accountEmail: Text(
+              userModel?.email ??
+                  currentUser?.email ??
+                  currentUser?.phoneNumber ??
+                  '',
+            ),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              backgroundImage: candidateModel?.photo != null && candidateModel!.photo!.isNotEmpty
+              backgroundImage:
+                  candidateModel?.photo != null &&
+                      candidateModel!.photo!.isNotEmpty
                   ? NetworkImage(candidateModel!.photo!)
                   : userModel?.photoURL != null
-                      ? NetworkImage(userModel!.photoURL!)
-                      : currentUser?.photoURL != null
-                          ? NetworkImage(currentUser!.photoURL!)
-                          : null,
-              child: (candidateModel?.photo == null || candidateModel!.photo!.isEmpty) &&
-                     userModel?.photoURL == null &&
-                     currentUser?.photoURL == null
+                  ? NetworkImage(userModel!.photoURL!)
+                  : currentUser?.photoURL != null
+                  ? NetworkImage(currentUser!.photoURL!)
+                  : null,
+              child:
+                  (candidateModel?.photo == null ||
+                          candidateModel!.photo!.isEmpty) &&
+                      userModel?.photoURL == null &&
+                      currentUser?.photoURL == null
                   ? Text(
-                      ((userModel?.name ?? currentUser?.displayName ?? 'U').isEmpty
-                          ? 'U'
-                          : (userModel?.name ?? currentUser?.displayName ?? 'U')[0]).toUpperCase(),
+                      ((userModel?.name ?? currentUser?.displayName ?? 'U')
+                                  .isEmpty
+                              ? 'U'
+                              : (userModel?.name ??
+                                    currentUser?.displayName ??
+                                    'U')[0])
+                          .toUpperCase(),
                       style: const TextStyle(fontSize: 24, color: Colors.blue),
                     )
                   : null,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.blue,
-            ),
+            decoration: const BoxDecoration(color: Colors.blue),
           ),
           ListTile(
             leading: const Icon(Icons.person),
@@ -105,7 +113,10 @@ class HomeDrawer extends StatelessWidget {
               Navigator.pop(context); // Close drawer
               // Navigate based on user role
               if (userModel?.role == 'candidate' && candidateModel != null) {
-                HomeNavigation.toRightToLeft(const CandidateProfileScreen(), arguments: candidateModel);
+                HomeNavigation.toRightToLeft(
+                  const CandidateProfileScreen(),
+                  arguments: candidateModel,
+                );
               } else {
                 HomeNavigation.toNamedRightToLeft('/profile');
               }
@@ -114,7 +125,9 @@ class HomeDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.location_on),
             title: Text(AppLocalizations.of(context)!.myAreaCandidates),
-            subtitle: Text(AppLocalizations.of(context)!.candidatesFromYourWard),
+            subtitle: Text(
+              AppLocalizations.of(context)!.candidatesFromYourWard,
+            ),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
@@ -126,7 +139,9 @@ class HomeDrawer extends StatelessWidget {
               title: Text(AppLocalizations.of(context)!.candidateDashboard),
               onTap: () {
                 Navigator.pop(context); // Close drawer
-                HomeNavigation.toRightToLeft(const CandidateDashboardScreen()); // Navigate to candidate dashboard
+                HomeNavigation.toRightToLeft(
+                  const CandidateDashboardScreen(),
+                ); // Navigate to candidate dashboard
               },
             ),
             ListTile(
@@ -135,10 +150,12 @@ class HomeDrawer extends StatelessWidget {
               subtitle: const Text('Update your party affiliation and symbol'),
               onTap: () {
                 Navigator.pop(context); // Close drawer
-                HomeNavigation.toRightToLeft(ChangePartySymbolScreen(
-                  currentCandidate: candidateModel,
-                  currentUser: currentUser,
-                ));
+                HomeNavigation.toRightToLeft(
+                  ChangePartySymbolScreen(
+                    currentCandidate: candidateModel,
+                    currentUser: currentUser,
+                  ),
+                );
               },
             ),
           ],
@@ -147,7 +164,9 @@ class HomeDrawer extends StatelessWidget {
             title: Text(AppLocalizations.of(context)!.searchByWard),
             onTap: () {
               Navigator.pop(context); // Close drawer
-              HomeNavigation.toRightToLeft(const CandidateListScreen()); // Navigate to candidate list screen
+              HomeNavigation.toRightToLeft(
+                const CandidateListScreen(),
+              ); // Navigate to candidate list screen
             },
           ),
           ListTile(
@@ -155,7 +174,9 @@ class HomeDrawer extends StatelessWidget {
             title: Text(AppLocalizations.of(context)!.chatRooms),
             onTap: () {
               Navigator.pop(context); // Close drawer
-              HomeNavigation.toRightToLeft(const ChatListScreen()); // Navigate to chat list screen
+              HomeNavigation.toRightToLeft(
+                const ChatListScreen(),
+              ); // Navigate to chat list screen
             },
           ),
           ListTile(
@@ -163,14 +184,18 @@ class HomeDrawer extends StatelessWidget {
             title: Text(AppLocalizations.of(context)!.settings),
             onTap: () {
               Navigator.pop(context); // Close drawer
-              HomeNavigation.toRightToLeft(const SettingsScreen()); // Navigate to settings screen
+              HomeNavigation.toRightToLeft(
+                const SettingsScreen(),
+              ); // Navigate to settings screen
             },
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.star, color: Colors.orange),
             title: Text(AppLocalizations.of(context)!.premiumFeatures),
-            subtitle: Text(AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures),
+            subtitle: Text(
+              AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures,
+            ),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const MonetizationScreen());
@@ -179,8 +204,13 @@ class HomeDrawer extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: Text(AppLocalizations.of(context)!.deleteAccount, style: TextStyle(color: Colors.red)),
-            subtitle: Text(AppLocalizations.of(context)!.permanentlyDeleteYourAccountAndData),
+            title: Text(
+              AppLocalizations.of(context)!.deleteAccount,
+              style: TextStyle(color: Colors.red),
+            ),
+            subtitle: Text(
+              AppLocalizations.of(context)!.permanentlyDeleteYourAccountAndData,
+            ),
             onTap: () => onDeleteAccount(context, userModel),
           ),
         ],

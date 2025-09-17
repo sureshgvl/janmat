@@ -44,9 +44,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
   }
 
   void _updateHighlight() {
-    widget.onHighlightChange({
-      'enabled': _isEnabled,
-    });
+    widget.onHighlightChange({'enabled': _isEnabled});
   }
 
   // Method to upload pending files (required by dashboard pattern)
@@ -85,11 +83,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.star,
-                        color: Colors.amber.shade600,
-                        size: 24,
-                      ),
+                      Icon(Icons.star, color: Colors.amber.shade600, size: 24),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
@@ -128,7 +122,9 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                             : 'Premium highlight is currently disabled',
                         style: TextStyle(
                           fontSize: 12,
-                          color: _isEnabled ? Colors.green.shade600 : Colors.grey.shade600,
+                          color: _isEnabled
+                              ? Colors.green.shade600
+                              : Colors.grey.shade600,
                         ),
                       ),
                       value: _isEnabled,
@@ -145,17 +141,23 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _isEnabled ? Colors.green.shade50 : Colors.grey.shade50,
+                        color: _isEnabled
+                            ? Colors.green.shade50
+                            : Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: _isEnabled ? Colors.green.shade200 : Colors.grey.shade200,
+                          color: _isEnabled
+                              ? Colors.green.shade200
+                              : Colors.grey.shade200,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             _isEnabled ? Icons.check_circle : Icons.cancel,
-                            color: _isEnabled ? Colors.green.shade600 : Colors.grey.shade600,
+                            color: _isEnabled
+                                ? Colors.green.shade600
+                                : Colors.grey.shade600,
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -164,7 +166,9 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: _isEnabled ? Colors.green.shade700 : Colors.grey.shade700,
+                              color: _isEnabled
+                                  ? Colors.green.shade700
+                                  : Colors.grey.shade700,
                             ),
                           ),
                         ],
@@ -223,19 +227,12 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(
-            Icons.check,
-            color: Colors.green.shade600,
-            size: 16,
-          ),
+          Icon(Icons.check, color: Colors.green.shade600, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               benefit,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF374151),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
             ),
           ),
         ],

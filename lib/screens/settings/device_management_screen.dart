@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import '../../services/device_service.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -77,13 +76,15 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)?.settings ?? 'Device Management'),
+        title: Text(
+          AppLocalizations.of(context)?.settings ?? 'Device Management',
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _devices.isEmpty
-              ? _buildEmptyState()
-              : _buildDeviceList(),
+          ? _buildEmptyState()
+          : _buildDeviceList(),
     );
   }
 
@@ -92,17 +93,13 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.devices_other,
-            size: 64,
-            color: Colors.grey,
-          ),
+          const Icon(Icons.devices_other, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
           Text(
             'No devices found',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.grey,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.grey),
           ),
         ],
       ),
@@ -142,23 +139,24 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                             children: [
                               Text(
                                 device.deviceName,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${device.platform} • ${device.appVersion}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey,
-                                ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: Colors.grey),
                               ),
                             ],
                           ),
                         ),
                         if (isCurrentDevice)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
@@ -194,9 +192,9 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                         const Spacer(),
                         Text(
                           _formatDateTime(device.lastLogin),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                         ),
                       ],
                     ),
@@ -204,7 +202,10 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton.icon(
-                          onPressed: () => _signOutDevice(device.deviceId, device.deviceName),
+                          onPressed: () => _signOutDevice(
+                            device.deviceId,
+                            device.deviceName,
+                          ),
                           icon: const Icon(Icons.logout, size: 16),
                           label: const Text('Sign Out'),
                           style: TextButton.styleFrom(

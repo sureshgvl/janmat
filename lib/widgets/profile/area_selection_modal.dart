@@ -43,7 +43,11 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
         final idMatch = body.bodyId.toLowerCase().contains(lowerQuery);
 
         // Search for Marathi equivalents (e.g., "municipal" should find "नगरपालिका")
-        final marathiMatch = _hasMarathiEquivalent(body.name, body.type, lowerQuery);
+        final marathiMatch = _hasMarathiEquivalent(
+          body.name,
+          body.type,
+          lowerQuery,
+        );
 
         return nameMatch || typeMatch || idMatch || marathiMatch;
       }).toList();
@@ -67,7 +71,9 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
     final bodyText = '$bodyName $bodyType'.toLowerCase();
     final equivalents = marathiEquivalents[query] ?? [];
 
-    return equivalents.any((equivalent) => bodyText.contains(equivalent.toLowerCase()));
+    return equivalents.any(
+      (equivalent) => bodyText.contains(equivalent.toLowerCase()),
+    );
   }
 
   @override
@@ -103,11 +109,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.business,
-                      color: Colors.orange,
-                      size: 28,
-                    ),
+                    const Icon(Icons.business, color: Colors.orange, size: 28),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -192,13 +194,23 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                           Navigator.of(context).pop();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? Colors.orange.shade50 : Colors.white,
+                            color: isSelected
+                                ? Colors.orange.shade50
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? Colors.orange.shade200 : Colors.grey.shade200,
+                              color: isSelected
+                                  ? Colors.orange.shade200
+                                  : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: isSelected
@@ -207,7 +219,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                       color: Colors.orange.shade100,
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -228,7 +240,9 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: isSelected ? Colors.orange.shade800 : Colors.black87,
+                                        color: isSelected
+                                            ? Colors.orange.shade800
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 2),

@@ -9,18 +9,20 @@ class NotificationSettingsDialog extends StatefulWidget {
   final bool currentNotificationsEnabled;
 
   const NotificationSettingsDialog({
-    Key? key,
+    super.key,
     required this.candidateId,
     required this.candidateName,
     required this.userId,
     required this.currentNotificationsEnabled,
-  }) : super(key: key);
+  });
 
   @override
-  State<NotificationSettingsDialog> createState() => _NotificationSettingsDialogState();
+  State<NotificationSettingsDialog> createState() =>
+      _NotificationSettingsDialogState();
 }
 
-class _NotificationSettingsDialogState extends State<NotificationSettingsDialog> {
+class _NotificationSettingsDialogState
+    extends State<NotificationSettingsDialog> {
   late bool notificationsEnabled;
   bool isLoading = false;
 
@@ -59,10 +61,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
           const SizedBox(height: 8),
           const Text(
             'You can change this setting anytime from your following list.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),

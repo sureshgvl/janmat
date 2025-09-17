@@ -16,7 +16,9 @@ class LocalMessageService {
   Future<void> initialize() async {
     try {
       _appDir = await getApplicationDocumentsDirectory();
-      debugPrint('LocalMessageService: Initialized with directory: ${_appDir!.path}');
+      debugPrint(
+        'LocalMessageService: Initialized with directory: ${_appDir!.path}',
+      );
     } catch (e) {
       debugPrint('LocalMessageService: Failed to initialize: $e');
     }
@@ -44,7 +46,8 @@ class LocalMessageService {
         'text': message.text,
         'senderId': message.senderId,
         'type': message.type,
-        'createdAt': message.createdAt.toIso8601String(), // Convert DateTime to string
+        'createdAt': message.createdAt
+            .toIso8601String(), // Convert DateTime to string
         'readBy': message.readBy,
         'mediaUrl': message.mediaUrl,
         'mediaLocalPath': message.mediaLocalPath,
@@ -56,7 +59,9 @@ class LocalMessageService {
       };
 
       await file.writeAsString(jsonEncode(jsonData));
-      debugPrint('LocalMessageService: Saved message ${message.messageId} to local storage');
+      debugPrint(
+        'LocalMessageService: Saved message ${message.messageId} to local storage',
+      );
     } catch (e) {
       debugPrint('LocalMessageService: Failed to save message: $e');
     }
@@ -84,7 +89,9 @@ class LocalMessageService {
           final message = Message.fromJson(json);
           messages.add(message);
         } catch (e) {
-          debugPrint('LocalMessageService: Failed to load message from ${file.path}: $e');
+          debugPrint(
+            'LocalMessageService: Failed to load message from ${file.path}: $e',
+          );
         }
       }
 
@@ -94,15 +101,22 @@ class LocalMessageService {
       // Cache the loaded messages
       _messageCache[roomId] = List.from(messages);
 
-      debugPrint('LocalMessageService: Loaded ${messages.length} messages for room $roomId');
+      debugPrint(
+        'LocalMessageService: Loaded ${messages.length} messages for room $roomId',
+      );
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to load messages for room $roomId: $e');
+      debugPrint(
+        'LocalMessageService: Failed to load messages for room $roomId: $e',
+      );
     }
 
     return messages;
   }
 
-  Future<void> updateMessageStatus(String messageId, MessageStatus status) async {
+  Future<void> updateMessageStatus(
+    String messageId,
+    MessageStatus status,
+  ) async {
     // Update in cache
     for (final roomMessages in _messageCache.values) {
       final index = roomMessages.indexWhere((m) => m.messageId == messageId);
@@ -128,7 +142,9 @@ class LocalMessageService {
           final json = jsonDecode(content) as Map<String, dynamic>;
           json['status'] = status.index;
           await file.writeAsString(jsonEncode(json));
-          debugPrint('LocalMessageService: Updated status for message $messageId');
+          debugPrint(
+            'LocalMessageService: Updated status for message $messageId',
+          );
           break;
         }
       }
@@ -155,7 +171,9 @@ class LocalMessageService {
         final file = File(path.join(roomDir.path, '$messageId.json'));
         if (file.existsSync()) {
           await file.delete();
-          debugPrint('LocalMessageService: Deleted message file for $messageId');
+          debugPrint(
+            'LocalMessageService: Deleted message file for $messageId',
+          );
           break;
         }
       }
@@ -164,18 +182,27 @@ class LocalMessageService {
     }
   }
 
-  Future<String?> saveMediaFile(String messageId, String remoteUrl, List<int> bytes, String fileName) async {
+  Future<String?> saveMediaFile(
+    String messageId,
+    String remoteUrl,
+    List<int> bytes,
+    String fileName,
+  ) async {
     try {
       if (_appDir == null) await initialize();
 
       final mediaDir = Directory(path.join(_appDir!.path, _mediaDir));
       await mediaDir.create(recursive: true);
 
-      final file = File(path.join(mediaDir.path, '$messageId${path.extension(fileName)}'));
+      final file = File(
+        path.join(mediaDir.path, '$messageId${path.extension(fileName)}'),
+      );
       await file.writeAsBytes(bytes);
 
       final localPath = file.path;
-      debugPrint('LocalMessageService: Saved media file for $messageId at $localPath');
+      debugPrint(
+        'LocalMessageService: Saved media file for $messageId at $localPath',
+      );
       return localPath;
     } catch (e) {
       debugPrint('LocalMessageService: Failed to save media file: $e');
@@ -219,7 +246,9 @@ class LocalMessageService {
         await deleteMessage(message.messageId);
       }
 
-      debugPrint('LocalMessageService: Cleaned up ${messagesToDelete.length} old messages from room $roomId');
+      debugPrint(
+        'LocalMessageService: Cleaned up ${messagesToDelete.length} old messages from room $roomId',
+      );
     } catch (e) {
       debugPrint('LocalMessageService: Failed to cleanup old messages: $e');
     }
@@ -303,7 +332,9 @@ class LocalMessageService {
           final json = jsonDecode(content) as Map<String, dynamic>;
           json['mediaUrl'] = remoteUrl;
           await file.writeAsString(jsonEncode(json));
-          debugPrint('LocalMessageService: Updated media URL for message $messageId');
+          debugPrint(
+            'LocalMessageService: Updated media URL for message $messageId',
+          );
           break;
         }
       }

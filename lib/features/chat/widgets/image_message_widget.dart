@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/common/reusable_image_widget.dart';
+import '../../../widgets/common/reusable_image_widget.dart';
 
 class ImageMessageWidget extends StatelessWidget {
   final String? imageUrl;

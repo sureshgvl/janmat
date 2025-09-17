@@ -38,18 +38,12 @@ class FileDisplayComponents {
                 ),
                 Text(
                   fileName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 if (!isEditing) ...[
                   const Text(
                     'Tap to view your manifesto document',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ],
@@ -110,10 +104,7 @@ class FileDisplayComponents {
                     ),
                     Text(
                       fileName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -140,10 +131,7 @@ class FileDisplayComponents {
             const SizedBox(height: 8),
             const Text(
               'Tap image to view in full screen',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -190,10 +178,7 @@ class FileDisplayComponents {
                     ),
                     Text(
                       fileName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     // Premium feature comment
                     const Text(
@@ -227,10 +212,7 @@ class FileDisplayComponents {
             const SizedBox(height: 8),
             const Text(
               'Premium video content available',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -275,10 +257,7 @@ class FileDisplayComponents {
           const SizedBox(height: 12),
           const Text(
             'Files will be uploaded when you press Save.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 12),
           ...localFiles.asMap().entries.map((entry) {
@@ -346,7 +325,11 @@ class FileDisplayComponents {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      icon: const Icon(
+                        Icons.delete,
+                        color: Colors.red,
+                        size: 20,
+                      ),
                       onPressed: () => onRemoveFile(index),
                       tooltip: 'Remove from upload queue',
                     ),
@@ -354,7 +337,7 @@ class FileDisplayComponents {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -367,9 +350,5 @@ class FileInfo {
   final String url;
   final String type;
 
-  const FileInfo({
-    required this.name,
-    required this.url,
-    required this.type,
-  });
+  const FileInfo({required this.name, required this.url, required this.type});
 }

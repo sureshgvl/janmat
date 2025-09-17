@@ -33,7 +33,6 @@ class MonetizationController extends GetxController {
 
       // Load analytics data
       await loadAnalyticsData();
-
     } catch (e) {
       errorMessage.value = 'Failed to load data: $e';
     } finally {
@@ -76,7 +75,10 @@ class MonetizationController extends GetxController {
     }
   }
 
-  Future<UserSubscription?> getActiveSubscription(String userId, String planType) async {
+  Future<UserSubscription?> getActiveSubscription(
+    String userId,
+    String planType,
+  ) async {
     try {
       return await _repository.getActiveSubscription(userId, planType);
     } catch (e) {
@@ -85,7 +87,10 @@ class MonetizationController extends GetxController {
     }
   }
 
-  Future<bool> purchaseSubscription(String userId, SubscriptionPlan plan) async {
+  Future<bool> purchaseSubscription(
+    String userId,
+    SubscriptionPlan plan,
+  ) async {
     try {
       isLoading.value = true;
 
@@ -114,7 +119,11 @@ class MonetizationController extends GetxController {
       // Update user based on plan type
       if (plan.type == 'candidate') {
         await _repository.upgradeUserToPremiumCandidate(userId);
-        await _repository.updateUserSubscription(userId, plan.planId, null); // One-time subscription
+        await _repository.updateUserSubscription(
+          userId,
+          plan.planId,
+          null,
+        ); // One-time subscription
       } else if (plan.type == 'voter' && plan.xpAmount != null) {
         await _repository.updateUserXPBalance(userId, plan.xpAmount!);
         await loadUserXPBalance(userId);
@@ -146,14 +155,22 @@ class MonetizationController extends GetxController {
 
   Future<void> loadUserXPTransactions(String userId, {int limit = 50}) async {
     try {
-      final transactions = await _repository.getUserXPTransactions(userId, limit: limit);
+      final transactions = await _repository.getUserXPTransactions(
+        userId,
+        limit: limit,
+      );
       xpTransactions.value = transactions;
     } catch (e) {
       errorMessage.value = 'Failed to load XP transactions: $e';
     }
   }
 
-  Future<bool> spendXP(String userId, int amount, String description, {String? referenceId}) async {
+  Future<bool> spendXP(
+    String userId,
+    int amount,
+    String description, {
+    String? referenceId,
+  }) async {
     try {
       if (userXPBalance.value < amount) {
         errorMessage.value = 'Insufficient XP balance';
@@ -195,11 +212,13 @@ class MonetizationController extends GetxController {
     }
   }
 
-  int get remainingCandidateSlots => first1000Limit.value - totalPremiumCandidates.value;
+  int get remainingCandidateSlots =>
+      first1000Limit.value - totalPremiumCandidates.value;
 
   bool get isFirst1000PlanAvailable => remainingCandidateSlots > 0;
 
-  double get candidatePlanProgress => totalPremiumCandidates.value / first1000Limit.value;
+  double get candidatePlanProgress =>
+      totalPremiumCandidates.value / first1000Limit.value;
 
   // Payment Integration (Placeholder for Razorpay)
 

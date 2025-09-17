@@ -27,22 +27,29 @@ class SymbolUtils {
       return result;
     }
 
-    debugPrint('🔍 [SymbolUtils] For party: $party, Candidate: ${candidate.name}');
+    debugPrint(
+      '🔍 [SymbolUtils] For party: $party, Candidate: ${candidate.name}',
+    );
 
     // Handle independent candidates - check for symbol image URL first
     if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
       debugPrint('🎯 [SymbolUtils] Independent candidate detected');
 
       // For independent candidates, check if there's a symbol image URL in extraInfo
-      if (candidate.extraInfo?.media != null && candidate.extraInfo!.media!.isNotEmpty) {
+      if (candidate.extraInfo?.media != null &&
+          candidate.extraInfo!.media!.isNotEmpty) {
         final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
           (item) => item['type'] == 'symbolImage',
           orElse: () => <String, dynamic>{},
         );
         if (symbolImageItem.isNotEmpty) {
           final symbolImageUrl = symbolImageItem['url'] as String?;
-          if (symbolImageUrl != null && symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
-            debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
+          if (symbolImageUrl != null &&
+              symbolImageUrl.isNotEmpty &&
+              symbolImageUrl.startsWith('http')) {
+            debugPrint(
+              '🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl',
+            );
             _symbolCache[cacheKey] = symbolImageUrl;
             return symbolImageUrl; // Return the Firebase Storage URL
           }
@@ -94,7 +101,9 @@ class SymbolUtils {
     for (var entry in partyMapping.entries) {
       if (entry.key.toUpperCase() == upperParty) {
         final result = 'assets/symbols/${entry.value}';
-        debugPrint('🏛️ [SymbolUtils] Using party asset (case-insensitive): $result');
+        debugPrint(
+          '🏛️ [SymbolUtils] Using party asset (case-insensitive): $result',
+        );
         _symbolCache[cacheKey] = result;
         return result;
       }
@@ -148,7 +157,10 @@ class SymbolUtils {
 
   /// Get party symbol path using Party model (preferred method)
   /// This method uses the symbolPath from the Party model when available
-  static String getPartySymbolPathFromParty(Party party, {Candidate? candidate}) {
+  static String getPartySymbolPathFromParty(
+    Party party, {
+    Candidate? candidate,
+  }) {
     // Create cache key
     final cacheKey = 'party_${party.id}_${candidate?.candidateId ?? 'null'}';
 
@@ -157,22 +169,31 @@ class SymbolUtils {
       return _symbolCache[cacheKey]!;
     }
 
-    debugPrint('🔍 [SymbolUtils] For party: ${party.name}, Candidate: ${candidate?.name ?? 'null'}');
+    debugPrint(
+      '🔍 [SymbolUtils] For party: ${party.name}, Candidate: ${candidate?.name ?? 'null'}',
+    );
 
     // First check if candidate data exists for independent candidates
-    if (candidate != null && (party.id == 'independent' || party.name.toLowerCase().contains('independent'))) {
+    if (candidate != null &&
+        (party.id == 'independent' ||
+            party.name.toLowerCase().contains('independent'))) {
       debugPrint('🎯 [SymbolUtils] Independent candidate detected');
 
       // For independent candidates, check if there's a symbol image URL in extraInfo
-      if (candidate.extraInfo?.media != null && candidate.extraInfo!.media!.isNotEmpty) {
+      if (candidate.extraInfo?.media != null &&
+          candidate.extraInfo!.media!.isNotEmpty) {
         final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
           (item) => item['type'] == 'symbolImage',
           orElse: () => <String, dynamic>{},
         );
         if (symbolImageItem.isNotEmpty) {
           final symbolImageUrl = symbolImageItem['url'] as String?;
-          if (symbolImageUrl != null && symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
-            debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
+          if (symbolImageUrl != null &&
+              symbolImageUrl.isNotEmpty &&
+              symbolImageUrl.startsWith('http')) {
+            debugPrint(
+              '🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl',
+            );
             _symbolCache[cacheKey] = symbolImageUrl;
             return symbolImageUrl; // Return the Firebase Storage URL
           }
@@ -187,13 +208,17 @@ class SymbolUtils {
 
     // Use symbolPath from Party model if available
     if (party.symbolPath != null && party.symbolPath!.isNotEmpty) {
-      debugPrint('🏛️ [SymbolUtils] Using party model symbolPath: ${party.symbolPath}');
+      debugPrint(
+        '🏛️ [SymbolUtils] Using party model symbolPath: ${party.symbolPath}',
+      );
       _symbolCache[cacheKey] = party.symbolPath!;
       return party.symbolPath!;
     }
 
     // Fallback to the existing mapping logic
-    debugPrint('🏛️ [SymbolUtils] Falling back to legacy mapping for party: ${party.name}');
+    debugPrint(
+      '🏛️ [SymbolUtils] Falling back to legacy mapping for party: ${party.name}',
+    );
     return getPartySymbolPath(party.name, candidate: candidate);
   }
 

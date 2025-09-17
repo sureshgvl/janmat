@@ -5,10 +5,7 @@ import '../../../repositories/event_repository.dart';
 class EventsAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;
 
-  const EventsAnalyticsSection({
-    Key? key,
-    required this.candidateData,
-  }) : super(key: key);
+  const EventsAnalyticsSection({super.key, required this.candidateData});
 
   @override
   State<EventsAnalyticsSection> createState() => _EventsAnalyticsSectionState();
@@ -36,7 +33,9 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
         _isLoading = true;
       });
 
-      final events = await _eventRepository.getCandidateEvents(widget.candidateData.candidateId);
+      final events = await _eventRepository.getCandidateEvents(
+        widget.candidateData.candidateId,
+      );
       final counts = <String, Map<String, int>>{};
 
       int totalInterested = 0;
@@ -84,10 +83,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
               const SizedBox(width: 12),
               const Text(
                 'Events Analytics',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -133,7 +129,11 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
                 Expanded(
                   child: _buildMetricCard(
                     title: 'Avg. Response',
-                    value: _totalEvents > 0 ? ((_totalInterested + _totalGoing) / _totalEvents).round().toString() : '0',
+                    value: _totalEvents > 0
+                        ? ((_totalInterested + _totalGoing) / _totalEvents)
+                              .round()
+                              .toString()
+                        : '0',
                     icon: Icons.trending_up,
                     color: Colors.purple,
                   ),
@@ -145,17 +145,11 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
             // Events Performance Section
             const Text(
               'Event Performance',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
 
-            if (_events.isEmpty)
-              _buildEmptyState()
-            else
-              _buildEventsList(),
+            if (_events.isEmpty) _buildEmptyState() else _buildEventsList(),
 
             const SizedBox(height: 24),
 
@@ -175,9 +169,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
   }) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -195,10 +187,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
             const SizedBox(height: 4),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -217,11 +206,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.event_note,
-            size: 48,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.event_note, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No events created yet',
@@ -234,10 +219,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
           const SizedBox(height: 8),
           Text(
             'Create events to engage with voters!',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -249,7 +231,8 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
     return Column(
       children: _events.map((event) {
         final counts = _eventCounts[event.id] ?? {'interested': 0, 'going': 0};
-        final totalResponses = (counts['interested'] ?? 0) + (counts['going'] ?? 0);
+        final totalResponses =
+            (counts['interested'] ?? 0) + (counts['going'] ?? 0);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -268,25 +251,27 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.grey[600],
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _formatDate(event.date),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     if (event.time != null) ...[
                       const SizedBox(width: 12),
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         event.time!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ],
@@ -306,11 +291,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
                       Colors.orange,
                     ),
                     const SizedBox(width: 12),
-                    _buildResponseChip(
-                      'Total',
-                      totalResponses,
-                      Colors.blue,
-                    ),
+                    _buildResponseChip('Total', totalResponses, Colors.blue),
                   ],
                 ),
               ],
@@ -341,13 +322,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
             ),
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: color)),
         ],
       ),
     );
@@ -398,10 +373,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
           Expanded(
             child: Text(
               tip,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.orange[800],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.orange[800]),
             ),
           ),
         ],

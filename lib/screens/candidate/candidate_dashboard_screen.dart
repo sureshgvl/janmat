@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/candidate_data_controller.dart';
-import '../../utils/symbol_utils.dart';
 import '../../l10n/app_localizations.dart';
 import 'candidate_dashboard_info.dart';
-import 'candidate_dashboard_profile.dart';
 import 'candidate_dashboard_achievements.dart';
 import 'candidate_dashboard_manifesto.dart';
 import 'candidate_dashboard_contact.dart';
 import 'candidate_dashboard_media.dart';
 import 'candidate_dashboard_events.dart';
-import 'candidate_dashboard_highlight.dart';
 import 'candidate_dashboard_analytics.dart';
 
 class CandidateDashboardScreen extends StatefulWidget {
   const CandidateDashboardScreen({super.key});
 
   @override
-  State<CandidateDashboardScreen> createState() => _CandidateDashboardScreenState();
+  State<CandidateDashboardScreen> createState() =>
+      _CandidateDashboardScreenState();
 }
 
 class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
@@ -25,7 +23,6 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   late TabController _tabController;
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
-
 
   @override
   void initState() {

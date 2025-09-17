@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../l10n/app_localizations.dart';
@@ -11,10 +10,7 @@ import 'chat_helpers.dart';
 class ChatRoomCard extends StatelessWidget {
   final ChatRoomDisplayInfo displayInfo;
 
-  const ChatRoomCard({
-    super.key,
-    required this.displayInfo,
-  });
+  const ChatRoomCard({super.key, required this.displayInfo});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +18,9 @@ class ChatRoomCard extends StatelessWidget {
     final chatRoom = displayInfo.room;
 
     // Debug: Print unread count for this room
-    debugPrint('🎯 ChatRoomCard for ${chatRoom.roomId}: unreadCount=${displayInfo.unreadCount}, hasUnread=${displayInfo.hasUnreadMessages}');
+    debugPrint(
+      '🎯 ChatRoomCard for ${chatRoom.roomId}: unreadCount=${displayInfo.unreadCount}, hasUnread=${displayInfo.hasUnreadMessages}',
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 1), // Minimal margin like WhatsApp
@@ -68,8 +66,12 @@ class ChatRoomCard extends StatelessWidget {
                             ChatHelpers.getRoomDisplayTitle(chatRoom),
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: displayInfo.hasUnreadMessages ? FontWeight.w700 : FontWeight.w600,
-                              color: displayInfo.hasUnreadMessages ? Colors.black : const Color(0xFF1f2937),
+                              fontWeight: displayInfo.hasUnreadMessages
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: displayInfo.hasUnreadMessages
+                                  ? Colors.black
+                                  : const Color(0xFF1f2937),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -79,14 +81,21 @@ class ChatRoomCard extends StatelessWidget {
                         if (displayInfo.hasUnreadMessages)
                           Container(
                             margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             constraints: const BoxConstraints(minWidth: 18),
                             decoration: const BoxDecoration(
                               color: Colors.green,
-                              borderRadius: BorderRadius.all(Radius.circular(9)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(9),
+                              ),
                             ),
                             child: Text(
-                              displayInfo.unreadCount > 99 ? '99+' : displayInfo.unreadCount.toString(),
+                              displayInfo.unreadCount > 99
+                                  ? '99+'
+                                  : displayInfo.unreadCount.toString(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -104,11 +113,16 @@ class ChatRoomCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            displayInfo.lastMessagePreview ?? ChatHelpers.getRoomDisplaySubtitle(chatRoom),
+                            displayInfo.lastMessagePreview ??
+                                ChatHelpers.getRoomDisplaySubtitle(chatRoom),
                             style: TextStyle(
                               fontSize: 14,
-                              color: displayInfo.hasUnreadMessages ? Colors.black87 : const Color(0xFF6b7280),
-                              fontWeight: displayInfo.hasUnreadMessages ? FontWeight.w500 : FontWeight.w400,
+                              color: displayInfo.hasUnreadMessages
+                                  ? Colors.black87
+                                  : const Color(0xFF6b7280),
+                              fontWeight: displayInfo.hasUnreadMessages
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -137,7 +151,10 @@ class ChatRoomCard extends StatelessWidget {
               // Room type indicator (small badge)
               if (chatRoom.type == 'private')
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(10),

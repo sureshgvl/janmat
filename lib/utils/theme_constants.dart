@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class AppColors {
@@ -51,7 +50,10 @@ class AppColors {
     'Communist Party of India': [Color(0xFFdc2626), Color(0xFFb91c1c)],
     'Bahujan Samaj Party': [Color(0xFF1e40af), Color(0xFF1e3a8a)],
     'Samajwadi Party': [Color(0xFFdc2626), Color(0xFFb91c1c)],
-    'All India Majlis-e-Ittehad-ul-Muslimeen': [Color(0xFF16a34a), Color(0xFF15803d)],
+    'All India Majlis-e-Ittehad-ul-Muslimeen': [
+      Color(0xFF16a34a),
+      Color(0xFF15803d),
+    ],
   };
 }
 

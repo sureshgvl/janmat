@@ -6,7 +6,6 @@ import '../../../services/video_processing_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../common/reusable_image_widget.dart';
 import '../../common/confirmation_dialog.dart';
-import '../../loading_overlay.dart';
 import 'promise_management_section.dart';
 import 'file_upload_section.dart';
 
@@ -60,20 +59,20 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     // Initialize title controller with model data
     final manifestoTitle = data.extraInfo?.manifesto?.title ?? '';
-    _titleController = TextEditingController(text: _stripBoldMarkers(manifestoTitle));
+    _titleController = TextEditingController(
+      text: _stripBoldMarkers(manifestoTitle),
+    );
 
     // Initialize manifesto promises list with structured format from model
     final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
     debugPrint('Raw promises from data: $rawPromises');
-    final manifestoPromises = rawPromises.map((promise) {
-      if (promise is Map<String, dynamic>) {
-        // Already structured format
-        return promise;
-      } else {
-        // Convert string format to structured format (avoid duplicating title as a point)
-        return <String, dynamic>{'title': promise.toString(), 'points': <dynamic>[]};
-      }
-    }).cast<Map<String, dynamic>>().toList();
+    final manifestoPromises = rawPromises
+        .map((promise) {
+          // Already structured format
+          return promise;
+        })
+        .cast<Map<String, dynamic>>()
+        .toList();
 
     // Initialize controllers for existing promises
     _promiseControllers = manifestoPromises.map((promise) {
@@ -81,7 +80,13 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       final points = promise['points'] as List<dynamic>? ?? <dynamic>[];
       return <String, dynamic>{
         'title': TextEditingController(text: _stripBoldMarkers(title)),
-        'points': points.map((point) => TextEditingController(text: _stripBoldMarkers(point.toString()))).toList(),
+        'points': points
+            .map(
+              (point) => TextEditingController(
+                text: _stripBoldMarkers(point.toString()),
+              ),
+            )
+            .toList(),
       };
     }).toList();
 
@@ -99,7 +104,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   @override
   void didUpdateWidget(ManifestoTabEdit oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint('ManifestoTabEdit didUpdateWidget called, isEditing: ${widget.isEditing}');
+    debugPrint(
+      'ManifestoTabEdit didUpdateWidget called, isEditing: ${widget.isEditing}',
+    );
     final data = widget.editedData ?? widget.candidateData;
     final newText = data.extraInfo?.manifesto?.title ?? '';
     if (_originalText != newText) {
@@ -116,15 +123,13 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     if (!widget.isEditing) {
       final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
       debugPrint('Raw promises in didUpdateWidget: $rawPromises');
-      final newManifestoPromises = rawPromises.map((promise) {
-        if (promise is Map<String, dynamic>) {
-          // Already structured format
-          return promise;
-        } else {
-          // Convert string format to structured format (avoid duplicating title as a point)
-          return <String, dynamic>{'title': promise.toString(), 'points': <dynamic>[]};
-        }
-      }).cast<Map<String, dynamic>>().toList();
+      final newManifestoPromises = rawPromises
+          .map((promise) {
+            // Already structured format
+            return promise;
+          })
+          .cast<Map<String, dynamic>>()
+          .toList();
 
       // Update controllers with new data
       _promiseControllers = newManifestoPromises.map((promise) {
@@ -132,13 +137,21 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         final points = promise['points'] as List<dynamic>? ?? <dynamic>[];
         return <String, dynamic>{
           'title': TextEditingController(text: _stripBoldMarkers(title)),
-          'points': points.map((point) => TextEditingController(text: _stripBoldMarkers(point.toString()))).toList(),
+          'points': points
+              .map(
+                (point) => TextEditingController(
+                  text: _stripBoldMarkers(point.toString()),
+                ),
+              )
+              .toList(),
         };
       }).toList();
 
       // If no promises exist, create one empty promise
       if (newManifestoPromises.isEmpty) {
-        debugPrint('No promises found in didUpdateWidget, creating empty promise');
+        debugPrint(
+          'No promises found in didUpdateWidget, creating empty promise',
+        );
         _promiseControllers.add(<String, dynamic>{
           'title': TextEditingController(),
           'points': <TextEditingController>[TextEditingController()],
@@ -154,7 +167,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     if (s.isEmpty) return s;
     // Remove any ** surrounding markers and any standalone occurrences
     final trimmed = s.trim();
-    if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length >= 4) {
+    if (trimmed.startsWith('**') &&
+        trimmed.endsWith('**') &&
+        trimmed.length >= 4) {
       return trimmed.substring(2, trimmed.length - 2).trim();
     }
     return trimmed.replaceAll('**', '').trim();
@@ -166,7 +181,8 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     _titleController.dispose();
     for (var controllerMap in _promiseControllers) {
       (controllerMap['title'] as TextEditingController?)?.dispose();
-      for (var pointController in (controllerMap['points'] as List<TextEditingController>? ?? [])) {
+      for (var pointController
+          in (controllerMap['points'] as List<TextEditingController>? ?? [])) {
         pointController.dispose();
       }
     }
@@ -180,9 +196,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     showDialog(
       context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.chooseManifestoTitle),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.chooseManifestoTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -253,83 +269,118 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                 if (selectedLanguage == 'en') ...[
                   ListTile(
                     title: Text('Ward $wardId Development Plan'),
-                    subtitle: Text(AppLocalizations.of(context)!.standardDevelopmentFocus),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.standardDevelopmentFocus,
+                    ),
                     onTap: () {
                       _titleController.text = 'Ward $wardId Development Plan';
-                      widget.onManifestoTitleChange('Ward $wardId Development Plan');
+                      widget.onManifestoTitleChange(
+                        'Ward $wardId Development Plan',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                   const Divider(),
                   ListTile(
                     title: Text('Ward $wardId Development & Transparency Plan'),
-                    subtitle: Text(AppLocalizations.of(context)!.developmentWithTransparency),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.developmentWithTransparency,
+                    ),
                     onTap: () {
-                      _titleController.text = 'Ward $wardId Development & Transparency Plan';
-                      widget.onManifestoTitleChange('Ward $wardId Development & Transparency Plan');
+                      _titleController.text =
+                          'Ward $wardId Development & Transparency Plan';
+                      widget.onManifestoTitleChange(
+                        'Ward $wardId Development & Transparency Plan',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                   const Divider(),
                   ListTile(
                     title: Text('Ward $wardId Progress Manifesto'),
-                    subtitle: Text(AppLocalizations.of(context)!.focusOnProgress),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.focusOnProgress,
+                    ),
                     onTap: () {
                       _titleController.text = 'Ward $wardId Progress Manifesto';
-                      widget.onManifestoTitleChange('Ward $wardId Progress Manifesto');
+                      widget.onManifestoTitleChange(
+                        'Ward $wardId Progress Manifesto',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                   const Divider(),
                   ListTile(
                     title: Text('Ward $wardId Citizen Welfare Plan'),
-                    subtitle: Text(AppLocalizations.of(context)!.focusOnCitizenWelfare),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.focusOnCitizenWelfare,
+                    ),
                     onTap: () {
-                      _titleController.text = 'Ward $wardId Citizen Welfare Plan';
-                      widget.onManifestoTitleChange('Ward $wardId Citizen Welfare Plan');
+                      _titleController.text =
+                          'Ward $wardId Citizen Welfare Plan';
+                      widget.onManifestoTitleChange(
+                        'Ward $wardId Citizen Welfare Plan',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                 ]
-
                 // Marathi Titles
                 else ...[
                   ListTile(
                     title: Text('वॉर्ड $wardId विकास योजना'),
-                    subtitle: Text(AppLocalizations.of(context)!.standardDevelopmentFocus),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.standardDevelopmentFocus,
+                    ),
                     onTap: () {
                       _titleController.text = 'वॉर्ड $wardId विकास योजना';
-                      widget.onManifestoTitleChange('वॉर्ड $wardId विकास योजना');
+                      widget.onManifestoTitleChange(
+                        'वॉर्ड $wardId विकास योजना',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                   const Divider(),
                   ListTile(
                     title: Text('वॉर्ड $wardId विकास आणि पारदर्शकता योजना'),
-                    subtitle: Text(AppLocalizations.of(context)!.developmentWithTransparency),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.developmentWithTransparency,
+                    ),
                     onTap: () {
-                      _titleController.text = 'वॉर्ड $wardId विकास आणि पारदर्शकता योजना';
-                      widget.onManifestoTitleChange('वॉर्ड $wardId विकास आणि पारदर्शकता योजना');
+                      _titleController.text =
+                          'वॉर्ड $wardId विकास आणि पारदर्शकता योजना';
+                      widget.onManifestoTitleChange(
+                        'वॉर्ड $wardId विकास आणि पारदर्शकता योजना',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                   const Divider(),
                   ListTile(
                     title: Text('वॉर्ड $wardId प्रगती घोषणापत्र'),
-                    subtitle: Text(AppLocalizations.of(context)!.focusOnProgress),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.focusOnProgress,
+                    ),
                     onTap: () {
                       _titleController.text = 'वॉर्ड $wardId प्रगती घोषणापत्र';
-                      widget.onManifestoTitleChange('वॉर्ड $wardId प्रगती घोषणापत्र');
+                      widget.onManifestoTitleChange(
+                        'वॉर्ड $wardId प्रगती घोषणापत्र',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
                   const Divider(),
                   ListTile(
                     title: Text('वॉर्ड $wardId नागरिक कल्याण योजना'),
-                    subtitle: Text(AppLocalizations.of(context)!.focusOnCitizenWelfare),
+                    subtitle: Text(
+                      AppLocalizations.of(context)!.focusOnCitizenWelfare,
+                    ),
                     onTap: () {
-                      _titleController.text = 'वॉर्ड $wardId नागरिक कल्याण योजना';
-                      widget.onManifestoTitleChange('वॉर्ड $wardId नागरिक कल्याण योजना');
+                      _titleController.text =
+                          'वॉर्ड $wardId नागरिक कल्याण योजना';
+                      widget.onManifestoTitleChange(
+                        'वॉर्ड $wardId नागरिक कल्याण योजना',
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
@@ -366,7 +417,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
   // Enhanced upload method with Cloudinary integration for videos
   Future<void> _uploadLocalFilesToFirebase() async {
-    debugPrint('☁️ [Enhanced Upload] Starting upload for ${_localFiles.length} local files...');
+    debugPrint(
+      '☁️ [Enhanced Upload] Starting upload for ${_localFiles.length} local files...',
+    );
 
     for (final localFile in _localFiles) {
       try {
@@ -375,13 +428,17 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         final fileName = localFile['fileName'] as String;
         final isPremiumVideo = localFile['isPremium'] as bool? ?? false;
 
-        debugPrint('☁️ [Enhanced Upload] Processing $type file: $fileName (Premium: $isPremiumVideo)');
+        debugPrint(
+          '☁️ [Enhanced Upload] Processing $type file: $fileName (Premium: $isPremiumVideo)',
+        );
 
         final file = File(localPath);
 
         // Handle video uploads with Cloudinary for premium users
         if (type == 'video' && isPremiumVideo) {
-          debugPrint('🎥 [Cloudinary Upload] Processing premium video with Cloudinary...');
+          debugPrint(
+            '🎥 [Cloudinary Upload] Processing premium video with Cloudinary...',
+          );
 
           try {
             // Initialize VideoProcessingService
@@ -390,7 +447,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
             // Show processing progress
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Processing premium video with multi-resolution optimization...'),
+                content: Text(
+                  'Processing premium video with multi-resolution optimization...',
+                ),
                 backgroundColor: Colors.purple,
                 duration: Duration(seconds: 3),
               ),
@@ -401,11 +460,15 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
               file,
               widget.candidateData.userId ?? 'unknown_user',
               onProgress: (progress) {
-                debugPrint('🎥 [Cloudinary Progress] ${progress.toStringAsFixed(1)}%');
+                debugPrint(
+                  '🎥 [Cloudinary Progress] ${progress.toStringAsFixed(1)}%',
+                );
               },
             );
 
-            debugPrint('🎥 [Cloudinary Success] Video processed successfully: ${processedVideo.id}');
+            debugPrint(
+              '🎥 [Cloudinary Success] Video processed successfully: ${processedVideo.id}',
+            );
 
             // Update candidate with processed video URL
             widget.onManifestoVideoChange(processedVideo.originalUrl);
@@ -415,12 +478,13 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Premium video processed and optimized! Available in ${processedVideo.resolutions.length} resolutions.'),
+                content: Text(
+                  'Premium video processed and optimized! Available in ${processedVideo.resolutions.length} resolutions.',
+                ),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 5),
               ),
             );
-
           } catch (cloudinaryError) {
             debugPrint('🎥 [Cloudinary Error] $cloudinaryError');
 
@@ -439,12 +503,15 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
           // Handle regular files (PDF, Image, non-premium video) with Firebase
           await _uploadRegularFileToFirebase(file, localPath, fileName, type);
         }
-
       } catch (e) {
-        debugPrint('☁️ [Enhanced Upload] Error processing ${localFile['type']}: $e');
+        debugPrint(
+          '☁️ [Enhanced Upload] Error processing ${localFile['type']}: $e',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to upload ${localFile['type']}: ${e.toString()}'),
+            content: Text(
+              'Failed to upload ${localFile['type']}: ${e.toString()}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -460,7 +527,12 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   }
 
   // Upload regular files (PDF, Image, non-premium video) to Firebase
-  Future<void> _uploadRegularFileToFirebase(File file, String localPath, String fileName, String type) async {
+  Future<void> _uploadRegularFileToFirebase(
+    File file,
+    String localPath,
+    String fileName,
+    String type,
+  ) async {
     debugPrint('📄 [Firebase Upload] Uploading regular $type file: $fileName');
 
     final fileSize = await file.length();
@@ -469,7 +541,8 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     // Generate unique filename for Firebase
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final userId = widget.candidateData.userId ?? 'unknown_user';
-    final firebaseFileName = '${type}_${userId}_${timestamp}.${_getFileExtension(type)}';
+    final firebaseFileName =
+        '${type}_${userId}_$timestamp.${_getFileExtension(type)}';
 
     // Determine storage path based on file type
     String storagePath;
@@ -499,13 +572,17 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     // Monitor upload progress
     uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
       final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      debugPrint('📄 [Firebase Upload] $type upload progress: ${progress.toStringAsFixed(1)}%');
+      debugPrint(
+        '📄 [Firebase Upload] $type upload progress: ${progress.toStringAsFixed(1)}%',
+      );
     });
 
     final snapshot = await uploadTask.whenComplete(() {});
     final downloadUrl = await snapshot.ref.getDownloadURL();
 
-    debugPrint('📄 [Firebase Upload] $type uploaded successfully. URL: $downloadUrl');
+    debugPrint(
+      '📄 [Firebase Upload] $type uploaded successfully. URL: $downloadUrl',
+    );
 
     // Update candidate data based on file type
     if (type == 'pdf') {
@@ -521,14 +598,20 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$type uploaded successfully (${fileSizeMB.toStringAsFixed(1)}MB)'),
+        content: Text(
+          '$type uploaded successfully (${fileSizeMB.toStringAsFixed(1)}MB)',
+        ),
         backgroundColor: Colors.green,
       ),
     );
   }
 
   // Fallback method for video upload to Firebase (when Cloudinary fails)
-  Future<void> _uploadVideoToFirebase(File file, String localPath, String fileName) async {
+  Future<void> _uploadVideoToFirebase(
+    File file,
+    String localPath,
+    String fileName,
+  ) async {
     debugPrint('🎥 [Firebase Fallback] Uploading video to Firebase Storage...');
 
     final fileSize = await file.length();
@@ -536,7 +619,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final userId = widget.candidateData.userId ?? 'unknown_user';
-    final firebaseFileName = 'video_${userId}_${timestamp}.mp4';
+    final firebaseFileName = 'video_${userId}_$timestamp.mp4';
     final storagePath = 'manifesto_videos/$firebaseFileName';
 
     final storageRef = FirebaseStorage.instance.ref().child(storagePath);
@@ -548,13 +631,17 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
       final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      debugPrint('🎥 [Firebase Fallback] Upload progress: ${progress.toStringAsFixed(1)}%');
+      debugPrint(
+        '🎥 [Firebase Fallback] Upload progress: ${progress.toStringAsFixed(1)}%',
+      );
     });
 
     final snapshot = await uploadTask.whenComplete(() {});
     final downloadUrl = await snapshot.ref.getDownloadURL();
 
-    debugPrint('🎥 [Firebase Fallback] Video uploaded successfully. URL: $downloadUrl');
+    debugPrint(
+      '🎥 [Firebase Fallback] Video uploaded successfully. URL: $downloadUrl',
+    );
 
     // Update candidate with video URL
     widget.onManifestoVideoChange(downloadUrl);
@@ -594,7 +681,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   Future<void> uploadPendingFiles() async {
     // First, upload any pending local files
     if (_localFiles.isNotEmpty) {
-      debugPrint('💾 [Save] Uploading ${_localFiles.length} pending local files to Firebase...');
+      debugPrint(
+        '💾 [Save] Uploading ${_localFiles.length} pending local files to Firebase...',
+      );
       await _uploadLocalFilesToFirebase();
     } else {
       debugPrint('💾 [Save] No pending local files to upload');
@@ -616,15 +705,21 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     }
 
     // Delete Image if marked
-    if (_isImageMarkedForDeletion && data.extraInfo?.manifesto?.image != null && data.extraInfo!.manifesto!.image!.isNotEmpty) {
+    if (_isImageMarkedForDeletion &&
+        data.extraInfo?.manifesto?.image != null &&
+        data.extraInfo!.manifesto!.image!.isNotEmpty) {
       await _deleteFileFromStorage(data.extraInfo!.manifesto!.image!, 'Image');
       widget.onManifestoImageChange(''); // Clear URL
       _isImageMarkedForDeletion = false; // Reset flag
     }
 
     // Delete Video if marked
-    if (_isVideoMarkedForDeletion && data.extraInfo?.manifesto?.videoUrl != null) {
-      await _deleteFileFromStorage(data.extraInfo!.manifesto!.videoUrl!, 'Video');
+    if (_isVideoMarkedForDeletion &&
+        data.extraInfo?.manifesto?.videoUrl != null) {
+      await _deleteFileFromStorage(
+        data.extraInfo!.manifesto!.videoUrl!,
+        'Video',
+      );
       widget.onManifestoVideoChange(''); // Clear URL
       _isVideoMarkedForDeletion = false; // Reset flag
     }
@@ -633,12 +728,16 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   // Helper method to delete a file from Firebase Storage
   Future<void> _deleteFileFromStorage(String fileUrl, String fileType) async {
     try {
-      debugPrint('🗑️ [Storage Delete] Deleting $fileType from Firebase Storage: $fileUrl');
+      debugPrint(
+        '🗑️ [Storage Delete] Deleting $fileType from Firebase Storage: $fileUrl',
+      );
 
       final storageRef = FirebaseStorage.instance.refFromURL(fileUrl);
       await storageRef.delete();
 
-      debugPrint('🗑️ [Storage Delete] Successfully deleted $fileType from Firebase Storage');
+      debugPrint(
+        '🗑️ [Storage Delete] Successfully deleted $fileType from Firebase Storage',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -677,8 +776,6 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final data = widget.editedData ?? widget.candidateData;
@@ -687,7 +784,12 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80), // Added 80px bottom padding to prevent content from being hidden behind floating action buttons
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          80,
+        ), // Added 80px bottom padding to prevent content from being hidden behind floating action buttons
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -743,23 +845,30 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
             ),
 
             // Display uploaded files (both in view and edit mode)
-            if (data.extraInfo?.manifesto?.pdfUrl != null && data.extraInfo!.manifesto!.pdfUrl!.isNotEmpty) ...[
+            if (data.extraInfo?.manifesto?.pdfUrl != null &&
+                data.extraInfo!.manifesto!.pdfUrl!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _isPdfMarkedForDeletion ? Colors.red.shade100 : Colors.red.shade50,
+                  color: _isPdfMarkedForDeletion
+                      ? Colors.red.shade100
+                      : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: _isPdfMarkedForDeletion ? Colors.red.shade300 : Colors.red.shade200,
+                    color: _isPdfMarkedForDeletion
+                        ? Colors.red.shade300
+                        : Colors.red.shade200,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.picture_as_pdf,
-                      color: _isPdfMarkedForDeletion ? Colors.red.shade900 : Colors.red.shade700,
+                      color: _isPdfMarkedForDeletion
+                          ? Colors.red.shade900
+                          : Colors.red.shade700,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -772,22 +881,34 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: _isPdfMarkedForDeletion ? Colors.red.shade900 : Colors.red.shade700,
-                              decoration: _isPdfMarkedForDeletion ? TextDecoration.lineThrough : null,
+                              color: _isPdfMarkedForDeletion
+                                  ? Colors.red.shade900
+                                  : Colors.red.shade700,
+                              decoration: _isPdfMarkedForDeletion
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                           ),
                           Text(
-                            _getFileNameFromUrl(data.extraInfo!.manifesto!.pdfUrl!),
+                            _getFileNameFromUrl(
+                              data.extraInfo!.manifesto!.pdfUrl!,
+                            ),
                             style: TextStyle(
                               fontSize: 12,
-                              color: _isPdfMarkedForDeletion ? Colors.red.shade600 : Colors.grey,
-                              decoration: _isPdfMarkedForDeletion ? TextDecoration.lineThrough : null,
+                              color: _isPdfMarkedForDeletion
+                                  ? Colors.red.shade600
+                                  : Colors.grey,
+                              decoration: _isPdfMarkedForDeletion
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                           ),
                           if (_isPdfMarkedForDeletion) ...[
                             const SizedBox(height: 4),
                             Text(
-                              AppLocalizations.of(context)!.willBeDeletedWhenYouSave,
+                              AppLocalizations.of(
+                                context,
+                              )!.willBeDeletedWhenYouSave,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.red.shade700,
@@ -805,16 +926,26 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                         if (checked == true) {
                           final confirmed = await ConfirmationDialog.show(
                             context: context,
-                            title: AppLocalizations.of(context)!.markPdfForDeletion,
-                            content: AppLocalizations.of(context)!.pdfDeletionWarning,
-                            confirmText: AppLocalizations.of(context)!.markForDeletion,
+                            title: AppLocalizations.of(
+                              context,
+                            )!.markPdfForDeletion,
+                            content: AppLocalizations.of(
+                              context,
+                            )!.pdfDeletionWarning,
+                            confirmText: AppLocalizations.of(
+                              context,
+                            )!.markForDeletion,
                           );
                           if (confirmed == true) {
                             setState(() => _isPdfMarkedForDeletion = true);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.pdfMarkedForDeletion),
+                                  content: Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.pdfMarkedForDeletion,
+                                  ),
                                   backgroundColor: Colors.orange,
                                 ),
                               );
@@ -830,16 +961,21 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                 ),
               ),
             ],
-            if (data.extraInfo?.manifesto?.image != null && data.extraInfo!.manifesto!.image!.isNotEmpty) ...[
+            if (data.extraInfo?.manifesto?.image != null &&
+                data.extraInfo!.manifesto!.image!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _isImageMarkedForDeletion ? Colors.red.shade100 : Colors.green.shade50,
+                  color: _isImageMarkedForDeletion
+                      ? Colors.red.shade100
+                      : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: _isImageMarkedForDeletion ? Colors.red.shade300 : Colors.green.shade200,
+                    color: _isImageMarkedForDeletion
+                        ? Colors.red.shade300
+                        : Colors.green.shade200,
                   ),
                 ),
                 child: Column(
@@ -849,7 +985,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                       children: [
                         Icon(
                           Icons.image,
-                          color: _isImageMarkedForDeletion ? Colors.red.shade900 : Colors.green.shade700,
+                          color: _isImageMarkedForDeletion
+                              ? Colors.red.shade900
+                              : Colors.green.shade700,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -862,22 +1000,34 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: _isImageMarkedForDeletion ? Colors.red.shade900 : Colors.green.shade700,
-                                  decoration: _isImageMarkedForDeletion ? TextDecoration.lineThrough : null,
+                                  color: _isImageMarkedForDeletion
+                                      ? Colors.red.shade900
+                                      : Colors.green.shade700,
+                                  decoration: _isImageMarkedForDeletion
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                               ),
                               Text(
-                                _getFileNameFromUrl(data.extraInfo!.manifesto!.image!),
+                                _getFileNameFromUrl(
+                                  data.extraInfo!.manifesto!.image!,
+                                ),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _isImageMarkedForDeletion ? Colors.red.shade600 : Colors.grey,
-                                  decoration: _isImageMarkedForDeletion ? TextDecoration.lineThrough : null,
+                                  color: _isImageMarkedForDeletion
+                                      ? Colors.red.shade600
+                                      : Colors.grey,
+                                  decoration: _isImageMarkedForDeletion
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                               ),
                               if (_isImageMarkedForDeletion) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  AppLocalizations.of(context)!.willBeDeletedWhenYouSave,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.willBeDeletedWhenYouSave,
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.red.shade700,
@@ -892,27 +1042,39 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                         Checkbox(
                           value: _isImageMarkedForDeletion,
                           onChanged: (checked) async {
-                        if (checked == true) {
-                          final confirmed = await ConfirmationDialog.show(
-                            context: context,
-                            title: AppLocalizations.of(context)!.markImageForDeletion,
-                            content: AppLocalizations.of(context)!.imageDeletionWarning,
-                            confirmText: AppLocalizations.of(context)!.markForDeletion,
-                          );
-                          if (confirmed == true) {
-                            setState(() => _isImageMarkedForDeletion = true);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.imageMarkedForDeletion),
-                                  backgroundColor: Colors.orange,
-                                ),
+                            if (checked == true) {
+                              final confirmed = await ConfirmationDialog.show(
+                                context: context,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.markImageForDeletion,
+                                content: AppLocalizations.of(
+                                  context,
+                                )!.imageDeletionWarning,
+                                confirmText: AppLocalizations.of(
+                                  context,
+                                )!.markForDeletion,
                               );
+                              if (confirmed == true) {
+                                setState(
+                                  () => _isImageMarkedForDeletion = true,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.imageMarkedForDeletion,
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } else {
+                              setState(() => _isImageMarkedForDeletion = false);
                             }
-                          }
-                        } else {
-                          setState(() => _isImageMarkedForDeletion = false);
-                        }
                           },
                           activeColor: Colors.red,
                         ),
@@ -927,21 +1089,25 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                       borderColor: Colors.grey.shade300,
                       fullScreenTitle: 'Manifesto Image',
                     ),
-
                   ],
                 ),
               ),
             ],
-            if (data.extraInfo?.manifesto?.videoUrl != null && data.extraInfo!.manifesto!.videoUrl!.isNotEmpty) ...[
+            if (data.extraInfo?.manifesto?.videoUrl != null &&
+                data.extraInfo!.manifesto!.videoUrl!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _isVideoMarkedForDeletion ? Colors.red.shade100 : Colors.purple.shade50,
+                  color: _isVideoMarkedForDeletion
+                      ? Colors.red.shade100
+                      : Colors.purple.shade50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: _isVideoMarkedForDeletion ? Colors.red.shade300 : Colors.purple.shade200,
+                    color: _isVideoMarkedForDeletion
+                        ? Colors.red.shade300
+                        : Colors.purple.shade200,
                   ),
                 ),
                 child: Column(
@@ -951,7 +1117,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                       children: [
                         Icon(
                           Icons.video_call,
-                          color: _isVideoMarkedForDeletion ? Colors.red.shade900 : Colors.purple.shade700,
+                          color: _isVideoMarkedForDeletion
+                              ? Colors.red.shade900
+                              : Colors.purple.shade700,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -964,32 +1132,50 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: _isVideoMarkedForDeletion ? Colors.red.shade900 : Colors.purple.shade700,
-                                  decoration: _isVideoMarkedForDeletion ? TextDecoration.lineThrough : null,
+                                  color: _isVideoMarkedForDeletion
+                                      ? Colors.red.shade900
+                                      : Colors.purple.shade700,
+                                  decoration: _isVideoMarkedForDeletion
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                               ),
                               Text(
-                                _getFileNameFromUrl(data.extraInfo!.manifesto!.videoUrl!),
+                                _getFileNameFromUrl(
+                                  data.extraInfo!.manifesto!.videoUrl!,
+                                ),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _isVideoMarkedForDeletion ? Colors.red.shade600 : Colors.grey,
-                                  decoration: _isVideoMarkedForDeletion ? TextDecoration.lineThrough : null,
+                                  color: _isVideoMarkedForDeletion
+                                      ? Colors.red.shade600
+                                      : Colors.grey,
+                                  decoration: _isVideoMarkedForDeletion
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                               ),
                               // Premium feature comment
                               Text(
-                                AppLocalizations.of(context)!.premiumFeatureMultiResolution,
+                                AppLocalizations.of(
+                                  context,
+                                )!.premiumFeatureMultiResolution,
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: _isVideoMarkedForDeletion ? Colors.red.shade700 : Colors.purple,
+                                  color: _isVideoMarkedForDeletion
+                                      ? Colors.red.shade700
+                                      : Colors.purple,
                                   fontStyle: FontStyle.italic,
-                                  decoration: _isVideoMarkedForDeletion ? TextDecoration.lineThrough : null,
+                                  decoration: _isVideoMarkedForDeletion
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                               ),
                               if (_isVideoMarkedForDeletion) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  AppLocalizations.of(context)!.willBeDeletedWhenYouSave,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.willBeDeletedWhenYouSave,
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.red.shade700,
@@ -1004,27 +1190,39 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                         Checkbox(
                           value: _isVideoMarkedForDeletion,
                           onChanged: (checked) async {
-                        if (checked == true) {
-                          final confirmed = await ConfirmationDialog.show(
-                            context: context,
-                            title: AppLocalizations.of(context)!.markVideoForDeletion,
-                            content: AppLocalizations.of(context)!.videoDeletionWarning,
-                            confirmText: AppLocalizations.of(context)!.markForDeletion,
-                          );
-                          if (confirmed == true) {
-                            setState(() => _isVideoMarkedForDeletion = true);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.videoMarkedForDeletion),
-                                  backgroundColor: Colors.orange,
-                                ),
+                            if (checked == true) {
+                              final confirmed = await ConfirmationDialog.show(
+                                context: context,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.markVideoForDeletion,
+                                content: AppLocalizations.of(
+                                  context,
+                                )!.videoDeletionWarning,
+                                confirmText: AppLocalizations.of(
+                                  context,
+                                )!.markForDeletion,
                               );
+                              if (confirmed == true) {
+                                setState(
+                                  () => _isVideoMarkedForDeletion = true,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.videoMarkedForDeletion,
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } else {
+                              setState(() => _isVideoMarkedForDeletion = false);
                             }
-                          }
-                        } else {
-                          setState(() => _isVideoMarkedForDeletion = false);
-                        }
                           },
                           activeColor: Colors.red,
                         ),
@@ -1051,7 +1249,10 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                               bottom: 8,
                               right: 8,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.7),
                                   borderRadius: BorderRadius.circular(4),
@@ -1069,13 +1270,10 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                         ),
                       ),
                     ),
-
                   ],
                 ),
               ),
             ],
-
-
           ],
         ),
       ),

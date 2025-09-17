@@ -9,10 +9,10 @@ class DemoDataModal extends StatefulWidget {
   final Function(dynamic) onDataSelected;
 
   const DemoDataModal({
-    Key? key,
+    super.key,
     required this.category,
     required this.onDataSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<DemoDataModal> createState() => _DemoDataModalState();
@@ -51,9 +51,7 @@ class _DemoDataModalState extends State<DemoDataModal> {
     final types = DemoDataService.getAvailableTypes(widget.category);
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -74,11 +72,7 @@ class _DemoDataModalState extends State<DemoDataModal> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.lightbulb,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                  Icon(Icons.lightbulb, color: Colors.white, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -92,10 +86,7 @@ class _DemoDataModalState extends State<DemoDataModal> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                    ),
+                    icon: const Icon(Icons.close, color: Colors.white),
                   ),
                 ],
               ),
@@ -205,7 +196,9 @@ class _DemoDataModalState extends State<DemoDataModal> {
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(context).primaryColor.withOpacity(0.1)
+                                  ? Theme.of(
+                                      context,
+                                    ).primaryColor.withOpacity(0.1)
                                   : Colors.grey[100],
                               border: Border.all(
                                 color: isSelected
@@ -221,7 +214,9 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                 color: isSelected
                                     ? Theme.of(context).primaryColor
                                     : Colors.black87,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -250,15 +245,22 @@ class _DemoDataModalState extends State<DemoDataModal> {
                         ),
                         constraints: const BoxConstraints(maxHeight: 200),
                         child: SingleChildScrollView(
-                          child: widget.category == 'achievements' && previewText is List
+                          child:
+                              widget.category == 'achievements' &&
+                                  previewText is List
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: (previewText as List).map<Widget>((item) {
+                                  children: (previewText as List).map<Widget>((
+                                    item,
+                                  ) {
                                     if (item is Achievement) {
                                       return Padding(
-                                        padding: const EdgeInsets.only(bottom: 8),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               item.title,
@@ -269,7 +271,9 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                             ),
                                             Text(
                                               item.description,
-                                              style: const TextStyle(fontSize: 12),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                              ),
                                             ),
                                             Text(
                                               'Year: ${item.year}',
@@ -286,27 +290,27 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                   }).toList(),
                                 )
                               : widget.category == 'manifesto'
-                                  ? MarkdownBody(
-                                      data: previewText?.toString() ?? '',
-                                      styleSheet: MarkdownStyleSheet(
-                                        p: const TextStyle(
-                                          fontSize: 14,
-                                          height: 1.5,
-                                        ),
-                                        strong: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                    )
-                                  : Text(
-                                      previewText?.toString() ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        height: 1.5,
-                                      ),
+                              ? MarkdownBody(
+                                  data: previewText?.toString() ?? '',
+                                  styleSheet: MarkdownStyleSheet(
+                                    p: const TextStyle(
+                                      fontSize: 14,
+                                      height: 1.5,
                                     ),
+                                    strong: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  previewText?.toString() ?? '',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -347,7 +351,8 @@ class _DemoDataModalState extends State<DemoDataModal> {
                     child: ElevatedButton(
                       onPressed: previewText != null
                           ? () {
-                              if (widget.category == 'achievements' && previewText is List) {
+                              if (widget.category == 'achievements' &&
+                                  previewText is List) {
                                 widget.onDataSelected(previewText);
                               } else {
                                 widget.onDataSelected(previewText!);

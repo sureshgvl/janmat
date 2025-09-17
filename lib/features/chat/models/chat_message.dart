@@ -1,10 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum MessageStatus {
-  sending,
-  sent,
-  failed,
-}
+enum MessageStatus { sending, sent, failed }
 
 class MessageReaction {
   final String emoji;
@@ -88,8 +84,8 @@ class Message {
       mediaLocalPath: json['mediaLocalPath'],
       reactions: json['reactions'] != null
           ? (json['reactions'] as List)
-              .map((r) => MessageReaction.fromJson(r))
-              .toList()
+                .map((r) => MessageReaction.fromJson(r))
+                .toList()
           : null,
       status: _parseMessageStatus(json['status']),
       retryCount: json['retryCount'] ?? 0,

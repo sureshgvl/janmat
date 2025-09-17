@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
 
 class ProfileTabView extends StatefulWidget {
   final Candidate candidate;
   final bool isOwnProfile;
-  final bool showVoterInteractions; // New parameter to control voter interactions
+  final bool
+  showVoterInteractions; // New parameter to control voter interactions
 
   const ProfileTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-    this.showVoterInteractions = true, // Default to true for backward compatibility
-  }) : super(key: key);
+    this.showVoterInteractions =
+        true, // Default to true for backward compatibility
+  });
 
   @override
   State<ProfileTabView> createState() => _ProfileTabViewState();
 }
 
-class _ProfileTabViewState extends State<ProfileTabView> with AutomaticKeepAliveClientMixin {
+class _ProfileTabViewState extends State<ProfileTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -49,7 +51,8 @@ class _ProfileTabViewState extends State<ProfileTabView> with AutomaticKeepAlive
   }
 
   void _shareProfile() async {
-    final profileText = '''
+    final profileText =
+        '''
 Check out ${widget.candidate.name}'s profile!
 
 ${widget.candidate.party.isNotEmpty ? 'Party: ${widget.candidate.party}' : 'Independent Candidate'}
@@ -104,7 +107,10 @@ View their complete profile and manifesto at: [Your App URL]
                       child: widget.candidate.photo == null
                           ? Text(
                               widget.candidate.name[0].toUpperCase(),
-                              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
                             )
                           : null,
                     ),
@@ -131,7 +137,9 @@ View their complete profile and manifesto at: [Your App URL]
                                 decoration: BoxDecoration(
                                   color: Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.red.shade200),
+                                  border: Border.all(
+                                    color: Colors.red.shade200,
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -182,16 +190,26 @@ View their complete profile and manifesto at: [Your App URL]
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: _isProfileLiked ? Colors.red.shade50 : Colors.grey.shade50,
-                                          borderRadius: BorderRadius.circular(20),
+                                          color: _isProfileLiked
+                                              ? Colors.red.shade50
+                                              : Colors.grey.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                           border: Border.all(
-                                            color: _isProfileLiked ? Colors.red.shade200 : Colors.grey.shade300,
+                                            color: _isProfileLiked
+                                                ? Colors.red.shade200
+                                                : Colors.grey.shade300,
                                           ),
                                         ),
                                         child: Icon(
-                                          _isProfileLiked ? Icons.favorite : Icons.favorite_border,
+                                          _isProfileLiked
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
                                           size: 16,
-                                          color: _isProfileLiked ? Colors.red : Colors.grey[600],
+                                          color: _isProfileLiked
+                                              ? Colors.red
+                                              : Colors.grey[600],
                                         ),
                                       ),
                                     ),
@@ -203,8 +221,12 @@ View their complete profile and manifesto at: [Your App URL]
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade50,
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: Colors.blue.shade200),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.blue.shade200,
+                                          ),
                                         ),
                                         child: const Icon(
                                           Icons.share,
@@ -221,7 +243,10 @@ View their complete profile and manifesto at: [Your App URL]
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              if (widget.candidate.party.toLowerCase().contains('independent') || widget.candidate.party.trim().isEmpty)
+                              if (widget.candidate.party.toLowerCase().contains(
+                                    'independent',
+                                  ) ||
+                                  widget.candidate.party.trim().isEmpty)
                                 Container(
                                   width: 40,
                                   height: 40,
@@ -243,7 +268,10 @@ View their complete profile and manifesto at: [Your App URL]
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
                                       image: SymbolUtils.getSymbolImageProvider(
-                                        SymbolUtils.getPartySymbolPath(widget.candidate.party, candidate: widget.candidate)
+                                        SymbolUtils.getPartySymbolPath(
+                                          widget.candidate.party,
+                                          candidate: widget.candidate,
+                                        ),
                                       ),
                                       fit: BoxFit.cover,
                                     ),
@@ -255,18 +283,30 @@ View their complete profile and manifesto at: [Your App URL]
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      widget.candidate.party.toLowerCase().contains('independent') || widget.candidate.party.trim().isEmpty
+                                      widget.candidate.party
+                                                  .toLowerCase()
+                                                  .contains('independent') ||
+                                              widget.candidate.party
+                                                  .trim()
+                                                  .isEmpty
                                           ? 'Independent Candidate'
                                           : widget.candidate.party,
                                       style: TextStyle(
                                         fontSize: 16,
-                                        color: widget.candidate.party.toLowerCase().contains('independent') || widget.candidate.party.trim().isEmpty
+                                        color:
+                                            widget.candidate.party
+                                                    .toLowerCase()
+                                                    .contains('independent') ||
+                                                widget.candidate.party
+                                                    .trim()
+                                                    .isEmpty
                                             ? Colors.grey.shade700
                                             : Colors.blue,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    if (widget.candidate.symbol != null && widget.candidate.symbol!.isNotEmpty)
+                                    if (widget.candidate.symbol != null &&
+                                        widget.candidate.symbol!.isNotEmpty)
                                       Text(
                                         'Symbol: ${widget.candidate.symbol}',
                                         style: const TextStyle(
@@ -391,7 +431,11 @@ View their complete profile and manifesto at: [Your App URL]
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  widget.candidate.extraInfo!.basicInfo!.gender!,
+                                  widget
+                                      .candidate
+                                      .extraInfo!
+                                      .basicInfo!
+                                      .gender!,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -408,7 +452,8 @@ View their complete profile and manifesto at: [Your App URL]
                 ],
 
                 // Education
-                if (widget.candidate.extraInfo?.basicInfo?.education != null) ...[
+                if (widget.candidate.extraInfo?.basicInfo?.education !=
+                    null) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(

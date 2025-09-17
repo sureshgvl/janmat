@@ -10,9 +10,9 @@ class ChatInitializer {
     try {
       await _createSampleWardRooms();
       await _createSampleCandidateRooms();
-    debugPrint('✅ Sample chat rooms initialized successfully');
+      debugPrint('✅ Sample chat rooms initialized successfully');
     } catch (e) {
-    debugPrint('❌ Failed to initialize sample chat rooms: $e');
+      debugPrint('❌ Failed to initialize sample chat rooms: $e');
     }
   }
 
@@ -107,12 +107,12 @@ class ChatInitializer {
 
       if (!doc.exists) {
         await docRef.set(chatRoom.toJson());
-      debugPrint('✅ Created chat room: ${chatRoom.roomId}');
+        debugPrint('✅ Created chat room: ${chatRoom.roomId}');
       } else {
-      debugPrint('ℹ️ Chat room already exists: ${chatRoom.roomId}');
+        debugPrint('ℹ️ Chat room already exists: ${chatRoom.roomId}');
       }
     } catch (e) {
-    debugPrint('❌ Failed to create room ${chatRoom.roomId}: $e');
+      debugPrint('❌ Failed to create room ${chatRoom.roomId}: $e');
     }
   }
 
@@ -122,25 +122,29 @@ class ChatInitializer {
       final sampleMessages = [
         {
           'roomId': 'ward_mumbai_1',
-          'text': 'Welcome to Ward 1 (Mumbai) Community Chat! This is a public forum for all residents.',
+          'text':
+              'Welcome to Ward 1 (Mumbai) Community Chat! This is a public forum for all residents.',
           'senderId': 'admin_system',
           'type': 'text',
         },
         {
           'roomId': 'ward_mumbai_1',
-          'text': 'Hello everyone! I\'m Rahul Sharma, your candidate for Ward 1. Feel free to ask questions!',
+          'text':
+              'Hello everyone! I\'m Rahul Sharma, your candidate for Ward 1. Feel free to ask questions!',
           'senderId': 'sample_candidate_1',
           'type': 'text',
         },
         {
           'roomId': 'candidate_sample1',
-          'text': 'Thank you for your support! I\'m committed to improving our ward\'s infrastructure.',
+          'text':
+              'Thank you for your support! I\'m committed to improving our ward\'s infrastructure.',
           'senderId': 'sample_candidate_1',
           'type': 'text',
         },
         {
           'roomId': 'ward_pune_1',
-          'text': 'Welcome to Ward 1 (Pune) Community Chat! Let\'s discuss local issues together.',
+          'text':
+              'Welcome to Ward 1 (Pune) Community Chat! Let\'s discuss local issues together.',
           'senderId': 'admin_system',
           'type': 'text',
         },
@@ -148,7 +152,8 @@ class ChatInitializer {
 
       for (final messageData in sampleMessages) {
         final message = Message(
-          messageId: 'sample_${DateTime.now().millisecondsSinceEpoch}_${messageData['roomId']}',
+          messageId:
+              'sample_${DateTime.now().millisecondsSinceEpoch}_${messageData['roomId']}',
           text: messageData['text'] as String,
           senderId: messageData['senderId'] as String,
           type: messageData['type'] as String,
@@ -156,12 +161,15 @@ class ChatInitializer {
           readBy: [messageData['senderId'] as String],
         );
 
-        await _createMessageIfNotExists(messageData['roomId'] as String, message);
+        await _createMessageIfNotExists(
+          messageData['roomId'] as String,
+          message,
+        );
       }
 
-    debugPrint('✅ Sample messages created successfully');
+      debugPrint('✅ Sample messages created successfully');
     } catch (e) {
-    debugPrint('❌ Failed to create sample messages: $e');
+      debugPrint('❌ Failed to create sample messages: $e');
     }
   }
 
@@ -177,10 +185,10 @@ class ChatInitializer {
 
       if (existingMessages.docs.isEmpty) {
         await messagesRef.doc(message.messageId).set(message.toJson());
-      debugPrint('✅ Created sample message in room: $roomId');
+        debugPrint('✅ Created sample message in room: $roomId');
       }
     } catch (e) {
-    debugPrint('❌ Failed to create message in room $roomId: $e');
+      debugPrint('❌ Failed to create message in room $roomId: $e');
     }
   }
 
@@ -188,6 +196,6 @@ class ChatInitializer {
   Future<void> initializeAll() async {
     await initializeSampleChatRooms();
     await createSampleMessages();
-  debugPrint('🎉 Chat system initialization complete!');
+    debugPrint('🎉 Chat system initialization complete!');
   }
 }

@@ -35,7 +35,8 @@ class Ward {
 
     return Ward(
       wardId: json['wardId'] ?? json['id'] ?? '',
-      districtId: json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
+      districtId:
+          json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
       bodyId: json['bodyId'] ?? '',
       name: json['name'] ?? '',
       number: json['number'],

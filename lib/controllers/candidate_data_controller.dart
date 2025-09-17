@@ -39,7 +39,7 @@ class CandidateDataController extends GetxController {
     // Refresh data when coming back to the dashboard
     ever(candidateData, (_) {
       // This will trigger when candidateData changes
-    debugPrint('Candidate data updated, refreshing UI');
+      debugPrint('Candidate data updated, refreshing UI');
     });
   }
 
@@ -59,13 +59,13 @@ class CandidateDataController extends GetxController {
         final isInTrial = await _trialService.isTrialActive(user.uid);
         isPaid.value = isSponsored || isInTrial;
 
-      debugPrint('🎯 Candidate access check:');
-      debugPrint('   Sponsored: $isSponsored');
-      debugPrint('   In Trial: $isInTrial');
-      debugPrint('   Has Access: ${isPaid.value}');
+        debugPrint('🎯 Candidate access check:');
+        debugPrint('   Sponsored: $isSponsored');
+        debugPrint('   In Trial: $isInTrial');
+        debugPrint('   Has Access: ${isPaid.value}');
       }
     } catch (e) {
-    debugPrint('Error fetching candidate data: $e');
+      debugPrint('Error fetching candidate data: $e');
     } finally {
       isLoading.value = false;
     }
@@ -103,10 +103,12 @@ class CandidateDataController extends GetxController {
         break;
       case 'achievements':
         // Convert Achievement objects to JSON for Firestore compatibility
-        final achievementsJson = (value as List<Achievement>?)?.map((a) => a.toJson()).toList();
+        final achievementsJson = (value as List<Achievement>?)
+            ?.map((a) => a.toJson())
+            .toList();
         // Track the JSON version for field-level updates
         trackExtraInfoFieldChange(field, achievementsJson);
-        updatedExtra = currentExtra.copyWith(achievements: value as List<Achievement>?);
+        updatedExtra = currentExtra.copyWith(achievements: value);
         break;
       case 'manifesto':
         updatedExtra = currentExtra.copyWith(manifesto: value);
@@ -254,7 +256,9 @@ class CandidateDataController extends GetxController {
               officeHours: currentContact.officeHours,
             );
             updatedExtra = currentExtra.copyWith(contact: updatedContact);
-            editedData.value = editedData.value!.copyWith(extraInfo: updatedExtra);
+            editedData.value = editedData.value!.copyWith(
+              extraInfo: updatedExtra,
+            );
             return;
           case 'dateOfBirth':
             updatedBasicInfo = BasicInfoData(
@@ -285,14 +289,16 @@ class CandidateDataController extends GetxController {
   void updateContact(String field, String value) {
     if (editedData.value == null) return;
 
-    final currentContact = (editedData.value!.extraInfo?.contact ?? Contact(phone: '', email: null, socialLinks: null)) as Contact;
+    final currentContact =
+        (editedData.value!.extraInfo?.contact ??
+                Contact(phone: '', email: null, socialLinks: null))
+            as Contact;
     final updatedContact = Contact(
       phone: field == 'phone' ? value : currentContact.phone,
       email: field == 'email' ? value : currentContact.email,
-      socialLinks: field.startsWith('social_') ? {
-        ...?currentContact.socialLinks,
-        field.substring(7): value,
-      } : currentContact.socialLinks,
+      socialLinks: field.startsWith('social_')
+          ? {...?currentContact.socialLinks, field.substring(7): value}
+          : currentContact.socialLinks,
     );
 
     updateExtraInfo('contact', updatedContact);
@@ -307,12 +313,14 @@ class CandidateDataController extends GetxController {
 
     // Save immediately to Firebase
     try {
-      final success = await _candidateRepository.updateCandidateExtraInfo(editedData.value!);
+      final success = await _candidateRepository.updateCandidateExtraInfo(
+        editedData.value!,
+      );
       if (!success) {
-      debugPrint('Warning: Failed to save photo URL to Firebase');
+        debugPrint('Warning: Failed to save photo URL to Firebase');
       }
     } catch (e) {
-    debugPrint('Error saving photo URL: $e');
+      debugPrint('Error saving photo URL: $e');
     }
   }
 
@@ -373,7 +381,9 @@ class CandidateDataController extends GetxController {
       if (!success && _changedExtraInfoFields.isEmpty) {
         debugPrint('   Using full update');
         onProgress?.call('Saving data...');
-        success = await _candidateRepository.updateCandidateExtraInfo(editedData.value!);
+        success = await _candidateRepository.updateCandidateExtraInfo(
+          editedData.value!,
+        );
       }
 
       if (success) {
@@ -385,7 +395,7 @@ class CandidateDataController extends GetxController {
 
       return success;
     } catch (e) {
-    debugPrint('Error saving extra info: $e');
+      debugPrint('Error saving extra info: $e');
       return false;
     }
   }
@@ -402,11 +412,13 @@ class CandidateDataController extends GetxController {
         final achievement = achievements[i];
         if (achievement.photoUrl != null &&
             fileUploadService.isLocalPath(achievement.photoUrl!)) {
-
-          debugPrint('📤 Uploading local photo for achievement: ${achievement.title}');
+          debugPrint(
+            '📤 Uploading local photo for achievement: ${achievement.title}',
+          );
 
           try {
-            final firebaseUrl = await fileUploadService.uploadLocalPhotoToFirebase(achievement.photoUrl!);
+            final firebaseUrl = await fileUploadService
+                .uploadLocalPhotoToFirebase(achievement.photoUrl!);
 
             if (firebaseUrl != null) {
               // Update the achievement with the Firebase URL
@@ -414,13 +426,18 @@ class CandidateDataController extends GetxController {
 
               // Also update the changed fields if this achievement was modified
               if (_changedExtraInfoFields.containsKey('achievements')) {
-                final achievementsJson = _changedExtraInfoFields['achievements'] as List<dynamic>;
-                if (i < achievementsJson.length && achievementsJson[i] is Map<String, dynamic>) {
-                  (achievementsJson[i] as Map<String, dynamic>)['photoUrl'] = firebaseUrl;
+                final achievementsJson =
+                    _changedExtraInfoFields['achievements'] as List<dynamic>;
+                if (i < achievementsJson.length &&
+                    achievementsJson[i] is Map<String, dynamic>) {
+                  (achievementsJson[i] as Map<String, dynamic>)['photoUrl'] =
+                      firebaseUrl;
                 }
               }
 
-              debugPrint('✅ Successfully uploaded photo for: ${achievement.title}');
+              debugPrint(
+                '✅ Successfully uploaded photo for: ${achievement.title}',
+              );
             }
           } catch (e) {
             debugPrint('❌ Failed to upload photo for ${achievement.title}: $e');
@@ -432,7 +449,9 @@ class CandidateDataController extends GetxController {
       // Update the edited data with the new Firebase URLs
       if (editedData.value?.extraInfo != null) {
         editedData.value = editedData.value!.copyWith(
-          extraInfo: editedData.value!.extraInfo!.copyWith(achievements: achievements),
+          extraInfo: editedData.value!.extraInfo!.copyWith(
+            achievements: achievements,
+          ),
         );
       }
     } catch (e) {
@@ -465,12 +484,12 @@ class CandidateDataController extends GetxController {
       final isInTrial = await _trialService.isTrialActive(user.uid);
       isPaid.value = isSponsored || isInTrial;
 
-    debugPrint('🔄 Refreshed access status:');
-    debugPrint('   Sponsored: $isSponsored');
-    debugPrint('   In Trial: $isInTrial');
-    debugPrint('   Has Access: ${isPaid.value}');
+      debugPrint('🔄 Refreshed access status:');
+      debugPrint('   Sponsored: $isSponsored');
+      debugPrint('   In Trial: $isInTrial');
+      debugPrint('   Has Access: ${isPaid.value}');
     } catch (e) {
-    debugPrint('Error refreshing access status: $e');
+      debugPrint('Error refreshing access status: $e');
     }
   }
 
@@ -491,7 +510,8 @@ class CandidateDataController extends GetxController {
     if (!forceRefresh &&
         eventsLastFetched.value != null &&
         events.isNotEmpty &&
-        DateTime.now().difference(eventsLastFetched.value!) < const Duration(minutes: 5)) {
+        DateTime.now().difference(eventsLastFetched.value!) <
+            const Duration(minutes: 5)) {
       debugPrint('🎪 Using cached events data');
       return;
     }
@@ -499,7 +519,9 @@ class CandidateDataController extends GetxController {
     isEventsLoading.value = true;
     try {
       debugPrint('🎪 Fetching events for candidate: ${candidate.candidateId}');
-      final fetchedEvents = await _eventRepository.getCandidateEvents(candidate.candidateId);
+      final fetchedEvents = await _eventRepository.getCandidateEvents(
+        candidate.candidateId,
+      );
 
       events.assignAll(fetchedEvents);
       eventsLastFetched.value = DateTime.now();
@@ -561,7 +583,6 @@ class CandidateDataController extends GetxController {
 
       // Call the repository audit method
       await _candidateRepository.logAllCandidatesInSystem();
-
     } catch (e) {
       debugPrint('❌ Error in candidate data audit: $e');
     }

@@ -38,10 +38,16 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
         final nameMatch = party.name.toLowerCase().contains(lowerQuery);
 
         // Search in party abbreviation
-        final abbreviationMatch = party.abbreviation.toLowerCase().contains(lowerQuery);
+        final abbreviationMatch = party.abbreviation.toLowerCase().contains(
+          lowerQuery,
+        );
 
         // Search for Marathi equivalents (e.g., "bjp" should find "भाजप")
-        final marathiMatch = _hasMarathiEquivalent(party.name, party.abbreviation, lowerQuery);
+        final marathiMatch = _hasMarathiEquivalent(
+          party.name,
+          party.abbreviation,
+          lowerQuery,
+        );
 
         return nameMatch || abbreviationMatch || marathiMatch;
       }).toList();
@@ -50,7 +56,11 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
   }
 
   // Check if party name or abbreviation has Marathi equivalent of English query
-  bool _hasMarathiEquivalent(String partyName, String abbreviation, String query) {
+  bool _hasMarathiEquivalent(
+    String partyName,
+    String abbreviation,
+    String query,
+  ) {
     final Map<String, List<String>> marathiEquivalents = {
       'bjp': ['भाजप', 'भारतीय जनता पार्टी'],
       'inc': ['काँग्रेस', 'इंडियन नॅशनल काँग्रेस'],
@@ -73,7 +83,9 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
     final partyText = '$partyName $abbreviation'.toLowerCase();
     final equivalents = marathiEquivalents[query] ?? [];
 
-    return equivalents.any((equivalent) => partyText.contains(equivalent.toLowerCase()));
+    return equivalents.any(
+      (equivalent) => partyText.contains(equivalent.toLowerCase()),
+    );
   }
 
   @override
@@ -107,11 +119,7 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.flag,
-                  color: Colors.blue,
-                  size: 28,
-                ),
+                const Icon(Icons.flag, color: Colors.blue, size: 28),
                 const SizedBox(width: 12),
                 const Text(
                   'Select Political Party',
@@ -124,11 +132,7 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
-                    Icons.close,
-                    color: Colors.blue,
-                    size: 28,
-                  ),
+                  icon: const Icon(Icons.close, color: Colors.blue, size: 28),
                 ),
               ],
             ),
@@ -159,11 +163,7 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.flag,
-                          size: 64,
-                          color: Colors.grey.shade400,
-                        ),
+                        Icon(Icons.flag, size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
                         Text(
                           'No parties found',
@@ -196,13 +196,23 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
                           Navigator.of(context).pop();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? Colors.blue.shade50 : Colors.white,
+                            color: isSelected
+                                ? Colors.blue.shade50
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? Colors.blue.shade200 : Colors.grey.shade200,
+                              color: isSelected
+                                  ? Colors.blue.shade200
+                                  : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: isSelected
@@ -211,7 +221,7 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
                                       color: Colors.blue.shade100,
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -232,7 +242,9 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
                                   borderRadius: BorderRadius.circular(7),
                                   child: Image(
                                     image: SymbolUtils.getSymbolImageProvider(
-                                      SymbolUtils.getPartySymbolPathFromParty(party)
+                                      SymbolUtils.getPartySymbolPathFromParty(
+                                        party,
+                                      ),
                                     ),
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) {
@@ -257,11 +269,17 @@ class _PartySelectionModalState extends State<PartySelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      party.getDisplayName(Localizations.localeOf(context).languageCode),
+                                      party.getDisplayName(
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                                        color: isSelected
+                                            ? Colors.blue.shade800
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 4),

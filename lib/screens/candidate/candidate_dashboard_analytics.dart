@@ -9,7 +9,9 @@ class CandidateDashboardAnalytics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final CandidateDataController controller = Get.put(CandidateDataController());
+    final CandidateDataController controller = Get.put(
+      CandidateDataController(),
+    );
 
     return Obx(() {
       if (controller.isLoading.value) {

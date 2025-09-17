@@ -3,113 +3,101 @@ import '../../models/candidate_model.dart';
 import '../../l10n/app_localizations.dart';
 
 class ProfileHeader extends StatelessWidget {
-    final Candidate candidate;
-    final bool isPremiumCandidate;
-    final String Function(String) getPartySymbolPath;
-    final String Function(DateTime) formatDate;
-    final Widget Function(String, String) buildStatItem;
-    final VoidCallback? onCoverPhotoChange;
-    final VoidCallback? onProfilePhotoChange;
-    final String? currentUserId;
-    final TabController? tabController;
-    final bool isUploadingPhoto;
+  final Candidate candidate;
+  final bool isPremiumCandidate;
+  final String Function(String) getPartySymbolPath;
+  final String Function(DateTime) formatDate;
+  final Widget Function(String, String) buildStatItem;
+  final VoidCallback? onCoverPhotoChange;
+  final VoidCallback? onProfilePhotoChange;
+  final String? currentUserId;
+  final TabController? tabController;
+  final bool isUploadingPhoto;
 
-   const ProfileHeader({
-     Key? key,
-     required this.candidate,
-     required this.isPremiumCandidate,
-     required this.getPartySymbolPath,
-     required this.formatDate,
-     required this.buildStatItem,
-     this.onCoverPhotoChange,
-     this.onProfilePhotoChange,
-     this.currentUserId,
-     this.tabController,
-     this.isUploadingPhoto = false,
-   }) : super(key: key);
+  const ProfileHeader({
+    super.key,
+    required this.candidate,
+    required this.isPremiumCandidate,
+    required this.getPartySymbolPath,
+    required this.formatDate,
+    required this.buildStatItem,
+    this.onCoverPhotoChange,
+    this.onProfilePhotoChange,
+    this.currentUserId,
+    this.tabController,
+    this.isUploadingPhoto = false,
+  });
 
- // Get party colors for gradient and borders
- List<Color> getPartyColors(String party) {
-   // Handle independent candidates
-   if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
-     return [Colors.grey.shade600, Colors.grey.shade800];
-   }
+  // Get party colors for gradient and borders
+  List<Color> getPartyColors(String party) {
+    // Handle independent candidates
+    if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
+      return [Colors.grey.shade600, Colors.grey.shade800];
+    }
 
-   // For now, use the same gradient for all parties
-   // In the future, this can be customized per party from Firebase
-   return [Colors.blue.shade600, Colors.blue.shade900];
- }
+    // For now, use the same gradient for all parties
+    // In the future, this can be customized per party from Firebase
+    return [Colors.blue.shade600, Colors.blue.shade900];
+  }
 
- // Build TabBar widget for outside profile section
- Widget buildTabBar(BuildContext context) {
-   return const TabBar(
-     isScrollable: true,
-     tabs: [
-       Tab(
-         child: Row(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             Icon(Icons.info_outline, size: 16, color: Colors.black),
-             SizedBox(width: 4),
-             Text(
-               'Info',
-               style: TextStyle(color: Colors.black),
-             ),
-           ],
-         ),
-       ),
-       Tab(
-         child: Row(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             Icon(Icons.description_outlined, size: 16, color: Colors.black),
-             SizedBox(width: 4),
-             Text(
-               'Manifesto',
-               style: TextStyle(color: Colors.black),
-             ),
-           ],
-         ),
-       ),
-       Tab(
-         child: Row(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             Icon(Icons.photo_library_outlined, size: 16, color: Colors.black),
-             SizedBox(width: 4),
-             Text(
-               'Media',
-               style: TextStyle(color: Colors.black),
-             ),
-           ],
-         ),
-       ),
-       Tab(
-         child: Row(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             Icon(Icons.contact_phone_outlined, size: 16, color: Colors.black),
-             SizedBox(width: 4),
-             Text(
-               'Contact',
-               style: TextStyle(color: Colors.black),
-             ),
-           ],
-         ),
-       ),
-     ],
-     indicatorColor: Colors.black,
-     labelColor: Colors.black,
-     unselectedLabelColor: Colors.black54,
-     indicatorWeight: 3,
-     labelPadding: EdgeInsets.symmetric(horizontal: 8),
-     labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-     unselectedLabelStyle: TextStyle(fontSize: 13),
-     tabAlignment: TabAlignment.start,
-   );
- }
+  // Build TabBar widget for outside profile section
+  Widget buildTabBar(BuildContext context) {
+    return const TabBar(
+      isScrollable: true,
+      tabs: [
+        Tab(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.black),
+              SizedBox(width: 4),
+              Text('Info', style: TextStyle(color: Colors.black)),
+            ],
+          ),
+        ),
+        Tab(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.description_outlined, size: 16, color: Colors.black),
+              SizedBox(width: 4),
+              Text('Manifesto', style: TextStyle(color: Colors.black)),
+            ],
+          ),
+        ),
+        Tab(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.photo_library_outlined, size: 16, color: Colors.black),
+              SizedBox(width: 4),
+              Text('Media', style: TextStyle(color: Colors.black)),
+            ],
+          ),
+        ),
+        Tab(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.contact_phone_outlined, size: 16, color: Colors.black),
+              SizedBox(width: 4),
+              Text('Contact', style: TextStyle(color: Colors.black)),
+            ],
+          ),
+        ),
+      ],
+      indicatorColor: Colors.black,
+      labelColor: Colors.black,
+      unselectedLabelColor: Colors.black54,
+      indicatorWeight: 3,
+      labelPadding: EdgeInsets.symmetric(horizontal: 8),
+      labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: TextStyle(fontSize: 13),
+      tabAlignment: TabAlignment.start,
+    );
+  }
 
- @override
+  @override
   Widget build(BuildContext context) {
     final partyColors = getPartyColors(candidate.party);
 
@@ -144,10 +132,7 @@ class ProfileHeader extends StatelessWidget {
                       height: 160,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 4,
-                        ),
+                        border: Border.all(color: Colors.white, width: 4),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
@@ -159,35 +144,36 @@ class ProfileHeader extends StatelessWidget {
                       child: ClipOval(
                         child: Stack(
                           children: [
-                            candidate.photo != null && candidate.photo!.isNotEmpty
-                                  ? Image.network(
-                                      candidate.photo!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return CircleAvatar(
-                                          backgroundColor: partyColors[1],
-                                          child: Text(
-                                            candidate.name[0].toUpperCase(),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 60,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                            candidate.photo != null &&
+                                    candidate.photo!.isNotEmpty
+                                ? Image.network(
+                                    candidate.photo!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return CircleAvatar(
+                                        backgroundColor: partyColors[1],
+                                        child: Text(
+                                          candidate.name[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 60,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                        );
-                                      },
-                                    )
-                                  : CircleAvatar(
-                                      backgroundColor: partyColors[1],
-                                      child: Text(
-                                        candidate.name[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 60,
-                                          fontWeight: FontWeight.bold,
                                         ),
+                                      );
+                                    },
+                                  )
+                                : CircleAvatar(
+                                    backgroundColor: partyColors[1],
+                                    child: Text(
+                                      candidate.name[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 60,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
+                                  ),
                             if (isUploadingPhoto)
                               Container(
                                 width: 160,
@@ -227,7 +213,9 @@ class ProfileHeader extends StatelessWidget {
                     ),
 
                     // Profile Picture Change Button (Premium + Own Profile Only)
-                    if (isPremiumCandidate && onProfilePhotoChange != null && currentUserId == candidate.userId)
+                    if (isPremiumCandidate &&
+                        onProfilePhotoChange != null &&
+                        currentUserId == candidate.userId)
                       Positioned(
                         bottom: 8,
                         left: 8,
@@ -287,10 +275,7 @@ class ProfileHeader extends StatelessWidget {
                     // Location
                     Text(
                       'Ward 25, Pune', // Using placeholder for now
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
                 ),
@@ -321,7 +306,7 @@ class ProfileHeader extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _buildFacebookStyleStat(
-                            '${_formatNumber(candidate.followersCount.toString())}',
+                            _formatNumber(candidate.followersCount.toString()),
                             AppLocalizations.of(context)!.followers,
                             Icons.people,
                           ),
@@ -331,7 +316,7 @@ class ProfileHeader extends StatelessWidget {
                             color: Colors.grey.shade300,
                           ),
                           _buildFacebookStyleStat(
-                            '${_formatNumber(candidate.followingCount.toString())}',
+                            _formatNumber(candidate.followingCount.toString()),
                             AppLocalizations.of(context)!.following,
                             Icons.person_add,
                           ),
@@ -460,10 +445,9 @@ class ProfileHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.black),
             onPressed: () {
-              Navigator.of(context).pushNamed(
-                '/change-party-symbol',
-                arguments: candidate,
-              );
+              Navigator.of(
+                context,
+              ).pushNamed('/change-party-symbol', arguments: candidate);
             },
             tooltip: 'Edit Party & Symbol',
           ),
@@ -486,11 +470,7 @@ class ProfileHeader extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: Colors.grey[600],
-            ),
+            Icon(icon, size: 16, color: Colors.grey[600]),
             const SizedBox(width: 4),
             Text(
               label,

@@ -59,18 +59,17 @@ class LoginController extends GetxController {
       return;
     }
 
-  debugPrint('SendOTP called with phone: ${phoneController.text}');
+    debugPrint('SendOTP called with phone: ${phoneController.text}');
     isLoading.value = true;
-  debugPrint('isLoading set to: ${isLoading.value}');
+    debugPrint('isLoading set to: ${isLoading.value}');
     try {
-      await _authRepository.verifyPhoneNumber(
-        phoneController.text,
-        (String vid) {
-          verificationId.value = vid;
-          isOTPScreen.value = true;
-          Get.snackbar('Success', 'OTP sent to +91${phoneController.text}');
-        },
-      );
+      await _authRepository.verifyPhoneNumber(phoneController.text, (
+        String vid,
+      ) {
+        verificationId.value = vid;
+        isOTPScreen.value = true;
+        Get.snackbar('Success', 'OTP sent to +91${phoneController.text}');
+      });
     } catch (e) {
       Get.snackbar('Error', 'Failed to send OTP: ${e.toString()}');
     } finally {
@@ -127,7 +126,9 @@ class LoginController extends GetxController {
         // Check if authentication actually succeeded despite returning null
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
-          debugPrint('✅ Authentication succeeded despite null credential, proceeding with current user');
+          debugPrint(
+            '✅ Authentication succeeded despite null credential, proceeding with current user',
+          );
           await _handleSuccessfulAuthenticationWithCurrentUser(currentUser);
           return;
         } else {
@@ -168,12 +169,11 @@ class LoginController extends GetxController {
 
       debugPrint('🏠 Checking profile completion and navigating...');
       await _navigateBasedOnProfileCompletion(userCredential.user!);
-
     } catch (e) {
       debugPrint('❌ Google sign-in failed: $e');
       _hideGoogleSignInLoadingDialog();
       Get.snackbar('Error', 'Google sign-in failed: ${e.toString()}');
-    }finally {
+    } finally {
       isLoading.value = false;
       _hideGoogleSignInLoadingDialog();
       debugPrint('✅ Google sign-in process completed');
@@ -231,7 +231,10 @@ class LoginController extends GetxController {
               const SizedBox(height: 16),
               Text(
                 message,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -248,7 +251,9 @@ class LoginController extends GetxController {
   }
 
   // Handle successful authentication flow
-  Future<void> _handleSuccessfulAuthentication(UserCredential userCredential) async {
+  Future<void> _handleSuccessfulAuthentication(
+    UserCredential userCredential,
+  ) async {
     // Update loading dialog message
     _updateGoogleSignInLoadingDialog('Creating your profile...');
 
@@ -305,7 +310,10 @@ class LoginController extends GetxController {
     } catch (e) {
       debugPrint('❌ Error in successful authentication flow: $e');
       _hideGoogleSignInLoadingDialog();
-      Get.snackbar('Error', 'Failed to complete sign-in setup: ${e.toString()}');
+      Get.snackbar(
+        'Error',
+        'Failed to complete sign-in setup: ${e.toString()}',
+      );
     }
   }
 
@@ -324,7 +332,9 @@ class LoginController extends GetxController {
         final profileCompleted = userData?['profileCompleted'] ?? false;
         final roleSelected = userData?['roleSelected'] ?? false;
 
-        debugPrint('📋 Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted');
+        debugPrint(
+          '📋 Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted',
+        );
 
         // Clean up expired trials on login
         try {
@@ -347,7 +357,9 @@ class LoginController extends GetxController {
         }
       } else {
         // User document doesn't exist, need role selection first
-        debugPrint('📄 User document not found, navigating to role selection...');
+        debugPrint(
+          '📄 User document not found, navigating to role selection...',
+        );
         Get.offAllNamed('/role-selection');
         return;
       }
@@ -355,7 +367,6 @@ class LoginController extends GetxController {
       // Profile is complete and role is selected, go to home
       debugPrint('🏠 Profile complete, navigating to home...');
       Get.offAllNamed('/home');
-
     } catch (e) {
       debugPrint('❌ Error during profile check: $e');
       // If there's an error checking profile, default to login

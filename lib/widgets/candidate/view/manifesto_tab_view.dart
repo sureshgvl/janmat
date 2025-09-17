@@ -10,20 +10,23 @@ import '../../common/reusable_video_widget.dart';
 class ManifestoTabView extends StatefulWidget {
   final Candidate candidate;
   final bool isOwnProfile;
-  final bool showVoterInteractions; // New parameter to control voter interactions
+  final bool
+  showVoterInteractions; // New parameter to control voter interactions
 
   const ManifestoTabView({
-    Key? key,
+    super.key,
     required this.candidate,
     this.isOwnProfile = false,
-    this.showVoterInteractions = true, // Default to true for backward compatibility
-  }) : super(key: key);
+    this.showVoterInteractions =
+        true, // Default to true for backward compatibility
+  });
 
   @override
   State<ManifestoTabView> createState() => _ManifestoTabViewState();
 }
 
-class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepAliveClientMixin {
+class _ManifestoTabViewState extends State<ManifestoTabView>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -54,8 +57,6 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
       _dataController = null;
     }
   }
-
-
 
   void _toggleLike() {
     setState(() {
@@ -91,11 +92,13 @@ class _ManifestoTabViewState extends State<ManifestoTabView> with AutomaticKeepA
   }
 
   void _shareManifesto() {
-    final manifestoTitle = widget.candidate.extraInfo?.manifesto?.title ?? 'Manifesto';
-    final manifestoText = '''
+    final manifestoTitle =
+        widget.candidate.extraInfo?.manifesto?.title ?? 'Manifesto';
+    final manifestoText =
+        '''
 Check out ${widget.candidate.name}'s manifesto!
 
-"${manifestoTitle}"
+"$manifestoTitle"
 
 ${widget.candidate.party.isNotEmpty ? 'Party: ${widget.candidate.party}' : 'Independent Candidate'}
 Location: ${widget.candidate.districtId}, ${widget.candidate.wardId}
@@ -146,7 +149,8 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
     setState(() {
       final comment = _comments[index];
       comment['isLiked'] = !comment['isLiked'];
-      comment['likes'] = (comment['likes'] as int) + (comment['isLiked'] ? 1 : -1);
+      comment['likes'] =
+          (comment['likes'] as int) + (comment['isLiked'] ? 1 : -1);
     });
   }
 
@@ -172,38 +176,31 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
   }
 
   // Video player functionality
-   void _playVideo(String videoUrl) {
-     debugPrint('🎥 [Video Player] Opening video player for: $videoUrl');
+  void _playVideo(String videoUrl) {
+    debugPrint('🎥 [Video Player] Opening video player for: $videoUrl');
 
-     showDialog(
-       context: context,
-       builder: (context) => ReusableVideoWidget(
-         videoUrl: videoUrl,
-         title: 'Manifesto Video',
-       ),
-     );
-   }
+    showDialog(
+      context: context,
+      builder: (context) =>
+          ReusableVideoWidget(videoUrl: videoUrl, title: 'Manifesto Video'),
+    );
+  }
 
   // WhatsApp-style full-screen image viewer
-   void _showFullScreenImage(String imageUrl) {
-     Navigator.of(context).push(
-       PageRouteBuilder(
-         opaque: false,
-         barrierColor: Colors.black,
-         pageBuilder: (context, animation, secondaryAnimation) {
-           return WhatsAppImageViewer(
-             imageUrl: imageUrl,
-           );
-         },
-         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-           return FadeTransition(
-             opacity: animation,
-             child: child,
-           );
-         },
-       ),
-     );
-   }
+  void _showFullScreenImage(String imageUrl) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return WhatsAppImageViewer(imageUrl: imageUrl);
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
 
   Widget _buildPollOption(String optionKey, String optionText) {
     final isSelected = _selectedPollOption == optionKey;
@@ -226,7 +223,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
           child: Row(
             children: [
               Icon(
-                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
                 color: isSelected ? Colors.blue : Colors.grey,
                 size: 20,
               ),
@@ -236,13 +235,18 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                   optionText,
                   style: TextStyle(
                     color: isSelected ? Colors.blue.shade800 : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ),
               if (voteCount > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -270,7 +274,8 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
     // Use reactive data for own profile, static data for others
     if (widget.isOwnProfile && _dataController != null) {
       return Obx(() {
-        final candidate = _dataController!.candidateData.value ?? widget.candidate;
+        final candidate =
+            _dataController.candidateData.value ?? widget.candidate;
         return _buildContent(candidate);
       });
     } else {
@@ -287,7 +292,8 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
         ? manifestoPromises
         : DemoDataService.getDemoManifestoPromises('development', 'en');
 
-    final hasStructuredData = displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
+    final hasStructuredData =
+        displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -316,7 +322,14 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Display Manifesto Title with Share Button
-                      if (widget.candidate.extraInfo?.manifesto?.title != null && widget.candidate.extraInfo!.manifesto!.title!.isNotEmpty) ...[
+                      if (widget.candidate.extraInfo?.manifesto?.title !=
+                              null &&
+                          widget
+                              .candidate
+                              .extraInfo!
+                              .manifesto!
+                              .title!
+                              .isNotEmpty) ...[
                         Row(
                           children: [
                             Expanded(
@@ -325,7 +338,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 decoration: BoxDecoration(
                                   color: Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.blue.shade200),
+                                  border: Border.all(
+                                    color: Colors.blue.shade200,
+                                  ),
                                 ),
                                 child: Text(
                                   widget.candidate.extraInfo!.manifesto!.title!,
@@ -347,7 +362,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 decoration: BoxDecoration(
                                   color: Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.blue.shade200),
+                                  border: Border.all(
+                                    color: Colors.blue.shade200,
+                                  ),
                                 ),
                                 child: const Icon(
                                   Icons.share,
@@ -398,7 +415,6 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                         ),
                         const SizedBox(height: 12),
                       ],
-
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -415,97 +431,76 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                     ),
                     const SizedBox(height: 12),
                     Column(
-                      children: List.generate(manifestoPromises.length, (index) {
+                      children: List.generate(manifestoPromises.length, (
+                        index,
+                      ) {
                         final promise = manifestoPromises[index];
                         if (promise.isEmpty) return const SizedBox.shrink();
 
                         // Handle new structured format
-                        if (promise is Map<String, dynamic>) {
-                          final title = promise['title'] as String? ?? '';
-                          final points = promise['points'] as List<dynamic>? ?? [];
+                        final title = promise['title'] as String? ?? '';
+                        final points =
+                            promise['points'] as List<dynamic>? ?? [];
 
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Card(
-                              elevation: 2,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Promise Title
-                                    Text(
-                                      title,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF374151),
-                                      ),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Card(
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Promise Title
+                                  Text(
+                                    title,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF374151),
                                     ),
-                                    const SizedBox(height: 8),
-                                    // Promise Points
-                                    ...points.map((point) {
-                                      final pointIndex = points.indexOf(point) + 1;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 4, left: 16),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '$pointIndex. ',
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Promise Points
+                                  ...points.map((point) {
+                                    final pointIndex =
+                                        points.indexOf(point) + 1;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 4,
+                                        left: 16,
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '$pointIndex. ',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF6B7280),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Text(
+                                              point.toString(),
                                               style: const TextStyle(
                                                 fontSize: 14,
-                                                fontWeight: FontWeight.w600,
+                                                height: 1.4,
                                                 color: Color(0xFF6B7280),
                                               ),
                                             ),
-                                            Expanded(
-                                              child: Text(
-                                                point.toString(),
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  height: 1.4,
-                                                  color: Color(0xFF6B7280),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        } else {
-                          // Fallback for old string format
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Card(
-                              elevation: 2,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                    Expanded(
-                                      child: Text(
-                                        promise.toString(),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          height: 1.4,
-                                          color: Color(0xFF374151),
-                                        ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    );
+                                  }),
+                                ],
                               ),
                             ),
-                          );
-                        }
+                          ),
+                        );
                       }),
                     ),
                     const SizedBox(height: 16),
@@ -570,10 +565,21 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                         const SizedBox(height: 12),
 
                         // PDF Section
-                        if (widget.candidate.extraInfo?.manifesto?.pdfUrl != null && widget.candidate.extraInfo!.manifesto!.pdfUrl!.isNotEmpty) ...[
+                        if (widget.candidate.extraInfo?.manifesto?.pdfUrl !=
+                                null &&
+                            widget
+                                .candidate
+                                .extraInfo!
+                                .manifesto!
+                                .pdfUrl!
+                                .isNotEmpty) ...[
                           Row(
                             children: [
-                              Icon(Icons.picture_as_pdf, color: Colors.red.shade600, size: 20),
+                              Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.red.shade600,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -586,12 +592,19 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               IconButton(
                                 onPressed: () async {
-                                  final url = widget.candidate.extraInfo!.manifesto!.pdfUrl!;
+                                  final url = widget
+                                      .candidate
+                                      .extraInfo!
+                                      .manifesto!
+                                      .pdfUrl!;
                                   if (await canLaunch(url)) {
                                     await launch(url);
                                   }
                                 },
-                                icon: const Icon(Icons.download, color: Colors.blue),
+                                icon: const Icon(
+                                  Icons.download,
+                                  color: Colors.blue,
+                                ),
                                 tooltip: 'Download PDF',
                               ),
                             ],
@@ -599,7 +612,11 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                         ] else ...[
                           Row(
                             children: [
-                              Icon(Icons.picture_as_pdf, color: Colors.grey.shade400, size: 20),
+                              Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.grey.shade400,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -623,18 +640,27 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 
                         const SizedBox(height: 12),
 
-
-
                         const SizedBox(height: 12),
 
                         // Image Section
-                        if (widget.candidate.extraInfo?.manifesto?.image != null && widget.candidate.extraInfo!.manifesto!.image!.isNotEmpty) ...[
+                        if (widget.candidate.extraInfo?.manifesto?.image !=
+                                null &&
+                            widget
+                                .candidate
+                                .extraInfo!
+                                .manifesto!
+                                .image!
+                                .isNotEmpty) ...[
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.image, color: Colors.green.shade600, size: 20),
+                                  Icon(
+                                    Icons.image,
+                                    color: Colors.green.shade600,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Manifesto Image',
@@ -655,51 +681,73 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade300),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: AspectRatio(
-                                    aspectRatio: 16 / 9, // Default aspect ratio, can be made dynamic
+                                    aspectRatio:
+                                        16 /
+                                        9, // Default aspect ratio, can be made dynamic
                                     child: GestureDetector(
-                                      onTap: () => _showFullScreenImage(widget.candidate.extraInfo!.manifesto!.image!),
+                                      onTap: () => _showFullScreenImage(
+                                        widget
+                                            .candidate
+                                            .extraInfo!
+                                            .manifesto!
+                                            .image!,
+                                      ),
                                       child: Image.network(
-                                        widget.candidate.extraInfo!.manifesto!.image!,
-                                        fit: BoxFit.cover, // Instagram/WhatsApp style preview
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return Container(
-                                            color: Colors.grey.shade100,
-                                            child: const Center(
-                                              child: CircularProgressIndicator(),
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            color: Colors.grey.shade100,
-                                            child: const Center(
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.broken_image,
-                                                    color: Colors.grey,
-                                                    size: 48,
+                                        widget
+                                            .candidate
+                                            .extraInfo!
+                                            .manifesto!
+                                            .image!,
+                                        fit: BoxFit
+                                            .cover, // Instagram/WhatsApp style preview
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                              if (loadingProgress == null) {
+                                                return child;
+                                              }
+                                              return Container(
+                                                color: Colors.grey.shade100,
+                                                child: const Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                ),
+                                              );
+                                            },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.grey.shade100,
+                                                child: const Center(
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.broken_image,
+                                                        color: Colors.grey,
+                                                        size: 48,
+                                                      ),
+                                                      SizedBox(height: 8),
+                                                      Text(
+                                                        'Failed to load image',
+                                                        style: TextStyle(
+                                                          color: Colors.grey,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                  SizedBox(height: 8),
-                                                  Text(
-                                                    'Failed to load image',
-                                                    style: TextStyle(
-                                                      color: Colors.grey,
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                                ),
+                                              );
+                                            },
                                       ),
                                     ),
                                   ),
@@ -710,7 +758,13 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton.icon(
-                                  onPressed: () => _showFullScreenImage(widget.candidate.extraInfo!.manifesto!.image!),
+                                  onPressed: () => _showFullScreenImage(
+                                    widget
+                                        .candidate
+                                        .extraInfo!
+                                        .manifesto!
+                                        .image!,
+                                  ),
                                   icon: const Icon(Icons.fullscreen, size: 16),
                                   label: const Text('View Full Image'),
                                   style: TextButton.styleFrom(
@@ -724,7 +778,11 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                         ] else ...[
                           Row(
                             children: [
-                              Icon(Icons.image, color: Colors.grey.shade400, size: 20),
+                              Icon(
+                                Icons.image,
+                                color: Colors.grey.shade400,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -749,13 +807,24 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                         const SizedBox(height: 12),
 
                         // Video Section
-                        if (widget.candidate.extraInfo?.manifesto?.videoUrl != null && widget.candidate.extraInfo!.manifesto!.videoUrl!.isNotEmpty) ...[
+                        if (widget.candidate.extraInfo?.manifesto?.videoUrl !=
+                                null &&
+                            widget
+                                .candidate
+                                .extraInfo!
+                                .manifesto!
+                                .videoUrl!
+                                .isNotEmpty) ...[
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.video_call, color: Colors.purple.shade600, size: 20),
+                                  Icon(
+                                    Icons.video_call,
+                                    color: Colors.purple.shade600,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Manifesto Video',
@@ -770,14 +839,25 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(height: 12),
                               // Video Preview Widget
                               VideoPreviewWidget(
-                                videoUrl: widget.candidate.extraInfo!.manifesto!.videoUrl!,
+                                videoUrl: widget
+                                    .candidate
+                                    .extraInfo!
+                                    .manifesto!
+                                    .videoUrl!,
                                 title: 'Manifesto Video',
-                                onPlayPressed: () => _playVideo(widget.candidate.extraInfo!.manifesto!.videoUrl!),
+                                onPlayPressed: () => _playVideo(
+                                  widget
+                                      .candidate
+                                      .extraInfo!
+                                      .manifesto!
+                                      .videoUrl!,
+                                ),
                               ),
                               // Video info and controls
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Tap to play video',
@@ -787,8 +867,17 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                     ),
                                   ),
                                   TextButton.icon(
-                                    onPressed: () => _playVideo(widget.candidate.extraInfo!.manifesto!.videoUrl!),
-                                    icon: const Icon(Icons.play_circle_fill, size: 16),
+                                    onPressed: () => _playVideo(
+                                      widget
+                                          .candidate
+                                          .extraInfo!
+                                          .manifesto!
+                                          .videoUrl!,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.play_circle_fill,
+                                      size: 16,
+                                    ),
                                     label: const Text('Play'),
                                     style: TextButton.styleFrom(
                                       foregroundColor: Colors.purple.shade600,
@@ -802,7 +891,11 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                         ] else ...[
                           Row(
                             children: [
-                              Icon(Icons.video_call, color: Colors.grey.shade400, size: 20),
+                              Icon(
+                                Icons.video_call,
+                                color: Colors.grey.shade400,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -848,21 +941,32 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ElevatedButton.icon(
                                 onPressed: _toggleLike,
                                 icon: Icon(
-                                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                                  _isLiked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
                                   color: _isLiked ? Colors.red : Colors.grey,
                                 ),
                                 label: Text(
-                                  _isLiked ? 'Supported (${_likeCount})' : 'Support This Manifesto',
+                                  _isLiked
+                                      ? 'Supported ($_likeCount)'
+                                      : 'Support This Manifesto',
                                   style: TextStyle(
                                     color: _isLiked ? Colors.red : Colors.black,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isLiked ? Colors.red.shade50 : Colors.white,
+                                  backgroundColor: _isLiked
+                                      ? Colors.red.shade50
+                                      : Colors.white,
                                   side: BorderSide(
-                                    color: _isLiked ? Colors.red.shade300 : Colors.grey.shade300,
+                                    color: _isLiked
+                                        ? Colors.red.shade300
+                                        : Colors.grey.shade300,
                                   ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25),
                                   ),
@@ -885,10 +989,22 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                           const SizedBox(height: 12),
                           Column(
                             children: [
-                              _buildPollOption('development', 'Development & Infrastructure'),
-                              _buildPollOption('transparency', 'Transparency & Governance'),
-                              _buildPollOption('youth_education', 'Youth & Education'),
-                              _buildPollOption('women_safety', 'Women & Safety'),
+                              _buildPollOption(
+                                'development',
+                                'Development & Infrastructure',
+                              ),
+                              _buildPollOption(
+                                'transparency',
+                                'Transparency & Governance',
+                              ),
+                              _buildPollOption(
+                                'youth_education',
+                                'Youth & Education',
+                              ),
+                              _buildPollOption(
+                                'women_safety',
+                                'Women & Safety',
+                              ),
                             ],
                           ),
 
@@ -909,11 +1025,15 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               TextButton.icon(
                                 onPressed: _toggleCommentsVisibility,
                                 icon: Icon(
-                                  _showComments ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                  _showComments
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
                                   size: 16,
                                 ),
                                 label: Text(
-                                  _showComments ? 'Hide Comments' : 'Show Comments (${_comments.length})',
+                                  _showComments
+                                      ? 'Hide Comments'
+                                      : 'Show Comments (${_comments.length})',
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 style: TextButton.styleFrom(
@@ -940,7 +1060,8 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   maxLines: 3,
                                   maxLength: 500,
                                   decoration: const InputDecoration(
-                                    hintText: 'Share your thoughts about this manifesto...',
+                                    hintText:
+                                        'Share your thoughts about this manifesto...',
                                     border: InputBorder.none,
                                     counterText: '',
                                   ),
@@ -950,11 +1071,12 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     TextButton(
-                                      onPressed: () => _commentController.clear(),
-                                      child: const Text('Cancel'),
+                                      onPressed: () =>
+                                          _commentController.clear(),
                                       style: TextButton.styleFrom(
                                         foregroundColor: Colors.grey,
                                       ),
+                                      child: const Text('Cancel'),
                                     ),
                                     const SizedBox(width: 8),
                                     ElevatedButton.icon(
@@ -964,7 +1086,10 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.blue.shade600,
                                         foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1003,10 +1128,13 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.grey.shade200),
+                                    border: Border.all(
+                                      color: Colors.grey.shade200,
+                                    ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -1031,7 +1159,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                             ),
                                           ),
                                           Text(
-                                            _formatCommentTime(comment['timestamp'] as DateTime),
+                                            _formatCommentTime(
+                                              comment['timestamp'] as DateTime,
+                                            ),
                                             style: TextStyle(
                                               fontSize: 10,
                                               color: Colors.grey.shade500,
@@ -1052,13 +1182,19 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                       Row(
                                         children: [
                                           GestureDetector(
-                                            onTap: () => _toggleCommentLike(index),
+                                            onTap: () =>
+                                                _toggleCommentLike(index),
                                             child: Row(
                                               children: [
                                                 Icon(
-                                                  comment['isLiked'] as bool ? Icons.favorite : Icons.favorite_border,
+                                                  comment['isLiked'] as bool
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_border,
                                                   size: 16,
-                                                  color: comment['isLiked'] as bool ? Colors.red : Colors.grey,
+                                                  color:
+                                                      comment['isLiked'] as bool
+                                                      ? Colors.red
+                                                      : Colors.grey,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
@@ -1075,10 +1211,16 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                           GestureDetector(
                                             onTap: () {
                                               // Reply functionality could be added here
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
                                                 const SnackBar(
-                                                  content: Text('Reply functionality coming soon!'),
-                                                  duration: Duration(seconds: 2),
+                                                  content: Text(
+                                                    'Reply functionality coming soon!',
+                                                  ),
+                                                  duration: Duration(
+                                                    seconds: 2,
+                                                  ),
                                                 ),
                                               );
                                             },
@@ -1105,26 +1247,22 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                           ],
                         ],
                       ),
                     ),
                   ],
-                  ],
-                ),
-              )
+                ],
+              ),
+            )
           else
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.description,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.description, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No manifesto available',

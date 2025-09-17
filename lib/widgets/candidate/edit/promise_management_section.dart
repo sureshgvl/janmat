@@ -14,7 +14,8 @@ class PromiseManagementSection extends StatefulWidget {
   });
 
   @override
-  State<PromiseManagementSection> createState() => _PromiseManagementSectionState();
+  State<PromiseManagementSection> createState() =>
+      _PromiseManagementSectionState();
 }
 
 class _PromiseManagementSectionState extends State<PromiseManagementSection> {
@@ -30,11 +31,15 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     // Create updated promises list from controllers
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
-      final points = (controller['points'] as List<TextEditingController>).map((c) => c.text).toList();
+      final points = (controller['points'] as List<TextEditingController>)
+          .map((c) => c.text)
+          .toList();
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    debugPrint('Added new promise, total promises: ${widget.promiseControllers.length}');
+    debugPrint(
+      'Added new promise, total promises: ${widget.promiseControllers.length}',
+    );
   }
 
   void _deletePromise(int index) {
@@ -44,16 +49,23 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     // Create updated promises list from controllers
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
-      final points = (controller['points'] as List<TextEditingController>).map((c) => c.text).toList();
+      final points = (controller['points'] as List<TextEditingController>)
+          .map((c) => c.text)
+          .toList();
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    debugPrint('Deleted promise at index $index, remaining promises: ${widget.promiseControllers.length}');
+    debugPrint(
+      'Deleted promise at index $index, remaining promises: ${widget.promiseControllers.length}',
+    );
   }
 
   void _addPointToPromise(int promiseIndex) {
     debugPrint('Add Point button pressed for promise $promiseIndex');
-    final pointsList = widget.promiseControllers[promiseIndex]['points'] as List<TextEditingController>? ?? [];
+    final pointsList =
+        widget.promiseControllers[promiseIndex]['points']
+            as List<TextEditingController>? ??
+        [];
 
     setState(() {
       pointsList.add(TextEditingController());
@@ -63,15 +75,22 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     // Update the promise data through callback
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
-      final points = (controller['points'] as List<TextEditingController>).map((c) => c.text).toList();
+      final points = (controller['points'] as List<TextEditingController>)
+          .map((c) => c.text)
+          .toList();
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    debugPrint('Added point to promise $promiseIndex, total points: ${pointsList.length}');
+    debugPrint(
+      'Added point to promise $promiseIndex, total points: ${pointsList.length}',
+    );
   }
 
   void _deletePointFromPromise(int promiseIndex, int pointIndex) {
-    final pointsList = widget.promiseControllers[promiseIndex]['points'] as List<TextEditingController>? ?? [];
+    final pointsList =
+        widget.promiseControllers[promiseIndex]['points']
+            as List<TextEditingController>? ??
+        [];
 
     setState(() {
       pointsList.removeAt(pointIndex);
@@ -81,7 +100,9 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     // Update the promise data through callback
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
-      final points = (controller['points'] as List<TextEditingController>).map((c) => c.text).toList();
+      final points = (controller['points'] as List<TextEditingController>)
+          .map((c) => c.text)
+          .toList();
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
@@ -91,7 +112,9 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     // Update the promise data through callback
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
-      final points = (controller['points'] as List<TextEditingController>).map((c) => c.text).toList();
+      final points = (controller['points'] as List<TextEditingController>)
+          .map((c) => c.text)
+          .toList();
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
@@ -101,7 +124,9 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     // Update the promise data through callback
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
-      final points = (controller['points'] as List<TextEditingController>).map((c) => c.text).toList();
+      final points = (controller['points'] as List<TextEditingController>)
+          .map((c) => c.text)
+          .toList();
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
@@ -146,7 +171,11 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.lightbulb, color: Colors.amber, size: 20),
+                                icon: const Icon(
+                                  Icons.lightbulb,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
                                 onPressed: () {
                                   // TODO: Implement demo template functionality
                                 },
@@ -154,7 +183,11 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
                               ),
                               if (widget.promiseControllers.length > 1)
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
                                   onPressed: () => _deletePromise(index),
                                   tooltip: 'Delete Promise',
                                 ),
@@ -169,7 +202,10 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
                           Padding(
                             padding: const EdgeInsets.only(left: 12),
                             child: TextFormField(
-                              controller: widget.promiseControllers[index]['title'] as TextEditingController? ?? TextEditingController(),
+                              controller:
+                                  widget.promiseControllers[index]['title']
+                                      as TextEditingController? ??
+                                  TextEditingController(),
                               style: const TextStyle(
                                 color: Colors.black87,
                                 fontSize: 14,
@@ -190,52 +226,88 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
                                 filled: true,
                                 fillColor: Colors.white,
                               ),
-                              onChanged: (value) => _onPromiseTitleChanged(index, value),
+                              onChanged: (value) =>
+                                  _onPromiseTitleChanged(index, value),
                             ),
                           ),
                           const SizedBox(height: 12),
                           // Promise Points
-                          ...List.generate((widget.promiseControllers[index]['points'] as List<TextEditingController>?)?.length ?? 0, (pointIndex) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8, left: 24),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: ((widget.promiseControllers[index]['points'] as List<TextEditingController>?) ?? [])[pointIndex],
-                                      style: const TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 14,
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Point ${pointIndex + 1}',
-                                        labelStyle: const TextStyle(
+                          ...List.generate(
+                            (widget.promiseControllers[index]['points']
+                                        as List<TextEditingController>?)
+                                    ?.length ??
+                                0,
+                            (pointIndex) {
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: 8,
+                                  left: 24,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller:
+                                            ((widget.promiseControllers[index]['points']
+                                                as List<
+                                                  TextEditingController
+                                                >?) ??
+                                            [])[pointIndex],
+                                        style: const TextStyle(
                                           color: Colors.black87,
                                           fontSize: 14,
-                                          fontWeight: FontWeight.w500,
                                         ),
-                                        border: const OutlineInputBorder(),
-                                        hintText: pointIndex == 0 ? 'Provide 24x7 clean water to every household' : 'Pothole-free ward roads in 1 year',
-                                        hintStyle: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 14,
+                                        decoration: InputDecoration(
+                                          labelText: 'Point ${pointIndex + 1}',
+                                          labelStyle: const TextStyle(
+                                            color: Colors.black87,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          border: const OutlineInputBorder(),
+                                          hintText: pointIndex == 0
+                                              ? 'Provide 24x7 clean water to every household'
+                                              : 'Pothole-free ward roads in 1 year',
+                                          hintStyle: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 14,
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.white,
                                         ),
-                                        filled: true,
-                                        fillColor: Colors.white,
+                                        onChanged: (value) =>
+                                            _onPromisePointChanged(
+                                              index,
+                                              pointIndex,
+                                              value,
+                                            ),
                                       ),
-                                      onChanged: (value) => _onPromisePointChanged(index, pointIndex, value),
                                     ),
-                                  ),
-                                  if (((widget.promiseControllers[index]['points'] as List<TextEditingController>?) ?? []).length > 1)
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                      onPressed: () => _deletePointFromPromise(index, pointIndex),
-                                      tooltip: 'Delete Point',
-                                    ),
-                                ],
-                              ),
-                            );
-                          }),
+                                    if (((widget.promiseControllers[index]['points']
+                                                    as List<
+                                                      TextEditingController
+                                                    >?) ??
+                                                [])
+                                            .length >
+                                        1)
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                          size: 20,
+                                        ),
+                                        onPressed: () =>
+                                            _deletePointFromPromise(
+                                              index,
+                                              pointIndex,
+                                            ),
+                                        tooltip: 'Delete Point',
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                           // Add Point Button
                           Padding(
                             padding: const EdgeInsets.only(left: 16, top: 8),
@@ -244,10 +316,15 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
                               child: TextButton.icon(
                                 onPressed: () => _addPointToPromise(index),
                                 icon: const Icon(Icons.add, size: 16),
-                                label: Text(AppLocalizations.of(context)!.addPoint),
+                                label: Text(
+                                  AppLocalizations.of(context)!.addPoint,
+                                ),
                                 style: TextButton.styleFrom(
                                   alignment: Alignment.centerLeft,
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 12,
+                                  ),
                                 ),
                               ),
                             ),

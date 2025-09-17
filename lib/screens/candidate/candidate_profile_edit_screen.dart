@@ -7,10 +7,12 @@ class CandidateProfileEditScreen extends StatefulWidget {
   const CandidateProfileEditScreen({super.key});
 
   @override
-  State<CandidateProfileEditScreen> createState() => _CandidateProfileEditScreenState();
+  State<CandidateProfileEditScreen> createState() =>
+      _CandidateProfileEditScreenState();
 }
 
-class _CandidateProfileEditScreenState extends State<CandidateProfileEditScreen> {
+class _CandidateProfileEditScreenState
+    extends State<CandidateProfileEditScreen> {
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = true;
 
@@ -34,7 +36,12 @@ class _CandidateProfileEditScreenState extends State<CandidateProfileEditScreen>
                       final success = await controller.saveExtraInfo();
                       if (success) {
                         Get.back();
-                        Get.snackbar('Success', 'Profile updated successfully', backgroundColor: Colors.green.shade100, colorText: Colors.green.shade800);
+                        Get.snackbar(
+                          'Success',
+                          'Profile updated successfully',
+                          backgroundColor: Colors.green.shade100,
+                          colorText: Colors.green.shade800,
+                        );
                       } else {
                         Get.snackbar('Error', 'Failed to update profile');
                       }

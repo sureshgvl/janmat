@@ -26,13 +26,12 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     );
 
     // Scale animation from 0 to 1
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut, // Bouncy effect
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scaleController,
+        curve: Curves.elasticOut, // Bouncy effect
+      ),
+    );
 
     // Fade animation controller
     _fadeController = AnimationController(
@@ -44,10 +43,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
     // Start the scale animation
     _scaleController.forward();
@@ -78,7 +74,10 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFF9933), Color(0xFF138808)], // Saffron to Forest Green
+            colors: [
+              Color(0xFFFF9933),
+              Color(0xFF138808),
+            ], // Saffron to Forest Green
           ),
         ),
         child: Center(
@@ -126,7 +125,10 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),

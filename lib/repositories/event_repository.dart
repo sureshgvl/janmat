@@ -10,7 +10,12 @@ class EventRepository {
   static const String RSVP_NOT_GOING = 'not_going';
 
   // Add RSVP for a user to an event (supports events stored as List)
-  Future<bool> addEventRSVP(String candidateId, String eventId, String userId, String rsvpType) async {
+  Future<bool> addEventRSVP(
+    String candidateId,
+    String eventId,
+    String userId,
+    String rsvpType,
+  ) async {
     try {
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
@@ -32,8 +37,11 @@ class EventRepository {
       }
 
       final data = candidateDoc.data()!;
-      final extraInfo = (data['extra_info'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-      final eventsData = (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+      final extraInfo =
+          (data['extra_info'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final eventsData =
+          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
 
       if (eventsData.isEmpty) {
         throw Exception('No events found to RSVP');
@@ -47,12 +55,21 @@ class EventRepository {
       }
 
       // Normalize event map
-      final eventMap = Map<String, dynamic>.from((eventsData[index] as Map?)?.cast<String, dynamic>() ?? {});
-      final rsvp = Map<String, dynamic>.from((eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {});
+      final eventMap = Map<String, dynamic>.from(
+        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
+      );
+      final rsvp = Map<String, dynamic>.from(
+        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
+      );
 
-      final interested = (rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
-      final going = (rsvp[RSVP_GOING] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
-      final notGoing = (rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
+      final interested =
+          (rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>().toSet() ??
+          <dynamic>{};
+      final going =
+          (rsvp[RSVP_GOING] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
+      final notGoing =
+          (rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>().toSet() ??
+          <dynamic>{};
 
       // Remove from all first
       interested.remove(userId);
@@ -81,7 +98,11 @@ class EventRepository {
   }
 
   // Remove RSVP for a user from an event (supports events stored as List)
-  Future<bool> removeEventRSVP(String candidateId, String eventId, String userId) async {
+  Future<bool> removeEventRSVP(
+    String candidateId,
+    String eventId,
+    String userId,
+  ) async {
     try {
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
@@ -102,8 +123,11 @@ class EventRepository {
       }
 
       final data = candidateDoc.data()!;
-      final extraInfo = (data['extra_info'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-      final eventsData = (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+      final extraInfo =
+          (data['extra_info'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final eventsData =
+          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
 
       if (eventsData.isEmpty) {
         return true;
@@ -114,11 +138,16 @@ class EventRepository {
         return true;
       }
 
-      final eventMap = Map<String, dynamic>.from((eventsData[index] as Map?)?.cast<String, dynamic>() ?? {});
-      final rsvp = Map<String, dynamic>.from((eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {});
+      final eventMap = Map<String, dynamic>.from(
+        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
+      );
+      final rsvp = Map<String, dynamic>.from(
+        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
+      );
 
       for (final key in [RSVP_INTERESTED, RSVP_GOING, RSVP_NOT_GOING]) {
-        final list = (rsvp[key] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
+        final list =
+            (rsvp[key] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
         list.remove(userId);
         rsvp[key] = list.toList();
       }
@@ -135,7 +164,11 @@ class EventRepository {
   }
 
   // Get RSVP status for a user on an event (supports events stored as List)
-  Future<String?> getUserRSVPStatus(String candidateId, String eventId, String userId) async {
+  Future<String?> getUserRSVPStatus(
+    String candidateId,
+    String eventId,
+    String userId,
+  ) async {
     try {
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
@@ -156,18 +189,27 @@ class EventRepository {
       }
 
       final candidateData = candidateDoc.data()!;
-      final extraInfo = (candidateData['extra_info'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-      final eventsData = (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+      final extraInfo =
+          (candidateData['extra_info'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final eventsData =
+          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
       if (eventsData.isEmpty) return null;
 
       final index = _resolveEventIndex(eventId, eventsData);
       if (index == null || index < 0 || index >= eventsData.length) return null;
 
-      final eventMap = Map<String, dynamic>.from((eventsData[index] as Map?)?.cast<String, dynamic>() ?? {});
-      final rsvp = Map<String, dynamic>.from((eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {});
+      final eventMap = Map<String, dynamic>.from(
+        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
+      );
+      final rsvp = Map<String, dynamic>.from(
+        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
+      );
 
       bool containsIn(String key) =>
-          ((rsvp[key] as List?)?.cast<dynamic>() ?? const <dynamic>[]).contains(userId);
+          ((rsvp[key] as List?)?.cast<dynamic>() ?? const <dynamic>[]).contains(
+            userId,
+          );
 
       if (containsIn(RSVP_INTERESTED)) return RSVP_INTERESTED;
       if (containsIn(RSVP_GOING)) return RSVP_GOING;
@@ -180,7 +222,10 @@ class EventRepository {
   }
 
   // Get RSVP counts for an event (supports events stored as List)
-  Future<Map<String, int>> getEventRSVPCounts(String candidateId, String eventId) async {
+  Future<Map<String, int>> getEventRSVPCounts(
+    String candidateId,
+    String eventId,
+  ) async {
     try {
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
@@ -201,8 +246,11 @@ class EventRepository {
       }
 
       final candidateData = candidateDoc.data()!;
-      final extraInfo = (candidateData['extra_info'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-      final eventsData = (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+      final extraInfo =
+          (candidateData['extra_info'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final eventsData =
+          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
       if (eventsData.isEmpty) {
         return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
       }
@@ -212,13 +260,25 @@ class EventRepository {
         return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
       }
 
-      final eventMap = Map<String, dynamic>.from((eventsData[index] as Map?)?.cast<String, dynamic>() ?? {});
-      final rsvp = Map<String, dynamic>.from((eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {});
+      final eventMap = Map<String, dynamic>.from(
+        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
+      );
+      final rsvp = Map<String, dynamic>.from(
+        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
+      );
 
       return {
-        RSVP_INTERESTED: ((rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>() ?? const <dynamic>[]).length,
-        RSVP_GOING: ((rsvp[RSVP_GOING] as List?)?.cast<dynamic>() ?? const <dynamic>[]).length,
-        RSVP_NOT_GOING: ((rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>() ?? const <dynamic>[]).length,
+        RSVP_INTERESTED:
+            ((rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>() ??
+                    const <dynamic>[])
+                .length,
+        RSVP_GOING:
+            ((rsvp[RSVP_GOING] as List?)?.cast<dynamic>() ?? const <dynamic>[])
+                .length,
+        RSVP_NOT_GOING:
+            ((rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>() ??
+                    const <dynamic>[])
+                .length,
       };
     } catch (e) {
       throw Exception('Failed to get RSVP counts: $e');
@@ -256,7 +316,9 @@ class EventRepository {
 
       final events = <EventData>[];
       for (int i = 0; i < eventsData.length; i++) {
-        final eventMap = Map<String, dynamic>.from(eventsData[i] as Map<String, dynamic>);
+        final eventMap = Map<String, dynamic>.from(
+          eventsData[i] as Map<String, dynamic>,
+        );
         eventMap['id'] = 'event_$i'; // Generate ID if not present
         events.add(EventData.fromJson(eventMap));
       }
@@ -275,7 +337,9 @@ class EventRepository {
   }
 
   // Helper method to find candidate location
-  Future<Map<String, String>?> _findCandidateLocation(String candidateId) async {
+  Future<Map<String, String>?> _findCandidateLocation(
+    String candidateId,
+  ) async {
     try {
       final citiesSnapshot = await _firestore.collection('cities').get();
 
@@ -289,10 +353,7 @@ class EventRepository {
               .get();
 
           if (candidateDoc.exists) {
-            return {
-              'cityId': cityDoc.id,
-              'wardId': wardDoc.id,
-            };
+            return {'cityId': cityDoc.id, 'wardId': wardDoc.id};
           }
         }
       }

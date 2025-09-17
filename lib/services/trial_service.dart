@@ -18,9 +18,11 @@ class TrialService {
         'premium': true, // Grant premium access during trial
       });
 
-    debugPrint('✅ Started 3-day trial for candidate: $userId, expires: $trialExpiresAt');
+      debugPrint(
+        '✅ Started 3-day trial for candidate: $userId, expires: $trialExpiresAt',
+      );
     } catch (e) {
-    debugPrint('❌ Failed to start trial for candidate: $e');
+      debugPrint('❌ Failed to start trial for candidate: $e');
       throw Exception('Failed to start trial: $e');
     }
   }
@@ -50,7 +52,7 @@ class TrialService {
       // Check if trial is still valid
       return DateTime.now().isBefore(expiresAt);
     } catch (e) {
-    debugPrint('❌ Error checking trial status: $e');
+      debugPrint('❌ Error checking trial status: $e');
       return false;
     }
   }
@@ -81,7 +83,7 @@ class TrialService {
 
       return expiresAt.difference(now).inDays + 1; // +1 to include current day
     } catch (e) {
-    debugPrint('❌ Error getting trial days remaining: $e');
+      debugPrint('❌ Error getting trial days remaining: $e');
       return 0;
     }
   }
@@ -94,9 +96,9 @@ class TrialService {
         'premium': false, // Revoke premium access
       });
 
-    debugPrint('✅ Ended trial for user: $userId');
+      debugPrint('✅ Ended trial for user: $userId');
     } catch (e) {
-    debugPrint('❌ Failed to end trial: $e');
+      debugPrint('❌ Failed to end trial: $e');
       throw Exception('Failed to end trial: $e');
     }
   }
@@ -116,9 +118,9 @@ class TrialService {
 
       await _firestore.collection('users').doc(userId).update(updates);
 
-    debugPrint('✅ Converted trial to paid for user: $userId');
+      debugPrint('✅ Converted trial to paid for user: $userId');
     } catch (e) {
-    debugPrint('❌ Failed to convert trial to paid: $e');
+      debugPrint('❌ Failed to convert trial to paid: $e');
       throw Exception('Failed to convert trial: $e');
     }
   }
@@ -148,7 +150,7 @@ class TrialService {
       // Check if trial has expired
       return DateTime.now().isAfter(expiresAt);
     } catch (e) {
-    debugPrint('❌ Error checking expired trial: $e');
+      debugPrint('❌ Error checking expired trial: $e');
       return false;
     }
   }
@@ -159,10 +161,10 @@ class TrialService {
       final hasExpired = await hasExpiredTrial(userId);
       if (hasExpired) {
         await endTrial(userId);
-      debugPrint('🧹 Cleaned up expired trial for user: $userId');
+        debugPrint('🧹 Cleaned up expired trial for user: $userId');
       }
     } catch (e) {
-    debugPrint('❌ Error cleaning up expired trial: $e');
+      debugPrint('❌ Error cleaning up expired trial: $e');
     }
   }
 
@@ -214,7 +216,7 @@ class TrialService {
         'convertedTrials': convertedTrials,
       };
     } catch (e) {
-    debugPrint('❌ Error getting trial stats: $e');
+      debugPrint('❌ Error getting trial stats: $e');
       return {
         'totalTrials': 0,
         'activeTrials': 0,

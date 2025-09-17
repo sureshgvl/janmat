@@ -2,17 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'achievement_model.dart';
 
-
 class Contact {
   final String phone;
   final String? email;
   final Map<String, String>? socialLinks;
 
-  Contact({
-    required this.phone,
-    this.email,
-    this.socialLinks,
-  });
+  Contact({required this.phone, this.email, this.socialLinks});
 
   factory Contact.fromJson(Map<String, dynamic> json) {
     return Contact(
@@ -25,11 +20,7 @@ class Contact {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'phone': phone,
-      'email': email,
-      'socialLinks': socialLinks,
-    };
+    return {'phone': phone, 'email': email, 'socialLinks': socialLinks};
   }
 
   Contact copyWith({
@@ -63,7 +54,9 @@ class ManifestoData {
   factory ManifestoData.fromJson(Map<String, dynamic> json) {
     return ManifestoData(
       title: json['title'],
-      promises: json['promises'] != null ? _parsePromises(json['promises']) : null,
+      promises: json['promises'] != null
+          ? _parsePromises(json['promises'])
+          : null,
       pdfUrl: json['pdfUrl'],
       image: json['image'] ?? json['images']?.first, // Backward compatibility
       videoUrl: json['videoUrl'],
@@ -85,10 +78,7 @@ class ManifestoData {
             '1': item, // Use the string as the first point
           };
         } else {
-          return {
-            'title': item.toString(),
-            '1': item.toString(),
-          };
+          return {'title': item.toString(), '1': item.toString()};
         }
       }).toList();
     }
@@ -122,7 +112,6 @@ class ManifestoData {
     );
   }
 }
-
 
 class ExtendedContact {
   final String? phone;
@@ -253,8 +242,14 @@ class EventData {
       attendeesExpected: json['attendees_expected'],
       agenda: json['agenda'] != null ? List<String>.from(json['agenda']) : null,
       rsvp: json['rsvp'] != null
-          ? Map<String, List<String>>.from(json['rsvp'].map((key, value) =>
-              MapEntry(key, value is List ? List<String>.from(value) : [])))
+          ? Map<String, List<String>>.from(
+              json['rsvp'].map(
+                (key, value) => MapEntry(
+                  key,
+                  value is List ? List<String>.from(value) : [],
+                ),
+              ),
+            )
           : null,
     );
   }
@@ -281,9 +276,11 @@ class EventData {
   int getGoingCount() => rsvp?['going']?.length ?? 0;
   int getNotGoingCount() => rsvp?['not_going']?.length ?? 0;
 
-  bool isUserInterested(String userId) => rsvp?['interested']?.contains(userId) ?? false;
+  bool isUserInterested(String userId) =>
+      rsvp?['interested']?.contains(userId) ?? false;
   bool isUserGoing(String userId) => rsvp?['going']?.contains(userId) ?? false;
-  bool isUserNotGoing(String userId) => rsvp?['not_going']?.contains(userId) ?? false;
+  bool isUserNotGoing(String userId) =>
+      rsvp?['not_going']?.contains(userId) ?? false;
 
   EventData copyWith({
     String? id,
@@ -429,9 +426,13 @@ class BasicInfoData {
       gender: json['gender'],
       education: json['education'],
       profession: json['profession'],
-      languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
+      languages: json['languages'] != null
+          ? List<String>.from(json['languages'])
+          : null,
       experienceYears: json['experience_years'],
-      previousPositions: json['previous_positions'] != null ? List<String>.from(json['previous_positions']) : null,
+      previousPositions: json['previous_positions'] != null
+          ? List<String>.from(json['previous_positions'])
+          : null,
     );
   }
 
@@ -473,15 +474,18 @@ class ExtraInfo {
     this.basicInfo,
   });
 
-
   factory ExtraInfo.fromJson(Map<String, dynamic> json) {
     debugPrint('🔍 ExtraInfo.fromJson - Raw JSON keys: ${json.keys.toList()}');
     debugPrint('   education field: ${json['education']}');
     debugPrint('   basic_info exists: ${json['basic_info'] != null}');
 
     // Handle backward compatibility for raw fields
-    BasicInfoData? basicInfo = json['basic_info'] != null ? BasicInfoData.fromJson(json['basic_info']) : null;
-    ExtendedContact? contact = json['contact'] != null ? ExtendedContact.fromJson(json['contact']) : null;
+    BasicInfoData? basicInfo = json['basic_info'] != null
+        ? BasicInfoData.fromJson(json['basic_info'])
+        : null;
+    ExtendedContact? contact = json['contact'] != null
+        ? ExtendedContact.fromJson(json['contact'])
+        : null;
 
     // If basicInfo exists, merge raw fields into it
     if (basicInfo != null) {
@@ -489,13 +493,24 @@ class ExtraInfo {
       basicInfo = BasicInfoData(
         fullName: basicInfo.fullName,
         dateOfBirth: basicInfo.dateOfBirth,
-        age: basicInfo.age ?? (json['age'] != null ? int.tryParse(json['age'].toString()) : null),
+        age:
+            basicInfo.age ??
+            (json['age'] != null ? int.tryParse(json['age'].toString()) : null),
         gender: basicInfo.gender ?? json['gender'],
-        education: basicInfo.education ?? json['education'], // This is the key fix!
+        education:
+            basicInfo.education ?? json['education'], // This is the key fix!
         profession: basicInfo.profession ?? json['profession'],
-        languages: basicInfo.languages ?? (json['languages'] != null ? List<String>.from(json['languages']) : null),
+        languages:
+            basicInfo.languages ??
+            (json['languages'] != null
+                ? List<String>.from(json['languages'])
+                : null),
         experienceYears: basicInfo.experienceYears ?? json['experience_years'],
-        previousPositions: basicInfo.previousPositions ?? (json['previous_positions'] != null ? List<String>.from(json['previous_positions']) : null),
+        previousPositions:
+            basicInfo.previousPositions ??
+            (json['previous_positions'] != null
+                ? List<String>.from(json['previous_positions'])
+                : null),
       );
     }
     // If basicInfo doesn't exist but we have raw education field, create basicInfo
@@ -508,9 +523,13 @@ class ExtraInfo {
         fullName: json['full_name'],
         dateOfBirth: json['date_of_birth'],
         profession: json['profession'],
-        languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
+        languages: json['languages'] != null
+            ? List<String>.from(json['languages'])
+            : null,
         experienceYears: json['experience_years'],
-        previousPositions: json['previous_positions'] != null ? List<String>.from(json['previous_positions']) : null,
+        previousPositions: json['previous_positions'] != null
+            ? List<String>.from(json['previous_positions'])
+            : null,
       );
     }
 
@@ -521,7 +540,9 @@ class ExtraInfo {
         address: json['address'],
         phone: json['phone'],
         email: json['email'],
-        socialLinks: json['social_links'] != null ? Map<String, String>.from(json['social_links']) : null,
+        socialLinks: json['social_links'] != null
+            ? Map<String, String>.from(json['social_links'])
+            : null,
         officeAddress: json['office_address'],
         officeHours: json['office_hours'],
       );
@@ -533,21 +554,27 @@ class ExtraInfo {
       bio: json['bio'],
       achievements: json['achievements'] != null
           ? (json['achievements'] as List<dynamic>)
-              .map((item) => Achievement.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (item) => Achievement.fromJson(item as Map<String, dynamic>),
+                )
+                .toList()
           : null,
-      manifesto: json['manifesto'] != null ? ManifestoData.fromJson(json['manifesto']) : null,
+      manifesto: json['manifesto'] != null
+          ? ManifestoData.fromJson(json['manifesto'])
+          : null,
       contact: contact,
-      media: json['media'] != null
-          ? _parseMediaData(json['media'])
-          : null,
+      media: json['media'] != null ? _parseMediaData(json['media']) : null,
       events: json['events'] != null
           ? (json['events'] as List<dynamic>)
-              .map((item) => EventData.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map((item) => EventData.fromJson(item as Map<String, dynamic>))
+                .toList()
           : null,
-      highlight: json['highlight'] != null ? HighlightData.fromJson(json['highlight']) : null,
-      analytics: json['analytics'] != null ? AnalyticsData.fromJson(json['analytics']) : null,
+      highlight: json['highlight'] != null
+          ? HighlightData.fromJson(json['highlight'])
+          : null,
+      analytics: json['analytics'] != null
+          ? AnalyticsData.fromJson(json['analytics'])
+          : null,
       basicInfo: basicInfo,
     );
   }
@@ -596,17 +623,22 @@ class ExtraInfo {
               'points': [item], // Use the string as both title and first point
             };
           } else {
-            return {'title': item.toString(), 'points': [item.toString()]};
+            return {
+              'title': item.toString(),
+              'points': [item.toString()],
+            };
           }
         }).toList();
       }
 
       // Handle old format: single string (shouldn't happen but safety check)
       if (data is String) {
-        return [{
-          'title': data,
-          'points': [data],
-        }];
+        return [
+          {
+            'title': data,
+            'points': [data],
+          },
+        ];
       }
 
       return null;
@@ -717,7 +749,8 @@ class Candidate {
       name: json['name'] ?? '',
       party: json['party'] ?? '',
       symbol: json['symbol'],
-      districtId: json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
+      districtId:
+          json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
       bodyId: json['bodyId'] ?? '',
       wardId: json['wardId'] ?? '',
       manifesto: json['manifesto'],
@@ -727,7 +760,9 @@ class Candidate {
       sponsored: json['sponsored'] ?? false,
       premium: json['premium'] ?? false,
       createdAt: createdAt,
-      extraInfo: json['extra_info'] != null ? ExtraInfo.fromJson(json['extra_info']) : null,
+      extraInfo: json['extra_info'] != null
+          ? ExtraInfo.fromJson(json['extra_info'])
+          : null,
       followersCount: json['followersCount']?.toInt() ?? 0,
       followingCount: json['followingCount']?.toInt() ?? 0,
       approved: json['approved'],

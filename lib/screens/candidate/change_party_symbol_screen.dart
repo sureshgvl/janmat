@@ -22,7 +22,8 @@ class ChangePartySymbolScreen extends StatefulWidget {
   });
 
   @override
-  State<ChangePartySymbolScreen> createState() => _ChangePartySymbolScreenState();
+  State<ChangePartySymbolScreen> createState() =>
+      _ChangePartySymbolScreenState();
 }
 
 class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
@@ -45,7 +46,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   void initState() {
     super.initState();
     debugPrint('🎯 ChangePartySymbolScreen: Initializing screen');
-    debugPrint('   Current candidate: ${widget.currentCandidate?.name ?? 'null'}');
+    debugPrint(
+      '   Current candidate: ${widget.currentCandidate?.name ?? 'null'}',
+    );
     debugPrint('   Current user: ${widget.currentUser?.uid ?? 'null'}');
     _loadParties();
     _loadCurrentData();
@@ -56,7 +59,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     if (widget.currentCandidate != null) {
       debugPrint('   Candidate: ${widget.currentCandidate!.name}');
       debugPrint('   Current party: ${widget.currentCandidate!.party}');
-      debugPrint('   Current symbol: ${widget.currentCandidate!.symbol ?? 'none'}');
+      debugPrint(
+        '   Current symbol: ${widget.currentCandidate!.symbol ?? 'none'}',
+      );
 
       // Find current party
       if (parties.isNotEmpty) {
@@ -76,17 +81,20 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       // Load existing symbol image URL from extraInfo.media
       if (widget.currentCandidate!.extraInfo?.media != null &&
           widget.currentCandidate!.extraInfo!.media!.isNotEmpty) {
-        final symbolImageItem = widget.currentCandidate!.extraInfo!.media!.firstWhere(
-          (item) => item['type'] == 'symbolImage',
-          orElse: () => <String, dynamic>{},
-        );
+        final symbolImageItem = widget.currentCandidate!.extraInfo!.media!
+            .firstWhere(
+              (item) => item['type'] == 'symbolImage',
+              orElse: () => <String, dynamic>{},
+            );
         if (symbolImageItem.isNotEmpty) {
           symbolImageUrl = symbolImageItem['url'] as String?;
           debugPrint('   Symbol image URL loaded: ${symbolImageUrl ?? 'none'}');
         }
       }
 
-      isIndependent = widget.currentCandidate!.party.toLowerCase().contains('independent');
+      isIndependent = widget.currentCandidate!.party.toLowerCase().contains(
+        'independent',
+      );
       debugPrint('   Is independent: $isIndependent');
     } else {
       debugPrint('   No candidate data available');
@@ -97,17 +105,23 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     try {
       print('🚀 ChangePartySymbolScreen: Starting to load parties...');
       final fetchedParties = await partyRepository.getActiveParties();
-      print('📦 ChangePartySymbolScreen: Received ${fetchedParties.length} parties');
+      print(
+        '📦 ChangePartySymbolScreen: Received ${fetchedParties.length} parties',
+      );
 
       if (mounted) {
         setState(() {
           parties = fetchedParties;
           isLoadingParties = false;
         });
-        print('✅ ChangePartySymbolScreen: Parties loaded successfully, calling _loadCurrentData()');
+        print(
+          '✅ ChangePartySymbolScreen: Parties loaded successfully, calling _loadCurrentData()',
+        );
         _loadCurrentData(); // Reload current data now that parties are loaded
       } else {
-        print('⚠️ ChangePartySymbolScreen: Widget not mounted, skipping setState');
+        print(
+          '⚠️ ChangePartySymbolScreen: Widget not mounted, skipping setState',
+        );
       }
     } catch (e) {
       print('❌ ChangePartySymbolScreen: Error loading parties: $e');
@@ -134,11 +148,16 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     );
 
     // Return the display name based on current locale
-    return currentParty.getDisplayName(Localizations.localeOf(context).languageCode);
+    return currentParty.getDisplayName(
+      Localizations.localeOf(context).languageCode,
+    );
   }
 
   String _getCurrentSymbolDisplayName() {
-    if (widget.currentCandidate == null || widget.currentCandidate!.symbol == null) return '';
+    if (widget.currentCandidate == null ||
+        widget.currentCandidate!.symbol == null) {
+      return '';
+    }
 
     return widget.currentCandidate!.symbol!;
   }
@@ -157,7 +176,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image != null) {
-        debugPrint('📸 ChangePartySymbolScreen: Image selected - Path: ${image.path}');
+        debugPrint(
+          '📸 ChangePartySymbolScreen: Image selected - Path: ${image.path}',
+        );
         debugPrint('📸 ChangePartySymbolScreen: Image name: ${image.name}');
 
         // Check image file size (5MB limit)
@@ -165,11 +186,18 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         final fileSize = await file.length();
         const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
 
-        debugPrint('📏 ChangePartySymbolScreen: File size check - Size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB, Limit: 5MB');
+        debugPrint(
+          '📏 ChangePartySymbolScreen: File size check - Size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB, Limit: 5MB',
+        );
 
         if (fileSize > maxSizeInBytes) {
-          debugPrint('❌ ChangePartySymbolScreen: File too large - rejecting upload');
-          Get.snackbar(localizations.error, localizations.symbolImageSizeLimitError);
+          debugPrint(
+            '❌ ChangePartySymbolScreen: File too large - rejecting upload',
+          );
+          Get.snackbar(
+            localizations.error,
+            localizations.symbolImageSizeLimitError,
+          );
           setState(() {
             isUploadingImage = false;
           });
@@ -188,38 +216,59 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           return;
         }
 
-        final fileName = '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        debugPrint('📤 ChangePartySymbolScreen: Preparing upload - User: ${currentUser.uid}, File: $fileName');
-        debugPrint('📂 ChangePartySymbolScreen: Firebase Storage path: candidate_symbols/$fileName');
+        final fileName =
+            '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        debugPrint(
+          '📤 ChangePartySymbolScreen: Preparing upload - User: ${currentUser.uid}, File: $fileName',
+        );
+        debugPrint(
+          '📂 ChangePartySymbolScreen: Firebase Storage path: candidate_symbols/$fileName',
+        );
 
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('candidate_symbols')
             .child(fileName);
 
-        debugPrint('📤 ChangePartySymbolScreen: Starting Firebase Storage upload');
+        debugPrint(
+          '📤 ChangePartySymbolScreen: Starting Firebase Storage upload',
+        );
         final uploadTask = storageRef.putFile(File(image.path));
 
         // Monitor upload progress
         uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          debugPrint('📊 ChangePartySymbolScreen: Upload progress: ${progress.toStringAsFixed(1)}%');
+          final progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          debugPrint(
+            '📊 ChangePartySymbolScreen: Upload progress: ${progress.toStringAsFixed(1)}%',
+          );
         });
 
         final snapshot = await uploadTask.whenComplete(() => null);
         debugPrint('✅ ChangePartySymbolScreen: Upload completed successfully');
 
         final downloadUrl = await snapshot.ref.getDownloadURL();
-        debugPrint('🔗 ChangePartySymbolScreen: Download URL obtained: ${downloadUrl.substring(0, 50)}...');
-        debugPrint('📍 ChangePartySymbolScreen: Firebase Console path: candidate_symbols/ → $fileName');
+        debugPrint(
+          '🔗 ChangePartySymbolScreen: Download URL obtained: ${downloadUrl.substring(0, 50)}...',
+        );
+        debugPrint(
+          '📍 ChangePartySymbolScreen: Firebase Console path: candidate_symbols/ → $fileName',
+        );
 
         setState(() {
           symbolImageUrl = downloadUrl;
           isUploadingImage = false;
         });
 
-        debugPrint('🎉 ChangePartySymbolScreen: Image upload process completed successfully');
-        Get.snackbar(localizations.success, localizations.symbolUploadSuccess, backgroundColor: Colors.green.shade100, colorText: Colors.green.shade800);
+        debugPrint(
+          '🎉 ChangePartySymbolScreen: Image upload process completed successfully',
+        );
+        Get.snackbar(
+          localizations.success,
+          localizations.symbolUploadSuccess,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+        );
       } else {
         debugPrint('❌ ChangePartySymbolScreen: No image selected by user');
         setState(() {
@@ -231,14 +280,19 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       setState(() {
         isUploadingImage = false;
       });
-      Get.snackbar(localizations.error, localizations.symbolUploadError(e.toString()));
+      Get.snackbar(
+        localizations.error,
+        localizations.symbolUploadError(e.toString()),
+      );
     }
   }
 
   Future<void> _updatePartyAndSymbol() async {
     final localizations = AppLocalizations.of(context)!;
 
-    debugPrint('📝 ChangePartySymbolScreen: Starting party and symbol update process');
+    debugPrint(
+      '📝 ChangePartySymbolScreen: Starting party and symbol update process',
+    );
 
     if (!_formKey.currentState!.validate()) {
       debugPrint('❌ ChangePartySymbolScreen: Form validation failed');
@@ -254,7 +308,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     debugPrint('✅ ChangePartySymbolScreen: Form validation passed');
     debugPrint('   Selected party: ${selectedParty!.name}');
     debugPrint('   Is independent: $isIndependent');
-    debugPrint('   Symbol name: ${isIndependent ? symbolNameController.text.trim() : 'N/A'}');
+    debugPrint(
+      '   Symbol name: ${isIndependent ? symbolNameController.text.trim() : 'N/A'}',
+    );
     debugPrint('   Symbol image URL: ${symbolImageUrl ?? 'none'}');
 
     setState(() {
@@ -273,8 +329,12 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         throw Exception('Candidate data not found');
       }
 
-      debugPrint('👤 ChangePartySymbolScreen: Authenticated user: ${currentUser.uid}');
-      debugPrint('👤 ChangePartySymbolScreen: Updating candidate: ${widget.currentCandidate!.candidateId}');
+      debugPrint(
+        '👤 ChangePartySymbolScreen: Authenticated user: ${currentUser.uid}',
+      );
+      debugPrint(
+        '👤 ChangePartySymbolScreen: Updating candidate: ${widget.currentCandidate!.candidateId}',
+      );
 
       // Update candidate with new party and symbol
       final currentMedia = widget.currentCandidate!.extraInfo?.media ?? [];
@@ -293,14 +353,20 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         });
       }
 
-      final updatedExtraInfo = widget.currentCandidate!.extraInfo?.copyWith(
-        media: updatedMedia,
-      ) ?? (symbolImageUrl != null ? ExtraInfo(media: [{
-        'type': 'symbolImage',
-        'url': symbolImageUrl!,
-        'title': 'Party Symbol',
-        'uploadedAt': DateTime.now().toIso8601String(),
-      }]) : ExtraInfo());
+      final updatedExtraInfo =
+          widget.currentCandidate!.extraInfo?.copyWith(media: updatedMedia) ??
+          (symbolImageUrl != null
+              ? ExtraInfo(
+                  media: [
+                    {
+                      'type': 'symbolImage',
+                      'url': symbolImageUrl!,
+                      'title': 'Party Symbol',
+                      'uploadedAt': DateTime.now().toIso8601String(),
+                    },
+                  ],
+                )
+              : ExtraInfo());
 
       final updatedCandidate = widget.currentCandidate!.copyWith(
         party: selectedParty!.name,
@@ -324,7 +390,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         // This will refresh the current party display
       });
 
-      debugPrint('🎉 ChangePartySymbolScreen: Party and symbol update completed successfully');
+      debugPrint(
+        '🎉 ChangePartySymbolScreen: Party and symbol update completed successfully',
+      );
 
       // Update loading state before navigation
       setState(() {
@@ -342,17 +410,23 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Navigate back to previous screen (which should lead to home)
-      debugPrint('🔙 ChangePartySymbolScreen: Navigating back to previous screen');
+      debugPrint(
+        '🔙 ChangePartySymbolScreen: Navigating back to previous screen',
+      );
       if (mounted) {
         Get.back(result: updatedCandidate);
       }
-
     } catch (e) {
-      debugPrint('💥 ChangePartySymbolScreen: Error updating party and symbol: $e');
+      debugPrint(
+        '💥 ChangePartySymbolScreen: Error updating party and symbol: $e',
+      );
       setState(() {
         isLoading = false;
       });
-      Get.snackbar(localizations.error, localizations.partyUpdateError(e.toString()));
+      Get.snackbar(
+        localizations.error,
+        localizations.partyUpdateError(e.toString()),
+      );
     }
 
     debugPrint('🏁 ChangePartySymbolScreen: Update process completed');
@@ -389,11 +463,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.flag,
-                      color: Colors.blue,
-                      size: 28,
-                    ),
+                    const Icon(Icons.flag, color: Colors.blue, size: 28),
                     const SizedBox(width: 12),
                     Text(
                       localizations.newPartyLabel,
@@ -427,27 +497,45 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
                     return InkWell(
                       onTap: () {
-                        debugPrint('🎯 ChangePartySymbolScreen: Party selected from modal');
+                        debugPrint(
+                          '🎯 ChangePartySymbolScreen: Party selected from modal',
+                        );
                         debugPrint('   Selected party: ${party.name}');
                         setState(() {
                           selectedParty = party;
-                          isIndependent = party.name.toLowerCase().contains('independent');
+                          isIndependent = party.name.toLowerCase().contains(
+                            'independent',
+                          );
                           debugPrint('   Is independent: $isIndependent');
                           if (!isIndependent) {
                             symbolNameController.clear();
                             symbolImageUrl = null;
-                            debugPrint('   Cleared symbol data for non-independent party');
+                            debugPrint(
+                              '   Cleared symbol data for non-independent party',
+                            );
                           } else {
                             // Load existing symbol image URL for independent candidates
-                            if (widget.currentCandidate!.extraInfo?.media != null &&
-                                widget.currentCandidate!.extraInfo!.media!.isNotEmpty) {
-                              final symbolImageItem = widget.currentCandidate!.extraInfo!.media!.firstWhere(
-                                (item) => item['type'] == 'symbolImage',
-                                orElse: () => <String, dynamic>{},
-                              );
+                            if (widget.currentCandidate!.extraInfo?.media !=
+                                    null &&
+                                widget
+                                    .currentCandidate!
+                                    .extraInfo!
+                                    .media!
+                                    .isNotEmpty) {
+                              final symbolImageItem = widget
+                                  .currentCandidate!
+                                  .extraInfo!
+                                  .media!
+                                  .firstWhere(
+                                    (item) => item['type'] == 'symbolImage',
+                                    orElse: () => <String, dynamic>{},
+                                  );
                               if (symbolImageItem.isNotEmpty) {
-                                symbolImageUrl = symbolImageItem['url'] as String?;
-                                debugPrint('   Loaded existing symbol image URL for independent party');
+                                symbolImageUrl =
+                                    symbolImageItem['url'] as String?;
+                                debugPrint(
+                                  '   Loaded existing symbol image URL for independent party',
+                                );
                               }
                             }
                           }
@@ -455,13 +543,23 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                         Navigator.of(context).pop();
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected ? Colors.blue.shade50 : Colors.white,
+                          color: isSelected
+                              ? Colors.blue.shade50
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? Colors.blue.shade200 : Colors.grey.shade200,
+                            color: isSelected
+                                ? Colors.blue.shade200
+                                : Colors.grey.shade200,
                             width: isSelected ? 2 : 1,
                           ),
                           boxShadow: isSelected
@@ -470,7 +568,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                     color: Colors.blue.shade100,
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
-                                  )
+                                  ),
                                 ]
                               : null,
                         ),
@@ -491,7 +589,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                 borderRadius: BorderRadius.circular(7),
                                 child: Image(
                                   image: SymbolUtils.getSymbolImageProvider(
-                                    SymbolUtils.getPartySymbolPathFromParty(party)
+                                    SymbolUtils.getPartySymbolPathFromParty(
+                                      party,
+                                    ),
                                   ),
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
@@ -516,11 +616,17 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    party.getDisplayName(Localizations.localeOf(context).languageCode),
+                                    party.getDisplayName(
+                                      Localizations.localeOf(
+                                        context,
+                                      ).languageCode,
+                                    ),
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                                      color: isSelected
+                                          ? Colors.blue.shade800
+                                          : Colors.black87,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -568,7 +674,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   @override
   void dispose() {
     debugPrint('🗑️ ChangePartySymbolScreen: Disposing screen');
-    debugPrint('   Final state - Party: ${selectedParty?.name ?? 'none'}, Symbol: ${symbolNameController.text}, Image: ${symbolImageUrl != null ? 'uploaded' : 'none'}');
+    debugPrint(
+      '   Final state - Party: ${selectedParty?.name ?? 'none'}, Symbol: ${symbolNameController.text}, Image: ${symbolImageUrl != null ? 'uploaded' : 'none'}',
+    );
     symbolNameController.dispose();
     super.dispose();
   }
@@ -581,10 +689,14 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         title: Text(localizations.changePartySymbolTitle),
         actions: [
           TextButton(
-            onPressed: isLoading ? null : () {
-              debugPrint('🔘 ChangePartySymbolScreen: Update button pressed');
-              _updatePartyAndSymbol();
-            },
+            onPressed: isLoading
+                ? null
+                : () {
+                    debugPrint(
+                      '🔘 ChangePartySymbolScreen: Update button pressed',
+                    );
+                    _updatePartyAndSymbol();
+                  },
             child: isLoading
                 ? const SizedBox(
                     width: 20,
@@ -618,10 +730,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                 const SizedBox(height: 8),
                 Text(
                   localizations.updatePartyAffiliationSubtitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 32),
 
@@ -645,7 +754,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                           margin: const EdgeInsets.only(right: 12),
                           child: Image(
                             image: SymbolUtils.getSymbolImageProvider(
-                              SymbolUtils.getPartySymbolPath(_getCurrentPartyDisplayName())
+                              SymbolUtils.getPartySymbolPath(
+                                _getCurrentPartyDisplayName(),
+                              ),
                             ),
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
@@ -670,14 +781,14 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                               ),
                               Text(
                                 _getCurrentPartyDisplayName(),
-                                style: TextStyle(
-                                  color: Color(0xFF1976D2),
-                                ),
+                                style: TextStyle(color: Color(0xFF1976D2)),
                               ),
                               if (widget.currentCandidate!.symbol != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  localizations.symbolLabel(_getCurrentSymbolDisplayName()),
+                                  localizations.symbolLabel(
+                                    _getCurrentSymbolDisplayName(),
+                                  ),
                                   style: TextStyle(
                                     color: Colors.blue.shade600,
                                     fontStyle: FontStyle.italic,
@@ -715,22 +826,29 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                       margin: const EdgeInsets.only(right: 12),
                                       child: Image(
                                         image: SymbolUtils.getSymbolImageProvider(
-                                          SymbolUtils.getPartySymbolPathFromParty(selectedParty!)
+                                          SymbolUtils.getPartySymbolPathFromParty(
+                                            selectedParty!,
+                                          ),
                                         ),
                                         fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(
-                                            Icons.flag,
-                                            size: 28,
-                                            color: Colors.grey,
-                                          );
-                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const Icon(
+                                                Icons.flag,
+                                                size: 28,
+                                                color: Colors.grey,
+                                              );
+                                            },
                                       ),
                                     ),
                                     // Selected Party Name
                                     Expanded(
                                       child: Text(
-                                        selectedParty!.getDisplayName(Localizations.localeOf(context).languageCode),
+                                        selectedParty!.getDisplayName(
+                                          Localizations.localeOf(
+                                            context,
+                                          ).languageCode,
+                                        ),
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
@@ -759,7 +877,8 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                       prefixIcon: const Icon(Icons.label),
                     ),
                     validator: (value) {
-                      if (isIndependent && (value == null || value.trim().isEmpty)) {
+                      if (isIndependent &&
+                          (value == null || value.trim().isEmpty)) {
                         return localizations.symbolNameValidation;
                       }
                       return null;
@@ -789,7 +908,10 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.shade100,
                                 borderRadius: BorderRadius.circular(12),
@@ -844,49 +966,58 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                       ),
                                     )
                                   : symbolImageUrl != null
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: Image.network(
-                                            symbolImageUrl!,
-                                            fit: BoxFit.cover,
-                                            loadingBuilder: (context, child, loadingProgress) {
-                                              if (loadingProgress == null) return child;
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Image.network(
+                                        symbolImageUrl!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                              if (loadingProgress == null) {
+                                                return child;
+                                              }
                                               return const Center(
                                                 child: SizedBox(
                                                   width: 20,
                                                   height: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                  ),
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
                                                 ),
                                               );
                                             },
-                                            errorBuilder: (context, error, stackTrace) {
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
                                               return const Icon(
                                                 Icons.broken_image,
                                                 color: Colors.grey,
                                                 size: 30,
                                               );
                                             },
-                                          ),
-                                        )
-                                      : Container(
-                                          color: Colors.grey.shade100,
-                                          child: const Icon(
-                                            Icons.image,
-                                            color: Colors.grey,
-                                            size: 30,
-                                          ),
-                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Icon(
+                                        Icons.image,
+                                        color: Colors.grey,
+                                        size: 30,
+                                      ),
+                                    ),
                             ),
                             const SizedBox(width: 16),
                             // Upload Button
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: isUploadingImage ? null : () {
-                                  debugPrint('🔘 ChangePartySymbolScreen: Upload symbol image button pressed');
-                                  _pickSymbolImage();
-                                },
+                                onPressed: isUploadingImage
+                                    ? null
+                                    : () {
+                                        debugPrint(
+                                          '🔘 ChangePartySymbolScreen: Upload symbol image button pressed',
+                                        );
+                                        _pickSymbolImage();
+                                      },
                                 icon: isUploadingImage
                                     ? const SizedBox(
                                         width: 16,
@@ -903,9 +1034,13 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                       : localizations.uploadSymbolImage,
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: isUploadingImage ? Colors.grey : Colors.blue,
+                                  backgroundColor: isUploadingImage
+                                      ? Colors.grey
+                                      : Colors.blue,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),

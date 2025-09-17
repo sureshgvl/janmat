@@ -24,18 +24,12 @@ class HomeNavigation {
 
   // Navigate to named route with right to left animation
   static void toNamedRightToLeft(String routeName, {dynamic arguments}) {
-    Get.toNamed(
-      routeName,
-      arguments: arguments,
-    );
+    Get.toNamed(routeName, arguments: arguments);
   }
 
   // Navigate to named route with left to right animation
   static void toNamedLeftToRight(String routeName, {dynamic arguments}) {
-    Get.toNamed(
-      routeName,
-      arguments: arguments,
-    );
+    Get.toNamed(routeName, arguments: arguments);
   }
 
   // Go back with left to right animation
@@ -55,15 +49,14 @@ class HomeNavigation {
         const endOffset = Offset.zero;
         const curve = Curves.easeInOut;
 
-        var tween = Tween(begin: beginOffset, end: endOffset)
-            .chain(CurveTween(curve: curve));
+        var tween = Tween(
+          begin: beginOffset,
+          end: endOffset,
+        ).chain(CurveTween(curve: curve));
 
         var offsetAnimation = animation.drive(tween);
 
-        return SlideTransition(
-          position: offsetAnimation,
-          child: child,
-        );
+        return SlideTransition(position: offsetAnimation, child: child);
       },
       transitionDuration: duration,
     );

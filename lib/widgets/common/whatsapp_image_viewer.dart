@@ -8,11 +8,11 @@ class WhatsAppImageViewer extends StatefulWidget {
   final String? title;
 
   const WhatsAppImageViewer({
-    Key? key,
+    super.key,
     required this.imageUrl,
     this.isLocal = false,
     this.title,
-  }) : super(key: key);
+  });
 
   @override
   State<WhatsAppImageViewer> createState() => _WhatsAppImageViewerState();
@@ -75,7 +75,7 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                           child: child,
                         );
                       }
-                      return Container(
+                      return SizedBox(
                         width: 200,
                         height: 200,
                         child: const Center(
@@ -87,7 +87,7 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                       );
                     },
                     errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                      return SizedBox(
                         width: 200,
                         height: 200,
                         child: const Center(
@@ -202,10 +202,12 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                     onPressed: () async {
                       try {
                         final title = widget.title ?? 'Image';
-                        final shareText = 'Check out this $title: ${widget.imageUrl}';
+                        final shareText =
+                            'Check out this $title: ${widget.imageUrl}';
 
                         // Try to open share URL (works on mobile)
-                        final shareUrl = 'https://wa.me/?text=${Uri.encodeComponent(shareText)}';
+                        final shareUrl =
+                            'https://wa.me/?text=${Uri.encodeComponent(shareText)}';
 
                         if (await canLaunch(shareUrl)) {
                           await launch(shareUrl);
@@ -213,7 +215,9 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                           // Fallback: copy to clipboard
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Image URL copied to clipboard'),
+                              content: const Text(
+                                'Image URL copied to clipboard',
+                              ),
                               backgroundColor: Colors.white24,
                               action: SnackBarAction(
                                 label: 'OK',

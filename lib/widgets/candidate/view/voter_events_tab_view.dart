@@ -12,19 +12,18 @@ import '../../../services/gamification_service.dart';
 class VoterEventsSection extends StatefulWidget {
   final Candidate candidateData;
 
-  const VoterEventsSection({
-    super.key,
-    required this.candidateData,
-  });
+  const VoterEventsSection({super.key, required this.candidateData});
 
   @override
   State<VoterEventsSection> createState() => _VoterEventsSectionState();
 }
 
 class _VoterEventsSectionState extends State<VoterEventsSection> {
-  final CandidateDataController _controller = Get.find<CandidateDataController>();
+  final CandidateDataController _controller =
+      Get.find<CandidateDataController>();
   final EventRepository _eventRepository = EventRepository();
-  final EventNotificationService _notificationService = EventNotificationService();
+  final EventNotificationService _notificationService =
+      EventNotificationService();
   final GamificationService _gamificationService = GamificationService();
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
@@ -75,7 +74,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           rsvpStatuses[event.id!] = await _eventRepository.getUserRSVPStatus(
             widget.candidateData.candidateId,
             event.id!,
-            _currentUserId!,
+            _currentUserId,
           );
         }
 
@@ -108,7 +107,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
       final success = await _eventRepository.addEventRSVP(
         widget.candidateData.candidateId,
         eventId,
-        _currentUserId!,
+        _currentUserId,
         rsvpType,
       );
 
@@ -131,7 +130,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         try {
           // Send notification to user
           await _notificationService.sendRSVPNotification(
-            userId: _currentUserId!,
+            userId: _currentUserId,
             candidateId: widget.candidateData.candidateId,
             eventId: eventId,
             rsvpType: rsvpType,
@@ -141,7 +140,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           await _notificationService.sendCandidateRSVPNotification(
             candidateId: widget.candidateData.candidateId,
             eventId: eventId,
-            userId: _currentUserId!,
+            userId: _currentUserId,
             rsvpType: rsvpType,
           );
         } catch (notificationError) {
@@ -152,7 +151,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         // Award gamification points
         try {
           await _gamificationService.awardRSVPPoints(
-            userId: _currentUserId!,
+            userId: _currentUserId,
             eventId: eventId,
             candidateId: widget.candidateData.candidateId,
             rsvpType: rsvpType,
@@ -162,7 +161,10 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           print('Gamification error: $gamificationError');
         }
 
-        Get.snackbar('Success', 'RSVP updated successfully! You earned points!');
+        Get.snackbar(
+          'Success',
+          'RSVP updated successfully! You earned points!',
+        );
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to update RSVP: $e');
@@ -176,7 +178,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
       final success = await _eventRepository.removeEventRSVP(
         widget.candidateData.candidateId,
         eventId,
-        _currentUserId!,
+        _currentUserId,
       );
 
       if (success) {
@@ -197,7 +199,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         // Remove gamification points
         try {
           await _gamificationService.removeRSVPPoints(
-            userId: _currentUserId!,
+            userId: _currentUserId,
             eventId: eventId,
           );
         } catch (gamificationError) {
@@ -215,7 +217,9 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     return Obx(() {
       // First check for events in candidate's extra_info, then fallback to controller events
       final candidateEvents = widget.candidateData.extraInfo?.events ?? [];
-      final displayEvents = candidateEvents.isNotEmpty ? candidateEvents : _controller.events.toList();
+      final displayEvents = candidateEvents.isNotEmpty
+          ? candidateEvents
+          : _controller.events.toList();
 
       return Card(
         margin: const EdgeInsets.all(16),
@@ -226,10 +230,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
             children: [
               const Text(
                 'Upcoming Events',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
 
@@ -277,10 +278,13 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
   Widget _buildEventCard(EventData event) {
     final date = DateTime.tryParse(event.date);
-    final formattedDate = date != null ? DateFormat('dd MMM yyyy').format(date) : event.date;
+    final formattedDate = date != null
+        ? DateFormat('dd MMM yyyy').format(date)
+        : event.date;
     final eventId = event.id!;
     final userRSVP = _userRSVPStatuses[eventId];
-    final counts = _rsvpCounts[eventId] ?? {'interested': 0, 'going': 0, 'not_going': 0};
+    final counts =
+        _rsvpCounts[eventId] ?? {'interested': 0, 'going': 0, 'not_going': 0};
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -292,10 +296,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
             // Event Title
             Text(
               event.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
@@ -304,18 +305,12 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
               children: [
                 const Icon(Icons.calendar_today, size: 16, color: Colors.blue),
                 const SizedBox(width: 8),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(fontSize: 14),
-                ),
+                Text(formattedDate, style: const TextStyle(fontSize: 14)),
                 if (event.time != null && event.time!.isNotEmpty) ...[
                   const SizedBox(width: 16),
                   const Icon(Icons.access_time, size: 16, color: Colors.blue),
                   const SizedBox(width: 8),
-                  Text(
-                    event.time!,
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  Text(event.time!, style: const TextStyle(fontSize: 14)),
                 ],
               ],
             ),
@@ -348,10 +343,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
               const SizedBox(height: 8),
               Text(
                 event.description!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
 
@@ -362,7 +354,11 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
               children: [
                 _buildRSVPCount('Going', counts['going'] ?? 0, Colors.green),
                 const SizedBox(width: 16),
-                _buildRSVPCount('Interested', counts['interested'] ?? 0, Colors.orange),
+                _buildRSVPCount(
+                  'Interested',
+                  counts['interested'] ?? 0,
+                  Colors.orange,
+                ),
               ],
             ),
 
@@ -400,10 +396,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
               Center(
                 child: Text(
                   'Login to RSVP',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ),
           ],
@@ -412,7 +405,13 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     );
   }
 
-  Widget _buildRSVPButton(String label, String rsvpType, bool isSelected, Color color, String eventId) {
+  Widget _buildRSVPButton(
+    String label,
+    String rsvpType,
+    bool isSelected,
+    Color color,
+    String eventId,
+  ) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -432,10 +431,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-          ),
+          child: Text(label, style: const TextStyle(fontSize: 12)),
         ),
       ),
     );
