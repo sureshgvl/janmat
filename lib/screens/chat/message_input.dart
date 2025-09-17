@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
@@ -112,14 +113,34 @@ class _MessageInputState extends State<MessageInput> {
     }
   }
 
-  void _sendRecording() {
+  Future<void> _sendRecording() async {
     if (_recordedFilePath != null) {
-      // The recording is already saved by stopVoiceRecording, just close the preview
-      _cancelRecording();
+      debugPrint('📤 UI DEBUG: Sending recorded voice message: $_recordedFilePath');
+
+      try {
+        // Stop preview playback if playing
+        if (_isPreviewPlaying) {
+          await _previewPlayer?.pause();
+        }
+
+        // Send the recorded message
+        await widget.controller.sendRecordedVoiceMessage(_recordedFilePath!);
+
+        // Close the preview interface
+        _closeRecordingPreview();
+
+        debugPrint('✅ UI DEBUG: Voice message sent successfully');
+      } catch (e) {
+        debugPrint('❌ UI DEBUG: Failed to send voice message: $e');
+        // Don't close preview on error so user can try again
+      }
     }
   }
 
   void _cancelRecording() {
+    debugPrint('🗑️ UI DEBUG: Cancelling voice recording');
+
+    // Stop preview playback
     _previewPlayer?.stop();
     _previewPlayer?.dispose();
     _previewPlayer = null;
@@ -127,13 +148,20 @@ class _MessageInputState extends State<MessageInput> {
     if (_recordedFilePath != null) {
       // Delete the temporary file
       try {
-        // Note: In a real app, you might want to delete the file here
-        // But for now, we'll just clear the state
+        final file = File(_recordedFilePath!);
+        if (file.existsSync()) {
+          file.deleteSync();
+          debugPrint('🗑️ UI DEBUG: Deleted temporary recording file: $_recordedFilePath');
+        }
       } catch (e) {
-        debugPrint('Error deleting temp file: $e');
+        debugPrint('⚠️ UI DEBUG: Error deleting temp file: $e');
       }
     }
 
+    _closeRecordingPreview();
+  }
+
+  void _closeRecordingPreview() {
     setState(() {
       _recordedFilePath = null;
       _showRecordingPreview = false;
@@ -147,15 +175,19 @@ class _MessageInputState extends State<MessageInput> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxHeight: 240), // Further increased to prevent overflow
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.4, // Responsive max height
+        minHeight: 48, // Minimum height for input field
+      ),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Recording indicator or preview
           GetBuilder<ChatController>(
             builder: (controller) => controller.isRecording
@@ -185,37 +217,52 @@ class _MessageInputState extends State<MessageInput> {
                   )
                 : _showRecordingPreview
                     ? Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        constraints: const BoxConstraints(maxHeight: 120), // Limit height
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.blue.shade200),
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Header with duration
                             Row(
                               children: [
                                 Icon(
                                   Icons.mic,
                                   color: widget.controller.canSendMessage ? Colors.blue.shade600 : Colors.grey,
-                                  size: 20,
+                                  size: 18,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    'Voice message recorded (${_formatDuration(_recordingDuration)})',
+                                    'Voice message (${_formatDuration(_recordingDuration)})',
                                     style: TextStyle(
                                       color: Colors.blue.shade700,
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 14,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+
+                            // Progress and controls
+                            if (_previewDuration != Duration.zero) ...[
+                              const SizedBox(height: 6),
+                              LinearProgressIndicator(
+                                value: _previewPosition.inMilliseconds / _previewDuration.inMilliseconds,
+                                backgroundColor: Colors.blue.shade100,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                              ),
+                            ],
+
+                            // Control buttons
+                            const SizedBox(height: 6),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -225,21 +272,25 @@ class _MessageInputState extends State<MessageInput> {
                                   icon: Icon(
                                     _isPreviewPlaying ? Icons.pause : Icons.play_arrow,
                                     color: Colors.blue.shade600,
+                                    size: 20,
                                   ),
+                                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                  padding: EdgeInsets.zero,
                                   tooltip: _isPreviewPlaying ? 'Pause' : 'Play',
                                 ),
 
                                 // Send button
                                 ElevatedButton.icon(
                                   onPressed: widget.controller.canSendMessage ? _sendRecording : null,
-                                  icon: const Icon(Icons.send, size: 16),
-                                  label: const Text('Send'),
+                                  icon: const Icon(Icons.send, size: 14),
+                                  label: const Text('Send', style: TextStyle(fontSize: 12)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.blue.shade600,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    minimumSize: const Size(70, 32),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
                                 ),
@@ -247,68 +298,51 @@ class _MessageInputState extends State<MessageInput> {
                                 // Delete button
                                 IconButton(
                                   onPressed: _cancelRecording,
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                  padding: EdgeInsets.zero,
                                   tooltip: 'Delete recording',
                                 ),
                               ],
                             ),
-
-                            // Progress indicator
-                            if (_previewDuration != Duration.zero)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: LinearProgressIndicator(
-                                  value: _previewPosition.inMilliseconds / _previewDuration.inMilliseconds,
-                                  backgroundColor: Colors.blue.shade100,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
-                                ),
-                              ),
                           ],
                         ),
                       )
                     : const SizedBox.shrink(),
           ),
-          // Input field with controlled height
-          ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: 48, // Minimum height for single line
-              maxHeight: 120, // Maximum height before scrolling
-            ),
-            child: GetBuilder<ChatController>(
-              builder: (controller) => TextField(
-                controller: widget.textController,
-                decoration: InputDecoration(
-                  hintText: controller.canSendMessage
-                      ? 'Type a message...'
-                      : controller.shouldShowWatchAdsButton
-                          ? 'Watch ad to earn XP and send messages'
-                          : 'Unable to send messages',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  // Character counter for long messages
-                  counterText: widget.textController.text.length > 1000
-                      ? '${widget.textController.text.length}/4096'
-                      : null,
-                  counterStyle: TextStyle(
-                    fontSize: 12,
-                    color: widget.textController.text.length > 3500
-                        ? Colors.red
-                        : Colors.grey.shade600,
-                  ),
+          // Input field with responsive height
+          GetBuilder<ChatController>(
+            builder: (controller) => TextField(
+              controller: widget.textController,
+              decoration: InputDecoration(
+                hintText: controller.canSendMessage
+                    ? 'Type a message...'
+                    : controller.shouldShowWatchAdsButton
+                        ? 'Watch ad to earn XP and send messages'
+                        : 'Unable to send messages',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
                 ),
-                maxLines: null, // Allow multiple lines
-                maxLength: 4096, // WhatsApp-like character limit
-                enabled: controller.canSendMessage,
-                textInputAction: TextInputAction.newline,
-                onChanged: (text) {
-                  // Auto-resize logic will be handled by the constraints
-                },
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                // Character counter for long messages
+                counterText: widget.textController.text.length > 1000
+                    ? '${widget.textController.text.length}/4096'
+                    : null,
+                counterStyle: TextStyle(
+                  fontSize: 12,
+                  color: widget.textController.text.length > 3500
+                      ? Colors.red
+                      : Colors.grey.shade600,
+                ),
               ),
+              maxLines: 4, // Limit to 4 lines to prevent excessive height
+              minLines: 1,
+              maxLength: 4096, // WhatsApp-like character limit
+              enabled: controller.canSendMessage,
+              textInputAction: TextInputAction.newline,
             ),
           ),
 
@@ -417,7 +451,7 @@ class _MessageInputState extends State<MessageInput> {
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: controller.isSendingMessage
+                          icon: controller.isSendingMessage.value
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
@@ -427,7 +461,7 @@ class _MessageInputState extends State<MessageInput> {
                                   ),
                                 )
                               : const Icon(Icons.send, color: Colors.white),
-                          onPressed: controller.isSendingMessage ? null : widget.onSendMessage,
+                          onPressed: controller.isSendingMessage.value ? null : widget.onSendMessage,
                         ),
                       );
                     } else if (controller.shouldShowWatchAdsButton) {
@@ -462,11 +496,12 @@ class _MessageInputState extends State<MessageInput> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
 
-  void _toggleVoiceRecording() {
+  void _toggleVoiceRecording() async {
     // Check if user can send message before proceeding
     if (!widget.controller.canSendMessage) {
       Get.snackbar(
@@ -480,24 +515,57 @@ class _MessageInputState extends State<MessageInput> {
     }
 
     if (widget.controller.isRecording) {
+      debugPrint('🎙️ UI DEBUG: Stopping voice recording for preview...');
       _stopRecordingTimer();
-      // Instead of immediately sending, show preview
-      _showRecordingPreviewInterface();
+
+      try {
+        // Stop recording but don't send yet - show preview instead
+        final recordingPath = await widget.controller.stopVoiceRecordingOnly();
+        debugPrint('✅ UI DEBUG: Voice recording stopped, path: $recordingPath');
+
+        if (recordingPath != null) {
+          // Show preview interface
+          _showRecordingPreviewInterface(recordingPath);
+        } else {
+          Get.snackbar(
+            'Recording Error',
+            'Failed to save recording. Please try again.',
+            backgroundColor: Colors.red.shade100,
+            colorText: Colors.red.shade800,
+            duration: const Duration(seconds: 3),
+          );
+        }
+      } catch (e) {
+        debugPrint('❌ UI DEBUG: Failed to stop voice recording: $e');
+        Get.snackbar(
+          'Recording Error',
+          'Failed to stop recording. Please try again.',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+          duration: const Duration(seconds: 3),
+        );
+      }
     } else {
+      debugPrint('🎙️ UI DEBUG: Starting voice recording...');
       _startRecordingTimer();
-      widget.controller.startVoiceRecording();
+      await widget.controller.startVoiceRecording();
+      debugPrint('✅ UI DEBUG: Voice recording started successfully');
     }
   }
 
-  void _showRecordingPreviewInterface() {
-    // Get the recorded file path from controller
-    final recordedPath = widget.controller.currentRecordingPath;
+  void _showRecordingPreviewInterface(String? recordingPath) {
+    // Use provided path or get from controller
+    final recordedPath = recordingPath ?? widget.controller.currentRecordingPath;
     if (recordedPath != null) {
+      debugPrint('🎵 UI DEBUG: Showing recording preview for: $recordedPath');
       setState(() {
         _recordedFilePath = recordedPath;
         _showRecordingPreview = true;
+        _recordingDuration = Duration.zero; // Reset for new recording
       });
       _initializePreviewPlayer();
+    } else {
+      debugPrint('⚠️ UI DEBUG: No recording path available for preview');
     }
   }
 }

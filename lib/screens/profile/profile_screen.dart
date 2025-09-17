@@ -7,6 +7,7 @@ import '../../models/user_model.dart';
 import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
 import '../../controllers/chat_controller.dart';
+import '../../services/file_upload_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +18,52 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoggingOut = false; // Add loading state for logout
+  final FileUploadService _fileUploadService = FileUploadService();
+  bool _isUploadingPhoto = false;
+
+  Future<void> _changeProfilePhoto(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final downloadUrl = await _fileUploadService.uploadProfilePhoto(currentUser.uid);
+
+      if (downloadUrl != null) {
+        // Update the user's photoURL in Firebase Auth
+        await currentUser.updatePhotoURL(downloadUrl);
+
+        // Update the photoURL in Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .update({'photoURL': downloadUrl});
+
+        // Refresh the chat controller to update the user data
+        final chatController = Get.find<ChatController>();
+        await chatController.refreshUserDataAndChat();
+
+        Get.snackbar(
+          AppLocalizations.of(context)!.success,
+          'Profile photo updated successfully!',
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        AppLocalizations.of(context)!.error,
+        'Failed to update profile photo: $e',
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      setState(() {
+        _isUploadingPhoto = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,18 +143,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        height: 32,
-                        width: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.edit,
-                          color: Colors.white,
-                          size: 20,
+                      child: GestureDetector(
+                        onTap: _isUploadingPhoto ? null : () => _changeProfilePhoto(context),
+                        child: Container(
+                          height: 32,
+                          width: 32,
+                          decoration: BoxDecoration(
+                            color: _isUploadingPhoto ? Colors.grey : Colors.orange,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: _isUploadingPhoto
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                         ),
                       ),
                     ),

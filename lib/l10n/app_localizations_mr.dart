@@ -407,8 +407,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get info => 'माहिती';
 
   @override
-  String wardInfo(Object bodyId, Object wardId) {
-    return 'वॉर्ड $wardId • $bodyId';
+  String wardInfo(Object cityId, Object wardId) {
+    return 'वॉर्ड $wardId • $cityId';
   }
 
   @override
@@ -1139,4 +1139,352 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get premiumFeatureMultiResolution => 'प्रीमियम वैशिष्ट्य - बहु-रेजोल्यूशन व्हिडिओ प्रोसेसिंग';
+
+  @override
+  String get selectDistrict => 'जिल्हा निवडा';
+
+  @override
+  String get selectArea => 'क्षेत्र निवडा (विभाग)';
+
+  @override
+  String get searchDistricts => 'जिल्हे शोधा...';
+
+  @override
+  String get searchAreas => 'क्षेत्रे शोधा...';
+
+  @override
+  String get searchWards => 'वॉर्ड शोधा...';
+
+  @override
+  String get noDistrictsFound => 'कोणतेही जिल्हे सापडले नाहीत';
+
+  @override
+  String get noAreasFound => 'कोणतीही क्षेत्रे सापडली नाहीत';
+
+  @override
+  String get noWardsFound => 'कोणतेही वॉर्ड सापडले नाहीत';
+
+  @override
+  String get tryDifferentSearchTerm => 'वेगळा शोध शब्द वापरा';
+
+  @override
+  String get noAreasAvailable => 'कोणतीही क्षेत्रे उपलब्ध नाहीत';
+
+  @override
+  String get areas => 'क्षेत्रे';
+
+  @override
+  String get selectDistrictFirst => 'आधी जिल्हा निवडा';
+
+  @override
+  String get selectAreaFirst => 'आधी क्षेत्र निवडा';
+
+  @override
+  String get noAreasAvailableInDistrict => 'या जिल्ह्यात कोणतीही क्षेत्रे उपलब्ध नाहीत';
+
+  @override
+  String get noWardsAvailableInArea => 'या क्षेत्रात कोणतेही वॉर्ड उपलब्ध नाहीत';
+
+  @override
+  String get profilePhotoUpdatedSuccessfully => 'प्रोफाइल फोटो यशस्वीरित्या अपडेट झाला!';
+
+  @override
+  String get pollQuestion => 'मतदान प्रश्न';
+
+  @override
+  String get pollQuestionHint => 'तुम्हाला काय विचारायचे आहे?';
+
+  @override
+  String get options => 'पर्याय';
+
+  @override
+  String optionLabel(Object number) {
+    return 'पर्याय $number';
+  }
+
+  @override
+  String get removeOption => 'पर्याय काढा';
+
+  @override
+  String addOption(Object current, Object max) {
+    return 'पर्याय जोडा ($current/$max)';
+  }
+
+  @override
+  String get expirationSettings => 'कालबाह्यता सेटिंग्ज';
+
+  @override
+  String get defaultExpiration => 'डीफॉल्ट: 24 तास';
+
+  @override
+  String get expiresIn => 'कालबाह्य होईल:';
+
+  @override
+  String pollExpiresOn(Object dateTime) {
+    return 'मतदान कालबाह्य होईल: $dateTime';
+  }
+
+  @override
+  String get pleaseEnterPollQuestion => 'कृपया मतदान प्रश्न टाका';
+
+  @override
+  String get pleaseAddAtLeast2Options => 'कृपया कमीत कमी 2 पर्याय जोडा';
+
+  @override
+  String get loadingPoll => 'मतदान लोड होत आहे...';
+
+  @override
+  String get pollNotFound => 'मतदान सापडले नाही';
+
+  @override
+  String get voteRecorded => 'मत नोंदवले!';
+
+  @override
+  String get voteRecordedMessage => 'तुमचा मत नोंदवला गेला आहे';
+
+  @override
+  String get voteFailed => 'मत अयशस्वी';
+
+  @override
+  String get voteFailedMessage => 'तुमचा मत नोंदवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get pollExpiredMessage => 'हे मतदान कालबाह्य झाले आहे. मतदान आता उपलब्ध नाही.';
+
+  @override
+  String get thankYouForVoting => 'मतदान केल्याबद्दल धन्यवाद!';
+
+  @override
+  String get maximumOptions => 'कमाल पर्याय';
+
+  @override
+  String get maximumOptionsMessage => 'तुम्ही कमाल 10 पर्याय जोडू शकता';
+
+  @override
+  String get minimumOptions => 'किमान पर्याय';
+
+  @override
+  String get minimumOptionsMessage => 'तुम्हाला कमीत कमी 2 पर्यायांची गरज आहे';
+
+  @override
+  String get imageUrlCopiedToClipboard => 'प्रतिमेचा URL क्लिपबोर्डवर कॉपी झाला';
+
+  @override
+  String get failedToShare => 'सामायिक करण्यात अयशस्वी';
+
+  @override
+  String get failedToLoadVideo => 'व्हिडिओ लोड करण्यात अयशस्वी';
+
+  @override
+  String get shareFunctionalityComingSoon => 'सामायिक कार्यक्षमता लवकरच येईल - नेटिव्ह शेअर डायलॉग उघडेल';
+
+  @override
+  String get pleaseEnterAComment => 'कृपया टिप्पणी टाका';
+
+  @override
+  String get replyFunctionalityComingSoon => 'उत्तर कार्यक्षमता लवकरच येईल!';
+
+  @override
+  String get selectGender => 'लिंग निवडा';
+
+  @override
+  String get failedToPickImage => 'प्रतिमा निवडण्यात अयशस्वी';
+
+  @override
+  String get failedToUploadPhoto => 'फोटो अपलोड करण्यात अयशस्वी';
+
+  @override
+  String get useDemoData => 'डेमो डेटा वापरा';
+
+  @override
+  String get deleteEvent => 'कार्यक्रम हटवा';
+
+  @override
+  String get areYouSureYouWantToDeleteThisEvent => 'तुम्हाला खरोखर हा कार्यक्रम हटवायचा आहे का?';
+
+  @override
+  String get addYouTubeLink => 'YouTube दुवा जोडा';
+
+  @override
+  String get addImage => 'प्रतिमा जोडा';
+
+  @override
+  String get addVideo => 'व्हिडिओ जोडा';
+
+  @override
+  String get noMediaItemsYet => 'अद्याप कोणतीही मीडिया आयटम नाही. तुमची पहिली मीडिया आयटम जोडा!';
+
+  @override
+  String get addMediaItem => 'मीडिया आयटम जोडा';
+
+  @override
+  String get promiseViewModeNotImplementedYet => 'वचनबद्धता दृश्य मोड अजून अंमलात आणलेला नाही';
+
+  @override
+  String get largeFileWarning => 'मोठी फाइल चेतावणी';
+
+  @override
+  String get chooseDifferentPhoto => 'वेगळा फोटो निवडा';
+
+  @override
+  String get chooseDifferentFile => 'वेगळी फाइल निवडा';
+
+  @override
+  String get continueAnyway => 'तरीही सुरू ठेवा';
+
+  @override
+  String get photoSavedLocally => 'फोटो स्थानिकरित्या जतन झाला';
+
+  @override
+  String get failedToSavePhoto => 'फोटो जतन करण्यात अयशस्वी';
+
+  @override
+  String get noAchievementsYet => 'अद्याप कोणतीही उपलब्धी नाही. तुमची पहिली उपलब्धी जोडा!';
+
+  @override
+  String get addAchievement => 'उपलब्धी जोडा';
+
+  @override
+  String get loggingOut => 'लॉग आउट होत आहे...';
+
+  @override
+  String get failedToUpdateProfilePhoto => 'प्रोफाइल फोटो अपडेट करण्यात अयशस्वी';
+
+  @override
+  String get recordingStarted => 'रेकॉर्डिंग सुरू झाली';
+
+  @override
+  String get tapMicButtonToStopRecording => 'रेकॉर्डिंग थांबवण्यासाठी माइक बटणावर पुन्हा टॅप करा';
+
+  @override
+  String get recordingStopped => 'रेकॉर्डिंग थांबली';
+
+  @override
+  String get sendingVoiceMessage => 'व्हॉइस संदेश पाठवत आहे...';
+
+  @override
+  String get failedToGetRecordingPath => 'रेकॉर्डिंग फाइलचा मार्ग मिळवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get recordingFileEmpty => 'व्हॉइस रेकॉर्डिंग रिकामी आहे. कृपया पुन्हा रेकॉर्ड करा.';
+
+  @override
+  String get failedToSaveVoiceRecording => 'व्हॉइस रेकॉर्डिंग जतन करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get permissionDenied => 'परवानगी नाकारली';
+
+  @override
+  String get microphonePermissionRequired => 'व्हॉइस रेकॉर्डिंगसाठी माइक्रोफोन परवानगी आवश्यक आहे';
+
+  @override
+  String get recordingError => 'रेकॉर्डिंग त्रुटी';
+
+  @override
+  String get failedToStartVoiceRecording => 'व्हॉइस रेकॉर्डिंग सुरू करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get messageTooLong => 'संदेश खूप लांब';
+
+  @override
+  String get messagesCannotExceed4096Characters => 'संदेश 4096 अक्षरांपेक्षा जास्त असू शकत नाहीत';
+
+  @override
+  String get cannotSendMessage => 'संदेश पाठवू शकत नाही';
+
+  @override
+  String get insufficientQuotaOrXP => 'तुम्हाला कोणतेही शिल्लक संदेश किंवा XP नाहीत. XP मिळवण्यासाठी जाहिरात पहा.';
+
+  @override
+  String get messageFailed => 'संदेश अयशस्वी';
+
+  @override
+  String get failedToSendMessage => 'संदेश पाठवण्यात अयशस्वी. पुन्हा प्रयत्न करण्यासाठी टॅप करा.';
+
+  @override
+  String get messageSent => 'संदेश पाठवला';
+
+  @override
+  String get messageSentSuccessfully => 'संदेश यशस्वीरित्या पाठवला!';
+
+  @override
+  String get retryFailed => 'पुन्हा प्रयत्न अयशस्वी';
+
+  @override
+  String get failedToSendMessageRetry => 'संदेश पाठवण्यात अयशस्वी. पुन्हा प्रयत्न करण्यासाठी पुन्हा टॅप करा.';
+
+  @override
+  String get cannotRetry => 'पुन्हा प्रयत्न करू शकत नाही';
+
+  @override
+  String get youHaveNoRemainingMessagesOrXP => 'तुम्हाला कोणतेही शिल्लक संदेश किंवा XP नाहीत.';
+
+  @override
+  String get messageDeleted => 'संदेश हटवला';
+
+  @override
+  String get messageHasBeenDeleted => 'संदेश हटवला गेला आहे';
+
+  @override
+  String get deleteFailed => 'हटवण्यात अयशस्वी';
+
+  @override
+  String get failedToDeleteMessage => 'संदेश हटवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get permissionDeniedDelete => 'परवानगी नाकारली';
+
+  @override
+  String get youCanOnlyDeleteYourOwnMessages => 'तुम्ही फक्त तुमचे स्वतःचे संदेश हटवू शकता';
+
+  @override
+  String get pollCreationFailed => 'मतदान तयार करण्यात अयशस्वी';
+
+  @override
+  String get failedToCreatePoll => 'मतदान तयार करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get fullMessage => 'पूर्ण संदेश';
+
+  @override
+  String get addReaction => 'प्रतिक्रिया जोडा';
+
+  @override
+  String get reportMessage => 'संदेश रिपोर्ट करा';
+
+  @override
+  String get retrySend => 'पुन्हा पाठवा';
+
+  @override
+  String get deleteMessage => 'संदेश हटवा';
+
+  @override
+  String get messagesRefreshed => 'संदेश रिफ्रेश झाले';
+
+  @override
+  String get messageListHasBeenRefreshed => 'संदेश यादी रिफ्रेश झाली आहे';
+
+  @override
+  String get noChatRoom => 'कोणतीही गप्पा खोली नाही';
+
+  @override
+  String get pleaseSelectAChatRoomFirst => 'कृपया आधी गप्पा खोली निवडा';
+
+  @override
+  String get cacheCleared => 'कॅशे साफ झाला';
+
+  @override
+  String get clearedMessageCaches => 'संदेश कॅशे साफ केले';
+
+  @override
+  String get dialogsClosed => 'संवाद बंद झाले';
+
+  @override
+  String get closedStuckDialogs => 'अडकलेले संवाद बंद केले';
+
+  @override
+  String get noDialogs => 'कोणतेही संवाद नाहीत';
+
+  @override
+  String get noStuckDialogsFound => 'कोणतेही अडकलेले संवाद सापडले नाहीत';
 }

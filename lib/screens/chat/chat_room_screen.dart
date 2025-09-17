@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../l10n/app_localizations.dart';
 import '../../controllers/chat_controller.dart';
+import '../../features/chat/controllers/message_controller.dart';
 import '../../models/chat_model.dart';
 import 'message_bubble.dart';
 import 'message_input.dart';
@@ -67,34 +68,69 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            // Room info
+            // Room info or user info for private chats
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Main title (City name for ward rooms)
-                  Text(
-                    _getRoomDisplayTitle(widget.chatRoom),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // Subtitle (Ward name or description)
-                  Text(
-                    _getRoomDisplaySubtitle(widget.chatRoom),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              child: FutureBuilder<Map<String, dynamic>?>(
+                future: _getHeaderInfo(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final data = snapshot.data!;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Main title (User name for private chats, room name for public)
+                        Text(
+                          data['title'] ?? _getRoomDisplayTitle(widget.chatRoom),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // Subtitle (Phone for private chats, description for public)
+                        Text(
+                          data['subtitle'] ?? _getRoomDisplaySubtitle(widget.chatRoom),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    );
+                  } else {
+                    // Fallback to room info
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _getRoomDisplayTitle(widget.chatRoom),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          _getRoomDisplaySubtitle(widget.chatRoom),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    );
+                  }
+                },
               ),
             ),
           ],
@@ -108,72 +144,77 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       ),
       body: Column(
         children: [
-          // Messages list
+          // Messages list - Use MessageController directly for immediate updates
           Expanded(
-            child: Obx(() {
-              final messages = controller.messagesStream.value;
+            child: GetBuilder<MessageController>(
+              builder: (messageController) {
+                return Obx(() {
+                  debugPrint('🔄 ChatRoomScreen: Rebuilding with ${messageController.messages.length} messages');
+                  final messages = messageController.messages;
 
-              // Show loading indicator only when we're actively loading and have no cached data
-              if (messages.isEmpty && controller.isLoading) {
-                _previousMessageCount = 0;
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.loadingMessages,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    ],
-                  ),
+                // Show loading indicator only when we're actively loading and have no cached data
+                if (messages.isEmpty && controller.isLoading.value) {
+                  _previousMessageCount = 0;
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          AppLocalizations.of(context)!.loadingMessages,
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // Show empty state if messages are loaded but empty (not loading anymore)
+                if (messages.isEmpty && !controller.isLoading.value) {
+                  _previousMessageCount = 0;
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text(
+                          AppLocalizations.of(context)!.noMessagesYet,
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          AppLocalizations.of(context)!.startConversation(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
+                          style: const TextStyle(color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // Check if messages increased (new message received)
+                if (messages.length > _previousMessageCount) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom();
+                  });
+                }
+                _previousMessageCount = messages.length;
+
+                return ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isCurrentUser = message.senderId == controller.currentUser?.uid;
+                    return _buildMessageBubble(message, isCurrentUser);
+                  },
                 );
-              }
-
-              // Show empty state if messages are loaded but empty (not loading anymore)
-              if (messages.isEmpty && !controller.isLoading) {
-                _previousMessageCount = 0;
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.noMessagesYet,
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.of(context)!.startConversation(widget.chatRoom.title ?? _getDefaultRoomTitle(widget.chatRoom)),
-                        style: const TextStyle(color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              // Check if messages increased (new message received)
-              if (messages.length > _previousMessageCount) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToBottom();
                 });
-              }
-              _previousMessageCount = messages.length;
-
-              return ListView.builder(
-                controller: scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final message = messages[index];
-                  final isCurrentUser = message.senderId == controller.currentUser?.uid;
-                  return _buildMessageBubble(message, isCurrentUser);
-                },
-              );
-            }),
+              },
+            ),
           ),
 
           // Message input
@@ -213,11 +254,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  void _sendMessage() {
+  void _sendMessage() async {
     final text = messageController.text.trim();
-    if (text.isNotEmpty) {
-      controller.sendTextMessage(text);
-      messageController.clear();
+    if (text.isNotEmpty && controller.currentChatRoom.value != null && controller.currentUser != null) {
+      // Use ChatController's send method which handles quota/XP
+      await controller.sendTextMessage(text);
+      messageController.clear(); // Clear the text controller
       _scrollToBottom();
     }
   }
@@ -362,5 +404,33 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   String _getDefaultRoomTitle(ChatRoom chatRoom) {
     return ChatRoomHelpers.getDefaultRoomTitle(chatRoom);
+  }
+
+  Future<Map<String, dynamic>?> _getHeaderInfo() async {
+    // For private chats, show the other participant's info
+    if (widget.chatRoom.type == 'private' && widget.chatRoom.members != null) {
+      final currentUserId = controller.currentUser?.uid;
+      if (currentUserId != null) {
+        // Find the other participant
+        final otherUserId = widget.chatRoom.members!.firstWhere(
+          (memberId) => memberId != currentUserId,
+          orElse: () => '',
+        );
+
+        if (otherUserId.isNotEmpty) {
+          // Get user info from controller
+          final userInfo = await controller.getSenderInfo(otherUserId);
+          if (userInfo != null) {
+            return {
+              'title': userInfo['name'] ?? 'Unknown User',
+              'subtitle': userInfo['phone'] ?? '',
+            };
+          }
+        }
+      }
+    }
+
+    // For public rooms, return null to use default room info
+    return null;
   }
 }

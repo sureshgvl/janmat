@@ -866,8 +866,8 @@ abstract class AppLocalizations {
   /// No description provided for @wardInfo.
   ///
   /// In en, this message translates to:
-  /// **'Ward {wardId} • {bodyId}'**
-  String wardInfo(Object bodyId, Object wardId);
+  /// **'Ward {wardId} • {cityId}'**
+  String wardInfo(Object cityId, Object wardId);
 
   /// No description provided for @joinedDate.
   ///
@@ -2266,6 +2266,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Premium Feature - Multi-resolution video processing'**
   String get premiumFeatureMultiResolution;
+
+  /// No description provided for @selectDistrict.
+  ///
+  /// In en, this message translates to:
+  /// **'Select District'**
+  String get selectDistrict;
+
+  /// No description provided for @selectArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Area (विभाग)'**
+  String get selectArea;
+
+  /// No description provided for @searchDistricts.
+  ///
+  /// In en, this message translates to:
+  /// **'Search districts...'**
+  String get searchDistricts;
+
+  /// No description provided for @searchAreas.
+  ///
+  /// In en, this message translates to:
+  /// **'Search areas...'**
+  String get searchAreas;
+
+  /// No description provided for @searchWards.
+  ///
+  /// In en, this message translates to:
+  /// **'Search wards...'**
+  String get searchWards;
+
+  /// No description provided for @noDistrictsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No districts found'**
+  String get noDistrictsFound;
+
+  /// No description provided for @noAreasFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No areas found'**
+  String get noAreasFound;
+
+  /// No description provided for @noWardsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No wards found'**
+  String get noWardsFound;
+
+  /// No description provided for @tryDifferentSearchTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different search term'**
+  String get tryDifferentSearchTerm;
+
+  /// No description provided for @noAreasAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No Areas'**
+  String get noAreasAvailable;
+
+  /// No description provided for @areas.
+  ///
+  /// In en, this message translates to:
+  /// **'areas'**
+  String get areas;
+
+  /// No description provided for @selectDistrictFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select district first'**
+  String get selectDistrictFirst;
+
+  /// No description provided for @selectAreaFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select area first'**
+  String get selectAreaFirst;
+
+  /// No description provided for @noAreasAvailableInDistrict.
+  ///
+  /// In en, this message translates to:
+  /// **'No areas available in this district'**
+  String get noAreasAvailableInDistrict;
+
+  /// No description provided for @noWardsAvailableInArea.
+  ///
+  /// In en, this message translates to:
+  /// **'No wards available in this area'**
+  String get noWardsAvailableInArea;
+
+  /// No description provided for @profilePhotoUpdatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo updated successfully!'**
+  String get profilePhotoUpdatedSuccessfully;
+
+  /// No description provided for @pollQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Question'**
+  String get pollQuestion;
+
+  /// No description provided for @pollQuestionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to ask?'**
+  String get pollQuestionHint;
+
+  /// No description provided for @options.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get options;
+
+  /// No description provided for @optionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Option {number}'**
+  String optionLabel(Object number);
+
+  /// No description provided for @removeOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove option'**
+  String get removeOption;
+
+  /// No description provided for @addOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Option ({current}/{max})'**
+  String addOption(Object current, Object max);
+
+  /// No description provided for @expirationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiration Settings'**
+  String get expirationSettings;
+
+  /// No description provided for @defaultExpiration.
+  ///
+  /// In en, this message translates to:
+  /// **'Default: 24 hours'**
+  String get defaultExpiration;
+
+  /// No description provided for @expiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in:'**
+  String get expiresIn;
+
+  /// No description provided for @pollExpiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll will expire on: {dateTime}'**
+  String pollExpiresOn(Object dateTime);
+
+  /// No description provided for @pleaseEnterPollQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a poll question'**
+  String get pleaseEnterPollQuestion;
+
+  /// No description provided for @pleaseAddAtLeast2Options.
+  ///
+  /// In en, this message translates to:
+  /// **'Please add at least 2 options'**
+  String get pleaseAddAtLeast2Options;
+
+  /// No description provided for @loadingPoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading poll...'**
+  String get loadingPoll;
+
+  /// No description provided for @pollNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll not found'**
+  String get pollNotFound;
+
+  /// No description provided for @voteRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote Recorded!'**
+  String get voteRecorded;
+
+  /// No description provided for @voteRecordedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your vote has been recorded'**
+  String get voteRecordedMessage;
+
+  /// No description provided for @voteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote Failed'**
+  String get voteFailed;
+
+  /// No description provided for @voteFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to record your vote. Please try again.'**
+  String get voteFailedMessage;
+
+  /// No description provided for @pollExpiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This poll has expired. Voting is no longer available.'**
+  String get pollExpiredMessage;
+
+  /// No description provided for @thankYouForVoting.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for voting!'**
+  String get thankYouForVoting;
+
+  /// No description provided for @maximumOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum Options'**
+  String get maximumOptions;
+
+  /// No description provided for @maximumOptionsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to 10 options'**
+  String get maximumOptionsMessage;
+
+  /// No description provided for @minimumOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum Options'**
+  String get minimumOptions;
+
+  /// No description provided for @minimumOptionsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You need at least 2 options'**
+  String get minimumOptionsMessage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

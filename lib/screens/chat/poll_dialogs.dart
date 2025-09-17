@@ -462,18 +462,18 @@ class CreatePollDialogState extends State<CreatePollDialog> {
             children: [
               TextField(
                 controller: questionController,
-                decoration: const InputDecoration(
-                  labelText: 'Poll Question',
-                  hintText: 'What would you like to ask?',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: localizations.pollQuestion,
+                  hintText: localizations.pollQuestionHint,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 2,
                 textCapitalization: TextCapitalization.sentences,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Options',
-                style: TextStyle(
+              Text(
+                localizations.options,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -488,7 +488,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                         child: TextField(
                           controller: optionControllers[index],
                           decoration: InputDecoration(
-                            labelText: 'Option ${index + 1}',
+                            labelText: localizations.optionLabel(index + 1),
                             border: const OutlineInputBorder(),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
@@ -503,7 +503,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                             color: Colors.red.shade400,
                           ),
                           onPressed: () => _removeOption(index),
-                          tooltip: 'Remove option',
+                          tooltip: localizations.removeOption,
                         ),
                     ],
                   ),
@@ -518,15 +518,15 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                     color: Colors.blue.shade600,
                   ),
                   label: Text(
-                    'Add Option (${optionControllers.length}/10)',
+                    localizations.addOption(optionControllers.length, 10),
                     style: TextStyle(color: Colors.blue.shade600),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Expiration Settings',
-                style: TextStyle(
+              Text(
+                localizations.expirationSettings,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -544,9 +544,9 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'Default: 24 hours',
-                          style: TextStyle(
+                        Text(
+                          localizations.defaultExpiration,
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Colors.grey,
                           ),
@@ -565,9 +565,9 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                     ),
                     if (_useCustomExpiration) ...[
                       const SizedBox(height: 12),
-                      const Text(
-                        'Expires in:',
-                        style: TextStyle(
+                      Text(
+                        localizations.expiresIn,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -603,7 +603,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Poll will expire on: ${_getExpirationDateTime()}',
+                        localizations.pollExpiresOn(_getExpirationDateTime()),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
@@ -633,7 +633,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
             if (question.isEmpty) {
               Get.snackbar(
                 localizations.error,
-                'Please enter a poll question',
+                localizations.pleaseEnterPollQuestion,
                 backgroundColor: Colors.orange.shade100,
                 colorText: Colors.orange.shade800,
               );
@@ -643,7 +643,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
             if (options.length < 2) {
               Get.snackbar(
                 localizations.error,
-                'Please add at least 2 options',
+                localizations.pleaseAddAtLeast2Options,
                 backgroundColor: Colors.orange.shade100,
                 colorText: Colors.orange.shade800,
               );

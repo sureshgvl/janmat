@@ -117,7 +117,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
       body: GetBuilder<ChatController>(
         builder: (controller) {
-          if (controller.isLoading) {
+          if (controller.isLoading.value) {
             return Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(

@@ -70,9 +70,9 @@ class ChatDialogs {
                     createdBy: user.uid,
                     type: roomType,
                     title: title,
-                    description: descriptionController.text.trim().isNotEmpty
-                        ? descriptionController.text.trim()
-                        : null,
+                    description: (descriptionController.text?.trim().isNotEmpty ?? false)
+                        ? descriptionController.text!.trim()
+                        : '',
                   );
 
                   await controller.createChatRoom(chatRoom);

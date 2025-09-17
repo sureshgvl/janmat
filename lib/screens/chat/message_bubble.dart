@@ -123,7 +123,11 @@ class MessageBubbleState extends State<MessageBubble> {
             _isLoadingAudio = true;
           });
 
-          await _audioPlayer!.setUrl(widget.message.mediaUrl!);
+          // Use local media path if available, otherwise remote URL
+          final mediaUrl = widget.controller.getMediaUrl(widget.message.messageId, widget.message.mediaUrl);
+          if (mediaUrl != null) {
+            await _audioPlayer!.setUrl(mediaUrl);
+          }
 
           setState(() {
             _isLoadingAudio = false;
@@ -353,7 +357,7 @@ class MessageBubbleState extends State<MessageBubble> {
           children: [
             if (widget.message.mediaUrl != null)
               ReusableImageWidget(
-                imageUrl: widget.message.mediaUrl!,
+                imageUrl: widget.controller.getMediaUrl(widget.message.messageId, widget.message.mediaUrl)!,
                 fit: BoxFit.cover,
                 maxWidth: 200,
                 maxHeight: 200,

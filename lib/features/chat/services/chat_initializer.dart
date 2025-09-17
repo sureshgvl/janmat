@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../models/chat_model.dart';
+import '../../../models/chat_model.dart';
 
 class ChatInitializer {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

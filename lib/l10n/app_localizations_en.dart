@@ -407,8 +407,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get info => 'Info';
 
   @override
-  String wardInfo(Object bodyId, Object wardId) {
-    return 'Ward $wardId • $bodyId';
+  String wardInfo(Object cityId, Object wardId) {
+    return 'Ward $wardId • $cityId';
   }
 
   @override
@@ -1139,4 +1139,352 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get premiumFeatureMultiResolution => 'Premium Feature - Multi-resolution video processing';
+
+  @override
+  String get selectDistrict => 'Select District';
+
+  @override
+  String get selectArea => 'Select Area (विभाग)';
+
+  @override
+  String get searchDistricts => 'Search districts...';
+
+  @override
+  String get searchAreas => 'Search areas...';
+
+  @override
+  String get searchWards => 'Search wards...';
+
+  @override
+  String get noDistrictsFound => 'No districts found';
+
+  @override
+  String get noAreasFound => 'No areas found';
+
+  @override
+  String get noWardsFound => 'No wards found';
+
+  @override
+  String get tryDifferentSearchTerm => 'Try a different search term';
+
+  @override
+  String get noAreasAvailable => 'No Areas';
+
+  @override
+  String get areas => 'areas';
+
+  @override
+  String get selectDistrictFirst => 'Select district first';
+
+  @override
+  String get selectAreaFirst => 'Select area first';
+
+  @override
+  String get noAreasAvailableInDistrict => 'No areas available in this district';
+
+  @override
+  String get noWardsAvailableInArea => 'No wards available in this area';
+
+  @override
+  String get profilePhotoUpdatedSuccessfully => 'Profile photo updated successfully!';
+
+  @override
+  String get pollQuestion => 'Poll Question';
+
+  @override
+  String get pollQuestionHint => 'What would you like to ask?';
+
+  @override
+  String get options => 'Options';
+
+  @override
+  String optionLabel(Object number) {
+    return 'Option $number';
+  }
+
+  @override
+  String get removeOption => 'Remove option';
+
+  @override
+  String addOption(Object current, Object max) {
+    return 'Add Option ($current/$max)';
+  }
+
+  @override
+  String get expirationSettings => 'Expiration Settings';
+
+  @override
+  String get defaultExpiration => 'Default: 24 hours';
+
+  @override
+  String get expiresIn => 'Expires in:';
+
+  @override
+  String pollExpiresOn(Object dateTime) {
+    return 'Poll will expire on: $dateTime';
+  }
+
+  @override
+  String get pleaseEnterPollQuestion => 'Please enter a poll question';
+
+  @override
+  String get pleaseAddAtLeast2Options => 'Please add at least 2 options';
+
+  @override
+  String get loadingPoll => 'Loading poll...';
+
+  @override
+  String get pollNotFound => 'Poll not found';
+
+  @override
+  String get voteRecorded => 'Vote Recorded!';
+
+  @override
+  String get voteRecordedMessage => 'Your vote has been recorded';
+
+  @override
+  String get voteFailed => 'Vote Failed';
+
+  @override
+  String get voteFailedMessage => 'Failed to record your vote. Please try again.';
+
+  @override
+  String get pollExpiredMessage => 'This poll has expired. Voting is no longer available.';
+
+  @override
+  String get thankYouForVoting => 'Thank you for voting!';
+
+  @override
+  String get maximumOptions => 'Maximum Options';
+
+  @override
+  String get maximumOptionsMessage => 'You can add up to 10 options';
+
+  @override
+  String get minimumOptions => 'Minimum Options';
+
+  @override
+  String get minimumOptionsMessage => 'You need at least 2 options';
+
+  @override
+  String get imageUrlCopiedToClipboard => 'Image URL copied to clipboard';
+
+  @override
+  String get failedToShare => 'Failed to share';
+
+  @override
+  String get failedToLoadVideo => 'Failed to load video';
+
+  @override
+  String get shareFunctionalityComingSoon => 'Share functionality would open native share dialog';
+
+  @override
+  String get pleaseEnterAComment => 'Please enter a comment';
+
+  @override
+  String get replyFunctionalityComingSoon => 'Reply functionality coming soon!';
+
+  @override
+  String get selectGender => 'Select Gender';
+
+  @override
+  String get failedToPickImage => 'Failed to pick image';
+
+  @override
+  String get failedToUploadPhoto => 'Failed to upload photo';
+
+  @override
+  String get useDemoData => 'Use Demo Data';
+
+  @override
+  String get deleteEvent => 'Delete Event';
+
+  @override
+  String get areYouSureYouWantToDeleteThisEvent => 'Are you sure you want to delete this event?';
+
+  @override
+  String get addYouTubeLink => 'Add YouTube Link';
+
+  @override
+  String get addImage => 'Add Image';
+
+  @override
+  String get addVideo => 'Add Video';
+
+  @override
+  String get noMediaItemsYet => 'No media items yet. Add your first media item!';
+
+  @override
+  String get addMediaItem => 'Add Media Item';
+
+  @override
+  String get promiseViewModeNotImplementedYet => 'Promise view mode not implemented yet';
+
+  @override
+  String get largeFileWarning => 'Large File Warning';
+
+  @override
+  String get chooseDifferentPhoto => 'Choose Different Photo';
+
+  @override
+  String get chooseDifferentFile => 'Choose Different File';
+
+  @override
+  String get continueAnyway => 'Continue Anyway';
+
+  @override
+  String get photoSavedLocally => 'Photo saved locally';
+
+  @override
+  String get failedToSavePhoto => 'Failed to save photo';
+
+  @override
+  String get noAchievementsYet => 'No achievements yet. Add your first achievement!';
+
+  @override
+  String get addAchievement => 'Add Achievement';
+
+  @override
+  String get loggingOut => 'Logging out...';
+
+  @override
+  String get failedToUpdateProfilePhoto => 'Failed to update profile photo';
+
+  @override
+  String get recordingStarted => 'Recording Started';
+
+  @override
+  String get tapMicButtonToStopRecording => 'Tap the mic button again to stop recording';
+
+  @override
+  String get recordingStopped => 'Recording Stopped';
+
+  @override
+  String get sendingVoiceMessage => 'Sending voice message...';
+
+  @override
+  String get failedToGetRecordingPath => 'Failed to get recording file path. Please try again.';
+
+  @override
+  String get recordingFileEmpty => 'Voice recording is empty. Please try recording again.';
+
+  @override
+  String get failedToSaveVoiceRecording => 'Failed to save voice recording. Please try again.';
+
+  @override
+  String get permissionDenied => 'Permission Denied';
+
+  @override
+  String get microphonePermissionRequired => 'Microphone permission is required for voice recording';
+
+  @override
+  String get recordingError => 'Recording Error';
+
+  @override
+  String get failedToStartVoiceRecording => 'Failed to start voice recording. Please try again.';
+
+  @override
+  String get messageTooLong => 'Message Too Long';
+
+  @override
+  String get messagesCannotExceed4096Characters => 'Messages cannot exceed 4096 characters';
+
+  @override
+  String get cannotSendMessage => 'Cannot Send Message';
+
+  @override
+  String get insufficientQuotaOrXP => 'You have no remaining messages or XP. Please watch an ad to earn XP.';
+
+  @override
+  String get messageFailed => 'Message Failed';
+
+  @override
+  String get failedToSendMessage => 'Failed to send message. Tap to retry.';
+
+  @override
+  String get messageSent => 'Message Sent';
+
+  @override
+  String get messageSentSuccessfully => 'Message sent successfully!';
+
+  @override
+  String get retryFailed => 'Retry Failed';
+
+  @override
+  String get failedToSendMessageRetry => 'Failed to send message. Tap to retry again.';
+
+  @override
+  String get cannotRetry => 'Cannot Retry';
+
+  @override
+  String get youHaveNoRemainingMessagesOrXP => 'You have no remaining messages or XP.';
+
+  @override
+  String get messageDeleted => 'Message Deleted';
+
+  @override
+  String get messageHasBeenDeleted => 'Message has been deleted';
+
+  @override
+  String get deleteFailed => 'Delete Failed';
+
+  @override
+  String get failedToDeleteMessage => 'Failed to delete message. Please try again.';
+
+  @override
+  String get permissionDeniedDelete => 'Permission Denied';
+
+  @override
+  String get youCanOnlyDeleteYourOwnMessages => 'You can only delete your own messages';
+
+  @override
+  String get pollCreationFailed => 'Poll Creation Failed';
+
+  @override
+  String get failedToCreatePoll => 'Failed to create poll. Please try again.';
+
+  @override
+  String get fullMessage => 'Full Message';
+
+  @override
+  String get addReaction => 'Add Reaction';
+
+  @override
+  String get reportMessage => 'Report Message';
+
+  @override
+  String get retrySend => 'Retry Send';
+
+  @override
+  String get deleteMessage => 'Delete Message';
+
+  @override
+  String get messagesRefreshed => 'Messages Refreshed';
+
+  @override
+  String get messageListHasBeenRefreshed => 'Message list has been refreshed';
+
+  @override
+  String get noChatRoom => 'No Chat Room';
+
+  @override
+  String get pleaseSelectAChatRoomFirst => 'Please select a chat room first';
+
+  @override
+  String get cacheCleared => 'Cache Cleared';
+
+  @override
+  String get clearedMessageCaches => 'Cleared message caches';
+
+  @override
+  String get dialogsClosed => 'Dialogs Closed';
+
+  @override
+  String get closedStuckDialogs => 'Closed stuck dialog(s)';
+
+  @override
+  String get noDialogs => 'No Dialogs';
+
+  @override
+  String get noStuckDialogsFound => 'No stuck dialogs found';
 }

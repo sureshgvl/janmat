@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/district_model.dart';
 import '../../models/body_model.dart';
+import '../../l10n/app_localizations.dart';
 
 class DistrictSelectionModal extends StatefulWidget {
   final List<District> districts;
@@ -104,6 +105,8 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: const BoxDecoration(
@@ -135,10 +138,10 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                       size: 28,
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Select District',
-                        style: TextStyle(
+                        localizations.selectDistrict,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,
@@ -160,7 +163,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                 TextField(
                   controller: searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search districts...',
+                    hintText: localizations.searchDistricts,
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
