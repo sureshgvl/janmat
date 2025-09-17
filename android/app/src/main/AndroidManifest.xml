@@ -1,13 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Internet permission for Firebase and Google services -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Permissions for image picker and cropper -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" android:minSdkVersion="33" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
     <application
-        android:label="janmat"
+        android:label="Janmat - Political Platform"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -43,10 +47,15 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- AdMob App ID -->
+        <!-- AdMob App ID - Replace with your production AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-XXXXXXXXXX~XXXXXXXXXX"/>
+
+        <!-- Firebase Auth - Force reCAPTCHA for development -->
+        <meta-data
+            android:name="firebase_auth_force_recaptcha_flow"
+            android:value="true" />
 
         <!-- Disable automatic AdMob initialization to prevent early WebView loading -->
         <provider

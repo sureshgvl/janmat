@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +19,11 @@ class LoginController extends GetxController {
   var verificationId = ''.obs;
   var isOTPScreen = false.obs;
 
+  // OTP Timer
+  RxInt otpTimer = 60.obs;
+  RxBool canResendOTP = false.obs;
+  Timer? _otpTimer;
+
   @override
   void onInit() {
     super.onInit();
@@ -28,6 +34,7 @@ class LoginController extends GetxController {
   void onClose() {
     phoneController.dispose();
     otpController.dispose();
+    _otpTimer?.cancel();
     super.onClose();
   }
 
@@ -54,7 +61,9 @@ class LoginController extends GetxController {
   }
 
   Future<void> sendOTP() async {
+    debugPrint('🎯 sendOTP() method called in LoginController');
     if (phoneController.text.isEmpty || phoneController.text.length != 10) {
+      debugPrint('❌ Invalid phone number: ${phoneController.text}');
       Get.snackbar('Error', 'Please enter a valid 10-digit phone number');
       return;
     }
@@ -62,20 +71,82 @@ class LoginController extends GetxController {
     debugPrint('SendOTP called with phone: ${phoneController.text}');
     isLoading.value = true;
     debugPrint('isLoading set to: ${isLoading.value}');
+
     try {
+      debugPrint('📞 Starting phone verification...');
       await _authRepository.verifyPhoneNumber(phoneController.text, (
         String vid,
       ) {
+        debugPrint('📱 Phone verification callback received with verificationId: $vid');
         verificationId.value = vid;
         isOTPScreen.value = true;
+        _startOTPTimer(); // Start the OTP timer
+
+        // Close loading dialog when OTP screen is ready
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+          debugPrint('📤 LoadingDialog dismissed - OTP screen ready');
+        }
+
         Get.snackbar('Success', 'OTP sent to +91${phoneController.text}');
-      });
+        debugPrint('✅ OTP screen activated, timer started');
+      }).timeout(
+        const Duration(seconds: 120), // Increased timeout for reCAPTCHA completion
+        onTimeout: () {
+          debugPrint('⏰ SendOTP timed out after 120 seconds');
+          // Close loading dialog on timeout
+          if (Get.isDialogOpen ?? false) {
+            Get.back();
+            debugPrint('📤 LoadingDialog dismissed due to timeout');
+          }
+          throw Exception('Phone verification timed out. If a browser opened for verification, please complete it and try again.');
+        },
+      );
+      debugPrint('📞 Phone verification request completed');
     } catch (e) {
-      Get.snackbar('Error', 'Failed to send OTP: ${e.toString()}');
+      debugPrint('❌ SendOTP failed: $e');
+      // Close loading dialog on error
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+        debugPrint('📤 LoadingDialog dismissed due to error');
+      }
+      // Provide more helpful error messages for common Firebase issues
+      String errorMessage = 'Failed to send OTP';
+      String userGuidance = '';
+
+      if (e.toString().contains('blocked all requests') ||
+          e.toString().contains('unusual activity')) {
+        errorMessage = 'Too Many Attempts';
+        userGuidance = 'Please wait a few minutes before trying again. This is a security measure to prevent spam.';
+      } else if (e.toString().contains('invalid-phone-number')) {
+        errorMessage = 'Invalid Phone Number';
+        userGuidance = 'Please check your phone number and try again.';
+      } else if (e.toString().contains('too-many-requests')) {
+        errorMessage = 'Too Many Requests';
+        userGuidance = 'Please wait before trying again.';
+      } else if (e.toString().contains('network') || e.toString().contains('timeout')) {
+        errorMessage = 'Network Error';
+        userGuidance = 'Please check your internet connection and try again.';
+      }
+
+      if (userGuidance.isNotEmpty) {
+        Get.snackbar(
+          errorMessage,
+          userGuidance,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+      } else {
+        Get.snackbar('Error', 'Failed to send OTP: ${e.toString()}');
+      }
+      throw e; // Re-throw to be caught by the UI layer
     } finally {
       // Add a small delay to ensure loading state is visible
       await Future.delayed(const Duration(milliseconds: 500));
       isLoading.value = false;
+      debugPrint('isLoading reset to: ${isLoading.value}');
     }
   }
 
@@ -183,6 +254,34 @@ class LoginController extends GetxController {
   void goBackToPhoneInput() {
     isOTPScreen.value = false;
     otpController.clear();
+    _stopOTPTimer();
+  }
+
+  // OTP Timer Methods
+  void _startOTPTimer() {
+    _stopOTPTimer(); // Cancel any existing timer
+    otpTimer.value = 60;
+    canResendOTP.value = false;
+
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (otpTimer.value > 0) {
+        otpTimer.value--;
+      } else {
+        canResendOTP.value = true;
+        _stopOTPTimer();
+      }
+    });
+  }
+
+  void _stopOTPTimer() {
+    _otpTimer?.cancel();
+    _otpTimer = null;
+  }
+
+  Future<void> resendOTP() async {
+    if (!canResendOTP.value) return;
+
+    await sendOTP();
   }
 
   // Google Sign-In Loading Dialog Methods

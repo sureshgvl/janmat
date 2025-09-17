@@ -22,24 +22,58 @@ class AuthRepository {
   );
   bool _forceAccountPicker = false;
 
-  // Phone Authentication
+  // Phone Authentication with improved reCAPTCHA handling and timeout
   Future<void> verifyPhoneNumber(
     String phoneNumber,
     Function(String) onCodeSent,
   ) async {
-    await _firebaseAuth.verifyPhoneNumber(
-      phoneNumber: '+91$phoneNumber',
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _firebaseAuth.signInWithCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        throw e;
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        onCodeSent(verificationId);
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {},
-    );
+    debugPrint('📞 Initiating phone verification for: +91$phoneNumber');
+
+    try {
+      await _firebaseAuth.verifyPhoneNumber(
+        phoneNumber: '+91$phoneNumber',
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          debugPrint('✅ Phone verification completed automatically');
+          // Auto-verification successful, sign in immediately
+          try {
+            await _firebaseAuth.signInWithCredential(credential);
+            debugPrint('✅ Auto-signed in with phone credential');
+          } catch (e) {
+            debugPrint('❌ Auto-sign in failed: $e');
+            throw e;
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          debugPrint('❌ Phone verification failed: ${e.message}');
+          throw e;
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          debugPrint('📱 OTP sent successfully, verification ID: $verificationId');
+          onCodeSent(verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          debugPrint('⏰ Auto-retrieval timeout, manual OTP entry required');
+          // This is called when auto-retrieval times out
+          // The verificationId is still valid for manual OTP entry
+          onCodeSent(verificationId);
+        },
+        // Force reCAPTCHA to be more responsive
+        timeout: const Duration(seconds: 30), // Reduced timeout for better UX
+        // Enable forceResendingToken for better UX
+        forceResendingToken: null,
+      ).timeout(
+        const Duration(seconds: 60), // Overall timeout for the entire operation
+        onTimeout: () {
+          debugPrint('⏰ Phone verification timed out after 60 seconds');
+          throw Exception('Phone verification timed out. Please check your internet connection and try again.');
+        },
+      );
+
+      debugPrint('📞 Phone verification setup completed');
+    } catch (e) {
+      debugPrint('❌ Phone verification setup failed: $e');
+      throw e;
+    }
   }
 
   Future<UserCredential> signInWithOTP(

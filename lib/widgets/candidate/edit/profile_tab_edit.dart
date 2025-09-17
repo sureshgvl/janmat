@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/candidate_model.dart';
 import '../demo_data_modal.dart';
+import '../../../l10n/app_localizations.dart';
 
 // Main ProfileTabEdit Widget
 class ProfileTabEdit extends StatefulWidget {
@@ -67,9 +68,9 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Profile Details',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.profileDetails,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             if (widget.isEditing)
@@ -78,7 +79,7 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
                 child: TextFormField(
                   controller: _bioController,
                   decoration: InputDecoration(
-                    labelText: 'Bio',
+                    labelText: AppLocalizations.of(context)!.bio,
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.lightbulb, color: Colors.amber),
@@ -94,7 +95,7 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
                           ),
                         );
                       },
-                      tooltip: 'Use demo bio',
+                      tooltip: AppLocalizations.of(context)!.useDemoBio,
                     ),
                   ),
                   maxLines: 3,
@@ -103,7 +104,7 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
               )
             else
               Text(
-                bio.isNotEmpty ? bio : 'No bio available',
+                bio.isNotEmpty ? bio : AppLocalizations.of(context)!.noBioAvailable,
                 style: const TextStyle(fontSize: 16),
               ),
           ],

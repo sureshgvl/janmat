@@ -44,7 +44,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Candidate Dashboard'),
+        title: Text(AppLocalizations.of(context)!.candidateDashboard),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Get.back(),
@@ -75,7 +75,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         }
 
         if (controller.candidateData.value == null) {
-          return const Center(child: Text('No candidate data found'));
+          return Center(child: Text(AppLocalizations.of(context)!.candidateDataNotFound));
         }
 
         return TabBarView(

@@ -5,6 +5,7 @@ import '../../controllers/candidate_data_controller.dart';
 import '../../widgets/candidate/edit/profile_tab_edit.dart';
 import '../../widgets/candidate/view/profile_tab_view.dart';
 import '../../widgets/loading_overlay.dart';
+import '../../l10n/app_localizations.dart';
 
 class CandidateDashboardProfile extends StatefulWidget {
   const CandidateDashboardProfile({super.key});
@@ -30,12 +31,12 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
       }
 
       if (controller.candidateData.value == null) {
-        return const Center(child: Text('No candidate data found'));
+        return Center(child: Text(AppLocalizations.of(context)!.candidateDataNotFound));
       }
 
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Profile'),
+          title: Text(AppLocalizations.of(context)!.profile),
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
         ),
@@ -64,12 +65,12 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                       onPressed: () async {
                         // Create a stream controller for progress updates
                         final messageController = StreamController<String>();
-                        messageController.add('Preparing to save profile...');
+                        messageController.add(AppLocalizations.of(context)!.preparingToSaveProfile);
 
                         // Show loading dialog with message stream
                         LoadingDialog.show(
                           context,
-                          initialMessage: 'Preparing to save profile...',
+                          initialMessage: AppLocalizations.of(context)!.preparingToSaveProfile,
                           messageStream: messageController.stream,
                         );
 
@@ -79,7 +80,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                               _profileSectionKey.currentState;
                           if (profileSectionState != null) {
                             messageController.add(
-                              'Uploading files to cloud...',
+                              AppLocalizations.of(context)!.uploadingFilesToCloud,
                             );
                             await profileSectionState.uploadPendingFiles();
                           }
@@ -93,7 +94,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                           if (success) {
                             // Update progress: Success
                             messageController.add(
-                              'Profile saved successfully!',
+                              AppLocalizations.of(context)!.profileSavedSuccessfully,
                             );
 
                             // Wait a moment to show success message
@@ -107,8 +108,8 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                               ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
                               Get.snackbar(
-                                'Success',
-                                'Profile updated successfully',
+                                AppLocalizations.of(context)!.success,
+                                AppLocalizations.of(context)!.profileUpdatedSuccessfully,
                                 backgroundColor: Colors.green,
                                 colorText: Colors.white,
                               );
@@ -118,13 +119,13 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                               Navigator.of(
                                 context,
                               ).pop(); // Close loading dialog
-                              Get.snackbar('Error', 'Failed to update profile');
+                              Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToUpdateProfile);
                             }
                           }
                         } catch (e) {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar('Error', 'An error occurred: $e');
+                            Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.anErrorOccurred(e.toString()));
                           }
                         } finally {
                           // Clean up the stream controller
@@ -132,7 +133,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                         }
                       },
                       backgroundColor: Colors.green,
-                      tooltip: 'Save Changes',
+                      tooltip: AppLocalizations.of(context)!.saveChanges,
                       child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
@@ -143,7 +144,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                         setState(() => isEditing = false);
                       },
                       backgroundColor: Colors.red,
-                      tooltip: 'Cancel',
+                      tooltip: AppLocalizations.of(context)!.cancel,
                       child: const Icon(Icons.cancel, size: 28),
                     ),
                   ],
@@ -155,7 +156,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                   heroTag: 'edit_profile',
                   onPressed: () => setState(() => isEditing = true),
                   backgroundColor: Colors.blue,
-                  tooltip: 'Edit Profile',
+                  tooltip: AppLocalizations.of(context)!.editProfile,
                   child: const Icon(Icons.edit, size: 28),
                 ),
               ),

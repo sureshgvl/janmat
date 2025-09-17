@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ProfileTabView extends StatefulWidget {
   final Candidate candidate;
@@ -44,7 +45,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_isProfileLiked ? 'Profile liked!' : 'Profile unliked'),
+        content: Text(_isProfileLiked ? AppLocalizations.of(context)!.profileLiked : AppLocalizations.of(context)!.profileUnliked),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -53,19 +54,19 @@ class _ProfileTabViewState extends State<ProfileTabView>
   void _shareProfile() async {
     final profileText =
         '''
-Check out ${widget.candidate.name}'s profile!
+${AppLocalizations.of(context)!.checkOutCandidateProfile(widget.candidate.name)}
 
-${widget.candidate.party.isNotEmpty ? 'Party: ${widget.candidate.party}' : 'Independent Candidate'}
-Location: ${widget.candidate.districtId}, ${widget.candidate.wardId}
+${widget.candidate.party.isNotEmpty ? AppLocalizations.of(context)!.partyLabel(widget.candidate.party) : AppLocalizations.of(context)!.party_independent}
+${AppLocalizations.of(context)!.locationLabel(widget.candidate.districtId, widget.candidate.wardId)}
 
 View their complete profile and manifesto at: [Your App URL]
 ''';
 
     // For now, just show a snackbar - in real app you'd use share_plus or url_launcher
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share functionality would open native share dialog'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.shareFunctionalityComingSoon),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -160,7 +161,7 @@ View their complete profile and manifesto at: [Your App URL]
                                     ),
                                     if (_profileLikes == 1)
                                       Text(
-                                        ' Like',
+                                        AppLocalizations.of(context)!.like,
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.grey[600],
@@ -168,7 +169,7 @@ View their complete profile and manifesto at: [Your App URL]
                                       )
                                     else
                                       Text(
-                                        ' Likes',
+                                        AppLocalizations.of(context)!.likes,
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.grey[600],
@@ -289,7 +290,7 @@ View their complete profile and manifesto at: [Your App URL]
                                               widget.candidate.party
                                                   .trim()
                                                   .isEmpty
-                                          ? 'Independent Candidate'
+                                          ? AppLocalizations.of(context)!.party_independent
                                           : widget.candidate.party,
                                       style: TextStyle(
                                         fontSize: 16,
@@ -308,7 +309,7 @@ View their complete profile and manifesto at: [Your App URL]
                                     if (widget.candidate.symbol != null &&
                                         widget.candidate.symbol!.isNotEmpty)
                                       Text(
-                                        'Symbol: ${widget.candidate.symbol}',
+                                        AppLocalizations.of(context)!.symbolLabel(widget.candidate.symbol!),
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey,
@@ -356,9 +357,9 @@ View their complete profile and manifesto at: [Your App URL]
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Basic Information',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.basicInformation,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1f2937),
@@ -386,7 +387,7 @@ View their complete profile and manifesto at: [Your App URL]
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Age',
+                                  AppLocalizations.of(context)!.age,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.purple.shade600,
@@ -422,7 +423,7 @@ View their complete profile and manifesto at: [Your App URL]
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Gender',
+                                  AppLocalizations.of(context)!.gender,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.green.shade600,
@@ -465,7 +466,7 @@ View their complete profile and manifesto at: [Your App URL]
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Education',
+                          AppLocalizations.of(context)!.education,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.orange.shade600,
@@ -500,7 +501,7 @@ View their complete profile and manifesto at: [Your App URL]
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Address',
+                          AppLocalizations.of(context)!.address,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.teal.shade600,
@@ -552,9 +553,9 @@ View their complete profile and manifesto at: [Your App URL]
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Location',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.location,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1f2937),
@@ -577,7 +578,7 @@ View their complete profile and manifesto at: [Your App URL]
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'District',
+                              AppLocalizations.of(context)!.district,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.indigo.shade600,
@@ -610,7 +611,7 @@ View their complete profile and manifesto at: [Your App URL]
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Ward',
+                              AppLocalizations.of(context)!.ward,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.pink.shade600,

@@ -1337,9 +1337,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get failedToLoadVideo => 'Failed to load video';
 
-  @override
-  String get shareFunctionalityComingSoon =>
-      'Share functionality would open native share dialog';
 
   @override
   String get pleaseEnterAComment => 'Please enter a comment';
@@ -1566,4 +1563,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noStuckDialogsFound => 'No stuck dialogs found';
+
+  @override
+  String get preparingToSaveProfile => 'Preparing to save profile...';
+
+  @override
+  String get uploadingFilesToCloud => 'Uploading files to cloud...';
+
+  @override
+  String get profileSavedSuccessfully => 'Profile saved successfully!';
+
+  @override
+  String get profileUpdatedSuccessfully => 'Profile updated successfully';
+
+  @override
+  String get failedToUpdateProfile => 'Failed to update profile';
+
+  @override
+  String anErrorOccurred(Object error) {
+    return 'An error occurred: $error';
+  }
+
+  @override
+  String get saveChanges => 'Save Changes';
+
+  @override
+  String get editProfile => 'Edit Profile';
+
+  @override
+  String get profileLiked => 'Profile liked!';
+
+  @override
+  String get profileUnliked => 'Profile unliked';
+
+  @override
+  String checkOutCandidateProfile(Object candidateName) {
+    return 'Check out $candidateName\'s profile!';
+  }
+
+  @override
+  String partyLabel(Object party) {
+    return 'Party: $party';
+  }
+
+  @override
+  String locationLabel(Object district, Object ward) {
+    return 'Location: $district, $ward';
+  }
+
+  @override
+  String get shareFunctionalityComingSoon =>
+      'Share functionality would open native share dialog';
+
+  @override
+  String get like => ' Like';
+
+  @override
+  String get basicInformation => 'Basic Information';
+
+  @override
+  String get age => 'Age';
+
+  @override
+  String get gender => 'Gender';
+
+  @override
+  String get education => 'Education';
+
+  @override
+  String get address => 'Address';
+
+  @override
+  String get location => 'Location';
+
+  @override
+  String get district => 'District';
+
+  @override
+  String get ward => 'Ward';
+
+  @override
+  String get profileDetails => 'Profile Details';
+
+  @override
+  String get bio => 'Bio';
+
+  @override
+  String get useDemoBio => 'Use demo bio';
+
+  @override
+  String get noBioAvailable => 'No bio available';
 }

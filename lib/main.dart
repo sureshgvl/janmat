@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -174,12 +175,26 @@ void main() async {
   }
   stopPerformanceTimer('firebase_init');
 
+  // Check for app updates
+  await checkForUpdate();
+
   stopPerformanceTimer('app_startup');
 
   // Log performance report in debug mode
   logPerformanceReport();
 
   runApp(const MyApp());
+}
+
+Future<void> checkForUpdate() async {
+  try {
+    final updateInfo = await InAppUpdate.checkForUpdate();
+    if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+      await InAppUpdate.performImmediateUpdate();
+    }
+  } catch (e) {
+    debugPrint('Update check failed: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -2509,6 +2509,169 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You need at least 2 options'**
   String get minimumOptionsMessage;
+
+  /// No description provided for @preparingToSaveProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing to save profile...'**
+  String get preparingToSaveProfile;
+
+  /// No description provided for @uploadingFilesToCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading files to cloud...'**
+  String get uploadingFilesToCloud;
+
+  /// No description provided for @profileSavedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved successfully!'**
+  String get profileSavedSuccessfully;
+
+  /// No description provided for @profileUpdatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully'**
+  String get profileUpdatedSuccessfully;
+
+  /// No description provided for @failedToUpdateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update profile'**
+  String get failedToUpdateProfile;
+
+  /// No description provided for @anErrorOccurred.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred: {error}'**
+  String anErrorOccurred(Object error);
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get saveChanges;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get editProfile;
+
+  /// No description provided for @profileLiked.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile liked!'**
+  String get profileLiked;
+
+  /// No description provided for @profileUnliked.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile unliked'**
+  String get profileUnliked;
+
+  /// No description provided for @checkOutCandidateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out {candidateName}\'s profile!'**
+  String checkOutCandidateProfile(Object candidateName);
+
+  /// No description provided for @partyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Party: {party}'**
+  String partyLabel(Object party);
+
+  /// No description provided for @locationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Location: {district}, {ward}'**
+  String locationLabel(Object district, Object ward);
+
+  /// No description provided for @shareFunctionalityComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Share functionality would open native share dialog'**
+  String get shareFunctionalityComingSoon;
+
+  /// No description provided for @like.
+  ///
+  /// In en, this message translates to:
+  /// **' Like'**
+  String get like;
+
+
+  /// No description provided for @basicInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Information'**
+  String get basicInformation;
+
+  /// No description provided for @age.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get age;
+
+  /// No description provided for @gender.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get gender;
+
+  /// No description provided for @education.
+  ///
+  /// In en, this message translates to:
+  /// **'Education'**
+  String get education;
+
+  /// No description provided for @address.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get address;
+
+  /// No description provided for @location.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get location;
+
+  /// No description provided for @district.
+  ///
+  /// In en, this message translates to:
+  /// **'District'**
+  String get district;
+
+  /// No description provided for @ward.
+  ///
+  /// In en, this message translates to:
+  /// **'Ward'**
+  String get ward;
+
+  /// No description provided for @profileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Details'**
+  String get profileDetails;
+
+  /// No description provided for @bio.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio'**
+  String get bio;
+
+  /// No description provided for @useDemoBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Use demo bio'**
+  String get useDemoBio;
+
+  /// No description provided for @noBioAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No bio available'**
+  String get noBioAvailable;
 }
 
 class _AppLocalizationsDelegate

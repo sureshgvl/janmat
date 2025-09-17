@@ -1571,4 +1571,90 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get noStuckDialogsFound => 'कोणतेही अडकलेले संवाद सापडले नाहीत';
+
+  @override
+  String get preparingToSaveProfile => 'प्रोफाइल जतन करण्याची तयारी करत आहे...';
+
+  @override
+  String get uploadingFilesToCloud => 'फायली क्लाउडवर अपलोड करत आहे...';
+
+  @override
+  String get profileSavedSuccessfully => 'प्रोफाइल यशस्वीरित्या जतन झाला!';
+
+  @override
+  String get profileUpdatedSuccessfully => 'प्रोफाइल यशस्वीरित्या अपडेट झाला';
+
+  @override
+  String get failedToUpdateProfile => 'प्रोफाइल अपडेट करण्यात अयशस्वी';
+
+  @override
+  String anErrorOccurred(Object error) {
+    return 'एक त्रुटी आली: $error';
+  }
+
+  @override
+  String get saveChanges => 'बदल जतन करा';
+
+  @override
+  String get editProfile => 'प्रोफाइल संपादित करा';
+
+  @override
+  String get profileLiked => 'प्रोफाइल आवडला!';
+
+  @override
+  String get profileUnliked => 'प्रोफाइल आवडला नाही';
+
+  @override
+  String checkOutCandidateProfile(Object candidateName) {
+    return '$candidateName चे प्रोफाइल पहा!';
+  }
+
+  @override
+  String partyLabel(Object party) {
+    return 'पक्ष: $party';
+  }
+
+  @override
+  String locationLabel(Object district, Object ward) {
+    return 'स्थान: $district, $ward';
+  }
+
+  @override
+  String get like => ' आवड';
+
+  @override
+  String get basicInformation => 'मूलभूत माहिती';
+
+  @override
+  String get age => 'वय';
+
+  @override
+  String get gender => 'लिंग';
+
+  @override
+  String get education => 'शिक्षण';
+
+  @override
+  String get address => 'पत्ता';
+
+  @override
+  String get location => 'स्थान';
+
+  @override
+  String get district => 'जिल्हा';
+
+  @override
+  String get ward => 'वॉर्ड';
+
+  @override
+  String get profileDetails => 'प्रोफाइल तपशील';
+
+  @override
+  String get bio => 'बायो';
+
+  @override
+  String get useDemoBio => 'डेमो बायो वापरा';
+
+  @override
+  String get noBioAvailable => 'कोणतेही बायो उपलब्ध नाही';
 }
