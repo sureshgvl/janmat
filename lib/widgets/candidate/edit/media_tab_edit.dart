@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/candidate_model.dart';
 import '../../../services/file_upload_service.dart';
+import '../../../services/plan_service.dart';
 import '../../common/reusable_image_widget.dart';
 import '../../common/reusable_video_widget.dart';
 import '../../common/confirmation_dialog.dart';
@@ -222,10 +224,26 @@ class MediaTabEditState extends State<MediaTabEdit> {
   // Files marked for deletion (will be deleted on save)
   final Map<String, bool> _markedForDeletion = {};
 
+  // Plan-based limits
+  int _maxImagesPerItem = 10;
+  int _maxVideosPerItem = 1;
+  bool _canUploadMedia = false;
+
   @override
   void initState() {
     super.initState();
+    _loadPlanLimits();
     _loadMedia();
+  }
+
+  Future<void> _loadPlanLimits() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _canUploadMedia = await PlanService.canUploadMedia(currentUser.uid);
+      final mediaLimit = await PlanService.getMediaUploadLimit(currentUser.uid);
+      _maxImagesPerItem = mediaLimit == -1 ? 50 : (mediaLimit ~/ 3).clamp(1, 10); // Distribute limit across items
+      _maxVideosPerItem = 1; // Keep video limit as 1 for all plans
+    }
   }
 
   @override
@@ -306,8 +324,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
   void _addImageToItem(int itemIndex, String imageUrl) {
     setState(() {
-      if (_mediaItems[itemIndex].images.length < 10) {
-        // Changed from 3 to 10
+      if (_mediaItems[itemIndex].images.length < _maxImagesPerItem) {
         _mediaItems[itemIndex].images.add(imageUrl);
         _updateMedia();
       }
@@ -316,8 +333,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
   void _addVideoToItem(int itemIndex, String videoUrl) {
     setState(() {
-      if (_mediaItems[itemIndex].videos.isEmpty) {
-        // Changed from 3 to 1
+      if (_mediaItems[itemIndex].videos.length < _maxVideosPerItem) {
         _mediaItems[itemIndex].videos.add(videoUrl);
         _updateMedia();
       }
@@ -882,31 +898,31 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 runSpacing: 8,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: item.images.length >= 10
+                    onPressed: !_canUploadMedia || item.images.length >= _maxImagesPerItem
                         ? null
                         : () => _pickAndUploadImage(itemIndex),
                     icon: const Icon(Icons.add_photo_alternate),
-                    label: Text('Add Image (${item.images.length}/10)'),
+                    label: Text('Add Image (${item.images.length}/${_maxImagesPerItem == 50 ? "Unlimited" : _maxImagesPerItem.toString()})'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: item.images.length >= 10
+                      backgroundColor: !_canUploadMedia || item.images.length >= _maxImagesPerItem
                           ? Colors.grey
                           : Colors.green,
-                      foregroundColor: item.images.length >= 10
+                      foregroundColor: !_canUploadMedia || item.images.length >= _maxImagesPerItem
                           ? Colors.grey[600]
                           : Colors.white,
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: item.videos.isNotEmpty
+                    onPressed: !_canUploadMedia || item.videos.length >= _maxVideosPerItem
                         ? null
                         : () => _pickAndUploadVideo(itemIndex),
                     icon: const Icon(Icons.video_call),
-                    label: Text('Add Video (${item.videos.length}/1)'),
+                    label: Text('Add Video (${item.videos.length}/${_maxVideosPerItem})'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: item.videos.isNotEmpty
+                      backgroundColor: !_canUploadMedia || item.videos.length >= _maxVideosPerItem
                           ? Colors.grey
                           : Colors.purple,
-                      foregroundColor: item.videos.isNotEmpty
+                      foregroundColor: !_canUploadMedia || item.videos.length >= _maxVideosPerItem
                           ? Colors.grey[600]
                           : Colors.white,
                     ),

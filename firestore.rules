@@ -1,11 +1,65 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Simple rules for chat functionality
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
+    // Plans collection - public read, admin write
+    match /plans/{planId} {
+      allow read: if true; // Public read for all users
+      allow write: if request.auth != null &&
+        (request.auth.uid == '8BYU2by0IOOBVAodl5sFwuqOm4Z2' ||
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
+    // User subscriptions - users can read/write their own, admin can read/write all
+    match /user_subscriptions/{subscriptionId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    // ⭐ HIGHLIGHTS COLLECTION - NEW!
+    match /highlights/{highlightId} {
+      allow read: if true; // Public read for voters to see highlights
+      allow write: if request.auth != null; // Authenticated users can create
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.candidateId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    // 📢 PUSH FEED COLLECTION - NEW!
+    match /pushFeed/{feedId} {
+      allow read: if true; // Public read for voters
+      allow write: if request.auth != null; // Authenticated users can create
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.candidateId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    // 💰 PAYMENTS COLLECTION - NEW!
+    match /payments/{paymentId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.candidateId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      allow write: if request.auth != null &&
+        request.auth.uid == resource.data.candidateId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Chat functionality
     match /chats/{roomId} {
       allow read, write: if request.auth != null;
     }
@@ -14,13 +68,168 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // User quotas
     match /user_quotas/{userId} {
       allow read, write: if request.auth != null;
     }
 
-    // Allow everything for authenticated users (simplified)
-    match /{document=**} {
+    // Admin collections (districts, etc.) - allow authenticated users to read for profile completion
+    match /districts/{districtId} {
+      allow read: if request.auth != null; // Allow authenticated users to read districts for profile completion
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /districts/{districtId}/bodies/{bodyId} {
+      allow read: if request.auth != null; // Allow authenticated users to read bodies for profile completion
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /districts/{districtId}/bodies/{bodyId}/wards/{wardId} {
+      allow read: if request.auth != null; // Allow authenticated users to read wards for profile completion
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Candidates subcollection under wards
+    match /districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId} {
+      allow read: if request.auth != null; // Allow authenticated users to read candidates
+      allow create: if request.auth != null &&
+        (request.auth.uid == request.resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Device management for multi-device login prevention
+    match /users/{userId}/devices/{deviceId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // A/B Testing collections
+    match /ab_tests/{testId} {
+      allow read: if request.auth != null; // Authenticated users can read active tests
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /ab_conversions/{conversionId} {
+      allow read: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow write: if request.auth != null; // Authenticated users can write conversion events
+    }
+
+    // Analytics and session tracking
+    match /user_sessions/{sessionId} {
+      allow read, write: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Video processing
+    match /processed_videos/{videoId} {
+      allow read, write: if request.auth != null; // Authenticated users can access processed videos
+    }
+
+    // Party symbols and information
+    match /parties/{partyId} {
+      allow read: if true; // Public read for party information
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Monetization collections
+    match /subscriptions/{subscriptionId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /xp_transactions/{transactionId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Legacy collections (for backward compatibility)
+    match /conversations/{conversationId} {
       allow read, write: if request.auth != null;
+    }
+
+    match /rewards/{rewardId} {
+      allow read, write: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /reported_messages/{reportId} {
+      allow read: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow write: if request.auth != null; // Users can report messages
+    }
+
+    // Candidate data structure (legacy - districts/bodies/wards/candidates is preferred)
+    match /cities/{cityId} {
+      allow read: if request.auth != null; // Allow authenticated users to read cities
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /cities/{cityId}/wards/{wardId} {
+      allow read: if request.auth != null; // Allow authenticated users to read wards
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /wards/{wardId} {
+      allow read: if request.auth != null; // Allow authenticated users to read wards
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /candidates/{candidateId} {
+      allow read: if true; // Public read for candidate information
+      allow create: if request.auth != null &&
+        (request.auth.uid == request.resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Candidate index for search optimization
+    match /candidate_index/{candidateId} {
+      allow read: if request.auth != null; // Authenticated users can search candidates
+      allow write: if request.auth != null; // Allow authenticated users to create/update index
+    }
+
+    // User subcollections
+    match /users/{userId}/following/{followingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/activities/{activityId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

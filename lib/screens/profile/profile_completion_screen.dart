@@ -93,10 +93,15 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
 
     // Continue with normal initialization
-    _loadDistricts();
-    _loadParties();
-    _loadUserRole();
-    _preFillUserData();
+    // Add a small delay to ensure Firebase auth is fully initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _loadDistricts();
+        _loadParties();
+        _loadUserRole();
+        _preFillUserData();
+      });
+    });
   }
 
   // Check if profile is already completed and navigate accordingly
@@ -209,42 +214,83 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   }
 
   Future<void> _loadDistricts() async {
-    try {
-      // Load districts from Firestore
-      final districtsSnapshot = await FirebaseFirestore.instance
-          .collection('districts')
-          .get();
-      districts = districtsSnapshot.docs.map((doc) {
-        final data = doc.data();
-        return District.fromJson({'districtId': doc.id, ...data});
-      }).toList();
+    const int maxRetries = 3;
+    int retryCount = 0;
 
-      // Load bodies for each district
-      for (final district in districts) {
-        final bodiesSnapshot = await FirebaseFirestore.instance
+    while (retryCount < maxRetries) {
+      try {
+        // Ensure user is authenticated before making the query
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser == null) {
+          debugPrint('⚠️ No authenticated user found, waiting for authentication...');
+          // Wait for authentication to be established
+          await Future.delayed(const Duration(seconds: 2));
+          final retryUser = FirebaseAuth.instance.currentUser;
+          if (retryUser == null) {
+            throw Exception('User not authenticated');
+          }
+        }
+
+        debugPrint('🔍 Loading districts for user: ${currentUser?.uid} (attempt ${retryCount + 1})');
+
+        // Load districts from Firestore
+        final districtsSnapshot = await FirebaseFirestore.instance
             .collection('districts')
-            .doc(district.districtId)
-            .collection('bodies')
             .get();
-        districtBodies[district.districtId] = bodiesSnapshot.docs.map((doc) {
-          final data = doc.data();
-          return Body.fromJson({
-            'bodyId': doc.id,
-            'districtId': district.districtId,
-            ...data,
-          });
-        }).toList();
-      }
 
-      setState(() {
-        isLoadingDistricts = false;
-      });
-    } catch (e) {
-      // For now, keep the error message in English since we don't have context here
-      Get.snackbar('Error', 'Failed to load districts: $e');
-      setState(() {
-        isLoadingDistricts = false;
-      });
+        debugPrint('📊 Found ${districtsSnapshot.docs.length} districts in Firestore');
+
+        districts = districtsSnapshot.docs.map((doc) {
+          final data = doc.data();
+          debugPrint('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
+          return District.fromJson({'districtId': doc.id, ...data});
+        }).toList();
+
+        // Load bodies for each district
+        for (final district in districts) {
+          final bodiesSnapshot = await FirebaseFirestore.instance
+              .collection('districts')
+              .doc(district.districtId)
+              .collection('bodies')
+              .get();
+
+          debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.districtId}');
+
+          districtBodies[district.districtId] = bodiesSnapshot.docs.map((doc) {
+            final data = doc.data();
+            debugPrint('🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})');
+            return Body.fromJson({
+              'bodyId': doc.id,
+              'districtId': district.districtId,
+              ...data,
+            });
+          }).toList();
+        }
+
+        setState(() {
+          isLoadingDistricts = false;
+        });
+
+        debugPrint('✅ Successfully loaded ${districts.length} districts with bodies');
+        return; // Success, exit the retry loop
+
+      } catch (e) {
+        retryCount++;
+        debugPrint('❌ Failed to load districts (attempt $retryCount): $e');
+
+        if (retryCount < maxRetries) {
+          debugPrint('🔄 Retrying in ${retryCount * 2} seconds...');
+          await Future.delayed(Duration(seconds: retryCount * 2));
+        } else {
+          // Final attempt failed
+          debugPrint('❌ All retry attempts failed for loading districts');
+          // For now, keep the error message in English since we don't have context here
+          Get.snackbar('Error', 'Failed to load districts after $maxRetries attempts: $e');
+          setState(() {
+            isLoadingDistricts = false;
+          });
+        }
+      }
     }
   }
 

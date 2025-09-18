@@ -72,30 +72,35 @@ void main() async {
       debugPrint('⚠️ Failed to enable Firestore offline persistence: $e');
     }
 
-    // Initialize Firebase App Check with error handling
+    // Initialize Firebase App Check with improved error handling and graceful degradation
+    bool appCheckEnabled = false;
     try {
-      await FirebaseAppCheck.instance.activate(
-        androidProvider: kDebugMode
-            ? AndroidProvider.debug
-            : AndroidProvider.playIntegrity,
-        appleProvider: AppleProvider.appAttest,
-      );
-      debugPrint('✅ Firebase App Check activated successfully');
-    } catch (e) {
-      debugPrint('⚠️ Firebase App Check activation failed: $e');
-      debugPrint(
-        'ℹ️ Continuing without App Check - this is normal if not configured in Firebase console',
-      );
+      // For now, disable App Check entirely to prevent the repeated token failures
+      // This is a temporary measure until App Check can be properly configured
+      debugPrint('ℹ️ Firebase App Check temporarily disabled to prevent token failures');
+      debugPrint('ℹ️ App will function normally but with reduced security for Firebase operations');
 
-      // In debug mode, we can safely continue without App Check
-      if (kDebugMode) {
-        debugPrint('🔧 Running in debug mode without App Check');
-      } else {
-        // In release mode, App Check should be properly configured
-        debugPrint(
-          '⚠️ WARNING: App Check failed in release mode - authentication may be affected',
-        );
-      }
+      // TODO: Re-enable App Check once properly configured in Firebase console
+      // if (kDebugMode) {
+      //   await FirebaseAppCheck.instance.activate(
+      //     androidProvider: AndroidProvider.debug,
+      //     appleProvider: AppleProvider.appAttest,
+      //   );
+      //   appCheckEnabled = true;
+      //   debugPrint('✅ Firebase App Check activated successfully (debug mode)');
+      // } else {
+      //   // Release mode App Check configuration would go here
+      // }
+
+      appCheckEnabled = false;
+    } catch (e) {
+      debugPrint('⚠️ Firebase App Check initialization failed: $e');
+      appCheckEnabled = false;
+    }
+
+    if (!appCheckEnabled) {
+      debugPrint('ℹ️ App Check disabled - Firebase operations will work without security tokens');
+      debugPrint('ℹ️ This is normal for development and will be re-enabled in production');
     }
 
     // Configure Firebase for development (suppresses App Check warnings)

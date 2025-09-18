@@ -6,6 +6,8 @@ import '../../models/candidate_model.dart';
 import '../../services/trial_service.dart';
 import '../../utils/symbol_utils.dart';
 import '../../utils/helpers.dart';
+import '../../widgets/highlight_banner.dart';
+import '../../widgets/highlight_carousel.dart';
 import '../candidate/candidate_list_screen.dart';
 import '../candidate/candidate_dashboard_screen.dart';
 import '../candidate/my_area_candidates_screen.dart';
@@ -27,11 +29,43 @@ class HomeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get location data for highlights
+    final locationData = _getLocationData();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // SECTION 1: PLATINUM BANNER (Conditional)
+          // Platinum Banner (only shows if available for this location)
+          HighlightBanner(
+            districtId: locationData['districtId']!,
+            bodyId: locationData['bodyId']!,
+            wardId: locationData['wardId']!,
+          ),
+
+          // SECTION 2: HIGHLIGHT CAROUSEL
+          // Highlight Carousel (shows Gold/Platinum highlights for this location)
+          HighlightCarousel(
+            districtId: locationData['districtId']!,
+            bodyId: locationData['bodyId']!,
+            wardId: locationData['wardId']!,
+          ),
+
+          const SizedBox(height: 24),
+
+          // SECTION 3: PUSH FEED CARDS
+          _buildPushFeedSection(context),
+
+          const SizedBox(height: 24),
+
+          // SECTION 4: NORMAL FEED
+          _buildNormalFeedSection(context),
+
+          const SizedBox(height: 32),
+
+          // ===== EXISTING SECTIONS =====
           // Welcome Section
           _buildWelcomeSection(context),
 
@@ -57,6 +91,112 @@ class HomeBody extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Map<String, String> _getLocationData() {
+    // Priority: Candidate's location data
+    if (candidateModel?.districtId != null && candidateModel!.districtId.isNotEmpty &&
+        candidateModel?.bodyId != null && candidateModel!.bodyId.isNotEmpty &&
+        candidateModel?.wardId != null && candidateModel!.wardId.isNotEmpty) {
+      return {
+        'districtId': candidateModel!.districtId,
+        'bodyId': candidateModel!.bodyId,
+        'wardId': candidateModel!.wardId,
+      };
+    }
+
+    // For voters or when candidate data is incomplete
+    // You can implement location-based detection here
+    // For now, return default Pune location
+    return {
+      'districtId': 'Pune',
+      'bodyId': 'pune_city',
+      'wardId': 'ward_pune_1',
+    };
+  }
+
+  String _getWardId() {
+    // Legacy method for backward compatibility
+    return _getLocationData()['wardId']!;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadPushFeedData() async {
+    try {
+      final locationData = _getLocationData();
+
+      // For now, return mock data - replace with actual service call
+      // TODO: Replace with actual push feed service call
+      return [
+        {
+          'title': 'Ward Meeting Tomorrow',
+          'message': 'Join us for the upcoming ward development meeting at 10 AM in ${locationData['wardId']}.',
+          'imageUrl': null,
+          'isSponsored': true,
+        },
+        {
+          'title': 'New Infrastructure Project',
+          'message': 'Exciting updates on the new road construction in our ${locationData['wardId']} area.',
+          'imageUrl': null,
+          'isSponsored': true,
+        },
+      ];
+
+      // Future implementation:
+      // final pushFeedService = PushFeedService();
+      // return await pushFeedService.getPushFeedForWard(
+      //   locationData['districtId']!,
+      //   locationData['bodyId']!,
+      //   locationData['wardId']!,
+      // );
+
+    } catch (e) {
+      debugPrint('Error loading push feed data: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadNormalFeedData() async {
+    try {
+      final locationData = _getLocationData();
+
+      // For now, return mock data with location context - replace with actual service call
+      // TODO: Replace with actual community feed service call
+      return [
+        {
+          'author': 'Rajesh Kumar',
+          'content': 'Great meeting with local residents today in ${locationData['wardId']}. Discussed important community issues.',
+          'timestamp': '2 hours ago',
+          'likes': 12,
+          'comments': 3,
+        },
+        {
+          'author': 'Priya Sharma',
+          'content': 'Attended the ward committee meeting in ${locationData['districtId']}. Good progress on infrastructure development.',
+          'timestamp': '4 hours ago',
+          'likes': 8,
+          'comments': 2,
+        },
+        {
+          'author': 'Amit Patel',
+          'content': 'Community cleanup drive was successful in ${locationData['wardId']}. Thanks to all volunteers!',
+          'timestamp': '6 hours ago',
+          'likes': 15,
+          'comments': 5,
+        },
+      ];
+
+      // Future implementation:
+      // final feedService = CommunityFeedService();
+      // return await feedService.getCommunityFeedForWard(
+      //   locationData['districtId']!,
+      //   locationData['bodyId']!,
+      //   locationData['wardId']!,
+      // );
+
+    } catch (e) {
+      debugPrint('Error loading normal feed data: $e');
+      return [];
+    }
   }
 
   Widget _buildWelcomeSection(BuildContext context) {
@@ -324,6 +464,328 @@ class HomeBody extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildPushFeedSection(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _loadPushFeedData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const SizedBox.shrink(); // Hide section on error
+        }
+
+        final pushFeedItems = snapshot.data ?? [];
+
+        if (pushFeedItems.isEmpty) {
+          return const SizedBox.shrink(); // Hide section if no data
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.campaign, color: Colors.orange, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Sponsored Updates',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...pushFeedItems.map((item) => Column(
+              children: [
+                _buildPushFeedCard(
+                  context,
+                  title: item['title'] ?? '',
+                  message: item['message'] ?? '',
+                  imageUrl: item['imageUrl'],
+                  isSponsored: item['isSponsored'] ?? true,
+                ),
+                const SizedBox(height: 12),
+              ],
+            )),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildNormalFeedSection(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _loadNormalFeedData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const SizedBox.shrink(); // Hide section on error
+        }
+
+        final feedItems = snapshot.data ?? [];
+
+        if (feedItems.isEmpty) {
+          return const SizedBox.shrink(); // Hide section if no data
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.article, color: Colors.blue, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Community Feed',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...feedItems.map((item) => Column(
+              children: [
+                _buildNormalFeedCard(
+                  context,
+                  author: item['author'] ?? '',
+                  content: item['content'] ?? '',
+                  timestamp: item['timestamp'] ?? '',
+                  likes: item['likes'] ?? 0,
+                  comments: item['comments'] ?? 0,
+                ),
+                const SizedBox(height: 12),
+              ],
+            )),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPushFeedCard(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String? imageUrl,
+    required bool isSponsored,
+  }) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Profile photo placeholder
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey[300],
+              ),
+              child: const Icon(Icons.person, color: Colors.grey),
+            ),
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSponsored) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'SPONSORED',
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                        child: const Text('Learn More'),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text(
+                          'Dismiss',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNormalFeedCard(
+    BuildContext context, {
+    required String author,
+    required String content,
+    required String timestamp,
+    required int likes,
+    required int comments,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Author info
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.shade100,
+                  ),
+                  child: const Icon(Icons.person, color: Colors.blue, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        author,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1f2937),
+                        ),
+                      ),
+                      Text(
+                        timestamp,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Content
+            Text(
+              content,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF374151),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Engagement stats
+            Row(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.thumb_up, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      likes.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.comment, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      comments.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

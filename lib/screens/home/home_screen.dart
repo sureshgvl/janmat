@@ -6,6 +6,9 @@ import '../../repositories/auth_repository.dart';
 import '../../controllers/login_controller.dart';
 import '../../models/user_model.dart';
 import '../../models/candidate_model.dart';
+import '../test/test_plans_screen.dart';
+import '../test/test_highlights_screen.dart';
+import '../test/test_create_highlights.dart';
 import 'home_services.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
@@ -55,6 +58,45 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.home),
         actions: [
+          // Test Plans Button (for development)
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Test Plans',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TestPlansScreen(),
+                ),
+              );
+            },
+          ),
+          // Test Highlights Button (for development)
+          IconButton(
+            icon: const Icon(Icons.star),
+            tooltip: 'Test Highlights',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TestHighlightsScreen(),
+                ),
+              );
+            },
+          ),
+          // Create Test Highlights Button (for development)
+          IconButton(
+            icon: const Icon(Icons.add_circle),
+            tooltip: 'Create Test Highlights',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TestCreateHighlightsScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: _isLoggingOut
                 ? const SizedBox(

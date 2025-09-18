@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "pushFeed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "wardId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

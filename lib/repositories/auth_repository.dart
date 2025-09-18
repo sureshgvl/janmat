@@ -123,59 +123,57 @@ class AuthRepository {
 
       while (retryCount <= maxRetries) {
         try {
-          // Force account picker if flag is set (after logout)
-          if (_forceAccountPicker) {
-            debugPrint('🎯 Force account picker enabled - ensuring fresh account selection');
+          // Always force account picker to show all available Google accounts
+          debugPrint('🎯 Always showing account picker for user account selection');
 
-            // Check if user is already signed in silently
-            String? previousUserId;
-            try {
-              final silentUser = await _googleSignIn.signInSilently();
-              if (silentUser != null) {
-                previousUserId = silentUser.id;
-                debugPrint('📋 Previous user detected: ${silentUser.displayName} (${silentUser.id})');
-              }
-            } catch (e) {
-              debugPrint('ℹ️ No existing silent session (normal): $e');
+          // Check if user is already signed in silently
+          String? previousUserId;
+          try {
+            final silentUser = await _googleSignIn.signInSilently();
+            if (silentUser != null) {
+              previousUserId = silentUser.id;
+              debugPrint('📋 Previous user detected: ${silentUser.displayName} (${silentUser.id})');
             }
-
-            // If we have a previous user, force account picker
-            if (previousUserId != null) {
-              debugPrint('🔄 Previous user found, forcing account picker...');
-              await _googleSignIn.disconnect();
-              debugPrint('✅ Disconnected previous session');
-              await Future.delayed(const Duration(milliseconds: 500)); // Increased delay
-            }
-
-            debugPrint('📱 Showing account picker...');
-            googleUser = await _googleSignIn.signIn().timeout(
-              const Duration(seconds: 90), // Increased timeout to 90 seconds
-              onTimeout: () {
-                debugPrint('⏰ Google Sign-In timeout after 90 seconds');
-                throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
-              },
-            );
-
-            // Verify we got a different user
-            if (googleUser != null && previousUserId != null) {
-              if (googleUser.id == previousUserId) {
-                debugPrint('⚠️ Same user selected, but account picker was shown');
-              } else {
-                debugPrint('✅ Different user selected: ${googleUser.displayName}');
-              }
-            }
-
-            _forceAccountPicker = false;
-            debugPrint('✅ Account picker flag reset');
-          } else {
-            googleUser = await _googleSignIn.signIn().timeout(
-              const Duration(seconds: 90), // Increased timeout to 90 seconds
-              onTimeout: () {
-                debugPrint('⏰ Google Sign-In timeout after 90 seconds');
-                throw Exception('Google Sign-In timed out. Please check your internet connection and try again.');
-              },
-            );
+          } catch (e) {
+            debugPrint('ℹ️ No existing silent session (normal): $e');
           }
+
+          // Always disconnect to force account picker (handle gracefully if no session)
+          debugPrint('🔄 Disconnecting to force account picker...');
+          try {
+            await _googleSignIn.disconnect();
+            debugPrint('✅ Disconnected previous session');
+          } catch (e) {
+            debugPrint('ℹ️ No active session to disconnect (normal): $e');
+          }
+          await Future.delayed(const Duration(milliseconds: 500)); // Increased delay
+
+          debugPrint('📱 Showing account picker...');
+          googleUser = await _googleSignIn.signIn().timeout(
+            const Duration(seconds: 90), // Increased timeout to 90 seconds
+            onTimeout: () {
+              debugPrint('⏰ Google Sign-In timeout after 90 seconds');
+              throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
+            },
+          );
+
+          // If we get here, the account picker was shown successfully
+          debugPrint('✅ Account picker interaction completed');
+
+          // Verify we got a user
+          if (googleUser != null && previousUserId != null) {
+            if (googleUser.id == previousUserId) {
+              debugPrint('⚠️ Same user selected, but account picker was shown');
+            } else {
+              debugPrint('✅ Different user selected: ${googleUser.displayName}');
+            }
+          } else if (googleUser != null) {
+            debugPrint('✅ User selected: ${googleUser.displayName}');
+          }
+
+          // Reset the flag (though it's no longer used for account picker logic)
+          _forceAccountPicker = false;
+          debugPrint('✅ Account picker flag reset');
 
           // If successful, break out of retry loop
           if (googleUser != null) {

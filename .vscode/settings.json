@@ -1,9 +1,33 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive",
+    "dart.flutterSdkPath": "C:\\flutter",
+    "dart.sdkPath": "C:\\flutter\\bin\\cache\\dart-sdk",
     "dart.flutterAdditionalArgs": [
         "--enable-impeller"
     ],
     "dart.flutterRunAdditionalArgs": [
         "--enable-impeller"
-    ]
+    ],
+    "dart.devToolsBrowser": "chrome",
+    "dart.debugExternalPackageLibraries": false,
+    "dart.debugSdkLibraries": false,
+    "dart.hotReloadOnSave": "all",
+    "dart.previewFlutterUiGuides": true,
+    "dart.previewFlutterUiGuidesCustomTracking": true,
+    "dart.showTodos": true,
+    "dart.analysisExcludedFolders": [
+        "build",
+        ".dart_tool"
+    ],
+    "dart.enableSdkFormatter": true,
+    "dart.lineLength": 80,
+    "dart.enableCompletionCommits": true,
+    "dart.warnWhenEditingFilesOutsideOfWorkspace": true,
+    "dart.closingLabels": true,
+    "dart.showDartPadSampleCodeLinks": true,
+    "dart.insertArgumentPlaceholders": true,
+    "dart.updateImportsOnRename": true,
+    "dart.completeFunctionCalls": true,
+    "dart.enableSnippets": true,
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cmake.sourceDirectory": "D:/flutter_projects/janmat/windows"
 }

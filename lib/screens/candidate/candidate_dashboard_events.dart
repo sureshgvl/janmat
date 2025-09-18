@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/candidate_data_controller.dart';
+import '../../services/plan_service.dart';
 import '../../widgets/candidate/edit/events_tab_edit.dart';
 import '../../widgets/candidate/view/events_tab_view.dart';
 import '../../widgets/loading_overlay.dart';
@@ -17,10 +19,25 @@ class CandidateDashboardEvents extends StatefulWidget {
 class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
+  bool canManageEvents = false;
 
   // Global key to access events section for file uploads
   final GlobalKey<EventsTabEditState> _eventsSectionKey =
       GlobalKey<EventsTabEditState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlanPermissions();
+  }
+
+  Future<void> _loadPlanPermissions() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      canManageEvents = await PlanService.canManageEvents(currentUser.uid);
+      if (mounted) setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +66,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                 candidate: controller.candidateData.value!,
                 isOwnProfile: true,
               ),
-        floatingActionButton: isEditing
+        floatingActionButton: canManageEvents ? (isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
                 child: Row(
@@ -152,7 +169,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   tooltip: 'Edit Events',
                   child: const Icon(Icons.edit, size: 28),
                 ),
-              ),
+              )) : null,
       );
     });
   }

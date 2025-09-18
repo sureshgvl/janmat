@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class DeviceInfo {
@@ -301,29 +302,91 @@ class DeviceService {
 
   // Monitor device status changes (call this when user logs in)
   void monitorDeviceStatus(String userId, Function onSignOutRequired) {
-    final deviceId = getDeviceId(); // This should be awaited in real usage
+    getDeviceId().then((currentDeviceId) {
+      debugPrint('📱 Starting device monitoring for device: $currentDeviceId');
 
-    deviceId.then((currentDeviceId) {
-      _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('devices')
-          .doc(currentDeviceId)
-          .snapshots()
-          .listen((snapshot) {
-            if (!snapshot.exists) {
-              onSignOutRequired();
-              return;
-            }
+      // Add a delay to ensure device registration is complete
+      Future.delayed(const Duration(seconds: 2), () {
+        _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('devices')
+            .doc(currentDeviceId)
+            .snapshots()
+            .listen((snapshot) {
+              debugPrint('📱 Device status update received');
 
-            final deviceData = snapshot.data();
-            final isActive = deviceData?['isActive'] ?? false;
+              if (!snapshot.exists) {
+                debugPrint('⚠️ Device document does not exist - checking network connectivity before sign out');
+                // Check if this is due to network issues before forcing sign out
+                _checkNetworkBeforeSignOut(onSignOutRequired);
+                return;
+              }
 
-            if (!isActive) {
-              onSignOutRequired();
-            }
-          });
+              final deviceData = snapshot.data();
+              final isActive = deviceData?['isActive'] ?? false;
+
+              debugPrint('📱 Device active status: $isActive');
+
+              if (!isActive) {
+                debugPrint('🚪 Device marked as inactive - checking network before sign out');
+                // Add network check before forcing sign out to avoid false positives
+                _checkNetworkBeforeSignOut(onSignOutRequired);
+              }
+            }, onError: (error) {
+              debugPrint('❌ Error monitoring device status: $error');
+              // Don't force sign out on monitoring errors to avoid false positives
+              // Network issues can cause temporary monitoring failures
+            });
+      });
+    }).catchError((error) {
+      debugPrint('❌ Failed to get device ID for monitoring: $error');
+      // Don't force sign out if we can't get device ID
     });
+  }
+
+  // Check network connectivity before forcing sign out to avoid false positives
+  Future<void> _checkNetworkBeforeSignOut(Function onSignOutRequired) async {
+    try {
+      // Wait a bit and check connectivity
+      await Future.delayed(const Duration(seconds: 3));
+
+      // Simple connectivity check - try to read the device document again
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint('⚠️ No current user - forcing sign out');
+        onSignOutRequired();
+        return;
+      }
+
+      final deviceId = await getDeviceId();
+      final deviceDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('devices')
+          .doc(deviceId)
+          .get()
+          .timeout(const Duration(seconds: 10));
+
+      if (!deviceDoc.exists) {
+        debugPrint('⚠️ Device document still does not exist after network check - forcing sign out');
+        onSignOutRequired();
+        return;
+      }
+
+      final deviceData = deviceDoc.data();
+      final isActive = deviceData?['isActive'] ?? false;
+
+      if (!isActive) {
+        debugPrint('🚪 Device still inactive after network check - forcing sign out');
+        onSignOutRequired();
+      } else {
+        debugPrint('✅ Device is active after network check - not signing out');
+      }
+    } catch (error) {
+      debugPrint('⚠️ Network check failed: $error - not forcing sign out to avoid false positives');
+      // If network check fails, don't force sign out to avoid false positives
+    }
   }
 
   // Clean up inactive devices (optional maintenance function)

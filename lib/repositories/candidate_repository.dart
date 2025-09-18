@@ -1007,6 +1007,50 @@ class CandidateRepository {
       debugPrint(
         '❌ No candidate found in user\'s district/body/ward: $districtId/$bodyId/$wardId',
       );
+
+      // Fallback: Check legacy /candidates collection
+      debugPrint('🔄 Checking legacy /candidates collection for userId: $userId');
+
+      // First try exact match
+      final legacyCandidateDoc = await _firestore
+          .collection('candidates')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (legacyCandidateDoc.docs.isNotEmpty) {
+        final doc = legacyCandidateDoc.docs.first;
+        final data = doc.data();
+        final candidateData = Map<String, dynamic>.from(data);
+        candidateData['candidateId'] = doc.id;
+
+        debugPrint(
+          '✅ Found candidate in legacy collection: ${candidateData['name']} (ID: ${doc.id})',
+        );
+        debugPrint('   userId in doc: ${candidateData['userId']}');
+
+        // Update user document with location info for future use
+        await ensureUserDocumentExists(
+          userId,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+        );
+
+        return Candidate.fromJson(candidateData);
+      }
+
+      // If no exact match, try to find any candidate documents to debug
+      debugPrint('🔍 No exact match, checking all candidates in legacy collection...');
+      final allCandidates = await _firestore.collection('candidates').limit(10).get();
+      debugPrint('📊 Found ${allCandidates.docs.length} total candidates in legacy collection');
+
+      for (var doc in allCandidates.docs) {
+        final data = doc.data();
+        debugPrint('   Candidate ${doc.id}: userId=${data['userId']}, name=${data['name']}');
+      }
+
+      debugPrint('❌ No candidate found in legacy collection either');
       return null;
     } catch (e) {
       debugPrint('❌ Error fetching candidate data: $e');
@@ -1084,6 +1128,7 @@ class CandidateRepository {
     try {
       // Find the candidate's location in the new district/body/ward structure
       final districtsSnapshot = await _firestore.collection('districts').get();
+      bool foundInNewStructure = false;
 
       for (var districtDoc in districtsSnapshot.docs) {
         final bodiesSnapshot = await districtDoc.reference
@@ -1115,9 +1160,31 @@ class CandidateRepository {
                     'manifesto': candidate.manifesto,
                     'contact': candidate.contact.toJson(),
                   });
+              foundInNewStructure = true;
               return true;
             }
           }
+        }
+      }
+
+      // If not found in new structure, try legacy collection
+      if (!foundInNewStructure) {
+        debugPrint('🔄 Candidate not found in new structure, trying legacy collection');
+        final legacyDocRef = _firestore.collection('candidates').doc(candidate.candidateId);
+        final legacyDoc = await legacyDocRef.get();
+
+        if (legacyDoc.exists) {
+          await legacyDocRef.update({
+            'name': candidate.name,
+            'party': candidate.party,
+            'symbol': candidate.symbol,
+            'extra_info': candidate.extraInfo?.toJson(),
+            'photo': candidate.photo,
+            'manifesto': candidate.manifesto,
+            'contact': candidate.contact.toJson(),
+          });
+          debugPrint('✅ Successfully updated candidate in legacy collection');
+          return true;
         }
       }
 
@@ -1213,6 +1280,17 @@ class CandidateRepository {
         }
       }
 
+      // If not found in new structure, try legacy collection
+      debugPrint('🔄 Candidate not found in new structure, trying legacy collection');
+      final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
+      final legacyDoc = await legacyDocRef.get();
+
+      if (legacyDoc.exists) {
+        await legacyDocRef.update(fieldUpdates);
+        debugPrint('✅ Successfully updated candidate in legacy collection');
+        return true;
+      }
+
       throw Exception('Candidate not found');
     } catch (e) {
       throw Exception('Failed to update candidate fields: $e');
@@ -1239,7 +1317,28 @@ class CandidateRepository {
 
       debugPrint('   Final field updates: $fieldUpdates');
 
-      return await updateCandidateFields(candidateId, fieldUpdates);
+      // Try to update in new structure first
+      try {
+        final success = await updateCandidateFields(candidateId, fieldUpdates);
+        if (success) return true;
+      } catch (e) {
+        debugPrint('⚠️ Failed to update in new structure: $e');
+      }
+
+      // Fallback: Update in legacy collection
+      debugPrint('🔄 Falling back to legacy collection update');
+      final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
+
+      // Check if candidate exists in legacy collection
+      final legacyDoc = await legacyDocRef.get();
+      if (!legacyDoc.exists) {
+        throw Exception('Candidate not found in legacy collection either');
+      }
+
+      await legacyDocRef.update(fieldUpdates);
+      debugPrint('✅ Successfully updated candidate in legacy collection');
+
+      return true;
     } catch (e) {
       throw Exception('Failed to update candidate extra info fields: $e');
     }
@@ -1287,26 +1386,38 @@ class CandidateRepository {
         if (candidateDistrictId != null) break;
       }
 
-      if (candidateDistrictId == null ||
-          candidateBodyId == null ||
-          candidateWardId == null) {
-        throw Exception('Candidate not found');
+      if (candidateDistrictId != null &&
+          candidateBodyId != null &&
+          candidateWardId != null) {
+        // Found in new structure
+        final candidateRef = _firestore
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId);
+
+        batch.update(candidateRef, updates);
+        await batch.commit();
+        return true;
       }
 
-      final candidateRef = _firestore
-          .collection('districts')
-          .doc(candidateDistrictId)
-          .collection('bodies')
-          .doc(candidateBodyId)
-          .collection('wards')
-          .doc(candidateWardId)
-          .collection('candidates')
-          .doc(candidateId);
+      // Fallback: Try legacy collection
+      debugPrint('🔄 Candidate not found in new structure, trying legacy collection');
+      final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
+      final legacyDoc = await legacyDocRef.get();
 
-      batch.update(candidateRef, updates);
-      await batch.commit();
+      if (legacyDoc.exists) {
+        batch.update(legacyDocRef, updates);
+        await batch.commit();
+        debugPrint('✅ Successfully updated candidate in legacy collection');
+        return true;
+      }
 
-      return true;
+      throw Exception('Candidate not found');
     } catch (e) {
       throw Exception('Failed to batch update candidate fields: $e');
     }
@@ -1384,33 +1495,48 @@ class CandidateRepository {
         }
       }
 
-      if (candidateDistrictId == null ||
-          candidateBodyId == null ||
-          candidateWardId == null) {
-        throw Exception('Candidate not found');
-      }
-
       final batch = _firestore.batch();
 
-      // Add to candidate's followers subcollection
-      final candidateFollowersRef = _firestore
-          .collection('districts')
-          .doc(candidateDistrictId)
-          .collection('bodies')
-          .doc(candidateBodyId)
-          .collection('wards')
-          .doc(candidateWardId)
-          .collection('candidates')
-          .doc(candidateId)
-          .collection('followers')
-          .doc(userId);
+      if (candidateDistrictId != null &&
+          candidateBodyId != null &&
+          candidateWardId != null) {
+        // Found in new structure - use new structure paths
+        // Add to candidate's followers subcollection
+        final candidateFollowersRef = _firestore
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId)
+            .collection('followers')
+            .doc(userId);
 
-      batch.set(candidateFollowersRef, {
-        'followedAt': FieldValue.serverTimestamp(),
-        'notificationsEnabled': notificationsEnabled,
-      });
+        batch.set(candidateFollowersRef, {
+          'followedAt': FieldValue.serverTimestamp(),
+          'notificationsEnabled': notificationsEnabled,
+        });
 
-      // Add to user's following subcollection
+        // Update candidate's followers count
+        final candidateRef = _firestore
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId);
+
+        batch.update(candidateRef, {'followersCount': FieldValue.increment(1)});
+      } else {
+        // Candidate not in new structure - followers functionality may not be available
+        debugPrint('⚠️ Candidate not found in new structure for follow - followers may not be updated');
+      }
+
+      // Add to user's following subcollection (always in users collection)
       final userFollowingRef = _firestore
           .collection('users')
           .doc(userId)
@@ -1421,19 +1547,6 @@ class CandidateRepository {
         'followedAt': FieldValue.serverTimestamp(),
         'notificationsEnabled': notificationsEnabled,
       });
-
-      // Update candidate's followers count
-      final candidateRef = _firestore
-          .collection('districts')
-          .doc(candidateDistrictId)
-          .collection('bodies')
-          .doc(candidateBodyId)
-          .collection('wards')
-          .doc(candidateWardId)
-          .collection('candidates')
-          .doc(candidateId);
-
-      batch.update(candidateRef, {'followersCount': FieldValue.increment(1)});
 
       // Update user's following count
       final userRef = _firestore.collection('users').doc(userId);
@@ -1488,30 +1601,45 @@ class CandidateRepository {
         if (candidateDistrictId != null) break;
       }
 
-      if (candidateDistrictId == null ||
-          candidateBodyId == null ||
-          candidateWardId == null) {
-        throw Exception('Candidate not found');
-      }
-
       final batch = _firestore.batch();
 
-      // Remove from candidate's followers subcollection
-      final candidateFollowersRef = _firestore
-          .collection('districts')
-          .doc(candidateDistrictId)
-          .collection('bodies')
-          .doc(candidateBodyId)
-          .collection('wards')
-          .doc(candidateWardId)
-          .collection('candidates')
-          .doc(candidateId)
-          .collection('followers')
-          .doc(userId);
+      if (candidateDistrictId != null &&
+          candidateBodyId != null &&
+          candidateWardId != null) {
+        // Found in new structure - use new structure paths
+        // Remove from candidate's followers subcollection
+        final candidateFollowersRef = _firestore
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId)
+            .collection('followers')
+            .doc(userId);
 
-      batch.delete(candidateFollowersRef);
+        batch.delete(candidateFollowersRef);
 
-      // Remove from user's following subcollection
+        // Update candidate's followers count
+        final candidateRef = _firestore
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId);
+
+        batch.update(candidateRef, {'followersCount': FieldValue.increment(-1)});
+      } else {
+        // Candidate not in new structure, might be in legacy - but followers are handled differently
+        debugPrint('⚠️ Candidate not found in new structure for unfollow - followers may not be updated');
+      }
+
+      // Remove from user's following subcollection (always in users collection)
       final userFollowingRef = _firestore
           .collection('users')
           .doc(userId)
@@ -1519,19 +1647,6 @@ class CandidateRepository {
           .doc(candidateId);
 
       batch.delete(userFollowingRef);
-
-      // Update candidate's followers count
-      final candidateRef = _firestore
-          .collection('districts')
-          .doc(candidateDistrictId)
-          .collection('bodies')
-          .doc(candidateBodyId)
-          .collection('wards')
-          .doc(candidateWardId)
-          .collection('candidates')
-          .doc(candidateId);
-
-      batch.update(candidateRef, {'followersCount': FieldValue.increment(-1)});
 
       // Update user's following count
       final userRef = _firestore.collection('users').doc(userId);
@@ -1601,30 +1716,33 @@ class CandidateRepository {
         if (candidateDistrictId != null) break;
       }
 
-      if (candidateDistrictId == null ||
-          candidateBodyId == null ||
-          candidateWardId == null) {
-        throw Exception('Candidate not found');
+      if (candidateDistrictId != null &&
+          candidateBodyId != null &&
+          candidateWardId != null) {
+        // Found in new structure
+        final snapshot = await _firestore
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId)
+            .collection('followers')
+            .orderBy('followedAt', descending: true)
+            .get();
+
+        return snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['userId'] = doc.id;
+          return data;
+        }).toList();
       }
 
-      final snapshot = await _firestore
-          .collection('districts')
-          .doc(candidateDistrictId)
-          .collection('bodies')
-          .doc(candidateBodyId)
-          .collection('wards')
-          .doc(candidateWardId)
-          .collection('candidates')
-          .doc(candidateId)
-          .collection('followers')
-          .orderBy('followedAt', descending: true)
-          .get();
-
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['userId'] = doc.id;
-        return data;
-      }).toList();
+      // Candidate not in new structure - followers functionality may not be available
+      debugPrint('⚠️ Candidate not found in new structure - followers not available');
+      return [];
     } catch (e) {
       throw Exception('Failed to get followers: $e');
     }
@@ -1854,6 +1972,12 @@ class CandidateRepository {
   // Create a new candidate (self-registration)
   Future<String> createCandidate(Candidate candidate) async {
     try {
+      debugPrint('🏗️ Creating candidate: ${candidate.name}');
+      debugPrint('   District: ${candidate.districtId}');
+      debugPrint('   Body: ${candidate.bodyId}');
+      debugPrint('   Ward: ${candidate.wardId}');
+      debugPrint('   UserId: ${candidate.userId}');
+
       final candidateData = candidate.toJson();
       candidateData['approved'] = false; // Default to not approved
       candidateData['status'] = 'pending_election'; // Default status
@@ -1885,7 +2009,10 @@ class CandidateRepository {
                 .collection('candidates')
                 .doc();
 
+      debugPrint('📝 Creating candidate at path: districts/${candidate.districtId}/bodies/${candidate.bodyId}/wards/${candidate.wardId}/candidates/${docRef.id}');
+
       await docRef.set(optimizedData);
+      debugPrint('✅ Candidate document created successfully with ID: ${docRef.id}');
 
       // Update candidate index for faster lookups
       await _updateCandidateIndex(
@@ -1903,6 +2030,7 @@ class CandidateRepository {
       // Return the actual document ID (in case it was auto-generated)
       return docRef.id;
     } catch (e) {
+      debugPrint('❌ Failed to create candidate: $e');
       throw Exception('Failed to create candidate: $e');
     }
   }

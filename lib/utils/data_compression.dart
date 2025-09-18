@@ -443,20 +443,42 @@ class FirebaseDataOptimizer {
   Map<String, dynamic> optimizeForSave(Map<String, dynamic> data) {
     _log('💾 Optimizing document for save');
 
-    final metrics = _serializer.calculateSizeMetrics(data);
-    final shouldCompress =
-        metrics['compressionRatio'] < 0.8; // Compress if >20% savings
+    // Separate FieldValue objects from regular data
+    final fieldValues = <String, FieldValue>{};
+    final regularData = <String, dynamic>{};
 
-    if (shouldCompress) {
-      final optimized = _compressionManager.compress(data);
-      _log(
-        '✅ Document optimized: ${(metrics['savingsPercentage'] as double).toStringAsFixed(1)}% size reduction',
-      );
-      return optimized;
+    data.forEach((key, value) {
+      if (value is FieldValue) {
+        fieldValues[key] = value;
+      } else {
+        regularData[key] = value;
+      }
+    });
+
+    // Only optimize regular data
+    Map<String, dynamic> optimizedData;
+    if (regularData.isNotEmpty) {
+      final metrics = _serializer.calculateSizeMetrics(regularData);
+      final shouldCompress =
+          metrics['compressionRatio'] < 0.8; // Compress if >20% savings
+
+      if (shouldCompress) {
+        optimizedData = _compressionManager.compress(regularData);
+        _log(
+          '✅ Document optimized: ${(metrics['savingsPercentage'] as double).toStringAsFixed(1)}% size reduction',
+        );
+      } else {
+        _log('ℹ️ Document size acceptable, no compression needed');
+        optimizedData = regularData;
+      }
     } else {
-      _log('ℹ️ Document size acceptable, no compression needed');
-      return data;
+      optimizedData = {};
     }
+
+    // Merge back FieldValue objects
+    optimizedData.addAll(fieldValues);
+
+    return optimizedData;
   }
 
   /// Optimize document after loading

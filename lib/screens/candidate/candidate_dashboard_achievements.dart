@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/candidate_data_controller.dart';
+import '../../services/plan_service.dart';
 import '../../widgets/candidate/edit/achievements_tab_edit.dart';
 import '../../widgets/candidate/view/achievements_tab_view.dart';
 import '../../widgets/loading_overlay.dart';
@@ -19,10 +21,25 @@ class _CandidateDashboardAchievementsState
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
   bool isSaving = false;
+  bool canDisplayAchievements = false;
 
   // Global key to access achievements section for file uploads
   final GlobalKey<AchievementsTabEditState> _achievementsSectionKey =
       GlobalKey<AchievementsTabEditState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlanPermissions();
+  }
+
+  Future<void> _loadPlanPermissions() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      canDisplayAchievements = await PlanService.canDisplayAchievements(currentUser.uid);
+      if (mounted) setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +68,7 @@ class _CandidateDashboardAchievementsState
                 candidate: controller.candidateData.value!,
                 isOwnProfile: true,
               ),
-        floatingActionButton: isEditing
+        floatingActionButton: canDisplayAchievements ? (isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
                 child: Row(
@@ -161,7 +178,7 @@ class _CandidateDashboardAchievementsState
                   tooltip: 'Edit Achievements',
                   child: const Icon(Icons.edit, size: 28),
                 ),
-              ),
+              )) : null,
       );
     });
   }

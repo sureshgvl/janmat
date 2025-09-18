@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../repositories/auth_repository.dart';
 import '../services/device_service.dart';
 import '../services/trial_service.dart';
+import '../controllers/chat_controller.dart';
 
 class LoginController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -166,7 +167,13 @@ class LoginController extends GetxController {
       await _authRepository.createOrUpdateUser(userCredential.user!);
 
       // Register device for multi-device login prevention
-      await _deviceService.registerDevice(userCredential.user!.uid);
+      try {
+        await _deviceService.registerDevice(userCredential.user!.uid);
+        debugPrint('✅ Device registered');
+      } catch (e) {
+        debugPrint('⚠️ Device registration failed (non-critical): $e');
+        // Don't throw here - device registration failure shouldn't block sign-in
+      }
 
       Get.snackbar('Success', 'Login successful');
       // Check profile completion and navigate accordingly
@@ -229,8 +236,14 @@ class LoginController extends GetxController {
 
       // Step 3: Keep loading while registering device
       debugPrint('📱 Registering device...');
-      await _deviceService.registerDevice(userCredential.user!.uid);
-      debugPrint('✅ Device registered');
+      try {
+        await _deviceService.registerDevice(userCredential.user!.uid);
+        debugPrint('✅ Device registered');
+      } catch (e) {
+        debugPrint('⚠️ Device registration failed (non-critical): $e');
+        // Don't throw here - device registration failure shouldn't block sign-in
+        // The user can still use the app, just without device management features
+      }
 
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Almost ready...');
@@ -366,8 +379,13 @@ class LoginController extends GetxController {
 
     // Step 3: Keep loading while registering device
     debugPrint('📱 Registering device...');
-    await _deviceService.registerDevice(userCredential.user!.uid);
-    debugPrint('✅ Device registered');
+    try {
+      await _deviceService.registerDevice(userCredential.user!.uid);
+      debugPrint('✅ Device registered');
+    } catch (e) {
+      debugPrint('⚠️ Device registration failed (non-critical): $e');
+      // Don't throw here - device registration failure shouldn't block sign-in
+    }
 
     // Update loading dialog message
     _updateGoogleSignInLoadingDialog('Almost ready...');
@@ -395,8 +413,13 @@ class LoginController extends GetxController {
 
       // Step 3: Keep loading while registering device
       debugPrint('📱 Registering device...');
-      await _deviceService.registerDevice(user.uid);
-      debugPrint('✅ Device registered');
+      try {
+        await _deviceService.registerDevice(user.uid);
+        debugPrint('✅ Device registered');
+      } catch (e) {
+        debugPrint('⚠️ Device registration failed (non-critical): $e');
+        // Don't throw here - device registration failure shouldn't block sign-in
+      }
 
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Almost ready...');
@@ -465,6 +488,13 @@ class LoginController extends GetxController {
 
       // Profile is complete and role is selected, go to home
       debugPrint('🏠 Profile complete, navigating to home...');
+
+      // Ensure ChatController is initialized for the new user session
+      if (!Get.isRegistered<ChatController>()) {
+        Get.put<ChatController>(ChatController());
+        debugPrint('✅ ChatController recreated for new user session');
+      }
+
       Get.offAllNamed('/home');
     } catch (e) {
       debugPrint('❌ Error during profile check: $e');

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/candidate_data_controller.dart';
+import '../../services/plan_service.dart';
 import '../../widgets/candidate/edit/manifesto_tab_edit.dart';
 import '../../widgets/candidate/view/manifesto_tab_view.dart';
 import '../../widgets/loading_overlay.dart';
@@ -19,10 +21,25 @@ class _CandidateDashboardManifestoState
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
   bool isSaving = false;
+  bool canEditManifesto = false;
 
   // Global key to access manifesto section for file uploads
   final GlobalKey<ManifestoTabEditState> _manifestoSectionKey =
       GlobalKey<ManifestoTabEditState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlanPermissions();
+  }
+
+  Future<void> _loadPlanPermissions() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      canEditManifesto = await PlanService.canEditManifesto(currentUser.uid);
+      if (mounted) setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +84,7 @@ class _CandidateDashboardManifestoState
                 showVoterInteractions:
                     false, // Hide voter interactions in dashboard
               ),
-        floatingActionButton: isEditing
+        floatingActionButton: canEditManifesto ? (isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
                 child: Row(
@@ -175,7 +192,7 @@ class _CandidateDashboardManifestoState
                   tooltip: 'Edit Manifesto',
                   child: const Icon(Icons.edit, size: 28),
                 ),
-              ),
+              )) : null,
       );
     });
   }

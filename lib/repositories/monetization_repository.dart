@@ -278,62 +278,82 @@ class MonetizationRepository {
     try {
       final batch = _firestore.batch();
 
-      // Candidate plans
-      final candidateFirst1000 = _firestore
-          .collection('plans')
-          .doc('candidate_first_1000');
-      batch.set(candidateFirst1000, {
-        'name': 'Premium Candidate (First 1000)',
+      // Candidate plans - Free, Basic, Gold, Platinum
+      final freePlan = _firestore.collection('plans').doc('candidate_free');
+      batch.set(freePlan, {
+        'name': 'Free',
         'type': 'candidate',
-        'price': 1999,
-        'limit': 1000,
+        'price': 0,
         'features': [
           {
-            'name': 'Manifesto CRUD',
-            'description': 'Create and edit manifesto',
+            'name': 'Basic Profile',
+            'description': 'Basic profile information',
             'enabled': true,
           },
           {
-            'name': 'Media Upload',
-            'description': 'Upload images and videos',
+            'name': 'Manifesto View',
+            'description': 'View manifesto',
             'enabled': true,
           },
           {
-            'name': 'Contact Info',
-            'description': 'Display contact information',
+            'name': 'Basic Contact',
+            'description': 'Basic contact information',
             'enabled': true,
           },
           {
-            'name': 'Followers Analytics',
-            'description': 'View follower statistics',
+            'name': 'Limited Media',
+            'description': 'Limited media uploads (3 items)',
             'enabled': true,
           },
           {
-            'name': 'Sponsored Tag',
+            'name': 'Basic Analytics',
+            'description': 'Basic profile views',
+            'enabled': true,
+          },
+          {
+            'name': 'Achievements',
+            'description': 'Display achievements',
+            'enabled': false,
+          },
+          {
+            'name': 'Events Management',
+            'description': 'Create and manage events',
+            'enabled': false,
+          },
+          {
+            'name': 'Advanced Analytics',
+            'description': 'Detailed analytics and insights',
+            'enabled': false,
+          },
+          {
+            'name': 'Sponsored Visibility',
             'description': 'Get sponsored visibility',
-            'enabled': true,
+            'enabled': false,
+          },
+          {
+            'name': 'Priority Support',
+            'description': 'Priority customer support',
+            'enabled': false,
           },
         ],
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      final candidateAfter1000 = _firestore
-          .collection('plans')
-          .doc('candidate_after_1000');
-      batch.set(candidateAfter1000, {
-        'name': 'Premium Candidate',
+      final basicPlan = _firestore.collection('plans').doc('candidate_basic');
+      batch.set(basicPlan, {
+        'name': 'Basic',
         'type': 'candidate',
-        'price': 5000,
+        'price': 999,
         'features': [
           {
-            'name': 'Manifesto CRUD',
-            'description': 'Create and edit manifesto',
+            'name': 'Basic Profile',
+            'description': 'Basic profile information',
             'enabled': true,
           },
           {
-            'name': 'Media Upload',
-            'description': 'Upload images and videos',
+            'name': 'Manifesto CRUD',
+            'description': 'Create and edit manifesto',
             'enabled': true,
           },
           {
@@ -342,13 +362,160 @@ class MonetizationRepository {
             'enabled': true,
           },
           {
-            'name': 'Followers Analytics',
-            'description': 'View follower statistics',
+            'name': 'Media Upload',
+            'description': 'Upload images and videos (10 items)',
             'enabled': true,
           },
           {
-            'name': 'Sponsored Tag',
+            'name': 'Basic Analytics',
+            'description': 'Basic profile views and followers',
+            'enabled': true,
+          },
+          {
+            'name': 'Achievements',
+            'description': 'Display achievements',
+            'enabled': true,
+          },
+          {
+            'name': 'Events Management',
+            'description': 'Create and manage events',
+            'enabled': false,
+          },
+          {
+            'name': 'Advanced Analytics',
+            'description': 'Detailed analytics and insights',
+            'enabled': false,
+          },
+          {
+            'name': 'Sponsored Visibility',
             'description': 'Get sponsored visibility',
+            'enabled': false,
+          },
+          {
+            'name': 'Priority Support',
+            'description': 'Priority customer support',
+            'enabled': false,
+          },
+        ],
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      final goldPlan = _firestore.collection('plans').doc('candidate_gold');
+      batch.set(goldPlan, {
+        'name': 'Gold',
+        'type': 'candidate',
+        'price': 2999,
+        'features': [
+          {
+            'name': 'Basic Profile',
+            'description': 'Basic profile information',
+            'enabled': true,
+          },
+          {
+            'name': 'Manifesto CRUD',
+            'description': 'Create and edit manifesto',
+            'enabled': true,
+          },
+          {
+            'name': 'Contact Info',
+            'description': 'Display contact information',
+            'enabled': true,
+          },
+          {
+            'name': 'Media Upload',
+            'description': 'Upload images and videos (50 items)',
+            'enabled': true,
+          },
+          {
+            'name': 'Advanced Analytics',
+            'description': 'Detailed analytics and insights',
+            'enabled': true,
+          },
+          {
+            'name': 'Achievements',
+            'description': 'Display achievements',
+            'enabled': true,
+          },
+          {
+            'name': 'Events Management',
+            'description': 'Create and manage events',
+            'enabled': true,
+          },
+          {
+            'name': 'Sponsored Visibility',
+            'description': 'Get sponsored visibility',
+            'enabled': true,
+          },
+          {
+            'name': 'Priority Support',
+            'description': 'Priority customer support',
+            'enabled': false,
+          },
+          {
+            'name': 'Custom Branding',
+            'description': 'Custom profile branding',
+            'enabled': false,
+          },
+        ],
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      final platinumPlan = _firestore.collection('plans').doc('candidate_platinum');
+      batch.set(platinumPlan, {
+        'name': 'Platinum',
+        'type': 'candidate',
+        'price': 5999,
+        'features': [
+          {
+            'name': 'Basic Profile',
+            'description': 'Basic profile information',
+            'enabled': true,
+          },
+          {
+            'name': 'Manifesto CRUD',
+            'description': 'Create and edit manifesto',
+            'enabled': true,
+          },
+          {
+            'name': 'Contact Info',
+            'description': 'Display contact information',
+            'enabled': true,
+          },
+          {
+            'name': 'Unlimited Media',
+            'description': 'Unlimited media uploads',
+            'enabled': true,
+          },
+          {
+            'name': 'Advanced Analytics',
+            'description': 'Detailed analytics and insights',
+            'enabled': true,
+          },
+          {
+            'name': 'Achievements',
+            'description': 'Display achievements',
+            'enabled': true,
+          },
+          {
+            'name': 'Events Management',
+            'description': 'Create and manage events',
+            'enabled': true,
+          },
+          {
+            'name': 'Sponsored Visibility',
+            'description': 'Get sponsored visibility',
+            'enabled': true,
+          },
+          {
+            'name': 'Priority Support',
+            'description': 'Priority customer support',
+            'enabled': true,
+          },
+          {
+            'name': 'Custom Branding',
+            'description': 'Custom profile branding',
             'enabled': true,
           },
         ],
