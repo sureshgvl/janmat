@@ -1,7 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/candidate_model.dart';
-import '../repositories/candidate_repository.dart';
+import '../features/candidate/models/candidate_model.dart';
+import '../features/candidate/repositories/candidate_repository.dart';
 
 class EventNotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

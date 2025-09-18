@@ -1,5 +1,5 @@
-import '../models/achievement_model.dart';
-import '../models/candidate_model.dart';
+import '../features/candidate/models/candidate_achievement_model.dart';
+import '../features/candidate/models/candidate_model.dart';
 
 class DemoDataService {
   static const Map<String, Map<String, String>> bioTemplates = {

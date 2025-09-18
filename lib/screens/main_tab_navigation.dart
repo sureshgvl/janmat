@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
-import 'home/home_screen.dart';
-import 'candidate/candidate_list_screen.dart';
-import 'chat/chat_list_screen.dart';
-import 'polls/polls_screen.dart';
+import '../features/home/screens/home_screen.dart';
+import '../features/candidate/screens/candidate_list_screen.dart';
+import '../features/chat/screens/chat_list_screen.dart';
+import '../features/polls/screens/polls_screen.dart';
 
 class MainTabNavigation extends StatefulWidget {
   const MainTabNavigation({super.key});

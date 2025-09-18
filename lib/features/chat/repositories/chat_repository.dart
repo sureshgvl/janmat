@@ -5,7 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../../../models/chat_model.dart';
 import '../../../models/user_model.dart';
-import '../../../repositories/candidate_repository.dart';
+import '../../candidate/repositories/candidate_repository.dart';
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

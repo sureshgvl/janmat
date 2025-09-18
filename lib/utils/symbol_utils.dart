@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/candidate_model.dart';
-import '../models/party_model.dart';
+import '../features/candidate/models/candidate_model.dart';
+import '../features/candidate/models/candidate_party_model.dart';
 
 /// Centralized utility for party symbol path resolution
 /// Optimized to avoid redundant function calls and computations

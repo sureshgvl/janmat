@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:janmat/repositories/candidate_repository.dart';
+import 'package:janmat/features/candidate/repositories/candidate_repository.dart';
 import 'package:janmat/utils/performance_monitor.dart';
 import 'package:janmat/utils/debouncer.dart';
 

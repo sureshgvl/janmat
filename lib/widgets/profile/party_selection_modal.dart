@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/party_model.dart';
+import '../../features/candidate/models/candidate_party_model.dart';
 import '../../utils/symbol_utils.dart';
 
 class PartySelectionModal extends StatefulWidget {
