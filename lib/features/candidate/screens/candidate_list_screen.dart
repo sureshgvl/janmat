@@ -493,16 +493,20 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   }
 
   void _showWardSelectionModal(BuildContext context) {
+    final wardCacheKey = selectedBodyId != null && selectedDistrictId != null
+        ? '${selectedDistrictId}_$selectedBodyId'
+        : null;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return WardSelectionModal(
-          wards: bodyWards[selectedBodyId!] ?? [],
+          wards: bodyWards[wardCacheKey] ?? [],
           selectedWardId: selectedWard?.wardId,
           onWardSelected: (wardId) {
-            final ward = bodyWards[selectedBodyId!]!.firstWhere(
+            final ward = bodyWards[wardCacheKey]!.firstWhere(
               (w) => w.wardId == wardId,
             );
             setState(() {
@@ -523,6 +527,11 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Compute ward cache key for consistent access
+    final wardCacheKey = selectedBodyId != null && selectedDistrictId != null
+        ? '${selectedDistrictId}_$selectedBodyId'
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.searchCandidates),
@@ -691,8 +700,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
                     // Ward Selection
                     if (selectedBodyId != null &&
-                        bodyWards[selectedBodyId!] != null &&
-                        bodyWards[selectedBodyId!]!.isNotEmpty)
+                        bodyWards[wardCacheKey] != null &&
+                        bodyWards[wardCacheKey]!.isNotEmpty)
                       InkWell(
                         onTap: () => _showWardSelectionModal(context),
                         child: InputDecorator(
@@ -745,8 +754,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             Text(
                               selectedBodyId == null
                                   ? 'Select area first'
-                                  : bodyWards[selectedBodyId!] == null ||
-                                        bodyWards[selectedBodyId!]!.isEmpty
+                                  : bodyWards[wardCacheKey] == null ||
+                                        bodyWards[wardCacheKey]!.isEmpty
                                   ? 'No wards available in this area'
                                   : 'Select Ward (वॉर्ड)',
                               style: TextStyle(

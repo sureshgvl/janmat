@@ -917,7 +917,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
                         ? null
                         : () => _pickAndUploadVideo(itemIndex),
                     icon: const Icon(Icons.video_call),
-                    label: Text('Add Video (${item.videos.length}/${_maxVideosPerItem})'),
+                    label: Text('Add Video (${item.videos.length}/$_maxVideosPerItem)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: !_canUploadMedia || item.videos.length >= _maxVideosPerItem
                           ? Colors.grey

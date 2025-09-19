@@ -20,7 +20,7 @@ class AuthRepository {
     forceCodeForRefreshToken: true,
     scopes: ['email', 'profile'],
   );
-  bool _forceAccountPicker = false;
+
 
   // Phone Authentication with improved reCAPTCHA handling and timeout
   Future<void> verifyPhoneNumber(
@@ -40,7 +40,7 @@ class AuthRepository {
             debugPrint('✅ Auto-signed in with phone credential');
           } catch (e) {
             debugPrint('❌ Auto-sign in failed: $e');
-            throw e;
+            rethrow;
           }
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -72,7 +72,7 @@ class AuthRepository {
       debugPrint('📞 Phone verification setup completed');
     } catch (e) {
       debugPrint('❌ Phone verification setup failed: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -91,7 +91,7 @@ class AuthRepository {
   Future<bool> _checkConnectivity() async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
-      final hasConnection = connectivityResult != ConnectivityResult.none;
+      final hasConnection = !connectivityResult.contains(ConnectivityResult.none);
       debugPrint('🌐 Network connectivity check: ${hasConnection ? 'Connected' : 'No connection'}');
       return hasConnection;
     } catch (e) {
@@ -172,7 +172,6 @@ class AuthRepository {
           }
 
           // Reset the flag (though it's no longer used for account picker logic)
-          _forceAccountPicker = false;
           debugPrint('✅ Account picker flag reset');
 
           // If successful, break out of retry loop
@@ -375,7 +374,6 @@ class AuthRepository {
       debugPrint('✅ Google account signed out');
 
       // Step 3: Set flag to force account picker on next sign-in
-      _forceAccountPicker = true;
       debugPrint('✅ Account picker flag set');
 
       // Step 4: Clear session-specific cache and temporary files (but keep user preferences)
@@ -393,14 +391,12 @@ class AuthRepository {
       try {
         await _firebaseAuth.signOut();
         await _googleSignIn.signOut();
-        _forceAccountPicker = true;
         await _clearLogoutCache();
         await _clearAllControllers();
         debugPrint('⚠️ Fallback sign-out completed');
       } catch (fallbackError) {
         debugPrint('❌ Fallback sign-out also failed: $fallbackError');
-        // At minimum, set the flag and try basic cleanup
-        _forceAccountPicker = true;
+        // At minimum, try basic cleanup
         try {
           await _clearAllControllers();
         } catch (controllerError) {
@@ -886,7 +882,6 @@ class AuthRepository {
 
   // Delete user data in chunks to avoid Firestore batch size limits
   Future<void> _deleteUserDataInChunks(String userId, bool isCandidate) async {
-    const int maxBatchSize = 400; // Leave some buffer below 500 limit
     final batches = <WriteBatch>[];
     int currentBatchIndex = 0;
 
@@ -900,7 +895,6 @@ class AuthRepository {
 
     // Helper function to commit current batch if it's getting full
     Future<void> commitIfNeeded() async {
-      final currentBatch = batches[currentBatchIndex];
       // We can't check exact size, so we'll commit periodically
       // This is a simplified approach - in production, you'd track operations count
       if (batches.length > currentBatchIndex + 1) {
@@ -1644,39 +1638,43 @@ class AuthRepository {
   ) async {
     try {
       // Find candidate document in hierarchical structure
-      // First, search through all cities and wards to find the candidate
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      // First, search through all districts and wards to find the candidate
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateSnapshot = await wardDoc.reference
-              .collection('candidates')
-              .where('userId', isEqualTo: userId)
-              .limit(1)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateSnapshot.docs.isNotEmpty) {
-            final candidateDoc = candidateSnapshot.docs.first;
-
-            // Delete followers subcollection
-            final followersSnapshot = await candidateDoc.reference
-                .collection('followers')
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateSnapshot = await wardDoc.reference
+                .collection('candidates')
+                .where('userId', isEqualTo: userId)
+                .limit(1)
                 .get();
-            for (final followerDoc in followersSnapshot.docs) {
-              getBatch().delete(followerDoc.reference);
+
+            if (candidateSnapshot.docs.isNotEmpty) {
+              final candidateDoc = candidateSnapshot.docs.first;
+
+              // Delete followers subcollection
+              final followersSnapshot = await candidateDoc.reference
+                  .collection('followers')
+                  .get();
+              for (final followerDoc in followersSnapshot.docs) {
+                getBatch().delete(followerDoc.reference);
+                await commitIfNeeded();
+              }
+
+              // Delete candidate document from hierarchical structure
+              getBatch().delete(candidateDoc.reference);
               await commitIfNeeded();
+
+              debugPrint(
+                '✅ Deleted candidate data from: /districts/${districtDoc.id}/bodies/${bodyDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}',
+              );
+              return; // Found and deleted, no need to continue searching
             }
-
-            // Delete candidate document from hierarchical structure
-            getBatch().delete(candidateDoc.reference);
-            await commitIfNeeded();
-
-            debugPrint(
-              '✅ Deleted candidate data from: /cities/${cityDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}',
-            );
-            return; // Found and deleted, no need to continue searching
           }
         }
       }

@@ -165,8 +165,10 @@ class EventNotificationService {
       if (candidateLocation == null) return null;
 
       final candidateDoc = await _firestore
-          .collection('cities')
-          .doc(candidateLocation['cityId'])
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
           .collection('wards')
           .doc(candidateLocation['wardId'])
           .collection('candidates')
@@ -206,19 +208,23 @@ class EventNotificationService {
     String candidateId,
   ) async {
     try {
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            return {'cityId': cityDoc.id, 'wardId': wardDoc.id};
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              return {'districtId': districtDoc.id, 'bodyId': bodyDoc.id, 'wardId': wardDoc.id};
+            }
           }
         }
       }
@@ -348,54 +354,58 @@ class EventNotificationService {
       final tomorrow = now.add(const Duration(days: 1));
 
       // Find all events happening tomorrow
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidatesSnapshot = await wardDoc.reference
-              .collection('candidates')
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          for (var candidateDoc in candidatesSnapshot.docs) {
-            final candidateData = candidateDoc.data();
-            final extraInfo = (candidateData['extra_info'] as Map?)
-                ?.cast<String, dynamic>();
-            final eventsList =
-                (extraInfo?['events'] as List?)?.cast<dynamic>() ??
-                const <dynamic>[];
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidatesSnapshot = await wardDoc.reference
+                .collection('candidates')
+                .get();
 
-            for (var i = 0; i < eventsList.length; i++) {
-              final raw = eventsList[i];
-              if (raw is! Map) continue;
-              final map = Map<String, dynamic>.from(
-                raw.cast<String, dynamic>(),
-              );
-              final event = EventData.fromJson(map);
-              final eventDate = DateTime.tryParse(event.date);
-              final eventId = (map['id'] as String?) ?? 'event_$i';
+            for (var candidateDoc in candidatesSnapshot.docs) {
+              final candidateData = candidateDoc.data();
+              final extraInfo = (candidateData['extra_info'] as Map?)
+                  ?.cast<String, dynamic>();
+              final eventsList =
+                  (extraInfo?['events'] as List?)?.cast<dynamic>() ??
+                  const <dynamic>[];
 
-              if (eventDate != null &&
-                  eventDate.year == tomorrow.year &&
-                  eventDate.month == tomorrow.month &&
-                  eventDate.day == tomorrow.day) {
-                final rsvp = event.rsvp;
-                if (rsvp != null) {
-                  final interested =
-                      (rsvp['interested'] as List?)?.cast<String>() ??
-                      const <String>[];
-                  final going =
-                      (rsvp['going'] as List?)?.cast<String>() ??
-                      const <String>[];
-                  final allUsers = <String>{...interested, ...going}.toList();
+              for (var i = 0; i < eventsList.length; i++) {
+                final raw = eventsList[i];
+                if (raw is! Map) continue;
+                final map = Map<String, dynamic>.from(
+                  raw.cast<String, dynamic>(),
+                );
+                final event = EventData.fromJson(map);
+                final eventDate = DateTime.tryParse(event.date);
+                final eventId = (map['id'] as String?) ?? 'event_$i';
 
-                  for (final userId in allUsers) {
-                    await sendEventReminder(
-                      userId: userId,
-                      candidateId: candidateDoc.id,
-                      eventId: eventId,
-                    );
+                if (eventDate != null &&
+                    eventDate.year == tomorrow.year &&
+                    eventDate.month == tomorrow.month &&
+                    eventDate.day == tomorrow.day) {
+                  final rsvp = event.rsvp;
+                  if (rsvp != null) {
+                    final interested =
+                        (rsvp['interested'] as List?)?.cast<String>() ??
+                        const <String>[];
+                    final going =
+                        (rsvp['going'] as List?)?.cast<String>() ??
+                        const <String>[];
+                    final allUsers = <String>{...interested, ...going}.toList();
+
+                    for (final userId in allUsers) {
+                      await sendEventReminder(
+                        userId: userId,
+                        candidateId: candidateDoc.id,
+                        eventId: eventId,
+                      );
+                    }
                   }
                 }
               }

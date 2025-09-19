@@ -1386,8 +1386,10 @@ class ChatRepository {
 
       // Fallback to old cities structure for backward compatibility
       final fallbackWardDoc = await _firestore
-          .collection('cities')
+          .collection('districts')
           .doc(districtId)
+          .collection('bodies')
+          .doc('default') // Default body for backward compatibility
           .collection('wards')
           .doc(wardId)
           .get();

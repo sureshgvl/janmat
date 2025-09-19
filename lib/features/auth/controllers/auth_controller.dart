@@ -142,7 +142,7 @@ class AuthController extends GetxController {
       } else {
         Get.snackbar('Error', 'Failed to send OTP: ${e.toString()}');
       }
-      throw e; // Re-throw to be caught by the UI layer
+      rethrow; // Re-throw to be caught by the UI layer
     } finally {
       // Add a small delay to ensure loading state is visible
       await Future.delayed(const Duration(milliseconds: 500));

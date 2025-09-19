@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
-import '../../../models/city_model.dart';
+import '../../../models/district_model.dart';
 import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';
@@ -24,7 +24,7 @@ class CandidateRepository {
   static final Map<String, List<Candidate>> _candidateCache = {};
   static final Map<String, List<Ward>> _wardCache = {};
   static final Map<String, List<Body>> _bodyCache = {};
-  static final Map<String, List<City>> _cityCache = {};
+  static final Map<String, List<District>> _districtCache = {};
   static final Map<String, List<String>> _followingCache = {};
   static final Map<String, Map<String, dynamic>> _queryResultCache =
       {}; // For complex query results
@@ -79,8 +79,8 @@ class CandidateRepository {
       _wardCache[cacheKey] = List.from(data);
     } else if (data is List<Body>) {
       _bodyCache[cacheKey] = List.from(data);
-    } else if (data is List<City>) {
-      _cityCache[cacheKey] = List.from(data);
+    } else if (data is List<District>) {
+      _districtCache[cacheKey] = List.from(data);
     } else if (data is List<String>) {
       _followingCache[cacheKey] = List.from(data);
     }
@@ -100,8 +100,8 @@ class CandidateRepository {
     return _isCacheValid(cacheKey) ? _bodyCache[cacheKey] : null;
   }
 
-  List<City>? _getCachedCities(String cacheKey) {
-    return _isCacheValid(cacheKey) ? _cityCache[cacheKey] : null;
+  List<District>? _getCachedDistricts(String cacheKey) {
+    return _isCacheValid(cacheKey) ? _districtCache[cacheKey] : null;
   }
 
   List<String>? _getCachedFollowing(String cacheKey) {
@@ -113,7 +113,7 @@ class CandidateRepository {
     _candidateCache.remove(cacheKey);
     _wardCache.remove(cacheKey);
     _bodyCache.remove(cacheKey);
-    _cityCache.remove(cacheKey);
+    _districtCache.remove(cacheKey);
     _followingCache.remove(cacheKey);
     _queryResultCache.remove(cacheKey);
     _cacheTimestamps.remove(cacheKey);
@@ -125,7 +125,7 @@ class CandidateRepository {
     _candidateCache.clear();
     _wardCache.clear();
     _bodyCache.clear();
-    _cityCache.clear();
+    _districtCache.clear();
     _followingCache.clear();
     _queryResultCache.clear();
     _cacheTimestamps.clear();
@@ -161,7 +161,7 @@ class CandidateRepository {
       _candidateCache.remove(key);
       _wardCache.remove(key);
       _bodyCache.remove(key);
-      _cityCache.remove(key);
+      _districtCache.remove(key);
       _followingCache.remove(key);
       _cacheTimestamps.remove(key);
     }
@@ -355,10 +355,10 @@ class CandidateRepository {
               (bodies) => bodies.length * 256,
             ) // Rough estimate: 0.25KB per body
             .fold(0, (a, b) => a + b) +
-        _cityCache.values
+        _districtCache.values
             .map(
-              (cities) => cities.length * 256,
-            ) // Rough estimate: 0.25KB per city
+              (districts) => districts.length * 256,
+            ) // Rough estimate: 0.25KB per district
             .fold(0, (a, b) => a + b) +
         _followingCache.values
             .map(
@@ -376,7 +376,7 @@ class CandidateRepository {
       'candidate_cache_size': _candidateCache.length,
       'ward_cache_size': _wardCache.length,
       'body_cache_size': _bodyCache.length,
-      'city_cache_size': _cityCache.length,
+      'district_cache_size': _districtCache.length,
       'following_cache_size': _followingCache.length,
       'query_cache_size': _queryResultCache.length,
       'cache_size_mb': totalDataSize / (1024 * 1024),
@@ -631,27 +631,6 @@ class CandidateRepository {
     return result['candidates'] as List<Candidate>;
   }
 
-  // Get wards for a city
-  Future<List<Ward>> getWardsByCity(String cityId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('cities')
-          .doc(cityId)
-          .collection('wards')
-          .get();
-
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        final wardData = Map<String, dynamic>.from(data);
-        wardData['wardId'] = doc.id;
-        wardData['cityId'] = cityId;
-        return Ward.fromJson(wardData);
-      }).toList();
-    } catch (e) {
-      throw Exception('Failed to fetch wards: $e');
-    }
-  }
-
   // Get wards for a district and body
   Future<List<Ward>> getWardsByDistrictAndBody(
     String districtId,
@@ -699,45 +678,44 @@ class CandidateRepository {
     }
   }
 
-  // Get all cities
-  Future<List<City>> getAllCities() async {
-    const cacheKey = 'all_cities';
+
+  // Get all districts
+  Future<List<District>> getAllDistricts() async {
+    const cacheKey = 'all_districts';
 
     // Check cache first
-    final cachedCities = _getCachedCities(cacheKey);
-    if (cachedCities != null) {
-      debugPrint('⚡ CACHE HIT: Returning ${cachedCities.length} cached cities');
-      return cachedCities;
+    final cachedDistricts = _getCachedDistricts(cacheKey);
+    if (cachedDistricts != null) {
+      debugPrint('⚡ CACHE HIT: Returning ${cachedDistricts.length} cached districts');
+      return cachedDistricts;
     }
 
-    debugPrint('🔍 CACHE MISS: Fetching all cities from Firebase');
+    debugPrint('🔍 CACHE MISS: Fetching all districts from Firebase');
     try {
-      final snapshot = await _firestore.collection('cities').get();
-      debugPrint('📊 getAllCities: Found ${snapshot.docs.length} cities');
+      final snapshot = await _firestore.collection('districts').get();
+      debugPrint('📊 getAllDistricts: Found ${snapshot.docs.length} districts');
 
-      final cities = snapshot.docs.map((doc) {
+      final districts = snapshot.docs.map((doc) {
         final data = doc.data();
-        final cityData = Map<String, dynamic>.from(data);
-        cityData['cityId'] = doc.id;
+        final districtData = Map<String, dynamic>.from(data);
+        districtData['districtId'] = doc.id;
 
         debugPrint(
-          '🏙️ City: ${cityData['name'] ?? 'Unknown'} (ID: ${doc.id})',
+          '🏛️ District: ${districtData['name'] ?? 'Unknown'} (ID: ${doc.id})',
         );
-        debugPrint('   State: ${cityData['state'] ?? 'Unknown'}');
-        debugPrint('   Population: ${cityData['population'] ?? 'Unknown'}');
 
-        return City.fromJson(cityData);
+        return District.fromJson(districtData);
       }).toList();
 
       // Cache the results
-      _cacheData(cacheKey, cities);
-      debugPrint('💾 Cached ${cities.length} cities');
+      _cacheData(cacheKey, districts);
+      debugPrint('💾 Cached ${districts.length} districts');
 
-      debugPrint('✅ getAllCities: Successfully loaded ${cities.length} cities');
-      return cities;
+      debugPrint('✅ getAllDistricts: Successfully loaded ${districts.length} districts');
+      return districts;
     } catch (e) {
-      debugPrint('❌ getAllCities: Failed to fetch cities: $e');
-      throw Exception('Failed to fetch cities: $e');
+      debugPrint('❌ getAllDistricts: Failed to fetch districts: $e');
+      throw Exception('Failed to fetch districts: $e');
     }
   }
 
@@ -1061,60 +1039,69 @@ class CandidateRepository {
   // Fallback brute force search (for backward compatibility)
   Future<Candidate?> _getCandidateDataBruteForce(String userId) async {
     debugPrint('🔍 Falling back to brute force search for userId: $userId');
-    final citiesSnapshot = await _firestore.collection('cities').get();
-    debugPrint('📊 Found ${citiesSnapshot.docs.length} cities to search');
+    final districtsSnapshot = await _firestore.collection('districts').get();
+    debugPrint('📊 Found ${districtsSnapshot.docs.length} districts to search');
 
-    for (var cityDoc in citiesSnapshot.docs) {
-      debugPrint('🔍 Searching city: ${cityDoc.id}');
-      final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+    for (var districtDoc in districtsSnapshot.docs) {
+      debugPrint('🔍 Searching district: ${districtDoc.id}');
+      final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
       debugPrint(
-        '📊 Found ${wardsSnapshot.docs.length} wards in city ${cityDoc.id}',
+        '📊 Found ${bodiesSnapshot.docs.length} bodies in district ${districtDoc.id}',
       );
 
-      for (var wardDoc in wardsSnapshot.docs) {
-        debugPrint('🔍 Searching ward: ${wardDoc.id} in city ${cityDoc.id}');
-        final candidatesSnapshot = await wardDoc.reference
-            .collection('candidates')
-            .where('userId', isEqualTo: userId)
-            .limit(1)
-            .get();
-
+      for (var bodyDoc in bodiesSnapshot.docs) {
+        debugPrint('🔍 Searching body: ${bodyDoc.id} in district ${districtDoc.id}');
+        final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
         debugPrint(
-          '👤 Found ${candidatesSnapshot.docs.length} candidates in ${cityDoc.id}/${wardDoc.id}',
+          '📊 Found ${wardsSnapshot.docs.length} wards in ${districtDoc.id}/${bodyDoc.id}',
         );
 
-        // Debug: Check all candidates in this ward to see their userIds
-        if (candidatesSnapshot.docs.isEmpty) {
-          final allCandidates = await wardDoc.reference
+        for (var wardDoc in wardsSnapshot.docs) {
+          debugPrint('🔍 Searching ward: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id}');
+          final candidatesSnapshot = await wardDoc.reference
               .collection('candidates')
+              .where('userId', isEqualTo: userId)
+              .limit(1)
               .get();
+
           debugPrint(
-            '📋 Total candidates in ${cityDoc.id}/${wardDoc.id}: ${allCandidates.docs.length}',
+            '👤 Found ${candidatesSnapshot.docs.length} candidates in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}',
           );
-          for (var doc in allCandidates.docs) {
-            final data = doc.data();
-            final candidateUserId = data['userId'];
-            debugPrint('   Candidate ${doc.id}: userId = $candidateUserId');
+
+          // Debug: Check all candidates in this ward to see their userIds
+          if (candidatesSnapshot.docs.isEmpty) {
+            final allCandidates = await wardDoc.reference
+                .collection('candidates')
+                .get();
+            debugPrint(
+              '📋 Total candidates in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}: ${allCandidates.docs.length}',
+            );
+            for (var doc in allCandidates.docs) {
+              final data = doc.data();
+              final candidateUserId = data['userId'];
+              debugPrint('   Candidate ${doc.id}: userId = $candidateUserId');
+            }
           }
-        }
 
-        if (candidatesSnapshot.docs.isNotEmpty) {
-          final doc = candidatesSnapshot.docs.first;
-          final data = doc.data();
-          final candidateData = Map<String, dynamic>.from(data);
-          candidateData['candidateId'] = doc.id;
+          if (candidatesSnapshot.docs.isNotEmpty) {
+            final doc = candidatesSnapshot.docs.first;
+            final data = doc.data();
+            final candidateData = Map<String, dynamic>.from(data);
+            candidateData['candidateId'] = doc.id;
 
-          // Update user document with city/ward info for future use
-          await ensureUserDocumentExists(
-            userId,
-            cityId: cityDoc.id,
-            wardId: wardDoc.id,
-          );
+            // Update user document with district/body/ward info for future use
+            await ensureUserDocumentExists(
+              userId,
+              districtId: districtDoc.id,
+              bodyId: bodyDoc.id,
+              wardId: wardDoc.id,
+            );
 
-          debugPrint(
-            '✅ Found candidate via brute force: ${candidateData['name']} (ID: ${doc.id}) in ${cityDoc.id}/${wardDoc.id}',
-          );
-          return Candidate.fromJson(candidateData);
+            debugPrint(
+              '✅ Found candidate via brute force: ${candidateData['name']} (ID: ${doc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}',
+            );
+            return Candidate.fromJson(candidateData);
+          }
         }
       }
     }
@@ -2152,28 +2139,33 @@ class CandidateRepository {
     }
   }
 
-  // Get all pending approval candidates across all cities and wards
+  // Get all pending approval candidates across all districts, bodies, and wards
   Future<List<Map<String, dynamic>>> getPendingApprovalCandidates() async {
     try {
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      final districtsSnapshot = await _firestore.collection('districts').get();
       List<Map<String, dynamic>> pendingCandidates = [];
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidatesSnapshot = await wardDoc.reference
-              .collection('candidates')
-              .where('approved', isEqualTo: false)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          for (var candidateDoc in candidatesSnapshot.docs) {
-            final data = candidateDoc.data();
-            final candidateData = Map<String, dynamic>.from(data);
-            candidateData['candidateId'] = candidateDoc.id;
-            candidateData['cityId'] = cityDoc.id;
-            candidateData['wardId'] = wardDoc.id;
-            pendingCandidates.add(candidateData);
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidatesSnapshot = await wardDoc.reference
+                .collection('candidates')
+                .where('approved', isEqualTo: false)
+                .get();
+
+            for (var candidateDoc in candidatesSnapshot.docs) {
+              final data = candidateDoc.data();
+              final candidateData = Map<String, dynamic>.from(data);
+              candidateData['candidateId'] = candidateDoc.id;
+              candidateData['districtId'] = districtDoc.id;
+              candidateData['bodyId'] = bodyDoc.id;
+              candidateData['wardId'] = wardDoc.id;
+              pendingCandidates.add(candidateData);
+            }
           }
         }
       }
@@ -2343,76 +2335,90 @@ class CandidateRepository {
   Future<void> logAllCandidatesInSystem() async {
     try {
       debugPrint('🔍 ===== SYSTEM CANDIDATE AUDIT =====');
-      debugPrint('🔍 Scanning all cities, wards, and candidates...');
+      debugPrint('🔍 Scanning all districts, bodies, wards, and candidates...');
 
-      final citiesSnapshot = await _firestore.collection('cities').get();
-      debugPrint('📊 Total cities in system: ${citiesSnapshot.docs.length}');
+      final districtsSnapshot = await _firestore.collection('districts').get();
+      debugPrint('📊 Total districts in system: ${districtsSnapshot.docs.length}');
 
       int totalCandidates = 0;
       int totalWards = 0;
+      int totalBodies = 0;
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        debugPrint('🏙️ ===== CITY: ${cityDoc.id} =====');
-        final cityData = cityDoc.data();
-        debugPrint('   Name: ${cityData['name'] ?? 'Unknown'}');
-        debugPrint('   State: ${cityData['state'] ?? 'Unknown'}');
+      for (var districtDoc in districtsSnapshot.docs) {
+        debugPrint('🏙️ ===== DISTRICT: ${districtDoc.id} =====');
+        final districtData = districtDoc.data();
+        debugPrint('   Name: ${districtData['name'] ?? 'Unknown'}');
+        debugPrint('   State: ${districtData['state'] ?? 'Unknown'}');
 
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
-        debugPrint('📊 Wards in ${cityDoc.id}: ${wardsSnapshot.docs.length}');
-        totalWards += wardsSnapshot.docs.length;
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+        debugPrint('📊 Bodies in ${districtDoc.id}: ${bodiesSnapshot.docs.length}');
+        totalBodies += bodiesSnapshot.docs.length;
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          debugPrint('🏛️ ===== WARD: ${wardDoc.id} in ${cityDoc.id} =====');
-          final wardData = wardDoc.data();
-          debugPrint('   Name: ${wardData['name'] ?? 'Unknown'}');
-          debugPrint('   Population: ${wardData['population'] ?? 'Unknown'}');
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          debugPrint('🏛️ ===== BODY: ${bodyDoc.id} in ${districtDoc.id} =====');
+          final bodyData = bodyDoc.data();
+          debugPrint('   Name: ${bodyData['name'] ?? 'Unknown'}');
 
-          final candidatesSnapshot = await wardDoc.reference
-              .collection('candidates')
-              .get();
-          debugPrint(
-            '👥 Candidates in ${cityDoc.id}/${wardDoc.id}: ${candidatesSnapshot.docs.length}',
-          );
-          totalCandidates += candidatesSnapshot.docs.length;
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+          debugPrint('📊 Wards in ${districtDoc.id}/${bodyDoc.id}: ${wardsSnapshot.docs.length}');
+          totalWards += wardsSnapshot.docs.length;
 
-          for (var candidateDoc in candidatesSnapshot.docs) {
-            final candidateData = candidateDoc.data();
-            debugPrint('👤 ===== CANDIDATE =====');
-            debugPrint('   ID: ${candidateDoc.id}');
-            debugPrint('   Name: ${candidateData['name'] ?? 'Unknown'}');
-            debugPrint('   Party: ${candidateData['party'] ?? 'Unknown'}');
-            debugPrint('   UserId: ${candidateData['userId'] ?? 'Unknown'}');
-            debugPrint('   Approved: ${candidateData['approved'] ?? false}');
-            debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
-            debugPrint('   Followers: ${candidateData['followersCount'] ?? 0}');
-            debugPrint('   Symbol: ${candidateData['symbol'] ?? 'Unknown'}');
+          for (var wardDoc in wardsSnapshot.docs) {
+            debugPrint('🏛️ ===== WARD: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id} =====');
+            final wardData = wardDoc.data();
+            debugPrint('   Name: ${wardData['name'] ?? 'Unknown'}');
+            debugPrint('   Population: ${wardData['population'] ?? 'Unknown'}');
 
-            // Log extra info if available
-            final extraInfo =
-                candidateData['extra_info'] as Map<String, dynamic>?;
-            if (extraInfo != null) {
-              debugPrint('   📋 Extra Info:');
-              debugPrint('      Bio: ${extraInfo['bio'] ?? 'Not set'}');
-              debugPrint(
-                '      Education: ${extraInfo['education'] ?? 'Not set'}',
-              );
-              debugPrint('      Age: ${extraInfo['age'] ?? 'Not set'}');
-              debugPrint('      Gender: ${extraInfo['gender'] ?? 'Not set'}');
+            final candidatesSnapshot = await wardDoc.reference
+                .collection('candidates')
+                .get();
+            debugPrint(
+              '👥 Candidates in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}: ${candidatesSnapshot.docs.length}',
+            );
+            totalCandidates += candidatesSnapshot.docs.length;
+
+            for (var candidateDoc in candidatesSnapshot.docs) {
+              final candidateData = candidateDoc.data();
+              debugPrint('👤 ===== CANDIDATE =====');
+              debugPrint('   ID: ${candidateDoc.id}');
+              debugPrint('   Name: ${candidateData['name'] ?? 'Unknown'}');
+              debugPrint('   Party: ${candidateData['party'] ?? 'Unknown'}');
+              debugPrint('   UserId: ${candidateData['userId'] ?? 'Unknown'}');
+              debugPrint('   Approved: ${candidateData['approved'] ?? false}');
+              debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
+              debugPrint('   Followers: ${candidateData['followersCount'] ?? 0}');
+              debugPrint('   Symbol: ${candidateData['symbol'] ?? 'Unknown'}');
+
+              // Log extra info if available
+              final extraInfo =
+                  candidateData['extra_info'] as Map<String, dynamic>?;
+              if (extraInfo != null) {
+                debugPrint('   📋 Extra Info:');
+                debugPrint('      Bio: ${extraInfo['bio'] ?? 'Not set'}');
+                debugPrint(
+                  '      Education: ${extraInfo['education'] ?? 'Not set'}',
+                );
+                debugPrint('      Age: ${extraInfo['age'] ?? 'Not set'}');
+                debugPrint('      Gender: ${extraInfo['gender'] ?? 'Not set'}');
+              }
+
+              debugPrint('   ====================');
             }
 
-            debugPrint('   ====================');
+            if (candidatesSnapshot.docs.isEmpty) {
+              debugPrint('⚠️ No candidates found in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+            }
           }
 
-          if (candidatesSnapshot.docs.isEmpty) {
-            debugPrint('⚠️ No candidates found in ${cityDoc.id}/${wardDoc.id}');
-          }
+          debugPrint('🏛️ ===== END BODY: ${bodyDoc.id} =====');
         }
 
-        debugPrint('🏙️ ===== END CITY: ${cityDoc.id} =====');
+        debugPrint('🏙️ ===== END DISTRICT: ${districtDoc.id} =====');
       }
 
       debugPrint('🔍 ===== SYSTEM AUDIT SUMMARY =====');
-      debugPrint('📊 Total Cities: ${citiesSnapshot.docs.length}');
+      debugPrint('📊 Total Districts: ${districtsSnapshot.docs.length}');
+      debugPrint('📊 Total Bodies: $totalBodies');
       debugPrint('📊 Total Wards: $totalWards');
       debugPrint('👥 Total Candidates: $totalCandidates');
       debugPrint('✅ Audit completed successfully');

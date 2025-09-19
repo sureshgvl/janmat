@@ -23,8 +23,10 @@ class EventRepository {
       }
 
       final candidateRef = _firestore
-          .collection('cities')
-          .doc(candidateLocation['cityId'])
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
           .collection('wards')
           .doc(candidateLocation['wardId'])
           .collection('candidates')
@@ -110,8 +112,10 @@ class EventRepository {
       }
 
       final candidateRef = _firestore
-          .collection('cities')
-          .doc(candidateLocation['cityId'])
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
           .collection('wards')
           .doc(candidateLocation['wardId'])
           .collection('candidates')
@@ -176,8 +180,10 @@ class EventRepository {
       }
 
       final candidateDoc = await _firestore
-          .collection('cities')
-          .doc(candidateLocation['cityId'])
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
           .collection('wards')
           .doc(candidateLocation['wardId'])
           .collection('candidates')
@@ -233,8 +239,10 @@ class EventRepository {
       }
 
       final candidateDoc = await _firestore
-          .collection('cities')
-          .doc(candidateLocation['cityId'])
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
           .collection('wards')
           .doc(candidateLocation['wardId'])
           .collection('candidates')
@@ -294,8 +302,10 @@ class EventRepository {
       }
 
       final candidateDoc = await _firestore
-          .collection('cities')
-          .doc(candidateLocation['cityId'])
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
           .collection('wards')
           .doc(candidateLocation['wardId'])
           .collection('candidates')
@@ -341,19 +351,23 @@ class EventRepository {
     String candidateId,
   ) async {
     try {
-      final citiesSnapshot = await _firestore.collection('cities').get();
+      final districtsSnapshot = await _firestore.collection('districts').get();
 
-      for (var cityDoc in citiesSnapshot.docs) {
-        final wardsSnapshot = await cityDoc.reference.collection('wards').get();
+      for (var districtDoc in districtsSnapshot.docs) {
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        for (var wardDoc in wardsSnapshot.docs) {
-          final candidateDoc = await wardDoc.reference
-              .collection('candidates')
-              .doc(candidateId)
-              .get();
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-          if (candidateDoc.exists) {
-            return {'cityId': cityDoc.id, 'wardId': wardDoc.id};
+          for (var wardDoc in wardsSnapshot.docs) {
+            final candidateDoc = await wardDoc.reference
+                .collection('candidates')
+                .doc(candidateId)
+                .get();
+
+            if (candidateDoc.exists) {
+              return {'districtId': districtDoc.id, 'bodyId': bodyDoc.id, 'wardId': wardDoc.id};
+            }
           }
         }
       }

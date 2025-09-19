@@ -43,7 +43,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -74,7 +74,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   'Please select your preferred language',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -112,7 +112,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 4,
-                      shadowColor: Colors.black.withOpacity(0.3),
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
                     ),
                     child: Text(
                       _selectedLanguage == 'en' ? 'Continue' : 'सुरू ठेवा',
@@ -144,8 +144,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white.withOpacity(0.2)
-              : Colors.white.withOpacity(0.1),
+              ? Colors.white.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? Colors.white : Colors.transparent,
@@ -167,7 +167,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                       fontWeight: FontWeight.bold,
                       color: isSelected
                           ? Colors.white
-                          : Colors.white.withOpacity(0.9),
+                          : Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -176,8 +176,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       color: isSelected
-                          ? Colors.white.withOpacity(0.9)
-                          : Colors.white.withOpacity(0.7),
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
                 ],

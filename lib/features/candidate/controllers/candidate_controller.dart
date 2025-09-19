@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
-import '../../../models/city_model.dart';
+import '../../../models/district_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../utils/advanced_analytics.dart';
@@ -20,7 +20,7 @@ class CandidateController extends GetxController {
 
   List<Candidate> candidates = [];
   List<Ward> wards = [];
-  List<City> cities = [];
+  List<District> districts = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -121,34 +121,37 @@ class CandidateController extends GetxController {
     update();
   }
 
-  // Fetch wards for a city
-  Future<void> fetchWardsByCity(String cityId) async {
-    debugPrint('🔄 [Controller] Fetching wards for city: $cityId');
+  // Fetch wards for a district and body
+  Future<void> fetchWardsByDistrictAndBody(
+    String districtId,
+    String bodyId,
+  ) async {
+    debugPrint('🔄 [Controller] Fetching wards for district: $districtId, body: $bodyId');
     try {
-      wards = await _repository.getWardsByCity(cityId);
+      wards = await _repository.getWardsByDistrictAndBody(districtId, bodyId);
       debugPrint(
-        '✅ [Controller] Loaded ${wards.length} wards for city: $cityId',
+        '✅ [Controller] Loaded ${wards.length} wards for district: $districtId, body: $bodyId',
       );
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to load wards for city $cityId: $e');
+      debugPrint('❌ [Controller] Failed to load wards for district $districtId, body $bodyId: $e');
       errorMessage = 'Failed to load wards: $e';
       wards = [];
       update();
     }
   }
 
-  // Fetch all cities
-  Future<void> fetchAllCities() async {
-    debugPrint('🔄 [Controller] Fetching all cities...');
+  // Fetch all districts
+  Future<void> fetchAllDistricts() async {
+    debugPrint('🔄 [Controller] Fetching all districts...');
     try {
-      cities = await _repository.getAllCities();
-      debugPrint('✅ [Controller] Loaded ${cities.length} cities');
+      districts = await _repository.getAllDistricts();
+      debugPrint('✅ [Controller] Loaded ${districts.length} districts');
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to load cities: $e');
-      errorMessage = 'Failed to load cities: $e';
-      cities = [];
+      debugPrint('❌ [Controller] Failed to load districts: $e');
+      errorMessage = 'Failed to load districts: $e';
+      districts = [];
       update();
     }
   }
