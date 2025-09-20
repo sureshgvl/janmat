@@ -29,5 +29,7 @@
     "dart.completeFunctionCalls": true,
     "dart.enableSnippets": true,
     "java.configuration.updateBuildConfiguration": "interactive",
-    "cmake.sourceDirectory": "D:/flutter_projects/janmat/windows"
-}
+    "cmake.sourceDirectory": "D:/flutter_projects/janmat/windows",
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000
+    }

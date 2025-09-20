@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../services/plan_service.dart';
 
 class TestPlansScreen extends StatefulWidget {
-  const TestPlansScreen({Key? key}) : super(key: key);
+  const TestPlansScreen({super.key});
 
   @override
   _TestPlansScreenState createState() => _TestPlansScreenState();
@@ -61,14 +61,14 @@ class _TestPlansScreenState extends State<TestPlansScreen> {
           SnackBar(content: Text('Found plan: ${plan.name} - ₹${plan.price}')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Plan not found')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Plan not found')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -93,145 +93,144 @@ class _TestPlansScreenState extends State<TestPlansScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(errorMessage, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadPlans,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(errorMessage, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadPlans,
+                    child: const Text('Retry'),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Summary
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Plans Found: ${plans.length}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text('Firebase Connection: ✅ Working'),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Test Buttons
-                      Row(
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _testSpecificPlan,
-                              child: const Text('Test Basic Plan'),
+                          Text(
+                            'Plans Found: ${plans.length}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _loadPlans,
-                              child: const Text('Refresh Plans'),
-                            ),
-                          ),
+                          const SizedBox(height: 8),
+                          Text('Firebase Connection: ✅ Working'),
                         ],
                       ),
+                    ),
+                  ),
 
-                      const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                      // Plans List
-                      const Text(
-                        'All Plans:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  // Test Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testSpecificPlan,
+                          child: const Text('Test Basic Plan'),
                         ),
                       ),
-                      const SizedBox(height: 8),
-
-                      ...plans.map((plan) => Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    plan.name,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    '₹${plan.price}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text('ID: ${plan.planId}'),
-                              Text('Type: ${plan.type}'),
-                              if (plan.validityDays != null)
-                                Text('Validity: ${plan.validityDays} days'),
-                              Text('Features: ${plan.features.length}'),
-                              Text('Active: ${plan.isActive ? 'Yes' : 'No'}'),
-                            ],
-                          ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _loadPlans,
+                          child: const Text('Refresh Plans'),
                         ),
-                      )),
-
-                      const SizedBox(height: 16),
-
-                      // Raw Data View
-                      if (rawData != null) ...[
-                        const Text(
-                          'Raw Firebase Data (First Plan):',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              rawData.toString(),
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ],
                   ),
-                ),
+
+                  const SizedBox(height: 16),
+
+                  // Plans List
+                  const Text(
+                    'All Plans:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+
+                  ...plans.map(
+                    (plan) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  plan.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '₹${plan.price}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text('ID: ${plan.planId}'),
+                            Text('Type: ${plan.type}'),
+                            if (plan.validityDays != null)
+                              Text('Validity: ${plan.validityDays} days'),
+                            Text('Features: ${plan.features.length}'),
+                            Text('Active: ${plan.isActive ? 'Yes' : 'No'}'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Raw Data View
+                  if (rawData != null) ...[
+                    const Text(
+                      'Raw Firebase Data (First Plan):',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          rawData.toString(),
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }

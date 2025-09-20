@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
       GlobalKey<RefreshIndicatorState>();
   bool _shouldRefreshData = false;
   bool _isLoggingOut = false; // Add loading state for logout
+  int _refreshCounter = 0; // Add counter to force future refresh
 
   @override
   void didChangeDependencies() {
@@ -37,7 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // Small delay to ensure navigation is complete
         Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) {
-            setState(() {});
+            setState(() {
+              _refreshCounter++; // Force refresh of futures
+            });
             _shouldRefreshData = false; // Reset the flag
           }
         });
@@ -48,6 +51,13 @@ class _HomeScreenState extends State<HomeScreen> {
   // Method to trigger data refresh (can be called from other screens)
   void refreshData() {
     _shouldRefreshData = true;
+  }
+
+  // Method to force immediate refresh of user data
+  void forceRefreshData() {
+    setState(() {
+      _refreshCounter++;
+    });
   }
 
   @override
@@ -97,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          //logout
           IconButton(
             icon: _isLoggingOut
                 ? const SizedBox(
@@ -160,7 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: FutureBuilder<Map<String, dynamic>>(
-        future: _homeServices.getUserData(currentUser?.uid),
+        future: _homeServices.getUserData(currentUser?.uid).then((data) => data), // Force new future with counter
+        key: ValueKey('drawer_${currentUser?.uid}_$_refreshCounter'), // Force rebuild with counter
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -190,13 +202,16 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
         onRefresh: () async {
-          // Force refresh by clearing any cached data
-          setState(() {});
+          // Force refresh by incrementing counter to create new future
+          setState(() {
+            _refreshCounter++;
+          });
           // Add a small delay to show the refresh indicator
           await Future.delayed(const Duration(milliseconds: 500));
         },
         child: FutureBuilder<Map<String, dynamic>>(
-          future: _homeServices.getUserData(currentUser?.uid),
+          future: _homeServices.getUserData(currentUser?.uid).then((data) => data), // Force new future
+          key: ValueKey('body_${currentUser?.uid}_$_refreshCounter'), // Force rebuild with counter
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

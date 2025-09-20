@@ -134,7 +134,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                         });
                         _updateHighlight();
                       },
-                      activeColor: Colors.amber.shade600,
+                      activeThumbColor: Colors.amber.shade600,
                       activeTrackColor: Colors.amber.shade200,
                     )
                   else

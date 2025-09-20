@@ -154,10 +154,14 @@ class PushFeedItem {
 
 class HighlightService {
   // Get active highlights for a specific district/body/ward combination
-  static Future<List<Highlight>> getActiveHighlights(String districtId, String bodyId, String wardId) async {
+  static Future<List<Highlight>> getActiveHighlights(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
     try {
       // Create composite location key for precise targeting
-      final locationKey = '${districtId}_${bodyId}_${wardId}';
+      final locationKey = '${districtId}_${bodyId}_$wardId';
 
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')
@@ -178,10 +182,14 @@ class HighlightService {
   }
 
   // Get platinum banner for a specific district/body/ward combination
-  static Future<Highlight?> getPlatinumBanner(String districtId, String bodyId, String wardId) async {
+  static Future<Highlight?> getPlatinumBanner(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
     try {
       // Create composite location key for precise targeting
-      final locationKey = '${districtId}_${bodyId}_${wardId}';
+      final locationKey = '${districtId}_${bodyId}_$wardId';
 
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')
@@ -223,9 +231,7 @@ class HighlightService {
       await FirebaseFirestore.instance
           .collection('highlights')
           .doc(highlightId)
-          .update({
-            'clicks': FieldValue.increment(1),
-          });
+          .update({'clicks': FieldValue.increment(1)});
     } catch (e) {
       print('Error tracking click: $e');
     }
@@ -249,7 +255,8 @@ class HighlightService {
   }) async {
     try {
       final highlightId = 'hl_${DateTime.now().millisecondsSinceEpoch}';
-      final locationKey = '${districtId}_${bodyId}_${wardId}'; // Composite key for precise targeting
+      final locationKey =
+          '${districtId}_${bodyId}_$wardId'; // Composite key for precise targeting
 
       final highlight = Highlight(
         id: highlightId,
@@ -263,7 +270,9 @@ class HighlightService {
         priority: priority,
         startDate: startDate,
         endDate: endDate,
-        active: startDate.isBefore(DateTime.now()) && endDate.isAfter(DateTime.now()),
+        active:
+            startDate.isBefore(DateTime.now()) &&
+            endDate.isAfter(DateTime.now()),
         exclusive: exclusive,
         rotation: !exclusive,
         views: 0,
@@ -287,7 +296,10 @@ class HighlightService {
   }
 
   // Get push feed items for ward
-  static Future<List<PushFeedItem>> getPushFeed(String wardId, {int limit = 20}) async {
+  static Future<List<PushFeedItem>> getPushFeed(
+    String wardId, {
+    int limit = 20,
+  }) async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('pushFeed')
@@ -341,7 +353,10 @@ class HighlightService {
   }
 
   // Update highlight status
-  static Future<void> updateHighlightStatus(String highlightId, bool active) async {
+  static Future<void> updateHighlightStatus(
+    String highlightId,
+    bool active,
+  ) async {
     try {
       await FirebaseFirestore.instance
           .collection('highlights')
@@ -353,7 +368,9 @@ class HighlightService {
   }
 
   // Get highlights by candidate
-  static Future<List<Highlight>> getHighlightsByCandidate(String candidateId) async {
+  static Future<List<Highlight>> getHighlightsByCandidate(
+    String candidateId,
+  ) async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')

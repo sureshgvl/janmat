@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/monetization_controller.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/plan_model.dart';
+import '../controllers/monetization_controller.dart';
+import '../widgets/plan_comparison_table.dart';
+import '../widgets/plan_card.dart';
+import '../widgets/user_status_section.dart';
+import '../widgets/xp_balance_section.dart';
+import '../widgets/xp_usage_info.dart';
+import '../utils/plan_utils.dart';
 import '../../common/loading_overlay.dart';
 
 class MonetizationScreen extends StatefulWidget {
@@ -43,6 +50,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       await _controller.loadUserXPBalance(currentUser.uid);
+      await _controller.loadUserStatusData();
     }
   }
 
@@ -50,166 +58,50 @@ class _MonetizationScreenState extends State<MonetizationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Premium Features'),
+        title: Text(AppLocalizations.of(context)!.premiumFeatures),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'For Candidates'),
-            Tab(text: 'For Voters'),
+          tabs: [
+            Tab(text: 'Premium Plans'),
+            Tab(text: 'XP Store'),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Initialize Default Plans',
+            onPressed: _initializeDefaultPlans,
+          ),
+        ],
       ),
       body: Obx(() {
         return LoadingOverlay(
           isLoading: _controller.isLoading.value,
           child: TabBarView(
             controller: _tabController,
-            children: [_buildCandidatePlans(), _buildVoterPlans()],
+            children: [_buildPlansComparison(), _buildVoterPlans()],
           ),
         );
       }),
     );
   }
 
-  Widget _buildCandidatePlans() {
+  Widget _buildPlansComparison() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Progress Section
-          _buildCandidateProgressSection(),
+          // User Status Section
+          UserStatusSection(controller: _controller),
 
           const SizedBox(height: 24),
 
-          // Plans Section
-          const Text(
-            'Choose Your Plan',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 16),
-
-          Obx(() {
-            final candidatePlans = _controller.plans
-                .where((plan) => plan.type == 'candidate' && plan.isActive)
-                .toList();
-
-            if (candidatePlans.isEmpty) {
-              return const Center(
-                child: Text('No plans available at the moment'),
-              );
-            }
-
-            return Column(
-              children: candidatePlans
-                  .map((plan) => _buildPlanCard(plan))
-                  .toList(),
-            );
-          }),
+          // Plans Comparison Section
+          PlanComparisonTable(controller: _controller),
         ],
       ),
     );
-  }
-
-  Widget _buildCandidateProgressSection() {
-    return Obx(() {
-      final progress = _controller.candidatePlanProgress;
-      final remaining = _controller.remainingCandidateSlots;
-      final isAvailable = _controller.isFirst1000PlanAvailable;
-
-      return Card(
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.local_fire_department, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  Text(
-                    isAvailable ? 'Limited Time Offer!' : 'Plan Sold Out!',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isAvailable ? Colors.orange : Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              Text(
-                isAvailable
-                    ? 'Only ₹1,999 for first 1,000 candidates!'
-                    : '₹1,999 plan is now sold out. ₹5,000 plan available.',
-                style: const TextStyle(fontSize: 14),
-              ),
-
-              const SizedBox(height: 16),
-
-              LinearProgressIndicator(
-                value: progress.clamp(0.0, 1.0),
-                backgroundColor: Colors.grey[300],
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isAvailable ? Colors.orange : Colors.red,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${_controller.totalPremiumCandidates.value} candidates upgraded',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  Text(
-                    isAvailable ? '$remaining slots left' : 'Sold out',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isAvailable ? Colors.orange : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-
-              if (isAvailable && remaining <= 100)
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.red, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Only $remaining slots remaining! Upgrade now before price increases.',
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    });
   }
 
   Widget _buildVoterPlans() {
@@ -219,12 +111,12 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // XP Balance Section
-          _buildXPBalanceSection(),
+          XPBalanceSection(controller: _controller),
 
           const SizedBox(height: 24),
 
           // XP Plans Section
-          const Text(
+          Text(
             'Buy XP Points',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
@@ -232,9 +124,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
           const SizedBox(height: 16),
 
           Obx(() {
-            final voterPlans = _controller.plans
-                .where((plan) => plan.type == 'voter' && plan.isActive)
-                .toList();
+            final voterPlans = PlanUtils.filterPlansByType(_controller.plans, 'voter');
 
             if (voterPlans.isEmpty) {
               return const Center(
@@ -243,262 +133,19 @@ class _MonetizationScreenState extends State<MonetizationScreen>
             }
 
             return Column(
-              children: voterPlans.map((plan) => _buildPlanCard(plan)).toList(),
+              children: voterPlans.map((plan) => PlanCard(
+                plan: plan,
+                controller: _controller,
+                isCandidatePlan: false,
+                onPurchase: () => _handlePurchase(plan),
+              )).toList(),
             );
           }),
 
           const SizedBox(height: 24),
 
           // XP Usage Info
-          _buildXPUsageInfo(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildXPBalanceSection() {
-    return Obx(() {
-      return Card(
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.stars, color: Colors.blue, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Your XP Balance',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${_controller.userXPBalance.value} XP',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  Widget _buildPlanCard(SubscriptionPlan plan) {
-    final isCandidatePlan = plan.type == 'candidate';
-    final isLimitedOffer =
-        isCandidatePlan && _controller.isFirst1000PlanAvailable;
-
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    plan.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (isLimitedOffer)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'LIMITED',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              '₹${plan.price}',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isLimitedOffer ? Colors.orange : Colors.green,
-              ),
-            ),
-
-            if (plan.xpAmount != null)
-              Text(
-                '${plan.xpAmount} XP Points',
-                style: const TextStyle(fontSize: 14, color: Colors.blue),
-              ),
-
-            const SizedBox(height: 16),
-
-            const Text(
-              'Features:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 8),
-
-            ...plan.features.map(
-              (feature) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Icon(
-                      feature.enabled ? Icons.check_circle : Icons.cancel,
-                      color: feature.enabled ? Colors.green : Colors.red,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        feature.name,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _handlePurchase(plan),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isLimitedOffer ? Colors.orange : Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: Text(
-                  isCandidatePlan ? 'Upgrade to Premium' : 'Buy Now',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildXPUsageInfo() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'How to use XP Points',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 12),
-
-            _buildXPUsageItem(
-              Icons.lock_open,
-              'Unlock Premium Content',
-              'Access exclusive candidate manifestos and media',
-            ),
-
-            _buildXPUsageItem(
-              Icons.chat,
-              'Join Premium Chat Rooms',
-              'Participate in candidate-only discussions',
-            ),
-
-            _buildXPUsageItem(
-              Icons.poll,
-              'Vote in Exclusive Polls',
-              'Influence decisions with premium voting rights',
-            ),
-
-            _buildXPUsageItem(
-              Icons.favorite,
-              'Reward Other Voters',
-              'Give XP points to helpful community members',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildXPUsageItem(IconData icon, String title, String description) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: Colors.blue, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
-            ),
-          ),
+          XPUsageInfo(),
         ],
       ),
     );
@@ -522,7 +169,8 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         title: Text('Purchase ${plan.name}'),
         content: Text(
           'Are you sure you want to purchase ${plan.name} for ₹${plan.price}?\n\n'
-          '${plan.features.length} premium features will be unlocked.',
+          '${plan.features.length} premium features will be unlocked.\n\n'
+          'You will be redirected to our secure payment gateway.',
         ),
         actions: [
           TextButton(
@@ -531,39 +179,42 @@ class _MonetizationScreenState extends State<MonetizationScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Purchase'),
+            child: const Text('Proceed to Payment'),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      // Process the purchase
-      final success = await _controller.purchaseSubscription(
-        currentUser.uid,
-        plan,
-      );
+      // Start the payment process with Razorpay
+      debugPrint('💳 Starting payment process for plan: ${plan.planId}');
+      final success = await _controller.processPayment(plan.planId, plan.price);
 
       if (success) {
-        Get.snackbar(
-          'Success',
-          '${plan.name} purchased successfully!',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-
-        // Refresh user data
-        await _loadUserData();
+        // Payment initiated successfully - result will be handled by callbacks
+        debugPrint('✅ Payment process initiated successfully');
       } else {
         Get.snackbar(
-          'Error',
+          'Payment Error',
           _controller.errorMessage.value.isNotEmpty
               ? _controller.errorMessage.value
-              : 'Purchase failed. Please try again.',
+              : 'Failed to initiate payment. Please try again.',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
       }
     }
+  }
+
+  // Temporary method to initialize default plans (remove after first use)
+  void _initializeDefaultPlans() async {
+    debugPrint('🔧 INITIALIZING DEFAULT PLANS FROM MONETIZATION SCREEN...');
+    await _controller.initializeDefaultPlans();
+    Get.snackbar(
+      'Success',
+      'Default plans initialized successfully!',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
   }
 }

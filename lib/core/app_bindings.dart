@@ -4,6 +4,7 @@ import '../features/chat/controllers/chat_controller.dart';
 import '../features/candidate/controllers/candidate_controller.dart';
 import '../features/candidate/controllers/candidate_data_controller.dart';
 import '../services/admob_service.dart';
+import '../services/razorpay_service.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -18,5 +19,6 @@ class AppBindings extends Bindings {
 
     // Put services
     Get.put<AdMobService>(AdMobService());
+    Get.put<RazorpayService>(RazorpayService());
   }
 }

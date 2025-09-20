@@ -203,11 +203,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       );
     }
 
-    // Check if candidate is premium (you can define your own logic here)
+    // Check if candidate is premium based on plan permissions
     bool isPremiumCandidate = candidate!.premium;
-
-    // ToDo: Remove this line
-    isPremiumCandidate = false;
 
     return Scaffold(
       bottomNavigationBar: Container(

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../lib/firebase_options.dart';
+import 'package:janmat/firebase_options.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,9 @@ void main() {
 
   group('Debug Candidate Location', () {
     test('Check if candidate exists in legacy collection', () async {
-      print('🔍 Checking legacy /candidates collection for userId: efSlmEmHpyMrrAqF8i5V');
+      print(
+        '🔍 Checking legacy /candidates collection for userId: efSlmEmHpyMrrAqF8i5V',
+      );
 
       try {
         final candidatesSnapshot = await FirebaseFirestore.instance
@@ -38,7 +40,9 @@ void main() {
     });
 
     test('Check if candidate exists in hierarchical structure', () async {
-      print('🔍 Checking hierarchical structure: /districts/Pune/bodies/pune_city/wards/ward_17/candidates/efSlmEmHpyMrrAqF8i5V');
+      print(
+        '🔍 Checking hierarchical structure: /districts/Pune/bodies/pune_city/wards/ward_17/candidates/efSlmEmHpyMrrAqF8i5V',
+      );
 
       try {
         final candidateDoc = await FirebaseFirestore.instance
@@ -146,7 +150,9 @@ void main() {
                   .collection('candidates')
                   .get();
 
-              print('📊 Found ${candidatesSnapshot.docs.length} candidates in ward_17:');
+              print(
+                '📊 Found ${candidatesSnapshot.docs.length} candidates in ward_17:',
+              );
               for (var doc in candidatesSnapshot.docs) {
                 print('   - ${doc.id}');
               }

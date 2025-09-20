@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/plan_model.dart';
+import 'package:flutter/foundation.dart';
 
 class Plan {
   final String planId;
@@ -53,9 +53,7 @@ class PlanService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      return snapshot.docs
-          .map((doc) => Plan.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
     } catch (e) {
       print('Error fetching plans: $e');
       return [];
@@ -87,9 +85,7 @@ class PlanService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      return snapshot.docs
-          .map((doc) => Plan.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
     } catch (e) {
       print('Error fetching candidate plans: $e');
       return [];
@@ -104,9 +100,7 @@ class PlanService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      return snapshot.docs
-          .map((doc) => Plan.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
     } catch (e) {
       print('Error fetching voter plans: $e');
       return [];
@@ -116,7 +110,10 @@ class PlanService {
   // Feature Access Control Methods
 
   /// Check if a user has access to a specific feature based on their plan
-  static Future<bool> hasFeatureAccess(String userId, String featureName) async {
+  static Future<bool> hasFeatureAccess(
+    String userId,
+    String featureName,
+  ) async {
     try {
       // Get user's current plan
       final userDoc = await FirebaseFirestore.instance
@@ -130,7 +127,8 @@ class PlanService {
       final subscriptionPlanId = userData['subscriptionPlanId'];
 
       // If no subscription plan, check if it's a free plan
-      if (subscriptionPlanId == null || subscriptionPlanId == 'candidate_free') {
+      if (subscriptionPlanId == null ||
+          subscriptionPlanId == 'candidate_free') {
         return await _checkFreePlanFeature(featureName);
       }
 
@@ -141,7 +139,6 @@ class PlanService {
       // Check if the feature is enabled in the plan
       return _isFeatureEnabled(plan, featureName);
     } catch (e) {
-      print('Error checking feature access: $e');
       return false;
     }
   }
@@ -190,18 +187,45 @@ class PlanService {
   // Specific feature checks for convenience
 
   static Future<bool> canEditManifesto(String userId) async {
-    return await hasFeatureAccess(userId, 'Manifesto CRUD');
+    debugPrint('🔍 PLAN SERVICE: Checking manifesto edit permissions for user: $userId');
+
+    // Check if user has full manifesto editing (paid plans)
+    final hasCRUD = await hasFeatureAccess(userId, 'Manifesto CRUD');
+    debugPrint('🔍 PLAN SERVICE: Manifesto CRUD access: $hasCRUD');
+    if (hasCRUD) {
+      debugPrint('🔍 PLAN SERVICE: User has Manifesto CRUD - returning true');
+      return true;
+    }
+
+    // Check if user has limited manifesto editing (free plan)
+    final hasLimited = await hasFeatureAccess(userId, 'Limited Manifesto');
+    debugPrint('🔍 PLAN SERVICE: Limited Manifesto access: $hasLimited');
+    if (hasLimited) {
+      debugPrint('🔍 PLAN SERVICE: User has Limited Manifesto - returning true');
+      return true;
+    }
+
+    // Check if user has manifesto view (basic access)
+    final hasView = await hasFeatureAccess(userId, 'Manifesto View');
+    debugPrint('🔍 PLAN SERVICE: Manifesto View access: $hasView');
+    if (hasView) {
+      debugPrint('🔍 PLAN SERVICE: User has Manifesto View - returning true');
+      return true;
+    }
+
+    debugPrint('🔍 PLAN SERVICE: User has no manifesto permissions - returning false');
+    return false;
   }
 
   static Future<bool> canUploadMedia(String userId) async {
     return await hasFeatureAccess(userId, 'Media Upload') ||
-           await hasFeatureAccess(userId, 'Unlimited Media') ||
-           await hasFeatureAccess(userId, 'Limited Media');
+        await hasFeatureAccess(userId, 'Unlimited Media') ||
+        await hasFeatureAccess(userId, 'Limited Media');
   }
 
   static Future<bool> canViewAnalytics(String userId) async {
     return await hasFeatureAccess(userId, 'Basic Analytics') ||
-           await hasFeatureAccess(userId, 'Advanced Analytics');
+        await hasFeatureAccess(userId, 'Advanced Analytics');
   }
 
   static Future<bool> canManageEvents(String userId) async {

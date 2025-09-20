@@ -62,8 +62,7 @@ import 'app_localizations_mr.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,8 +70,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -84,18 +82,17 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('mr'),
+    Locale('mr')
   ];
 
   /// No description provided for @appTitle.
@@ -2510,71 +2507,59 @@ abstract class AppLocalizations {
   /// **'You need at least 2 options'**
   String get minimumOptionsMessage;
 
-  /// No description provided for @preparingToSaveProfile.
+  /// No description provided for @viewAndEditYourProfile.
   ///
   /// In en, this message translates to:
-  /// **'Preparing to save profile...'**
-  String get preparingToSaveProfile;
+  /// **'View and edit your profile'**
+  String get viewAndEditYourProfile;
 
-  /// No description provided for @uploadingFilesToCloud.
+  /// No description provided for @manageCampaignAndViewAnalytics.
   ///
   /// In en, this message translates to:
-  /// **'Uploading files to cloud...'**
-  String get uploadingFilesToCloud;
+  /// **'Manage your campaign and view analytics'**
+  String get manageCampaignAndViewAnalytics;
 
-  /// No description provided for @profileSavedSuccessfully.
+  /// No description provided for @updatePartyAffiliationAndSymbol.
   ///
   /// In en, this message translates to:
-  /// **'Profile saved successfully!'**
-  String get profileSavedSuccessfully;
+  /// **'Update your party affiliation and symbol'**
+  String get updatePartyAffiliationAndSymbol;
 
-  /// No description provided for @profileUpdatedSuccessfully.
+  /// No description provided for @findCandidatesByLocation.
   ///
   /// In en, this message translates to:
-  /// **'Profile updated successfully'**
-  String get profileUpdatedSuccessfully;
+  /// **'Find candidates by location'**
+  String get findCandidatesByLocation;
 
-  /// No description provided for @failedToUpdateProfile.
+  /// No description provided for @connectWithCommunityMembers.
   ///
   /// In en, this message translates to:
-  /// **'Failed to update profile'**
-  String get failedToUpdateProfile;
+  /// **'Connect with community members'**
+  String get connectWithCommunityMembers;
 
-  /// No description provided for @anErrorOccurred.
+  /// No description provided for @customizeAppSettings.
   ///
   /// In en, this message translates to:
-  /// **'An error occurred: {error}'**
-  String anErrorOccurred(Object error);
-
-  /// No description provided for @saveChanges.
-  ///
-  /// In en, this message translates to:
-  /// **'Save Changes'**
-  String get saveChanges;
-
-  /// No description provided for @editProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Profile'**
-  String get editProfile;
+  /// **'Customize app settings'**
+  String get customizeAppSettings;
 
   /// No description provided for @profileLiked.
   ///
   /// In en, this message translates to:
-  /// **'Profile liked!'**
+  /// **'Profile Liked'**
   String get profileLiked;
 
   /// No description provided for @profileUnliked.
   ///
   /// In en, this message translates to:
-  /// **'Profile unliked'**
+  /// **'Profile Unliked'**
   String get profileUnliked;
 
   /// No description provided for @checkOutCandidateProfile.
   ///
   /// In en, this message translates to:
-  /// **'Check out {candidateName}\'s profile!'**
-  String checkOutCandidateProfile(Object candidateName);
+  /// **'Check out {name}\'s profile'**
+  String checkOutCandidateProfile(Object name);
 
   /// No description provided for @partyLabel.
   ///
@@ -2591,15 +2576,14 @@ abstract class AppLocalizations {
   /// No description provided for @shareFunctionalityComingSoon.
   ///
   /// In en, this message translates to:
-  /// **'Share functionality would open native share dialog'**
+  /// **'Share functionality coming soon'**
   String get shareFunctionalityComingSoon;
 
   /// No description provided for @like.
   ///
   /// In en, this message translates to:
-  /// **' Like'**
+  /// **'Like'**
   String get like;
-
 
   /// No description provided for @basicInformation.
   ///
@@ -2649,33 +2633,326 @@ abstract class AppLocalizations {
   /// **'Ward'**
   String get ward;
 
-  /// No description provided for @profileDetails.
+  /// No description provided for @premiumPlans.
   ///
   /// In en, this message translates to:
-  /// **'Profile Details'**
-  String get profileDetails;
+  /// **'Premium Plans'**
+  String get premiumPlans;
 
-  /// No description provided for @bio.
+  /// No description provided for @xpStore.
   ///
   /// In en, this message translates to:
-  /// **'Bio'**
-  String get bio;
+  /// **'XP Store'**
+  String get xpStore;
 
-  /// No description provided for @useDemoBio.
+  /// No description provided for @chooseYourPlan.
   ///
   /// In en, this message translates to:
-  /// **'Use demo bio'**
-  String get useDemoBio;
+  /// **'Choose Your Plan'**
+  String get chooseYourPlan;
 
-  /// No description provided for @noBioAvailable.
+  /// No description provided for @buyXpPoints.
   ///
   /// In en, this message translates to:
-  /// **'No bio available'**
-  String get noBioAvailable;
+  /// **'Buy XP Points'**
+  String get buyXpPoints;
+
+  /// No description provided for @yourXpBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Your XP Balance'**
+  String get yourXpBalance;
+
+  /// No description provided for @xp.
+  ///
+  /// In en, this message translates to:
+  /// **'XP'**
+  String get xp;
+
+  /// No description provided for @upgradeToPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to Premium'**
+  String get upgradeToPremium;
+
+  /// No description provided for @buyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy Now'**
+  String get buyNow;
+
+  /// No description provided for @howToUseXpPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'How to use XP Points'**
+  String get howToUseXpPoints;
+
+  /// No description provided for @unlockPremiumContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Premium Content'**
+  String get unlockPremiumContent;
+
+  /// No description provided for @accessExclusiveCandidateManifestosAndMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Access exclusive candidate manifestos and media'**
+  String get accessExclusiveCandidateManifestosAndMedia;
+
+  /// No description provided for @joinPremiumChatRooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Premium Chat Rooms'**
+  String get joinPremiumChatRooms;
+
+  /// No description provided for @participateInCandidateOnlyDiscussions.
+  ///
+  /// In en, this message translates to:
+  /// **'Participate in candidate-only discussions'**
+  String get participateInCandidateOnlyDiscussions;
+
+  /// No description provided for @voteInExclusivePolls.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote in Exclusive Polls'**
+  String get voteInExclusivePolls;
+
+  /// No description provided for @influenceDecisionsWithPremiumVotingRights.
+  ///
+  /// In en, this message translates to:
+  /// **'Influence decisions with premium voting rights'**
+  String get influenceDecisionsWithPremiumVotingRights;
+
+  /// No description provided for @rewardOtherVoters.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward Other Voters'**
+  String get rewardOtherVoters;
+
+  /// No description provided for @giveXpPointsToHelpfulCommunityMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Give XP points to helpful community members'**
+  String get giveXpPointsToHelpfulCommunityMembers;
+
+  /// No description provided for @noPlansAvailableAtTheMoment.
+  ///
+  /// In en, this message translates to:
+  /// **'No plans available at the moment'**
+  String get noPlansAvailableAtTheMoment;
+
+  /// No description provided for @noXpPlansAvailableAtTheMoment.
+  ///
+  /// In en, this message translates to:
+  /// **'No XP plans available at the moment'**
+  String get noXpPlansAvailableAtTheMoment;
+
+  /// No description provided for @limitedTimeOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Limited Time Offer!'**
+  String get limitedTimeOffer;
+
+  /// No description provided for @soldOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold Out!'**
+  String get soldOut;
+
+  /// No description provided for @onlyRs1999ForFirst1000Candidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Only ₹1,999 for first 1,000 candidates!'**
+  String get onlyRs1999ForFirst1000Candidates;
+
+  /// No description provided for @rs1999PlanIsNowSoldOutRs5000PlanAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'₹1,999 plan is now sold out. ₹5,000 plan available.'**
+  String get rs1999PlanIsNowSoldOutRs5000PlanAvailable;
+
+  /// No description provided for @slotsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'slots left'**
+  String get slotsLeft;
+
+  /// No description provided for @candidatesUpgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'candidates upgraded'**
+  String get candidatesUpgraded;
+
+  /// No description provided for @onlyRemainingSlotsRemainingUpgradeNowBeforePriceIncreases.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {remaining} slots remaining! Upgrade now before price increases.'**
+  String onlyRemainingSlotsRemainingUpgradeNowBeforePriceIncreases(Object remaining);
+
+  /// No description provided for @yourAccountStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Account Status'**
+  String get yourAccountStatus;
+
+  /// No description provided for @paymentMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Mode: {mode}'**
+  String paymentMode(Object mode);
+
+  /// No description provided for @mockTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock (Testing)'**
+  String get mockTesting;
+
+  /// No description provided for @realRazorpay.
+  ///
+  /// In en, this message translates to:
+  /// **'Real Razorpay'**
+  String get realRazorpay;
+
+  /// No description provided for @mockModeSimulatesPaymentWithoutRazorpayDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock mode simulates payment without Razorpay dialog. Use this for testing the complete flow.'**
+  String get mockModeSimulatesPaymentWithoutRazorpayDialog;
+
+  /// No description provided for @realModeShowsActualRazorpayPaymentDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Real mode shows actual Razorpay payment dialog with all payment options. Use this to test production UI.'**
+  String get realModeShowsActualRazorpayPaymentDialog;
+
+  /// No description provided for @name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// No description provided for @role.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get role;
+
+  /// No description provided for @xpBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'XP Balance'**
+  String get xpBalance;
+
+  /// No description provided for @premiumStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Status'**
+  String get premiumStatus;
+
+  /// No description provided for @currentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Plan'**
+  String get currentPlan;
+
+  /// No description provided for @trialStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Trial Status'**
+  String get trialStatus;
+
+  /// No description provided for @active.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get active;
+
+  /// No description provided for @profileComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Complete'**
+  String get profileComplete;
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @totalSubscriptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Subscriptions'**
+  String get totalSubscriptions;
+
+  /// No description provided for @debugLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug Logs'**
+  String get debugLogs;
+
+  /// No description provided for @clearLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Logs'**
+  String get clearLogs;
+
+  /// No description provided for @purchasePlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase {planName}'**
+  String purchasePlanName(Object planName);
+
+  /// No description provided for @areYouSureYouWantToPurchasePlanNameForPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to purchase {planName} for ₹{price}?\n\n{featuresCount} premium features will be unlocked.\n\nYou will be redirected to our secure payment gateway.'**
+  String areYouSureYouWantToPurchasePlanNameForPrice(Object featuresCount, Object planName, Object price);
+
+  /// No description provided for @proceedToPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed to Payment'**
+  String get proceedToPayment;
+
+  /// No description provided for @pleaseLoginToMakeAPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Please login to make a purchase'**
+  String get pleaseLoginToMakeAPurchase;
+
+  /// No description provided for @paymentError.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Error'**
+  String get paymentError;
+
+  /// No description provided for @failedToInitiatePaymentPleaseTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to initiate payment. Please try again.'**
+  String get failedToInitiatePaymentPleaseTryAgain;
+
+  /// No description provided for @paymentProcessInitiatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment process initiated successfully'**
+  String get paymentProcessInitiatedSuccessfully;
+
+  /// No description provided for @features.
+  ///
+  /// In en, this message translates to:
+  /// **'Features:'**
+  String get features;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -2684,26 +2961,25 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'mr'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'mr'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'mr':
-      return AppLocalizationsMr();
+    case 'en': return AppLocalizationsEn();
+    case 'mr': return AppLocalizationsMr();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
+    'that was used.'
   );
 }

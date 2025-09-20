@@ -56,11 +56,22 @@ class MonetizationRepository {
 
   Future<String> createSubscription(UserSubscription subscription) async {
     try {
+      debugPrint('🔥 FIRESTORE: Creating subscription for user ${subscription.userId}');
+      debugPrint('   Plan ID: ${subscription.planId}');
+      debugPrint('   Plan Type: ${subscription.planType}');
+      debugPrint('   Amount Paid: ${subscription.amountPaid}');
+      debugPrint('   Is Active: ${subscription.isActive}');
+
       final docRef = await _firestore
           .collection('subscriptions')
           .add(subscription.toJson());
+
+      debugPrint('✅ FIRESTORE: Subscription created successfully with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
+      debugPrint('❌ FIRESTORE ERROR: Failed to create subscription: $e');
+      debugPrint('   Error Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to create subscription: $e');
     }
   }
@@ -125,11 +136,21 @@ class MonetizationRepository {
 
   Future<String> createXPTransaction(XPTransaction transaction) async {
     try {
+      debugPrint('🔥 FIRESTORE: Creating XP transaction for user ${transaction.userId}');
+      debugPrint('   Amount: ${transaction.amount}');
+      debugPrint('   Type: ${transaction.type}');
+      debugPrint('   Description: ${transaction.description}');
+
       final docRef = await _firestore
           .collection('xp_transactions')
           .add(transaction.toJson());
+
+      debugPrint('✅ FIRESTORE: XP transaction created successfully with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
+      debugPrint('❌ FIRESTORE ERROR: Failed to create XP transaction: $e');
+      debugPrint('   Error Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to create XP transaction: $e');
     }
   }
@@ -225,7 +246,8 @@ class MonetizationRepository {
   Future<void> upgradeUserToPremiumCandidate(String userId) async {
     try {
       final userRef = _firestore.collection('users').doc(userId);
-      await userRef.update({'role': 'candidate_premium', 'premium': true});
+      // Only update premium status, keep the original role unchanged
+      await userRef.update({'premium': true});
     } catch (e) {
       throw Exception('Failed to upgrade user to premium candidate: $e');
     }
@@ -235,9 +257,11 @@ class MonetizationRepository {
 
   Future<int> getTotalPremiumCandidates() async {
     try {
+      // Count users who are candidates AND have premium status
       final snapshot = await _firestore
           .collection('users')
-          .where('role', isEqualTo: 'candidate_premium')
+          .where('role', isEqualTo: 'candidate')
+          .where('premium', isEqualTo: true)
           .get();
 
       return snapshot.docs.length;
@@ -291,8 +315,8 @@ class MonetizationRepository {
             'enabled': true,
           },
           {
-            'name': 'Manifesto View',
-            'description': 'View manifesto',
+            'name': 'Basic Info',
+            'description': 'Basic information display',
             'enabled': true,
           },
           {
@@ -301,13 +325,28 @@ class MonetizationRepository {
             'enabled': true,
           },
           {
+            'name': 'Short Bio',
+            'description': 'Short biography section',
+            'enabled': true,
+          },
+          {
+            'name': 'Limited Manifesto',
+            'description': 'Limited manifesto content',
+            'enabled': true,
+          },
+          {
             'name': 'Limited Media',
             'description': 'Limited media uploads (3 items)',
             'enabled': true,
           },
           {
+            'name': 'Follower Count',
+            'description': 'Display follower count',
+            'enabled': true,
+          },
+          {
             'name': 'Basic Analytics',
-            'description': 'Basic profile views',
+            'description': 'Basic profile views and analytics',
             'enabled': true,
           },
           {

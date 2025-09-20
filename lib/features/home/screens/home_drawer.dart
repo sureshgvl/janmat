@@ -32,79 +32,145 @@ class HomeDrawer extends StatelessWidget {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
+        physics:
+            const AlwaysScrollableScrollPhysics(), // Ensure always scrollable
         children: [
-          UserAccountsDrawerHeader(
-            accountName: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    userModel?.name ?? currentUser?.displayName ?? 'User',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (candidateModel != null) ...[
-                  const SizedBox(width: 8),
-                  // Container(
-                  //   width: 100,
-                  //   height: 100,
-                  //   decoration: BoxDecoration(
-                  //     borderRadius: BorderRadius.circular(4),
-                  //     border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-                  //   ),
-                  //   child: ClipRRect(
-                  //     borderRadius: BorderRadius.circular(3),
-                  //     child: Image(
-                  //       image: SymbolUtils.getSymbolImageProvider(
-                  //         SymbolUtils.getPartySymbolPath(candidateModel?.party ?? '', candidate: candidateModel)
-                  //       ),
-                  //       fit: BoxFit.cover,
-                  //       errorBuilder: (context, error, stackTrace) {
-                  //         return Image.asset(
-                  //           'assets/symbols/default.png',
-                  //           fit: BoxFit.cover,
-                  //         );
-                  //       },
-                  //     ),
-                  //   ),
-                  // ),
+          // Profile Header Section (Scrollable)
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).primaryColor,
+                  Theme.of(context).primaryColor.withOpacity(0.8),
                 ],
-              ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            accountEmail: Text(
-              userModel?.email ??
-                  currentUser?.email ??
-                  currentUser?.phoneNumber ??
-                  '',
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Allow natural height
+                children: [
+                  const SizedBox(height: 20), // Top padding above profile pic
+                  // Profile Picture at Top
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    backgroundImage:
+                        candidateModel?.photo != null &&
+                            candidateModel!.photo!.isNotEmpty
+                        ? NetworkImage(candidateModel!.photo!)
+                        : userModel?.photoURL != null
+                        ? NetworkImage(userModel!.photoURL!)
+                        : currentUser?.photoURL != null
+                        ? NetworkImage(currentUser!.photoURL!)
+                        : null,
+                    child:
+                        (candidateModel?.photo == null ||
+                                candidateModel!.photo!.isEmpty) &&
+                            userModel?.photoURL == null &&
+                            currentUser?.photoURL == null
+                        ? Text(
+                            ((userModel?.name ??
+                                            currentUser?.displayName ??
+                                            'U')
+                                        .isEmpty
+                                    ? 'U'
+                                    : (userModel?.name ??
+                                          currentUser?.displayName ??
+                                          'U')[0])
+                                .toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 40,
+                              color: Colors.blue,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  // User Info Below Picture
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Name
+                      Text(
+                        userModel?.name ?? currentUser?.displayName ?? 'User',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 4),
+                      // Email/Phone
+                      Text(
+                        userModel?.email ??
+                            currentUser?.email ??
+                            currentUser?.phoneNumber ??
+                            '',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      // Plan Badge (only for candidates)
+                      if (userModel?.role == 'candidate') ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                userModel?.premium == true
+                                    ? Icons.star
+                                    : userModel?.isTrialActive == true
+                                    ? Icons.access_time
+                                    : Icons.free_breakfast,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _getPlanDisplayText(userModel!),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(
+                        height: 16,
+                      ), // Extra space before menu items
+                    ],
+                  ),
+                ],
+              ),
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              backgroundImage:
-                  candidateModel?.photo != null &&
-                      candidateModel!.photo!.isNotEmpty
-                  ? NetworkImage(candidateModel!.photo!)
-                  : userModel?.photoURL != null
-                  ? NetworkImage(userModel!.photoURL!)
-                  : currentUser?.photoURL != null
-                  ? NetworkImage(currentUser!.photoURL!)
-                  : null,
-              child:
-                  (candidateModel?.photo == null ||
-                          candidateModel!.photo!.isEmpty) &&
-                      userModel?.photoURL == null &&
-                      currentUser?.photoURL == null
-                  ? Text(
-                      ((userModel?.name ?? currentUser?.displayName ?? 'U')
-                                  .isEmpty
-                              ? 'U'
-                              : (userModel?.name ??
-                                    currentUser?.displayName ??
-                                    'U')[0])
-                          .toUpperCase(),
-                      style: const TextStyle(fontSize: 24, color: Colors.blue),
-                    )
-                  : null,
-            ),
-            decoration: const BoxDecoration(color: Colors.blue),
           ),
           ListTile(
             leading: const Icon(Icons.person),
@@ -125,9 +191,6 @@ class HomeDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.location_on),
             title: Text(AppLocalizations.of(context)!.myAreaCandidates),
-            subtitle: Text(
-              AppLocalizations.of(context)!.candidatesFromYourWard,
-            ),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
@@ -146,8 +209,7 @@ class HomeDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.swap_horiz),
-              title: const Text('Change Party & Symbol'),
-              subtitle: const Text('Update your party affiliation and symbol'),
+              title: Text(AppLocalizations.of(context)!.changePartySymbolTitle),
               onTap: () {
                 Navigator.pop(context); // Close drawer
                 HomeNavigation.toRightToLeft(
@@ -216,5 +278,18 @@ class HomeDrawer extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getPlanDisplayText(UserModel userModel) {
+    if (userModel.premium) {
+      if (userModel.subscriptionPlanId != null) {
+        return 'Premium (${userModel.subscriptionPlanId})';
+      }
+      return 'Premium';
+    } else if (userModel.isTrialActive) {
+      return 'Trial Active';
+    } else {
+      return 'Free Plan';
+    }
   }
 }

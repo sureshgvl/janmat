@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/highlight_service.dart';
 import 'highlight_card.dart';
 
@@ -8,11 +9,11 @@ class HighlightCarousel extends StatefulWidget {
   final String wardId;
 
   const HighlightCarousel({
-    Key? key,
+    super.key,
     required this.districtId,
     required this.bodyId,
     required this.wardId,
-  }) : super(key: key);
+  });
 
   @override
   _HighlightCarouselState createState() => _HighlightCarouselState();
@@ -46,7 +47,10 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
   }
 
   Future<void> _loadHighlights() async {
-    if (widget.wardId.isEmpty || widget.districtId.isEmpty || widget.bodyId.isEmpty) return;
+    if (widget.wardId.isEmpty ||
+        widget.districtId.isEmpty ||
+        widget.bodyId.isEmpty)
+      return;
 
     setState(() => isLoading = true);
 
@@ -90,9 +94,14 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const SizedBox(
-        height: 200,
-        child: Center(child: CircularProgressIndicator()),
+      return Column(
+        children: [
+          const SizedBox(
+            height: 200,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          const SizedBox(height: 24),
+        ],
       );
     }
 
@@ -112,16 +121,16 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
               const SizedBox(width: 8),
               Text(
                 'Featured Candidates',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
                 '${highlights.length} candidates',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
             ],
           ),
@@ -183,7 +192,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
           ),
         ],
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
       ],
     );
   }

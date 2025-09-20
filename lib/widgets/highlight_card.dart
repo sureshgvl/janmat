@@ -1,20 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/highlight_service.dart';
 
-class HighlightCard extends StatelessWidget {
+class HighlightCard extends StatefulWidget {
   final Highlight highlight;
   final VoidCallback? onTap;
 
-  const HighlightCard({
-    Key? key,
-    required this.highlight,
-    this.onTap,
-  }) : super(key: key);
+  const HighlightCard({super.key, required this.highlight, this.onTap});
+
+  @override
+  _HighlightCardState createState() => _HighlightCardState();
+}
+
+class _HighlightCardState extends State<HighlightCard> {
+  String? candidateProfileImageUrl;
+  bool isLoadingProfile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCandidateProfileImage();
+    _trackCarouselView();
+  }
+
+  Future<void> _loadCandidateProfileImage() async {
+    if (widget.highlight.candidateId.isEmpty) {
+      setState(() => isLoadingProfile = false);
+      return;
+    }
+
+    try {
+      final candidateDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.highlight.candidateId)
+          .get();
+
+      if (candidateDoc.exists && mounted) {
+        setState(() {
+          candidateProfileImageUrl = candidateDoc.data()?['profileImageUrl'];
+          isLoadingProfile = false;
+        });
+      } else if (mounted) {
+        setState(() => isLoadingProfile = false);
+      }
+    } catch (e) {
+      print('Error fetching candidate profile image: $e');
+      if (mounted) {
+        setState(() => isLoadingProfile = false);
+      }
+    }
+  }
+
+  Future<void> _trackCarouselView() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null || widget.highlight.candidateId.isEmpty) return;
+
+      await FirebaseFirestore.instance.collection('section_views').add({
+        'sectionType': 'carousel',
+        'contentId': widget.highlight.id,
+        'userId': userId,
+        'candidateId': widget.highlight.candidateId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'deviceInfo': {'platform': 'mobile', 'appVersion': '1.0.0'},
+      });
+    } catch (e) {
+      print('Error tracking carousel view: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap ?? () => _defaultOnTap(context),
+      onTap: widget.onTap ?? () => _defaultOnTap(context),
       child: Container(
         width: 280,
         margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -33,9 +92,9 @@ class HighlightCard extends StatelessWidget {
           child: Stack(
             children: [
               // Background Image
-              if (highlight.imageUrl != null)
+              if (widget.highlight.imageUrl != null)
                 Image.network(
-                  highlight.imageUrl!,
+                  widget.highlight.imageUrl!,
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
@@ -53,11 +112,7 @@ class HighlightCard extends StatelessWidget {
               else
                 Container(
                   color: Colors.grey[300],
-                  child: const Icon(
-                    Icons.person,
-                    size: 48,
-                    color: Colors.grey,
-                  ),
+                  child: const Icon(Icons.person, size: 48, color: Colors.grey),
                 ),
 
               // Gradient Overlay
@@ -66,10 +121,7 @@ class HighlightCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.7),
-                    ],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                   ),
                 ),
               ),
@@ -79,7 +131,10 @@ class HighlightCard extends StatelessWidget {
                 top: 12,
                 left: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.amber,
                     borderRadius: BorderRadius.circular(12),
@@ -87,11 +142,7 @@ class HighlightCard extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.star,
-                        size: 12,
-                        color: Colors.black,
-                      ),
+                      Icon(Icons.star, size: 12, color: Colors.black),
                       SizedBox(width: 4),
                       Text(
                         'HIGHLIGHT',
@@ -102,6 +153,36 @@ class HighlightCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+
+              // Profile Picture Overlay
+              Positioned(
+                bottom: 100,
+                left: 16,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    backgroundImage: candidateProfileImageUrl != null
+                        ? NetworkImage(candidateProfileImageUrl!)
+                        : null,
+                    backgroundColor: Colors.white,
+                    child: candidateProfileImageUrl == null
+                        ? Icon(Icons.person, color: Colors.grey, size: 24)
+                        : null,
                   ),
                 ),
               ),
@@ -117,7 +198,7 @@ class HighlightCard extends StatelessWidget {
                   children: [
                     // Candidate Name
                     Text(
-                      highlight.candidateName ?? 'Candidate',
+                      widget.highlight.candidateName ?? 'Candidate',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -138,7 +219,7 @@ class HighlightCard extends StatelessWidget {
 
                     // Party Name
                     Text(
-                      highlight.party ?? 'Party',
+                      widget.highlight.party ?? 'Party',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -158,7 +239,10 @@ class HighlightCard extends StatelessWidget {
 
                     // View Profile Button
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -192,15 +276,18 @@ class HighlightCard extends StatelessWidget {
                 top: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: highlight.package == 'platinum'
+                    color: widget.highlight.package == 'platinum'
                         ? Colors.purple
                         : Colors.amber,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    highlight.package.toUpperCase(),
+                    widget.highlight.package.toUpperCase(),
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -218,16 +305,16 @@ class HighlightCard extends StatelessWidget {
 
   void _defaultOnTap(BuildContext context) {
     // Track click
-    HighlightService.trackClick(highlight.id);
+    HighlightService.trackClick(widget.highlight.id);
 
     // Default navigation - you'll need to implement this based on your routing
-    print('Navigate to candidate profile: ${highlight.candidateId}');
+    print('Navigate to candidate profile: ${widget.highlight.candidateId}');
 
     // Example navigation (adjust based on your app's routing):
     // Navigator.pushNamed(
     //   context,
     //   '/candidate-profile',
-    //   arguments: {'candidateId': highlight.candidateId},
+    //   arguments: {'candidateId': widget.highlight.candidateId},
     // );
   }
 }

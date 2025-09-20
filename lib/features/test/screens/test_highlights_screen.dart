@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../services/highlight_service.dart';
 
 class TestHighlightsScreen extends StatefulWidget {
-  const TestHighlightsScreen({Key? key}) : super(key: key);
+  const TestHighlightsScreen({super.key});
 
   @override
   _TestHighlightsScreenState createState() => _TestHighlightsScreenState();
@@ -86,9 +86,9 @@ class _TestHighlightsScreenState extends State<TestHighlightsScreen> {
         _loadAllData(); // Refresh data
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -109,9 +109,9 @@ class _TestHighlightsScreenState extends State<TestHighlightsScreen> {
         _loadAllData(); // Refresh data
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -131,253 +131,263 @@ class _TestHighlightsScreenState extends State<TestHighlightsScreen> {
       appBar: AppBar(
         title: const Text('Test Highlights'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAllData),
         ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(errorMessage, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadAllData,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Test Location: $testDistrictId → $testBodyId → $testWardId',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Highlights Found: ${highlights.length}'),
+                          Text(
+                            'Platinum Banner: ${platinumBanner != null ? 'Yes' : 'No'}',
+                          ),
+                          Text('Push Feed Items: ${pushFeed.length}'),
+                          const Text('Firebase Connection: ✅ Working'),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Test Buttons
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      Text(errorMessage, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadAllData,
-                        child: const Text('Retry'),
+                      ElevatedButton.icon(
+                        onPressed: _createTestHighlight,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create Test Highlight'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _createTestPushFeed,
+                        icon: const Icon(Icons.feed),
+                        label: const Text('Create Push Feed'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _testImpressionTracking,
+                        icon: const Icon(Icons.visibility),
+                        label: const Text('Track Impression'),
                       ),
                     ],
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Summary
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Test Location: $testDistrictId → $testBodyId → $testWardId',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text('Highlights Found: ${highlights.length}'),
-                              Text('Platinum Banner: ${platinumBanner != null ? 'Yes' : 'No'}'),
-                              Text('Push Feed Items: ${pushFeed.length}'),
-                              const Text('Firebase Connection: ✅ Working'),
-                            ],
-                          ),
-                        ),
+
+                  const SizedBox(height: 16),
+
+                  // Platinum Banner Section
+                  if (platinumBanner != null) ...[
+                    const Text(
+                      'Platinum Banner:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // Test Buttons
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _createTestHighlight,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create Test Highlight'),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: _createTestPushFeed,
-                            icon: const Icon(Icons.feed),
-                            label: const Text('Create Push Feed'),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: _testImpressionTracking,
-                            icon: const Icon(Icons.visibility),
-                            label: const Text('Track Impression'),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Platinum Banner Section
-                      if (platinumBanner != null) ...[
-                        const Text(
-                          'Platinum Banner:',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Card(
-                          color: Colors.amber.shade50,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('ID: ${platinumBanner!.id}'),
-                                Text('Candidate: ${platinumBanner!.candidateName}'),
-                                Text('Party: ${platinumBanner!.party}'),
-                                Text('Views: ${platinumBanner!.views}'),
-                                Text('Clicks: ${platinumBanner!.clicks}'),
-                                Text('Active: ${platinumBanner!.active ? 'Yes' : 'No'}'),
-                              ],
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      color: Colors.amber.shade50,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('ID: ${platinumBanner!.id}'),
+                            Text('Candidate: ${platinumBanner!.candidateName}'),
+                            Text('Party: ${platinumBanner!.party}'),
+                            Text('Views: ${platinumBanner!.views}'),
+                            Text('Clicks: ${platinumBanner!.clicks}'),
+                            Text(
+                              'Active: ${platinumBanner!.active ? 'Yes' : 'No'}',
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Highlights List
-                      const Text(
-                        'Active Highlights:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
-                      ...highlights.map((highlight) => Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    highlight.candidateName ?? 'Unknown',
+                  // Highlights List
+                  const Text(
+                    'Active Highlights:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+
+                  ...highlights.map(
+                    (highlight) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  highlight.candidateName ?? 'Unknown',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: highlight.package == 'gold'
+                                        ? Colors.amber
+                                        : Colors.purple,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    highlight.package.toUpperCase(),
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
                                   ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text('ID: ${highlight.id}'),
+                            Text('Party: ${highlight.party}'),
+                            Text(
+                              'Placement: ${highlight.placement.join(", ")}',
+                            ),
+                            Text(
+                              'Views: ${highlight.views} | Clicks: ${highlight.clicks}',
+                            ),
+                            Text('Priority: ${highlight.priority}'),
+                            Text('Active: ${highlight.active ? 'Yes' : 'No'}'),
+                            Text(
+                              'Exclusive: ${highlight.exclusive ? 'Yes' : 'No'}',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Push Feed List
+                  const Text(
+                    'Push Feed Items:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+
+                  ...pushFeed.map(
+                    (item) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  item.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (item.isSponsored) ...[
+                                  const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: highlight.package == 'gold'
-                                          ? Colors.amber
-                                          : Colors.purple,
-                                      borderRadius: BorderRadius.circular(12),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
                                     ),
-                                    child: Text(
-                                      highlight.package.toUpperCase(),
-                                      style: const TextStyle(
-                                        fontSize: 10,
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'SPONSORED',
+                                      style: TextStyle(
+                                        fontSize: 8,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
                                     ),
                                   ),
                                 ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(item.message),
+                            const SizedBox(height: 4),
+                            Text(
+                              'ID: ${item.id}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
                               ),
-                              const SizedBox(height: 8),
-                              Text('ID: ${highlight.id}'),
-                              Text('Party: ${highlight.party}'),
-                              Text('Placement: ${highlight.placement.join(", ")}'),
-                              Text('Views: ${highlight.views} | Clicks: ${highlight.clicks}'),
-                              Text('Priority: ${highlight.priority}'),
-                              Text('Active: ${highlight.active ? 'Yes' : 'No'}'),
-                              Text('Exclusive: ${highlight.exclusive ? 'Yes' : 'No'}'),
-                            ],
-                          ),
-                        ),
-                      )),
-
-                      const SizedBox(height: 16),
-
-                      // Push Feed List
-                      const Text(
-                        'Push Feed Items:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-
-                      ...pushFeed.map((item) => Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    item.title,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  if (item.isSponsored) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Text(
-                                        'SPONSORED',
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(item.message),
-                              const SizedBox(height: 4),
-                              Text(
-                                'ID: ${item.id}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )),
-
-                      // Empty states
-                      if (highlights.isEmpty && platinumBanner == null && pushFeed.isEmpty) ...[
-                        const SizedBox(height: 32),
-                        const Center(
-                          child: Text(
-                            'No highlight data found.\nCreate test data using the buttons above.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
+
+                  // Empty states
+                  if (highlights.isEmpty &&
+                      platinumBanner == null &&
+                      pushFeed.isEmpty) ...[
+                    const SizedBox(height: 32),
+                    const Center(
+                      child: Text(
+                        'No highlight data found.\nCreate test data using the buttons above.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }

@@ -38,7 +38,7 @@ class ChatDialogs {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: roomType,
+                initialValue: roomType,
                 decoration: InputDecoration(
                   labelText: AppLocalizations.of(context)!.roomType,
                 ),

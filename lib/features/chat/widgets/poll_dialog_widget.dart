@@ -575,7 +575,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                               _useCustomExpiration = value;
                             });
                           },
-                          activeColor: Colors.blue.shade600,
+                          activeThumbColor: Colors.blue.shade600,
                         ),
                       ],
                     ),

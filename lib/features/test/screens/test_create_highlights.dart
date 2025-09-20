@@ -3,23 +3,39 @@ import '../../../services/highlight_service.dart';
 import 'test_highlights_screen.dart';
 
 class TestCreateHighlightsScreen extends StatefulWidget {
-  const TestCreateHighlightsScreen({Key? key}) : super(key: key);
+  const TestCreateHighlightsScreen({super.key});
 
   @override
-  _TestCreateHighlightsScreenState createState() => _TestCreateHighlightsScreenState();
+  _TestCreateHighlightsScreenState createState() =>
+      _TestCreateHighlightsScreenState();
 }
 
-class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen> {
-  final TextEditingController _candidateIdController = TextEditingController(text: 'test_candidate_123');
-  final TextEditingController _wardIdController = TextEditingController(text: 'ward_pune_1');
-  final TextEditingController _districtIdController = TextEditingController(text: 'Pune');
-  final TextEditingController _bodyIdController = TextEditingController(text: 'pune_city');
-  final TextEditingController _candidateNameController = TextEditingController(text: 'Rajesh Sharma');
-  final TextEditingController _partyController = TextEditingController(text: 'BJP');
-  final TextEditingController _imageUrlController = TextEditingController(text: 'https://picsum.photos/400/300?random=1');
+class _TestCreateHighlightsScreenState
+    extends State<TestCreateHighlightsScreen> {
+  final TextEditingController _candidateIdController = TextEditingController(
+    text: 'test_candidate_123',
+  );
+  final TextEditingController _wardIdController = TextEditingController(
+    text: 'ward_pune_1',
+  );
+  final TextEditingController _districtIdController = TextEditingController(
+    text: 'Pune',
+  );
+  final TextEditingController _bodyIdController = TextEditingController(
+    text: 'pune_city',
+  );
+  final TextEditingController _candidateNameController = TextEditingController(
+    text: 'Rajesh Sharma',
+  );
+  final TextEditingController _partyController = TextEditingController(
+    text: 'BJP',
+  );
+  final TextEditingController _imageUrlController = TextEditingController(
+    text: 'https://picsum.photos/400/300?random=1',
+  );
 
   String _selectedPackage = 'gold';
-  List<String> _selectedPlacement = ['carousel'];
+  final List<String> _selectedPlacement = ['carousel'];
   bool _isExclusive = false;
   bool _isCreating = false;
 
@@ -46,10 +62,7 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
           children: [
             const Text(
               'Create Test Highlight',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -73,7 +86,7 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
             // Package Selection
             _buildSectionHeader('Package & Placement'),
             DropdownButtonFormField<String>(
-              value: _selectedPackage,
+              initialValue: _selectedPackage,
               decoration: const InputDecoration(
                 labelText: 'Package',
                 border: OutlineInputBorder(),
@@ -132,7 +145,9 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
                 onPressed: _isCreating ? null : _createHighlight,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: _selectedPackage == 'platinum' ? Colors.purple : Colors.amber,
+                  backgroundColor: _selectedPackage == 'platinum'
+                      ? Colors.purple
+                      : Colors.amber,
                 ),
                 child: _isCreating
                     ? const CircularProgressIndicator(color: Colors.white)
@@ -157,7 +172,9 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
                     onPressed: () => _createQuickGoldHighlight(),
                     icon: const Icon(Icons.star),
                     label: const Text('Quick Gold'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -166,7 +183,9 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
                     onPressed: () => _createQuickPlatinumHighlight(),
                     icon: const Icon(Icons.diamond),
                     label: const Text('Quick Platinum'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                    ),
                   ),
                 ),
               ],
@@ -229,7 +248,9 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
   Future<void> _createHighlight() async {
     if (_candidateIdController.text.isEmpty || _wardIdController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in Candidate ID and Ward ID')),
+        const SnackBar(
+          content: Text('Please fill in Candidate ID and Ward ID'),
+        ),
       );
       return;
     }
@@ -246,15 +267,21 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
         placement: _selectedPlacement,
         startDate: DateTime.now(),
         endDate: DateTime.now().add(const Duration(days: 7)),
-        imageUrl: _imageUrlController.text.isNotEmpty ? _imageUrlController.text : null,
-        candidateName: _candidateNameController.text.isNotEmpty ? _candidateNameController.text : null,
+        imageUrl: _imageUrlController.text.isNotEmpty
+            ? _imageUrlController.text
+            : null,
+        candidateName: _candidateNameController.text.isNotEmpty
+            ? _candidateNameController.text
+            : null,
         party: _partyController.text.isNotEmpty ? _partyController.text : null,
         exclusive: _isExclusive,
       );
 
       if (highlightId != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Highlight created successfully! ID: $highlightId')),
+          SnackBar(
+            content: Text('Highlight created successfully! ID: $highlightId'),
+          ),
         );
 
         // Navigate to highlights list to see the result
@@ -265,9 +292,9 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isCreating = false);
     }
@@ -382,9 +409,7 @@ class _TestCreateHighlightsScreenState extends State<TestCreateHighlightsScreen>
   void _navigateToHighlightsList() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const TestHighlightsScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const TestHighlightsScreen()),
     );
   }
 

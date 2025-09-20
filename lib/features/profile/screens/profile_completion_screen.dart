@@ -222,7 +222,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         // Ensure user is authenticated before making the query
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser == null) {
-          debugPrint('⚠️ No authenticated user found, waiting for authentication...');
+          debugPrint(
+            '⚠️ No authenticated user found, waiting for authentication...',
+          );
           // Wait for authentication to be established
           await Future.delayed(const Duration(seconds: 2));
           final retryUser = FirebaseAuth.instance.currentUser;
@@ -231,14 +233,18 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           }
         }
 
-        debugPrint('🔍 Loading districts for user: ${currentUser?.uid} (attempt ${retryCount + 1})');
+        debugPrint(
+          '🔍 Loading districts for user: ${currentUser?.uid} (attempt ${retryCount + 1})',
+        );
 
         // Load districts from Firestore
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('districts')
             .get();
 
-        debugPrint('📊 Found ${districtsSnapshot.docs.length} districts in Firestore');
+        debugPrint(
+          '📊 Found ${districtsSnapshot.docs.length} districts in Firestore',
+        );
 
         districts = districtsSnapshot.docs.map((doc) {
           final data = doc.data();
@@ -254,11 +260,15 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               .collection('bodies')
               .get();
 
-          debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.districtId}');
+          debugPrint(
+            '📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.districtId}',
+          );
 
           districtBodies[district.districtId] = bodiesSnapshot.docs.map((doc) {
             final data = doc.data();
-            debugPrint('🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})');
+            debugPrint(
+              '🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})',
+            );
             return Body.fromJson({
               'bodyId': doc.id,
               'districtId': district.districtId,
@@ -271,9 +281,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           isLoadingDistricts = false;
         });
 
-        debugPrint('✅ Successfully loaded ${districts.length} districts with bodies');
+        debugPrint(
+          '✅ Successfully loaded ${districts.length} districts with bodies',
+        );
         return; // Success, exit the retry loop
-
       } catch (e) {
         retryCount++;
         debugPrint('❌ Failed to load districts (attempt $retryCount): $e');
@@ -285,7 +296,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           // Final attempt failed
           debugPrint('❌ All retry attempts failed for loading districts');
           // For now, keep the error message in English since we don't have context here
-          Get.snackbar('Error', 'Failed to load districts after $maxRetries attempts: $e');
+          Get.snackbar(
+            'Error',
+            'Failed to load districts after $maxRetries attempts: $e',
+          );
           setState(() {
             isLoadingDistricts = false;
           });
@@ -799,7 +813,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
                 // Gender Selection
                 DropdownButtonFormField<String>(
-                  value: selectedGender,
+                  initialValue: selectedGender,
                   decoration: InputDecoration(
                     labelText: localizations.genderRequired,
                     border: OutlineInputBorder(),

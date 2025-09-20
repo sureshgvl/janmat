@@ -21,7 +21,7 @@ class CandidateDashboardScreen extends StatefulWidget {
 }
 
 class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   final CandidateDataController controller = Get.put(CandidateDataController());
   bool isEditing = false;
@@ -36,13 +36,21 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   @override
   void initState() {
     super.initState();
-    // Initialize TabController synchronously with default length (basic tabs that are always available)
-    _tabController = TabController(length: 3, vsync: this); // Basic Info, Manifesto, Contact
+    // Initialize TabController with default length, will be updated when plan features are loaded
+    _tabController = TabController(length: 3, vsync: this); // Start with basic tabs
+    _tabController.addListener(_handleTabChange);
     _loadPlanFeatures();
     // Refresh data when dashboard is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.refreshCandidateData();
     });
+  }
+
+  void _handleTabChange() {
+    // Handle tab change if needed
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadPlanFeatures() async {
@@ -55,7 +63,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
       canManageEvents = await PlanService.canManageEvents(userId);
       canViewAnalytics = await PlanService.canViewAnalytics(userId);
 
-      // Update tab controller with available tabs
+      // Update tab controller with correct length after loading features
       final availableTabs = _getAvailableTabs();
       if (mounted && availableTabs.length != _tabController.length) {
         setState(() {
@@ -124,6 +132,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -158,9 +167,22 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
           return Center(child: Text(AppLocalizations.of(context)!.candidateDataNotFound));
         }
 
+        // Create a list of widgets that matches the TabController length
+        final tabWidgets = <Widget>[];
+
+        // Add available tabs
+        for (final tab in availableTabs) {
+          tabWidgets.add(tab['widget'] as Widget);
+        }
+
+        // Fill remaining slots with empty containers to match TabController length
+        while (tabWidgets.length < _tabController.length) {
+          tabWidgets.add(const SizedBox.shrink());
+        }
+
         return TabBarView(
           controller: _tabController,
-          children: availableTabs.map((tab) => tab['widget'] as Widget).toList(),
+          children: tabWidgets,
         );
       }),
     );

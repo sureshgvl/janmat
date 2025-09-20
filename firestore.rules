@@ -57,6 +57,8 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       allow read: if request.auth != null &&
         (request.auth.token.admin == true || request.auth.token.role == 'admin');
+      // Allow authenticated users to read candidate profiles for display purposes
+      allow read: if request.auth != null;
     }
 
     // Chat functionality
@@ -150,7 +152,10 @@ service cloud.firestore {
       allow read: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
-      allow write: if request.auth != null &&
+      allow create: if request.auth != null &&
+        (request.auth.uid == request.resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
     }
@@ -159,7 +164,10 @@ service cloud.firestore {
       allow read: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
-      allow write: if request.auth != null &&
+      allow create: if request.auth != null &&
+        (request.auth.uid == request.resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
     }
@@ -230,6 +238,41 @@ service cloud.firestore {
 
     match /users/{userId}/activities/{activityId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Sponsored updates collection - for push feed content
+    match /sponsored_updates/{updateId} {
+      allow read: if request.auth != null; // Authenticated users can read sponsored content
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.authorId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.authorId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    // Community posts collection - for community feed content
+    match /community_posts/{postId} {
+      allow read: if request.auth != null; // Authenticated users can read community posts
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.authorId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.authorId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    // Section views collection - for analytics tracking
+    match /section_views/{viewId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      allow write: if request.auth != null; // Authenticated users can write view events
     }
   }
 }

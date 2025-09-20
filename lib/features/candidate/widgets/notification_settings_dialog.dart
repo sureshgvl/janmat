@@ -56,7 +56,7 @@ class _NotificationSettingsDialogState
                       notificationsEnabled = value;
                     });
                   },
-            activeColor: Theme.of(context).primaryColor,
+            activeThumbColor: Theme.of(context).primaryColor,
           ),
           const SizedBox(height: 8),
           const Text(

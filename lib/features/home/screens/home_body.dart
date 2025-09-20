@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
@@ -13,6 +14,10 @@ import '../../candidate/screens/candidate_dashboard_screen.dart';
 import '../../candidate/screens/my_area_candidates_screen.dart';
 import '../../monetization/screens/monetization_screen.dart';
 import '../widgets/home_widgets.dart';
+import '../widgets/create_post_dialog.dart';
+import '../services/community_feed_service.dart';
+import '../services/push_feed_service.dart';
+import '../models/post_model.dart';
 import 'home_navigation.dart';
 
 class HomeBody extends StatelessWidget {
@@ -20,7 +25,11 @@ class HomeBody extends StatelessWidget {
   final Candidate? candidateModel;
   final User? currentUser;
 
-  const HomeBody({
+  // Service instances
+  final CommunityFeedService _communityFeedService = CommunityFeedService();
+  final PushFeedService _pushFeedService = PushFeedService();
+
+  HomeBody({
     super.key,
     required this.userModel,
     required this.candidateModel,
@@ -53,17 +62,11 @@ class HomeBody extends StatelessWidget {
             wardId: locationData['wardId']!,
           ),
 
-          const SizedBox(height: 24),
-
           // SECTION 3: PUSH FEED CARDS
           _buildPushFeedSection(context),
 
-          const SizedBox(height: 24),
-
           // SECTION 4: NORMAL FEED
           _buildNormalFeedSection(context),
-
-          const SizedBox(height: 32),
 
           // ===== EXISTING SECTIONS =====
           // Welcome Section
@@ -95,9 +98,12 @@ class HomeBody extends StatelessWidget {
 
   Map<String, String> _getLocationData() {
     // Priority: Candidate's location data
-    if (candidateModel?.districtId != null && candidateModel!.districtId.isNotEmpty &&
-        candidateModel?.bodyId != null && candidateModel!.bodyId.isNotEmpty &&
-        candidateModel?.wardId != null && candidateModel!.wardId.isNotEmpty) {
+    if (candidateModel?.districtId != null &&
+        candidateModel!.districtId.isNotEmpty &&
+        candidateModel?.bodyId != null &&
+        candidateModel!.bodyId.isNotEmpty &&
+        candidateModel?.wardId != null &&
+        candidateModel!.wardId.isNotEmpty) {
       return {
         'districtId': candidateModel!.districtId,
         'bodyId': candidateModel!.bodyId,
@@ -124,31 +130,26 @@ class HomeBody extends StatelessWidget {
     try {
       final locationData = _getLocationData();
 
-      // For now, return mock data - replace with actual service call
-      // TODO: Replace with actual push feed service call
-      return [
-        {
-          'title': 'Ward Meeting Tomorrow',
-          'message': 'Join us for the upcoming ward development meeting at 10 AM in ${locationData['wardId']}.',
-          'imageUrl': null,
-          'isSponsored': true,
-        },
-        {
-          'title': 'New Infrastructure Project',
-          'message': 'Exciting updates on the new road construction in our ${locationData['wardId']} area.',
-          'imageUrl': null,
-          'isSponsored': true,
-        },
-      ];
+      // Fetch actual sponsored updates from Firestore
+      final sponsoredUpdates = await _pushFeedService.getPushFeedForWard(
+        locationData['districtId']!,
+        locationData['bodyId']!,
+        locationData['wardId']!,
+      );
 
-      // Future implementation:
-      // final pushFeedService = PushFeedService();
-      // return await pushFeedService.getPushFeedForWard(
-      //   locationData['districtId']!,
-      //   locationData['bodyId']!,
-      //   locationData['wardId']!,
-      // );
-
+      // Convert SponsoredUpdate objects to the expected Map format
+      return sponsoredUpdates
+          .map(
+            (update) => {
+              'title': update.title,
+              'message': update.message,
+              'imageUrl': update.imageUrl,
+              'isSponsored': true,
+              'authorName': update.authorName,
+              'timestamp': update.timestamp,
+            },
+          )
+          .toList();
     } catch (e) {
       debugPrint('Error loading push feed data: $e');
       return [];
@@ -159,44 +160,67 @@ class HomeBody extends StatelessWidget {
     try {
       final locationData = _getLocationData();
 
-      // For now, return mock data with location context - replace with actual service call
-      // TODO: Replace with actual community feed service call
-      return [
-        {
-          'author': 'Rajesh Kumar',
-          'content': 'Great meeting with local residents today in ${locationData['wardId']}. Discussed important community issues.',
-          'timestamp': '2 hours ago',
-          'likes': 12,
-          'comments': 3,
-        },
-        {
-          'author': 'Priya Sharma',
-          'content': 'Attended the ward committee meeting in ${locationData['districtId']}. Good progress on infrastructure development.',
-          'timestamp': '4 hours ago',
-          'likes': 8,
-          'comments': 2,
-        },
-        {
-          'author': 'Amit Patel',
-          'content': 'Community cleanup drive was successful in ${locationData['wardId']}. Thanks to all volunteers!',
-          'timestamp': '6 hours ago',
-          'likes': 15,
-          'comments': 5,
-        },
-      ];
+      // Fetch actual community posts from Firestore
+      final communityPosts = await _communityFeedService
+          .getCommunityFeedForWard(
+            locationData['districtId']!,
+            locationData['bodyId']!,
+            locationData['wardId']!,
+          );
 
-      // Future implementation:
-      // final feedService = CommunityFeedService();
-      // return await feedService.getCommunityFeedForWard(
-      //   locationData['districtId']!,
-      //   locationData['bodyId']!,
-      //   locationData['wardId']!,
-      // );
-
+      // Convert CommunityPost objects to the expected Map format
+      return communityPosts
+          .map(
+            (post) => {
+              'author': post.authorName,
+              'content': post.content,
+              'timestamp': _formatTimestamp(post.timestamp),
+              'likes': post.likes,
+              'comments': post.comments,
+              'postId': post.id,
+              'authorId': post.authorId,
+            },
+          )
+          .toList();
     } catch (e) {
       debugPrint('Error loading normal feed data: $e');
       return [];
     }
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minutes ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  void _showCreatePostDialog(BuildContext context, {bool isSponsored = false}) {
+    final locationData = _getLocationData();
+    showDialog(
+      context: context,
+      builder: (context) => CreatePostDialog(
+        districtId: locationData['districtId']!,
+        bodyId: locationData['bodyId']!,
+        wardId: locationData['wardId']!,
+        isSponsored: isSponsored,
+      ),
+    ).then((result) {
+      if (result == true) {
+        // Show success message - the data will refresh on next load
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post created! Pull down to refresh.')),
+        );
+      }
+    });
   }
 
   Widget _buildWelcomeSection(BuildContext context) {
@@ -485,6 +509,14 @@ class HomeBody extends StatelessWidget {
           return const SizedBox.shrink(); // Hide section if no data
         }
 
+        // Track section view
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _trackSectionView(
+            'push_feed',
+            pushFeedItems.map((item) => item['id']?.toString() ?? '').toList(),
+          );
+        });
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -492,29 +524,42 @@ class HomeBody extends StatelessWidget {
               children: [
                 const Icon(Icons.campaign, color: Colors.orange, size: 24),
                 const SizedBox(width: 8),
-                Text(
-                  'Sponsored Updates',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                Expanded(
+                  child: Text(
+                    'Sponsored Updates',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
                   ),
                 ),
+                if (userModel?.role == 'candidate') ...[
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.orange),
+                    onPressed: () =>
+                        _showCreatePostDialog(context, isSponsored: true),
+                    tooltip: 'Create Sponsored Update',
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 16),
-            ...pushFeedItems.map((item) => Column(
-              children: [
-                _buildPushFeedCard(
-                  context,
-                  title: item['title'] ?? '',
-                  message: item['message'] ?? '',
-                  imageUrl: item['imageUrl'],
-                  isSponsored: item['isSponsored'] ?? true,
-                ),
-                const SizedBox(height: 12),
-              ],
-            )),
+            ...pushFeedItems.map(
+              (item) => Column(
+                children: [
+                  _buildPushFeedCard(
+                    context,
+                    title: item['title'] ?? '',
+                    message: item['message'] ?? '',
+                    imageUrl: item['imageUrl'],
+                    isSponsored: item['isSponsored'] ?? true,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         );
       },
@@ -539,6 +584,14 @@ class HomeBody extends StatelessWidget {
           return const SizedBox.shrink(); // Hide section if no data
         }
 
+        // Track section view
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _trackSectionView(
+            'normal_feed',
+            feedItems.map((item) => item['postId']?.toString() ?? '').toList(),
+          );
+        });
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -546,30 +599,41 @@ class HomeBody extends StatelessWidget {
               children: [
                 const Icon(Icons.article, color: Colors.blue, size: 24),
                 const SizedBox(width: 8),
-                Text(
-                  'Community Feed',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                Expanded(
+                  child: Text(
+                    'Community Feed',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add, color: Colors.blue),
+                  onPressed: () =>
+                      _showCreatePostDialog(context, isSponsored: false),
+                  tooltip: 'Create Community Post',
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ...feedItems.map((item) => Column(
-              children: [
-                _buildNormalFeedCard(
-                  context,
-                  author: item['author'] ?? '',
-                  content: item['content'] ?? '',
-                  timestamp: item['timestamp'] ?? '',
-                  likes: item['likes'] ?? 0,
-                  comments: item['comments'] ?? 0,
-                ),
-                const SizedBox(height: 12),
-              ],
-            )),
+            ...feedItems.map(
+              (item) => Column(
+                children: [
+                  _buildNormalFeedCard(
+                    context,
+                    author: item['author'] ?? '',
+                    content: item['content'] ?? '',
+                    timestamp: item['timestamp'] ?? '',
+                    likes: item['likes'] ?? 0,
+                    comments: item['comments'] ?? 0,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         );
       },
@@ -645,10 +709,7 @@ class HomeBody extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     message,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -730,10 +791,7 @@ class HomeBody extends StatelessWidget {
                       ),
                       Text(
                         timestamp,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -760,10 +818,7 @@ class HomeBody extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       likes.toString(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -774,10 +829,7 @@ class HomeBody extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       comments.toString(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -813,5 +865,39 @@ class HomeBody extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _trackSectionView(
+    String sectionType,
+    List<String> contentIds,
+  ) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null || contentIds.isEmpty) return;
+
+      final locationData = _getLocationData();
+
+      // Track view for each content item
+      for (final contentId in contentIds) {
+        if (contentId.isNotEmpty) {
+          await FirebaseFirestore.instance.collection('section_views').add({
+            'sectionType': sectionType,
+            'contentId': contentId,
+            'userId': userId,
+            'candidateId':
+                userModel?.uid ?? '', // For feed items, candidate is the author
+            'timestamp': FieldValue.serverTimestamp(),
+            'deviceInfo': {'platform': 'mobile', 'appVersion': '1.0.0'},
+            'location': {
+              'districtId': locationData['districtId'],
+              'bodyId': locationData['bodyId'],
+              'wardId': locationData['wardId'],
+            },
+          });
+        }
+      }
+    } catch (e) {
+      print('Error tracking section view: $e');
+    }
   }
 }

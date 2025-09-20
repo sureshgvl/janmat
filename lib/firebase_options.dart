@@ -63,8 +63,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '231534632940',
     projectId: 'janmat-8e831',
     storageBucket: 'janmat-8e831.firebasestorage.app',
-    iosClientId:
-        '231534632940-qni645u93bauc3ecnkvpm5jk6c5rs8td.apps.googleusercontent.com',
+    androidClientId: '231534632940-p736cr1r1rkp7in97p9ok75tjd0ql4sn.apps.googleusercontent.com',
+    iosClientId: '231534632940-qni645u93bauc3ecnkvpm5jk6c5rs8td.apps.googleusercontent.com',
     iosBundleId: 'com.sg.janmat',
   );
+
 }
