@@ -20,10 +20,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize chat lazily when screen loads, then fetch rooms
+    // Initialize chat lazily when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await controller.initializeChatIfNeeded();
-      controller.fetchChatRooms();
+      // fetchChatRooms() is already called in initializeChatIfNeeded(), no need to call again
     });
   }
 
@@ -133,24 +133,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
         builder: (controller) {
           if (controller.isLoading.value) {
             return Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.blue, Colors.blueAccent],
-                ),
-              ),
+              color: Colors.white, // Clean white background instead of blue gradient
               child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
+                    CircularProgressIndicator(), // Default color (blue) is fine on white
                     SizedBox(height: 24),
                     Text(
                       'Loading chat rooms...',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.white,
+                        color: Colors.black87, // Dark text on white background
                         fontWeight: FontWeight.w500,
                       ),
                     ),

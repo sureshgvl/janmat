@@ -61,13 +61,52 @@ class ChatRoomHelpers {
     }
   }
 
-  // Scroll to bottom of list
-  static void scrollToBottom(ScrollController scrollController) {
+  // Scroll to bottom of list with intelligent behavior
+  static void scrollToBottom(ScrollController scrollController, {
+    bool force = false,
+    Duration? duration,
+  }) {
+    if (!scrollController.hasClients) return;
+
+    final maxScroll = scrollController.position.maxScrollExtent;
+    final currentScroll = scrollController.position.pixels;
+    final viewportHeight = scrollController.position.viewportDimension;
+
+    // If force is true, always scroll to bottom
+    // Otherwise, only scroll if user is near the bottom (within 100px of bottom)
+    final shouldScroll = force || (maxScroll - currentScroll) < 100;
+
+    if (shouldScroll) {
+      scrollController.animateTo(
+        maxScroll,
+        duration: duration ?? const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic, // Smoother curve
+      );
+    }
+  }
+
+  // Check if user is near bottom of list
+  static bool isNearBottom(ScrollController scrollController, {double threshold = 100.0}) {
+    if (!scrollController.hasClients) return false;
+
+    final maxScroll = scrollController.position.maxScrollExtent;
+    final currentScroll = scrollController.position.pixels;
+
+    return (maxScroll - currentScroll) <= threshold;
+  }
+
+  // Scroll to specific position with smooth animation
+  static void scrollToPosition(
+    ScrollController scrollController,
+    double position, {
+    Duration duration = const Duration(milliseconds: 400),
+    Curve curve = Curves.easeInOutCubic,
+  }) {
     if (scrollController.hasClients) {
       scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+        position,
+        duration: duration,
+        curve: curve,
       );
     }
   }

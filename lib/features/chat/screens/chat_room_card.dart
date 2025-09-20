@@ -58,7 +58,7 @@ class ChatRoomCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title row with unread count
+                    // Title row - clean, no unread count here
                     Row(
                       children: [
                         Expanded(
@@ -77,63 +77,30 @@ class ChatRoomCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        // Unread count badge (WhatsApp style)
-                        if (displayInfo.hasUnreadMessages)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            constraints: const BoxConstraints(minWidth: 18),
-                            decoration: const BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(9),
-                              ),
-                            ),
-                            child: Text(
-                              displayInfo.unreadCount > 99
-                                  ? '99+'
-                                  : displayInfo.unreadCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
                       ],
                     ),
                     const SizedBox(height: 2),
 
                     // Subtitle with last message preview
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            displayInfo.lastMessagePreview ??
-                                ChatHelpers.getRoomDisplaySubtitle(chatRoom),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: displayInfo.hasUnreadMessages
-                                  ? Colors.black87
-                                  : const Color(0xFF6b7280),
-                              fontWeight: displayInfo.hasUnreadMessages
-                                  ? FontWeight.w500
-                                  : FontWeight.w400,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      displayInfo.lastMessagePreview ??
+                          ChatHelpers.getRoomDisplaySubtitle(chatRoom),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: displayInfo.hasUnreadMessages
+                            ? Colors.black87
+                            : const Color(0xFF6b7280),
+                        fontWeight: displayInfo.hasUnreadMessages
+                            ? FontWeight.w500
+                            : FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
 
-                    // Last activity time (WhatsApp style)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
+                    // Time row (separate from subtitle for better alignment)
+                    SizedBox(
+                      width: double.infinity, // Ensure full width
                       child: Text(
                         displayInfo.lastMessageTime != null
                             ? timeago.format(displayInfo.lastMessageTime!)
@@ -148,25 +115,57 @@ class ChatRoomCard extends StatelessWidget {
                 ),
               ),
 
-              // Room type indicator (small badge)
-              if (chatRoom.type == 'private')
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context)!.private,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF6b7280),
-                    ),
-                  ),
+              // Room type indicator and unread count (right-aligned)
+              if (chatRoom.type == 'private' || displayInfo.hasUnreadMessages)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (chatRoom.type == 'private')
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          AppLocalizations.of(context)!.private,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF6b7280),
+                          ),
+                        ),
+                      ),
+                    if (displayInfo.hasUnreadMessages)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 18),
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(9),
+                          ),
+                        ),
+                        child: Text(
+                          displayInfo.unreadCount > 99
+                              ? '99+'
+                              : displayInfo.unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
                 ),
             ],
           ),

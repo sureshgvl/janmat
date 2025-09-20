@@ -1,13 +1,15 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class MediaService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Upload media file to Firebase Storage
+  // Upload media file to Firebase Storage with automatic compression
   Future<String> uploadMediaFile(
     String roomId,
     String filePath,
@@ -15,16 +17,33 @@ class MediaService {
     String contentType,
   ) async {
     try {
+      debugPrint('📤 MediaService: Starting upload for: $fileName');
+
+      String finalFilePath = filePath;
+
+      // Compress images before upload
+      if (contentType.startsWith('image/')) {
+        debugPrint('🗜️ Compressing image before upload...');
+        final compressedPath = await compressImage(filePath);
+        if (compressedPath != null && compressedPath != filePath) {
+          finalFilePath = compressedPath;
+          debugPrint('✅ Using compressed image for upload');
+        }
+      }
+
       final storageRef = _storage.ref().child('chat_media/$roomId/$fileName');
       final uploadTask = storageRef.putFile(
-        File(filePath),
+        File(finalFilePath),
         SettableMetadata(contentType: contentType),
       );
 
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      debugPrint('✅ MediaService: Upload completed successfully');
       return downloadUrl;
     } catch (e) {
+      debugPrint('❌ MediaService: Upload failed: $e');
       throw Exception('Failed to upload media file: $e');
     }
   }
@@ -132,9 +151,53 @@ class MediaService {
     int maxWidth = 1920,
     int maxHeight = 1080,
   }) async {
-    // TODO: Implement image compression using flutter_image_compress
-    // For now, return original path
-    return filePath;
+    try {
+      debugPrint('🗜️ MediaService: Starting image compression for: $filePath');
+
+      // Get original file size
+      final originalFile = File(filePath);
+      final originalSize = await originalFile.length();
+      debugPrint('📊 Original file size: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+
+      // Skip compression for very small files
+      if (originalSize < 100 * 1024) { // Less than 100KB
+        debugPrint('⏭️ File too small for compression, skipping');
+        return filePath;
+      }
+
+      // Create compressed file path
+      final dir = await getTemporaryDirectory();
+      final fileName = path.basenameWithoutExtension(filePath);
+      final extension = path.extension(filePath);
+      final compressedPath = path.join(dir.path, '${fileName}_compressed$extension');
+
+      // Compress the image
+      final compressedFile = await FlutterImageCompress.compressAndGetFile(
+        filePath,
+        compressedPath,
+        quality: quality,
+        minWidth: 800,  // Minimum width to maintain quality
+        minHeight: 600, // Minimum height to maintain quality
+        format: extension.toLowerCase() == '.png' ? CompressFormat.png : CompressFormat.jpeg,
+      );
+
+      if (compressedFile != null) {
+        final compressedSize = await compressedFile.length();
+        final compressionRatio = ((originalSize - compressedSize) / originalSize * 100);
+        debugPrint('✅ Image compressed successfully');
+        debugPrint('📊 Compressed file size: ${(compressedSize / 1024 / 1024).toStringAsFixed(2)} MB');
+        debugPrint('📊 Compression ratio: ${compressionRatio.toStringAsFixed(1)}%');
+
+        return compressedFile.path;
+      } else {
+        debugPrint('⚠️ Image compression failed, using original file');
+        return filePath;
+      }
+    } catch (e) {
+      debugPrint('❌ Error compressing image: $e');
+      // Return original file if compression fails
+      return filePath;
+    }
   }
 
   // Generate thumbnail for video

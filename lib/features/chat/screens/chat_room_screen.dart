@@ -25,14 +25,77 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final ScrollController scrollController = ScrollController();
   int _previousMessageCount = 0;
 
+  // Group messages by date for date separators
+  List<dynamic> _groupedMessages = [];
+
+  // Helper method to group messages by date
+  void _groupMessagesByDate(List<Message> messages) {
+    _groupedMessages.clear();
+
+    if (messages.isEmpty) return;
+
+    // Sort messages by timestamp (should already be sorted, but ensure it)
+    final sortedMessages = List<Message>.from(messages)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    String? currentDate;
+    List<Message> currentGroup = [];
+
+    for (final message in sortedMessages) {
+      final messageDate = _formatMessageDate(message.createdAt);
+
+      if (currentDate != messageDate) {
+        // Save previous group if exists
+        if (currentGroup.isNotEmpty) {
+          _groupedMessages.add({'type': 'messages', 'messages': currentGroup});
+        }
+
+        // Start new date group
+        _groupedMessages.add({'type': 'date', 'date': messageDate});
+        currentDate = messageDate;
+        currentGroup = [message];
+      } else {
+        // Add to current group
+        currentGroup.add(message);
+      }
+    }
+
+    // Add the last group
+    if (currentGroup.isNotEmpty) {
+      _groupedMessages.add({'type': 'messages', 'messages': currentGroup});
+    }
+  }
+
+  // Helper method to format date for display
+  String _formatMessageDate(DateTime dateTime) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+    final difference = today.difference(messageDate).inDays;
+
+    if (difference == 0) {
+      return 'Today';
+    } else if (difference == 1) {
+      return 'Yesterday';
+    } else if (difference < 7) {
+      // Return day name for this week
+      final weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return weekdays[dateTime.weekday - 1];
+    } else {
+      // Return formatted date for older messages
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     // Select the chat room when entering
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.selectChatRoom(widget.chatRoom);
-      _scrollToBottom();
-      _markVisibleMessagesAsRead();
+      // Use smart scroll for initial load - always scroll to bottom
+      _scrollToBottom(force: true);
     });
   }
 
@@ -208,25 +271,56 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   // Check if messages increased (new message received)
                   if (messages.length > _previousMessageCount) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _scrollToBottom();
+                      // Use smart scroll for new messages - only scroll if user is near bottom
+                      _smartScrollToBottom();
                     });
                   }
                   _previousMessageCount = messages.length;
 
+                  // Group messages by date for date separators
+                  _groupMessagesByDate(messages);
+
+                  // Add load more button at the top if there are more messages
+                  final hasMoreMessages = messageController.hasMoreMessages.value;
+                  final isLoadingMore = messageController.isLoadingMore.value;
+
                   return ListView.builder(
                     controller: scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: messages.length,
+                    itemCount: _groupedMessages.length + (hasMoreMessages ? 1 : 0),
                     itemBuilder: (context, index) {
-                      final message = messages[index];
-                      final isCurrentUser =
-                          message.senderId == controller.currentUser?.uid;
+                      // Load more button at the top
+                      if (index == 0 && hasMoreMessages) {
+                        return _buildLoadMoreButton(messageController, widget.chatRoom.roomId, isLoadingMore);
+                      }
 
-                      debugPrint(
-                        '🔄 ChatRoomScreen: Rendering message ${index + 1}/${messages.length} - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}, Status: ${message.status}',
-                      );
+                      // Adjust index for the load more button
+                      final adjustedIndex = hasMoreMessages ? index - 1 : index;
 
-                      return _buildMessageBubble(message, isCurrentUser);
+                      if (adjustedIndex < _groupedMessages.length) {
+                        final item = _groupedMessages[adjustedIndex];
+
+                        if (item['type'] == 'date') {
+                          // Date separator
+                          return _buildDateSeparator(item['date']);
+                        } else if (item['type'] == 'messages') {
+                          // Messages group
+                          final messagesGroup = item['messages'] as List<Message>;
+                          return Column(
+                            children: messagesGroup.map((message) {
+                              final isCurrentUser = message.senderId == controller.currentUser?.uid;
+
+                              debugPrint(
+                                '🔄 ChatRoomScreen: Rendering message - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}, Status: ${message.status}',
+                              );
+
+                              return _buildMessageBubble(message, isCurrentUser);
+                            }).toList(),
+                          );
+                        }
+                      }
+
+                      return const SizedBox.shrink();
                     },
                   );
                 });
@@ -314,6 +408,80 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  Widget _buildDateSeparator(String dateText) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(
+              color: Colors.grey.shade300,
+              thickness: 1,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Text(
+              dateText,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Divider(
+              color: Colors.grey.shade300,
+              thickness: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreButton(MessageController messageController, String roomId, bool isLoading) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Center(
+        child: ElevatedButton.icon(
+          onPressed: isLoading
+              ? null
+              : () => messageController.loadMoreMessages(roomId),
+          icon: isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(Icons.history, size: 16),
+          label: Text(
+            isLoading ? 'Loading...' : 'Load Earlier Messages',
+            style: const TextStyle(fontSize: 12),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue.shade600,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showPollVotingDialog(Message message, String pollId) {
     showDialog(
       context: context,
@@ -352,7 +520,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       debugPrint('✅ ChatRoomScreen: controller.sendTextMessage completed');
 
       messageController.clear(); // Clear the text controller
-      _scrollToBottom();
+      // Use smart scroll for new messages - only scroll if user is near bottom
+      _smartScrollToBottom();
     } else {
       debugPrint('⚠️ ChatRoomScreen: Cannot send message - conditions not met');
       debugPrint('   Text: "$text" (length: ${text.length})');
@@ -480,12 +649,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     Get.back();
   }
 
-  void _scrollToBottom() {
-    ChatRoomHelpers.scrollToBottom(scrollController);
+  void _scrollToBottom({bool force = false}) {
+    ChatRoomHelpers.scrollToBottom(scrollController, force: force);
     // Mark messages as read after scrolling
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markVisibleMessagesAsRead();
     });
+  }
+
+  // Enhanced scroll to bottom with smart behavior
+  void _smartScrollToBottom() {
+    // Check if user is already near bottom before scrolling
+    final isNearBottom = ChatRoomHelpers.isNearBottom(scrollController);
+
+    if (isNearBottom) {
+      // User is near bottom, scroll smoothly
+      _scrollToBottom(force: true);
+    } else {
+      // User is scrolled up, don't auto-scroll to avoid interrupting reading
+      debugPrint('User is scrolled up, skipping auto-scroll to preserve reading position');
+    }
   }
 
   Future<void> _markMessageAsRead(String messageId, String userId) async {

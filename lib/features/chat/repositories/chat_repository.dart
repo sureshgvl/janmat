@@ -587,6 +587,71 @@ class ChatRepository {
         });
   }
 
+  // Get paginated messages for a chat room (for loading older messages)
+  Future<List<Message>> getMessagesForRoomPaginated(
+    String roomId, {
+    int limit = 20,
+    DateTime? startAfter,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection('chats')
+          .doc(roomId)
+          .collection('messages')
+          .orderBy('createdAt', descending: true) // Newest first for pagination
+          .limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfter([Timestamp.fromDate(startAfter)]);
+      }
+
+      final snapshot = await query.get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return null;
+
+        data['messageId'] = doc.id;
+
+        // Ensure status field exists, default to sent if missing
+        if (!data.containsKey('status') || data['status'] == null) {
+          data['status'] = 1; // MessageStatus.sent.index
+          debugPrint('⚠️ Message ${doc.id} missing status field, defaulting to sent');
+        }
+
+        return Message.fromJson(data);
+      }).where((message) => message != null).cast<Message>().toList();
+    } catch (e) {
+      debugPrint('❌ Error loading paginated messages: $e');
+      return [];
+    }
+  }
+
+  // Get the oldest message timestamp for pagination
+  Future<DateTime?> getOldestMessageTimestamp(String roomId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('chats')
+          .doc(roomId)
+          .collection('messages')
+          .orderBy('createdAt', descending: false)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        final timestamp = data['createdAt'];
+        if (timestamp is Timestamp) {
+          return timestamp.toDate();
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error getting oldest message timestamp: $e');
+      return null;
+    }
+  }
+
   // Send a message
   Future<Message> sendMessage(String roomId, Message message) async {
     try {

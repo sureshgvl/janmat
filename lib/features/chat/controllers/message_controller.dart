@@ -9,12 +9,14 @@ import '../models/chat_message.dart';
 import '../models/user_quota.dart';
 import '../services/local_message_service.dart';
 import '../services/media_service.dart';
+import '../services/offline_message_queue.dart';
 import '../repositories/chat_repository.dart';
 
 class MessageController extends GetxController {
   final ChatRepository _repository = ChatRepository();
   final LocalMessageService _localMessageService = LocalMessageService();
   final MediaService _mediaService = MediaService();
+  final OfflineMessageQueue _offlineQueue = OfflineMessageQueue();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
   // Voice recording state
@@ -25,12 +27,22 @@ class MessageController extends GetxController {
   void onInit() {
     super.onInit();
     _localMessageService.initialize();
+    _offlineQueue.initialize();
     _loadUserQuota();
+
+    // Set up offline queue callbacks
+    _setupOfflineQueueCallbacks();
   }
 
   // Message state
   var messages = <Message>[].obs;
   var userQuota = Rx<UserQuota?>(null);
+
+  // Pagination state
+  var isLoadingMore = false.obs;
+  var hasMoreMessages = true.obs;
+  var oldestMessageTimestamp = Rx<DateTime?>(null);
+  static const int messagesPerPage = 20;
 
   // Message sending
   Future<void> sendTextMessage(
@@ -62,22 +74,39 @@ class MessageController extends GetxController {
   }
 
   Future<void> _sendMessageToServer(Message message, String roomId) async {
-    try {
-      // Send to server with quota handling
-      await _repository.sendMessage(roomId, message);
+    // Use offline queue for reliable message delivery
+    await _offlineQueue.queueMessage(
+      message,
+      roomId,
+      (msg, rId) async {
+        // This function will be called by the offline queue
+        await _repository.sendMessage(rId, msg);
+        await _updateUserQuotaAfterMessage();
+      },
+    );
 
-      // Update local quota if needed
-      await _updateUserQuotaAfterMessage();
+    debugPrint('MessageController: Message queued for sending: ${message.messageId}');
+  }
 
-      // Update status to sent in UI
-      updateMessageStatus(message.messageId, MessageStatus.sent);
+  // Set up offline queue callbacks
+  void _setupOfflineQueueCallbacks() {
+    _offlineQueue.onMessageQueued = (queuedMessage) {
+      debugPrint('📋 MessageController: Message queued for offline sending: ${queuedMessage.message.messageId}');
+      // Update UI to show queued status
+      updateMessageStatus(queuedMessage.message.messageId, MessageStatus.sending);
+    };
 
-      debugPrint('MessageController: Message sent successfully');
-    } catch (e) {
-      // Update status to failed in UI
-      updateMessageStatus(message.messageId, MessageStatus.failed);
-      debugPrint('MessageController: Failed to send message: $e');
-    }
+    _offlineQueue.onMessageSent = (queuedMessage) {
+      debugPrint('✅ MessageController: Queued message sent successfully: ${queuedMessage.message.messageId}');
+      // Update UI to show sent status
+      updateMessageStatus(queuedMessage.message.messageId, MessageStatus.sent);
+    };
+
+    _offlineQueue.onMessageFailed = (queuedMessage, error) {
+      debugPrint('❌ MessageController: Queued message failed: ${queuedMessage.message.messageId} - $error');
+      // Update UI to show failed status
+      updateMessageStatus(queuedMessage.message.messageId, MessageStatus.failed);
+    };
   }
 
   // Load user quota
@@ -213,46 +242,44 @@ class MessageController extends GetxController {
     String roomId,
     String imagePath,
   ) async {
-    try {
-      // Upload to Firebase Storage
-      final fileName = path.basename(imagePath);
-      final remoteUrl = await _mediaService.uploadMediaFile(
-        roomId,
-        imagePath,
-        fileName,
-        'image/jpeg',
-      );
+    // Use offline queue for reliable image message delivery
+    await _offlineQueue.queueMessage(
+      message,
+      roomId,
+      (msg, rId) async {
+        // Upload to Firebase Storage
+        final fileName = path.basename(imagePath);
+        final remoteUrl = await _mediaService.uploadMediaFile(
+          rId,
+          imagePath,
+          fileName,
+          'image/jpeg',
+        );
 
-      // Update message with remote URL
-      await _localMessageService.updateMessageMediaUrl(
-        message.messageId,
-        remoteUrl,
-      );
+        // Update message with remote URL
+        await _localMessageService.updateMessageMediaUrl(
+          msg.messageId,
+          remoteUrl,
+        );
 
-      // Send to server
-      await _repository.sendMessage(
-        roomId,
-        message.copyWith(mediaUrl: remoteUrl),
-      );
+        // Send to server
+        await _repository.sendMessage(
+          rId,
+          msg.copyWith(mediaUrl: remoteUrl),
+        );
 
-      // Update local quota
-      await _updateUserQuotaAfterMessage();
+        // Update local quota
+        await _updateUserQuotaAfterMessage();
 
-      // Update status to sent
-      await _localMessageService.updateMessageStatus(
-        message.messageId,
-        MessageStatus.sent,
-      );
+        // Update status to sent
+        await _localMessageService.updateMessageStatus(
+          msg.messageId,
+          MessageStatus.sent,
+        );
+      },
+    );
 
-      debugPrint('MessageController: Image message sent successfully');
-    } catch (e) {
-      // Update status to failed
-      await _localMessageService.updateMessageStatus(
-        message.messageId,
-        MessageStatus.failed,
-      );
-      debugPrint('MessageController: Failed to send image message: $e');
-    }
+    debugPrint('MessageController: Image message queued for sending: ${message.messageId}');
   }
 
   Future<void> sendVoiceMessage(
@@ -284,46 +311,44 @@ class MessageController extends GetxController {
     String roomId,
     String audioPath,
   ) async {
-    try {
-      // Upload to Firebase Storage
-      final fileName = path.basename(audioPath);
-      final remoteUrl = await _mediaService.uploadMediaFile(
-        roomId,
-        audioPath,
-        fileName,
-        'audio/m4a',
-      );
+    // Use offline queue for reliable voice message delivery
+    await _offlineQueue.queueMessage(
+      message,
+      roomId,
+      (msg, rId) async {
+        // Upload to Firebase Storage
+        final fileName = path.basename(audioPath);
+        final remoteUrl = await _mediaService.uploadMediaFile(
+          rId,
+          audioPath,
+          fileName,
+          'audio/m4a',
+        );
 
-      // Update message with remote URL
-      await _localMessageService.updateMessageMediaUrl(
-        message.messageId,
-        remoteUrl,
-      );
+        // Update message with remote URL
+        await _localMessageService.updateMessageMediaUrl(
+          msg.messageId,
+          remoteUrl,
+        );
 
-      // Send to server
-      await _repository.sendMessage(
-        roomId,
-        message.copyWith(mediaUrl: remoteUrl),
-      );
+        // Send to server
+        await _repository.sendMessage(
+          rId,
+          msg.copyWith(mediaUrl: remoteUrl),
+        );
 
-      // Update local quota
-      await _updateUserQuotaAfterMessage();
+        // Update local quota
+        await _updateUserQuotaAfterMessage();
 
-      // Update status to sent
-      await _localMessageService.updateMessageStatus(
-        message.messageId,
-        MessageStatus.sent,
-      );
+        // Update status to sent
+        await _localMessageService.updateMessageStatus(
+          msg.messageId,
+          MessageStatus.sent,
+        );
+      },
+    );
 
-      debugPrint('MessageController: Voice message sent successfully');
-    } catch (e) {
-      // Update status to failed
-      await _localMessageService.updateMessageStatus(
-        message.messageId,
-        MessageStatus.failed,
-      );
-      debugPrint('MessageController: Failed to send voice message: $e');
-    }
+    debugPrint('MessageController: Voice message queued for sending: ${message.messageId}');
   }
 
   // Message reactions
@@ -464,21 +489,65 @@ class MessageController extends GetxController {
     }
   }
 
-  // Load messages for room
+  // Load messages for room (initial load with pagination)
   Future<void> loadMessagesForRoom(String roomId) async {
+    // Reset pagination state
+    hasMoreMessages.value = true;
+    oldestMessageTimestamp.value = null;
+
     // First load from local storage
     final localMessages = _localMessageService.getMessagesForRoom(roomId);
     if (localMessages.isNotEmpty) {
       messages.assignAll(localMessages);
+      // Set oldest timestamp for pagination
+      if (localMessages.isNotEmpty) {
+        oldestMessageTimestamp.value = localMessages.first.createdAt;
+      }
     }
 
-    // Then listen to real-time updates
+    // Then listen to real-time updates (only recent messages)
     _repository.getMessagesForRoom(roomId).listen((serverMessages) {
       // Merge with current messages (not just local messages)
       final mergedMessages = _mergeMessages(messages, serverMessages);
       messages.assignAll(mergedMessages);
       update(); // Force UI update
     });
+  }
+
+  // Load more messages (pagination)
+  Future<void> loadMoreMessages(String roomId) async {
+    if (isLoadingMore.value || !hasMoreMessages.value) return;
+
+    isLoadingMore.value = true;
+
+    try {
+      debugPrint('📄 Loading more messages for room: $roomId');
+
+      // Load older messages using pagination
+      final olderMessages = await _repository.getMessagesForRoomPaginated(
+        roomId,
+        limit: messagesPerPage,
+        startAfter: oldestMessageTimestamp.value,
+      );
+
+      if (olderMessages.isEmpty) {
+        // No more messages to load
+        hasMoreMessages.value = false;
+        debugPrint('📄 No more messages to load');
+      } else {
+        // Add older messages to the beginning
+        messages.insertAll(0, olderMessages);
+
+        // Update oldest timestamp for next pagination
+        oldestMessageTimestamp.value = olderMessages.last.createdAt;
+
+        debugPrint('📄 Loaded ${olderMessages.length} more messages, total: ${messages.length}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading more messages: $e');
+    } finally {
+      isLoadingMore.value = false;
+    }
   }
 
   List<Message> _mergeMessages(
@@ -571,9 +640,23 @@ class MessageController extends GetxController {
     return DateTime.now().millisecondsSinceEpoch.toString();
   }
 
+  // Offline queue management methods
+  Map<String, dynamic> getOfflineQueueStats() {
+    return _offlineQueue.getQueueStats();
+  }
+
+  Future<void> retryAllFailedMessages() async {
+    await _offlineQueue.retryAllFailed();
+  }
+
+  Future<void> clearOldQueuedMessages({int daysOld = 7}) async {
+    await _offlineQueue.clearOldMessages(daysOld: daysOld);
+  }
+
   // Clean up
   @override
   void onClose() {
+    _offlineQueue.dispose();
     messages.clear();
     super.onClose();
   }
