@@ -226,15 +226,32 @@ class ChatRepository {
         debugPrint(
           '🔍 BREAKPOINT REPO-7: Non-admin user - fetching public rooms',
         );
-        query = query.where('type', isEqualTo: 'public');
-        final snapshot = await query.get();
-        allRooms = snapshot.docs.map((doc) {
+
+        // Get public rooms
+        final publicQuery = query.where('type', isEqualTo: 'public');
+        final publicSnapshot = await publicQuery.get();
+        final publicRooms = publicSnapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           data['roomId'] = doc.id;
           return ChatRoom.fromJson(data);
         }).toList();
+
+        // Get private rooms where user is a member
+        final privateQuery = _firestore
+            .collection('chats')
+            .where('type', isEqualTo: 'private')
+            .where('members', arrayContains: userId);
+        final privateSnapshot = await privateQuery.get();
+        final privateRooms = privateSnapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          data['roomId'] = doc.id;
+          return ChatRoom.fromJson(data);
+        }).toList();
+
+        // Combine public and private rooms
+        allRooms = [...publicRooms, ...privateRooms];
         debugPrint(
-          '🔍 BREAKPOINT REPO-7: Fetched ${allRooms.length} public rooms',
+          '🔍 BREAKPOINT REPO-7: Fetched ${publicRooms.length} public + ${privateRooms.length} private = ${allRooms.length} total rooms',
         );
 
         // Filter based on user role and location
@@ -263,13 +280,16 @@ class ChatRepository {
                 room.roomId.startsWith('candidate_') &&
                 room.createdBy == userId;
 
+            // Include private chats where user is a member
+            final isPrivateChat = room.type == 'private' && room.members != null && room.members!.contains(userId);
+
             // Include rooms that are relevant to this candidate's location or their own candidate room
             final shouldInclude =
-                isOwnRoom || isWardRoom || isAreaRoom || isCandidateRoom;
+                isOwnRoom || isWardRoom || isAreaRoom || isCandidateRoom || isPrivateChat;
 
             if (shouldInclude) {
               debugPrint(
-                '🔍 BREAKPOINT REPO-8: Including room: ${room.roomId} (own: $isOwnRoom, ward: $isWardRoom, area: $isAreaRoom, candidate: $isCandidateRoom)',
+                '🔍 BREAKPOINT REPO-8: Including room: ${room.roomId} (own: $isOwnRoom, ward: $isWardRoom, area: $isAreaRoom, candidate: $isCandidateRoom, private: $isPrivateChat)',
               );
             }
 
@@ -341,6 +361,14 @@ class ChatRepository {
               if (relevantCandidateIds.contains(room.createdBy)) {
                 debugPrint(
                   '🔍 BREAKPOINT REPO-9: Including followed candidate room: ${room.roomId} by ${room.createdBy}',
+                );
+                return true;
+              }
+
+              // Include private chats where user is a member
+              if (room.type == 'private' && room.members != null && room.members!.contains(userId)) {
+                debugPrint(
+                  '🔍 BREAKPOINT REPO-9: Including private chat: ${room.roomId}',
                 );
                 return true;
               }
@@ -463,8 +491,16 @@ class ChatRepository {
         }
       });
 
-      // Invalidate cache for the creator
+      // Invalidate cache for all members (important for private chats)
       invalidateUserCache(chatRoom.createdBy);
+      if (memberIds.isNotEmpty) {
+        for (final memberId in memberIds) {
+          if (memberId != chatRoom.createdBy) {
+            invalidateUserCache(memberId);
+            debugPrint('🗑️ Invalidated cache for member: $memberId');
+          }
+        }
+      }
 
       debugPrint('✅ BATCH: Room created with initial members');
       return chatRoom;
@@ -539,6 +575,13 @@ class ChatRepository {
           return snapshot.docs.map((doc) {
             final data = doc.data();
             data['messageId'] = doc.id;
+
+            // Ensure status field exists, default to sent if missing
+            if (!data.containsKey('status') || data['status'] == null) {
+              data['status'] = 1; // MessageStatus.sent.index
+              debugPrint('⚠️ Message ${doc.id} missing status field, defaulting to sent');
+            }
+
             return Message.fromJson(data);
           }).toList();
         });
@@ -1431,6 +1474,79 @@ class ChatRepository {
       debugPrint('Error fetching area name: $e');
     }
     return 'Area $areaId';
+  }
+
+  // Typing status management
+  Future<void> updateTypingStatus(String roomId, String userId, String userName, bool isTyping) async {
+    try {
+      final typingRef = _firestore.collection('typing_status').doc('${roomId}_$userId');
+
+      if (isTyping) {
+        await typingRef.set({
+          'userId': userId,
+          'roomId': roomId,
+          'userName': userName,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await typingRef.delete();
+      }
+    } catch (e) {
+      debugPrint('Error updating typing status: $e');
+    }
+  }
+
+  // Get typing status stream for a room
+  Stream<List<TypingStatus>> getTypingStatusForRoom(String roomId) {
+    return _firestore
+        .collection('typing_status')
+        .where('roomId', isEqualTo: roomId)
+        .snapshots()
+        .map((snapshot) {
+          final now = DateTime.now();
+          return snapshot.docs
+              .map((doc) {
+                final data = doc.data();
+                data['timestamp'] = data['timestamp']?.toDate()?.toIso8601String() ?? now.toIso8601String();
+                return TypingStatus.fromJson(data);
+              })
+              .where((status) => !status.isExpired)
+              .toList();
+        });
+  }
+
+  // Clean up expired typing statuses (call periodically)
+  Future<void> cleanupExpiredTypingStatuses() async {
+    try {
+      final cutoffTime = DateTime.now().subtract(const Duration(seconds: 5));
+      final expiredDocs = await _firestore
+          .collection('typing_status')
+          .where('timestamp', isLessThan: Timestamp.fromDate(cutoffTime))
+          .get();
+
+      final batch = _firestore.batch();
+      for (final doc in expiredDocs.docs) {
+        batch.delete(doc.reference);
+      }
+
+      if (expiredDocs.docs.isNotEmpty) {
+        await batch.commit();
+        debugPrint('Cleaned up ${expiredDocs.docs.length} expired typing statuses');
+      }
+    } catch (e) {
+      debugPrint('Error cleaning up typing statuses: $e');
+    }
+  }
+
+  // Clear typing status for a specific user in a room
+  Future<void> clearTypingStatus(String roomId, String userId) async {
+    try {
+      final typingRef = _firestore.collection('typing_status').doc('${roomId}_$userId');
+      await typingRef.delete();
+      debugPrint('🧹 Cleared typing status for user $userId in room $roomId');
+    } catch (e) {
+      debugPrint('Error clearing typing status: $e');
+    }
   }
 
   // Get unread message count for user

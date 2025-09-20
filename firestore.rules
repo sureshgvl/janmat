@@ -274,5 +274,18 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
       allow write: if request.auth != null; // Authenticated users can write view events
     }
+
+    // Typing status collection - for real-time typing indicators
+    match /typing_status/{statusId} {
+      allow read: if request.auth != null; // Authenticated users can read typing status
+      allow write: if request.auth != null; // Authenticated users can write typing status
+      allow delete: if request.auth != null; // Authenticated users can delete typing status
+    }
+
+    // Poll index collection - for poll lookup optimization
+    match /poll_index/{pollId} {
+      allow read: if request.auth != null; // Authenticated users can read poll index
+      allow write: if request.auth != null; // Authenticated users can write poll index
+    }
   }
 }

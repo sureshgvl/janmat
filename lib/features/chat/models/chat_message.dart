@@ -2,6 +2,44 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MessageStatus { sending, sent, failed }
 
+class TypingStatus {
+  final String userId;
+  final String roomId;
+  final DateTime timestamp;
+  final String? userName;
+
+  TypingStatus({
+    required this.userId,
+    required this.roomId,
+    required this.timestamp,
+    this.userName,
+  });
+
+  factory TypingStatus.fromJson(Map<String, dynamic> json) {
+    return TypingStatus(
+      userId: json['userId'] ?? '',
+      roomId: json['roomId'] ?? '',
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'])
+          : DateTime.now(),
+      userName: json['userName'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'roomId': roomId,
+      'timestamp': timestamp.toIso8601String(),
+      'userName': userName,
+    };
+  }
+
+  bool get isExpired {
+    return DateTime.now().difference(timestamp).inSeconds > 3;
+  }
+}
+
 class MessageReaction {
   final String emoji;
   final String userId;

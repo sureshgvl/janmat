@@ -47,11 +47,15 @@ class MessageController extends GetxController {
       type: 'text',
       createdAt: DateTime.now(),
       readBy: [senderId],
+      status: MessageStatus.sending, // Mark as sending initially
     );
 
-    // Save locally immediately and add to UI
-    await _localMessageService.saveMessage(message, roomId);
-    messages.add(message);
+    debugPrint(
+      '📤 MessageController: sendTextMessage called - Message ID: ${message.messageId}, Text: "${message.text}", Room: $roomId',
+    );
+
+    // Note: Message is added to UI by ChatController.addMessageToUI
+    // Don't add here to prevent duplicates
 
     // Send to server asynchronously (don't block UI)
     _sendMessageToServer(message, roomId);
@@ -65,17 +69,13 @@ class MessageController extends GetxController {
       // Update local quota if needed
       await _updateUserQuotaAfterMessage();
 
-      // Update status to sent
-      await _localMessageService.updateMessageStatus(
-        message.messageId,
-        MessageStatus.sent,
-      );
+      // Update status to sent in UI
+      updateMessageStatus(message.messageId, MessageStatus.sent);
+
+      debugPrint('MessageController: Message sent successfully');
     } catch (e) {
-      // Update status to failed
-      await _localMessageService.updateMessageStatus(
-        message.messageId,
-        MessageStatus.failed,
-      );
+      // Update status to failed in UI
+      updateMessageStatus(message.messageId, MessageStatus.failed);
       debugPrint('MessageController: Failed to send message: $e');
     }
   }
@@ -420,11 +420,31 @@ class MessageController extends GetxController {
 
   // Add message to UI immediately (for local storage)
   Future<void> addMessageToUI(Message message, String roomId) async {
+    debugPrint(
+      '📝 MessageController: addMessageToUI called - Message ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}',
+    );
+
     await _localMessageService.saveMessage(message, roomId);
+
+    // Check if message already exists before adding
+    final existingIndex = messages.indexWhere((m) => m.messageId == message.messageId);
+    if (existingIndex != -1) {
+      debugPrint(
+        '⚠️ MessageController: Message ${message.messageId} already exists at index $existingIndex, skipping duplicate add',
+      );
+      return;
+    }
+
     messages.add(message);
     debugPrint(
-      '📝 MessageController: Added message to UI, total messages: ${messages.length}',
+      '✅ MessageController: Added message ${message.messageId} to UI, total messages: ${messages.length}',
     );
+
+    // Log all current messages for debugging
+    for (int i = 0; i < messages.length; i++) {
+      debugPrint('   Message $i: ID=${messages[i].messageId}, Text="${messages[i].text}"');
+    }
+
     update(); // Force UI update
   }
 
@@ -454,9 +474,10 @@ class MessageController extends GetxController {
 
     // Then listen to real-time updates
     _repository.getMessagesForRoom(roomId).listen((serverMessages) {
-      // Merge with local messages
-      final mergedMessages = _mergeMessages(localMessages, serverMessages);
+      // Merge with current messages (not just local messages)
+      final mergedMessages = _mergeMessages(messages, serverMessages);
       messages.assignAll(mergedMessages);
+      update(); // Force UI update
     });
   }
 
@@ -464,20 +485,86 @@ class MessageController extends GetxController {
     List<Message> localMessages,
     List<Message> serverMessages,
   ) {
+    debugPrint('🔄 MessageController: Starting merge process...');
+    debugPrint('   Local messages: ${localMessages.length}');
+    debugPrint('   Server messages: ${serverMessages.length}');
+
     final merged = <String, Message>{};
+    final contentKeyMap = <String, String>{}; // Map content key to message ID
 
-    // Add local messages
-    for (final message in localMessages) {
-      merged[message.messageId] = message;
+    // Helper function to create content key for duplicate detection
+    String _createContentKey(Message msg) {
+      // Use sender + text + timestamp (within 5 seconds) as duplicate key
+      final timestampKey = (msg.createdAt.millisecondsSinceEpoch ~/ 5000).toString();
+      return '${msg.senderId}_${msg.text}_$timestampKey';
     }
 
-    // Override with server messages
+    // Add server messages first (they have the most up-to-date data)
     for (final message in serverMessages) {
-      merged[message.messageId] = message;
+      final contentKey = _createContentKey(message);
+
+      // Ensure server message has a valid status (default to sent if missing)
+      final serverMessage = message.status != null ? message : message.copyWith(status: MessageStatus.sent);
+
+      merged[message.messageId] = serverMessage;
+      contentKeyMap[contentKey] = message.messageId;
+      debugPrint('   Added server message: ${message.messageId} - "${message.text}" (status: ${serverMessage.status}, key: $contentKey)');
     }
 
-    return merged.values.toList()
+    // Add local messages only if they don't exist in server messages
+    // Check both by ID and by content to prevent duplicates
+    for (final message in localMessages) {
+      final contentKey = _createContentKey(message);
+
+      if (!merged.containsKey(message.messageId) && !contentKeyMap.containsKey(contentKey)) {
+        merged[message.messageId] = message;
+        contentKeyMap[contentKey] = message.messageId;
+        debugPrint('   Added local message: ${message.messageId} - "${message.text}" (key: $contentKey)');
+      } else {
+        // If server message exists (either by ID or content), check if we need to update status
+        final existingId = merged.containsKey(message.messageId)
+            ? message.messageId
+            : contentKeyMap[contentKey];
+
+        if (existingId != null) {
+          final serverMessage = merged[existingId]!;
+          debugPrint('   Local message ${message.messageId} matches server message $existingId, checking status...');
+          debugPrint('   Local status: ${message.status}, Server status: ${serverMessage.status}');
+
+          // Status resolution logic:
+          // 1. If server is sent/failed, always use server (most authoritative)
+          // 2. If server is sending but local is sent/failed, use local (local update happened)
+          // 3. If both are sending, use server (to avoid conflicts)
+          if (serverMessage.status == MessageStatus.sent || serverMessage.status == MessageStatus.failed) {
+            // Server has final status, use it
+            merged[existingId] = serverMessage;
+            debugPrint('   Using server status (final) for message ${existingId}');
+          } else if ((message.status == MessageStatus.sent || message.status == MessageStatus.failed) &&
+                     serverMessage.status == MessageStatus.sending) {
+            // Local has final status but server doesn't, use local
+            merged[existingId] = message;
+            debugPrint('   Using local status (final) for message ${existingId}');
+          } else {
+            // Both are sending or other cases, prefer server for consistency
+            merged[existingId] = serverMessage;
+            debugPrint('   Using server status (default) for message ${existingId}');
+          }
+        }
+      }
+    }
+
+    // Sort by creation time
+    final sortedMessages = merged.values.toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    debugPrint('📝 MessageController: Merged ${localMessages.length} local + ${serverMessages.length} server = ${sortedMessages.length} unique messages');
+
+    // Log final merged messages
+    for (int i = 0; i < sortedMessages.length; i++) {
+      debugPrint('   Final message $i: ${sortedMessages[i].messageId} - "${sortedMessages[i].text}" (status: ${sortedMessages[i].status})');
+    }
+
+    return sortedMessages;
   }
 
   String _generateMessageId() {

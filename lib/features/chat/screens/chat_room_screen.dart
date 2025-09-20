@@ -32,6 +32,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.selectChatRoom(widget.chatRoom);
       _scrollToBottom();
+      _markVisibleMessagesAsRead();
     });
   }
 
@@ -220,6 +221,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       final message = messages[index];
                       final isCurrentUser =
                           message.senderId == controller.currentUser?.uid;
+
+                      debugPrint(
+                        '🔄 ChatRoomScreen: Rendering message ${index + 1}/${messages.length} - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}, Status: ${message.status}',
+                      );
+
                       return _buildMessageBubble(message, isCurrentUser);
                     },
                   );
@@ -228,10 +234,74 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ),
 
+          // Typing indicators
+          _buildTypingIndicators(),
+
           // Message input
           _buildMessageInput(),
         ],
       ),
+    );
+  }
+
+  Widget _buildTypingIndicators() {
+    return GetBuilder<ChatController>(
+      builder: (controller) {
+        final typingUsers = controller.typingStatuses
+            .where((status) => status.userId != controller.currentUser?.uid)
+            .toList();
+
+        if (typingUsers.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final typingNames = typingUsers
+            .map((status) => status.userName ?? 'Someone')
+            .toList();
+
+        String typingText;
+        if (typingNames.length == 1) {
+          typingText = '${typingNames[0]} is typing...';
+        } else if (typingNames.length == 2) {
+          typingText = '${typingNames[0]} and ${typingNames[1]} are typing...';
+        } else {
+          typingText = '${typingNames[0]}, ${typingNames[1]} and ${typingNames.length - 2} others are typing...';
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.more_horiz,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  typingText,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -266,13 +336,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _sendMessage() async {
     final text = messageController.text.trim();
+    debugPrint('🚀 ChatRoomScreen: _sendMessage called with text: "$text"');
+
     if (text.isNotEmpty &&
         controller.currentChatRoom.value != null &&
         controller.currentUser != null) {
+      debugPrint('📤 ChatRoomScreen: All conditions met, proceeding to send...');
+
+      // Stop typing before sending
+      controller.updateTypingStatus(false);
+
+      debugPrint('📤 ChatRoomScreen: Calling controller.sendTextMessage...');
       // Use ChatController's send method which handles quota/XP
       await controller.sendTextMessage(text);
+      debugPrint('✅ ChatRoomScreen: controller.sendTextMessage completed');
+
       messageController.clear(); // Clear the text controller
       _scrollToBottom();
+    } else {
+      debugPrint('⚠️ ChatRoomScreen: Cannot send message - conditions not met');
+      debugPrint('   Text: "$text" (length: ${text.length})');
+      debugPrint('   Chat room: ${controller.currentChatRoom.value?.roomId}');
+      debugPrint('   Current user: ${controller.currentUser?.uid}');
     }
   }
 
@@ -397,6 +482,43 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _scrollToBottom() {
     ChatRoomHelpers.scrollToBottom(scrollController);
+    // Mark messages as read after scrolling
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _markVisibleMessagesAsRead();
+    });
+  }
+
+  Future<void> _markMessageAsRead(String messageId, String userId) async {
+    try {
+      await controller.markMessageAsRead(
+        widget.chatRoom.roomId,
+        messageId,
+        userId,
+      );
+    } catch (e) {
+      debugPrint('Error marking message as read: $e');
+    }
+  }
+
+  void _markVisibleMessagesAsRead() {
+    final userId = controller.currentUser?.uid;
+    if (userId == null || widget.chatRoom.roomId.isEmpty) return;
+
+    // Get visible messages (simplified - mark recent messages as read)
+    final messages = controller.messages;
+    if (messages.isEmpty) return;
+
+    // Mark the last few messages as read (visible ones)
+    final visibleMessageCount = 10; // Assume last 10 messages are visible
+    final startIndex = messages.length > visibleMessageCount ? messages.length - visibleMessageCount : 0;
+    final messagesToMark = messages.sublist(startIndex);
+
+    for (final message in messagesToMark) {
+      if (!message.readBy.contains(userId) && message.senderId != userId) {
+        // Mark as read using repository directly
+        _markMessageAsRead(message.messageId, userId);
+      }
+    }
   }
 
   // Helper methods using ChatRoomHelpers
@@ -422,25 +544,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Future<Map<String, dynamic>?> _getHeaderInfo() async {
     // For private chats, show the other participant's info
-    if (widget.chatRoom.type == 'private' && widget.chatRoom.members != null) {
-      final currentUserId = controller.currentUser?.uid;
-      if (currentUserId != null) {
-        // Find the other participant
-        final otherUserId = widget.chatRoom.members!.firstWhere(
-          (memberId) => memberId != currentUserId,
-          orElse: () => '',
-        );
-
-        if (otherUserId.isNotEmpty) {
-          // Get user info from controller
-          final userInfo = await controller.getSenderInfo(otherUserId);
-          if (userInfo != null) {
-            return {
-              'title': userInfo['name'] ?? 'Unknown User',
-              'subtitle': userInfo['phone'] ?? '',
-            };
-          }
-        }
+    if (widget.chatRoom.type == 'private') {
+      final userInfo = await controller.getPrivateChatUserInfo(widget.chatRoom.roomId);
+      if (userInfo != null) {
+        return {
+          'title': userInfo['name'] ?? 'Unknown User',
+          'subtitle': userInfo['phone'] ?? 'Private conversation',
+        };
       }
     }
 

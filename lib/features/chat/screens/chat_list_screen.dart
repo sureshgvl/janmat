@@ -5,6 +5,7 @@ import '../controllers/chat_controller.dart';
 import 'chat_room_card.dart';
 import 'dialogs/chat_dialogs.dart';
 import 'chat_helpers.dart';
+import '../widgets/user_search_dialog.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -272,6 +273,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          // Private chat button
+          FloatingActionButton(
+            heroTag: 'private_chat_fab',
+            onPressed: () => _showPrivateChatOptions(),
+            backgroundColor: Colors.green,
+            tooltip: 'Start Private Chat',
+            child: const Icon(Icons.person_add),
+          ),
+          const SizedBox(height: 16),
           if (ChatHelpers.canCreateRooms(controller.currentUser?.role))
             _buildCreateRoomButton(),
           const SizedBox(height: 16),
@@ -283,6 +293,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Widget _buildCreateRoomButton() {
     return FloatingActionButton(
+      heroTag: 'create_room_fab',
       onPressed: () => ChatDialogs.showCreateRoomDialog(context),
       backgroundColor: Colors.blue,
       tooltip: AppLocalizations.of(context)!.createNewChatRoom,
@@ -290,9 +301,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  void _showPrivateChatOptions() {
+    Get.dialog(const UserSearchDialog());
+  }
+
   Widget? _buildQuotaWarningButtonExtended() {
     if (!controller.canSendMessage) {
       return FloatingActionButton.extended(
+        heroTag: 'watch_ad_fab',
         onPressed: () => ChatDialogs.showWatchAdDialog(context),
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.warning),

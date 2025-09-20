@@ -5,7 +5,9 @@ import '../../../models/chat_model.dart';
 class ChatHelpers {
   // Get room color based on room type/id
   static Color getRoomColor(ChatRoom chatRoom) {
-    if (chatRoom.roomId.startsWith('ward_')) {
+    if (chatRoom.type == 'private') {
+      return Colors.teal.shade600; // Teal for private chats
+    } else if (chatRoom.roomId.startsWith('ward_')) {
       return Colors.blue.shade600; // Blue for ward chats
     } else if (chatRoom.roomId.startsWith('area_')) {
       return Colors.orange.shade600; // Orange for area chats
@@ -18,12 +20,14 @@ class ChatHelpers {
 
   // Get room icon based on room type/id
   static IconData getRoomIcon(ChatRoom chatRoom) {
-    if (chatRoom.roomId.startsWith('ward_')) {
+    if (chatRoom.type == 'private') {
+      return Icons.person; // Person icon for private chats
+    } else if (chatRoom.roomId.startsWith('ward_')) {
       return Icons.location_city; // City icon for ward chats
     } else if (chatRoom.roomId.startsWith('area_')) {
       return Icons.home; // Home icon for area chats
     } else if (chatRoom.roomId.startsWith('candidate_')) {
-      return Icons.person; // Person icon for candidate chats
+      return Icons.campaign; // Campaign icon for candidate chats
     } else {
       return Icons.group; // Group icon for other chats
     }
@@ -31,7 +35,10 @@ class ChatHelpers {
 
   // Get display title for room
   static String getRoomDisplayTitle(ChatRoom chatRoom) {
-    if (chatRoom.roomId.startsWith('ward_')) {
+    if (chatRoom.type == 'private') {
+      // For private rooms, title is the other user's name
+      return chatRoom.title ?? 'Private Chat';
+    } else if (chatRoom.roomId.startsWith('ward_')) {
       // For ward rooms, title is the city name
       return chatRoom.title ?? 'City Chat';
     } else if (chatRoom.roomId.startsWith('area_')) {
@@ -47,7 +54,10 @@ class ChatHelpers {
 
   // Get display subtitle for room
   static String getRoomDisplaySubtitle(ChatRoom chatRoom) {
-    if (chatRoom.roomId.startsWith('ward_')) {
+    if (chatRoom.type == 'private') {
+      // For private rooms, subtitle is "Private conversation"
+      return chatRoom.description ?? 'Private conversation';
+    } else if (chatRoom.roomId.startsWith('ward_')) {
       // For ward rooms, subtitle is the ward name
       return chatRoom.description ?? 'Ward Discussion';
     } else if (chatRoom.roomId.startsWith('area_')) {
@@ -63,7 +73,9 @@ class ChatHelpers {
 
   // Get default room title (fallback)
   static String getDefaultRoomTitle(ChatRoom chatRoom) {
-    if (chatRoom.roomId.startsWith('ward_')) {
+    if (chatRoom.type == 'private') {
+      return 'Private Chat';
+    } else if (chatRoom.roomId.startsWith('ward_')) {
       // Format: ward_districtId_bodyId_wardId
       final parts = chatRoom.roomId.split('_');
       if (parts.length >= 4) {

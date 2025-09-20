@@ -13,6 +13,7 @@ import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/user_quota.dart';
 import '../repositories/chat_repository.dart';
+import '../services/private_chat_service.dart';
 import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../../services/admob_service.dart';
@@ -24,6 +25,7 @@ class ChatController extends GetxController {
   final RoomController _roomController = Get.put(RoomController());
   final AuthRepository _authRepository = AuthRepository();
   final ChatRepository _repository = ChatRepository();
+  final PrivateChatService _privateChatService = PrivateChatService();
 
   // Delegate properties to new controllers with reactive bridging
   List<ChatRoom> get chatRooms => _roomController.chatRooms;
@@ -36,6 +38,7 @@ class ChatController extends GetxController {
   // Reactive variables to bridge updates
   final _reactiveChatRoomDisplayInfos = <ChatRoomDisplayInfo>[].obs;
   final _reactiveIsLoading = false.obs;
+  final _reactiveIsSendingMessage = false.obs;
 
   // Cached user data
   UserModel? _cachedUser;
@@ -223,6 +226,45 @@ class ChatController extends GetxController {
   void selectChatRoom(ChatRoom chatRoom) {
     _roomController.selectChatRoom(chatRoom);
     _messageController.loadMessagesForRoom(chatRoom.roomId);
+    _setupTypingSubscription(chatRoom.roomId);
+  }
+
+  void _setupTypingSubscription(String roomId) {
+    // Cancel previous subscription
+    _typingSubscription?.cancel();
+
+    // Set up new subscription
+    _typingSubscription = _repository.getTypingStatusForRoom(roomId).listen(
+      (statuses) {
+        _typingStatuses.assignAll(statuses);
+        update(); // Trigger UI update
+      },
+      onError: (error) {
+        debugPrint('Error listening to typing status: $error');
+      },
+    );
+  }
+
+  void updateTypingStatus(bool isTyping) {
+    final user = _cachedUser;
+    final room = currentChatRoom.value;
+
+    if (user != null && room != null) {
+      _repository.updateTypingStatus(
+        room.roomId,
+        user.uid,
+        user.name,
+        isTyping,
+      );
+    }
+  }
+
+  Future<void> markMessageAsRead(String roomId, String messageId, String userId) async {
+    try {
+      await _repository.markMessageAsRead(roomId, messageId, userId);
+    } catch (e) {
+      debugPrint('Error marking message as read: $e');
+    }
   }
 
   Future<void> sendMessage(String roomId, Message message) async {
@@ -530,8 +572,70 @@ class ChatController extends GetxController {
   }
 
   Future<Map<String, dynamic>?> getSenderInfo(String senderId) async {
-    // This method needs to be implemented
-    return null;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(senderId)
+          .get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        return {
+          'name': data['name'] ?? 'Unknown',
+          'phone': data['phone'] ?? '',
+          'photoURL': data['photoURL'],
+          'role': data['role'] ?? 'voter',
+        };
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting sender info: $e');
+      return null;
+    }
+  }
+
+  /// Start a private chat with another user
+  Future<ChatRoom?> startPrivateChat(String otherUserId, String otherUserName) async {
+    final currentUser = _cachedUser;
+    if (currentUser == null) {
+      debugPrint('❌ Cannot start private chat: current user is null');
+      return null;
+    }
+
+    try {
+      final chatRoom = await _privateChatService.createPrivateChat(
+        currentUser.uid,
+        otherUserId,
+        currentUser.name,
+        otherUserName,
+      );
+
+      if (chatRoom != null) {
+        // Force cache invalidation for both users
+        _repository.invalidateUserCache(currentUser.uid);
+        _repository.invalidateUserCache(otherUserId);
+
+        // Small delay to ensure cache invalidation propagates
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        // Refresh chat rooms to include the new private chat
+        await fetchChatRooms();
+        debugPrint('✅ Private chat created: ${chatRoom.roomId}');
+      }
+
+      return chatRoom;
+    } catch (e) {
+      debugPrint('❌ Error starting private chat: $e');
+      return null;
+    }
+  }
+
+  /// Get user info for private chat display
+  Future<Map<String, dynamic>?> getPrivateChatUserInfo(String roomId) async {
+    final currentUser = _cachedUser;
+    if (currentUser == null) return null;
+
+    return await _privateChatService.getPrivateChatUserInfo(roomId, currentUser.uid);
   }
 
   Future<ChatRoom?> createChatRoom(ChatRoom chatRoom) async {
@@ -541,6 +645,11 @@ class ChatController extends GetxController {
   String? getMediaUrl(String messageId, String? remoteUrl) {
     return _messageController.getMediaUrl(messageId, remoteUrl);
   }
+
+  // Typing status
+  final RxList<TypingStatus> _typingStatuses = <TypingStatus>[].obs;
+  List<TypingStatus> get typingStatuses => _typingStatuses;
+  StreamSubscription<List<TypingStatus>>? _typingSubscription;
 
   // Reactive streams
   var messagesStream = Rx<List<Message>>([]);
@@ -575,7 +684,7 @@ class ChatController extends GetxController {
 
   // Fix the reactive properties (remove duplicates)
   @override
-  RxBool get isSendingMessage => false.obs;
+  RxBool get isSendingMessage => _reactiveIsSendingMessage;
   @override
   RxBool get isLoading => _reactiveIsLoading;
 
@@ -601,6 +710,10 @@ class ChatController extends GetxController {
       return;
     }
 
+    debugPrint(
+      '🚀 ChatController: sendTextMessage called - Text: "$text", Room: ${currentChatRoom.value!.roomId}',
+    );
+
     // Check if user can send message (basic check - TODO: implement full quota/XP logic)
     if (!canSendMessage) {
       Get.snackbar(
@@ -613,6 +726,10 @@ class ChatController extends GetxController {
       return;
     }
 
+    // Set sending state to true
+    _reactiveIsSendingMessage.value = true;
+    debugPrint('📤 ChatController: Set isSendingMessage to true (current value: ${_reactiveIsSendingMessage.value})');
+
     // Create message
     final message = Message(
       messageId: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -623,13 +740,18 @@ class ChatController extends GetxController {
       readBy: [user.uid],
     );
 
+    debugPrint(
+      '📝 ChatController: Created message - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}',
+    );
+
     try {
       // Determine resource usage
       final useQuota =
           userQuota.value != null && userQuota.value!.canSendMessage;
       final useXP = !useQuota && user.xpPoints > 0;
 
-      // Use MessageController for immediate local storage and UI update
+      // Add message to UI immediately (will be updated by stream)
+      debugPrint('📤 ChatController: Calling addMessageToUI...');
       await _messageController.addMessageToUI(
         message,
         currentChatRoom.value!.roomId,
@@ -650,6 +772,7 @@ class ChatController extends GetxController {
       }
 
       // Send to server with quota/XP handling
+      debugPrint('📡 ChatController: Sending message to server...');
       await sendMessage(currentChatRoom.value!.roomId, message);
 
       // Update server-side quota/XP
@@ -670,14 +793,22 @@ class ChatController extends GetxController {
       }
 
       // Update message status to sent
+      debugPrint('📝 ChatController: Updating message status to sent...');
       await _messageController.updateMessageStatus(
         message.messageId,
         MessageStatus.sent,
       );
 
+      // Set sending state to false
+      _reactiveIsSendingMessage.value = false;
+      debugPrint('✅ ChatController: Set isSendingMessage to false - message sent successfully (current value: ${_reactiveIsSendingMessage.value})');
       debugPrint('✅ Text message sent successfully');
     } catch (e) {
       debugPrint('❌ Failed to send text message: $e');
+
+      // Set sending state to false on error
+      _reactiveIsSendingMessage.value = false;
+      debugPrint('❌ ChatController: Set isSendingMessage to false - message failed (current value: ${_reactiveIsSendingMessage.value})');
 
       // Update message status to failed
       await _messageController.updateMessageStatus(
@@ -754,8 +885,28 @@ class ChatController extends GetxController {
   }
 
   void clearCurrentChat() {
-    // Basic implementation - will be replaced when screens migrate
-    debugPrint('clearCurrentChat called');
+    // Clear typing status from Firestore before leaving
+    final user = _cachedUser;
+    final room = currentChatRoom.value;
+    if (user != null && room != null) {
+      _repository.clearTypingStatus(room.roomId, user.uid);
+    }
+
+    // Cancel typing subscription
+    _typingSubscription?.cancel();
+    _typingStatuses.clear();
+    update();
+
+    // Clear current room
+    _roomController.clearCurrentRoom();
+
+    debugPrint('clearCurrentChat called - typing status cleared from Firestore');
+  }
+
+  @override
+  void onClose() {
+    _typingSubscription?.cancel();
+    super.onClose();
   }
 
   Future<void> createCandidateChatRoom(

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
 
@@ -37,6 +39,10 @@ class RoomController extends GetxController {
         area: area,
       );
       chatRooms.assignAll(rooms);
+
+      // Calculate unread counts for each room
+      await _calculateUnreadCounts(userId, rooms);
+
       _updateChatRoomDisplayInfos();
     } catch (e) {
       // Handle error
@@ -86,6 +92,43 @@ class RoomController extends GetxController {
   // Reset unread count for room
   void _resetUnreadCount(String roomId) {
     _unreadCounts[roomId] = 0;
+  }
+
+  // Calculate unread counts for all rooms
+  Future<void> _calculateUnreadCounts(String userId, List<ChatRoom> rooms) async {
+    final firestore = FirebaseFirestore.instance;
+
+    for (final room in rooms) {
+      try {
+        final messages = await firestore
+            .collection('chats')
+            .doc(room.roomId)
+            .collection('messages')
+            .where('readBy', arrayContains: userId)
+            .get();
+
+        final totalMessages = await firestore
+            .collection('chats')
+            .doc(room.roomId)
+            .collection('messages')
+            .get();
+
+        final unreadCount = totalMessages.docs.length - messages.docs.length;
+        _unreadCounts[room.roomId] = unreadCount;
+
+        // Also get last message info for sorting
+        if (totalMessages.docs.isNotEmpty) {
+          final lastMessage = totalMessages.docs.last;
+          final messageData = lastMessage.data();
+          _lastMessageTimes[room.roomId] = (messageData['createdAt'] as Timestamp).toDate();
+          _lastMessagePreviews[room.roomId] = messageData['text'] ?? 'Media message';
+          _lastMessageSenders[room.roomId] = messageData['senderId'] ?? '';
+        }
+      } catch (e) {
+        debugPrint('Error calculating unread count for room ${room.roomId}: $e');
+        _unreadCounts[room.roomId] = 0;
+      }
+    }
   }
 
   // Update display info

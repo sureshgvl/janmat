@@ -33,11 +33,64 @@ class _MessageInputState extends State<MessageInput> {
   Duration _previewPosition = Duration.zero;
   Duration _previewDuration = Duration.zero;
 
+  // Typing status
+  Timer? _typingTimer;
+  bool _isTyping = false;
+
+  // Debug logging state tracking
+  bool _lastIsSending = false;
+  bool _lastCanSend = true;
+  bool _lastShouldShowAds = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up typing listener
+    widget.textController.addListener(_onTextChanged);
+  }
+
   @override
   void dispose() {
     _recordingTimer?.cancel();
+    _typingTimer?.cancel();
     _previewPlayer?.dispose();
+    // Stop typing when leaving
+    _updateTypingStatus(false);
     super.dispose();
+  }
+
+  void _onTextChanged() {
+    final text = widget.textController.text.trim();
+    final shouldBeTyping = text.isNotEmpty;
+
+    if (shouldBeTyping != _isTyping) {
+      _isTyping = shouldBeTyping;
+      _updateTypingStatus(_isTyping);
+
+      if (_isTyping) {
+        // Start timer to stop typing after 3 seconds of inactivity
+        _typingTimer?.cancel();
+        _typingTimer = Timer(const Duration(seconds: 3), () {
+          if (_isTyping) {
+            _isTyping = false;
+            _updateTypingStatus(false);
+          }
+        });
+      }
+    } else if (_isTyping) {
+      // Reset the timer when still typing
+      _typingTimer?.cancel();
+      _typingTimer = Timer(const Duration(seconds: 3), () {
+        if (_isTyping) {
+          _isTyping = false;
+          _updateTypingStatus(false);
+        }
+      });
+    }
+  }
+
+  void _updateTypingStatus(bool isTyping) {
+    widget.controller.updateTypingStatus(isTyping);
   }
 
   void _startRecordingTimer() {
@@ -498,64 +551,82 @@ class _MessageInputState extends State<MessageInput> {
                   const Expanded(child: SizedBox()),
 
                   // Send button or Watch Ads button
-                  GetBuilder<ChatController>(
-                    builder: (controller) {
-                      if (controller.canSendMessage) {
-                        // Show send button when user can send messages
-                        return Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: controller.isSendingMessage.value
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
+                  Obx(() {
+                    final controller = Get.find<ChatController>();
+                    final isSending = controller.isSendingMessage.value;
+                    final canSend = controller.canSendMessage;
+                    final shouldShowAds = controller.shouldShowWatchAdsButton;
+
+                    // Only log when state actually changes to avoid spam
+                    if (_lastIsSending != isSending || _lastCanSend != canSend || _lastShouldShowAds != shouldShowAds) {
+                      debugPrint('🔄 MessageInput: State changed - isSendingMessage: $isSending, canSend: $canSend, shouldShowAds: $shouldShowAds');
+                      _lastIsSending = isSending;
+                      _lastCanSend = canSend;
+                      _lastShouldShowAds = shouldShowAds;
+                    }
+
+                    if (canSend) {
+                      // Show send button when user can send messages
+                      return Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          key: ValueKey('send_button_$isSending'), // Force rebuild with unique key
+                          icon: isSending
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
                                     ),
-                                  )
-                                : const Icon(Icons.send, color: Colors.white),
-                            onPressed: controller.isSendingMessage.value
-                                ? null
-                                : widget.onSendMessage,
+                                  ),
+                                )
+                              : const Icon(Icons.send, color: Colors.white),
+                          onPressed: isSending
+                              ? () {
+                                  debugPrint('🚫 MessageInput: Send button pressed but disabled (sending in progress)');
+                                  null;
+                                }
+                              : () {
+                                  debugPrint('📤 MessageInput: Send button pressed - calling onSendMessage');
+                                  widget.onSendMessage();
+                                },
+                        ),
+                      );
+                    } else if (shouldShowAds) {
+                      // Show watch ads button when user cannot send but is not premium
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade600,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.play_circle_fill,
+                            color: Colors.white,
                           ),
-                        );
-                      } else if (controller.shouldShowWatchAdsButton) {
-                        // Show watch ads button when user cannot send but is not premium
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade600,
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.play_circle_fill,
-                              color: Colors.white,
-                            ),
-                            onPressed: () => controller.watchRewardedAdForXP(),
-                            tooltip: 'Watch ad to earn XP',
-                          ),
-                        );
-                      } else {
-                        // Show disabled send button for premium users who somehow can't send
-                        return Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.grey,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const IconButton(
-                            icon: Icon(Icons.send, color: Colors.white),
-                            onPressed: null,
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                          onPressed: () => controller.watchRewardedAdForXP(),
+                          tooltip: 'Watch ad to earn XP',
+                        ),
+                      );
+                    } else {
+                      // Show disabled send button for premium users who somehow can't send
+                      return Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.grey,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(Icons.send, color: Colors.white),
+                          onPressed: null,
+                        ),
+                      );
+                    }
+                  }),
                 ],
               ),
             ),

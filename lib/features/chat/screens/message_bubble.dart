@@ -156,6 +156,45 @@ class MessageBubbleState extends State<MessageBubble> {
     return '$minutes:$seconds';
   }
 
+  Widget _buildReadReceiptIndicator() {
+    final readCount = widget.message.readBy.length;
+
+    if (readCount <= 1) {
+      // Single checkmark for sent but not read
+      return Icon(
+        Icons.done,
+        size: 14,
+        color: Colors.grey.shade600,
+      );
+    } else {
+      // Double checkmark for read by others
+      return Tooltip(
+        message: 'Read by ${readCount - 1} ${readCount - 1 == 1 ? 'person' : 'people'}',
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.done_all,
+              size: 14,
+              color: Colors.lightBlue,
+            ),
+            if (readCount > 2) ...[
+              const SizedBox(width: 2),
+              Text(
+                '${readCount - 1}',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.lightBlue,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDeleted = widget.message.isDeleted ?? false;
@@ -334,16 +373,8 @@ class MessageBubbleState extends State<MessageBubble> {
                               ),
                             ),
                           ] else ...[
-                            // Sent status
-                            Icon(
-                              widget.message.readBy.length > 1
-                                  ? Icons.done_all
-                                  : Icons.done,
-                              size: 14,
-                              color: widget.message.readBy.length > 1
-                                  ? Colors.lightBlue
-                                  : Colors.grey.shade600,
-                            ),
+                            // Enhanced read receipts
+                            _buildReadReceiptIndicator(),
                           ],
                         ],
                       ],
