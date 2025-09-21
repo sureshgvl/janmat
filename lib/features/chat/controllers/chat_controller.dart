@@ -134,25 +134,8 @@ class ChatController extends GetxController {
 
         if (userDoc.exists) {
           final data = userDoc.data()!;
-          _cachedUser = UserModel(
-            uid: data['uid'] ?? firebaseUser.uid,
-            name: data['name'] ?? firebaseUser.displayName ?? 'Unknown',
-            phone: data['phone'] ?? firebaseUser.phoneNumber ?? '',
-            email: data['email'] ?? firebaseUser.email,
-            role: data['role'] ?? 'voter',
-            roleSelected: data['roleSelected'] ?? false,
-            profileCompleted: data['profileCompleted'] ?? false,
-            wardId: data['wardId'] ?? '',
-            districtId: data['districtId'] ?? '',
-            bodyId: data['bodyId'] ?? '',
-            area: data['area'],
-            xpPoints: data['xpPoints'] ?? 0,
-            premium: data['premium'] ?? false,
-            createdAt: data['createdAt'] != null
-                ? DateTime.parse(data['createdAt'])
-                : DateTime.now(),
-            photoURL: data['photoURL'] ?? firebaseUser.photoURL,
-          );
+          // Use UserModel.fromJson() to properly handle Timestamp conversions
+          _cachedUser = UserModel.fromJson(data);
           debugPrint(
             '✅ Loaded complete user data: ${_cachedUser!.name} (${_cachedUser!.role})',
           );

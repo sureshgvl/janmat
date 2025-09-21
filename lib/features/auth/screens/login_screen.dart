@@ -326,46 +326,161 @@ class LoginScreen extends StatelessWidget {
   ) {
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      child: Obx(
-        () => ElevatedButton.icon(
-          onPressed: controller.isLoading.value
-              ? null
-              : controller.signInWithGoogle,
-          icon: controller.isLoading.value
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      child: FutureBuilder<Map<String, dynamic>?>(
+        future: controller.getLastGoogleAccount(),
+        builder: (context, snapshot) {
+          final hasStoredAccount = snapshot.hasData && snapshot.data != null;
+          final storedAccount = snapshot.data;
+
+          return Obx(
+            () => Column(
+              children: [
+                // Show both options when account is stored
+                if (hasStoredAccount && !controller.isLoading.value) ...[
+                  // Continue as existing account button
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ElevatedButton(
+                      onPressed: () => controller.signInWithGoogle(forceAccountPicker: false),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 56),
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shadowColor: Colors.black26,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Image.asset(
+                            'assets/images/google_logo.png',
+                            height: 24,
+                            width: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Continue as ${storedAccount?['displayName'] ?? 'User'}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  storedAccount?['email'] ?? '',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                )
-              : Image.asset(
-                  'assets/images/google_logo.png',
-                  height: 24,
-                  width: 24,
-                ),
-          label: Text(
-            controller.isLoading.value
-                ? 'Signing in...'
-                : AppLocalizations.of(context)!.signInWithGoogle,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+
+                  // Sign in with different account button
+                  ElevatedButton.icon(
+                    onPressed: () => controller.signInWithGoogle(forceAccountPicker: true),
+                    icon: controller.isLoading.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/images/google_logo.png',
+                            height: 24,
+                            width: 24,
+                          ),
+                    label: const Text(
+                      'Sign in with different account',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 56),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      elevation: 2,
+                      shadowColor: Colors.black26,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                    ),
+                  ),
+
+                  // Info text
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Choose how you want to sign in',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ] else ...[
+                  // Default Google Sign-In button when no stored account
+                  ElevatedButton.icon(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () => controller.signInWithGoogle(forceAccountPicker: false),
+                    icon: controller.isLoading.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/images/google_logo.png',
+                            height: 24,
+                            width: 24,
+                          ),
+                    label: Text(
+                      controller.isLoading.value
+                          ? 'Signing in...'
+                          : AppLocalizations.of(context)!.signInWithGoogle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 56),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      elevation: 2,
+                      shadowColor: Colors.black26,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ),
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 56),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            elevation: 2,
-            shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey[300]!, width: 1),
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
 
 class CommunityFeedService {
@@ -10,6 +11,13 @@ class CommunityFeedService {
     String bodyId,
     String wardId,
   ) async {
+    // Check if user is authenticated before fetching data
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('ℹ️ User not authenticated, skipping community feed fetch');
+      return [];
+    }
+
     try {
       final querySnapshot = await _firestore
           .collection('community_posts')

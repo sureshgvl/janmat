@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
@@ -906,6 +907,13 @@ class CandidateRepository {
       debugPrint(
         '🔍 Candidate Repository: Searching for candidate data for userId: $userId',
       );
+
+      // Check if user is still authenticated before proceeding
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null || currentUser.uid != userId) {
+        debugPrint('🚫 User authentication lost during candidate data fetch, aborting');
+        return null;
+      }
 
       // First, get the user's districtId, bodyId and wardId from their user document
       final userDoc = await _firestore.collection('users').doc(userId).get();

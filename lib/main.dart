@@ -23,6 +23,7 @@ import 'screens/main_tab_navigation.dart';
 import 'core/app_bindings.dart';
 import 'services/language_service.dart';
 import 'services/background_initializer.dart';
+import 'services/background_sync_manager.dart';
 import 'l10n/app_localizations.dart';
 import 'utils/performance_monitor.dart';
 import 'features/auth/repositories/auth_repository.dart';
@@ -166,6 +167,15 @@ void main() async {
       // Continue with app startup even if optimizations fail
     }
     stopPerformanceTimer('optimizations_init');
+
+    // Initialize background sync manager
+    try {
+      final syncManager = BackgroundSyncManager();
+      syncManager.initialize();
+      debugPrint('✅ Background sync manager initialized');
+    } catch (e) {
+      debugPrint('⚠️ Background sync manager initialization failed: $e');
+    }
 
     // Analyze and cleanup storage on app startup
     try {

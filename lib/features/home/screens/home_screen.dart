@@ -64,6 +64,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
+    // If user is not authenticated, redirect to login immediately
+    if (currentUser == null) {
+      debugPrint('🚫 User not authenticated, redirecting to login');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Get.offAllNamed('/login');
+        }
+      });
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // User is authenticated, proceed with normal UI
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.home),
@@ -171,8 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: FutureBuilder<Map<String, dynamic>>(
-        future: _homeServices.getUserData(currentUser?.uid).then((data) => data), // Force new future with counter
-        key: ValueKey('drawer_${currentUser?.uid}_$_refreshCounter'), // Force rebuild with counter
+        future: _homeServices.getUserData(currentUser.uid), // User is guaranteed to be non-null here
+        key: ValueKey('drawer_${currentUser.uid}_$_refreshCounter'), // Force rebuild with counter
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -210,8 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
           await Future.delayed(const Duration(milliseconds: 500));
         },
         child: FutureBuilder<Map<String, dynamic>>(
-          future: _homeServices.getUserData(currentUser?.uid).then((data) => data), // Force new future
-          key: ValueKey('body_${currentUser?.uid}_$_refreshCounter'), // Force rebuild with counter
+          future: _homeServices.getUserData(currentUser.uid), // User is guaranteed to be non-null here
+          key: ValueKey('body_${currentUser.uid}_$_refreshCounter'), // Force rebuild with counter
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

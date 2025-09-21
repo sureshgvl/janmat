@@ -93,9 +93,7 @@ class UserModel {
       premium: json['premium'] ?? false,
       subscriptionPlanId: json['subscriptionPlanId'],
       subscriptionExpiresAt: subscriptionExpiresAt,
-      createdAt: DateTime.parse(
-        json['createdAt'] ?? DateTime.now().toIso8601String(),
-      ),
+      createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
       photoURL: json['photoURL'],
       followingCount: json['followingCount']?.toInt() ?? 0,
       trialStartedAt: trialStartedAt,
@@ -182,5 +180,21 @@ class UserModel {
       hasConvertedFromTrial:
           hasConvertedFromTrial ?? this.hasConvertedFromTrial,
     );
+  }
+
+  // Helper method to parse DateTime from various formats
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+
+    if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is String) {
+      return DateTime.parse(value);
+    } else if (value is int) {
+      // Handle milliseconds since epoch
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+
+    return null;
   }
 }

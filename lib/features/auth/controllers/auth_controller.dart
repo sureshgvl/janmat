@@ -7,6 +7,7 @@ import '../repositories/auth_repository.dart';
 import '../../../services/device_service.dart';
 import '../../../services/trial_service.dart';
 import '../../chat/controllers/chat_controller.dart';
+import '../../candidate/controllers/candidate_controller.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -56,9 +57,114 @@ class AuthController extends GetxController {
       duration: const Duration(seconds: 5),
     );
 
+    // Clear stored Google account info
+    _clearStoredGoogleAccount();
+
     // Sign out and navigate to login
     FirebaseAuth.instance.signOut();
     Get.offAllNamed('/login');
+  }
+
+  // Get last used Google account for smart login UX
+  Future<Map<String, dynamic>?> getLastGoogleAccount() async {
+    return await _authRepository.getLastGoogleAccount();
+  }
+
+  // Clear stored Google account info (on logout)
+  Future<void> _clearStoredGoogleAccount() async {
+    await _authRepository.clearLastGoogleAccount();
+  }
+
+  // Find existing user by phone number in Firestore
+  Future<Map<String, dynamic>?> _findExistingUserByPhone(String phoneNumber) async {
+    try {
+      debugPrint('🔍 [USER_LOOKUP] Searching for user with phone: $phoneNumber');
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('phone', isEqualTo: phoneNumber)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final userDoc = querySnapshot.docs.first;
+        final userData = userDoc.data();
+        userData['uid'] = userDoc.id; // Add the document ID as uid
+
+        debugPrint('✅ [USER_LOOKUP] Found existing user: ${userDoc.id}');
+        return userData;
+      }
+
+      debugPrint('ℹ️ [USER_LOOKUP] No existing user found with phone: $phoneNumber');
+      return null;
+    } catch (e) {
+      debugPrint('❌ [USER_LOOKUP] Error finding user by phone: $e');
+      return null;
+    }
+  }
+
+  // Find existing user by email in Firestore
+  Future<Map<String, dynamic>?> _findExistingUserByEmail(String email) async {
+    try {
+      debugPrint('🔍 [USER_LOOKUP] Searching for user with email: $email');
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final userDoc = querySnapshot.docs.first;
+        final userData = userDoc.data();
+        userData['uid'] = userDoc.id; // Add the document ID as uid
+
+        debugPrint('✅ [USER_LOOKUP] Found existing user: ${userDoc.id}');
+        return userData;
+      }
+
+      debugPrint('ℹ️ [USER_LOOKUP] No existing user found with email: $email');
+      return null;
+    } catch (e) {
+      debugPrint('❌ [USER_LOOKUP] Error finding user by email: $e');
+      return null;
+    }
+  }
+
+  // Link Firebase Auth user to existing Firestore user profile
+  Future<void> _linkFirebaseUserToExistingProfile(User firebaseUser, Map<String, dynamic> existingUserData) async {
+    try {
+      debugPrint('🔗 [USER_LINKING] Linking Firebase user ${firebaseUser.uid} to existing profile ${existingUserData['uid']}');
+
+      final existingUserId = existingUserData['uid'];
+
+      // Update the existing user document to include the Firebase Auth UID
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(existingUserId)
+          .update({
+            'firebaseAuthUid': firebaseUser.uid,
+            'lastLogin': FieldValue.serverTimestamp(),
+            'loginCount': FieldValue.increment(1),
+          });
+
+      // Optionally, you could also store a mapping from Firebase Auth UID to the main user ID
+      // This can help with future lookups
+      await FirebaseFirestore.instance
+          .collection('user_mappings')
+          .doc(firebaseUser.uid)
+          .set({
+            'primaryUserId': existingUserId,
+            'linkedAt': FieldValue.serverTimestamp(),
+            'linkType': 'phone_number',
+          });
+
+      debugPrint('✅ [USER_LINKING] Successfully linked Firebase user to existing profile');
+
+    } catch (e) {
+      debugPrint('❌ [USER_LINKING] Error linking user profiles: $e');
+      rethrow;
+    }
   }
 
   Future<void> sendOTP() async {
@@ -159,26 +265,62 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     try {
+      debugPrint('🔐 [OTP_VERIFY] Starting OTP verification...');
+
+      // Step 1: Authenticate with Firebase using phone number
+      debugPrint('📱 [OTP_VERIFY] Authenticating with Firebase Auth...');
       final userCredential = await _authRepository.signInWithOTP(
         verificationId.value,
         otpController.text,
       );
+      debugPrint('✅ [OTP_VERIFY] Firebase Auth successful for user: ${userCredential.user!.uid}');
 
-      await _authRepository.createOrUpdateUser(userCredential.user!);
+      // Step 2: Check if user already exists in Firestore by phone number
+      debugPrint('🔍 [OTP_VERIFY] Checking for existing user profile by phone number...');
+      final phoneNumber = '+91${phoneController.text}';
+      final existingUser = await _findExistingUserByPhone(phoneNumber);
 
-      // Register device for multi-device login prevention
-      try {
-        await _deviceService.registerDevice(userCredential.user!.uid);
-        debugPrint('✅ Device registered');
-      } catch (e) {
-        debugPrint('⚠️ Device registration failed (non-critical): $e');
-        // Don't throw here - device registration failure shouldn't block sign-in
+      if (existingUser != null) {
+        debugPrint('✅ [OTP_VERIFY] Found existing user profile: ${existingUser['uid']}');
+
+        // Link the Firebase Auth user to the existing Firestore profile
+        debugPrint('🔗 [OTP_VERIFY] Linking Firebase Auth user to existing profile...');
+        await _linkFirebaseUserToExistingProfile(userCredential.user!, existingUser);
+
+        // Use the existing user's UID for navigation and device registration
+        final existingUserId = existingUser['uid'];
+        debugPrint('✅ [OTP_VERIFY] Successfully linked to existing user: $existingUserId');
+
+        // Register device for the existing user
+        try {
+          await _deviceService.registerDevice(existingUserId);
+          debugPrint('✅ [OTP_VERIFY] Device registered for existing user');
+        } catch (e) {
+          debugPrint('⚠️ [OTP_VERIFY] Device registration failed (non-critical): $e');
+        }
+
+        Get.snackbar('Success', 'Login successful');
+        await _navigateBasedOnProfileCompletionForExistingUser(existingUser);
+      } else {
+        debugPrint('ℹ️ [OTP_VERIFY] No existing user found, creating new profile...');
+
+        // Create new user profile
+        await _authRepository.createOrUpdateUser(userCredential.user!);
+
+        // Register device for new user
+        try {
+          await _deviceService.registerDevice(userCredential.user!.uid);
+          debugPrint('✅ [OTP_VERIFY] Device registered for new user');
+        } catch (e) {
+          debugPrint('⚠️ [OTP_VERIFY] Device registration failed (non-critical): $e');
+        }
+
+        Get.snackbar('Success', 'Login successful');
+        await _navigateBasedOnProfileCompletion(userCredential.user!);
       }
 
-      Get.snackbar('Success', 'Login successful');
-      // Check profile completion and navigate accordingly
-      await _navigateBasedOnProfileCompletion(userCredential.user!);
     } catch (e) {
+      debugPrint('❌ [OTP_VERIFY] OTP verification failed: $e');
       Get.snackbar('Error', 'Invalid OTP: ${e.toString()}');
     } finally {
       // Add a small delay to ensure loading state is visible
@@ -187,60 +329,108 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> signInWithGoogle() async {
+
+  Future<void> signInWithGoogle({bool forceAccountPicker = false}) async {
+    final controllerStartTime = DateTime.now();
+    debugPrint('🚀 [AUTH_CONTROLLER] Starting Google Sign-In process (${forceAccountPicker ? 'forced account picker' : 'smart mode'}) at ${controllerStartTime.toIso8601String()}');
+
     // Show prominent loading dialog immediately
     _showGoogleSignInLoadingDialog();
+    debugPrint('📱 [AUTH_CONTROLLER] Loading dialog displayed');
 
     try {
-      debugPrint('🔄 Starting Google Sign-In process...');
-
-      // Step 1: Google authentication (account picker will show here)
-      debugPrint('📱 Initiating Google authentication...');
-      final userCredential = await _authRepository.signInWithGoogle();
-      debugPrint('✅ Google authentication successful');
+      // Step 1: Google authentication with smart account switching
+      debugPrint('🔐 [AUTH_CONTROLLER] Calling repository signInWithGoogle...');
+      final repoStartTime = DateTime.now();
+      final userCredential = await _authRepository.signInWithGoogle(forceAccountPicker: forceAccountPicker);
+      final repoDuration = DateTime.now().difference(repoStartTime);
+      debugPrint('✅ [AUTH_CONTROLLER] Repository signInWithGoogle completed in ${repoDuration.inSeconds}s');
 
       // Handle cancelled sign-in or timeout with successful auth
       if (userCredential == null) {
+        debugPrint('⚠️ [AUTH_CONTROLLER] Repository returned null UserCredential');
         // Check if authentication actually succeeded despite returning null
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
-          debugPrint(
-            '✅ Authentication succeeded despite null credential, proceeding with current user',
-          );
+          debugPrint('✅ [AUTH_CONTROLLER] Authentication succeeded despite null credential, proceeding with current user: ${currentUser.uid}');
           await _handleSuccessfulAuthenticationWithCurrentUser(currentUser);
+          final totalDuration = DateTime.now().difference(controllerStartTime);
+          debugPrint('🎉 [AUTH_CONTROLLER] Google Sign-In completed successfully (recovery path) in ${totalDuration.inSeconds}s');
           return;
         } else {
+          debugPrint('❌ [AUTH_CONTROLLER] No authenticated user found, sign-in was cancelled');
           _hideGoogleSignInLoadingDialog();
           Get.snackbar("Cancelled", "Google sign-in was cancelled");
+          final totalDuration = DateTime.now().difference(controllerStartTime);
+          debugPrint('❌ [AUTH_CONTROLLER] Google Sign-In cancelled after ${totalDuration.inSeconds}s');
           return;
         }
       }
       if (userCredential.user == null) {
+        debugPrint('❌ [AUTH_CONTROLLER] UserCredential exists but user is null');
         _hideGoogleSignInLoadingDialog();
         Get.snackbar("Error", "Google sign-in failed: No user returned");
+        final totalDuration = DateTime.now().difference(controllerStartTime);
+        debugPrint('❌ [AUTH_CONTROLLER] Google Sign-In failed (no user) after ${totalDuration.inSeconds}s');
         return;
       }
 
+      debugPrint('✅ [AUTH_CONTROLLER] Valid user obtained: ${userCredential.user!.uid} (${userCredential.user!.email})');
+
+      // Step 2: Check if user already exists in Firestore by email
+      debugPrint('🔍 [GOOGLE_VERIFY] Checking for existing user profile by email...');
+      final existingUser = await _findExistingUserByEmail(userCredential.user!.email!);
+
+      if (existingUser != null) {
+        debugPrint('✅ [GOOGLE_VERIFY] Found existing user profile: ${existingUser['uid']}');
+
+        // Link the Firebase Auth user to the existing Firestore profile
+        debugPrint('🔗 [GOOGLE_VERIFY] Linking Firebase Auth user to existing profile...');
+        await _linkFirebaseUserToExistingProfile(userCredential.user!, existingUser);
+
+        // Use the existing user's UID for navigation and device registration
+        final existingUserId = existingUser['uid'];
+        debugPrint('✅ [GOOGLE_VERIFY] Successfully linked to existing user: $existingUserId');
+
+        // Register device for the existing user
+        try {
+          await _deviceService.registerDevice(existingUserId);
+          debugPrint('✅ [GOOGLE_VERIFY] Device registered for existing user');
+        } catch (e) {
+          debugPrint('⚠️ [GOOGLE_VERIFY] Device registration failed (non-critical): $e');
+        }
+
+        Get.snackbar('Success', 'Google sign-in successful');
+        await _navigateBasedOnProfileCompletionForExistingUser(existingUser);
+        return;
+      }
+
+      // No existing user found, proceed with normal flow
       await _handleSuccessfulAuthentication(userCredential);
 
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Creating your profile...');
 
-      // Step 2: Keep loading while creating/updating user profile
-      debugPrint('👤 Creating/updating user profile...');
+      // Step 3: Keep loading while creating/updating user profile
+      debugPrint('👤 [AUTH_CONTROLLER] Creating/updating user profile...');
+      final profileStart = DateTime.now();
       await _authRepository.createOrUpdateUser(userCredential.user!);
-      debugPrint('✅ User profile updated');
+      final profileDuration = DateTime.now().difference(profileStart);
+      debugPrint('✅ [AUTH_CONTROLLER] User profile updated in ${profileDuration.inMilliseconds}ms');
 
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Setting up your account...');
 
-      // Step 3: Keep loading while registering device
-      debugPrint('📱 Registering device...');
+      // Step 4: Keep loading while registering device
+      debugPrint('📱 [AUTH_CONTROLLER] Registering device...');
+      final deviceStart = DateTime.now();
       try {
         await _deviceService.registerDevice(userCredential.user!.uid);
-        debugPrint('✅ Device registered');
+        final deviceDuration = DateTime.now().difference(deviceStart);
+        debugPrint('✅ [AUTH_CONTROLLER] Device registered in ${deviceDuration.inMilliseconds}ms');
       } catch (e) {
-        debugPrint('⚠️ Device registration failed (non-critical): $e');
+        final deviceDuration = DateTime.now().difference(deviceStart);
+        debugPrint('⚠️ [AUTH_CONTROLLER] Device registration failed after ${deviceDuration.inMilliseconds}ms (non-critical): $e');
         // Don't throw here - device registration failure shouldn't block sign-in
         // The user can still use the app, just without device management features
       }
@@ -248,19 +438,26 @@ class AuthController extends GetxController {
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Almost ready...');
 
-      // Step 4: Show success and navigate
+      // Step 5: Show success and navigate
       Get.snackbar('Success', 'Google sign-in successful');
+      debugPrint('🍪 [AUTH_CONTROLLER] Success snackbar displayed');
 
-      debugPrint('🏠 Checking profile completion and navigating...');
+      debugPrint('🏠 [AUTH_CONTROLLER] Checking profile completion and navigating...');
+      final navStart = DateTime.now();
       await _navigateBasedOnProfileCompletion(userCredential.user!);
+      final navDuration = DateTime.now().difference(navStart);
+      debugPrint('✅ [AUTH_CONTROLLER] Navigation completed in ${navDuration.inMilliseconds}ms');
     } catch (e) {
-      debugPrint('❌ Google sign-in failed: $e');
+      final totalDuration = DateTime.now().difference(controllerStartTime);
+      debugPrint('❌ [AUTH_CONTROLLER] Google sign-in failed after ${totalDuration.inSeconds}s: $e');
+      debugPrint('❌ [AUTH_CONTROLLER] Error type: ${e.runtimeType}');
       _hideGoogleSignInLoadingDialog();
       Get.snackbar('Error', 'Google sign-in failed: ${e.toString()}');
     } finally {
       isLoading.value = false;
       _hideGoogleSignInLoadingDialog();
-      debugPrint('✅ Google sign-in process completed');
+      final totalDuration = DateTime.now().difference(controllerStartTime);
+      debugPrint('🏁 [AUTH_CONTROLLER] Google sign-in process completed in ${totalDuration.inSeconds}s');
     }
   }
 
@@ -400,6 +597,34 @@ class AuthController extends GetxController {
   // Handle successful authentication when userCredential is null but user is authenticated
   Future<void> _handleSuccessfulAuthenticationWithCurrentUser(User user) async {
     try {
+      // Check if user already exists in Firestore by email
+      debugPrint('🔍 [GOOGLE_VERIFY_RECOVERY] Checking for existing user profile by email...');
+      final existingUser = await _findExistingUserByEmail(user.email!);
+
+      if (existingUser != null) {
+        debugPrint('✅ [GOOGLE_VERIFY_RECOVERY] Found existing user profile: ${existingUser['uid']}');
+
+        // Link the Firebase Auth user to the existing Firestore profile
+        debugPrint('🔗 [GOOGLE_VERIFY_RECOVERY] Linking Firebase Auth user to existing profile...');
+        await _linkFirebaseUserToExistingProfile(user, existingUser);
+
+        // Use the existing user's UID for navigation and device registration
+        final existingUserId = existingUser['uid'];
+        debugPrint('✅ [GOOGLE_VERIFY_RECOVERY] Successfully linked to existing user: $existingUserId');
+
+        // Register device for the existing user
+        try {
+          await _deviceService.registerDevice(existingUserId);
+          debugPrint('✅ [GOOGLE_VERIFY_RECOVERY] Device registered for existing user');
+        } catch (e) {
+          debugPrint('⚠️ [GOOGLE_VERIFY_RECOVERY] Device registration failed (non-critical): $e');
+        }
+
+        Get.snackbar('Success', 'Google sign-in successful');
+        await _navigateBasedOnProfileCompletionForExistingUser(existingUser);
+        return;
+      }
+
       // Update loading dialog message
       _updateGoogleSignInLoadingDialog('Creating your profile...');
 
@@ -439,70 +664,159 @@ class AuthController extends GetxController {
     }
   }
 
+  // Navigation method for existing users (when logging in with phone that matches existing profile)
+  Future<void> _navigateBasedOnProfileCompletionForExistingUser(Map<String, dynamic> userData) async {
+    try {
+      final userId = userData['uid'];
+      debugPrint('🔍 [EXISTING_USER_NAV] Checking profile completion for existing user: $userId');
+
+      final profileCompleted = userData['profileCompleted'] ?? false;
+      final roleSelected = userData['roleSelected'] ?? false;
+
+      debugPrint('📋 [EXISTING_USER_NAV] Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted');
+
+      // Clean up expired trials on login
+      debugPrint('🧹 [EXISTING_USER_NAV] Starting trial cleanup...');
+      try {
+        await _trialService.cleanupExpiredTrials(userId);
+        debugPrint('✅ [EXISTING_USER_NAV] Trial cleanup completed');
+      } catch (e) {
+        debugPrint('⚠️ [EXISTING_USER_NAV] Trial cleanup failed: $e');
+      }
+
+      if (!roleSelected) {
+        debugPrint('🎭 [EXISTING_USER_NAV] Role not selected, navigating to role selection...');
+        Get.offAllNamed('/role-selection');
+        return;
+      }
+
+      if (!profileCompleted) {
+        debugPrint('📝 [EXISTING_USER_NAV] Profile not completed, navigating to profile completion...');
+        Get.offAllNamed('/profile-completion');
+        return;
+      }
+
+      // Profile is complete and role is selected, go to home
+      debugPrint('🏠 [EXISTING_USER_NAV] Profile complete, preparing to navigate to home...');
+
+      // Ensure controllers are initialized for the existing user session
+      if (!Get.isRegistered<ChatController>()) {
+        debugPrint('🔧 [EXISTING_USER_NAV] Initializing ChatController...');
+        Get.put<ChatController>(ChatController());
+        debugPrint('✅ [EXISTING_USER_NAV] ChatController recreated for existing user session');
+      } else {
+        debugPrint('ℹ️ [EXISTING_USER_NAV] ChatController already registered');
+      }
+
+      // Ensure CandidateController is initialized
+      if (!Get.isRegistered<CandidateController>()) {
+        debugPrint('🔧 [EXISTING_USER_NAV] Initializing CandidateController...');
+        Get.put<CandidateController>(CandidateController());
+        debugPrint('✅ [EXISTING_USER_NAV] CandidateController recreated for existing user session');
+      } else {
+        debugPrint('ℹ️ [EXISTING_USER_NAV] CandidateController already registered');
+      }
+
+      debugPrint('🏠 [EXISTING_USER_NAV] Navigating to home screen...');
+      Get.offAllNamed('/home');
+      debugPrint('✅ [EXISTING_USER_NAV] Navigation to home completed');
+
+    } catch (e) {
+      debugPrint('❌ [EXISTING_USER_NAV] Error during profile check: $e');
+      // If there's an error checking profile, default to login
+      Get.offAllNamed('/login');
+    } finally {
+      // Ensure loading state is cleared after navigation
+      debugPrint('✅ [EXISTING_USER_NAV] Navigation completed, clearing loading state');
+      isLoading.value = false;
+      _hideGoogleSignInLoadingDialog(); // Ensure dialog is closed
+    }
+  }
+
   Future<void> _navigateBasedOnProfileCompletion(User user) async {
     try {
-      debugPrint('🔍 Checking user profile completion...');
+      debugPrint('🔍 [AUTH_CONTROLLER] Checking user profile completion for ${user.uid}...');
 
       // Check if user profile is complete
+      debugPrint('📄 [AUTH_CONTROLLER] Fetching user document from Firestore...');
+      final docStart = DateTime.now();
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
+      final docDuration = DateTime.now().difference(docStart);
+      debugPrint('📄 [AUTH_CONTROLLER] User document fetched in ${docDuration.inMilliseconds}ms - Exists: ${userDoc.exists}');
 
       if (userDoc.exists) {
         final userData = userDoc.data();
         final profileCompleted = userData?['profileCompleted'] ?? false;
         final roleSelected = userData?['roleSelected'] ?? false;
 
-        debugPrint(
-          '📋 Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted',
-        );
+        debugPrint('📋 [AUTH_CONTROLLER] Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted');
 
         // Clean up expired trials on login
+        debugPrint('🧹 [AUTH_CONTROLLER] Starting trial cleanup...');
+        final trialStart = DateTime.now();
         try {
           await _trialService.cleanupExpiredTrials(user.uid);
-          debugPrint('🧹 Trial cleanup completed');
+          final trialDuration = DateTime.now().difference(trialStart);
+          debugPrint('✅ [AUTH_CONTROLLER] Trial cleanup completed in ${trialDuration.inMilliseconds}ms');
         } catch (e) {
-          debugPrint('⚠️ Trial cleanup failed: $e');
+          final trialDuration = DateTime.now().difference(trialStart);
+          debugPrint('⚠️ [AUTH_CONTROLLER] Trial cleanup failed after ${trialDuration.inMilliseconds}ms: $e');
         }
 
         if (!roleSelected) {
-          debugPrint('🎭 Navigating to role selection...');
+          debugPrint('🎭 [AUTH_CONTROLLER] Role not selected, navigating to role selection...');
           Get.offAllNamed('/role-selection');
           return;
         }
 
         if (!profileCompleted) {
-          debugPrint('📝 Navigating to profile completion...');
+          debugPrint('📝 [AUTH_CONTROLLER] Profile not completed, navigating to profile completion...');
           Get.offAllNamed('/profile-completion');
           return;
         }
+
+        debugPrint('✅ [AUTH_CONTROLLER] Profile complete and role selected');
       } else {
         // User document doesn't exist, need role selection first
-        debugPrint(
-          '📄 User document not found, navigating to role selection...',
-        );
+        debugPrint('📄 [AUTH_CONTROLLER] User document not found, navigating to role selection...');
         Get.offAllNamed('/role-selection');
         return;
       }
 
       // Profile is complete and role is selected, go to home
-      debugPrint('🏠 Profile complete, navigating to home...');
+      debugPrint('🏠 [AUTH_CONTROLLER] Profile complete, preparing to navigate to home...');
 
-      // Ensure ChatController is initialized for the new user session
+      // Ensure controllers are initialized for the new user session
       if (!Get.isRegistered<ChatController>()) {
+        debugPrint('🔧 [AUTH_CONTROLLER] Initializing ChatController...');
         Get.put<ChatController>(ChatController());
-        debugPrint('✅ ChatController recreated for new user session');
+        debugPrint('✅ [AUTH_CONTROLLER] ChatController recreated for new user session');
+      } else {
+        debugPrint('ℹ️ [AUTH_CONTROLLER] ChatController already registered');
       }
 
+      // Ensure CandidateController is initialized
+      if (!Get.isRegistered<CandidateController>()) {
+        debugPrint('🔧 [AUTH_CONTROLLER] Initializing CandidateController...');
+        Get.put<CandidateController>(CandidateController());
+        debugPrint('✅ [AUTH_CONTROLLER] CandidateController recreated for new user session');
+      } else {
+        debugPrint('ℹ️ [AUTH_CONTROLLER] CandidateController already registered');
+      }
+
+      debugPrint('🏠 [AUTH_CONTROLLER] Navigating to home screen...');
       Get.offAllNamed('/home');
+      debugPrint('✅ [AUTH_CONTROLLER] Navigation to home completed');
     } catch (e) {
-      debugPrint('❌ Error during profile check: $e');
+      debugPrint('❌ [AUTH_CONTROLLER] Error during profile check: $e');
       // If there's an error checking profile, default to login
       Get.offAllNamed('/login');
     } finally {
       // Ensure loading state is cleared after navigation
-      debugPrint('✅ Navigation completed, clearing loading state');
+      debugPrint('✅ [AUTH_CONTROLLER] Navigation completed, clearing loading state');
       isLoading.value = false;
       _hideGoogleSignInLoadingDialog(); // Ensure dialog is closed
     }

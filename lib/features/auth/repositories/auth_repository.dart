@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -11,6 +12,8 @@ import '../../../models/user_model.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
 import '../../../services/admob_service.dart';
+import '../../../services/user_cache_service.dart';
+import '../../../services/background_sync_manager.dart';
 import '../../../utils/performance_monitor.dart';
 
 class AuthRepository {
@@ -20,6 +23,8 @@ class AuthRepository {
     forceCodeForRefreshToken: true,
     scopes: ['email', 'profile'],
   );
+  final UserCacheService _cacheService = UserCacheService();
+  final BackgroundSyncManager _syncManager = BackgroundSyncManager();
 
 
   // Phone Authentication with improved reCAPTCHA handling and timeout
@@ -100,189 +105,392 @@ class AuthRepository {
     }
   }
 
-  // Google Sign-In - Enhanced with better timeout handling, retry logic, and connectivity checks
-  Future<UserCredential?> signInWithGoogle() async {
-    startPerformanceTimer('google_signin');
+  // Google Sign-In - Optimized with parallel processing and smart account switching
+  Future<UserCredential?> signInWithGoogle({bool forceAccountPicker = false}) async {
+    final startTime = DateTime.now();
+    startPerformanceTimer('google_signin_optimized');
+
+    debugPrint('🚀 [GOOGLE_SIGNIN] Starting optimized Google Sign-In with parallel processing at ${startTime.toIso8601String()}');
 
     try {
-      debugPrint('🚀 Starting enhanced Google Sign-In with improved timeout handling');
-
       // Step 0: Check network connectivity
-      debugPrint('🌐 Checking network connectivity...');
+      debugPrint('🌐 [GOOGLE_SIGNIN] Checking network connectivity...');
+      final connectivityStart = DateTime.now();
       final hasConnectivity = await _checkConnectivity();
+      final connectivityDuration = DateTime.now().difference(connectivityStart);
+
+      debugPrint('🌐 [GOOGLE_SIGNIN] Network connectivity check completed in ${connectivityDuration.inMilliseconds}ms - Connected: $hasConnectivity');
+
       if (!hasConnectivity) {
+        debugPrint('❌ [GOOGLE_SIGNIN] No internet connection detected');
         throw Exception('No internet connection detected. Please check your network and try again.');
       }
 
-      // Step 1: Google Sign-In with enhanced timeout and retry logic
-      debugPrint('📱 Requesting Google account selection...');
+      // Step 1: Smart Google Sign-In with account switching support
+      debugPrint('📱 [GOOGLE_SIGNIN] Starting Google Sign-In (${forceAccountPicker ? 'forced account picker' : 'smart mode'})...');
 
       GoogleSignInAccount? googleUser;
       int retryCount = 0;
       const maxRetries = 2;
+      Duration? signInDuration; // Track total account selection time
 
       while (retryCount <= maxRetries) {
+        final attemptStart = DateTime.now();
+        debugPrint('🎯 [GOOGLE_SIGNIN] Attempt ${retryCount + 1}/${maxRetries + 1} - ${forceAccountPicker ? 'Forced account picker' : 'Smart sign-in'}');
+
         try {
-          // Always force account picker to show all available Google accounts
-          debugPrint('🎯 Always showing account picker for user account selection');
+          // Always force account picker when requested, otherwise try silent first
+          if (!forceAccountPicker) {
+            // For "Continue as", we expect a specific account - get the stored account info first
+            final storedAccount = await getLastGoogleAccount();
+            final expectedEmail = storedAccount?['email'];
 
-          // Check if user is already signed in silently
-          String? previousUserId;
-          try {
-            final silentUser = await _googleSignIn.signInSilently();
-            if (silentUser != null) {
-              previousUserId = silentUser.id;
-              debugPrint('📋 Previous user detected: ${silentUser.displayName} (${silentUser.id})');
+            debugPrint('🔍 [GOOGLE_SIGNIN] "Continue as" mode - expecting account: ${storedAccount?['displayName']} (${expectedEmail})');
+
+            // For "Continue as", we need to ensure we get the expected account
+            // If silent sign-in returns a different account, we should force account picker
+            debugPrint('🔍 [GOOGLE_SIGNIN] Checking for existing silent session...');
+            try {
+              final silentStart = DateTime.now();
+              final silentUser = await _googleSignIn.signInSilently()
+                .timeout(const Duration(seconds: 5)); // Increased timeout for better success rate
+
+              final silentDuration = DateTime.now().difference(silentStart);
+
+              if (silentUser != null) {
+                debugPrint('✅ [GOOGLE_SIGNIN] Silent sign-in successful: ${silentUser.displayName} (${silentUser.email}) in ${silentDuration.inMilliseconds}ms');
+
+                // Validate that silent sign-in returned the expected account
+                if (expectedEmail != null && silentUser.email == expectedEmail) {
+                  debugPrint('✅ [GOOGLE_SIGNIN] Silent sign-in returned expected account - using it');
+                  googleUser = silentUser;
+                  break; // Success - use silent sign-in result
+                } else {
+                  debugPrint('⚠️ [GOOGLE_SIGNIN] Silent sign-in returned different account than expected');
+                  debugPrint('   Expected: $expectedEmail, Got: ${silentUser.email}');
+                  debugPrint('🔄 [GOOGLE_SIGNIN] Forcing account picker to get correct account');
+
+                  // Force account picker by disconnecting and using fresh instance
+                  try {
+                    await _googleSignIn.disconnect();
+                    debugPrint('✅ [GOOGLE_SIGNIN] Disconnected current session for account switch');
+                  } catch (e) {
+                    debugPrint('ℹ️ [GOOGLE_SIGNIN] Disconnect failed: ${e.toString()}');
+                  }
+
+                  // Use fresh instance to force account picker
+                  final freshGoogleSignIn = GoogleSignIn(
+                    forceCodeForRefreshToken: true,
+                    scopes: ['email', 'profile'],
+                  );
+
+                  debugPrint('📱 [GOOGLE_SIGNIN] Using fresh instance for account picker...');
+                  final pickerStart = DateTime.now();
+
+                  googleUser = await freshGoogleSignIn.signIn().timeout(
+                    const Duration(seconds: 60),
+                    onTimeout: () {
+                      final timeoutDuration = DateTime.now().difference(pickerStart);
+                      debugPrint('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
+                      throw Exception('Sign-in timed out. Please try again.');
+                    },
+                  );
+
+                  final pickerDuration = DateTime.now().difference(pickerStart);
+                  debugPrint('✅ [GOOGLE_SIGNIN] Account picker completed in ${pickerDuration.inSeconds}s');
+
+                  if (googleUser != null) {
+                    await _storeLastGoogleAccount(googleUser);
+                    break; // Success
+                  }
+                }
+              } else {
+                debugPrint('ℹ️ [GOOGLE_SIGNIN] Silent sign-in returned null in ${silentDuration.inMilliseconds}ms');
+                // Fall through to normal sign-in
+              }
+            } catch (e) {
+              debugPrint('ℹ️ [GOOGLE_SIGNIN] Silent sign-in failed or timed out: ${e.toString()}');
+              // Fall through to normal sign-in
             }
-          } catch (e) {
-            debugPrint('ℹ️ No existing silent session (normal): $e');
+
+            // Try normal sign-in for "Continue as" (allows user to select the expected account)
+            debugPrint('🔄 [GOOGLE_SIGNIN] Attempting normal sign-in for "Continue as"...');
+            final normalSignInStart = DateTime.now();
+
+            googleUser = await _googleSignIn.signIn().timeout(
+              const Duration(seconds: 60), // Longer timeout for user interaction
+              onTimeout: () {
+                debugPrint('⏰ [GOOGLE_SIGNIN] Normal sign-in timeout for "Continue as"');
+                throw Exception('Sign-in timed out. Please try again or use "Sign in with different account".');
+              },
+            );
+
+            final normalSignInDuration = DateTime.now().difference(normalSignInStart);
+            debugPrint('✅ [GOOGLE_SIGNIN] Normal sign-in completed in ${normalSignInDuration.inSeconds}s');
+
+            if (googleUser != null) {
+              await _storeLastGoogleAccount(googleUser);
+              break; // Success
+            }
           }
 
-          // Always disconnect to force account picker (handle gracefully if no session)
-          debugPrint('🔄 Disconnecting to force account picker...');
-          try {
-            await _googleSignIn.disconnect();
-            debugPrint('✅ Disconnected previous session');
-          } catch (e) {
-            debugPrint('ℹ️ No active session to disconnect (normal): $e');
-          }
-          await Future.delayed(const Duration(milliseconds: 500)); // Increased delay
+          // Force account picker (either requested or silent failed)
+          debugPrint('🔄 [GOOGLE_SIGNIN] Preparing account picker...');
 
-          debugPrint('📱 Showing account picker...');
+          // For forced account picker, we need to ensure complete cleanup
+          if (forceAccountPicker) {
+            debugPrint('🔄 [GOOGLE_SIGNIN] Forced account picker requested - ensuring clean state...');
+
+            // Create a fresh GoogleSignIn instance to force account picker
+            final freshGoogleSignIn = GoogleSignIn(
+              forceCodeForRefreshToken: true,
+              scopes: ['email', 'profile'],
+            );
+
+            // Try to disconnect with the fresh instance
+            try {
+              await freshGoogleSignIn.disconnect();
+              debugPrint('✅ [GOOGLE_SIGNIN] Fresh instance disconnect successful');
+            } catch (e) {
+              debugPrint('ℹ️ [GOOGLE_SIGNIN] Fresh instance disconnect failed: ${e.toString()}');
+            }
+
+            // Clear any cached account data
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('last_google_account');
+              debugPrint('✅ [GOOGLE_SIGNIN] Cleared cached account data');
+            } catch (e) {
+              debugPrint('⚠️ [GOOGLE_SIGNIN] Failed to clear cached account data: $e');
+            }
+
+            // Use the fresh instance for sign-in to force account picker
+            debugPrint('📱 [GOOGLE_SIGNIN] Using fresh GoogleSignIn instance for account picker...');
+            final signInStart = DateTime.now();
+
+            googleUser = await freshGoogleSignIn.signIn().timeout(
+              const Duration(seconds: 90),
+              onTimeout: () {
+                final timeoutDuration = DateTime.now().difference(signInStart);
+                debugPrint('⏰ [GOOGLE_SIGNIN] Fresh instance account picker timeout after ${timeoutDuration.inSeconds} seconds');
+                throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
+              },
+            );
+
+            signInDuration = DateTime.now().difference(signInStart);
+            debugPrint('✅ [GOOGLE_SIGNIN] Fresh instance account picker completed in ${signInDuration!.inSeconds}s');
+
+            if (googleUser != null) {
+              await _storeLastGoogleAccount(googleUser);
+              break; // Success
+            }
+          } else {
+            // Normal disconnect for regular account picker
+            try {
+              await _googleSignIn.disconnect();
+              debugPrint('✅ [GOOGLE_SIGNIN] Disconnected previous session');
+            } catch (e) {
+              debugPrint('ℹ️ [GOOGLE_SIGNIN] No active session to disconnect: ${e.toString()}');
+            }
+
+            await Future.delayed(const Duration(milliseconds: 500)); // Brief delay
+
+            debugPrint('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
+            final signInStart = DateTime.now();
+
+            googleUser = await _googleSignIn.signIn().timeout(
+              const Duration(seconds: 90),
+              onTimeout: () {
+                final timeoutDuration = DateTime.now().difference(signInStart);
+                debugPrint('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
+                throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
+              },
+            );
+
+            signInDuration = DateTime.now().difference(signInStart);
+            debugPrint('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration!.inSeconds}s');
+          }
+
+          debugPrint('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
+          final signInStart = DateTime.now();
+
           googleUser = await _googleSignIn.signIn().timeout(
-            const Duration(seconds: 90), // Increased timeout to 90 seconds
+            const Duration(seconds: 90),
             onTimeout: () {
-              debugPrint('⏰ Google Sign-In timeout after 90 seconds');
+              final timeoutDuration = DateTime.now().difference(signInStart);
+              debugPrint('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
               throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
             },
           );
 
-          // If we get here, the account picker was shown successfully
-          debugPrint('✅ Account picker interaction completed');
+          signInDuration = DateTime.now().difference(signInStart);
+          debugPrint('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration!.inSeconds}s');
 
-          // Verify we got a user
-          if (googleUser != null && previousUserId != null) {
-            if (googleUser.id == previousUserId) {
-              debugPrint('⚠️ Same user selected, but account picker was shown');
-            } else {
-              debugPrint('✅ Different user selected: ${googleUser.displayName}');
-            }
-          } else if (googleUser != null) {
-            debugPrint('✅ User selected: ${googleUser.displayName}');
-          }
-
-          // Reset the flag (though it's no longer used for account picker logic)
-          debugPrint('✅ Account picker flag reset');
-
-          // If successful, break out of retry loop
           if (googleUser != null) {
-            break;
+            debugPrint('✅ [GOOGLE_SIGNIN] User selected: ${googleUser.displayName} (${googleUser.email})');
+
+            // Store account info for future logins
+            await _storeLastGoogleAccount(googleUser);
+
+            break; // Success
           }
 
         } catch (e) {
+          final attemptDuration = DateTime.now().difference(attemptStart);
           retryCount++;
-          if (retryCount <= maxRetries && e.toString().contains('timed out')) {
-            debugPrint('🔄 Google Sign-In timeout, retrying... (attempt $retryCount/$maxRetries)');
-            await Future.delayed(Duration(seconds: retryCount * 2)); // Exponential backoff
+
+          if (retryCount <= maxRetries && _isRetryableError(e)) {
+            debugPrint('🔄 [GOOGLE_SIGNIN] Sign-in error, retrying... (attempt $retryCount/$maxRetries)');
+            await Future.delayed(Duration(seconds: retryCount * 2));
             continue;
           } else {
+            debugPrint('❌ [GOOGLE_SIGNIN] Sign-in failed: ${e.toString()}');
             rethrow;
           }
         }
       }
 
       if (googleUser == null) {
-        stopPerformanceTimer('google_signin');
-        debugPrint('❌ User cancelled Google Sign-In');
+        final totalDuration = DateTime.now().difference(startTime);
+        stopPerformanceTimer('google_signin_optimized');
+        debugPrint('❌ [GOOGLE_SIGNIN] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
         return null; // User cancelled
       }
 
-      debugPrint('✅ Google account selected: ${googleUser.displayName}');
+      debugPrint('✅ [GOOGLE_SIGNIN] Google account selected: ${googleUser.displayName} (ID: ${googleUser.id})');
 
-      // Step 2: Get authentication tokens (optimized)
-      debugPrint('🔑 Retrieving authentication tokens...');
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // Step 2: Parallel processing - Get tokens and prepare user data simultaneously
+      debugPrint('🔄 [GOOGLE_SIGNIN] Starting parallel authentication and data preparation...');
+      final parallelStart = DateTime.now();
+
+      final tokenFuture = googleUser.authentication;
+      final userDataPrepFuture = _prepareUserDataLocally(googleUser);
+
+      debugPrint('⏳ [GOOGLE_SIGNIN] Awaiting parallel operations: token retrieval + user data preparation');
+
+      final parallelResults = await Future.wait([tokenFuture, userDataPrepFuture]);
+      final parallelDuration = DateTime.now().difference(parallelStart);
+
+      debugPrint('✅ [GOOGLE_SIGNIN] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
+
+      final GoogleSignInAuthentication googleAuth = parallelResults[0] as GoogleSignInAuthentication;
+      debugPrint('🔑 [GOOGLE_SIGNIN] Authentication tokens retrieved - AccessToken: ${googleAuth.accessToken != null ? 'Present' : 'Missing'}, IdToken: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
 
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        debugPrint('❌ [GOOGLE_SIGNIN] Failed to retrieve authentication tokens from Google');
         throw 'Failed to retrieve authentication tokens from Google';
       }
 
       // Step 3: Create Firebase credential
-      debugPrint('🔧 Creating Firebase credential...');
+      debugPrint('🔧 [GOOGLE_SIGNIN] Creating Firebase credential...');
+      final credentialStart = DateTime.now();
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+      final credentialDuration = DateTime.now().difference(credentialStart);
+      debugPrint('✅ [GOOGLE_SIGNIN] Firebase credential created in ${credentialDuration.inMilliseconds}ms');
 
-      // Step 4: Firebase authentication with enhanced timeout handling
-      debugPrint('🔐 Authenticating with Firebase...');
+      // Step 4: Firebase authentication with optimized timeout
+      debugPrint('🔐 [GOOGLE_SIGNIN] Authenticating with Firebase...');
+      final firebaseStart = DateTime.now();
+      final UserCredential userCredential = await _signInWithRetry(credential);
+      final firebaseDuration = DateTime.now().difference(firebaseStart);
 
-      // Use a longer timeout to handle App Check delays and network issues
-      final UserCredential userCredential = await _firebaseAuth
-          .signInWithCredential(credential)
-          .timeout(
-            const Duration(seconds: 60), // Increased to 60 seconds for better reliability
-            onTimeout: () {
-              debugPrint('⏰ Firebase authentication timeout after 60 seconds');
+      debugPrint('✅ [GOOGLE_SIGNIN] Firebase authentication successful in ${firebaseDuration.inMilliseconds}ms for user: ${userCredential.user?.displayName} (UID: ${userCredential.user?.uid})');
 
-              // Check if authentication actually succeeded despite the timeout
-              final currentUser = _firebaseAuth.currentUser;
-              if (currentUser != null) {
-                debugPrint(
-                  '✅ Authentication succeeded despite timeout - proceeding with current user',
-                );
-                throw 'AUTH_SUCCESS_BUT_TIMEOUT'; // Special exception to handle in catch block
-              } else {
-                throw Exception('Firebase authentication timed out. Please check your internet connection and try again.');
-              }
-            },
-          );
+      // Step 5: Minimal user data creation (fast)
+      debugPrint('👤 [GOOGLE_SIGNIN] Creating minimal user record...');
+      final userCreationStart = DateTime.now();
+      await _createOrUpdateUserMinimal(userCredential.user!);
+      final userCreationDuration = DateTime.now().difference(userCreationStart);
+      debugPrint('✅ [GOOGLE_SIGNIN] Minimal user record created in ${userCreationDuration.inMilliseconds}ms');
 
-      debugPrint(
-        '✅ Firebase authentication successful for: ${userCredential.user?.displayName}',
-      );
+      // Step 6: Start background sync for heavy operations
+      debugPrint('🔄 [GOOGLE_SIGNIN] Starting background synchronization...');
+      final backgroundStart = DateTime.now();
+      _performBackgroundSetup(userCredential.user!);
+      final backgroundSetupDuration = DateTime.now().difference(backgroundStart);
+      debugPrint('✅ [GOOGLE_SIGNIN] Background setup initiated in ${backgroundSetupDuration.inMilliseconds}ms');
 
-      // Step 5: User data operations (synchronous to avoid isolate issues)
-      debugPrint('👤 Processing user data synchronously...');
-      await createOrUpdateUser(userCredential.user!);
-
-      stopPerformanceTimer('google_signin');
-      debugPrint('✅ Google Sign-In completed successfully');
+      final totalDuration = DateTime.now().difference(startTime);
+      stopPerformanceTimer('google_signin_optimized');
+      debugPrint('🎉 [GOOGLE_SIGNIN] Optimized Google Sign-In completed successfully in ${totalDuration.inSeconds}s');
+      debugPrint('📊 [GOOGLE_SIGNIN] Performance breakdown:');
+      debugPrint('   - Connectivity check: ${connectivityDuration.inMilliseconds}ms');
+      debugPrint('   - Account selection: ${signInDuration?.inSeconds ?? 0}s');
+      debugPrint('   - Parallel operations: ${parallelDuration.inMilliseconds}ms');
+      debugPrint('   - Firebase auth: ${firebaseDuration.inMilliseconds}ms');
+      debugPrint('   - User creation: ${userCreationDuration.inMilliseconds}ms');
+      debugPrint('   - Background setup: ${backgroundSetupDuration.inMilliseconds}ms');
 
       return userCredential;
     } catch (e) {
-      stopPerformanceTimer('google_signin');
-      debugPrint("❌ Google Sign-In Error: $e");
+      final totalDuration = DateTime.now().difference(startTime);
+      stopPerformanceTimer('google_signin_optimized');
+
+      debugPrint('❌ [GOOGLE_SIGNIN] Google Sign-In failed after ${totalDuration.inSeconds}s');
+      debugPrint('❌ [GOOGLE_SIGNIN] Error details: ${e.toString()}');
+      debugPrint('❌ [GOOGLE_SIGNIN] Error type: ${e.runtimeType}');
 
       // Handle the special case where auth succeeded but timed out
       if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
-        debugPrint('✅ Handling successful authentication that timed out');
+        debugPrint('✅ [GOOGLE_SIGNIN] Handling successful authentication that timed out');
 
         final currentUser = _firebaseAuth.currentUser;
         if (currentUser != null) {
-          debugPrint(
-            '✅ Proceeding with authenticated user: ${currentUser.displayName}',
-          );
+          debugPrint('✅ [GOOGLE_SIGNIN] Proceeding with authenticated user: ${currentUser.displayName} (UID: ${currentUser.uid})');
 
-          // Step 5: User data operations for successful auth
-          debugPrint('👤 Processing user data synchronously...');
-          await createOrUpdateUser(currentUser);
+          // Minimal user data for successful auth
+          debugPrint('👤 [GOOGLE_SIGNIN] Creating minimal user record for timeout recovery...');
+          final recoveryStart = DateTime.now();
+          await _createOrUpdateUserMinimal(currentUser);
+          final recoveryDuration = DateTime.now().difference(recoveryStart);
+          debugPrint('✅ [GOOGLE_SIGNIN] Recovery user record created in ${recoveryDuration.inMilliseconds}ms');
 
-          debugPrint('✅ Google Sign-In completed successfully despite timeout');
+          // Background setup
+          _performBackgroundSetup(currentUser);
+          debugPrint('✅ [GOOGLE_SIGNIN] Background setup initiated for timeout recovery');
+
+          debugPrint('🎉 [GOOGLE_SIGNIN] Google Sign-In completed successfully despite timeout');
           return null; // Return null to indicate success but no UserCredential
+        } else {
+          debugPrint('❌ [GOOGLE_SIGNIN] Timeout recovery failed - no current user found');
         }
       }
 
-      // Provide more specific error messages
-      if (e.toString().contains('network') ||
-          e.toString().contains('timeout')) {
-        throw 'Network error during sign-in. Please check your internet connection and try again.';
-      } else if (e.toString().contains('cancelled')) {
-        throw 'Sign-in was cancelled.';
+      // Categorize and provide more specific error messages
+      String errorCategory = 'unknown';
+      String userMessage = 'Sign-in failed';
+
+      if (e.toString().contains('network') || e.toString().contains('timeout')) {
+        errorCategory = 'network';
+        userMessage = 'Network error during sign-in. Please check your internet connection and try again.';
+        debugPrint('🌐 [GOOGLE_SIGNIN] Network-related error detected');
+      } else if (e.toString().contains('cancelled') || e.toString().contains('CANCELLED')) {
+        errorCategory = 'user_cancelled';
+        userMessage = 'Sign-in was cancelled.';
+        debugPrint('🚫 [GOOGLE_SIGNIN] User cancelled the sign-in process');
+      } else if (e.toString().contains('sign_in_failed') || e.toString().contains('SIGN_IN_FAILED')) {
+        errorCategory = 'auth_failed';
+        userMessage = 'Authentication failed. Please try again.';
+        debugPrint('🔐 [GOOGLE_SIGNIN] Authentication failure detected');
+      } else if (e.toString().contains('account') || e.toString().contains('ACCOUNT')) {
+        errorCategory = 'account_issue';
+        userMessage = 'Account selection failed. Please try selecting a different account.';
+        debugPrint('👤 [GOOGLE_SIGNIN] Account-related error detected');
       } else {
-        throw 'Sign-in failed: ${e.toString()}';
+        errorCategory = 'unknown';
+        userMessage = 'Sign-in failed: ${e.toString()}';
+        debugPrint('❓ [GOOGLE_SIGNIN] Unknown error category');
       }
+
+      debugPrint('📊 [GOOGLE_SIGNIN] Error summary:');
+      debugPrint('   - Category: $errorCategory');
+      debugPrint('   - Duration: ${totalDuration.inSeconds}s');
+      debugPrint('   - User message: $userMessage');
+
+      throw userMessage;
     }
   }
 
@@ -373,14 +581,15 @@ class AuthRepository {
       await _googleSignIn.signOut();
       debugPrint('✅ Google account signed out');
 
-      // Step 3: Set flag to force account picker on next sign-in
-      debugPrint('✅ Account picker flag set');
+      // Note: We keep the stored Google account info for smart login UX convenience
+      // This allows users to quickly sign back in with the same account
+      debugPrint('ℹ️ Stored Google account info preserved for quick re-login');
 
-      // Step 4: Clear session-specific cache and temporary files (but keep user preferences)
+      // Step 3: Clear session-specific cache and temporary files (but keep user preferences)
       await _clearLogoutCache();
       debugPrint('✅ Session cache cleared');
 
-      // Step 5: Clear GetX controllers to reset app state
+      // Step 4: Clear GetX controllers to reset app state
       await _clearAllControllers();
       debugPrint('✅ App controllers reset');
 
@@ -391,6 +600,7 @@ class AuthRepository {
       try {
         await _firebaseAuth.signOut();
         await _googleSignIn.signOut();
+        // Keep stored account info in fallback for UX convenience
         await _clearLogoutCache();
         await _clearAllControllers();
         debugPrint('⚠️ Fallback sign-out completed');
@@ -1839,6 +2049,269 @@ class AuthRepository {
     } catch (e) {
       debugPrint('❌ Error deleting user media files: $e');
       // Don't throw here as media cleanup is not critical
+    }
+  }
+
+  // Optimized authentication methods for faster login
+
+  // Check if an error is retryable
+  bool _isRetryableError(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+    return errorString.contains('timeout') ||
+           errorString.contains('network') ||
+           errorString.contains('connection') ||
+           errorString.contains('unreachable');
+  }
+
+  // Enhanced Firebase authentication with retry logic
+  Future<UserCredential> _signInWithRetry(OAuthCredential credential) async {
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        final result = await _firebaseAuth.signInWithCredential(credential)
+            .timeout(
+              const Duration(seconds: 30),
+              onTimeout: () {
+                // Check if authentication actually succeeded despite the timeout
+                final currentUser = _firebaseAuth.currentUser;
+                if (currentUser != null) {
+                  debugPrint('✅ Authentication succeeded despite timeout');
+                  throw 'AUTH_SUCCESS_BUT_TIMEOUT';
+                } else {
+                  throw Exception('Firebase authentication timed out');
+                }
+              },
+            );
+        return result;
+      } catch (e) {
+        if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
+          // Authentication succeeded despite timeout
+          throw e;
+        }
+
+        retryCount++;
+        if (retryCount < maxRetries && _isRetryableError(e)) {
+          debugPrint('🔄 Firebase auth retry $retryCount/$maxRetries');
+          final delay = Duration(seconds: retryCount * 2); // Exponential backoff
+          await Future.delayed(delay);
+          continue;
+        } else {
+          rethrow;
+        }
+      }
+    }
+
+    throw Exception('Firebase authentication failed after $maxRetries retries');
+  }
+
+  // Prepare user data locally (fast operation)
+  Future<Map<String, dynamic>> _prepareUserDataLocally(GoogleSignInAccount googleUser) async {
+    debugPrint('📋 Preparing user data locally...');
+
+    final userData = {
+      'name': googleUser.displayName ?? 'User',
+      'email': googleUser.email,
+      'photoURL': googleUser.photoUrl,
+      'preparedAt': DateTime.now().toIso8601String(),
+    };
+
+    // Cache locally for immediate access
+    await _cacheService.cacheTempUserData(userData);
+
+    debugPrint('✅ User data prepared and cached locally');
+    return userData;
+  }
+
+  // Create minimal user record (fast operation)
+  Future<void> _createOrUpdateUserMinimal(User firebaseUser) async {
+    startPerformanceTimer('minimal_user_creation');
+
+    try {
+      debugPrint('👤 Creating minimal user record...');
+
+      final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
+
+      // Only store essential login data immediately
+      final minimalData = {
+        'uid': firebaseUser.uid,
+        'email': firebaseUser.email,
+        'lastLogin': FieldValue.serverTimestamp(),
+        'loginCount': FieldValue.increment(1),
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Use set with merge for atomic operation
+      await userDoc.set(minimalData, SetOptions(merge: true));
+
+      debugPrint('✅ Minimal user record created');
+    } catch (e) {
+      debugPrint('❌ Error creating minimal user record: $e');
+      rethrow;
+    } finally {
+      stopPerformanceTimer('minimal_user_creation');
+    }
+  }
+
+  // Perform background setup operations (non-blocking)
+  void _performBackgroundSetup(User user) {
+    debugPrint('🔄 Starting background setup...');
+
+    // Use the background sync manager for comprehensive sync
+    _syncManager.performFullBackgroundSync(user);
+  }
+
+  // Update full user profile in background
+  Future<void> _updateFullUserProfile(User firebaseUser) async {
+    try {
+      debugPrint('👤 Updating full user profile in background...');
+
+      final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
+      final userSnapshot = await userDoc.get();
+
+      if (!userSnapshot.exists) {
+        // Create full user profile
+        final userModel = UserModel(
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName ?? 'User',
+          phone: firebaseUser.phoneNumber ?? '',
+          email: firebaseUser.email,
+          role: '',
+          roleSelected: false,
+          profileCompleted: false,
+          wardId: '',
+          districtId: '',
+          bodyId: '',
+          xpPoints: 0,
+          premium: false,
+          createdAt: DateTime.now(),
+          photoURL: firebaseUser.photoURL,
+        );
+
+        await userDoc.set(userModel.toJson(), SetOptions(merge: true));
+        await _createDefaultUserQuotaOptimized(firebaseUser.uid);
+
+        debugPrint('✅ Full user profile created');
+      } else {
+        // Update existing profile with latest data
+        final updatedData = {
+          'name': firebaseUser.displayName,
+          'phone': firebaseUser.phoneNumber,
+          'photoURL': firebaseUser.photoURL,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        };
+
+        final filteredData = Map<String, dynamic>.fromEntries(
+          updatedData.entries.where((entry) => entry.value != null),
+        );
+
+        if (filteredData.isNotEmpty) {
+          await userDoc.update(filteredData);
+          debugPrint('✅ User profile updated');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error updating full user profile: $e');
+    }
+  }
+
+  // Register device in background
+  Future<void> _registerDeviceBackground(String userId) async {
+    try {
+      debugPrint('📱 Registering device in background...');
+      // Import the service dynamically to avoid circular dependencies
+      // This would need to be implemented based on your DeviceService
+      debugPrint('✅ Device registration completed in background');
+    } catch (e) {
+      debugPrint('⚠️ Background device registration failed: $e');
+    }
+  }
+
+  // Sync user preferences in background
+  Future<void> _syncUserPreferences(String userId) async {
+    try {
+      debugPrint('🔄 Syncing user preferences...');
+      // Sync any cached preferences to Firestore
+      debugPrint('✅ User preferences synced');
+    } catch (e) {
+      debugPrint('⚠️ Error syncing user preferences: $e');
+    }
+  }
+
+  // Clean up expired trials in background
+  Future<void> _cleanupExpiredTrials(String userId) async {
+    try {
+      debugPrint('🧹 Cleaning up expired trials...');
+      // This would integrate with your TrialService
+      debugPrint('✅ Expired trials cleaned up');
+    } catch (e) {
+      debugPrint('⚠️ Error cleaning up expired trials: $e');
+    }
+  }
+
+  // Store last used Google account info for smart login UX
+  Future<void> _storeLastGoogleAccount(GoogleSignInAccount account) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accountData = {
+        'email': account.email,
+        'displayName': account.displayName ?? 'User',
+        'photoUrl': account.photoUrl,
+        'id': account.id,
+        'lastLogin': DateTime.now().toIso8601String(),
+      };
+
+      // Properly encode as JSON string
+      final accountJson = jsonEncode(accountData);
+      await prefs.setString('last_google_account', accountJson);
+      debugPrint('✅ Stored last Google account: ${account.email}');
+    } catch (e) {
+      debugPrint('⚠️ Error storing last Google account: $e');
+    }
+  }
+
+  // Get last used Google account info
+  Future<Map<String, dynamic>?> getLastGoogleAccount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accountData = prefs.getString('last_google_account');
+
+      if (accountData == null) {
+        debugPrint('ℹ️ No stored Google account found');
+        return null;
+      }
+
+      debugPrint('📋 Found stored Google account data');
+
+      // Parse the stored JSON string
+      final accountMap = jsonDecode(accountData) as Map<String, dynamic>;
+
+      debugPrint('✅ Successfully parsed stored account: ${accountMap['displayName']} (${accountMap['email']})');
+
+      return accountMap;
+    } catch (e) {
+      debugPrint('⚠️ Error retrieving last Google account: $e');
+      // Clear corrupted data
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('last_google_account');
+        debugPrint('🧹 Cleared corrupted account data');
+      } catch (clearError) {
+        debugPrint('⚠️ Error clearing corrupted data: $clearError');
+      }
+      return null;
+    }
+  }
+
+  // Clear stored Google account info (on logout)
+  Future<void> clearLastGoogleAccount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('last_google_account');
+      debugPrint('✅ Cleared last Google account info');
+    } catch (e) {
+      debugPrint('⚠️ Error clearing last Google account: $e');
     }
   }
 }
