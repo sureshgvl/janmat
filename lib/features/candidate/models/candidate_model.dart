@@ -692,8 +692,10 @@ class Candidate {
   final String? userId; // User who registered this candidate
   final String name;
   final String party;
-  final String? symbol;
+  final String? symbolUrl;
+  final String? symbolName;
   final String districtId;
+  final String? stateId;
   final String bodyId;
   final String wardId;
   final String? manifesto;
@@ -714,8 +716,10 @@ class Candidate {
     this.userId,
     required this.name,
     required this.party,
-    this.symbol,
+    this.symbolUrl,
+    this.symbolName,
     required this.districtId,
+    this.stateId,
     required this.bodyId,
     required this.wardId,
     this.manifesto,
@@ -748,9 +752,11 @@ class Candidate {
       userId: json['userId'],
       name: json['name'] ?? '',
       party: json['party'] ?? '',
-      symbol: json['symbol'],
+      symbolUrl: json['symbol'],
+      symbolName: json['symbolName'],
       districtId:
           json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
+      stateId: json['stateId'],
       bodyId: json['bodyId'] ?? '',
       wardId: json['wardId'] ?? '',
       manifesto: json['manifesto'],
@@ -776,8 +782,10 @@ class Candidate {
       'userId': userId,
       'name': name,
       'party': party,
-      'symbol': symbol,
+      'symbol': symbolUrl,
+      'symbolName': symbolName,
       'districtId': districtId,
+      'stateId': stateId,
       'bodyId': bodyId,
       'wardId': wardId,
       'manifesto': manifesto,
@@ -800,8 +808,10 @@ class Candidate {
     String? userId,
     String? name,
     String? party,
-    String? symbol,
+    String? symbolUrl,
+    String? symbolName,
     String? districtId,
+    String? stateId,
     String? bodyId,
     String? wardId,
     String? manifesto,
@@ -822,8 +832,10 @@ class Candidate {
       userId: userId ?? this.userId,
       name: name ?? this.name,
       party: party ?? this.party,
-      symbol: symbol ?? this.symbol,
+      symbolUrl: symbolUrl ?? this.symbolUrl,
+      symbolName: symbolName ?? this.symbolName,
       districtId: districtId ?? this.districtId,
+      stateId: stateId ?? this.stateId,
       bodyId: bodyId ?? this.bodyId,
       wardId: wardId ?? this.wardId,
       manifesto: manifesto ?? this.manifesto,

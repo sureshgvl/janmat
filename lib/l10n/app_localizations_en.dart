@@ -392,6 +392,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get candidateProfile => 'Candidate Profile';
 
   @override
+  String get candidateComparison => 'Candidate Comparison';
+
+  @override
   String get candidateDataNotAvailable => 'Candidate data not available';
 
   @override
@@ -702,10 +705,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preferNotToSay => 'Prefer not to say';
 
   @override
+  String get stateRequired => 'State *';
+
+  @override
+  String get selectYourState => 'Select your state';
+
+  @override
+  String get selectStateFirst => 'Select state first';
+
+  @override
   String get districtRequired => 'District *';
 
   @override
   String get selectYourDistrict => 'Select your district';
+
+  @override
+  String get selectDistrictFirst => 'Select district first';
+
+  @override
+  String get selectAreaFirst => 'Select area first';
 
   @override
   String get bodyRequired => 'Body *';
@@ -1174,12 +1192,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get areas => 'areas';
 
   @override
-  String get selectDistrictFirst => 'Select district first';
-
-  @override
-  String get selectAreaFirst => 'Select area first';
-
-  @override
   String get noAreasAvailableInDistrict => 'No areas available in this district';
 
   @override
@@ -1501,4 +1513,114 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get features => 'Features:';
+
+  @override
+  String get pdfDocument => 'PDF Document';
+
+  @override
+  String get notAvailable => 'Not available';
+
+  @override
+  String get image => 'Image';
+
+  @override
+  String get video => 'Video';
+
+  @override
+  String get viewFullImage => 'View Full Image';
+
+  @override
+  String get tapToPlayVideo => 'Tap to play video';
+
+  @override
+  String get play => 'Play';
+
+  @override
+  String get additionalResources => 'Additional Resources';
+
+  @override
+  String get manifestoPdfAvailable => 'Manifesto PDF Available';
+
+  @override
+  String get tapToViewInApp => 'Tap to view in app';
+
+  @override
+  String get couldNotOpenPdf => 'Could not open PDF';
+
+  @override
+  String get viewPdf => 'View PDF';
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get hideComments => 'Hide Comments';
+
+  @override
+  String showCommentsWithCount(Object count) {
+    return 'Show Comments ($count)';
+  }
+
+  @override
+  String get shareYourThoughts => 'Share your thoughts...';
+
+  @override
+  String get postComment => 'Post Comment';
+
+  @override
+  String get noCommentsYet => 'No comments yet';
+
+  @override
+  String get anonymousVoter => 'Anonymous Voter';
+
+  @override
+  String get replyFunctionalityComingSoon => 'Reply functionality coming soon';
+
+  @override
+  String get reply => 'Reply';
+
+  @override
+  String supportedWithCount(Object count) {
+    return 'Supported ($count)';
+  }
+
+  @override
+  String get supportThisManifesto => 'Support This Manifesto';
+
+  @override
+  String get whatIssueMattersMost => 'What issue matters most to you?';
+
+  @override
+  String get developmentInfrastructure => 'Development & Infrastructure';
+
+  @override
+  String get transparencyGovernance => 'Transparency & Governance';
+
+  @override
+  String get youthEducation => 'Youth & Education';
+
+  @override
+  String get womenSafety => 'Women & Safety';
+
+  @override
+  String get xpEarned => 'XP Earned!';
+
+  @override
+  String earnedXpForSupportingManifesto(Object count) {
+    return 'Earned $count XP for supporting manifesto!';
+  }
+
+  @override
+  String earnedXpForCommenting(Object count) {
+    return 'Earned $count XP for commenting!';
+  }
+
+  @override
+  String get thankYou => 'Thank you!';
+
+  @override
+  String get feedbackRecorded => 'Your feedback has been recorded.';
+
+  @override
+  String get pleaseEnterComment => 'Please enter a comment.';
 }

@@ -181,6 +181,8 @@ class CandidateDataController extends GetxController {
         updatedExtra = currentExtra.copyWith(contact: value);
         break;
       case 'media':
+        // Track the change for field-level updates
+        trackExtraInfoFieldChange(field, value);
         updatedExtra = currentExtra.copyWith(media: value);
         break;
       case 'events':

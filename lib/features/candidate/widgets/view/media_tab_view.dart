@@ -6,6 +6,7 @@ import '../../models/candidate_model.dart';
 import '../../../common/video_player_screen.dart';
 import '../../../common/reusable_image_widget.dart';
 import '../../../common/reusable_video_widget.dart';
+import '../../../common/whatsapp_image_viewer.dart';
 
 // Media Item Model (same as in edit widget)
 class MediaItem {
@@ -277,7 +278,22 @@ class _MediaTabViewState extends State<MediaTabView>
 
                     return GestureDetector(
                       onTap: () {
-                        _showImageViewer(context, photoUrl, index);
+                        // Show full screen image viewer
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            opaque: false,
+                            barrierColor: Colors.black,
+                            pageBuilder: (context, animation, secondaryAnimation) {
+                              return WhatsAppImageViewer(
+                                imageUrl: photoUrl,
+                                title: '${item.title} - Photo ${index + 1}',
+                              );
+                            },
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(opacity: animation, child: child);
+                            },
+                          ),
+                        );
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -301,8 +317,7 @@ class _MediaTabViewState extends State<MediaTabView>
                                 minHeight: 100,
                                 maxHeight: 100,
                                 borderColor: Colors.transparent,
-                                fullScreenTitle:
-                                    '${item.title} - Photo ${index + 1}',
+                                enableFullScreenView: false, // Disable built-in full screen
                               ),
                               Container(
                                 decoration: BoxDecoration(
@@ -639,12 +654,21 @@ class _MediaTabViewState extends State<MediaTabView>
                                             )!,
                                         flags: const YoutubePlayerFlags(
                                           autoPlay: false,
-                                          mute: true,
-                                          showLiveFullscreenButton: false,
-                                          controlsVisibleAtStart: false,
+                                          mute: false,
+                                          enableCaption: true,
+                                          captionLanguage: 'en',
+                                          forceHD: false,
+                                          loop: false,
+                                          controlsVisibleAtStart: true,
+                                          showLiveFullscreenButton: true,
                                         ),
                                       ),
-                                      showVideoProgressIndicator: false,
+                                      showVideoProgressIndicator: true,
+                                      progressIndicatorColor: Colors.red,
+                                      progressColors: const ProgressBarColors(
+                                        playedColor: Colors.red,
+                                        handleColor: Colors.redAccent,
+                                      ),
                                     ),
                                     // Like button overlay
                                     Positioned(
@@ -775,38 +799,4 @@ class _MediaTabViewState extends State<MediaTabView>
     );
   }
 
-  void _showImageViewer(
-    BuildContext context,
-    String imageUrl,
-    int initialIndex,
-  ) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.black,
-          insetPadding: EdgeInsets.zero,
-          child: Stack(
-            children: [
-              InteractiveViewer(
-                child: ReusableImageWidget(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.contain,
-                  fullScreenTitle: 'Media Photo',
-                ),
-              ),
-              Positioned(
-                top: 40,
-                right: 20,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }

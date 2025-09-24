@@ -138,9 +138,6 @@ class MonetizationController extends GetxController {
           plan.planId,
           null,
         ); // One-time subscription
-      } else if (plan.type == 'voter' && plan.xpAmount != null) {
-        await _repository.updateUserXPBalance(userId, plan.xpAmount!);
-        await loadUserXPBalance(userId);
       }
 
       // Reload data
@@ -482,11 +479,6 @@ class MonetizationController extends GetxController {
           null, // One-time subscription
         );
         debugPrint('✅ User upgraded to premium candidate');
-      } else if (plan.type == 'voter' && plan.xpAmount != null) {
-        debugPrint('⭐ Adding XP to voter account...');
-        await _repository.updateUserXPBalance(userId, plan.xpAmount!);
-        await loadUserXPBalance(userId);
-        debugPrint('✅ Added ${plan.xpAmount} XP to user');
       }
 
       // Reload data

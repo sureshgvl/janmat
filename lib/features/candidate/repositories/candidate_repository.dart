@@ -21,6 +21,10 @@ class CandidateRepository {
   final AdvancedAnalyticsManager _analytics = AdvancedAnalyticsManager();
   final MultiLevelCache _cache = MultiLevelCache();
 
+  // State configuration
+  static const String DEFAULT_STATE_ID = 'maharashtra';
+  static const String DEFAULT_STATE_NAME = 'Maharashtra';
+
   // Enhanced repository-level caching
   static final Map<String, List<Candidate>> _candidateCache = {};
   static final Map<String, List<Ward>> _wardCache = {};
@@ -168,8 +172,97 @@ class CandidateRepository {
     }
 
     if (expiredKeys.isNotEmpty) {
-      debugPrint('🧹 Cleared ${expiredKeys.length} expired cache entries');
+      debugPrint('🧹 Cleared ${expiredKeys.isNotEmpty} expired cache entries');
     }
+  }
+
+  // State Management Methods
+
+  // Get all states
+  Future<List<Map<String, dynamic>>> getAllStates() async {
+    const cacheKey = 'all_states';
+
+    // Check cache first
+    final cachedStates = _getCachedQueryResult(cacheKey);
+    if (cachedStates != null) {
+      debugPrint('⚡ CACHE HIT: Returning ${cachedStates.length} cached states');
+      return cachedStates['states'] as List<Map<String, dynamic>>;
+    }
+
+    debugPrint('🔍 CACHE MISS: Fetching all states from Firebase');
+    try {
+      final snapshot = await _firestore.collection('states').get();
+      debugPrint('📊 getAllStates: Found ${snapshot.docs.length} states');
+
+      final states = snapshot.docs.map((doc) {
+        final data = doc.data();
+        final stateData = Map<String, dynamic>.from(data);
+        stateData['stateId'] = doc.id;
+
+        debugPrint('🏛️ State: ${stateData['name'] ?? 'Unknown'} (ID: ${doc.id})');
+        return stateData;
+      }).toList();
+
+      // Cache the results
+      _cacheQueryResult(cacheKey, {'states': states});
+      debugPrint('💾 Cached ${states.length} states');
+
+      return states;
+    } catch (e) {
+      debugPrint('❌ getAllStates: Failed to fetch states: $e');
+      throw Exception('Failed to fetch states: $e');
+    }
+  }
+
+  // Get state by ID
+  Future<Map<String, dynamic>?> getStateById(String stateId) async {
+    final cacheKey = 'state_$stateId';
+
+    // Check cache first
+    final cachedState = _getCachedQueryResult(cacheKey);
+    if (cachedState != null) {
+      debugPrint('⚡ CACHE HIT: Returning cached state $stateId');
+      return cachedState['state'] as Map<String, dynamic>;
+    }
+
+    debugPrint('🔍 CACHE MISS: Fetching state $stateId from Firebase');
+    try {
+      final doc = await _firestore.collection('states').doc(stateId).get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        final stateData = Map<String, dynamic>.from(data);
+        stateData['stateId'] = doc.id;
+
+        // Cache the result
+        _cacheQueryResult(cacheKey, {'state': stateData});
+        debugPrint('💾 Cached state $stateId');
+
+        return stateData;
+      }
+
+      debugPrint('❌ State $stateId not found');
+      return null;
+    } catch (e) {
+      debugPrint('❌ getStateById: Failed to fetch state: $e');
+      throw Exception('Failed to fetch state: $e');
+    }
+  }
+
+  // Validate state exists and is active
+  Future<bool> validateState(String stateId) async {
+    try {
+      final state = await getStateById(stateId);
+      return state != null && (state['isActive'] ?? true);
+    } catch (e) {
+      debugPrint('❌ validateState: Failed to validate state: $e');
+      return false;
+    }
+  }
+
+  // Get default state (Maharashtra)
+  Future<Map<String, dynamic>?> getDefaultState() async {
+    return await getStateById(DEFAULT_STATE_ID);
   }
 
   // Batch: Get multiple candidates by IDs
@@ -215,6 +308,8 @@ class CandidateRepository {
           final batchReads = locationMap.entries.map((entry) async {
             final location = entry.value;
             final candidateDoc = await _firestore
+                .collection('states')
+                .doc(DEFAULT_STATE_ID)
                 .collection('districts')
                 .doc(location['districtId'])
                 .collection('bodies')
@@ -278,6 +373,8 @@ class CandidateRepository {
         if (indexDoc.exists) {
           final location = indexDoc.data()!;
           final candidateRef = _firestore
+              .collection('states')
+              .doc(DEFAULT_STATE_ID)
               .collection('districts')
               .doc(location['districtId'])
               .collection('bodies')
@@ -292,7 +389,7 @@ class CandidateRepository {
 
           // Invalidate cache for this candidate
           invalidateCache(
-            'candidates_${location['districtId']}_${location['bodyId']}_${location['wardId']}',
+            'candidates_${DEFAULT_STATE_ID}_${location['districtId']}_${location['bodyId']}_${location['wardId']}',
           );
         }
       }
@@ -407,7 +504,7 @@ class CandidateRepository {
     final monitor = perf_monitor.PerformanceMonitor();
     monitor.startTimer('getCandidatesByWard');
 
-    final cacheKey = 'candidates_${districtId}_${bodyId}_$wardId';
+    final cacheKey = 'candidates_${DEFAULT_STATE_ID}_${districtId}_${bodyId}_$wardId';
 
     // Check multi-level cache first
     final cachedData = await _cache.get<List<Candidate>>(cacheKey);
@@ -437,7 +534,7 @@ class CandidateRepository {
 
     monitor.trackCacheMiss('candidate_ward');
     debugPrint(
-      '🔍 CACHE MISS: Fetching candidates for $districtId/$bodyId/$wardId from Firebase',
+      '🔍 CACHE MISS: Fetching candidates for $DEFAULT_STATE_ID/$districtId/$bodyId/$wardId from Firebase',
     );
 
     try {
@@ -446,6 +543,8 @@ class CandidateRepository {
         'get_candidates_by_ward',
         () async {
           return await _firestore
+              .collection('states')
+              .doc(DEFAULT_STATE_ID)
               .collection('districts')
               .doc(districtId)
               .collection('bodies')
@@ -466,7 +565,7 @@ class CandidateRepository {
       );
 
       debugPrint(
-        '📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $districtId/$bodyId/$wardId',
+        '📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $DEFAULT_STATE_ID/$districtId/$bodyId/$wardId',
       );
 
       final candidates = snapshot.docs.map((doc) {
@@ -480,7 +579,7 @@ class CandidateRepository {
         debugPrint('👤 Candidate: ${candidateData['name']} (ID: ${doc.id})');
         debugPrint('   Party: ${candidateData['party']}');
         debugPrint('   UserId: ${candidateData['userId']}');
-        debugPrint('   District: $districtId, Body: $bodyId, Ward: $wardId');
+        debugPrint('   State: $DEFAULT_STATE_ID, District: $districtId, Body: $bodyId, Ward: $wardId');
         debugPrint('   Approved: ${candidateData['approved'] ?? false}');
         debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
 
@@ -545,6 +644,8 @@ class CandidateRepository {
     );
     try {
       final wardsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .doc(cityId) // Using cityId as districtId for backward compatibility
           .collection('bodies')
@@ -653,6 +754,8 @@ class CandidateRepository {
     );
     try {
       final snapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -693,7 +796,11 @@ class CandidateRepository {
 
     debugPrint('🔍 CACHE MISS: Fetching all districts from Firebase');
     try {
-      final snapshot = await _firestore.collection('districts').get();
+      final snapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       debugPrint('📊 getAllDistricts: Found ${snapshot.docs.length} districts');
 
       final districts = snapshot.docs.map((doc) {
@@ -737,6 +844,8 @@ class CandidateRepository {
       if (cityId != null && wardId != null) {
         // Search in specific ward with pagination
         Query queryRef = _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .doc(
               cityId,
@@ -765,6 +874,8 @@ class CandidateRepository {
       } else if (cityId != null) {
         // Search in all wards of a city with pagination
         final wardsSnapshot = await _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .doc(cityId)
             .collection('bodies')
@@ -810,6 +921,8 @@ class CandidateRepository {
         );
 
         final districtsSnapshot = await _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .limit(5)
             .get(); // Limit districts
@@ -949,8 +1062,10 @@ class CandidateRepository {
         '🎯 Direct search: District: $districtId, Body: $bodyId, Ward: $wardId',
       );
 
-      // Direct query to the specific district/body/ward path
+      // Direct query to the specific state/district/body/ward path
       final candidatesSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -1047,7 +1162,11 @@ class CandidateRepository {
   // Fallback brute force search (for backward compatibility)
   Future<Candidate?> _getCandidateDataBruteForce(String userId) async {
     debugPrint('🔍 Falling back to brute force search for userId: $userId');
-    final districtsSnapshot = await _firestore.collection('districts').get();
+    final districtsSnapshot = await _firestore
+        .collection('states')
+        .doc(DEFAULT_STATE_ID)
+        .collection('districts')
+        .get();
     debugPrint('📊 Found ${districtsSnapshot.docs.length} districts to search');
 
     for (var districtDoc in districtsSnapshot.docs) {
@@ -1121,8 +1240,12 @@ class CandidateRepository {
   // Update candidate extra info (legacy - saves entire object)
   Future<bool> updateCandidateExtraInfo(Candidate candidate) async {
     try {
-      // Find the candidate's location in the new district/body/ward structure
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      // Find the candidate's location in the new state/district/body/ward structure
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       bool foundInNewStructure = false;
 
       for (var districtDoc in districtsSnapshot.docs) {
@@ -1149,7 +1272,8 @@ class CandidateRepository {
                   .update({
                     'name': candidate.name,
                     'party': candidate.party,
-                    'symbol': candidate.symbol,
+                    'symbol': candidate.symbolUrl,
+                    'symbolName': candidate.symbolName,
                     'extra_info': candidate.extraInfo?.toJson(),
                     'photo': candidate.photo,
                     'manifesto': candidate.manifesto,
@@ -1172,7 +1296,8 @@ class CandidateRepository {
           await legacyDocRef.update({
             'name': candidate.name,
             'party': candidate.party,
-            'symbol': candidate.symbol,
+            'symbol': candidate.symbolUrl,
+            'symbolName': candidate.symbolName,
             'extra_info': candidate.extraInfo?.toJson(),
             'photo': candidate.photo,
             'manifesto': candidate.manifesto,
@@ -1213,6 +1338,8 @@ class CandidateRepository {
 
         // Direct update using location metadata
         await _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .doc(districtId)
             .collection('bodies')
@@ -1224,7 +1351,7 @@ class CandidateRepository {
             .update(fieldUpdates);
 
         // Invalidate cache for this candidate
-        invalidateCache('candidates_${districtId}_${bodyId}_$wardId');
+        invalidateCache('candidates_${DEFAULT_STATE_ID}_${districtId}_${bodyId}_$wardId');
 
         return true;
       }
@@ -1233,7 +1360,11 @@ class CandidateRepository {
       debugPrint(
         '🔄 Index not found, using optimized brute force search for update',
       );
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
 
       for (var districtDoc in districtsSnapshot.docs) {
         final bodiesSnapshot = await districtDoc.reference
@@ -1266,7 +1397,7 @@ class CandidateRepository {
                 wardDoc.id,
               );
               invalidateCache(
-                'candidates_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
+                'candidates_${DEFAULT_STATE_ID}_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
               );
 
               return true;
@@ -1347,8 +1478,12 @@ class CandidateRepository {
     try {
       final batch = _firestore.batch();
 
-      // Find the candidate's location in the new district/body/ward structure
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      // Find the candidate's location in the new state/district/body/ward structure
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       String? candidateDistrictId;
       String? candidateBodyId;
       String? candidateWardId;
@@ -1386,6 +1521,8 @@ class CandidateRepository {
           candidateWardId != null) {
         // Found in new structure
         final candidateRef = _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .doc(candidateDistrictId)
             .collection('bodies')
@@ -1450,6 +1587,8 @@ class CandidateRepository {
           '🔄 Index not found, using optimized brute force search for follow',
         );
         final districtsSnapshot = await _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .get();
 
@@ -1552,7 +1691,7 @@ class CandidateRepository {
       // Invalidate relevant caches
       invalidateCache('following_$userId');
       invalidateCache(
-        'candidates_${candidateDistrictId}_${candidateBodyId}_$candidateWardId',
+        'candidates_${DEFAULT_STATE_ID}_${candidateDistrictId}_${candidateBodyId}_$candidateWardId',
       );
     } catch (e) {
       throw Exception('Failed to follow candidate: $e');
@@ -1562,8 +1701,12 @@ class CandidateRepository {
   // Unfollow a candidate
   Future<void> unfollowCandidate(String userId, String candidateId) async {
     try {
-      // First find the candidate's location in the new district/body/ward structure
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      // First find the candidate's location in the new state/district/body/ward structure
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       String? candidateDistrictId;
       String? candidateBodyId;
       String? candidateWardId;
@@ -1677,8 +1820,12 @@ class CandidateRepository {
     String candidateId,
   ) async {
     try {
-      // First find the candidate's location in the new district/body/ward structure
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      // First find the candidate's location in the new state/district/body/ward structure
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       String? candidateDistrictId;
       String? candidateBodyId;
       String? candidateWardId;
@@ -1817,6 +1964,8 @@ class CandidateRepository {
 
         // Direct query using location metadata
         final candidateDoc = await _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .doc(districtId)
             .collection('bodies')
@@ -1986,6 +2135,8 @@ class CandidateRepository {
           candidate.candidateId.isNotEmpty &&
               !candidate.candidateId.startsWith('temp_')
           ? _firestore
+                .collection('states')
+                .doc(DEFAULT_STATE_ID)
                 .collection('districts')
                 .doc(candidate.districtId)
                 .collection('bodies')
@@ -1995,6 +2146,8 @@ class CandidateRepository {
                 .collection('candidates')
                 .doc(candidate.candidateId)
           : _firestore
+                .collection('states')
+                .doc(DEFAULT_STATE_ID)
                 .collection('districts')
                 .doc(candidate.districtId)
                 .collection('bodies')
@@ -2004,7 +2157,7 @@ class CandidateRepository {
                 .collection('candidates')
                 .doc();
 
-      debugPrint('📝 Creating candidate at path: districts/${candidate.districtId}/bodies/${candidate.bodyId}/wards/${candidate.wardId}/candidates/${docRef.id}');
+      debugPrint('📝 Creating candidate at path: states/${DEFAULT_STATE_ID}/districts/${candidate.districtId}/bodies/${candidate.bodyId}/wards/${candidate.wardId}/candidates/${docRef.id}');
 
       await docRef.set(optimizedData);
       debugPrint('✅ Candidate document created successfully with ID: ${docRef.id}');
@@ -2019,7 +2172,7 @@ class CandidateRepository {
 
       // Invalidate relevant caches
       invalidateCache(
-        'candidates_${candidate.districtId}_${candidate.bodyId}_${candidate.wardId}',
+        'candidates_${DEFAULT_STATE_ID}_${candidate.districtId}_${candidate.bodyId}_${candidate.wardId}',
       );
 
       // Return the actual document ID (in case it was auto-generated)
@@ -2039,6 +2192,8 @@ class CandidateRepository {
   ) async {
     try {
       final snapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -2069,6 +2224,8 @@ class CandidateRepository {
   ) async {
     try {
       final snapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -2100,6 +2257,8 @@ class CandidateRepository {
   ) async {
     try {
       await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -2129,6 +2288,8 @@ class CandidateRepository {
 
       for (final candidateId in candidateIds) {
         final candidateRef = _firestore
+            .collection('states')
+            .doc(DEFAULT_STATE_ID)
             .collection('districts')
             .doc(districtId)
             .collection('bodies')
@@ -2150,7 +2311,11 @@ class CandidateRepository {
   // Get all pending approval candidates across all districts, bodies, and wards
   Future<List<Map<String, dynamic>>> getPendingApprovalCandidates() async {
     try {
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       List<Map<String, dynamic>> pendingCandidates = [];
 
       for (var districtDoc in districtsSnapshot.docs) {
@@ -2204,6 +2369,8 @@ class CandidateRepository {
             bodyId.isNotEmpty &&
             wardId.isNotEmpty) {
           final candidateSnapshot = await _firestore
+              .collection('states')
+              .doc(DEFAULT_STATE_ID)
               .collection('districts')
               .doc(districtId)
               .collection('bodies')
@@ -2222,7 +2389,11 @@ class CandidateRepository {
       }
 
       // Fallback: search through all districts, bodies, and wards
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
 
       for (var districtDoc in districtsSnapshot.docs) {
         final bodiesSnapshot = await districtDoc.reference
@@ -2261,8 +2432,12 @@ class CandidateRepository {
     bool notificationsEnabled,
   ) async {
     try {
-      // First find the candidate's location in the new district/body/ward structure
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      // First find the candidate's location in the new state/district/body/ward structure
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       String? candidateDistrictId;
       String? candidateBodyId;
       String? candidateWardId;
@@ -2343,9 +2518,13 @@ class CandidateRepository {
   Future<void> logAllCandidatesInSystem() async {
     try {
       debugPrint('🔍 ===== SYSTEM CANDIDATE AUDIT =====');
-      debugPrint('🔍 Scanning all districts, bodies, wards, and candidates...');
+      debugPrint('🔍 Scanning all states, districts, bodies, wards, and candidates...');
 
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .get();
       debugPrint('📊 Total districts in system: ${districtsSnapshot.docs.length}');
 
       int totalCandidates = 0;

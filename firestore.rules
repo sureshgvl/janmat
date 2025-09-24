@@ -78,6 +78,49 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // States collection - allow authenticated users to read for profile completion
+    // TEMPORARILY allowing authenticated users to update states for Marathi name migration
+    match /states/{stateId} {
+      allow read: if request.auth != null; // Allow authenticated users to read states for profile completion
+      allow write: if request.auth != null; // TEMP: Allow authenticated users to update states (for Marathi names)
+      // TODO: Revert to admin-only after migration:
+      // allow write: if request.auth != null &&
+      //   (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // State-based districts collection
+    match /states/{stateId}/districts/{districtId} {
+      allow read: if request.auth != null; // Allow authenticated users to read districts for profile completion
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId} {
+      allow read: if request.auth != null; // Allow authenticated users to read bodies for profile completion
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId} {
+      allow read: if request.auth != null; // Allow authenticated users to read wards for profile completion
+      allow write: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // State-based candidates collection
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId} {
+      allow read: if request.auth != null; // Allow authenticated users to read candidates
+      allow create: if request.auth != null &&
+        (request.auth.uid == request.resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.userId ||
+         request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
     // Admin collections (districts, etc.) - allow authenticated users to read for profile completion
     match /districts/{districtId} {
       allow read: if request.auth != null; // Allow authenticated users to read districts for profile completion

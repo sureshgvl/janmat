@@ -1,0 +1,158 @@
+import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
+
+class ProfileTabBarWidget extends StatelessWidget {
+  final TabController tabController;
+
+  const ProfileTabBarWidget({
+    super.key,
+    required this.tabController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _SliverAppBarDelegate(
+        TabBar(
+          controller: tabController,
+          isScrollable: true,
+          tabs: [
+            //basic info
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.info,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Manifesto
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.manifesto,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Profile
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.profile,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Achievements
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.achievements,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Media
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.media,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Contact
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.contact,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Events
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.events,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            //Analytics
+            Tab(
+              child: Text(
+                AppLocalizations.of(context)!.analytics,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+          indicatorColor: Colors.blue,
+          labelColor: Colors.blue,
+          unselectedLabelColor: Colors.grey,
+          indicatorWeight: 2,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(fontSize: 14),
+          tabAlignment: TabAlignment.start,
+        ),
+      ),
+    );
+  }
+}
+
+// Helper class for SliverPersistentHeader
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.white, child: _tabBar);
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
+  }
+}

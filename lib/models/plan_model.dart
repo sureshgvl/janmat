@@ -1,62 +1,433 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PlanFeature {
-  final String name;
-  final String description;
+// Dashboard Tab Features
+class BasicInfoTab {
   final bool enabled;
+  final List<String> permissions;
 
-  PlanFeature({
-    required this.name,
-    required this.description,
+  BasicInfoTab({
     required this.enabled,
+    required this.permissions,
   });
 
-  factory PlanFeature.fromJson(Map<String, dynamic> json) {
-    return PlanFeature(
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
+  factory BasicInfoTab.fromJson(Map<String, dynamic> json) {
+    return BasicInfoTab(
       enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'description': description, 'enabled': enabled};
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+    };
+  }
+}
+
+class ManifestoTab {
+  final bool enabled;
+  final List<String> permissions;
+  final ManifestoFeatures features;
+
+  ManifestoTab({
+    required this.enabled,
+    required this.permissions,
+    required this.features,
+  });
+
+  factory ManifestoTab.fromJson(Map<String, dynamic> json) {
+    return ManifestoTab(
+      enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
+      features: ManifestoFeatures.fromJson(json['features'] ?? {}),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+      'features': features.toJson(),
+    };
+  }
+}
+
+class ManifestoFeatures {
+  final bool textOnly;
+  final bool pdfUpload;
+  final bool videoUpload;
+  final bool promises;
+  final int maxPromises;
+  final bool? multipleVersions;
+
+  ManifestoFeatures({
+    required this.textOnly,
+    required this.pdfUpload,
+    required this.videoUpload,
+    required this.promises,
+    required this.maxPromises,
+    this.multipleVersions,
+  });
+
+  factory ManifestoFeatures.fromJson(Map<String, dynamic> json) {
+    return ManifestoFeatures(
+      textOnly: json['textOnly'] ?? false,
+      pdfUpload: json['pdfUpload'] ?? false,
+      videoUpload: json['videoUpload'] ?? false,
+      promises: json['promises'] ?? false,
+      maxPromises: json['maxPromises'] ?? 0,
+      multipleVersions: json['multipleVersions'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'textOnly': textOnly,
+      'pdfUpload': pdfUpload,
+      'videoUpload': videoUpload,
+      'promises': promises,
+      'maxPromises': maxPromises,
+      'multipleVersions': multipleVersions,
+    };
+  }
+}
+
+class AchievementsTab {
+  final bool enabled;
+  final List<String> permissions;
+  final int maxAchievements;
+
+  AchievementsTab({
+    required this.enabled,
+    required this.permissions,
+    required this.maxAchievements,
+  });
+
+  factory AchievementsTab.fromJson(Map<String, dynamic> json) {
+    return AchievementsTab(
+      enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
+      maxAchievements: json['maxAchievements'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+      'maxAchievements': maxAchievements,
+    };
+  }
+}
+
+class MediaTab {
+  final bool enabled;
+  final List<String> permissions;
+  final int maxMediaItems;
+  final int maxImagesPerItem;
+  final int maxVideosPerItem;
+  final int maxYouTubeLinksPerItem;
+
+  MediaTab({
+    required this.enabled,
+    required this.permissions,
+    required this.maxMediaItems,
+    required this.maxImagesPerItem,
+    required this.maxVideosPerItem,
+    required this.maxYouTubeLinksPerItem,
+  });
+
+  factory MediaTab.fromJson(Map<String, dynamic> json) {
+    return MediaTab(
+      enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
+      maxMediaItems: json['maxMediaItems'] ?? 0,
+      maxImagesPerItem: json['maxImagesPerItem'] ?? 0,
+      maxVideosPerItem: json['maxVideosPerItem'] ?? 0,
+      maxYouTubeLinksPerItem: json['maxYouTubeLinksPerItem'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+      'maxMediaItems': maxMediaItems,
+      'maxImagesPerItem': maxImagesPerItem,
+      'maxVideosPerItem': maxVideosPerItem,
+      'maxYouTubeLinksPerItem': maxYouTubeLinksPerItem,
+    };
+  }
+}
+
+class ContactTab {
+  final bool enabled;
+  final List<String> permissions;
+  final ContactFeatures features;
+
+  ContactTab({
+    required this.enabled,
+    required this.permissions,
+    required this.features,
+  });
+
+  factory ContactTab.fromJson(Map<String, dynamic> json) {
+    return ContactTab(
+      enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
+      features: ContactFeatures.fromJson(json['features'] ?? {}),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+      'features': features.toJson(),
+    };
+  }
+}
+
+class ContactFeatures {
+  final bool basic;
+  final bool extended;
+  final bool socialLinks;
+  final bool? prioritySupport;
+
+  ContactFeatures({
+    required this.basic,
+    required this.extended,
+    required this.socialLinks,
+    this.prioritySupport,
+  });
+
+  factory ContactFeatures.fromJson(Map<String, dynamic> json) {
+    return ContactFeatures(
+      basic: json['basic'] ?? false,
+      extended: json['extended'] ?? false,
+      socialLinks: json['socialLinks'] ?? false,
+      prioritySupport: json['prioritySupport'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'basic': basic,
+      'extended': extended,
+      'socialLinks': socialLinks,
+      'prioritySupport': prioritySupport,
+    };
+  }
+}
+
+class EventsTab {
+  final bool enabled;
+  final List<String> permissions;
+  final int maxEvents;
+
+  EventsTab({
+    required this.enabled,
+    required this.permissions,
+    required this.maxEvents,
+  });
+
+  factory EventsTab.fromJson(Map<String, dynamic> json) {
+    return EventsTab(
+      enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
+      maxEvents: json['maxEvents'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+      'maxEvents': maxEvents,
+    };
+  }
+}
+
+class AnalyticsTab {
+  final bool enabled;
+  final List<String> permissions;
+  final AnalyticsFeatures? features;
+
+  AnalyticsTab({
+    required this.enabled,
+    required this.permissions,
+    this.features,
+  });
+
+  factory AnalyticsTab.fromJson(Map<String, dynamic> json) {
+    return AnalyticsTab(
+      enabled: json['enabled'] ?? false,
+      permissions: List<String>.from(json['permissions'] ?? []),
+      features: json['features'] != null ? AnalyticsFeatures.fromJson(json['features']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'enabled': enabled,
+      'permissions': permissions,
+      'features': features?.toJson(),
+    };
+  }
+}
+
+class AnalyticsFeatures {
+  final bool basic;
+  final bool advanced;
+  final bool? fullDashboard;
+  final bool? realTime;
+
+  AnalyticsFeatures({
+    required this.basic,
+    required this.advanced,
+    this.fullDashboard,
+    this.realTime,
+  });
+
+  factory AnalyticsFeatures.fromJson(Map<String, dynamic> json) {
+    return AnalyticsFeatures(
+      basic: json['basic'] ?? false,
+      advanced: json['advanced'] ?? false,
+      fullDashboard: json['fullDashboard'],
+      realTime: json['realTime'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'basic': basic,
+      'advanced': advanced,
+      'fullDashboard': fullDashboard,
+      'realTime': realTime,
+    };
+  }
+}
+
+class DashboardTabs {
+  final BasicInfoTab basicInfo;
+  final ManifestoTab manifesto;
+  final AchievementsTab achievements;
+  final MediaTab media;
+  final ContactTab contact;
+  final EventsTab events;
+  final AnalyticsTab analytics;
+
+  DashboardTabs({
+    required this.basicInfo,
+    required this.manifesto,
+    required this.achievements,
+    required this.media,
+    required this.contact,
+    required this.events,
+    required this.analytics,
+  });
+
+  factory DashboardTabs.fromJson(Map<String, dynamic> json) {
+    return DashboardTabs(
+      basicInfo: BasicInfoTab.fromJson(json['basicInfo'] ?? {}),
+      manifesto: ManifestoTab.fromJson(json['manifesto'] ?? {}),
+      achievements: AchievementsTab.fromJson(json['achievements'] ?? {}),
+      media: MediaTab.fromJson(json['media'] ?? {}),
+      contact: ContactTab.fromJson(json['contact'] ?? {}),
+      events: EventsTab.fromJson(json['events'] ?? {}),
+      analytics: AnalyticsTab.fromJson(json['analytics'] ?? {}),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'basicInfo': basicInfo.toJson(),
+      'manifesto': manifesto.toJson(),
+      'achievements': achievements.toJson(),
+      'media': media.toJson(),
+      'contact': contact.toJson(),
+      'events': events.toJson(),
+      'analytics': analytics.toJson(),
+    };
+  }
+}
+
+class ProfileFeatures {
+  final bool premiumBadge;
+  final bool sponsoredBanner;
+  final bool highlightCarousel;
+  final bool pushNotifications;
+  final bool? multipleHighlights;
+  final bool? adminSupport;
+  final bool? customBranding;
+
+  ProfileFeatures({
+    required this.premiumBadge,
+    required this.sponsoredBanner,
+    required this.highlightCarousel,
+    required this.pushNotifications,
+    this.multipleHighlights,
+    this.adminSupport,
+    this.customBranding,
+  });
+
+  factory ProfileFeatures.fromJson(Map<String, dynamic> json) {
+    return ProfileFeatures(
+      premiumBadge: json['premiumBadge'] ?? false,
+      sponsoredBanner: json['sponsoredBanner'] ?? false,
+      highlightCarousel: json['highlightCarousel'] ?? false,
+      pushNotifications: json['pushNotifications'] ?? false,
+      multipleHighlights: json['multipleHighlights'],
+      adminSupport: json['adminSupport'],
+      customBranding: json['customBranding'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'premiumBadge': premiumBadge,
+      'sponsoredBanner': sponsoredBanner,
+      'highlightCarousel': highlightCarousel,
+      'pushNotifications': pushNotifications,
+      'multipleHighlights': multipleHighlights,
+      'adminSupport': adminSupport,
+      'customBranding': customBranding,
+    };
   }
 }
 
 class SubscriptionPlan {
+  final String id;
   final String planId;
   final String name;
-  final String type; // 'candidate' or 'voter'
-  final int price; // in rupees
-  final int? limit; // for candidate plans (first 1000)
-  final int? xpAmount; // for voter plans
-  final List<PlanFeature> features;
+  final String type;
+  final int price;
   final bool isActive;
-  final DateTime createdAt;
+  final DashboardTabs dashboardTabs;
+  final ProfileFeatures profileFeatures;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
 
   SubscriptionPlan({
+    required this.id,
     required this.planId,
     required this.name,
     required this.type,
     required this.price,
-    this.limit,
-    this.xpAmount,
-    required this.features,
     required this.isActive,
-    required this.createdAt,
+    required this.dashboardTabs,
+    required this.profileFeatures,
+    this.createdAt,
     this.updatedAt,
   });
 
   factory SubscriptionPlan.fromJson(Map<String, dynamic> json) {
-    DateTime createdAt;
+    DateTime? createdAt;
     if (json['createdAt'] is Timestamp) {
       createdAt = (json['createdAt'] as Timestamp).toDate();
     } else if (json['createdAt'] is String) {
       createdAt = DateTime.parse(json['createdAt']);
-    } else {
-      createdAt = DateTime.now();
     }
 
     DateTime? updatedAt;
@@ -67,18 +438,14 @@ class SubscriptionPlan {
     }
 
     return SubscriptionPlan(
+      id: json['id'] ?? '',
       planId: json['planId'] ?? '',
       name: json['name'] ?? '',
       type: json['type'] ?? '',
       price: json['price'] ?? 0,
-      limit: json['limit'],
-      xpAmount: json['xpAmount'],
-      features: json['features'] != null
-          ? List<PlanFeature>.from(
-              (json['features'] as List).map((x) => PlanFeature.fromJson(x)),
-            )
-          : [],
       isActive: json['isActive'] ?? true,
+      dashboardTabs: DashboardTabs.fromJson(json['dashboardTabs'] ?? {}),
+      profileFeatures: ProfileFeatures.fromJson(json['profileFeatures'] ?? {}),
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -86,40 +453,40 @@ class SubscriptionPlan {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'planId': planId,
       'name': name,
       'type': type,
       'price': price,
-      'limit': limit,
-      'xpAmount': xpAmount,
-      'features': features.map((x) => x.toJson()).toList(),
       'isActive': isActive,
-      'createdAt': createdAt.toIso8601String(),
+      'dashboardTabs': dashboardTabs.toJson(),
+      'profileFeatures': profileFeatures.toJson(),
+      'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
   SubscriptionPlan copyWith({
+    String? id,
     String? planId,
     String? name,
     String? type,
     int? price,
-    int? limit,
-    int? xpAmount,
-    List<PlanFeature>? features,
     bool? isActive,
+    DashboardTabs? dashboardTabs,
+    ProfileFeatures? profileFeatures,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return SubscriptionPlan(
+      id: id ?? this.id,
       planId: planId ?? this.planId,
       name: name ?? this.name,
       type: type ?? this.type,
       price: price ?? this.price,
-      limit: limit ?? this.limit,
-      xpAmount: xpAmount ?? this.xpAmount,
-      features: features ?? this.features,
       isActive: isActive ?? this.isActive,
+      dashboardTabs: dashboardTabs ?? this.dashboardTabs,
+      profileFeatures: profileFeatures ?? this.profileFeatures,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

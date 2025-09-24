@@ -7,6 +7,7 @@ import '../../auth/controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../models/user_model.dart';
 import '../../../models/ward_model.dart';
+import '../../../models/state_model.dart' as state_model;
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/models/candidate_party_model.dart';
 import '../../../models/district_model.dart';
@@ -14,11 +15,14 @@ import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../candidate/repositories/candidate_party_repository.dart';
 import '../../../utils/symbol_utils.dart';
+import '../../../utils/add_sample_states.dart';
+import '../../../widgets/profile/state_selection_modal.dart';
 import '../../../widgets/profile/district_selection_modal.dart';
 import '../../../widgets/profile/area_selection_modal.dart';
 import '../../../widgets/profile/area_in_ward_selection_modal.dart';
 import '../../../widgets/profile/party_selection_modal.dart';
 import '../../../widgets/profile/ward_selection_modal.dart';
+import '../../../utils/add_sample_states.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
@@ -45,6 +49,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final birthDateController = TextEditingController();
   DateTime? selectedBirthDate;
   String? selectedGender;
+  String? selectedStateId;
   String? selectedDistrictId;
   String? selectedBodyId;
   Ward? selectedWard;
@@ -55,9 +60,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   Map<String, List<Body>> districtBodies = {};
   Map<String, List<Ward>> bodyWards = {};
   List<Party> parties = [];
+  List<state_model.State> states = [];
   bool isLoading = false;
   bool isLoadingDistricts = true;
   bool isLoadingParties = true;
+  bool isLoadingStates = true;
   bool _isNamePreFilled = false;
   bool _isPhonePreFilled = false;
   String? currentUserRole;
@@ -96,6 +103,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     // Add a small delay to ensure Firebase auth is fully initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 500), () {
+        _loadStates();
         _loadDistricts();
         _loadParties();
         _loadUserRole();
@@ -205,12 +213,83 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     );
   }
 
+
   @override
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
     birthDateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadStates() async {
+    try {
+      debugPrint('🔍 Loading states from Firestore');
+
+      // Load states from Firestore
+      final statesSnapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .get();
+
+      debugPrint(
+        '📊 Found ${statesSnapshot.docs.length} states in Firestore',
+      );
+
+      // If no states found, add sample states
+      if (statesSnapshot.docs.isEmpty) {
+        debugPrint('⚠️ No states found in database, adding sample states...');
+        try {
+          await SampleStatesManager.addSampleStates();
+          await SampleStatesManager.addSampleDistrictsForMaharashtra();
+
+          // Reload states after adding samples
+          final updatedSnapshot = await FirebaseFirestore.instance
+              .collection('states')
+              .get();
+
+          states = updatedSnapshot.docs.map((doc) {
+            final data = doc.data();
+            debugPrint('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'}');
+            return state_model.State.fromJson({'stateId': doc.id, ...data});
+          }).toList();
+
+          debugPrint('✅ Sample states added and loaded successfully');
+        } catch (e) {
+          debugPrint('❌ Failed to add sample states: $e');
+          // Continue with empty states list
+          states = [];
+        }
+      } else {
+        states = statesSnapshot.docs.map((doc) {
+          final data = doc.data();
+          debugPrint('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']}');
+          return state_model.State.fromJson({'stateId': doc.id, ...data});
+        }).toList();
+      }
+
+      // Set default state to Maharashtra if available
+      final maharashtraState = states.firstWhere(
+        (state) => state.name == 'Maharashtra',
+        orElse: () => states.isNotEmpty ? states.first : state_model.State(stateId: '', name: ''),
+      );
+
+      if (maharashtraState.stateId.isNotEmpty) {
+        selectedStateId = maharashtraState.stateId;
+        debugPrint('✅ Default state set to: ${maharashtraState.name}');
+      }
+
+      setState(() {
+        isLoadingStates = false;
+      });
+
+      debugPrint('✅ Successfully loaded ${states.length} states');
+    } catch (e) {
+      debugPrint('❌ Failed to load states: $e');
+      Get.snackbar('Error', 'Failed to load states: $e');
+      setState(() {
+        isLoadingStates = false;
+      });
+    }
   }
 
   Future<void> _loadDistricts() async {
@@ -237,8 +316,14 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           '🔍 Loading districts for user: ${currentUser?.uid} (attempt ${retryCount + 1})',
         );
 
-        // Load districts from Firestore
+        // Load districts from Firestore (state-based structure)
+        if (selectedStateId == null) {
+          throw Exception('No state selected');
+        }
+
         final districtsSnapshot = await FirebaseFirestore.instance
+            .collection('states')
+            .doc(selectedStateId!)
             .collection('districts')
             .get();
 
@@ -255,6 +340,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         // Load bodies for each district
         for (final district in districts) {
           final bodiesSnapshot = await FirebaseFirestore.instance
+              .collection('states')
+              .doc(selectedStateId!)
               .collection('districts')
               .doc(district.districtId)
               .collection('bodies')
@@ -385,6 +472,34 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 
+  void _showStateSelectionModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return StateSelectionModal(
+          states: states,
+          selectedStateId: selectedStateId,
+          onStateSelected: (stateId) {
+            setState(() {
+              selectedStateId = stateId;
+              selectedDistrictId = null;
+              selectedBodyId = null;
+              selectedWard = null;
+              districts.clear();
+              districtBodies.clear();
+              bodyWards.clear();
+              isLoadingDistricts = true;
+            });
+            // Reload districts for the selected state
+            _loadDistricts();
+          },
+        );
+      },
+    );
+  }
+
   void _showDistrictSelectionModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -493,12 +608,14 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     );
   }
 
+
   Future<void> _saveProfile(BuildContext context) async {
     final localizations = AppLocalizations.of(context)!;
 
     if (!_formKey.currentState!.validate()) return;
 
-    if (selectedDistrictId == null ||
+    if (selectedStateId == null ||
+        selectedDistrictId == null ||
         selectedBodyId == null ||
         selectedWard == null ||
         selectedGender == null) {
@@ -545,6 +662,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           .get();
       final currentRole = userDoc.data()?['role'] ?? 'voter';
 
+
       // Create updated user model
       final updatedUser = UserModel(
         uid: currentUser.uid,
@@ -555,8 +673,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         roleSelected: true,
         profileCompleted: true,
         districtId: selectedDistrictId!,
+        stateId: selectedStateId!,
         bodyId: selectedBodyId!,
         wardId: selectedWard!.wardId,
+        area: selectedArea,
         xpPoints: 0,
         premium: false,
         createdAt: DateTime.now(),
@@ -602,12 +722,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           }
 
           // Create basic candidate record with birthdate, gender, and selected party
-          final candidate = Candidate(
-            candidateId: 'temp_${currentUser.uid}', // Temporary ID
-            userId: currentUser.uid,
-            name: nameController.text.trim(),
-            party: selectedParty!.name, // Use selected party
+           final candidate = Candidate(
+             candidateId: 'temp_${currentUser.uid}', // Temporary ID
+             userId: currentUser.uid,
+             name: nameController.text.trim(),
+             party: selectedParty!.id, // Use selected party key
             districtId: selectedDistrictId!,
+            stateId: selectedStateId!,
             bodyId: selectedBodyId!,
             wardId: selectedWard!.wardId,
             contact: Contact(
@@ -739,7 +860,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+
 
                 // Name Field
                 TextFormField(
@@ -851,8 +973,70 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // State Selection
+                if (isLoadingStates)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  InkWell(
+                    onTap: () => _showStateSelectionModal(context),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: localizations.stateRequired,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.map),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
+                      ),
+                      child: selectedStateId != null
+                          ? Builder(
+                              builder: (context) {
+                                final selectedState = states.firstWhere(
+                                  (state) => state.stateId == selectedStateId,
+                                );
+                                // Show Marathi name if available, otherwise English name
+                                final displayName = selectedState.marathiName ?? selectedState.name;
+                                return Text(
+                                  displayName,
+                                  style: const TextStyle(fontSize: 16),
+                                );
+                              },
+                            )
+                          : const Text(
+                              'Select State',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+
                 // District Selection
-                if (isLoadingDistricts)
+                if (selectedStateId == null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_city, color: Colors.grey),
+                        const SizedBox(width: 12),
+                        Text(
+                          localizations.selectStateFirst,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (isLoadingDistricts)
                   const Center(child: CircularProgressIndicator())
                 else
                   InkWell(
@@ -885,7 +1069,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 24),
 
                 // Area Selection
-                if (selectedDistrictId != null &&
+                if (selectedStateId != null &&
+                    selectedDistrictId != null &&
                     districtBodies[selectedDistrictId!] != null &&
                     districtBodies[selectedDistrictId!]!.isNotEmpty)
                   InkWell(
@@ -944,8 +1129,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         const Icon(Icons.business, color: Colors.grey),
                         const SizedBox(width: 12),
                         Text(
-                          selectedDistrictId == null
-                              ? 'Select district first'
+                          selectedStateId == null
+                              ? localizations.selectStateFirst
+                              : selectedDistrictId == null
+                              ? localizations.selectDistrictFirst
                               : districtBodies[selectedDistrictId!] == null ||
                                     districtBodies[selectedDistrictId!]!.isEmpty
                               ? 'No areas available in this district'
@@ -961,7 +1148,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 24),
 
                 // Ward Selection
-                if (selectedBodyId != null &&
+                if (selectedStateId != null &&
+                    selectedBodyId != null &&
                     bodyWards[selectedBodyId!] != null &&
                     bodyWards[selectedBodyId!]!.isNotEmpty)
                   InkWell(
@@ -1014,8 +1202,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         const Icon(Icons.home, color: Colors.grey),
                         const SizedBox(width: 12),
                         Text(
-                          selectedBodyId == null
-                              ? 'Select area first'
+                          selectedStateId == null
+                              ? localizations.selectStateFirst
+                              : selectedBodyId == null
+                              ? localizations.selectAreaFirst
                               : bodyWards[selectedBodyId!] == null ||
                                     bodyWards[selectedBodyId!]!.isEmpty
                               ? 'No wards available in this area'
@@ -1031,7 +1221,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                 const SizedBox(height: 24),
 
                 // Area Selection (only show if ward has areas and user is not a candidate)
-                if (selectedWard != null &&
+                if (selectedStateId != null &&
+                    selectedWard != null &&
                     selectedWard!.areas != null &&
                     selectedWard!.areas!.isNotEmpty &&
                     currentUserRole != 'candidate') ...[
@@ -1060,6 +1251,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                   ),
                   const SizedBox(height: 24),
                 ],
+
 
                 // Party Selection (only for candidates)
                 if (currentUserRole == 'candidate') ...[
@@ -1148,6 +1340,36 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           ),
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Debug Button (temporary - remove in production)
+                if (states.isEmpty) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        try {
+                          await SampleStatesManager.addSampleStates();
+                          await SampleStatesManager.addSampleDistrictsForMaharashtra();
+                          await _loadStates();
+                          Get.snackbar('Success', 'Sample states added successfully');
+                        } catch (e) {
+                          Get.snackbar('Error', 'Failed to add sample states: $e');
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.orange),
+                      ),
+                      child: const Text(
+                        'Add Sample States (Debug)',
+                        style: TextStyle(color: Colors.orange),
+                      ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 16),
 

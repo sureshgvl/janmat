@@ -1,66 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import '../models/plan_model.dart'; // Import SubscriptionPlan
 
-class Plan {
-  final String planId;
-  final String name;
-  final String type;
-  final int price;
-  final int? validityDays;
-  final List<Map<String, dynamic>> features;
-  final bool isActive;
-
-  Plan({
-    required this.planId,
-    required this.name,
-    required this.type,
-    required this.price,
-    this.validityDays,
-    required this.features,
-    required this.isActive,
-  });
-
-  factory Plan.fromJson(Map<String, dynamic> json) {
-    return Plan(
-      planId: json['planId'] ?? '',
-      name: json['name'] ?? '',
-      type: json['type'] ?? '',
-      price: json['price'] ?? 0,
-      validityDays: json['validityDays'],
-      features: List<Map<String, dynamic>>.from(json['features'] ?? []),
-      isActive: json['isActive'] ?? true,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'planId': planId,
-      'name': name,
-      'type': type,
-      'price': price,
-      'validityDays': validityDays,
-      'features': features,
-      'isActive': isActive,
-    };
-  }
-}
+// Use SubscriptionPlan instead of the old Plan class
 
 class PlanService {
-  static Future<List<Plan>> getAllPlans() async {
+  static Future<List<SubscriptionPlan>> getAllPlans() async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('plans')
           .where('isActive', isEqualTo: true)
           .get();
 
-      return snapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['planId'] = doc.id;
+        return SubscriptionPlan.fromJson(data);
+      }).toList();
     } catch (e) {
       print('Error fetching plans: $e');
       return [];
     }
   }
 
-  static Future<Plan?> getPlanById(String planId) async {
+  static Future<SubscriptionPlan?> getPlanById(String planId) async {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('plans')
@@ -68,7 +31,9 @@ class PlanService {
           .get();
 
       if (doc.exists) {
-        return Plan.fromJson(doc.data()!);
+        final data = doc.data()!;
+        data['planId'] = doc.id;
+        return SubscriptionPlan.fromJson(data);
       }
       return null;
     } catch (e) {
@@ -77,7 +42,7 @@ class PlanService {
     }
   }
 
-  static Future<List<Plan>> getCandidatePlans() async {
+  static Future<List<SubscriptionPlan>> getCandidatePlans() async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('plans')
@@ -85,14 +50,18 @@ class PlanService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      return snapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['planId'] = doc.id;
+        return SubscriptionPlan.fromJson(data);
+      }).toList();
     } catch (e) {
       print('Error fetching candidate plans: $e');
       return [];
     }
   }
 
-  static Future<List<Plan>> getVoterPlans() async {
+  static Future<List<SubscriptionPlan>> getVoterPlans() async {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('plans')
@@ -100,7 +69,11 @@ class PlanService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      return snapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['planId'] = doc.id;
+        return SubscriptionPlan.fromJson(data);
+      }).toList();
     } catch (e) {
       print('Error fetching voter plans: $e');
       return [];
@@ -115,36 +88,42 @@ class PlanService {
     String featureName,
   ) async {
     try {
-      // Get user's current plan
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      if (!userDoc.exists) return false;
-
-      final userData = userDoc.data()!;
-      final subscriptionPlanId = userData['subscriptionPlanId'];
-
-      // If no subscription plan, check if it's a free plan
-      if (subscriptionPlanId == null ||
-          subscriptionPlanId == 'candidate_free') {
-        return await _checkFreePlanFeature(featureName);
-      }
-
-      // Get the plan details
-      final plan = await getPlanById(subscriptionPlanId);
+      final plan = await getUserPlan(userId);
       if (plan == null) return false;
 
-      // Check if the feature is enabled in the plan
-      return _isFeatureEnabled(plan, featureName);
+      // Map old feature names to new structure
+      switch (featureName) {
+        case 'Manifesto CRUD':
+        case 'Limited Manifesto':
+        case 'Manifesto View':
+          return plan.dashboardTabs.manifesto.enabled;
+        case 'Media Upload':
+        case 'Unlimited Media':
+        case 'Limited Media':
+          return plan.dashboardTabs.media.enabled;
+        case 'Basic Analytics':
+        case 'Advanced Analytics':
+          return plan.dashboardTabs.analytics.enabled;
+        case 'Events Management':
+          return plan.dashboardTabs.events.enabled;
+        case 'Achievements':
+          return plan.dashboardTabs.achievements.enabled;
+        case 'Sponsored Visibility':
+          return plan.profileFeatures.sponsoredBanner;
+        case 'Priority Support':
+          return plan.dashboardTabs.contact.features.prioritySupport == true;
+        case 'Custom Branding':
+          return plan.profileFeatures.customBranding == true;
+        default:
+          return false;
+      }
     } catch (e) {
       return false;
     }
   }
 
   /// Get user's current plan
-  static Future<Plan?> getUserPlan(String userId) async {
+  static Future<SubscriptionPlan?> getUserPlan(String userId) async {
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -158,7 +137,7 @@ class PlanService {
 
       if (subscriptionPlanId == null) {
         // Return free plan
-        return await getPlanById('candidate_free');
+        return await getPlanById('free_plan');
       }
 
       return await getPlanById(subscriptionPlanId);
@@ -170,18 +149,16 @@ class PlanService {
 
   /// Check feature access for free plan
   static Future<bool> _checkFreePlanFeature(String featureName) async {
-    final freePlan = await getPlanById('candidate_free');
+    final freePlan = await getPlanById('free_plan');
     if (freePlan == null) return false;
     return _isFeatureEnabled(freePlan, featureName);
   }
 
   /// Check if a feature is enabled in a plan
-  static bool _isFeatureEnabled(Plan plan, String featureName) {
-    final feature = plan.features.firstWhere(
-      (f) => f['name'] == featureName,
-      orElse: () => {'enabled': false},
-    );
-    return feature['enabled'] ?? false;
+  static bool _isFeatureEnabled(SubscriptionPlan plan, String featureName) {
+    // This method is now obsolete since features are structured differently
+    // For backward compatibility, return false
+    return false;
   }
 
   // Specific feature checks for convenience
@@ -189,78 +166,85 @@ class PlanService {
   static Future<bool> canEditManifesto(String userId) async {
     debugPrint('🔍 PLAN SERVICE: Checking manifesto edit permissions for user: $userId');
 
-    // Check if user has full manifesto editing (paid plans)
-    final hasCRUD = await hasFeatureAccess(userId, 'Manifesto CRUD');
-    debugPrint('🔍 PLAN SERVICE: Manifesto CRUD access: $hasCRUD');
-    if (hasCRUD) {
-      debugPrint('🔍 PLAN SERVICE: User has Manifesto CRUD - returning true');
-      return true;
+    final plan = await getUserPlan(userId);
+    if (plan == null) {
+      debugPrint('🔍 PLAN SERVICE: No plan found - returning false');
+      return false;
     }
 
-    // Check if user has limited manifesto editing (free plan)
-    final hasLimited = await hasFeatureAccess(userId, 'Limited Manifesto');
-    debugPrint('🔍 PLAN SERVICE: Limited Manifesto access: $hasLimited');
-    if (hasLimited) {
-      debugPrint('🔍 PLAN SERVICE: User has Limited Manifesto - returning true');
-      return true;
-    }
+    final enabled = plan.dashboardTabs.manifesto.enabled;
+    final hasEditPermission = plan.dashboardTabs.manifesto.permissions.contains('edit') ||
+                             plan.dashboardTabs.manifesto.permissions.contains('priority');
 
-    // Check if user has manifesto view (basic access)
-    final hasView = await hasFeatureAccess(userId, 'Manifesto View');
-    debugPrint('🔍 PLAN SERVICE: Manifesto View access: $hasView');
-    if (hasView) {
-      debugPrint('🔍 PLAN SERVICE: User has Manifesto View - returning true');
-      return true;
-    }
-
-    debugPrint('🔍 PLAN SERVICE: User has no manifesto permissions - returning false');
-    return false;
+    debugPrint('🔍 PLAN SERVICE: Manifesto enabled: $enabled, has edit permission: $hasEditPermission');
+    return enabled && hasEditPermission;
   }
 
   static Future<bool> canUploadMedia(String userId) async {
-    return await hasFeatureAccess(userId, 'Media Upload') ||
-        await hasFeatureAccess(userId, 'Unlimited Media') ||
-        await hasFeatureAccess(userId, 'Limited Media');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.dashboardTabs.media.enabled &&
+           (plan.dashboardTabs.media.permissions.contains('edit') ||
+            plan.dashboardTabs.media.permissions.contains('upload') ||
+            plan.dashboardTabs.media.permissions.contains('priority'));
   }
 
   static Future<bool> canViewAnalytics(String userId) async {
-    return await hasFeatureAccess(userId, 'Basic Analytics') ||
-        await hasFeatureAccess(userId, 'Advanced Analytics');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.dashboardTabs.analytics.enabled &&
+           plan.dashboardTabs.analytics.permissions.contains('view');
   }
 
   static Future<bool> canManageEvents(String userId) async {
-    return await hasFeatureAccess(userId, 'Events Management');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.dashboardTabs.events.enabled &&
+           (plan.dashboardTabs.events.permissions.contains('edit') ||
+            plan.dashboardTabs.events.permissions.contains('manage') ||
+            plan.dashboardTabs.events.permissions.contains('featured'));
   }
 
   static Future<bool> canDisplayAchievements(String userId) async {
-    return await hasFeatureAccess(userId, 'Achievements');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.dashboardTabs.achievements.enabled &&
+           (plan.dashboardTabs.achievements.permissions.contains('view') ||
+            plan.dashboardTabs.achievements.permissions.contains('edit') ||
+            plan.dashboardTabs.achievements.permissions.contains('featured'));
   }
 
   static Future<bool> hasSponsoredVisibility(String userId) async {
-    return await hasFeatureAccess(userId, 'Sponsored Visibility');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.profileFeatures.sponsoredBanner;
   }
 
   static Future<bool> hasPrioritySupport(String userId) async {
-    return await hasFeatureAccess(userId, 'Priority Support');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.dashboardTabs.contact.features.prioritySupport == true ||
+           plan.profileFeatures.adminSupport == true;
   }
 
   static Future<bool> hasCustomBranding(String userId) async {
-    return await hasFeatureAccess(userId, 'Custom Branding');
+    final plan = await getUserPlan(userId);
+    if (plan == null) return false;
+
+    return plan.profileFeatures.customBranding == true;
   }
 
   /// Get media upload limit based on plan
   static Future<int> getMediaUploadLimit(String userId) async {
-    if (await hasFeatureAccess(userId, 'Unlimited Media')) {
-      return -1; // Unlimited
-    } else if (await hasFeatureAccess(userId, 'Media Upload')) {
-      // Check which plan for specific limits
-      final plan = await getUserPlan(userId);
-      if (plan?.name == 'Basic') return 10;
-      if (plan?.name == 'Gold') return 50;
-      return 10; // Default
-    } else if (await hasFeatureAccess(userId, 'Limited Media')) {
-      return 3; // Free plan
-    }
-    return 0; // No access
+    final plan = await getUserPlan(userId);
+    if (plan == null || !plan.dashboardTabs.media.enabled) return 0;
+
+    return plan.dashboardTabs.media.maxMediaItems;
   }
 }

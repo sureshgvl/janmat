@@ -28,7 +28,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.85);
+    _pageController = PageController(viewportFraction: 0.9);
     _loadHighlights();
   }
 
@@ -115,30 +115,19 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
         // Header
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              const Icon(Icons.star, color: Colors.amber, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Featured Candidates',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              Text(
-                '${highlights.length} candidates',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-              ),
-            ],
+          child: Text(
+            'Highlight Candidates',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
           ),
         ),
 
         // Carousel using PageView
         SizedBox(
-          height: 200,
+          height: 220,
           child: PageView.builder(
             controller: _pageController,
             itemCount: highlights.length,
@@ -151,12 +140,12 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
                   double value = 1.0;
                   if (_pageController.position.haveDimensions) {
                     value = _pageController.page! - index;
-                    value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
+                    value = (1 - (value.abs() * 0.2)).clamp(0.0, 1.0);
                   }
                   return Center(
                     child: SizedBox(
-                      height: Curves.easeOut.transform(value) * 200,
-                      width: Curves.easeOut.transform(value) * 280,
+                      height: Curves.easeOut.transform(value) * 220,
+                      width: Curves.easeOut.transform(value) * 160,
                       child: child,
                     ),
                   );
@@ -172,7 +161,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
 
         // Dots indicator
         if (highlights.length > 1) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
@@ -184,7 +173,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _currentIndex == index
-                      ? Theme.of(context).primaryColor
+                      ? const Color(0xFF1976d2) // Primary blue
                       : Colors.grey.withOpacity(0.3),
                 ),
               ),

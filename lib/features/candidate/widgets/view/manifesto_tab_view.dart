@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/demo_data_service.dart';
 import '../../controllers/candidate_data_controller.dart';
@@ -67,11 +68,12 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     // Award XP for supporting manifesto
     if (_isLiked) {
       Get.snackbar(
-        'XP Earned! 🎉',
-        'You earned 10 XP for supporting this manifesto',
+        AppLocalizations.of(context)!.xpEarned,
+        AppLocalizations.of(context)!.earnedXpForSupportingManifesto('10'),
         backgroundColor: Colors.green.shade100,
         colorText: Colors.green.shade800,
         duration: const Duration(seconds: 2),
+        maxWidth: 300,
       );
     }
   }
@@ -83,11 +85,12 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     });
 
     Get.snackbar(
-      'Thank you! 🙏',
-      'Your feedback has been recorded',
+      AppLocalizations.of(context)!.thankYou,
+      AppLocalizations.of(context)!.feedbackRecorded,
       backgroundColor: Colors.blue.shade100,
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
+      maxWidth: 300,
     );
   }
 
@@ -107,9 +110,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 ''';
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share functionality would open native share dialog'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.shareFunctionalityComingSoon, overflow: TextOverflow.ellipsis),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -117,9 +120,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
   void _addComment() {
     if (_commentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a comment'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseEnterComment, overflow: TextOverflow.ellipsis),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -137,11 +140,12 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 
     // Award XP for commenting
     Get.snackbar(
-      'XP Earned! 🎉',
-      'You earned 5 XP for sharing your thoughts',
+      AppLocalizations.of(context)!.xpEarned,
+      AppLocalizations.of(context)!.earnedXpForCommenting('5'),
       backgroundColor: Colors.blue.shade100,
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
+      maxWidth: 300,
     );
   }
 
@@ -177,12 +181,10 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 
   // Video player functionality
   void _playVideo(String videoUrl) {
-    debugPrint('🎥 [Video Player] Opening video player for: $videoUrl');
-
     showDialog(
       context: context,
       builder: (context) =>
-          ReusableVideoWidget(videoUrl: videoUrl, title: 'Manifesto Video'),
+          ReusableVideoWidget(videoUrl: videoUrl, title: AppLocalizations.of(context)!.manifestoVideo),
     );
   }
 
@@ -234,11 +236,14 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                 child: Text(
                   optionText,
                   style: TextStyle(
+                    fontSize: 12,
                     color: isSelected ? Colors.blue.shade800 : Colors.black87,
                     fontWeight: isSelected
                         ? FontWeight.w600
                         : FontWeight.normal,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
               if (voteCount > 0)
@@ -296,26 +301,12 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
         displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (hasStructuredData || manifesto.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
+            Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
@@ -345,11 +336,13 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 child: Text(
                                   widget.candidate.extraInfo!.manifesto!.title!,
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF1f2937),
                                   ),
                                   textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
                                 ),
                               ),
                             ),
@@ -395,20 +388,24 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Manifesto Title',
+                                AppLocalizations.of(context)!.manifestoTitle,
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey.shade600,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Not available',
+                                AppLocalizations.of(context)!.notAvailable,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 10,
                                   color: Colors.grey.shade500,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ],
                           ),
@@ -422,12 +419,14 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                   // Display Manifesto Items
                   if (manifestoPromises.isNotEmpty) ...[
                     Text(
-                      'promisesTitle'.tr,
+                      AppLocalizations.of(context)!.promisesTitle,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF374151),
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 12),
                     Column(
@@ -455,10 +454,12 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   Text(
                                     title,
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF374151),
                                     ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
                                   ),
                                   const SizedBox(height: 8),
                                   // Promise Points
@@ -477,7 +478,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                           Text(
                                             '$pointIndex. ',
                                             style: const TextStyle(
-                                              fontSize: 14,
+                                              fontSize: 10,
                                               fontWeight: FontWeight.w600,
                                               color: Color(0xFF6B7280),
                                             ),
@@ -486,10 +487,12 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                             child: Text(
                                               point.toString(),
                                               style: const TextStyle(
-                                                fontSize: 14,
+                                                fontSize: 10,
                                                 height: 1.4,
                                                 color: Color(0xFF6B7280),
                                               ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 3,
                                             ),
                                           ),
                                         ],
@@ -528,14 +531,17 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               fontWeight: FontWeight.w900,
                               color: Colors.grey.shade600,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Not available',
+                            AppLocalizations.of(context)!.notAvailable,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 10,
                               color: Colors.grey.shade500,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ],
                       ),
@@ -555,7 +561,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Additional Resources',
+                          AppLocalizations.of(context)!.additionalResources,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -583,11 +589,12 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Manifesto PDF Available',
+                                  AppLocalizations.of(context)!.manifestoPdfAvailable,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: Color(0xFF374151),
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               IconButton(
@@ -605,7 +612,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   Icons.download,
                                   color: Colors.blue,
                                 ),
-                                tooltip: 'Download PDF',
+                                tooltip: 'downloadPdf'.tr,
                               ),
                             ],
                           ),
@@ -620,18 +627,22 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'PDF Document',
+                                  'pdfDocument'.tr,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: Colors.grey.shade600,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Text(
-                                'Not available',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade500,
+                              Flexible(
+                                child: Text(
+                                  'notAvailable'.tr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -662,12 +673,15 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    'Manifesto Image',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF374151),
+                                  Expanded(
+                                    child: Text(
+                                      'manifestoImage'.tr,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF374151),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -766,7 +780,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                         .image!,
                                   ),
                                   icon: const Icon(Icons.fullscreen, size: 16),
-                                  label: const Text('View Full Image'),
+                                  label: Text('viewFullImage'.tr),
                                   style: TextButton.styleFrom(
                                     foregroundColor: Colors.blue.shade600,
                                     textStyle: const TextStyle(fontSize: 12),
@@ -786,18 +800,22 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Image',
+                                  'image'.tr,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: Colors.grey.shade600,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Text(
-                                'Not available',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade500,
+                              Flexible(
+                                child: Text(
+                                  'notAvailable'.tr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -827,12 +845,13 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Manifesto Video',
+                                    'manifestoVideo'.tr,
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF374151),
                                     ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -859,11 +878,14 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    'Tap to play video',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                  Expanded(
+                                    child: Text(
+                                      'tapToPlayVideo'.tr,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   TextButton.icon(
@@ -878,7 +900,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                       Icons.play_circle_fill,
                                       size: 16,
                                     ),
-                                    label: const Text('Play'),
+                                    label: Text('play'.tr, overflow: TextOverflow.ellipsis),
                                     style: TextButton.styleFrom(
                                       foregroundColor: Colors.purple.shade600,
                                       textStyle: const TextStyle(fontSize: 12),
@@ -899,18 +921,22 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Video',
+                                  'video'.tr,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: Colors.grey.shade600,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Text(
-                                'Not available',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade500,
+                              Flexible(
+                                child: Text(
+                                  'notAvailable'.tr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -948,11 +974,14 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 ),
                                 label: Text(
                                   _isLiked
-                                      ? 'Supported ($_likeCount)'
-                                      : 'Support This Manifesto',
+                                      ? 'supportedWithCount'.tr.trArgs([_likeCount.toString()])
+                                      : 'supportThisManifesto'.tr,
                                   style: TextStyle(
+                                    fontSize: 12,
                                     color: _isLiked ? Colors.red : Colors.black,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _isLiked
@@ -978,32 +1007,35 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                           const SizedBox(height: 20),
 
                           // Poll Section
-                          const Text(
-                            'What issue matters most to you?',
-                            style: TextStyle(
-                              fontSize: 16,
+                          Text(
+                            'whatIssueMattersMost'.tr,
+                            style: const TextStyle(
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF374151),
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
                           Column(
                             children: [
                               _buildPollOption(
                                 'development',
-                                'Development & Infrastructure',
+                                'developmentInfrastructure'.tr,
                               ),
                               _buildPollOption(
                                 'transparency',
-                                'Transparency & Governance',
+                                'transparencyGovernance'.tr,
                               ),
                               _buildPollOption(
                                 'youth_education',
-                                'Youth & Education',
+                                'youthEducation'.tr,
                               ),
                               _buildPollOption(
                                 'women_safety',
-                                'Women & Safety',
+                                'womenSafety'.tr,
                               ),
                             ],
                           ),
@@ -1014,30 +1046,41 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Comments',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF374151),
+                              Expanded(
+                                child: Text(
+                                  'comments'.tr,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF374151),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
-                              TextButton.icon(
-                                onPressed: _toggleCommentsVisibility,
-                                icon: Icon(
-                                  _showComments
-                                      ? Icons.keyboard_arrow_up
-                                      : Icons.keyboard_arrow_down,
-                                  size: 16,
-                                ),
-                                label: Text(
-                                  _showComments
-                                      ? 'Hide Comments'
-                                      : 'Show Comments (${_comments.length})',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.blue.shade600,
+                              InkWell(
+                                onTap: _toggleCommentsVisibility,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _showComments
+                                          ? Icons.keyboard_arrow_up
+                                          : Icons.keyboard_arrow_down,
+                                      size: 16,
+                                      color: Colors.blue.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _showComments
+                                          ? 'hideComments'.tr
+                                          : '${_comments.length}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue.shade600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -1059,36 +1102,40 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   controller: _commentController,
                                   maxLines: 3,
                                   maxLength: 500,
-                                  decoration: const InputDecoration(
-                                    hintText:
-                                        'Share your thoughts about this manifesto...',
+                                  decoration: InputDecoration(
+                                    hintText: 'shareYourThoughts'.tr,
                                     border: InputBorder.none,
                                     counterText: '',
+                                    hintStyle: TextStyle(fontSize: 10),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          _commentController.clear(),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: Colors.grey,
+                                    Flexible(
+                                      child: TextButton(
+                                        onPressed: () =>
+                                            _commentController.clear(),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.grey,
+                                        ),
+                                        child: Text('cancel'.tr, overflow: TextOverflow.ellipsis),
                                       ),
-                                      child: const Text('Cancel'),
                                     ),
                                     const SizedBox(width: 8),
-                                    ElevatedButton.icon(
-                                      onPressed: _addComment,
-                                      icon: const Icon(Icons.send, size: 16),
-                                      label: const Text('Post Comment'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue.shade600,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
+                                    Flexible(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _addComment,
+                                        icon: const Icon(Icons.send, size: 16),
+                                        label: Text('postComment'.tr, overflow: TextOverflow.ellipsis),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue.shade600,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1109,13 +1156,17 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   color: Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Center(
+                                child: Center(
                                   child: Text(
-                                    'No comments yet. Be the first to share your thoughts!',
-                                    style: TextStyle(
+                                    'noCommentsYet'.tr,
+                                    style: const TextStyle(
+                                      fontSize: 10,
                                       color: Colors.grey,
                                       fontStyle: FontStyle.italic,
                                     ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ),
@@ -1148,23 +1199,27 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                             ),
                                           ),
                                           const SizedBox(width: 8),
-                                          const Expanded(
+                                          Expanded(
                                             child: Text(
-                                              'Anonymous Voter',
-                                              style: TextStyle(
+                                              'anonymousVoter'.tr,
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 12,
                                                 color: Color(0xFF374151),
                                               ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          Text(
-                                            _formatCommentTime(
-                                              comment['timestamp'] as DateTime,
-                                            ),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.grey.shade500,
+                                          Flexible(
+                                            child: Text(
+                                              _formatCommentTime(
+                                                comment['timestamp'] as DateTime,
+                                              ),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ],
@@ -1173,73 +1228,88 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                       Text(
                                         comment['text'] as String,
                                         style: const TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 12,
                                           height: 1.4,
                                           color: Color(0xFF374151),
                                         ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 3,
                                       ),
                                       const SizedBox(height: 8),
                                       Row(
                                         children: [
-                                          GestureDetector(
-                                            onTap: () =>
-                                                _toggleCommentLike(index),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  comment['isLiked'] as bool
-                                                      ? Icons.favorite
-                                                      : Icons.favorite_border,
-                                                  size: 16,
-                                                  color:
-                                                      comment['isLiked'] as bool
-                                                      ? Colors.red
-                                                      : Colors.grey,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${comment['likes']}',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey.shade600,
+                                          Flexible(
+                                            child: GestureDetector(
+                                              onTap: () =>
+                                                  _toggleCommentLike(index),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    comment['isLiked'] as bool
+                                                        ? Icons.favorite
+                                                        : Icons.favorite_border,
+                                                    size: 16,
+                                                    color:
+                                                        comment['isLiked'] as bool
+                                                        ? Colors.red
+                                                        : Colors.grey,
                                                   ),
-                                                ),
-                                              ],
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(
+                                                      '${comment['likes']}',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey.shade600,
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                           const SizedBox(width: 16),
-                                          GestureDetector(
-                                            onTap: () {
-                                              // Reply functionality could be added here
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Reply functionality coming soon!',
+                                          Flexible(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                // Reply functionality could be added here
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'replyFunctionalityComingSoon'.tr,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    duration: const Duration(
+                                                      seconds: 2,
+                                                    ),
                                                   ),
-                                                  duration: Duration(
-                                                    seconds: 2,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            child: const Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.reply,
-                                                  size: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  'Reply',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
+                                                );
+                                              },
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.reply,
+                                                    size: 16,
                                                     color: Colors.grey,
                                                   ),
-                                                ),
-                                              ],
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'reply'.tr,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey,
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -1255,8 +1325,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                     ),
                   ],
                 ],
-              ),
-            )
+              )
           else
             Center(
               child: Column(
@@ -1265,12 +1334,15 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                   Icon(Icons.description, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'No manifesto available',
+                    'noManifestoAvailable'.tr,
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

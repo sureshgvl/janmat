@@ -41,11 +41,13 @@ void main() {
 
     test('Check if candidate exists in hierarchical structure', () async {
       print(
-        '🔍 Checking hierarchical structure: /districts/Pune/bodies/pune_city/wards/ward_17/candidates/efSlmEmHpyMrrAqF8i5V',
+        '🔍 Checking hierarchical structure: /states/maharashtra/districts/Pune/bodies/pune_city/wards/ward_17/candidates/efSlmEmHpyMrrAqF8i5V',
       );
 
       try {
         final candidateDoc = await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra')
             .collection('districts')
             .doc('Pune')
             .collection('bodies')
@@ -82,6 +84,8 @@ void main() {
 
         // Check if Pune district exists
         final puneDoc = await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra')
             .collection('districts')
             .doc('Pune')
             .get();
@@ -91,6 +95,8 @@ void main() {
 
           // Check bodies in Pune
           final bodiesSnapshot = await FirebaseFirestore.instance
+              .collection('states')
+              .doc('maharashtra')
               .collection('districts')
               .doc('Pune')
               .collection('bodies')
@@ -103,6 +109,8 @@ void main() {
 
           // Check if pune_city body exists
           final puneCityDoc = await FirebaseFirestore.instance
+              .collection('states')
+              .doc('maharashtra')
               .collection('districts')
               .doc('Pune')
               .collection('bodies')
@@ -114,6 +122,8 @@ void main() {
 
             // Check wards in pune_city
             final wardsSnapshot = await FirebaseFirestore.instance
+                .collection('states')
+                .doc('maharashtra')
                 .collection('districts')
                 .doc('Pune')
                 .collection('bodies')
@@ -128,6 +138,8 @@ void main() {
 
             // Check if ward_17 exists
             final ward17Doc = await FirebaseFirestore.instance
+                .collection('states')
+                .doc('maharashtra')
                 .collection('districts')
                 .doc('Pune')
                 .collection('bodies')
@@ -141,6 +153,8 @@ void main() {
 
               // Check candidates in ward_17
               final candidatesSnapshot = await FirebaseFirestore.instance
+                  .collection('states')
+                  .doc('maharashtra')
                   .collection('districts')
                   .doc('Pune')
                   .collection('bodies')

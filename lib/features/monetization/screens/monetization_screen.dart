@@ -169,7 +169,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         title: Text('Purchase ${plan.name}'),
         content: Text(
           'Are you sure you want to purchase ${plan.name} for ₹${plan.price}?\n\n'
-          '${plan.features.length} premium features will be unlocked.\n\n'
+          '${_countEnabledFeatures(plan)} premium features will be unlocked.\n\n'
           'You will be redirected to our secure payment gateway.',
         ),
         actions: [
@@ -216,5 +216,29 @@ class _MonetizationScreenState extends State<MonetizationScreen>
       backgroundColor: Colors.green,
       colorText: Colors.white,
     );
+  }
+
+  int _countEnabledFeatures(SubscriptionPlan plan) {
+    int count = 0;
+
+    // Dashboard Tabs
+    if (plan.dashboardTabs.basicInfo.enabled) count++;
+    if (plan.dashboardTabs.manifesto.enabled) count++;
+    if (plan.dashboardTabs.achievements.enabled) count++;
+    if (plan.dashboardTabs.media.enabled) count++;
+    if (plan.dashboardTabs.contact.enabled) count++;
+    if (plan.dashboardTabs.events.enabled) count++;
+    if (plan.dashboardTabs.analytics.enabled) count++;
+
+    // Profile Features
+    if (plan.profileFeatures.premiumBadge) count++;
+    if (plan.profileFeatures.sponsoredBanner) count++;
+    if (plan.profileFeatures.highlightCarousel) count++;
+    if (plan.profileFeatures.pushNotifications) count++;
+    if (plan.profileFeatures.multipleHighlights == true) count++;
+    if (plan.profileFeatures.adminSupport == true) count++;
+    if (plan.profileFeatures.customBranding == true) count++;
+
+    return count;
   }
 }

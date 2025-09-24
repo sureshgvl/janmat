@@ -57,11 +57,22 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       final userId = currentUser.uid;
-      canEditManifesto = await PlanService.canEditManifesto(userId);
-      canDisplayAchievements = await PlanService.canDisplayAchievements(userId);
-      canUploadMedia = await PlanService.canUploadMedia(userId);
-      canManageEvents = await PlanService.canManageEvents(userId);
-      canViewAnalytics = await PlanService.canViewAnalytics(userId);
+      final plan = await PlanService.getUserPlan(userId);
+
+      if (plan != null) {
+        canEditManifesto = plan.dashboardTabs.manifesto.enabled;
+        canDisplayAchievements = plan.dashboardTabs.achievements.enabled;
+        canUploadMedia = plan.dashboardTabs.media.enabled;
+        canManageEvents = plan.dashboardTabs.events.enabled;
+        canViewAnalytics = plan.dashboardTabs.analytics.enabled;
+      } else {
+        // Free plan defaults
+        canEditManifesto = true; // Basic manifesto access
+        canDisplayAchievements = false;
+        canUploadMedia = false;
+        canManageEvents = false;
+        canViewAnalytics = false;
+      }
 
       // Update tab controller with correct length after loading features
       final availableTabs = _getAvailableTabs();

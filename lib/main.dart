@@ -361,6 +361,9 @@ class MyApp extends StatelessWidget {
     final storedLocale = await languageService.getStoredLocale();
     final locale = storedLocale ?? const Locale('en');
 
+    // Debug: Print current locale being used
+    debugPrint('🌐 Initial app locale: ${locale.languageCode}');
+
     // Fast check for Firebase Auth user (doesn't require network)
     final User? currentUser = FirebaseAuth.instance.currentUser;
 

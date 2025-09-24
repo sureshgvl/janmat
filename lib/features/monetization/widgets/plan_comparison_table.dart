@@ -242,17 +242,7 @@ class PlanComparisonTable extends StatelessWidget {
                 ),
               ),
 
-              if (plan.xpAmount != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '${plan.xpAmount} XP Included',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+              // XP Amount removed for candidate plans
 
               const SizedBox(height: 20),
 
@@ -269,19 +259,19 @@ class PlanComparisonTable extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ...plan.features.take(3).map((feature) => Padding(
+                    ..._getKeyFeatures(plan).take(3).map((feature) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
                           Icon(
-                            feature.enabled ? Icons.check_circle : Icons.cancel,
-                            color: feature.enabled ? Colors.green : Colors.red,
+                            feature['enabled'] as bool ? Icons.check_circle : Icons.cancel,
+                            color: feature['enabled'] as bool ? Colors.green : Colors.red,
                             size: 16,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              feature.name,
+                              feature['name'] as String,
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -293,9 +283,9 @@ class PlanComparisonTable extends StatelessWidget {
                         ],
                       ),
                     )),
-                    if (plan.features.length > 3)
+                    if (_getKeyFeatures(plan).length > 3)
                       Text(
-                        '+${plan.features.length - 3} more features',
+                        '+${_getKeyFeatures(plan).length - 3} more features',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade500,
@@ -513,6 +503,43 @@ class PlanComparisonTable extends StatelessWidget {
     return plan.price == 0 ? 'Free' : 'Upgrade';
   }
 
+  List<Map<String, dynamic>> _getKeyFeatures(SubscriptionPlan plan) {
+    final features = <Map<String, dynamic>>[];
+
+    // Dashboard Tabs
+    if (plan.dashboardTabs.manifesto.enabled) {
+      features.add({'name': 'Manifesto', 'enabled': true});
+    }
+    if (plan.dashboardTabs.achievements.enabled) {
+      features.add({'name': 'Achievements', 'enabled': true});
+    }
+    if (plan.dashboardTabs.media.enabled) {
+      features.add({'name': 'Media Upload', 'enabled': true});
+    }
+    if (plan.dashboardTabs.events.enabled) {
+      features.add({'name': 'Events', 'enabled': true});
+    }
+    if (plan.dashboardTabs.analytics.enabled) {
+      features.add({'name': 'Analytics', 'enabled': true});
+    }
+
+    // Profile Features
+    if (plan.profileFeatures.premiumBadge) {
+      features.add({'name': 'Premium Badge', 'enabled': true});
+    }
+    if (plan.profileFeatures.sponsoredBanner) {
+      features.add({'name': 'Sponsored Banner', 'enabled': true});
+    }
+    if (plan.profileFeatures.highlightCarousel) {
+      features.add({'name': 'Highlight Carousel', 'enabled': true});
+    }
+    if (plan.profileFeatures.pushNotifications) {
+      features.add({'name': 'Push Notifications', 'enabled': true});
+    }
+
+    return features;
+  }
+
   void _handlePurchase(BuildContext context, SubscriptionPlan plan) async {
     final currentUser = controller.currentFirebaseUser.value;
     if (currentUser == null) {
@@ -531,7 +558,7 @@ class PlanComparisonTable extends StatelessWidget {
         title: Text('Purchase ${plan.name}'),
         content: Text(
           'Are you sure you want to purchase ${plan.name} for ₹${plan.price}?\n\n'
-          '${plan.features.length} premium features will be unlocked.\n\n'
+          '${_getKeyFeatures(plan).length} premium features will be unlocked.\n\n'
           'You will be redirected to our secure payment gateway.',
         ),
         actions: [

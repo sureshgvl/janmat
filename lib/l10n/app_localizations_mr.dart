@@ -392,6 +392,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get candidateProfile => 'उमेदवार प्रोफाइल';
 
   @override
+  String get candidateComparison => 'उमेदवार तुलना';
+
+  @override
   String get candidateDataNotAvailable => 'उमेदवार डेटा उपलब्ध नाही';
 
   @override
@@ -702,10 +705,25 @@ class AppLocalizationsMr extends AppLocalizations {
   String get preferNotToSay => 'सांगू इच्छित नाही';
 
   @override
+  String get stateRequired => 'राज्य *';
+
+  @override
+  String get selectYourState => 'तुमचे राज्य निवडा';
+
+  @override
+  String get selectStateFirst => 'आधी राज्य निवडा';
+
+  @override
   String get districtRequired => 'जिल्हा *';
 
   @override
   String get selectYourDistrict => 'तुमचा जिल्हा निवडा';
+
+  @override
+  String get selectDistrictFirst => 'आधी जिल्हा निवडा';
+
+  @override
+  String get selectAreaFirst => 'आधी क्षेत्र निवडा';
 
   @override
   String get bodyRequired => 'संस्था *';
@@ -1174,12 +1192,6 @@ class AppLocalizationsMr extends AppLocalizations {
   String get areas => 'क्षेत्रे';
 
   @override
-  String get selectDistrictFirst => 'आधी जिल्हा निवडा';
-
-  @override
-  String get selectAreaFirst => 'आधी क्षेत्र निवडा';
-
-  @override
   String get noAreasAvailableInDistrict => 'या जिल्ह्यात कोणतीही क्षेत्रे उपलब्ध नाहीत';
 
   @override
@@ -1501,4 +1513,114 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get features => 'वैशिष्ट्ये:';
+
+  @override
+  String get pdfDocument => 'PDF दस्तऐवज';
+
+  @override
+  String get notAvailable => 'उपलब्ध नाही';
+
+  @override
+  String get image => 'प्रतिमा';
+
+  @override
+  String get video => 'व्हिडिओ';
+
+  @override
+  String get viewFullImage => 'पूर्ण प्रतिमा पहा';
+
+  @override
+  String get tapToPlayVideo => 'व्हिडिओ प्ले करण्यासाठी टॅप करा';
+
+  @override
+  String get play => 'प्ले करा';
+
+  @override
+  String get additionalResources => 'अतिरिक्त संसाधने';
+
+  @override
+  String get manifestoPdfAvailable => 'घोषणापत्र PDF उपलब्ध';
+
+  @override
+  String get tapToViewInApp => 'अॅपमध्ये पाहण्यासाठी टॅप करा';
+
+  @override
+  String get couldNotOpenPdf => 'PDF उघडू शकत नाही';
+
+  @override
+  String get viewPdf => 'PDF पहा';
+
+  @override
+  String get comments => 'टिप्पण्या';
+
+  @override
+  String get hideComments => 'टिप्पण्या लपवा';
+
+  @override
+  String showCommentsWithCount(Object count) {
+    return 'टिप्पण्या दाखवा ($count)';
+  }
+
+  @override
+  String get shareYourThoughts => 'तुमचे विचार सामायिक करा...';
+
+  @override
+  String get postComment => 'टिप्पणी पोस्ट करा';
+
+  @override
+  String get noCommentsYet => 'अद्याप कोणत्याही टिप्पण्या नाहीत';
+
+  @override
+  String get anonymousVoter => 'अनामिक मतदार';
+
+  @override
+  String get replyFunctionalityComingSoon => 'उत्तर कार्यक्षमता लवकरच येत आहे';
+
+  @override
+  String get reply => 'उत्तर';
+
+  @override
+  String supportedWithCount(Object count) {
+    return 'समर्थित ($count)';
+  }
+
+  @override
+  String get supportThisManifesto => 'हे घोषणापत्र समर्थन करा';
+
+  @override
+  String get whatIssueMattersMost => 'तुमच्यासाठी कोणता मुद्दा सर्वात महत्त्वाचा आहे?';
+
+  @override
+  String get developmentInfrastructure => 'विकास आणि पायाभूत सुविधा';
+
+  @override
+  String get transparencyGovernance => 'पारदर्शकता आणि शासन';
+
+  @override
+  String get youthEducation => 'युवा आणि शिक्षण';
+
+  @override
+  String get womenSafety => 'महिला आणि सुरक्षा';
+
+  @override
+  String get xpEarned => 'XP मिळाले!';
+
+  @override
+  String earnedXpForSupportingManifesto(Object count) {
+    return 'घोषणापत्र समर्थन केल्याबद्दल $count XP मिळाले!';
+  }
+
+  @override
+  String earnedXpForCommenting(Object count) {
+    return 'टिप्पणी केल्याबद्दल $count XP मिळाले!';
+  }
+
+  @override
+  String get thankYou => 'धन्यवाद!';
+
+  @override
+  String get feedbackRecorded => 'तुमचा अभिप्राय नोंदवला गेला आहे.';
+
+  @override
+  String get pleaseEnterComment => 'कृपया टिप्पणी टाका.';
 }

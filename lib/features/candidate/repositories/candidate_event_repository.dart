@@ -23,6 +23,8 @@ class EventRepository {
       }
 
       final candidateRef = _firestore
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -112,6 +114,8 @@ class EventRepository {
       }
 
       final candidateRef = _firestore
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -180,6 +184,8 @@ class EventRepository {
       }
 
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -239,6 +245,8 @@ class EventRepository {
       }
 
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -302,6 +310,8 @@ class EventRepository {
       }
 
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -351,7 +361,11 @@ class EventRepository {
     String candidateId,
   ) async {
     try {
-      final districtsSnapshot = await _firestore.collection('districts').get();
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .get();
 
       for (var districtDoc in districtsSnapshot.docs) {
         final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();

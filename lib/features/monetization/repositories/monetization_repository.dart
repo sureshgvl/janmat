@@ -303,297 +303,285 @@ class MonetizationRepository {
       final batch = _firestore.batch();
 
       // Candidate plans - Free, Basic, Gold, Platinum
-      final freePlan = _firestore.collection('plans').doc('candidate_free');
+      final freePlan = _firestore.collection('plans').doc('free_plan');
       batch.set(freePlan, {
+        'id': 'free_plan',
+        'planId': 'free_plan',
         'name': 'Free',
         'type': 'candidate',
         'price': 0,
-        'features': [
-          {
-            'name': 'Basic Profile',
-            'description': 'Basic profile information',
-            'enabled': true,
-          },
-          {
-            'name': 'Basic Info',
-            'description': 'Basic information display',
-            'enabled': true,
-          },
-          {
-            'name': 'Basic Contact',
-            'description': 'Basic contact information',
-            'enabled': true,
-          },
-          {
-            'name': 'Short Bio',
-            'description': 'Short biography section',
-            'enabled': true,
-          },
-          {
-            'name': 'Limited Manifesto',
-            'description': 'Limited manifesto content',
-            'enabled': true,
-          },
-          {
-            'name': 'Limited Media',
-            'description': 'Limited media uploads (3 items)',
-            'enabled': true,
-          },
-          {
-            'name': 'Follower Count',
-            'description': 'Display follower count',
-            'enabled': true,
-          },
-          {
-            'name': 'Basic Analytics',
-            'description': 'Basic profile views and analytics',
-            'enabled': true,
-          },
-          {
-            'name': 'Achievements',
-            'description': 'Display achievements',
-            'enabled': false,
-          },
-          {
-            'name': 'Events Management',
-            'description': 'Create and manage events',
-            'enabled': false,
-          },
-          {
-            'name': 'Advanced Analytics',
-            'description': 'Detailed analytics and insights',
-            'enabled': false,
-          },
-          {
-            'name': 'Sponsored Visibility',
-            'description': 'Get sponsored visibility',
-            'enabled': false,
-          },
-          {
-            'name': 'Priority Support',
-            'description': 'Priority customer support',
-            'enabled': false,
-          },
-        ],
         'isActive': true,
+        'dashboardTabs': {
+          'basicInfo': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+          },
+          'manifesto': {
+            'enabled': true,
+            'permissions': ['view'],
+            'features': {
+              'textOnly': true,
+              'pdfUpload': false,
+              'videoUpload': false,
+              'promises': false,
+              'maxPromises': 0,
+            },
+          },
+          'achievements': {
+            'enabled': false,
+            'permissions': [],
+            'maxAchievements': 0,
+          },
+          'media': {
+            'enabled': false,
+            'permissions': [],
+            'maxMediaItems': 0,
+            'maxImagesPerItem': 0,
+            'maxVideosPerItem': 0,
+            'maxYouTubeLinksPerItem': 0,
+          },
+          'contact': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'features': {
+              'basic': true,
+              'extended': false,
+              'socialLinks': false,
+            },
+          },
+          'events': {
+            'enabled': false,
+            'permissions': [],
+            'maxEvents': 0,
+          },
+          'analytics': {
+            'enabled': false,
+            'permissions': [],
+          },
+        },
+        'profileFeatures': {
+          'premiumBadge': false,
+          'sponsoredBanner': false,
+          'highlightCarousel': false,
+          'pushNotifications': false,
+        },
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      final basicPlan = _firestore.collection('plans').doc('candidate_basic');
+      final basicPlan = _firestore.collection('plans').doc('basic_plan');
       batch.set(basicPlan, {
+        'id': 'basic_plan',
+        'planId': 'basic_plan',
         'name': 'Basic',
         'type': 'candidate',
-        'price': 999,
-        'features': [
-          {
-            'name': 'Basic Profile',
-            'description': 'Basic profile information',
-            'enabled': true,
-          },
-          {
-            'name': 'Manifesto CRUD',
-            'description': 'Create and edit manifesto',
-            'enabled': true,
-          },
-          {
-            'name': 'Contact Info',
-            'description': 'Display contact information',
-            'enabled': true,
-          },
-          {
-            'name': 'Media Upload',
-            'description': 'Upload images and videos (10 items)',
-            'enabled': true,
-          },
-          {
-            'name': 'Basic Analytics',
-            'description': 'Basic profile views and followers',
-            'enabled': true,
-          },
-          {
-            'name': 'Achievements',
-            'description': 'Display achievements',
-            'enabled': true,
-          },
-          {
-            'name': 'Events Management',
-            'description': 'Create and manage events',
-            'enabled': false,
-          },
-          {
-            'name': 'Advanced Analytics',
-            'description': 'Detailed analytics and insights',
-            'enabled': false,
-          },
-          {
-            'name': 'Sponsored Visibility',
-            'description': 'Get sponsored visibility',
-            'enabled': false,
-          },
-          {
-            'name': 'Priority Support',
-            'description': 'Priority customer support',
-            'enabled': false,
-          },
-        ],
+        'price': 499,
         'isActive': true,
+        'dashboardTabs': {
+          'basicInfo': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+          },
+          'manifesto': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'features': {
+              'textOnly': false,
+              'pdfUpload': true,
+              'videoUpload': false,
+              'promises': true,
+              'maxPromises': 5,
+            },
+          },
+          'achievements': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'maxAchievements': 5,
+          },
+          'media': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'upload'],
+            'maxMediaItems': 10,
+            'maxImagesPerItem': 5,
+            'maxVideosPerItem': 1,
+            'maxYouTubeLinksPerItem': 2,
+          },
+          'contact': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'features': {
+              'basic': true,
+              'extended': true,
+              'socialLinks': true,
+            },
+          },
+          'events': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'maxEvents': 3,
+          },
+          'analytics': {
+            'enabled': true,
+            'permissions': ['view'],
+            'features': {
+              'basic': true,
+              'advanced': false,
+            },
+          },
+        },
+        'profileFeatures': {
+          'premiumBadge': true,
+          'sponsoredBanner': false,
+          'highlightCarousel': false,
+          'pushNotifications': false,
+        },
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      final goldPlan = _firestore.collection('plans').doc('candidate_gold');
+      final goldPlan = _firestore.collection('plans').doc('gold_plan');
       batch.set(goldPlan, {
+        'id': 'gold_plan',
+        'planId': 'gold_plan',
         'name': 'Gold',
         'type': 'candidate',
-        'price': 2999,
-        'features': [
-          {
-            'name': 'Basic Profile',
-            'description': 'Basic profile information',
-            'enabled': true,
-          },
-          {
-            'name': 'Manifesto CRUD',
-            'description': 'Create and edit manifesto',
-            'enabled': true,
-          },
-          {
-            'name': 'Contact Info',
-            'description': 'Display contact information',
-            'enabled': true,
-          },
-          {
-            'name': 'Media Upload',
-            'description': 'Upload images and videos (50 items)',
-            'enabled': true,
-          },
-          {
-            'name': 'Advanced Analytics',
-            'description': 'Detailed analytics and insights',
-            'enabled': true,
-          },
-          {
-            'name': 'Achievements',
-            'description': 'Display achievements',
-            'enabled': true,
-          },
-          {
-            'name': 'Events Management',
-            'description': 'Create and manage events',
-            'enabled': true,
-          },
-          {
-            'name': 'Sponsored Visibility',
-            'description': 'Get sponsored visibility',
-            'enabled': true,
-          },
-          {
-            'name': 'Priority Support',
-            'description': 'Priority customer support',
-            'enabled': false,
-          },
-          {
-            'name': 'Custom Branding',
-            'description': 'Custom profile branding',
-            'enabled': false,
-          },
-        ],
+        'price': 1499,
         'isActive': true,
+        'dashboardTabs': {
+          'basicInfo': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+          },
+          'manifesto': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'features': {
+              'textOnly': false,
+              'pdfUpload': true,
+              'videoUpload': true,
+              'promises': true,
+              'maxPromises': 5,
+            },
+          },
+          'achievements': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'maxAchievements': -1,
+          },
+          'media': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'upload'],
+            'maxMediaItems': -1,
+            'maxImagesPerItem': 10,
+            'maxVideosPerItem': 5,
+            'maxYouTubeLinksPerItem': 5,
+          },
+          'contact': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+            'features': {
+              'basic': true,
+              'extended': true,
+              'socialLinks': true,
+            },
+          },
+          'events': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'manage'],
+            'maxEvents': -1,
+          },
+          'analytics': {
+            'enabled': true,
+            'permissions': ['view', 'export'],
+            'features': {
+              'basic': true,
+              'advanced': true,
+            },
+          },
+        },
+        'profileFeatures': {
+          'premiumBadge': true,
+          'sponsoredBanner': true,
+          'highlightCarousel': true,
+          'pushNotifications': true,
+        },
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      final platinumPlan = _firestore.collection('plans').doc('candidate_platinum');
+      final platinumPlan = _firestore.collection('plans').doc('platinum_plan');
       batch.set(platinumPlan, {
+        'id': 'platinum_plan',
+        'planId': 'platinum_plan',
         'name': 'Platinum',
         'type': 'candidate',
-        'price': 5999,
-        'features': [
-          {
-            'name': 'Basic Profile',
-            'description': 'Basic profile information',
-            'enabled': true,
-          },
-          {
-            'name': 'Manifesto CRUD',
-            'description': 'Create and edit manifesto',
-            'enabled': true,
-          },
-          {
-            'name': 'Contact Info',
-            'description': 'Display contact information',
-            'enabled': true,
-          },
-          {
-            'name': 'Unlimited Media',
-            'description': 'Unlimited media uploads',
-            'enabled': true,
-          },
-          {
-            'name': 'Advanced Analytics',
-            'description': 'Detailed analytics and insights',
-            'enabled': true,
-          },
-          {
-            'name': 'Achievements',
-            'description': 'Display achievements',
-            'enabled': true,
-          },
-          {
-            'name': 'Events Management',
-            'description': 'Create and manage events',
-            'enabled': true,
-          },
-          {
-            'name': 'Sponsored Visibility',
-            'description': 'Get sponsored visibility',
-            'enabled': true,
-          },
-          {
-            'name': 'Priority Support',
-            'description': 'Priority customer support',
-            'enabled': true,
-          },
-          {
-            'name': 'Custom Branding',
-            'description': 'Custom profile branding',
-            'enabled': true,
-          },
-        ],
+        'price': 2999,
         'isActive': true,
+        'dashboardTabs': {
+          'basicInfo': {
+            'enabled': true,
+            'permissions': ['view', 'edit'],
+          },
+          'manifesto': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'priority'],
+            'features': {
+              'textOnly': false,
+              'pdfUpload': true,
+              'videoUpload': true,
+              'promises': true,
+              'maxPromises': 10,
+              'multipleVersions': true,
+            },
+          },
+          'achievements': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'featured'],
+            'maxAchievements': -1,
+          },
+          'media': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'upload', 'priority'],
+            'maxMediaItems': -1,
+            'maxImagesPerItem': -1,
+            'maxVideosPerItem': -1,
+            'maxYouTubeLinksPerItem': -1,
+          },
+          'contact': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'priority'],
+            'features': {
+              'basic': true,
+              'extended': true,
+              'socialLinks': true,
+              'prioritySupport': true,
+            },
+          },
+          'events': {
+            'enabled': true,
+            'permissions': ['view', 'edit', 'manage', 'featured'],
+            'maxEvents': -1,
+          },
+          'analytics': {
+            'enabled': true,
+            'permissions': ['view', 'export', 'realTime'],
+            'features': {
+              'basic': true,
+              'advanced': true,
+              'fullDashboard': true,
+              'realTime': true,
+            },
+          },
+        },
+        'profileFeatures': {
+          'premiumBadge': true,
+          'sponsoredBanner': true,
+          'highlightCarousel': true,
+          'pushNotifications': true,
+          'multipleHighlights': true,
+          'adminSupport': true,
+          'customBranding': true,
+        },
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Voter XP plan
-      final voterXP100 = _firestore.collection('plans').doc('voter_xp_100');
-      batch.set(voterXP100, {
-        'name': 'XP Pack (100 XP)',
-        'type': 'voter',
-        'price': 299,
-        'xpAmount': 100,
-        'features': [
-          {
-            'name': 'Unlock Premium Content',
-            'description': 'Access premium candidate content',
-            'enabled': true,
-          },
-          {
-            'name': 'Join Chat Rooms',
-            'description': 'Participate in premium chat rooms',
-            'enabled': true,
-          },
-          {
-            'name': 'Vote in Polls',
-            'description': 'Vote in exclusive polls',
-            'enabled': true,
-          },
-          {
-            'name': 'Reward Other Voters',
-            'description': 'Give XP to other users',
-            'enabled': true,
-          },
-        ],
-        'isActive': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
 
       await batch.commit();
     } catch (e) {

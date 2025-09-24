@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -60,59 +61,90 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                 minScale: 0.5,
                 maxScale: 4.0,
                 child: Center(
-                  child: Image.network(
-                    widget.imageUrl,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted && !_isImageLoaded) {
-                            setState(() => _isImageLoaded = true);
-                          }
-                        });
-                        return FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: child,
-                        );
-                      }
-                      return SizedBox(
-                        width: 200,
-                        height: 200,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return SizedBox(
-                        width: 200,
-                        height: 200,
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.broken_image,
-                                color: Colors.white70,
-                                size: 48,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Failed to load image',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 16,
+                  child: widget.isLocal
+                      ? Image.file(
+                          File(widget.imageUrl.replaceFirst('local:', '')),
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      color: Colors.white70,
+                                      size: 48,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Failed to load image',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
+                        )
+                      : Image.network(
+                          widget.imageUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted && !_isImageLoaded) {
+                                  setState(() => _isImageLoaded = true);
+                                }
+                              });
+                              return FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: child,
+                              );
+                            }
+                            return SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      color: Colors.white70,
+                                      size: 48,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Failed to load image',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ),
             ),

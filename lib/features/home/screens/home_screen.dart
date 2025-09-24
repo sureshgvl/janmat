@@ -4,11 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../candidate/controllers/candidate_controller.dart';
+import '../../chat/controllers/chat_controller.dart';
+import '../../monetization/controllers/monetization_controller.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../test/screens/test_plans_screen.dart';
-import '../../test/screens/test_highlights_screen.dart';
-import '../../test/screens/test_create_highlights.dart';
 import '../services/home_services.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
@@ -84,45 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.home),
         actions: [
-          // Test Plans Button (for development)
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            tooltip: 'Test Plans',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TestPlansScreen(),
-                ),
-              );
-            },
-          ),
-          // Test Highlights Button (for development)
-          IconButton(
-            icon: const Icon(Icons.star),
-            tooltip: 'Test Highlights',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TestHighlightsScreen(),
-                ),
-              );
-            },
-          ),
-          // Create Test Highlights Button (for development)
-          IconButton(
-            icon: const Icon(Icons.add_circle),
-            tooltip: 'Create Test Highlights',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TestCreateHighlightsScreen(),
-                ),
-              );
-            },
-          ),
           //logout
           IconButton(
             icon: _isLoggingOut
@@ -146,23 +107,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       final authRepository = AuthRepository();
                       await authRepository.signOut();
 
-                      // Reset login controller state (if available)
+                      // Delete all controllers to prevent state persistence between users
                       try {
+                        if (Get.isRegistered<CandidateController>()) {
+                          Get.delete<CandidateController>();
+                          debugPrint('✅ CandidateController deleted');
+                        }
+                        if (Get.isRegistered<ChatController>()) {
+                          Get.delete<ChatController>();
+                          debugPrint('✅ ChatController deleted');
+                        }
+                        if (Get.isRegistered<MonetizationController>()) {
+                          Get.delete<MonetizationController>();
+                          debugPrint('✅ MonetizationController deleted');
+                        }
                         if (Get.isRegistered<AuthController>()) {
-                          final loginController = Get.find<AuthController>();
-                          loginController.phoneController.clear();
-                          loginController.otpController.clear();
-                          loginController.isOTPScreen.value = false;
-                          loginController.verificationId.value = '';
-                          debugPrint('✅ Login controller state reset');
-                        } else {
-                          debugPrint(
-                            'ℹ️ Login controller not available - skipping state reset',
-                          );
+                          Get.delete<AuthController>();
+                          debugPrint('✅ AuthController deleted');
                         }
                       } catch (e) {
-                        debugPrint('⚠️ Could not reset login controller: $e');
+                        debugPrint('⚠️ Could not delete controllers: $e');
                       }
+
+                      // Reset login controller state (if available) - but since we deleted it, this is not needed
+                      // The controller will be recreated when needed
 
                       // Small delay to ensure auth state change has propagated
                       await Future.delayed(const Duration(milliseconds: 500));

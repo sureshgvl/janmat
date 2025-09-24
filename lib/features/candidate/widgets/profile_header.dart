@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/symbol_utils.dart';
 
 class ProfileHeader extends StatelessWidget {
   final Candidate candidate;
@@ -264,7 +265,10 @@ class ProfileHeader extends StatelessWidget {
 
                     // Party Name
                     Text(
-                      candidate.party,
+                      SymbolUtils.getPartyFullNameWithLocale(
+                        candidate.party,
+                        Localizations.localeOf(context).languageCode,
+                      ),
                       style: const TextStyle(
                         color: Colors.blue,
                         fontSize: 16,

@@ -60,7 +60,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       debugPrint('   Candidate: ${widget.currentCandidate!.name}');
       debugPrint('   Current party: ${widget.currentCandidate!.party}');
       debugPrint(
-        '   Current symbol: ${widget.currentCandidate!.symbol ?? 'none'}',
+        '   Current symbol: ${widget.currentCandidate!.symbolName ?? 'none'}',
       );
 
       // Find current party
@@ -73,9 +73,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       }
 
       // Load symbol data
-      if (widget.currentCandidate!.symbol != null) {
-        symbolNameController.text = widget.currentCandidate!.symbol!;
-        debugPrint('   Symbol name loaded: ${widget.currentCandidate!.symbol}');
+      if (widget.currentCandidate!.symbolName != null) {
+        symbolNameController.text = widget.currentCandidate!.symbolName!;
+        debugPrint('   Symbol name loaded: ${widget.currentCandidate!.symbolName}');
       }
 
       // Load existing symbol image URL from extraInfo.media
@@ -155,11 +155,11 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
   String _getCurrentSymbolDisplayName() {
     if (widget.currentCandidate == null ||
-        widget.currentCandidate!.symbol == null) {
+        widget.currentCandidate!.symbolName == null) {
       return '';
     }
 
-    return widget.currentCandidate!.symbol!;
+    return widget.currentCandidate!.symbolName!;
   }
 
   Future<void> _pickSymbolImage() async {
@@ -369,14 +369,16 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
               : ExtraInfo());
 
       final updatedCandidate = widget.currentCandidate!.copyWith(
-        party: selectedParty!.name,
-        symbol: isIndependent ? symbolNameController.text.trim() : null,
+        party: selectedParty!.id, // Use party key instead of name
+        symbolUrl: isIndependent ? symbolImageUrl : null,
+        symbolName: isIndependent ? symbolNameController.text.trim() : null,
         extraInfo: updatedExtraInfo,
       );
 
       debugPrint('💾 ChangePartySymbolScreen: Data to be saved:');
       debugPrint('   Party: ${updatedCandidate.party}');
-      debugPrint('   Symbol: ${updatedCandidate.symbol}');
+      debugPrint('   Symbol Name: ${updatedCandidate.symbolName}');
+      debugPrint('   Symbol URL: ${updatedCandidate.symbolUrl}');
       debugPrint('   Symbol Image URL: ${updatedCandidate.extraInfo?.media}');
 
       debugPrint('📤 ChangePartySymbolScreen: Sending update to database...');
@@ -783,7 +785,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                 _getCurrentPartyDisplayName(),
                                 style: TextStyle(color: Color(0xFF1976D2)),
                               ),
-                              if (widget.currentCandidate!.symbol != null) ...[
+                              if (widget.currentCandidate!.symbolName != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
                                   localizations.symbolLabel(

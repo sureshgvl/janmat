@@ -655,6 +655,24 @@ class _FileUploadSectionState extends State<FileUploadSection> {
   Widget build(BuildContext context) {
     if (!widget.isEditing) return const SizedBox.shrink();
 
+    // Check if files already exist in database OR are pending local upload
+    final hasPdfInDb = widget.candidateData.extraInfo?.manifesto?.pdfUrl != null &&
+                       widget.candidateData.extraInfo!.manifesto!.pdfUrl!.isNotEmpty;
+    final hasImageInDb = widget.candidateData.extraInfo?.manifesto?.image != null &&
+                         widget.candidateData.extraInfo!.manifesto!.image!.isNotEmpty;
+    final hasVideoInDb = widget.candidateData.extraInfo?.manifesto?.videoUrl != null &&
+                         widget.candidateData.extraInfo!.manifesto!.videoUrl!.isNotEmpty;
+
+    // Check if files are pending local upload
+    final hasPdfLocal = _localFiles.any((file) => file['type'] == 'pdf');
+    final hasImageLocal = _localFiles.any((file) => file['type'] == 'image');
+    final hasVideoLocal = _localFiles.any((file) => file['type'] == 'video');
+
+    // Combine database and local checks
+    final hasPdf = hasPdfInDb || hasPdfLocal;
+    final hasImage = hasImageInDb || hasImageLocal;
+    final hasVideo = hasVideoInDb || hasVideoLocal;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -673,15 +691,15 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: hasPdf ? Colors.grey.shade100 : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: hasPdf ? Colors.grey.shade300 : Colors.red.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.picture_as_pdf,
-                    color: Colors.red.shade700,
+                    color: hasPdf ? Colors.grey.shade500 : Colors.red.shade700,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
@@ -690,18 +708,18 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.of(context)!.uploadPdf,
-                          style: const TextStyle(
+                          hasPdf ? 'PDF Already Added' : AppLocalizations.of(context)!.uploadPdf,
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                            color: hasPdf ? Colors.grey.shade600 : Colors.black87,
                           ),
                         ),
                         Text(
-                          AppLocalizations.of(context)!.pdfFileLimit,
+                          hasPdf ? 'One PDF allowed per manifesto' : AppLocalizations.of(context)!.pdfFileLimit,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.red.shade600,
+                            color: hasPdf ? Colors.grey.shade500 : Colors.red.shade600,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -709,7 +727,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: !_isUploadingPdf ? _uploadManifestoPdf : null,
+                    onPressed: (!hasPdf && !_isUploadingPdf) ? _uploadManifestoPdf : null,
                     icon: _isUploadingPdf
                         ? const SizedBox(
                             width: 16,
@@ -722,9 +740,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                             ),
                           )
                         : const Icon(Icons.upload_file),
-                    label: const Text('Choose PDF'),
+                    label: Text(hasPdf ? 'PDF Added' : 'Choose PDF'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
+                      backgroundColor: hasPdf ? Colors.grey.shade400 : Colors.red.shade600,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -737,31 +755,35 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: hasImage ? Colors.grey.shade100 : Colors.green.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
+                border: Border.all(color: hasImage ? Colors.grey.shade300 : Colors.green.shade200),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.image, color: Colors.green.shade700, size: 24),
+                  Icon(
+                    Icons.image,
+                    color: hasImage ? Colors.grey.shade500 : Colors.green.shade700,
+                    size: 24,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.of(context)!.uploadImage,
-                          style: const TextStyle(
+                          hasImage ? 'Image Already Added' : AppLocalizations.of(context)!.uploadImage,
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                            color: hasImage ? Colors.grey.shade600 : Colors.black87,
                           ),
                         ),
                         Text(
-                          AppLocalizations.of(context)!.imageFileLimit,
+                          hasImage ? 'One image allowed per manifesto' : AppLocalizations.of(context)!.imageFileLimit,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.green.shade600,
+                            color: hasImage ? Colors.grey.shade500 : Colors.green.shade600,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -769,7 +791,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: !_isUploadingImage
+                    onPressed: (!hasImage && !_isUploadingImage)
                         ? _uploadManifestoImage
                         : null,
                     icon: _isUploadingImage
@@ -784,9 +806,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                             ),
                           )
                         : const Icon(Icons.photo_camera),
-                    label: const Text('Choose Image'),
+                    label: Text(hasImage ? 'Image Added' : 'Choose Image'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
+                      backgroundColor: hasImage ? Colors.grey.shade400 : Colors.green.shade600,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -799,15 +821,15 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.purple.shade50,
+                color: hasVideo ? Colors.grey.shade100 : Colors.purple.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.purple.shade200),
+                border: Border.all(color: hasVideo ? Colors.grey.shade300 : Colors.purple.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.video_call,
-                    color: Colors.purple.shade700,
+                    color: hasVideo ? Colors.grey.shade500 : Colors.purple.shade700,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
@@ -816,18 +838,18 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.of(context)!.uploadVideo,
-                          style: const TextStyle(
+                          hasVideo ? 'Video Already Added' : AppLocalizations.of(context)!.uploadVideo,
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                            color: hasVideo ? Colors.grey.shade600 : Colors.black87,
                           ),
                         ),
                         Text(
-                          AppLocalizations.of(context)!.videoFileLimit,
+                          hasVideo ? 'One video allowed per manifesto' : AppLocalizations.of(context)!.videoFileLimit,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.purple.shade600,
+                            color: hasVideo ? Colors.grey.shade500 : Colors.purple.shade600,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -835,7 +857,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: !_isUploadingVideo
+                    onPressed: (!hasVideo && !_isUploadingVideo)
                         ? _uploadManifestoVideo
                         : null,
                     icon: _isUploadingVideo
@@ -850,9 +872,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                             ),
                           )
                         : const Icon(Icons.videocam),
-                    label: const Text('Choose Video'),
+                    label: Text(hasVideo ? 'Video Added' : 'Choose Video'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade600,
+                      backgroundColor: hasVideo ? Colors.grey.shade400 : Colors.purple.shade600,
                       foregroundColor: Colors.white,
                     ),
                   ),

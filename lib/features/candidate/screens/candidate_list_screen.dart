@@ -7,13 +7,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
-import '../../../utils/symbol_utils.dart';
 import '../../../utils/debouncer.dart';
 import '../../../widgets/profile/district_selection_modal.dart';
 import '../../../widgets/profile/area_selection_modal.dart';
 import '../../../widgets/profile/ward_selection_modal.dart';
 import '../../../utils/progressive_loader.dart';
 import '../models/candidate_model.dart';
+import '../widgets/candidate_card.dart';
 
 class CandidateListScreen extends StatefulWidget {
   final String? initialDistrictId;
@@ -64,6 +64,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   late SearchDebouncer _searchDebouncer;
   String _searchQuery = '';
   bool _isSearching = false;
+
 
   @override
   void initState() {
@@ -535,10 +536,6 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.searchCandidates),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
       ),
       body: GetBuilder<CandidateController>(
         builder: (controller) {
@@ -770,6 +767,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                 ),
               ),
 
+
               // Results Section
               Expanded(
                 child: controller.isLoading
@@ -861,7 +859,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           }
 
                           final candidate = controller.candidates[index];
-                          return _buildCandidateCard(context, candidate);
+                          return CandidateCard(candidate: candidate);
                         },
                       ),
               ),
@@ -872,197 +870,5 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     );
   }
 
-  Widget _buildCandidateCard(BuildContext context, candidate) {
-    // Determine if candidate is premium
-    bool isPremiumCandidate =
-        candidate.sponsored || candidate.followersCount > 1000;
 
-    return GestureDetector(
-      onTap: () {
-        // Navigate to candidate profile
-        Get.toNamed('/candidate-profile', arguments: candidate);
-      },
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Candidate Photo
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isPremiumCandidate
-                        ? Colors.blue.shade600
-                        : Colors.grey.shade500,
-                    width: 3,
-                  ),
-                ),
-                child: ClipOval(
-                  child: candidate.photo != null && candidate.photo!.isNotEmpty
-                      ? Image.network(
-                          candidate.photo!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return CircleAvatar(
-                              backgroundColor: isPremiumCandidate
-                                  ? Colors.blue.shade600
-                                  : Colors.grey.shade500,
-                              child: Text(
-                                candidate.name[0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 24,
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                      : CircleAvatar(
-                          backgroundColor: isPremiumCandidate
-                              ? Colors.blue.shade600
-                              : Colors.grey.shade500,
-                          child: Text(
-                            candidate.name[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Candidate Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Name
-                    Text(
-                      candidate.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1f2937),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Party with Symbol
-                    Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            image: DecorationImage(
-                              image: SymbolUtils.getSymbolImageProvider(
-                                SymbolUtils.getPartySymbolPath(
-                                  candidate.party,
-                                  candidate: candidate,
-                                ),
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            candidate.party,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF6b7280),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Manifesto
-                    if (candidate.manifesto != null &&
-                        candidate.manifesto!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          candidate.manifesto!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9ca3af),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-
-                    // Premium/Free Badge
-                    Container(
-                      margin: const EdgeInsets.only(top: 6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isPremiumCandidate
-                            ? Colors.blue.shade100
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isPremiumCandidate
-                              ? Colors.blue.shade300
-                              : Colors.grey.shade400,
-                        ),
-                      ),
-                      child: Text(
-                        isPremiumCandidate ? 'Premium' : 'Free',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isPremiumCandidate
-                              ? Colors.blue.shade700
-                              : Color(0xFF374151),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Phone Number
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.phone, color: Colors.green.shade600, size: 20),
-                  const SizedBox(height: 2),
-                  Text(
-                    candidate.contact.phone,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

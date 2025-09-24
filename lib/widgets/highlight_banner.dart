@@ -144,7 +144,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final bannerHeight = screenWidth * 0.4; // 40% of screen width for height
+    final bannerHeight = screenWidth * 0.6; // 60% of screen width for height
 
     return Column(
       children: [
@@ -155,17 +155,17 @@ class _HighlightBannerState extends State<HighlightBanner> {
             height: bannerHeight,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20), // More rounded
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -176,22 +176,22 @@ class _HighlightBannerState extends State<HighlightBanner> {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.purple.shade100,
+                          color: const Color(0xFF1976d2).withOpacity(0.1),
                           child: const Icon(
                             Icons.image_not_supported,
                             size: 48,
-                            color: Colors.purple,
+                            color: Color(0xFF1976d2),
                           ),
                         );
                       },
                     )
                   else
                     Container(
-                      color: Colors.purple.shade100,
+                      color: const Color(0xFF1976d2).withOpacity(0.1),
                       child: const Icon(
-                        Icons.star,
+                        Icons.person,
                         size: 48,
-                        color: Colors.purple,
+                        color: Color(0xFF1976d2),
                       ),
                     ),
 
@@ -203,15 +203,15 @@ class _HighlightBannerState extends State<HighlightBanner> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withOpacity(0.4),
+                          Colors.black.withOpacity(0.8),
                         ],
                         stops: const [0.0, 0.6, 1.0],
                       ),
                     ),
                   ),
 
-                  // Platinum Badge
+                  // Highlight Badge
                   Positioned(
                     top: 16,
                     left: 16,
@@ -221,7 +221,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.purple,
+                        color: const Color(0xFFFF9933), // Saffron color
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
@@ -234,10 +234,10 @@ class _HighlightBannerState extends State<HighlightBanner> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.diamond, size: 14, color: Colors.white),
+                          Icon(Icons.star, size: 14, color: Colors.white),
                           SizedBox(width: 6),
                           Text(
-                            'PLATINUM',
+                            'HIGHLIGHT',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -250,163 +250,95 @@ class _HighlightBannerState extends State<HighlightBanner> {
                     ),
                   ),
 
-                  // Sponsored Badge
+                  // Content Section
                   Positioned(
-                    top: 16,
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Candidate Info
+                        Text(
+                          platinumBanner!.candidateName ?? 'Featured Candidate',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black,
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          platinumBanner!.party ?? 'Political Party',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // View Profile Button
+                  Positioned(
+                    bottom: 16,
                     right: 16,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 20,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber,
-                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFF1976d2), // Primary blue
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.star, size: 12, color: Colors.black),
-                          SizedBox(width: 4),
                           Text(
-                            'SPONSORED',
+                            'View Profile',
                             style: TextStyle(
-                              fontSize: 8,
+                              color: Colors.white,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
                             ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 16,
+                            color: Colors.white,
                           ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  // Content Section
-                  Positioned(
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                    child: Row(
-                      children: [
-                        // Candidate Photo
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            backgroundImage: candidateProfileImageUrl != null
-                                ? NetworkImage(candidateProfileImageUrl!)
-                                : null,
-                            backgroundColor: Colors.white,
-                            child: candidateProfileImageUrl == null
-                                ? const Icon(
-                                    Icons.person,
-                                    color: Colors.purple,
-                                    size: 30,
-                                  )
-                                : null,
-                          ),
-                        ),
-
-                        const SizedBox(width: 16),
-
-                        // Candidate Info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                platinumBanner!.candidateName ??
-                                    'Featured Candidate',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black,
-                                      blurRadius: 6,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              Text(
-                                platinumBanner!.party ?? 'Political Party',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 16),
-
-                        // CTA Button
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 6,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'View Profile',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Icon(
-                                Icons.arrow_forward,
-                                size: 14,
-                                color: Colors.black,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
 

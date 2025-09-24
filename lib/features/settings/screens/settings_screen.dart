@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/language_service.dart';
@@ -185,15 +186,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Wait for locale change to take effect
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Show confirmation message without navigation
+      // Force app restart to ensure complete locale update
       if (mounted) {
+        // Show confirmation message
         Get.snackbar(
           'Success',
           languageCode == 'en'
-              ? 'Language changed to English'
-              : 'भाषा मराठीमध्ये बदलली',
+              ? 'Language changed to English. Restarting app...'
+              : 'भाषा मराठीमध्ये बदलली. अॅप रीस्टार्ट होत आहे...',
           duration: const Duration(seconds: 2),
         );
+
+        // Delay to show the message, then restart
+        await Future.delayed(const Duration(seconds: 2));
+
+        // Force complete app restart by navigating to root and rebuilding
+        if (mounted) {
+          // Clear all routes and go to home
+          Get.offAllNamed('/home');
+
+          // Force a complete rebuild by recreating the app context
+          await Future.delayed(const Duration(milliseconds: 100));
+          Get.forceAppUpdate();
+
+          // Additional restart mechanism - reload the entire app
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            // This will trigger a complete rebuild of the app
+            (context as Element).markNeedsBuild();
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error changing language: $e');
@@ -215,6 +236,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             duration: const Duration(seconds: 2),
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isChangingLanguage = false;
+        });
       }
     }
   }

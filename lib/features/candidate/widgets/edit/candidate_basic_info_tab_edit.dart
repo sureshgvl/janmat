@@ -554,9 +554,9 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            if (data.symbol != null && data.symbol!.isNotEmpty)
+                            if (data.symbolName != null && data.symbolName!.isNotEmpty)
                               Text(
-                                'Symbol: ${data.symbol}',
+                                'Symbol: ${data.symbolName}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,

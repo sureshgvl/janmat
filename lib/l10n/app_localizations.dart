@@ -833,6 +833,12 @@ abstract class AppLocalizations {
   /// **'Candidate Profile'**
   String get candidateProfile;
 
+  /// No description provided for @candidateComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate Comparison'**
+  String get candidateComparison;
+
   /// No description provided for @candidateDataNotAvailable.
   ///
   /// In en, this message translates to:
@@ -1421,6 +1427,24 @@ abstract class AppLocalizations {
   /// **'Prefer not to say'**
   String get preferNotToSay;
 
+  /// No description provided for @stateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'State *'**
+  String get stateRequired;
+
+  /// No description provided for @selectYourState.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your state'**
+  String get selectYourState;
+
+  /// No description provided for @selectStateFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select state first'**
+  String get selectStateFirst;
+
   /// No description provided for @districtRequired.
   ///
   /// In en, this message translates to:
@@ -1432,6 +1456,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select your district'**
   String get selectYourDistrict;
+
+  /// No description provided for @selectDistrictFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select district first'**
+  String get selectDistrictFirst;
+
+  /// No description provided for @selectAreaFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select area first'**
+  String get selectAreaFirst;
 
   /// No description provided for @bodyRequired.
   ///
@@ -2333,18 +2369,6 @@ abstract class AppLocalizations {
   /// **'areas'**
   String get areas;
 
-  /// No description provided for @selectDistrictFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Select district first'**
-  String get selectDistrictFirst;
-
-  /// No description provided for @selectAreaFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Select area first'**
-  String get selectAreaFirst;
-
   /// No description provided for @noAreasAvailableInDistrict.
   ///
   /// In en, this message translates to:
@@ -2950,6 +2974,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Features:'**
   String get features;
+
+  /// No description provided for @pdfDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF Document'**
+  String get pdfDocument;
+
+  /// No description provided for @notAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get notAvailable;
+
+  /// No description provided for @image.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get image;
+
+  /// No description provided for @video.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get video;
+
+  /// No description provided for @viewFullImage.
+  ///
+  /// In en, this message translates to:
+  /// **'View Full Image'**
+  String get viewFullImage;
+
+  /// No description provided for @tapToPlayVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to play video'**
+  String get tapToPlayVideo;
+
+  /// No description provided for @play.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get play;
+
+  /// No description provided for @additionalResources.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Resources'**
+  String get additionalResources;
+
+  /// No description provided for @manifestoPdfAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto PDF Available'**
+  String get manifestoPdfAvailable;
+
+  /// No description provided for @tapToViewInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view in app'**
+  String get tapToViewInApp;
+
+  /// No description provided for @couldNotOpenPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open PDF'**
+  String get couldNotOpenPdf;
+
+  /// No description provided for @viewPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'View PDF'**
+  String get viewPdf;
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @hideComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Comments'**
+  String get hideComments;
+
+  /// No description provided for @showCommentsWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Comments ({count})'**
+  String showCommentsWithCount(Object count);
+
+  /// No description provided for @shareYourThoughts.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your thoughts...'**
+  String get shareYourThoughts;
+
+  /// No description provided for @postComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Post Comment'**
+  String get postComment;
+
+  /// No description provided for @noCommentsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get noCommentsYet;
+
+  /// No description provided for @anonymousVoter.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous Voter'**
+  String get anonymousVoter;
+
+  /// No description provided for @replyFunctionalityComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply functionality coming soon'**
+  String get replyFunctionalityComingSoon;
+
+  /// No description provided for @reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get reply;
+
+  /// No description provided for @supportedWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported ({count})'**
+  String supportedWithCount(Object count);
+
+  /// No description provided for @supportThisManifesto.
+  ///
+  /// In en, this message translates to:
+  /// **'Support This Manifesto'**
+  String get supportThisManifesto;
+
+  /// No description provided for @whatIssueMattersMost.
+  ///
+  /// In en, this message translates to:
+  /// **'What issue matters most to you?'**
+  String get whatIssueMattersMost;
+
+  /// No description provided for @developmentInfrastructure.
+  ///
+  /// In en, this message translates to:
+  /// **'Development & Infrastructure'**
+  String get developmentInfrastructure;
+
+  /// No description provided for @transparencyGovernance.
+  ///
+  /// In en, this message translates to:
+  /// **'Transparency & Governance'**
+  String get transparencyGovernance;
+
+  /// No description provided for @youthEducation.
+  ///
+  /// In en, this message translates to:
+  /// **'Youth & Education'**
+  String get youthEducation;
+
+  /// No description provided for @womenSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Women & Safety'**
+  String get womenSafety;
+
+  /// No description provided for @xpEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'XP Earned!'**
+  String get xpEarned;
+
+  /// No description provided for @earnedXpForSupportingManifesto.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned {count} XP for supporting manifesto!'**
+  String earnedXpForSupportingManifesto(Object count);
+
+  /// No description provided for @earnedXpForCommenting.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned {count} XP for commenting!'**
+  String earnedXpForCommenting(Object count);
+
+  /// No description provided for @thankYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you!'**
+  String get thankYou;
+
+  /// No description provided for @feedbackRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Your feedback has been recorded.'**
+  String get feedbackRecorded;
+
+  /// No description provided for @pleaseEnterComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a comment.'**
+  String get pleaseEnterComment;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

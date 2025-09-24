@@ -45,10 +45,10 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                       controller.updateExtraInfo('media', media),
                 ),
               )
-            : MediaTabView(
+            : Obx(() => MediaTabView(
                 candidate: controller.candidateData.value!,
                 isOwnProfile: true,
-              ),
+              )),
         floatingActionButton: isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),

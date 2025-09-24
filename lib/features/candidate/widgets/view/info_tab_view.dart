@@ -68,7 +68,10 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.candidate.party,
+                        SymbolUtils.getPartyFullNameWithLocale(
+                          widget.candidate.party,
+                          Localizations.localeOf(context).languageCode,
+                        ),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

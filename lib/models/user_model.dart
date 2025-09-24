@@ -10,6 +10,7 @@ class UserModel {
   final bool profileCompleted;
   final String wardId;
   final String? districtId;
+  final String? stateId;
   final String? bodyId;
   final String? area;
   final int xpPoints;
@@ -35,6 +36,7 @@ class UserModel {
     required this.profileCompleted,
     required this.wardId,
     this.districtId,
+    this.stateId,
     this.bodyId,
     this.area,
     required this.xpPoints,
@@ -87,6 +89,7 @@ class UserModel {
       profileCompleted: json['profileCompleted'] ?? false,
       wardId: json['wardId'] ?? '',
       districtId: json['districtId'],
+      stateId: json['stateId'],
       bodyId: json['bodyId'],
       area: json['area'],
       xpPoints: json['xpPoints'] ?? 0,
@@ -114,6 +117,7 @@ class UserModel {
       'profileCompleted': profileCompleted,
       'wardId': wardId,
       'districtId': districtId,
+      'stateId': stateId,
       'bodyId': bodyId,
       'area': area,
       'xpPoints': xpPoints,
@@ -140,6 +144,7 @@ class UserModel {
     bool? profileCompleted,
     String? wardId,
     String? districtId,
+    String? stateId,
     String? bodyId,
     String? area,
     int? xpPoints,
@@ -164,6 +169,7 @@ class UserModel {
       profileCompleted: profileCompleted ?? this.profileCompleted,
       wardId: wardId ?? this.wardId,
       districtId: districtId ?? this.districtId,
+      stateId: stateId ?? this.stateId,
       bodyId: bodyId ?? this.bodyId,
       area: area ?? this.area,
       xpPoints: xpPoints ?? this.xpPoints,

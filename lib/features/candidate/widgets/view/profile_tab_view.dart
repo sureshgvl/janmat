@@ -56,7 +56,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
         '''
 ${AppLocalizations.of(context)!.checkOutCandidateProfile(widget.candidate.name)}
 
-${widget.candidate.party.isNotEmpty ? AppLocalizations.of(context)!.partyLabel(widget.candidate.party) : AppLocalizations.of(context)!.party_independent}
+${widget.candidate.party.isNotEmpty ? AppLocalizations.of(context)!.partyLabel(SymbolUtils.getPartyFullNameWithLocale(widget.candidate.party, Localizations.localeOf(context).languageCode)) : AppLocalizations.of(context)!.party_independent}
 ${AppLocalizations.of(context)!.locationLabel(widget.candidate.districtId, widget.candidate.wardId)}
 
 View their complete profile and manifesto at: [Your App URL]
@@ -291,11 +291,14 @@ View their complete profile and manifesto at: [Your App URL]
                                                   .trim()
                                                   .isEmpty
                                           ? AppLocalizations.of(context)!.party_independent
-                                          : widget.candidate.party,
+                                          : SymbolUtils.getPartyFullNameWithLocale(
+                                              widget.candidate.party,
+                                              Localizations.localeOf(context).languageCode,
+                                            ),
                                       style: TextStyle(
                                         fontSize: 16,
                                         color:
-                                            widget.candidate.party
+                                            SymbolUtils.getPartyFullName(widget.candidate.party)
                                                     .toLowerCase()
                                                     .contains('independent') ||
                                                 widget.candidate.party
@@ -306,10 +309,10 @@ View their complete profile and manifesto at: [Your App URL]
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    if (widget.candidate.symbol != null &&
-                                        widget.candidate.symbol!.isNotEmpty)
+                                    if (widget.candidate.symbolName != null &&
+                                        widget.candidate.symbolName!.isNotEmpty)
                                       Text(
-                                        AppLocalizations.of(context)!.symbolLabel(widget.candidate.symbol!),
+                                        AppLocalizations.of(context)!.symbolLabel(widget.candidate.symbolName!),
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey,

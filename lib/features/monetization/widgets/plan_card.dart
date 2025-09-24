@@ -110,12 +110,6 @@ class PlanCard extends StatelessWidget {
               ),
             ),
 
-            if (plan.xpAmount != null)
-              Text(
-                '${plan.xpAmount} XP Points',
-                style: const TextStyle(fontSize: 14, color: Colors.blue),
-              ),
-
             const SizedBox(height: 16),
 
             Text(
@@ -125,27 +119,7 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            ...plan.features.map(
-              (feature) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Icon(
-                      feature.enabled ? Icons.check_circle : Icons.cancel,
-                      color: feature.enabled ? Colors.green : Colors.red,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        feature.name,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            ..._buildFeatureList(),
 
             const SizedBox(height: 16),
 
@@ -229,6 +203,119 @@ class PlanCard extends StatelessWidget {
     }
 
     return AppLocalizations.of(context)!.upgradeToPremium;
+  }
+
+  List<Widget> _buildFeatureList() {
+    final features = <Widget>[];
+
+    // Dashboard Tabs Features
+    if (plan.dashboardTabs.basicInfo.enabled) {
+      features.add(_buildFeatureItem('Basic Info', true));
+    }
+
+    if (plan.dashboardTabs.manifesto.enabled) {
+      features.add(_buildFeatureItem('Manifesto', true));
+      if (plan.dashboardTabs.manifesto.features.pdfUpload) {
+        features.add(_buildFeatureItem('  • PDF Upload', true));
+      }
+      if (plan.dashboardTabs.manifesto.features.videoUpload) {
+        features.add(_buildFeatureItem('  • Video Upload', true));
+      }
+      if (plan.dashboardTabs.manifesto.features.promises) {
+        features.add(_buildFeatureItem('  • Promises (${plan.dashboardTabs.manifesto.features.maxPromises})', true));
+      }
+      if (plan.dashboardTabs.manifesto.features.multipleVersions == true) {
+        features.add(_buildFeatureItem('  • Multiple Versions', true));
+      }
+    }
+
+    if (plan.dashboardTabs.achievements.enabled) {
+      final max = plan.dashboardTabs.achievements.maxAchievements == -1 ? 'Unlimited' : plan.dashboardTabs.achievements.maxAchievements.toString();
+      features.add(_buildFeatureItem('Achievements ($max)', true));
+    }
+
+    if (plan.dashboardTabs.media.enabled) {
+      final max = plan.dashboardTabs.media.maxMediaItems == -1 ? 'Unlimited' : plan.dashboardTabs.media.maxMediaItems.toString();
+      features.add(_buildFeatureItem('Media ($max items)', true));
+    }
+
+    if (plan.dashboardTabs.contact.enabled) {
+      features.add(_buildFeatureItem('Contact', true));
+      if (plan.dashboardTabs.contact.features.extended) {
+        features.add(_buildFeatureItem('  • Extended Info', true));
+      }
+      if (plan.dashboardTabs.contact.features.socialLinks) {
+        features.add(_buildFeatureItem('  • Social Links', true));
+      }
+      if (plan.dashboardTabs.contact.features.prioritySupport == true) {
+        features.add(_buildFeatureItem('  • Priority Support', true));
+      }
+    }
+
+    if (plan.dashboardTabs.events.enabled) {
+      final max = plan.dashboardTabs.events.maxEvents == -1 ? 'Unlimited' : plan.dashboardTabs.events.maxEvents.toString();
+      features.add(_buildFeatureItem('Events ($max)', true));
+    }
+
+    if (plan.dashboardTabs.analytics.enabled) {
+      features.add(_buildFeatureItem('Analytics', true));
+      if (plan.dashboardTabs.analytics.features?.advanced == true) {
+        features.add(_buildFeatureItem('  • Advanced', true));
+      }
+      if (plan.dashboardTabs.analytics.features?.fullDashboard == true) {
+        features.add(_buildFeatureItem('  • Full Dashboard', true));
+      }
+      if (plan.dashboardTabs.analytics.features?.realTime == true) {
+        features.add(_buildFeatureItem('  • Real-time', true));
+      }
+    }
+
+    // Profile Features
+    if (plan.profileFeatures.premiumBadge) {
+      features.add(_buildFeatureItem('Premium Badge', true));
+    }
+    if (plan.profileFeatures.sponsoredBanner) {
+      features.add(_buildFeatureItem('Sponsored Banner', true));
+    }
+    if (plan.profileFeatures.highlightCarousel) {
+      features.add(_buildFeatureItem('Highlight Carousel', true));
+    }
+    if (plan.profileFeatures.pushNotifications) {
+      features.add(_buildFeatureItem('Push Notifications', true));
+    }
+    if (plan.profileFeatures.multipleHighlights == true) {
+      features.add(_buildFeatureItem('Multiple Highlights', true));
+    }
+    if (plan.profileFeatures.adminSupport == true) {
+      features.add(_buildFeatureItem('Admin Support', true));
+    }
+    if (plan.profileFeatures.customBranding == true) {
+      features.add(_buildFeatureItem('Custom Branding', true));
+    }
+
+    return features;
+  }
+
+  Widget _buildFeatureItem(String name, bool enabled) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(
+            enabled ? Icons.check_circle : Icons.cancel,
+            color: enabled ? Colors.green : Colors.red,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handlePurchase(BuildContext context) async {

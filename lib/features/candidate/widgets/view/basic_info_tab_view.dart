@@ -4,6 +4,7 @@ import 'package:image_cropper/image_cropper.dart';
 import '../../models/candidate_model.dart';
 import '../../../../utils/symbol_utils.dart';
 import '../../../../services/file_upload_service.dart';
+import '../../../../features/common/whatsapp_image_viewer.dart';
 
 class BasicInfoSection extends StatefulWidget {
   final Candidate candidateData;
@@ -375,17 +376,31 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                 // Profile Photo with Camera Overlay
                 Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: data.photo != null
-                          ? NetworkImage(data.photo!)
+                    GestureDetector(
+                      onTap: !widget.isEditing && data.photo != null
+                          ? () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => WhatsAppImageViewer(
+                                    imageUrl: data.photo!,
+                                    title: '${data.name}\'s Profile Photo',
+                                  ),
+                                ),
+                              );
+                            }
                           : null,
-                      child: data.photo == null
-                          ? Text(
-                              data.name[0].toUpperCase(),
-                              style: const TextStyle(fontSize: 24),
-                            )
-                          : null,
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: data.photo != null
+                            ? NetworkImage(data.photo!)
+                            : null,
+                        child: data.photo == null
+                            ? Text(
+                                data.name[0].toUpperCase(),
+                                style: const TextStyle(fontSize: 24),
+                              )
+                            : null,
+                      ),
                     ),
                     if (widget.isEditing)
                       Positioned(
@@ -518,10 +533,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                         : FontWeight.normal,
                                   ),
                                 ),
-                                if (data.symbol != null &&
-                                    data.symbol!.isNotEmpty)
+                                if (data.symbolName != null &&
+                                    data.symbolName!.isNotEmpty)
                                   Text(
-                                    'Symbol: ${data.symbol}',
+                                    'Symbol: ${data.symbolName}',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey,

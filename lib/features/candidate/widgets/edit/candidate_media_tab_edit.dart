@@ -433,7 +433,6 @@ class MediaTabEditState extends State<MediaTabEdit> {
       debugPrint('💾 [Media Image] Saved locally at: $localPath');
 
       // Step 3: Add to media item
-      _uploadedMediaUrls.add(localPath);
       _addImageToItem(itemIndex, localPath);
 
       debugPrint('💾 [Media Image] Image added to media item');
@@ -483,7 +482,6 @@ class MediaTabEditState extends State<MediaTabEdit> {
         return;
       }
 
-      _uploadedMediaUrls.add(localPath);
       _addImageToItem(itemIndex, localPath);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -564,8 +562,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
       // Upload images for this item
       for (int i = 0; i < item.images.length; i++) {
         final imageUrl = item.images[i];
-        if (_fileUploadService.isLocalPath(imageUrl) &&
-            !_uploadedMediaUrls.contains(imageUrl)) {
+        if (_fileUploadService.isLocalPath(imageUrl)) {
           try {
             debugPrint('📤 [Media] Uploading image: $imageUrl');
 
@@ -573,8 +570,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 'media_image_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
             final storagePath = 'media/images/$fileName';
 
+            // Strip 'local:' prefix if present to get actual file path
+            final actualImagePath = imageUrl.replaceFirst('local:', '');
             final downloadUrl = await _fileUploadService.uploadFile(
-              imageUrl,
+              actualImagePath,
               storagePath,
               'image/jpeg',
             );
@@ -583,6 +582,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
               setState(() {
                 _mediaItems[itemIndex].images[i] = downloadUrl;
               });
+              _uploadedMediaUrls.add(downloadUrl); // Track successfully uploaded URLs
               debugPrint('📤 [Media] Successfully uploaded image');
             }
           } catch (e) {
@@ -594,8 +594,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
       // Upload videos for this item
       for (int i = 0; i < item.videos.length; i++) {
         final videoUrl = item.videos[i];
-        if (_fileUploadService.isLocalPath(videoUrl) &&
-            !_uploadedMediaUrls.contains(videoUrl)) {
+        if (_fileUploadService.isLocalPath(videoUrl)) {
           try {
             debugPrint('📤 [Media] Uploading video: $videoUrl');
 
@@ -603,8 +602,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 'media_video_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
             final storagePath = 'media/videos/$fileName';
 
+            // Strip 'local:' prefix if present to get actual file path
+            final actualVideoPath = videoUrl.replaceFirst('local:', '');
             final downloadUrl = await _fileUploadService.uploadFile(
-              videoUrl,
+              actualVideoPath,
               storagePath,
               'video/mp4',
             );
@@ -613,6 +614,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
               setState(() {
                 _mediaItems[itemIndex].videos[i] = downloadUrl;
               });
+              _uploadedMediaUrls.add(downloadUrl); // Track successfully uploaded URLs
               debugPrint('📤 [Media] Successfully uploaded video');
             }
           } catch (e) {

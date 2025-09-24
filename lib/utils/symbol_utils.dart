@@ -8,6 +8,322 @@ class SymbolUtils {
   // Cache for symbol paths to avoid repeated computations
   static final Map<String, String> _symbolCache = {};
 
+  /// Comprehensive party data with multilingual support
+  static const List<Map<String, String>> parties = [
+    {
+      "key": "inc",
+      "shortNameEn": "INC",
+      "shortNameMr": "कॉंग्रेस",
+      "nameEn": "Indian National Congress",
+      "nameMr": "इंडियन नॅशनल कॉंग्रेस",
+      "image": "inc.png",
+      "party_symbolEn": "Hand",
+      "party_symbolMr": "हात"
+    },
+    {
+      "key": "bjp",
+      "shortNameEn": "BJP",
+      "shortNameMr": "भाजप",
+      "nameEn": "Bharatiya Janata Party",
+      "nameMr": "भारतीय जनता पार्टी",
+      "image": "bjp.png",
+      "party_symbolEn": "Lotus",
+      "party_symbolMr": "कमल"
+    },
+    {
+      "key": "ncp_ajit",
+      "shortNameEn": "NCP (Ajit)",
+      "shortNameMr": "राष्ट्रवादी (अजित पवार)",
+      "nameEn": "Nationalist Congress Party (Ajit Pawar)",
+      "nameMr": "राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)",
+      "image": "ncp_ajit.png",
+      "party_symbolEn": "Clock",
+      "party_symbolMr": "घड्याळ"
+    },
+    {
+      "key": "ncp_sp",
+      "shortNameEn": "NCP (Sharad)",
+      "shortNameMr": "राष्ट्रवादी (शरद पवार)",
+      "nameEn": "Nationalist Congress Party (Sharad Pawar)",
+      "nameMr": "राष्ट्रवादी काँग्रेस पक्ष (शरद पवार)",
+      "image": "ncp_sp.png",
+      "party_symbolEn": "Clock",
+      "party_symbolMr": "घड्याळ"
+    },
+    {
+      "key": "shiv_sena_shinde",
+      "shortNameEn": "Shiv Sena (Shinde)",
+      "shortNameMr": "शिवसेना (शिंदे)",
+      "nameEn": "Balasahebanchi Shiv Sena (Shinde)",
+      "nameMr": "बाळासाहेबांची शिवसेना (शिंदे)",
+      "image": "shiv_sena_shinde.png",
+      "party_symbolEn": "Bow and Arrow",
+      "party_symbolMr": "धनुष्य आणि बाण"
+    },
+    {
+      "key": "shiv_sena_ubt",
+      "shortNameEn": "Shiv Sena (UBT)",
+      "shortNameMr": "शिवसेना (उद्धव)",
+      "nameEn": "Shiv Sena (Uddhav Balasaheb Thackeray)",
+      "nameMr": "शिवसेना (उद्धव बाळासाहेब ठाकरे)",
+      "image": "shiv_sena_ubt.jpeg",
+      "party_symbolEn": "Bow and Arrow",
+      "party_symbolMr": "धनुष्य आणि बाण"
+    },
+    {
+      "key": "mns",
+      "shortNameEn": "MNS",
+      "shortNameMr": "मनसे",
+      "nameEn": "Maharashtra Navnirman Sena",
+      "nameMr": "महाराष्ट्र नवनिर्माण सेना",
+      "image": "mns.png",
+      "party_symbolEn": "Railway Engine",
+      "party_symbolMr": "रेल्वे इंजिन"
+    },
+    {
+      "key": "cpi",
+      "shortNameEn": "CPI",
+      "shortNameMr": "भाकप",
+      "nameEn": "Communist Party of India",
+      "nameMr": "भारतीय कम्युनिस्ट पार्टी",
+      "image": "cpi.png",
+      "party_symbolEn": "Sickle and Hammer",
+      "party_symbolMr": "हातोडा आणि हसूया"
+    },
+    {
+      "key": "cpi_m",
+      "shortNameEn": "CPI(M)",
+      "shortNameMr": "भाकप(मा)",
+      "nameEn": "Communist Party of India (Marxist)",
+      "nameMr": "भारतीय कम्युनिस्ट पार्टी (मार्क्सवादी)",
+      "image": "cpi_m.png",
+      "party_symbolEn": "Hammer Sickle and Star",
+      "party_symbolMr": "हातोडा हसूया आणि तारा"
+    },
+    {
+      "key": "bsp",
+      "shortNameEn": "BSP",
+      "shortNameMr": "बसपा",
+      "nameEn": "Bahujan Samaj Party",
+      "nameMr": "बहुजन समाज पार्टी",
+      "image": "bsp.png",
+      "party_symbolEn": "Elephant",
+      "party_symbolMr": "हत्ती"
+    },
+    {
+      "key": "sp",
+      "shortNameEn": "SP",
+      "shortNameMr": "सपा",
+      "nameEn": "Samajwadi Party",
+      "nameMr": "समाजवादी पार्टी",
+      "image": "sp.png",
+      "party_symbolEn": "Bicycle",
+      "party_symbolMr": "सायकल"
+    },
+    {
+      "key": "aimim",
+      "shortNameEn": "AIMIM",
+      "shortNameMr": "एमआयएम",
+      "nameEn": "All India Majlis-e-Ittehad-ul-Muslimeen",
+      "nameMr": "ऑल इंडिया मजलिस-ए-इत्तेहादुल मुस्लिमीन",
+      "image": "aimim.png",
+      "party_symbolEn": "Kite",
+      "party_symbolMr": "पतंग"
+    },
+    {
+      "key": "npp",
+      "shortNameEn": "NPP",
+      "shortNameMr": "रापापा",
+      "nameEn": "National Peoples Party",
+      "nameMr": "राष्ट्रीय लोक पार्टी",
+      "image": "npp.png",
+      "party_symbolEn": "Book",
+      "party_symbolMr": "पुस्तक"
+    },
+    {
+      "key": "pwpi",
+      "shortNameEn": "PWPI",
+      "shortNameMr": "कृपेका",
+      "nameEn": "Peasants and Workers Party of India",
+      "nameMr": "पीपल्स वर्कर्स पार्टी ऑफ इंडिया",
+      "image": "Pwpisymbol.jpg",
+      "party_symbolEn": "Farmer with Sickle",
+      "party_symbolMr": "शेतकरी हसूया सह"
+    },
+    {
+      "key": "vba",
+      "shortNameEn": "VBA",
+      "shortNameMr": "वंचित आघाडी",
+      "nameEn": "Vanchit Bahujan Aghadi",
+      "nameMr": "वंचित बहुजन आघाडी",
+      "image": "vba.png",
+      "party_symbolEn": "Unknown",
+      "party_symbolMr": "अज्ञात"
+    },
+    {
+      "key": "rsp",
+      "shortNameEn": "RSP",
+      "shortNameMr": "रासप",
+      "nameEn": "Rashtriya Samaj Paksha",
+      "nameMr": "राष्ट्रीय समाज पक्ष",
+      "image": "rsp.jpg",
+      "party_symbolEn": "Unknown",
+      "party_symbolMr": "अज्ञात"
+    },
+    {
+      "key": "bva",
+      "shortNameEn": "BVA",
+      "shortNameMr": "बाविआ",
+      "nameEn": "Bahujan Vikas Aaghadi",
+      "nameMr": "बहुजन विकास आघाडी",
+      "image": "pwp.jpg",
+      "party_symbolEn": "Unknown",
+      "party_symbolMr": "अज्ञात"
+    },
+    {
+      "key": "abs",
+      "shortNameEn": "ABS",
+      "shortNameMr": "अखिबासे",
+      "nameEn": "Akhil Bharatiya Sena",
+      "nameMr": "अखिल भारतीय सेना",
+      "image": "default.png",
+      "party_symbolEn": "Unknown",
+      "party_symbolMr": "अज्ञात"
+    },
+    {
+      "key": "independent",
+      "shortNameEn": "IND",
+      "shortNameMr": "अपक्ष",
+      "nameEn": "Independent",
+      "nameMr": "अपक्ष",
+      "image": "independent.png",
+      "party_symbolEn": "No Symbol",
+      "party_symbolMr": "कोणतेही नाही"
+    }
+  ];
+
+  /// Find party by key
+  static Map<String, String>? getPartyByKey(String key) {
+    try {
+      return parties.firstWhere(
+        (party) => party['key'] == key,
+        orElse: () => <String, String>{},
+      );
+    } catch (e) {
+      debugPrint('Error finding party by key $key: $e');
+      return null;
+    }
+  }
+
+  /// Find party by name (English or Marathi)
+  static Map<String, String>? getPartyByName(String name) {
+    try {
+      return parties.firstWhere(
+        (party) =>
+            party['nameEn']?.toLowerCase() == name.toLowerCase() ||
+            party['nameMr'] == name ||
+            party['shortNameEn']?.toLowerCase() == name.toLowerCase() ||
+            party['shortNameMr'] == name,
+        orElse: () => <String, String>{},
+      );
+    } catch (e) {
+      debugPrint('Error finding party by name $name: $e');
+      return null;
+    }
+  }
+
+  /// Get party key from name
+  static String? getPartyKeyFromName(String name) {
+    final party = getPartyByName(name);
+    return party?['key'];
+  }
+
+  /// Get party display name (automatically detects locale) - SHORT NAMES
+  static String getPartyDisplayName(String key) {
+    final party = getPartyByKey(key);
+    if (party == null) return key;
+
+    // Default to English short name, fallback to full name
+    return party['shortNameEn'] ?? party['nameEn'] ?? key;
+  }
+
+  /// Get party display name with explicit locale preference - SHORT NAMES
+  static String getPartyDisplayNameWithLocale(String key, String locale) {
+    final party = getPartyByKey(key);
+    if (party == null) return key;
+
+    if (locale == 'mr' && party['shortNameMr'] != null) {
+      return party['shortNameMr']!;
+    }
+
+    return party['shortNameEn'] ?? party['nameEn'] ?? key;
+  }
+
+  /// Get party full name (automatically detects locale) - FULL NAMES
+  static String getPartyFullName(String key) {
+    final party = getPartyByKey(key);
+    if (party == null) return key;
+
+    // Default to English full name, fallback to short name
+    return party['nameEn'] ?? party['shortNameEn'] ?? key;
+  }
+
+  /// Get party full name with explicit locale preference - FULL NAMES
+  static String getPartyFullNameWithLocale(String key, String locale) {
+    final party = getPartyByKey(key);
+    if (party == null) return key;
+
+    if (locale == 'mr' && party['nameMr'] != null) {
+      return party['nameMr']!;
+    }
+
+    return party['nameEn'] ?? party['shortNameEn'] ?? key;
+  }
+
+  /// Convert old party name format to new key format
+  /// This helps with data migration from old system to new key-based system
+  static String? convertOldPartyNameToKey(String oldPartyName) {
+    // Try to find the party by name first
+    final party = getPartyByName(oldPartyName);
+    if (party != null && party.isNotEmpty) {
+      return party['key'];
+    }
+
+    // Handle special cases for common variations
+    final normalizedName = oldPartyName.toLowerCase().trim();
+
+    if (normalizedName.contains('congress') || normalizedName.contains('कॉंग्रेस')) {
+      return 'inc';
+    } else if (normalizedName.contains('bjp') || normalizedName.contains('भाजप')) {
+      return 'bjp';
+    } else if (normalizedName.contains('ncp') || normalizedName.contains('राष्ट्रवादी')) {
+      // Default to Ajit Pawar faction for NCP
+      return 'ncp_ajit';
+    } else if (normalizedName.contains('shiv sena') || normalizedName.contains('शिवसेना')) {
+      // Default to Shinde faction for Shiv Sena
+      return 'shiv_sena_shinde';
+    } else if (normalizedName.contains('independent') || normalizedName.contains('अपक्ष')) {
+      return 'independent';
+    }
+
+    return null;
+  }
+
+  /// Get all party keys for reference
+  static List<String> getAllPartyKeys() {
+    return parties.map((party) => party['key']!).toList();
+  }
+
+  /// Get all party names (English) for reference
+  static List<String> getAllPartyNames() {
+    return parties.map((party) => party['nameEn']!).toList();
+  }
+
+  /// Get all party short names (English) for reference
+  static List<String> getAllPartyShortNames() {
+    return parties.map((party) => party['shortNameEn']!).toList();
+  }
+
   /// Get party symbol path with support for independent candidate symbol images
   /// This is the centralized, optimized version that replaces all duplicate functions
   static String getPartySymbolPath(String party, {Candidate? candidate}) {
@@ -63,91 +379,54 @@ class SymbolUtils {
       return result;
     }
 
-    // For party-affiliated candidates, use the existing party symbol mapping
+    // For party-affiliated candidates, use the new structured party data
     debugPrint('🏛️ [SymbolUtils] Party-affiliated candidate detected');
-    final partyMapping = {
-      'Indian National Congress': 'inc.png',
-      'Bharatiya Janata Party': 'bjp.png',
-      'Nationalist Congress Party (Ajit Pawar)': 'ncp_ajit.png',
-      'Nationalist Congress Party (Sharad Pawar)': 'ncp_sp.png',
-      'Balasahebanchi Shiv Sena (Shinde)': 'shiv_sena_shinde.png',
-      'Shiv Sena (Uddhav Balasaheb Thackeray)': 'shiv_sena_ubt.jpeg',
-      'Maharashtra Navnirman Sena': 'mns.png',
-      'Communist Party of India': 'cpi.png',
-      'Communist Party of India (Marxist)': 'cpi_m.png',
-      'Bahujan Samaj Party': 'bsp.png',
-      'Samajwadi Party': 'sp.png',
-      'All India Majlis-e-Ittehad-ul-Muslimeen': 'aimim.png',
-      'National Peoples Party': 'npp.png',
-      'Peasants and Workers Party of India': 'Pwpisymbol.jpg',
-      'Vanchit Bahujan Aghadi': 'vba.png',
-      'Rashtriya Samaj Paksha': 'rsp.jpg',
-      'Bahujan Vikas Aaghadi': 'pwp.jpg',
-      //'Republican Sena': 'default.png',
-      'Akhil Bharatiya Sena': 'default.png',
-    };
 
-    // First try exact match
-    if (partyMapping.containsKey(party)) {
-      final symbolFile = partyMapping[party]!;
+    // Try to find party by name first
+    Map<String, String>? partyData = getPartyByName(party);
+
+    // If not found by name, try to get key from name and then find by key
+    if (partyData == null || partyData.isEmpty) {
+      String? partyKey = getPartyKeyFromName(party);
+      if (partyKey != null) {
+        partyData = getPartyByKey(partyKey);
+      }
+    }
+
+    // If still not found, try to handle special cases
+    if (partyData == null || partyData.isEmpty) {
+      // Handle common variations and typos
+      if (party.contains('Congress') || party.contains('कॉंग्रेस')) {
+        partyData = getPartyByKey('inc');
+      } else if (party.contains('BJP') || party.contains('भाजप')) {
+        partyData = getPartyByKey('bjp');
+      } else if (party.contains('NCP') || party.contains('राष्ट्रवादी')) {
+        // Determine which NCP faction based on candidate info or default to Ajit
+        if (candidate != null) {
+          // You can add logic here to determine NCP faction based on candidate data
+          partyData = getPartyByKey('ncp_ajit'); // Default
+        } else {
+          partyData = getPartyByKey('ncp_ajit');
+        }
+      } else if (party.contains('Shiv Sena') || party.contains('शिवसेना')) {
+        // Determine which Shiv Sena faction based on candidate info or default to Shinde
+        if (candidate != null) {
+          // You can add logic here to determine Shiv Sena faction based on candidate data
+          partyData = getPartyByKey('shiv_sena_shinde'); // Default
+        } else {
+          partyData = getPartyByKey('shiv_sena_shinde');
+        }
+      }
+    }
+
+    // Get symbol path from party data
+    if (partyData != null && partyData['image'] != null) {
+      final symbolFile = partyData['image']!;
       final result = 'assets/symbols/$symbolFile';
       debugPrint('🏛️ [SymbolUtils] Using party asset: $result');
       _symbolCache[cacheKey] = result;
       return result;
     }
-
-    // Try case-insensitive match
-    final upperParty = party.toUpperCase();
-    for (var entry in partyMapping.entries) {
-      if (entry.key.toUpperCase() == upperParty) {
-        final result = 'assets/symbols/${entry.value}';
-        debugPrint(
-          '🏛️ [SymbolUtils] Using party asset (case-insensitive): $result',
-        );
-        _symbolCache[cacheKey] = result;
-        return result;
-      }
-    }
-
-    // Try partial matches for common variations
-    // final partialMatches = {
-    //   'INDIAN NATIONAL CONGRESS': 'inc.png',
-    //   'INDIA NATIONAL CONGRESS': 'inc.png',
-    //   'BHARATIYA JANATA PARTY': 'bjp.png',
-    //   'NATIONALIST CONGRESS PARTY': 'ncp_ajit.png',
-    //   'NATIONALIST CONGRESS PARTY AJIT': 'ncp_ajit.png',
-    //   'NATIONALIST CONGRESS PARTY SHARAD': 'ncp_sp.png',
-    //   'SHIV SENA': 'shiv_sena_ubt.jpeg',
-    //   'SHIV SENA UDDHAV': 'shiv_sena_ubt.jpeg',
-    //   'SHIV SENA SHINDE': 'shiv_sena_shinde.png',
-    //   'BALASAHEBANCHI SHIV SENA': 'shiv_sena_shinde.png',
-    //   'MAHARASHTRA NAVNIRMAN SENA': 'mns.png',
-    //   'COMMUNIST PARTY OF INDIA': 'cpi.png',
-    //   'COMMUNIST PARTY OF INDIA MARXIST': 'cpi_m.png',
-    //   'BAHUJAN SAMAJ PARTY': 'bsp.png',
-    //   'SAMAJWADI PARTY': 'sp.png',
-    //   'ALL INDIA MAJLIS E ITTEHADUL MUSLIMEEN': 'aimim.png',
-    //   'ALL INDIA MAJLIS-E-ITTEHADUL MUSLIMEEN': 'aimim.png',
-    //   'NATIONAL PEOPLES PARTY': 'npp.png',
-    //   'PEASANT AND WORKERS PARTY': 'pwp.jpg',
-    //   'PEASANTS AND WORKERS PARTY': 'pwp.jpg',
-    //   'VANCHIT BAHUJAN AGHADI': 'vba.png',
-    //   'RASHTRIYA SAMAJ PAKSHA': 'default.png',
-    //   'REVOLUTIONARY SOCIALIST PARTY': 'default.png',
-    //   'BAHUJAN VIKAS AAGHADI': 'default.png',
-    //   //'REPUBLICAN SENA': 'default.png',
-    //   'AKHIL BHARATIYA SENA': 'default.png',
-    // };
-
-    // for (var entry in partialMatches.entries) {
-    //   if (upperParty.contains(entry.key.toUpperCase().replaceAll(' ', '')) ||
-    //       entry.key.toUpperCase().contains(upperParty.replaceAll(' ', ''))) {
-    //     final result = 'assets/symbols/${entry.value}';
-    //     debugPrint('🏛️ [SymbolUtils] Using party asset (partial match): $result');
-    //     _symbolCache[cacheKey] = result;
-    //     return result;
-    //   }
-    //}
 
     debugPrint('🏛️ [SymbolUtils] Using default asset');
     const result = 'assets/symbols/default.png';
