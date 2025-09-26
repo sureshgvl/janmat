@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_data_controller.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../services/plan_service.dart';
 import 'candidate_dashboard_info.dart';
 import 'candidate_dashboard_achievements.dart';
@@ -90,20 +91,20 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
 
     // Basic Info - always available
     tabs.add({
-      'title': AppLocalizations.of(context)!.basicInfo,
+      'title': CandidateLocalizations.of(context)!.basicInfo,
       'widget': const CandidateDashboardInfo(),
     });
 
     // Manifesto - available if can edit manifesto or at least view
     tabs.add({
-      'title': AppLocalizations.of(context)!.manifesto,
+      'title': CandidateLocalizations.of(context)!.manifesto,
       'widget': const CandidateDashboardManifesto(),
     });
 
     // Achievements - available if can display achievements
     if (canDisplayAchievements) {
       tabs.add({
-        'title': AppLocalizations.of(context)!.achievements,
+        'title': CandidateLocalizations.of(context)!.achievements,
         'widget': const CandidateDashboardAchievements(),
       });
     }
@@ -111,21 +112,21 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     // Media - available if can upload media
     if (canUploadMedia) {
       tabs.add({
-        'title': AppLocalizations.of(context)!.media,
+        'title': CandidateLocalizations.of(context)!.media,
         'widget': const CandidateDashboardMedia(),
       });
     }
 
     // Contact - always available
     tabs.add({
-      'title': AppLocalizations.of(context)!.contact,
+      'title': CandidateLocalizations.of(context)!.contact,
       'widget': const CandidateDashboardContact(),
     });
 
     // Events - available if can manage events
     if (canManageEvents) {
       tabs.add({
-        'title': AppLocalizations.of(context)!.events,
+        'title': CandidateLocalizations.of(context)!.events,
         'widget': const CandidateDashboardEvents(),
       });
     }
@@ -133,7 +134,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     // Analytics - available if can view analytics
     if (canViewAnalytics) {
       tabs.add({
-        'title': AppLocalizations.of(context)!.analytics,
+        'title': CandidateLocalizations.of(context)!.analytics,
         'widget': const CandidateDashboardAnalytics(),
       });
     }
@@ -154,7 +155,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.candidateDashboard),
+        title: Text(CandidateLocalizations.of(context)!.candidateDashboard),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Get.back(),
@@ -175,7 +176,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         }
 
         if (controller.candidateData.value == null) {
-          return Center(child: Text(AppLocalizations.of(context)!.candidateDataNotFound));
+          return Center(child: Text(CandidateLocalizations.of(context)!.candidateDataNotFound));
         }
 
         // Create a list of widgets that matches the TabController length

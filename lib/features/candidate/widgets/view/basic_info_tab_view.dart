@@ -533,16 +533,14 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                                         : FontWeight.normal,
                                   ),
                                 ),
-                                if (data.symbolName != null &&
-                                    data.symbolName!.isNotEmpty)
-                                  Text(
-                                    'Symbol: ${data.symbolName}',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                      fontStyle: FontStyle.italic,
-                                    ),
+                                Text(
+                                  'Symbol: ${SymbolUtils.getPartySymbolNameWithLocale(data.party, Localizations.localeOf(context).languageCode)}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
                                   ),
+                                ),
                               ],
                             ),
                           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../services/language_service.dart';
+import '../../../l10n/features/auth/auth_localizations.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -58,8 +59,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                 const SizedBox(height: 40),
 
                 // Title
-                const Text(
-                  'Welcome to JanMat',
+                Text(
+                  AuthLocalizations.of(context)?.translate('welcomeToJanMat') ?? 'Welcome to JanMat',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -71,7 +72,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
                 // Subtitle
                 Text(
-                  'Please select your preferred language',
+                  AuthLocalizations.of(context)?.translate('pleaseSelectYourPreferredLanguage') ?? 'Please select your preferred language',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.9),
@@ -82,8 +83,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
                 // Language Options
                 _buildLanguageOption(
-                  title: 'English',
-                  subtitle: 'Continue in English',
+                  title: AuthLocalizations.of(context)?.translate('english') ?? 'English',
+                  subtitle: AuthLocalizations.of(context)?.translate('continueInEnglish') ?? 'Continue in English',
                   flag: '🇺🇸',
                   languageCode: 'en',
                   isSelected: _selectedLanguage == 'en',
@@ -91,8 +92,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                 const SizedBox(height: 20),
 
                 _buildLanguageOption(
-                  title: 'मराठी',
-                  subtitle: 'मराठीमध्ये सुरू ठेवा',
+                  title: AuthLocalizations.of(context)?.translate('marathi') ?? 'मराठी',
+                  subtitle: AuthLocalizations.of(context)?.translate('continueInMarathi') ?? 'मराठीमध्ये सुरू ठेवा',
                   flag: '🇮🇳',
                   languageCode: 'mr',
                   isSelected: _selectedLanguage == 'mr',
@@ -115,7 +116,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                       shadowColor: Colors.black.withValues(alpha: 0.3),
                     ),
                     child: Text(
-                      _selectedLanguage == 'en' ? 'Continue' : 'सुरू ठेवा',
+                      AuthLocalizations.of(context)?.translate('continue') ?? 'Continue',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 
 class ProfileTabBarWidget extends StatelessWidget {
   final TabController tabController;
@@ -21,7 +21,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //basic info
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.info,
+                CandidateTranslations.tr('info'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -33,7 +33,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Manifesto
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.manifesto,
+                CandidateTranslations.tr('manifesto'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -45,7 +45,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Profile
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.profile,
+                CandidateTranslations.tr('profile'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -57,7 +57,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Achievements
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.achievements,
+                CandidateTranslations.tr('achievements'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -69,7 +69,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Media
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.media,
+                CandidateTranslations.tr('media'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -81,7 +81,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Contact
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.contact,
+                CandidateTranslations.tr('contact'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -93,7 +93,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Events
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.events,
+                CandidateTranslations.tr('events'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -105,7 +105,7 @@ class ProfileTabBarWidget extends StatelessWidget {
             //Analytics
             Tab(
               child: Text(
-                AppLocalizations.of(context)!.analytics,
+                CandidateTranslations.tr('analytics'),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,

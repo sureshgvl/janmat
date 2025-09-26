@@ -1,27 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Ward {
-  final String wardId;
+  final String id;
   final String districtId;
   final String bodyId;
   final String name;
   final int? number;
-  final int? populationTotal;
-  final int? scPopulation;
-  final int? stPopulation;
+  final String stateId;
+  final int? population_total;
+  final int? sc_population;
+  final int? st_population;
   final List<String>? areas;
+  final String? assembly_constituency;
+  final String? parliamentary_constituency;
   final DateTime? createdAt;
 
   Ward({
-    required this.wardId,
+    required this.id,
     required this.districtId,
     required this.bodyId,
     required this.name,
     this.number,
-    this.populationTotal,
-    this.scPopulation,
-    this.stPopulation,
+    required this.stateId,
+    this.population_total,
+    this.sc_population,
+    this.st_population,
     this.areas,
+    this.assembly_constituency,
+    this.parliamentary_constituency,
     this.createdAt,
   });
 
@@ -34,57 +40,69 @@ class Ward {
     }
 
     return Ward(
-      wardId: json['wardId'] ?? json['id'] ?? '',
+      id: json['id'] ?? json['wardId'] ?? '',
       districtId:
           json['districtId'] ?? json['cityId'] ?? '', // Backward compatibility
       bodyId: json['bodyId'] ?? '',
       name: json['name'] ?? '',
       number: json['number'],
-      populationTotal: json['population_total'] ?? json['populationTotal'],
-      scPopulation: json['sc_population'] ?? json['scPopulation'],
-      stPopulation: json['st_population'] ?? json['stPopulation'],
+      stateId: json['stateId'] ?? '',
+      population_total: json['population_total'] ?? json['populationTotal'],
+      sc_population: json['sc_population'] ?? json['scPopulation'],
+      st_population: json['st_population'] ?? json['stPopulation'],
       areas: json['areas'] != null ? List<String>.from(json['areas']) : null,
+      assembly_constituency: json['assembly_constituency'],
+      parliamentary_constituency: json['parliamentary_constituency'],
       createdAt: createdAt,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'wardId': wardId,
+      'id': id,
       'districtId': districtId,
       'bodyId': bodyId,
       'name': name,
       'number': number,
-      'population_total': populationTotal,
-      'sc_population': scPopulation,
-      'st_population': stPopulation,
+      'stateId': stateId,
+      'population_total': population_total,
+      'sc_population': sc_population,
+      'st_population': st_population,
       'areas': areas,
+      'assembly_constituency': assembly_constituency,
+      'parliamentary_constituency': parliamentary_constituency,
       'createdAt': createdAt?.toIso8601String(),
     };
   }
 
   Ward copyWith({
-    String? wardId,
+    String? id,
     String? districtId,
     String? bodyId,
     String? name,
     int? number,
-    int? populationTotal,
-    int? scPopulation,
-    int? stPopulation,
+    String? stateId,
+    int? population_total,
+    int? sc_population,
+    int? st_population,
     List<String>? areas,
+    String? assembly_constituency,
+    String? parliamentary_constituency,
     DateTime? createdAt,
   }) {
     return Ward(
-      wardId: wardId ?? this.wardId,
+      id: id ?? this.id,
       districtId: districtId ?? this.districtId,
       bodyId: bodyId ?? this.bodyId,
       name: name ?? this.name,
       number: number ?? this.number,
-      populationTotal: populationTotal ?? this.populationTotal,
-      scPopulation: scPopulation ?? this.scPopulation,
-      stPopulation: stPopulation ?? this.stPopulation,
+      stateId: stateId ?? this.stateId,
+      population_total: population_total ?? this.population_total,
+      sc_population: sc_population ?? this.sc_population,
+      st_population: st_population ?? this.st_population,
       areas: areas ?? this.areas,
+      assembly_constituency: assembly_constituency ?? this.assembly_constituency,
+      parliamentary_constituency: parliamentary_constituency ?? this.parliamentary_constituency,
       createdAt: createdAt ?? this.createdAt,
     );
   }

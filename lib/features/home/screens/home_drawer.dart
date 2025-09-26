@@ -96,7 +96,9 @@ class HomeDrawer extends StatelessWidget {
                     children: [
                       // Name
                       Text(
-                        userModel?.name ?? currentUser?.displayName ?? 'User',
+                        userModel?.role == 'candidate' && candidateModel != null
+                            ? candidateModel!.name
+                            : userModel?.name ?? currentUser?.displayName ?? 'User',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,

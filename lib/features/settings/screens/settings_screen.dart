@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../services/language_service.dart';
 import 'device_management_screen.dart';
 
@@ -102,13 +103,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         RadioListTile<String>(
-          title: const Text('English'),
+          title: Text(SettingsLocalizations.of(context)?.translate('english') ?? 'English'),
           value: 'en',
           groupValue: _selectedLanguage,
           onChanged: (value) => _changeLanguage(value!),
         ),
         RadioListTile<String>(
-          title: const Text('मराठी (Marathi)'),
+          title: Text(SettingsLocalizations.of(context)?.translate('marathi') ?? 'मराठी (Marathi)'),
           value: 'mr',
           groupValue: _selectedLanguage,
           onChanged: (value) => _changeLanguage(value!),
@@ -122,8 +123,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         ListTile(
           leading: const Icon(Icons.devices),
-          title: const Text('Device Management'),
-          subtitle: const Text('Manage your active devices'),
+          title: Text(SettingsLocalizations.of(context)?.translate('deviceManagement') ?? 'Device Management'),
+          subtitle: Text(SettingsLocalizations.of(context)?.translate('manageYourActiveDevices') ?? 'Manage your active devices'),
           trailing: const Icon(Icons.arrow_forward_ios),
           onTap: () {
             Get.to(() => const DeviceManagementScreen());
@@ -192,8 +193,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Get.snackbar(
           'Success',
           languageCode == 'en'
-              ? 'Language changed to English. Restarting app...'
-              : 'भाषा मराठीमध्ये बदलली. अॅप रीस्टार्ट होत आहे...',
+              ? (SettingsLocalizations.of(context)?.translate('languageChangedToEnglish') ?? 'Language changed to English. Restarting app...')
+              : (SettingsLocalizations.of(context)?.translate('languageChangedToMarathi') ?? 'भाषा मराठीमध्ये बदलली. अॅप रीस्टार्ट होत आहे...'),
           duration: const Duration(seconds: 2),
         );
 
@@ -230,8 +231,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SnackBar(
             content: Text(
               previousLanguage == 'en'
-                  ? 'Failed to change language. Please try again.'
-                  : 'भाषा बदलण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.',
+                  ? (SettingsLocalizations.of(context)?.translate('failedToChangeLanguageEnglish') ?? 'Failed to change language. Please try again.')
+                  : (SettingsLocalizations.of(context)?.translate('failedToChangeLanguageMarathi') ?? 'भाषा बदलण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.'),
             ),
             duration: const Duration(seconds: 2),
           ),

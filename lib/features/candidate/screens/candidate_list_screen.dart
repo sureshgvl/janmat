@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/candidate_controller.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
@@ -109,7 +110,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
             .getCandidatesByWard(
               selectedDistrictId!,
               selectedBodyId!,
-              selectedWard!.wardId,
+              selectedWard!.id,
             );
 
         // Simulate pagination by returning a subset
@@ -244,21 +245,22 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           .get();
       districts = districtsSnapshot.docs.map((doc) {
         final data = doc.data();
-        return District.fromJson({'districtId': doc.id, ...data});
+        return District.fromJson({'id': doc.id, ...data});
       }).toList();
 
       // Load bodies for each district
       for (final district in districts) {
         final bodiesSnapshot = await FirebaseFirestore.instance
             .collection('districts')
-            .doc(district.districtId)
+            .doc(district.id)
             .collection('bodies')
             .get();
-        districtBodies[district.districtId] = bodiesSnapshot.docs.map((doc) {
+        districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
           final data = doc.data();
           return Body.fromJson({
-            'bodyId': doc.id,
-            'districtId': district.districtId,
+            'id': doc.id,
+            'id': district.id,
+            'stateId': 'MH', // Assuming Maharashtra state
             ...data,
           });
         }).toList();
@@ -284,12 +286,12 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     // Set initial values if provided
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (widget.initialDistrictId != null &&
-          districts.any((d) => d.districtId == widget.initialDistrictId)) {
+          districts.any((d) => d.id == widget.initialDistrictId)) {
         setState(() => selectedDistrictId = widget.initialDistrictId);
 
         if (widget.initialBodyId != null &&
             districtBodies[widget.initialDistrictId]?.any(
-                  (b) => b.bodyId == widget.initialBodyId,
+                  (b) => b.id == widget.initialBodyId,
                 ) ==
                 true) {
           setState(() => selectedBodyId = widget.initialBodyId);
@@ -302,16 +304,17 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           if (widget.initialWardId != null) {
             // Set initial ward if provided
             final ward = bodyWards[widget.initialBodyId]?.firstWhere(
-              (ward) => ward.wardId == widget.initialWardId,
+              (ward) => ward.id == widget.initialWardId,
               orElse: () => Ward(
-                wardId: '',
+                id: '',
                 name: '',
                 areas: [],
                 districtId: '',
                 bodyId: '',
+                stateId: '',
               ),
             );
-            if (ward != null && ward.wardId.isNotEmpty) {
+            if (ward != null && ward.id.isNotEmpty) {
               setState(() => selectedWard = ward);
               await controller.fetchCandidatesByWard(
                 widget.initialDistrictId!,
@@ -337,7 +340,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         controller.fetchCandidatesByWard(
           selectedDistrictId!,
           selectedBodyId!,
-          selectedWard!.wardId,
+          selectedWard!.id,
         );
       }
       return;
@@ -395,7 +398,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       controller.fetchCandidatesByWard(
         selectedDistrictId!,
         selectedBodyId!,
-        selectedWard!.wardId,
+        selectedWard!.id,
       );
     }
   }
@@ -505,10 +508,10 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       builder: (BuildContext context) {
         return WardSelectionModal(
           wards: bodyWards[wardCacheKey] ?? [],
-          selectedWardId: selectedWard?.wardId,
+          selectedWardId: selectedWard?.id,
           onWardSelected: (wardId) {
             final ward = bodyWards[wardCacheKey]!.firstWhere(
-              (w) => w.wardId == wardId,
+              (w) => w.id == wardId,
             );
             setState(() {
               selectedWard = ward;
@@ -535,7 +538,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.searchCandidates),
+        title: Text(CandidateLocalizations.of(context)!.searchCandidates),
       ),
       body: GetBuilder<CandidateController>(
         builder: (controller) {
@@ -601,7 +604,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                   districts
                                       .firstWhere(
                                         (d) =>
-                                            d.districtId == selectedDistrictId,
+                                            d.id == selectedDistrictId,
                                       )
                                       .name,
                                   style: const TextStyle(fontSize: 16),
@@ -636,18 +639,18 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                     final body =
                                         districtBodies[selectedDistrictId!]!
                                             .firstWhere(
-                                              (b) => b.bodyId == selectedBodyId,
+                                              (b) => b.id == selectedBodyId,
                                               orElse: () => Body(
-                                                bodyId: '',
-                                                districtId: '',
+                                                id: '',
                                                 name: '',
-                                                type: '',
-                                                wardCount: 0,
+                                                type: BodyType.municipal_corporation,
+                                                districtId: '',
+                                                stateId: '',
                                               ),
                                             );
                                     return Text(
-                                      body.bodyId.isNotEmpty
-                                          ? '${body.name} (${body.type})'
+                                      body.id.isNotEmpty
+                                          ? '${body.name} (${body.type.toString().split('.').last})'
                                           : selectedBodyId!,
                                       style: const TextStyle(fontSize: 16),
                                     );
@@ -714,7 +717,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                     // Format ward display like "वॉर्ड 1 - Ward Name"
                                     final numberMatch = RegExp(r'ward_(\d+)')
                                         .firstMatch(
-                                          selectedWard!.wardId.toLowerCase(),
+                                          selectedWard!.id.toLowerCase(),
                                         );
                                     final displayText = numberMatch != null
                                         ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
@@ -798,7 +801,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                   controller.fetchCandidatesByWard(
                                     selectedDistrictId!,
                                     selectedBodyId!,
-                                    selectedWard!.wardId,
+                                    selectedWard!.id,
                                   );
                                 }
                               },
@@ -819,7 +822,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              AppLocalizations.of(context)!.noCandidatesFound,
+                              CandidateLocalizations.of(context)!.noCandidatesFound,
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
@@ -827,7 +830,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${AppLocalizations.of(context)!.noCandidatesFound} ${selectedWard!.name}',
+                              '${CandidateLocalizations.of(context)!.noCandidatesFound} ${selectedWard!.name}',
                               style: const TextStyle(color: Colors.grey),
                             ),
                           ],
@@ -836,7 +839,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                     : selectedWard == null
                     ? Center(
                         child: Text(
-                          AppLocalizations.of(
+                          CandidateLocalizations.of(
                             context,
                           )!.selectWardToViewCandidates,
                           style: TextStyle(fontSize: 16, color: Colors.grey),

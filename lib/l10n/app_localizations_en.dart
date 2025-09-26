@@ -15,35 +15,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeMessage => 'Welcome to JanMat';
 
   @override
-  String get phoneNumber => 'Phone Number';
-
-  @override
-  String get sending => 'Sending...';
-
-  @override
-  String get sendOTP => 'Send OTP';
-
-  @override
-  String enterOTP(Object phone) {
-    return 'Enter OTP sent to +91$phone';
-  }
-
-  @override
-  String get otp => 'OTP';
-
-  @override
-  String get verifying => 'Verifying...';
-
-  @override
-  String get verifyOTP => 'Verify OTP';
-
-  @override
-  String get changePhoneNumber => 'Change Phone Number';
-
-  @override
-  String get signInWithGoogle => 'Sign in with Google';
-
-  @override
   String get settings => 'Settings';
 
   @override
@@ -77,75 +48,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feed => 'Feed';
 
   @override
-  String get browseCandidates => 'Browse Candidates';
-
-  @override
-  String get wardDiscussions => 'Ward Discussions';
-
-  @override
-  String get surveysPolls => 'Surveys & Polls';
-
-  @override
-  String get userAccount => 'User Account';
-
-  @override
-  String get votes => 'votes';
-
-  @override
-  String get myAreaCandidates => 'My Area Candidates';
-
-  @override
-  String get candidatesFromYourWard => 'Candidates from your ward';
-
-  @override
-  String get candidateDashboard => 'Candidate Dashboard';
-
-  @override
-  String get basicInfo => 'Basic Info';
-
-  @override
-  String get achievements => 'Achievements';
-
-  @override
-  String get manifesto => 'Manifesto';
-
-  @override
-  String get contact => 'Contact';
-
-  @override
-  String get media => 'Media';
-
-  @override
-  String get events => 'Events';
-
-  @override
-  String get highlight => 'Highlight';
-
-  @override
-  String get analytics => 'Analytics';
-
-  @override
-  String get searchByWard => 'Search by Ward';
-
-  @override
-  String get premiumFeatures => 'Premium Features';
-
-  @override
-  String get upgradeToUnlockPremiumFeatures => 'Upgrade to unlock premium features';
-
-  @override
-  String get deleteAccount => 'Delete Account';
-
-  @override
-  String get permanentlyDeleteYourAccountAndData => 'Permanently delete your account and data';
-
-  @override
   String get error => 'Error';
 
   @override
-  String failedToLogout(Object error) {
-    return 'Failed to logout: $error';
+  String get success => 'Success';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get createNewChatRoom => 'Create New Chat Room';
+
+  @override
+  String get roomTitle => 'Room Title';
+
+  @override
+  String get messageLimitReached => 'Message Limit Reached';
+
+  @override
+  String get messageLimitReachedDescription => 'You have reached your daily message limit. Choose an option to continue:';
+
+  @override
+  String remainingMessages(Object count) {
+    return 'Remaining messages: $count';
   }
+
+  @override
+  String get watchAdForXP => 'Watch Ad (+3-5 XP)';
+
+  @override
+  String get buyXP => 'Buy XP';
+
+  @override
+  String get initializeSampleData => 'Initialize Sample Data';
+
+  @override
+  String get initializeSampleDataDescription => 'This will create sample chat rooms and messages for testing purposes. This is only available for admin users.\n\nContinue?';
+
+  @override
+  String get initialize => 'Initialize';
+
+  @override
+  String get loadingRewardedAd => 'Loading rewarded ad...';
 
   @override
   String get manageYourCampaignAndConnectWithVoters => 'Manage your campaign and connect with voters';
@@ -166,9 +116,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade => 'Upgrade';
-
-  @override
-  String get upgradeAvailable => 'Upgrade Available';
 
   @override
   String get premiumUpgradeFeatureComingSoon => 'Premium upgrade feature coming soon!';
@@ -192,22 +139,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickActions => 'Quick Actions';
 
   @override
+  String get browseCandidates => 'Browse Candidates';
+
+  @override
   String get myArea => 'My Area';
 
   @override
-  String get manageYourCampaign => 'Manage Your Campaign';
-
-  @override
-  String get viewAnalyticsAndUpdateYourProfile => 'View analytics and update your profile';
+  String failedToLogout(Object error) {
+    return 'Failed to logout: $error';
+  }
 
   @override
   String get deleteAccountConfirmation => 'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including:\n\n• Your profile information\n• Chat conversations and messages\n• XP points and rewards\n• Following/followers data\n\nThis action is irreversible.';
-
-  @override
-  String get cancel => 'Cancel';
-
-  @override
-  String get success => 'Success';
 
   @override
   String get accountDeletedSuccessfully => 'Your account has been deleted successfully.';
@@ -218,331 +161,94 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get userDataNotFound => 'User data not found';
+  String get myAreaCandidates => 'My Area Candidates';
 
   @override
-  String get accountDetails => 'Account Details';
+  String get candidateDashboard => 'Candidate Dashboard';
 
   @override
-  String get premium => 'Premium';
+  String get changePartySymbolTitle => 'Change Party Symbol';
 
   @override
-  String get xpPoints => 'XP Points';
+  String get searchByWard => 'Search by Ward';
 
   @override
-  String get logOut => 'Log Out';
+  String get premiumFeatures => 'Premium Features';
 
   @override
-  String get searchCandidates => 'Search Candidates';
+  String get upgradeToUnlockPremiumFeatures => 'Upgrade to unlock premium features';
 
   @override
-  String get selectCity => 'Select City';
+  String get deleteAccount => 'Delete Account';
 
   @override
-  String get selectWard => 'Select Ward';
+  String get permanentlyDeleteYourAccountAndData => 'Permanently delete your account and data';
 
   @override
-  String get retry => 'Retry';
+  String get uploadFiles => 'Upload Files';
 
   @override
-  String get noCandidatesFound => 'No candidates found';
+  String get uploadPdf => 'Upload PDF';
 
   @override
-  String get selectWardToViewCandidates => 'Select a ward to view candidates';
+  String get pdfFileLimit => 'PDF File Limit';
 
   @override
-  String get sponsored => 'SPONSORED';
+  String get uploadImage => 'Upload Image';
 
   @override
-  String get loadingMessages => 'Loading messages...';
+  String get imageFileLimit => 'Image File Limit';
 
   @override
-  String get noMessagesYet => 'No messages yet';
+  String get uploadVideo => 'Upload Video';
 
   @override
-  String startConversation(Object roomName) {
-    return 'Start the conversation in $roomName';
+  String get videoFileLimit => 'Video File Limit';
+
+  @override
+  String filesReadyForUpload(Object count) {
+    return 'Files ready for upload: $count';
   }
 
   @override
-  String get sendImage => 'Send Image';
+  String get filesUploadMessage => 'Files Upload Message';
 
   @override
-  String get createPoll => 'Create Poll';
+  String get features => 'Features';
 
   @override
-  String get pollCreated => 'Poll Created!';
+  String get buyNow => 'Buy Now';
 
   @override
-  String get pollSharedInChat => 'Your poll has been shared in the chat';
+  String get yourXpBalance => 'Your XP Balance';
 
   @override
-  String get roomInfo => 'Room Info';
+  String get howToUseXpPoints => 'How to Use XP Points';
 
   @override
-  String get leaveRoom => 'Leave Room';
+  String get symbolImageSizeLimitError => 'Symbol image size limit error';
 
   @override
-  String get type => 'Type';
+  String get symbolUploadSuccess => 'Symbol uploaded successfully';
 
   @override
-  String get public => 'Public';
-
-  @override
-  String get private => 'Private';
-
-  @override
-  String get close => 'Close';
-
-  @override
-  String get initializeSampleData => 'Initialize Sample Data';
-
-  @override
-  String get refreshWardRoom => 'Refresh Ward Room';
-
-  @override
-  String get debug => 'Debug';
-
-  @override
-  String get userDataRefreshed => 'User data refreshed and ward room checked';
-
-  @override
-  String get refreshChatRooms => 'Refresh Chat Rooms';
-
-  @override
-  String get refreshed => 'Refreshed';
-
-  @override
-  String get chatRoomsUpdated => 'Chat rooms updated';
-
-  @override
-  String get noChatRoomsAvailable => 'No chat rooms available';
-
-  @override
-  String chatRoomsWillAppearHere(Object userName) {
-    return 'Chat rooms will appear here when available\nUser: $userName';
+  String symbolUploadError(Object error) {
+    return 'Symbol upload error: $error';
   }
 
   @override
-  String get refreshRooms => 'Refresh Rooms';
+  String get partyUpdateSuccess => 'Party updated successfully';
 
   @override
-  String get watchAd => 'Watch Ad';
-
-  @override
-  String get messageLimitReached => 'Message Limit Reached';
-
-  @override
-  String get messageLimitReachedDescription => 'You have reached your daily message limit. Choose an option to continue:';
-
-  @override
-  String remainingMessages(Object count) {
-    return 'Remaining messages: $count';
+  String partyUpdateError(Object error) {
+    return 'Party update error: $error';
   }
 
   @override
-  String get watchAdForXP => 'Watch Ad (+3-5 XP)';
+  String get updatePartyAffiliationHeader => 'Update Party Affiliation';
 
   @override
-  String get buyXP => 'Buy XP';
-
-  @override
-  String get earnedExtraMessages => 'You earned 10 extra messages!';
-
-  @override
-  String get loadingRewardedAd => 'Loading rewarded ad...';
-
-  @override
-  String get createNewChatRoom => 'Create New Chat Room';
-
-  @override
-  String get roomTitle => 'Room Title';
-
-  @override
-  String get enterRoomName => 'Enter room name';
-
-  @override
-  String get descriptionOptional => 'Description (Optional)';
-
-  @override
-  String get briefDescriptionOfRoom => 'Brief description of the room';
-
-  @override
-  String get roomType => 'Room Type';
-
-  @override
-  String get publicRoom => 'Public Room';
-
-  @override
-  String get privateRoom => 'Private Room';
-
-  @override
-  String get create => 'Create';
-
-  @override
-  String get initializeSampleDataDescription => 'This will create sample chat rooms and messages for testing purposes. This is only available for admin users.\n\nContinue?';
-
-  @override
-  String get initialize => 'Initialize';
-
-  @override
-  String get candidateDataNotFound => 'Candidate data not found';
-
-  @override
-  String get candidateProfile => 'Candidate Profile';
-
-  @override
-  String get candidateComparison => 'Candidate Comparison';
-
-  @override
-  String get candidateDataNotAvailable => 'Candidate data not available';
-
-  @override
-  String get verified => 'VERIFIED';
-
-  @override
-  String get followers => 'Followers';
-
-  @override
-  String get following => 'Following';
-
-  @override
-  String get info => 'Info';
-
-  @override
-  String wardInfo(Object cityId, Object wardId) {
-    return 'Ward $wardId • $cityId';
-  }
-
-  @override
-  String joinedDate(Object date) {
-    return 'Joined $date';
-  }
-
-  @override
-  String get viewAllFollowers => 'View all followers';
-
-  @override
-  String get upcomingEvents => 'Upcoming Events';
-
-  @override
-  String translationFailed(Object error) {
-    return 'Translation failed: $error';
-  }
-
-  @override
-  String get downloadPdf => 'Download PDF';
-
-  @override
-  String get english => 'English';
-
-  @override
-  String get marathi => 'मराठी';
-
-  @override
-  String get noManifestoAvailable => 'No manifesto available';
-
-  @override
-  String get photos => 'Photos';
-
-  @override
-  String get demoVideo => 'Demo Video';
-
-  @override
-  String get janMatAppDemo => 'JanMat App Demo';
-
-  @override
-  String get fullscreen => 'Fullscreen';
-
-  @override
-  String get janMatAppDemoDescription => 'JanMat App Demo - Watch how our platform works';
-
-  @override
-  String get videos => 'Videos';
-
-  @override
-  String get youtubeChannel => 'YouTube Channel';
-
-  @override
-  String get watchVideosAndUpdates => 'Watch videos and updates';
-
-  @override
-  String get noMediaAvailable => 'No media available';
-
-  @override
-  String get contactInformation => 'Contact Information';
-
-  @override
-  String get phone => 'Phone';
-
-  @override
-  String get email => 'Email';
-
-  @override
-  String get socialMedia => 'Social Media';
-
-  @override
-  String get party_bjp => 'Bharatiya Janata Party';
-
-  @override
-  String get party_inc => 'Indian National Congress';
-
-  @override
-  String get party_ss_ubt => 'Shiv Sena (Uddhav Balasaheb Thackeray)';
-
-  @override
-  String get party_ss_shinde => 'Balasahebanchi Shiv Sena (Shinde)';
-
-  @override
-  String get party_ncp_ajit => 'Nationalist Congress Party (Ajit Pawar)';
-
-  @override
-  String get party_ncp_sp => 'Nationalist Congress Party (Sharad Pawar)';
-
-  @override
-  String get party_mns => 'Maharashtra Navnirman Sena';
-
-  @override
-  String get party_pwpi => 'Peasants and Workers Party of India';
-
-  @override
-  String get party_cpi_m => 'Communist Party of India (Marxist)';
-
-  @override
-  String get party_rsp => 'Rashtriya Samaj Paksha';
-
-  @override
-  String get party_sp => 'Samajwadi Party';
-
-  @override
-  String get party_bsp => 'Bahujan Samaj Party';
-
-  @override
-  String get party_bva => 'Bahujan Vikas Aaghadi';
-
-  @override
-  String get party_republican_sena => 'Republican Sena';
-
-  @override
-  String get party_abs => 'Akhil Bharatiya Sena';
-
-  @override
-  String get party_vba => 'Vanchit Bahujan Aghadi';
-
-  @override
-  String get party_independent => 'Independents';
-
-  @override
-  String get changePartySymbolTitle => 'Change Party & Symbol';
-
-  @override
-  String get updateButton => 'Update';
-
-  @override
-  String get updatePartyAffiliationHeader => 'Update Your Party Affiliation';
-
-  @override
-  String get updatePartyAffiliationSubtitle => 'Change your party or become independent with a custom symbol.';
+  String get updatePartyAffiliationSubtitle => 'Update your party affiliation and symbol';
 
   @override
   String get currentParty => 'Current Party';
@@ -553,775 +259,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get newPartyLabel => 'New Party *';
+  String get updateButton => 'Update';
 
   @override
-  String get selectPartyValidation => 'Please select your party';
-
-  @override
-  String get symbolNameLabel => 'Symbol Name *';
-
-  @override
-  String get symbolNameHint => 'e.g., Table, Chair, Whistle, Book, etc.';
-
-  @override
-  String get symbolNameValidation => 'Please enter a symbol name for independent candidates';
-
-  @override
-  String get symbolImageOptional => 'Symbol Image (Optional)';
-
-  @override
-  String get symbolImageDescription => 'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
-
-  @override
-  String get uploadSymbolImage => 'Upload Symbol Image';
-
-  @override
-  String get importantNotice => 'Important Notice';
-
-  @override
-  String get partyChangeWarning => 'Changing your party affiliation will update your profile immediately. This change will be visible to all voters.';
-
-  @override
-  String get partyUpdateSuccess => 'Your party and symbol have been updated successfully!';
-
-  @override
-  String partyUpdateError(Object error) {
-    return 'Failed to update party and symbol: $error';
-  }
-
-  @override
-  String get symbolUploadSuccess => 'Symbol image uploaded successfully';
-
-  @override
-  String symbolUploadError(Object error) {
-    return 'Failed to upload symbol image: $error';
-  }
-
-  @override
-  String get symbolImageSizeLimitError => 'Image size must be less than 5MB. Please select a smaller image.';
-
-  @override
-  String get updatingText => 'Updating...';
-
-  @override
-  String get updateInstructionText => 'Tap update to save your party and symbol changes';
-
-  @override
-  String get chooseYourRole => 'Choose Your Role';
-
-  @override
-  String get howWouldYouLikeToParticipate => 'How would you like to participate?';
-
-  @override
-  String get selectYourRoleToCustomizeExperience => 'Select your role to customize your experience in the community.';
-
-  @override
-  String get voter => 'Voter';
-
-  @override
-  String get stayInformedAndParticipateInDiscussions => 'Stay informed and participate in discussions';
-
-  @override
-  String get accessWardDiscussionsPollsAndCommunityUpdates => 'Access ward discussions, polls, and community updates';
-
-  @override
-  String get candidate => 'Candidate';
-
-  @override
-  String get runForOfficeAndConnectWithVoters => 'Run for office and connect with voters';
-
-  @override
-  String get createYourProfileShareManifestoAndEngageWithCommunity => 'Create your profile, share manifesto, and engage with community';
-
-  @override
-  String get continueButton => 'Continue';
-
-  @override
-  String get youCanChangeYourRoleLaterInSettings => 'You can change your role later in settings';
-
-  @override
-  String get pleaseSelectARoleToContinue => 'Please select a role to continue';
-
-  @override
-  String get roleSelected => 'Role Selected!';
-
-  @override
-  String get youSelectedCandidatePleaseCompleteYourProfile => 'You selected Candidate. Please complete your profile.';
-
-  @override
-  String get youSelectedVoterPleaseCompleteYourProfile => 'You selected Voter. Please complete your profile.';
-
-  @override
-  String failedToSaveRole(Object error) {
-    return 'Failed to save role: $error';
-  }
-
-  @override
-  String get completeYourProfile => 'Complete Your Profile';
-
-  @override
-  String get welcomeCompleteYourProfile => 'Welcome! Please complete your profile to continue.';
-
-  @override
-  String preFilledFromAccount(Object loginMethod) {
-    return 'Some information has been pre-filled from $loginMethod. This helps us connect you with your local community.';
-  }
-
-  @override
-  String get fullName => 'Full Name';
-
-  @override
-  String get fullNameRequired => 'Full Name *';
-
-  @override
-  String get enterYourFullName => 'Enter your full name';
-
-  @override
-  String get phoneNumberRequired => 'Phone Number *';
-
-  @override
-  String get enterYourPhoneNumber => 'Enter your phone number';
-
-  @override
-  String get birthDateRequired => 'Birth Date *';
-
-  @override
-  String get selectYourBirthDate => 'Select your birth date';
-
-  @override
-  String get genderRequired => 'Gender *';
-
-  @override
-  String get male => 'Male';
-
-  @override
-  String get female => 'Female';
-
-  @override
-  String get other => 'Other';
-
-  @override
-  String get preferNotToSay => 'Prefer not to say';
-
-  @override
-  String get stateRequired => 'State *';
-
-  @override
-  String get selectYourState => 'Select your state';
-
-  @override
-  String get selectStateFirst => 'Select state first';
-
-  @override
-  String get districtRequired => 'District *';
-
-  @override
-  String get selectYourDistrict => 'Select your district';
-
-  @override
-  String get selectDistrictFirst => 'Select district first';
-
-  @override
-  String get selectAreaFirst => 'Select area first';
-
-  @override
-  String get bodyRequired => 'Body *';
-
-  @override
-  String get selectYourBody => 'Select your body';
-
-  @override
-  String get cityRequired => 'City *';
-
-  @override
-  String get selectYourCity => 'Select your city';
-
-  @override
-  String get wardRequired => 'Ward *';
-
-  @override
-  String get selectYourWard => 'Select your ward';
-
-  @override
-  String get areaRequired => 'Area *';
-
-  @override
-  String get selectYourArea => 'Select your area';
-
-  @override
-  String get selectCityFirst => 'Select city first';
-
-  @override
-  String get completeProfile => 'Complete Profile';
-
-  @override
-  String get requiredFields => '* Required fields';
-
-  @override
-  String get pleaseEnterYourName => 'Please enter your name';
-
-  @override
-  String get nameMustBeAtLeast2Characters => 'Name must be at least 2 characters';
-
-  @override
-  String get pleaseEnterYourPhoneNumber => 'Please enter your phone number';
-
-  @override
-  String get phoneNumberMustBe10Digits => 'Phone number must be 10 digits';
-
-  @override
-  String get pleaseEnterValidPhoneNumber => 'Please enter a valid phone number';
-
-  @override
-  String get pleaseSelectYourBirthDate => 'Please select your birth date';
-
-  @override
-  String get pleaseSelectYourGender => 'Please select your gender';
-
-  @override
-  String get pleaseFillAllRequiredFields => 'Please fill all required fields';
-
-  @override
-  String failedToLoadCities(Object error) {
-    return 'Failed to load cities: $error';
-  }
-
-  @override
-  String failedToLoadWards(Object error) {
-    return 'Failed to load wards: $error';
-  }
-
-  @override
-  String failedToSaveProfile(Object error) {
-    return 'Failed to save profile: $error';
-  }
-
-  @override
-  String get profileCompleted => 'Profile Completed!';
-
-  @override
-  String get basicProfileCompletedSetupCandidate => 'Basic profile completed. Now set up your candidate profile.';
-
-  @override
-  String get profileCompletedWardChatCreated => 'Profile completed! Your ward chat room has been created.';
-
-  @override
-  String get autoFilledFromAccount => 'Auto-filled from your account';
-
-  @override
-  String get completeCandidateProfile => 'Complete Candidate Profile';
-
-  @override
-  String get completeYourCandidateProfile => 'Complete Your Candidate Profile';
-
-  @override
-  String get fillDetailsCreateCandidateProfile => 'Fill in your details to create your candidate profile and start engaging with voters.';
-
-  @override
-  String get enterFullNameAsOnBallot => 'Enter your full name as it appears on ballot';
-
-  @override
-  String get politicalPartyRequired => 'Political Party *';
-
-  @override
-  String get symbolNameRequired => 'Symbol Name *';
-
-  @override
-  String get manifestoOptional => 'Manifesto (Optional)';
-
-  @override
-  String get brieflyDescribeKeyPromises => 'Briefly describe your key promises and vision for the community';
-
-  @override
-  String get updateCandidateProfile => 'Update Candidate Profile';
-
-  @override
-  String get whatHappensNext => 'What happens next?';
-
-  @override
-  String get candidateProfileBenefits => '• Your profile will be created and visible to voters\n• You can access the Candidate Dashboard to manage your campaign\n• Premium features will be available for enhanced visibility\n• You can update your manifesto, contact info, and media anytime';
-
-  @override
-  String get changeRoleSelection => 'Change Role Selection';
-
-  @override
-  String get pleaseSelectYourParty => 'Please select your party';
-
-  @override
-  String failedToCreateCandidateProfile(Object error) {
-    return 'Failed to create candidate profile: $error';
-  }
-
-  @override
-  String get imageSizeMustBeLessThan5MB => 'Image size must be less than 5MB. Please select a smaller image.';
-
-  @override
-  String failedToUploadSymbolImage(Object error) {
-    return 'Failed to upload symbol image: $error';
-  }
-
-  @override
-  String get candidateProfileUpdated => 'Success!';
-
-  @override
-  String get candidateProfileUpdatedMessage => 'Your candidate profile has been updated! You have 3 days of premium access to try all features.';
-
-  @override
-  String get basicInfoUpdatedSuccessfully => 'Basic info updated successfully';
-
-  @override
-  String get symbolImageUploadedSuccessfully => 'Symbol image uploaded successfully';
-
-  @override
-  String get uploading => 'Uploading...';
-
-  @override
-  String get max5MB => 'Max 5MB';
-
-  @override
-  String get uploadImageOfChosenSymbol => 'Upload an image of your chosen symbol. If not provided, a default icon will be used.';
-
-  @override
-  String get supportedFormatsJPGPNGMax5MB => 'Supported formats: JPG, PNG. Maximum file size: 5MB.';
-
-  @override
-  String get imageUploadedSuccessfully => 'Image uploaded successfully';
-
-  @override
-  String get pleaseEnterSymbolNameForIndependent => 'Please enter a symbol name for independent candidates';
-
-  @override
-  String get pleaseSelectYourPoliticalParty => 'Please select your political party';
-
-  @override
-  String get manifestoTitle => 'Manifesto Title';
-
-  @override
-  String get manifestoTitleLabel => 'Manifesto Title';
-
-  @override
-  String get manifestoTitleHint => 'e.g., Ward 23 Development & Transparency Plan';
-
-  @override
-  String get useDemoTitle => 'Use demo title';
-
-  @override
-  String get promises => 'Promises';
-
-  @override
-  String get promisesTitle => 'Promises';
-
-  @override
-  String promiseNumber(Object number) {
-    return 'Promise $number';
-  }
-
-  @override
-  String get useDemoTemplate => 'Use demo template';
-
-  @override
-  String get deletePromise => 'Delete Promise';
-
-  @override
-  String get promiseTitle => 'Promise Title';
-
-  @override
-  String get promiseTitleHint => 'e.g., Clean Water and Good Roads';
-
-  @override
-  String pointNumber(Object number) {
-    return 'Point $number';
-  }
-
-  @override
-  String get pointHint1 => 'Provide 24x7 clean water to every household';
-
-  @override
-  String get pointHint2 => 'Pothole-free ward roads in 1 year';
-
-  @override
-  String get deletePoint => 'Delete Point';
-
-  @override
-  String get addPoint => 'Add Point';
-
-  @override
-  String get addNewPromise => 'Add New Promise';
-
-  @override
-  String get uploadFiles => 'Upload Files';
-
-  @override
-  String get uploadPdf => 'Upload PDF';
-
-  @override
-  String get pdfFileLimit => 'File must be < 20 MB';
-
-  @override
-  String get choosePdf => 'Choose PDF';
-
-  @override
-  String get uploadImage => 'Upload Image';
-
-  @override
-  String get imageFileLimit => 'File must be < 10 MB';
-
-  @override
-  String get chooseImage => 'Choose Image';
-
-  @override
-  String get uploadVideo => 'Upload Video';
-
-  @override
-  String get premiumVideo => 'Premium Video';
-
-  @override
-  String get videoFileLimit => 'File must be < 100 MB';
-
-  @override
-  String get premiumFeatureRequired => 'Premium feature required';
-
-  @override
-  String get chooseVideo => 'Choose Video';
-
-  @override
-  String filesReadyForUpload(Object count) {
-    return 'Files Ready for Upload ($count)';
-  }
-
-  @override
-  String get filesUploadMessage => 'These files will be uploaded to the server when you press Save.';
-
-  @override
-  String get readyForUpload => 'Ready for upload';
-
-  @override
-  String get removeFromUploadQueue => 'Remove from upload queue';
-
-  @override
-  String get manifestoPdf => 'Manifesto PDF';
-
-  @override
-  String get tapToViewDocument => 'Tap to view your manifesto document';
-
-  @override
-  String get openPdf => 'Open PDF';
-
-  @override
-  String get manifestoImage => 'Manifesto Image';
-
-  @override
-  String get tapImageFullscreen => 'Tap image to view in full screen';
-
-  @override
-  String get manifestoVideo => 'Manifesto Video';
-
-  @override
-  String get premiumVideoContent => 'Premium video content available';
-
-  @override
-  String get manifestoAnalytics => 'Manifesto Analytics';
-
-  @override
-  String get views => 'Views';
-
-  @override
-  String get likes => 'Likes';
-
-  @override
-  String get shares => 'Shares';
-
-  @override
-  String get downloads => 'Downloads';
-
-  @override
-  String get chooseManifestoTitle => 'Choose Manifesto Title';
-
-  @override
-  String get selectLanguage => 'Select Language:';
-
-  @override
-  String get chooseTitle => 'Choose Title:';
-
-  @override
-  String get standardDevelopmentFocus => 'Standard development focus';
-
-  @override
-  String get developmentWithTransparency => 'Development with transparency focus';
-
-  @override
-  String get focusOnProgress => 'Focus on progress and growth';
-
-  @override
-  String get focusOnCitizenWelfare => 'Focus on citizen welfare';
-
-  @override
-  String get chooseDemoTemplate => 'Choose Demo Template';
-
-  @override
-  String get infrastructureCleanliness => 'Infrastructure & Cleanliness';
-
-  @override
-  String get infrastructureDescription => 'Clean water, roads & waste management';
-
-  @override
-  String get transparencyAccountability => 'Transparency & Accountability';
-
-  @override
-  String get transparencyDescription => 'Open governance & citizen participation';
-
-  @override
-  String get educationYouthDevelopment => 'Education & Youth Development';
-
-  @override
-  String get educationDescription => 'Digital education & skill training';
-
-  @override
-  String get womenSafetyMeasures => 'Women & Safety Measures';
-
-  @override
-  String get womenSafetyDescription => 'Women empowerment & security';
-
-  @override
-  String get useThisTemplate => 'Use This Template';
-
-  @override
-  String get cleanWaterGoodRoads => 'स्वच्छ पाणी व चांगले रस्ते';
-
-  @override
-  String get provideCleanWater => 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.';
-
-  @override
-  String get potholeFreeRoads => 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.';
-
-  @override
-  String get transparencyAccountabilityTitle => 'पारदर्शकता आणि जबाबदारी';
-
-  @override
-  String get regularMeetings => 'नियमित सार्वजनिक बैठक आणि अद्यतने';
-
-  @override
-  String get openBudgetDiscussion => 'खुला बजेट चर्चा';
-
-  @override
-  String get educationYouthTitle => 'शिक्षण आणि युवा विकास';
-
-  @override
-  String get digitalLibrary => 'डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र';
-
-  @override
-  String get skillTrainingPrograms => 'कौशल्य प्रशिक्षण कार्यक्रम';
-
-  @override
-  String get womenSafetyTitle => 'महिला आणि सुरक्षा';
-
-  @override
-  String get specialHealthCenter => 'महिलांसाठी विशेष आरोग्य केंद्र';
-
-  @override
-  String get cctvCameras => 'प्रत्येक चौकात CCTV कॅमेरे';
-
-  @override
-  String get willBeDeletedWhenYouSave => 'Will be deleted when you save';
-
-  @override
-  String get markPdfForDeletion => 'Mark PDF for Deletion';
-
-  @override
-  String get pdfDeletionWarning => 'This PDF will be permanently deleted when you save changes. This action cannot be undone.';
-
-  @override
-  String get markForDeletion => 'Mark for Deletion';
-
-  @override
-  String get pdfMarkedForDeletion => 'PDF marked for deletion. Press Save to confirm.';
-
-  @override
-  String get markImageForDeletion => 'Mark Image for Deletion';
-
-  @override
-  String get imageDeletionWarning => 'This image will be permanently deleted when you save changes. This action cannot be undone.';
-
-  @override
-  String get imageMarkedForDeletion => 'Image marked for deletion. Press Save to confirm.';
-
-  @override
-  String get markVideoForDeletion => 'Mark Video for Deletion';
-
-  @override
-  String get videoDeletionWarning => 'This video will be permanently deleted when you save changes. This action cannot be undone.';
-
-  @override
-  String get videoMarkedForDeletion => 'Video marked for deletion. Press Save to confirm.';
-
-  @override
-  String get premiumFeatureMultiResolution => 'Premium Feature - Multi-resolution video processing';
-
-  @override
-  String get selectDistrict => 'Select District';
-
-  @override
-  String get selectArea => 'Select Area (विभाग)';
-
-  @override
-  String get searchDistricts => 'Search districts...';
-
-  @override
-  String get searchAreas => 'Search areas...';
-
-  @override
-  String get searchWards => 'Search wards...';
-
-  @override
-  String get noDistrictsFound => 'No districts found';
-
-  @override
-  String get noAreasFound => 'No areas found';
-
-  @override
-  String get noWardsFound => 'No wards found';
-
-  @override
-  String get tryDifferentSearchTerm => 'Try a different search term';
-
-  @override
-  String get noAreasAvailable => 'No Areas';
-
-  @override
-  String get areas => 'areas';
-
-  @override
-  String get noAreasAvailableInDistrict => 'No areas available in this district';
-
-  @override
-  String get noWardsAvailableInArea => 'No wards available in this area';
-
-  @override
-  String get profilePhotoUpdatedSuccessfully => 'Profile photo updated successfully!';
-
-  @override
-  String get pollQuestion => 'Poll Question';
-
-  @override
-  String get pollQuestionHint => 'What would you like to ask?';
-
-  @override
-  String get options => 'Options';
-
-  @override
-  String optionLabel(Object number) {
-    return 'Option $number';
-  }
-
-  @override
-  String get removeOption => 'Remove option';
-
-  @override
-  String addOption(Object current, Object max) {
-    return 'Add Option ($current/$max)';
-  }
-
-  @override
-  String get expirationSettings => 'Expiration Settings';
-
-  @override
-  String get defaultExpiration => 'Default: 24 hours';
-
-  @override
-  String get expiresIn => 'Expires in:';
-
-  @override
-  String pollExpiresOn(Object dateTime) {
-    return 'Poll will expire on: $dateTime';
-  }
-
-  @override
-  String get pleaseEnterPollQuestion => 'Please enter a poll question';
-
-  @override
-  String get pleaseAddAtLeast2Options => 'Please add at least 2 options';
-
-  @override
-  String get loadingPoll => 'Loading poll...';
-
-  @override
-  String get pollNotFound => 'Poll not found';
-
-  @override
-  String get voteRecorded => 'Vote Recorded!';
-
-  @override
-  String get voteRecordedMessage => 'Your vote has been recorded';
-
-  @override
-  String get voteFailed => 'Vote Failed';
-
-  @override
-  String get voteFailedMessage => 'Failed to record your vote. Please try again.';
-
-  @override
-  String get pollExpiredMessage => 'This poll has expired. Voting is no longer available.';
-
-  @override
-  String get thankYouForVoting => 'Thank you for voting!';
-
-  @override
-  String get maximumOptions => 'Maximum Options';
-
-  @override
-  String get maximumOptionsMessage => 'You can add up to 10 options';
-
-  @override
-  String get minimumOptions => 'Minimum Options';
-
-  @override
-  String get minimumOptionsMessage => 'You need at least 2 options';
-
-  @override
-  String get viewAndEditYourProfile => 'View and edit your profile';
-
-  @override
-  String get manageCampaignAndViewAnalytics => 'Manage your campaign and view analytics';
-
-  @override
-  String get updatePartyAffiliationAndSymbol => 'Update your party affiliation and symbol';
-
-  @override
-  String get findCandidatesByLocation => 'Find candidates by location';
-
-  @override
-  String get connectWithCommunityMembers => 'Connect with community members';
-
-  @override
-  String get customizeAppSettings => 'Customize app settings';
-
-  @override
-  String get profileLiked => 'Profile Liked';
-
-  @override
-  String get profileUnliked => 'Profile Unliked';
-
-  @override
-  String checkOutCandidateProfile(Object name) {
-    return 'Check out $name\'s profile';
-  }
-
-  @override
-  String partyLabel(Object party) {
-    return 'Party: $party';
-  }
-
-  @override
-  String locationLabel(Object district, Object ward) {
-    return 'Location: $district, $ward';
-  }
+  String get updateInstructionText => 'Update your party and symbol information';
 
   @override
   String get shareFunctionalityComingSoon => 'Share functionality coming soon';
 
   @override
   String get like => 'Like';
+
+  @override
+  String get likes => 'Likes';
+
+  @override
+  String get party_independent => 'Independent';
 
   @override
   String get basicInformation => 'Basic Information';
@@ -1348,279 +301,200 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ward => 'Ward';
 
   @override
-  String get premiumPlans => 'Premium Plans';
-
-  @override
-  String get xpStore => 'XP Store';
-
-  @override
-  String get chooseYourPlan => 'Choose Your Plan';
-
-  @override
-  String get buyXpPoints => 'Buy XP Points';
-
-  @override
-  String get yourXpBalance => 'Your XP Balance';
-
-  @override
-  String get xp => 'XP';
-
-  @override
   String get upgradeToPremium => 'Upgrade to Premium';
 
   @override
-  String get buyNow => 'Buy Now';
+  String get basicInfoUpdatedSuccessfully => 'Basic info updated successfully';
 
   @override
-  String get howToUseXpPoints => 'How to use XP Points';
+  String get chooseManifestoTitle => 'Choose Manifesto Title';
 
   @override
-  String get unlockPremiumContent => 'Unlock Premium Content';
+  String get selectLanguage => 'Select Language';
 
   @override
-  String get accessExclusiveCandidateManifestosAndMedia => 'Access exclusive candidate manifestos and media';
+  String get chooseTitle => 'Choose Title';
 
   @override
-  String get joinPremiumChatRooms => 'Join Premium Chat Rooms';
+  String get standardDevelopmentFocus => 'Standard Development Focus';
 
   @override
-  String get participateInCandidateOnlyDiscussions => 'Participate in candidate-only discussions';
+  String get developmentWithTransparency => 'Development with Transparency';
 
   @override
-  String get voteInExclusivePolls => 'Vote in Exclusive Polls';
+  String get focusOnProgress => 'Focus on Progress';
 
   @override
-  String get influenceDecisionsWithPremiumVotingRights => 'Influence decisions with premium voting rights';
+  String get focusOnCitizenWelfare => 'Focus on Citizen Welfare';
 
   @override
-  String get rewardOtherVoters => 'Reward Other Voters';
+  String get manifestoTitle => 'Manifesto Title';
 
   @override
-  String get giveXpPointsToHelpfulCommunityMembers => 'Give XP points to helpful community members';
+  String get manifestoTitleLabel => 'Manifesto Title';
 
   @override
-  String get noPlansAvailableAtTheMoment => 'No plans available at the moment';
+  String get manifestoTitleHint => 'Enter manifesto title';
 
   @override
-  String get noXpPlansAvailableAtTheMoment => 'No XP plans available at the moment';
+  String get useDemoTitle => 'Use Demo Title';
 
   @override
-  String get limitedTimeOffer => 'Limited Time Offer!';
+  String get manifestoPdf => 'Manifesto PDF';
 
   @override
-  String get soldOut => 'Sold Out!';
+  String get willBeDeletedWhenYouSave => 'Will be deleted when you save';
 
   @override
-  String get onlyRs1999ForFirst1000Candidates => 'Only ₹1,999 for first 1,000 candidates!';
+  String get markPdfForDeletion => 'Mark PDF for Deletion';
 
   @override
-  String get rs1999PlanIsNowSoldOutRs5000PlanAvailable => '₹1,999 plan is now sold out. ₹5,000 plan available.';
+  String get pdfDeletionWarning => 'This will permanently delete the PDF file';
 
   @override
-  String get slotsLeft => 'slots left';
+  String get markForDeletion => 'Mark for Deletion';
 
   @override
-  String get candidatesUpgraded => 'candidates upgraded';
+  String get pdfMarkedForDeletion => 'PDF marked for deletion';
 
   @override
-  String onlyRemainingSlotsRemainingUpgradeNowBeforePriceIncreases(Object remaining) {
-    return 'Only $remaining slots remaining! Upgrade now before price increases.';
+  String get manifestoImage => 'Manifesto Image';
+
+  @override
+  String get markImageForDeletion => 'Mark Image for Deletion';
+
+  @override
+  String get imageDeletionWarning => 'This will permanently delete the image file';
+
+  @override
+  String get imageMarkedForDeletion => 'Image marked for deletion';
+
+  @override
+  String get manifestoVideo => 'Manifesto Video';
+
+  @override
+  String get premiumFeatureMultiResolution => 'Premium Feature: Multi-Resolution';
+
+  @override
+  String get markVideoForDeletion => 'Mark Video for Deletion';
+
+  @override
+  String get videoDeletionWarning => 'This will permanently delete the video file';
+
+  @override
+  String get videoMarkedForDeletion => 'Video marked for deletion';
+
+  @override
+  String get premiumVideo => 'Premium Video';
+
+  @override
+  String get createPoll => 'Create Poll';
+
+  @override
+  String get pollQuestion => 'Poll Question';
+
+  @override
+  String get pollQuestionHint => 'Enter your poll question';
+
+  @override
+  String get options => 'Options';
+
+  @override
+  String optionLabel(Object index) {
+    return 'Option $index';
   }
 
   @override
-  String get yourAccountStatus => 'Your Account Status';
+  String get removeOption => 'Remove Option';
 
   @override
-  String paymentMode(Object mode) {
-    return 'Payment Mode: $mode';
+  String addOption(Object count) {
+    return 'Add Option $count';
   }
 
   @override
-  String get mockTesting => 'Mock (Testing)';
+  String get expirationSettings => 'Expiration Settings';
 
   @override
-  String get realRazorpay => 'Real Razorpay';
+  String get defaultExpiration => 'Default Expiration';
 
   @override
-  String get mockModeSimulatesPaymentWithoutRazorpayDialog => 'Mock mode simulates payment without Razorpay dialog. Use this for testing the complete flow.';
+  String get expiresIn => 'Expires in';
 
   @override
-  String get realModeShowsActualRazorpayPaymentDialog => 'Real mode shows actual Razorpay payment dialog with all payment options. Use this to test production UI.';
-
-  @override
-  String get name => 'Name';
-
-  @override
-  String get role => 'Role';
-
-  @override
-  String get xpBalance => 'XP Balance';
-
-  @override
-  String get premiumStatus => 'Premium Status';
-
-  @override
-  String get currentPlan => 'Current Plan';
-
-  @override
-  String get trialStatus => 'Trial Status';
-
-  @override
-  String get active => 'Active';
-
-  @override
-  String get profileComplete => 'Profile Complete';
-
-  @override
-  String get yes => 'Yes';
-
-  @override
-  String get no => 'No';
-
-  @override
-  String get totalSubscriptions => 'Total Subscriptions';
-
-  @override
-  String get debugLogs => 'Debug Logs';
-
-  @override
-  String get clearLogs => 'Clear Logs';
-
-  @override
-  String purchasePlanName(Object planName) {
-    return 'Purchase $planName';
+  String pollExpiresOn(Object date) {
+    return 'Poll expires on $date';
   }
 
   @override
-  String areYouSureYouWantToPurchasePlanNameForPrice(Object featuresCount, Object planName, Object price) {
-    return 'Are you sure you want to purchase $planName for ₹$price?\n\n$featuresCount premium features will be unlocked.\n\nYou will be redirected to our secure payment gateway.';
+  String get pleaseEnterPollQuestion => 'Please enter a poll question';
+
+  @override
+  String get pleaseAddAtLeast2Options => 'Please add at least 2 options';
+
+  @override
+  String get promises => 'Promises';
+
+  @override
+  String get addPoint => 'Add Point';
+
+  @override
+  String get addNewPromise => 'Add New Promise';
+
+  @override
+  String get promisesTitle => 'Promises Title';
+
+  @override
+  String get selectPartyValidation => 'Please select a party';
+
+  @override
+  String get newPartyLabel => 'New Party';
+
+  @override
+  String get symbolNameLabel => 'Symbol Name';
+
+  @override
+  String get symbolNameHint => 'Enter symbol name';
+
+  @override
+  String get symbolNameValidation => 'Symbol name is required';
+
+  @override
+  String get symbolImageOptional => 'Symbol Image (Optional)';
+
+  @override
+  String get symbolImageDescription => 'Upload an image for your party symbol';
+
+  @override
+  String get uploadSymbolImage => 'Upload Symbol Image';
+
+  @override
+  String get importantNotice => 'Important Notice';
+
+  @override
+  String get partyChangeWarning => 'Changing your party will reset your symbol and may affect your campaign visibility.';
+
+  @override
+  String get updatingText => 'Updating...';
+
+  @override
+  String get profileLiked => 'Profile Liked';
+
+  @override
+  String get profileUnliked => 'Profile Unliked';
+
+  @override
+  String checkOutCandidateProfile(Object name) {
+    return 'Check out $name\'s candidate profile';
   }
 
   @override
-  String get proceedToPayment => 'Proceed to Payment';
-
-  @override
-  String get pleaseLoginToMakeAPurchase => 'Please login to make a purchase';
-
-  @override
-  String get paymentError => 'Payment Error';
-
-  @override
-  String get failedToInitiatePaymentPleaseTryAgain => 'Failed to initiate payment. Please try again.';
-
-  @override
-  String get paymentProcessInitiatedSuccessfully => 'Payment process initiated successfully';
-
-  @override
-  String get features => 'Features:';
-
-  @override
-  String get pdfDocument => 'PDF Document';
-
-  @override
-  String get notAvailable => 'Not available';
-
-  @override
-  String get image => 'Image';
-
-  @override
-  String get video => 'Video';
-
-  @override
-  String get viewFullImage => 'View Full Image';
-
-  @override
-  String get tapToPlayVideo => 'Tap to play video';
-
-  @override
-  String get play => 'Play';
-
-  @override
-  String get additionalResources => 'Additional Resources';
-
-  @override
-  String get manifestoPdfAvailable => 'Manifesto PDF Available';
-
-  @override
-  String get tapToViewInApp => 'Tap to view in app';
-
-  @override
-  String get couldNotOpenPdf => 'Could not open PDF';
-
-  @override
-  String get viewPdf => 'View PDF';
-
-  @override
-  String get comments => 'Comments';
-
-  @override
-  String get hideComments => 'Hide Comments';
-
-  @override
-  String showCommentsWithCount(Object count) {
-    return 'Show Comments ($count)';
+  String partyLabel(Object locale, Object party) {
+    return '$party ($locale)';
   }
 
   @override
-  String get shareYourThoughts => 'Share your thoughts...';
-
-  @override
-  String get postComment => 'Post Comment';
-
-  @override
-  String get noCommentsYet => 'No comments yet';
-
-  @override
-  String get anonymousVoter => 'Anonymous Voter';
-
-  @override
-  String get replyFunctionalityComingSoon => 'Reply functionality coming soon';
-
-  @override
-  String get reply => 'Reply';
-
-  @override
-  String supportedWithCount(Object count) {
-    return 'Supported ($count)';
+  String locationLabel(Object district, Object ward) {
+    return '$district, $ward';
   }
-
-  @override
-  String get supportThisManifesto => 'Support This Manifesto';
-
-  @override
-  String get whatIssueMattersMost => 'What issue matters most to you?';
-
-  @override
-  String get developmentInfrastructure => 'Development & Infrastructure';
-
-  @override
-  String get transparencyGovernance => 'Transparency & Governance';
-
-  @override
-  String get youthEducation => 'Youth & Education';
-
-  @override
-  String get womenSafety => 'Women & Safety';
-
-  @override
-  String get xpEarned => 'XP Earned!';
-
-  @override
-  String earnedXpForSupportingManifesto(Object count) {
-    return 'Earned $count XP for supporting manifesto!';
-  }
-
-  @override
-  String earnedXpForCommenting(Object count) {
-    return 'Earned $count XP for commenting!';
-  }
-
-  @override
-  String get thankYou => 'Thank you!';
-
-  @override
-  String get feedbackRecorded => 'Your feedback has been recorded.';
-
-  @override
-  String get pleaseEnterComment => 'Please enter a comment.';
 }

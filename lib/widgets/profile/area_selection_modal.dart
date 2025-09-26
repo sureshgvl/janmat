@@ -37,10 +37,10 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
         final nameMatch = body.name.toLowerCase().contains(lowerQuery);
 
         // Search in body type
-        final typeMatch = body.type.toLowerCase().contains(lowerQuery);
+        final typeMatch = body.type.toString().toLowerCase().contains(lowerQuery);
 
         // Search in body ID
-        final idMatch = body.bodyId.toLowerCase().contains(lowerQuery);
+        final idMatch = body.id.toLowerCase().contains(lowerQuery);
 
         // Search for Marathi equivalents (e.g., "municipal" should find "नगरपालिका")
         final marathiMatch = _hasMarathiEquivalent(
@@ -56,7 +56,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
   }
 
   // Check if body name or type has Marathi equivalent of English query
-  bool _hasMarathiEquivalent(String bodyName, String bodyType, String query) {
+  bool _hasMarathiEquivalent(String bodyName, BodyType bodyType, String query) {
     final Map<String, List<String>> marathiEquivalents = {
       'municipal': ['नगरपालिका', 'नगर परिषद', 'नगर पंचायत'],
       'corporation': ['महानगरपालिका', 'महापालिका'],
@@ -68,7 +68,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
       'parishad': ['परिषद', 'नगर परिषद'],
     };
 
-    final bodyText = '$bodyName $bodyType'.toLowerCase();
+    final bodyText = '$bodyName ${bodyType.toString().split('.').last}'.toLowerCase();
     final equivalents = marathiEquivalents[query] ?? [];
 
     return equivalents.any(
@@ -186,11 +186,11 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                     itemCount: filteredBodies.length,
                     itemBuilder: (context, index) {
                       final body = filteredBodies[index];
-                      final isSelected = widget.selectedBodyId == body.bodyId;
+                      final isSelected = widget.selectedBodyId == body.id;
 
                       return InkWell(
                         onTap: () {
-                          widget.onBodySelected(body.bodyId);
+                          widget.onBodySelected(body.id);
                           Navigator.of(context).pop();
                         },
                         child: Container(
@@ -247,7 +247,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      body.bodyId.toUpperCase(),
+                                      body.id.toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,

@@ -606,47 +606,6 @@ class ExtraInfo {
     return null;
   }
 
-  // Helper method to parse manifesto promises from different formats
-  static List<Map<String, dynamic>>? _parseManifestoPromises(dynamic data) {
-    if (data == null) return null;
-
-    try {
-      // Handle new format: List<Map<String, dynamic>>
-      if (data is List) {
-        return data.map((item) {
-          if (item is Map<String, dynamic>) {
-            return item;
-          } else if (item is String) {
-            // Convert old string format to new map format
-            return {
-              'title': item,
-              'points': [item], // Use the string as both title and first point
-            };
-          } else {
-            return {
-              'title': item.toString(),
-              'points': [item.toString()],
-            };
-          }
-        }).toList();
-      }
-
-      // Handle old format: single string (shouldn't happen but safety check)
-      if (data is String) {
-        return [
-          {
-            'title': data,
-            'points': [data],
-          },
-        ];
-      }
-
-      return null;
-    } catch (e) {
-      debugPrint('Error parsing manifesto promises: $e');
-      return null;
-    }
-  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -694,9 +653,9 @@ class Candidate {
   final String party;
   final String? symbolUrl;
   final String? symbolName;
-  final String districtId;
   final String? stateId;
-  final String bodyId;
+  final String districtId;
+  final String bodyId; //todo cityId
   final String wardId;
   final String? manifesto;
   final String? photo;

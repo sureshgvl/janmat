@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -49,15 +49,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await chatController.refreshUserDataAndChat();
 
         Get.snackbar(
-          AppLocalizations.of(context)!.success,
-          'Profile photo updated successfully!',
+          ProfileLocalizations.of(context)?.translate('success') ?? 'Success',
+          ProfileLocalizations.of(context)?.translate('profilePhotoUpdatedSuccessfully') ?? 'Profile photo updated successfully!',
           duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       Get.snackbar(
-        AppLocalizations.of(context)!.error,
-        'Failed to update profile photo: $e',
+        ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
+        ProfileLocalizations.of(context)?.translate('failedToUpdateProfilePhoto', args: {'error': e.toString()}) ?? 'Failed to update profile photo: $e',
         duration: const Duration(seconds: 3),
       );
     } finally {
@@ -75,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(AppLocalizations.of(context)!.profile),
+        title: Text(ProfileLocalizations.of(context)?.translate('profile') ?? 'Profile'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -106,13 +106,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (snapshot.hasError) {
                   return Center(
                     child: Text(
-                      '${AppLocalizations.of(context)!.error}: ${snapshot.error}',
+                      '${ProfileLocalizations.of(context)?.translate('error') ?? 'Error'}: ${snapshot.error}',
                     ),
                   );
                 }
                 if (!snapshot.hasData || !snapshot.data!.exists) {
                   return Center(
-                    child: Text(AppLocalizations.of(context)!.userDataNotFound),
+                    child: Text(ProfileLocalizations.of(context)?.translate('userDataNotFound') ?? 'User data not found'),
                   );
                 }
 
@@ -234,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        AppLocalizations.of(context)!.accountDetails,
+                        ProfileLocalizations.of(context)?.translate('accountDetails') ?? 'Account Details',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -260,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                AppLocalizations.of(context)!.premium,
+                                ProfileLocalizations.of(context)?.translate('premium') ?? 'Premium',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -282,21 +282,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildDetailItem(
                         context: context,
                         icon: Icons.phone,
-                        label: AppLocalizations.of(context)!.phoneNumber,
+                        label: ProfileLocalizations.of(context)?.translate('phoneNumber') ?? 'Phone Number',
                         value: userModel.phone,
                         iconColor: Colors.blue,
                       ),
                       _buildDetailItem(
                         context: context,
                         icon: Icons.star,
-                        label: AppLocalizations.of(context)!.xpPoints,
+                        label: ProfileLocalizations.of(context)?.translate('xpPoints') ?? 'XP Points',
                         value: userModel.xpPoints.toString(),
                         iconColor: Colors.blue,
                       ),
                       _buildDetailItem(
                         context: context,
                         icon: Icons.email,
-                        label: AppLocalizations.of(context)!.phoneNumber,
+                        label: ProfileLocalizations.of(context)?.translate('email') ?? 'Email',
                         value: userModel.email ?? '',
                         iconColor: Colors.blue,
                       ),
@@ -341,10 +341,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Get.offAllNamed('/login');
                       } catch (e) {
                         Get.snackbar(
-                          AppLocalizations.of(context)!.error,
-                          AppLocalizations.of(
-                            context,
-                          )!.failedToLogout(e.toString()),
+                          ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
+                          ProfileLocalizations.of(context)?.translate('failedToLogout', args: {'error': e.toString()}) ?? 'Failed to logout: $e',
                         );
                       } finally {
                         if (mounted) {
@@ -379,11 +377,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text('Logging out...'),
+                        Text(ProfileLocalizations.of(context)?.translate('loggingOut') ?? 'Logging out...'),
                       ],
                     )
                   : Text(
-                      AppLocalizations.of(context)!.logOut,
+                      ProfileLocalizations.of(context)?.translate('logOut') ?? 'Log Out',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

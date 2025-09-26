@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../l10n/features/chat/chat_localizations.dart';
 import '../../controllers/chat_controller.dart';
 import '../../../../models/chat_model.dart';
 
@@ -13,7 +14,7 @@ class ChatDialogs {
 
     Get.dialog(
       AlertDialog(
-        title: Text(AppLocalizations.of(context)!.createNewChatRoom),
+        title: Text(ChatLocalizations.of(context)!.createNewChatRoom),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -21,18 +22,18 @@ class ChatDialogs {
               TextField(
                 controller: titleController,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.roomTitle,
-                  hintText: AppLocalizations.of(context)!.enterRoomName,
+                  labelText: ChatLocalizations.of(context)!.roomTitle,
+                  hintText: ChatLocalizations.of(context)!.enterRoomName,
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.descriptionOptional,
-                  hintText: AppLocalizations.of(
+                  labelText: ChatLocalizations.of(context)!.descriptionOptional,
+                  hintText: ChatLocalizations.of(
                     context,
-                  )!.briefDescriptionOfRoom,
+                  )!.briefDescription,
                 ),
                 maxLines: 2,
               ),
@@ -40,16 +41,16 @@ class ChatDialogs {
               DropdownButtonFormField<String>(
                 initialValue: roomType,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.roomType,
+                  labelText: ChatLocalizations.of(context)!.roomType,
                 ),
                 items: [
                   DropdownMenuItem(
                     value: 'public',
-                    child: Text(AppLocalizations.of(context)!.publicRoom),
+                    child: Text(ChatLocalizations.of(context)!.publicRoom),
                   ),
                   DropdownMenuItem(
                     value: 'private',
-                    child: Text(AppLocalizations.of(context)!.privateRoom),
+                    child: Text(ChatLocalizations.of(context)!.privateRoom),
                   ),
                 ],
                 onChanged: (value) {
@@ -64,7 +65,7 @@ class ChatDialogs {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text(AppLocalizations.of(context)!.cancel),
+            child: Text(ChatLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -91,7 +92,7 @@ class ChatDialogs {
                 }
               }
             },
-            child: Text(AppLocalizations.of(context)!.create),
+            child: Text(ChatLocalizations.of(context)!.create),
           ),
         ],
       ),

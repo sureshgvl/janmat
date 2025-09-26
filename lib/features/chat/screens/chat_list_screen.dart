@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/chat/chat_translations.dart';
 import '../controllers/chat_controller.dart';
 import 'chat_room_card.dart';
 import 'dialogs/chat_dialogs.dart';
@@ -31,7 +31,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.chatRooms),
+        title: Text('chatRooms'.tr),
         actions: [
           // Manual ward room creation button (only for candidates)
           GetBuilder<ChatController>(
@@ -66,12 +66,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     color: Colors.blue.shade700,
                     size: 20,
                   ),
-                  tooltip: AppLocalizations.of(context)!.refreshChatRooms,
+                  tooltip: 'refreshChatRooms'.tr,
                   onPressed: () async {
                     await controller.refreshChatRooms();
                     Get.snackbar(
-                      AppLocalizations.of(context)!.refreshed,
-                      AppLocalizations.of(context)!.chatRoomsUpdated,
+                      'refreshed'.tr,
+                      'chatRoomsUpdated'.tr,
                       backgroundColor: Colors.green.shade100,
                       colorText: Colors.green.shade800,
                       duration: const Duration(seconds: 2),
@@ -172,7 +172,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       controller.clearError();
                       controller.fetchChatRooms();
                     },
-                    child: Text(AppLocalizations.of(context)!.retry),
+                    child: Text('retry'.tr),
                   ),
                 ],
               ),
@@ -191,14 +191,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    AppLocalizations.of(context)!.noChatRoomsAvailable,
+                    'noChatRoomsAvailable'.tr,
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    AppLocalizations.of(context)!.chatRoomsWillAppearHere(
-                      controller.currentUser?.name ?? 'Unknown',
-                    ),
+                    'chatRoomsWillAppearHere'.tr.trArgs([controller.currentUser?.name ?? 'Unknown']),
                     style: const TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
@@ -208,7 +206,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       await controller.refreshChatRooms();
                     },
                     icon: const Icon(Icons.refresh),
-                    label: Text(AppLocalizations.of(context)!.refreshRooms),
+                    label: Text('refreshRooms'.tr),
                   ),
                 ],
               ),
@@ -290,7 +288,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       heroTag: 'create_room_fab',
       onPressed: () => ChatDialogs.showCreateRoomDialog(context),
       backgroundColor: Colors.blue,
-      tooltip: AppLocalizations.of(context)!.createNewChatRoom,
+      tooltip: 'createNewChatRoom'.tr,
       child: const Icon(Icons.add),
     );
   }
@@ -299,6 +297,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     Get.dialog(const UserSearchDialog());
   }
 
+
   Widget? _buildQuotaWarningButtonExtended() {
     if (!controller.canSendMessage) {
       return FloatingActionButton.extended(
@@ -306,7 +305,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         onPressed: () => ChatDialogs.showWatchAdDialog(context),
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.warning),
-        label: Text(AppLocalizations.of(context)!.watchAd),
+        label: Text('watchAd'.tr),
       );
     }
     return null;

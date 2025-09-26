@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_party_model.dart';
 import '../repositories/candidate_repository.dart';

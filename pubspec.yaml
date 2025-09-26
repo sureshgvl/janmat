@@ -139,6 +139,8 @@ flutter:
   assets:
     - assets/images/
     - assets/symbols/
+    - lib/l10n/features/auth/
+    - lib/l10n/features/candidate/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

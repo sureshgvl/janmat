@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_data_controller.dart';
 import '../screens/followers_list_screen.dart';
@@ -88,7 +88,7 @@ class FollowStatsWidget extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      AppLocalizations.of(context)!.followers,
+                      CandidateTranslations.tr('followers'),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -197,7 +197,7 @@ class FollowStatsWidget extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      AppLocalizations.of(context)!.following,
+                      CandidateTranslations.tr('following'),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,

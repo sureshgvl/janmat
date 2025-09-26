@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../controllers/candidate_data_controller.dart';
 import '../../../services/plan_service.dart';
 import '../widgets/edit/candidate_manifesto_tab_edit.dart';
@@ -43,13 +44,14 @@ class _CandidateDashboardManifestoState
 
   @override
   Widget build(BuildContext context) {
+    final localizations = CandidateLocalizations.of(context)!;
     return Obx(() {
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
 
       if (controller.candidateData.value == null) {
-        return const Center(child: Text('No candidate data found'));
+        return Center(child: Text(localizations.translate('candidateDataNotFound')));
       }
 
       return Scaffold(

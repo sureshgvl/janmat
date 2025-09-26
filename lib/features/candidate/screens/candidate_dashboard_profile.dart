@@ -125,7 +125,7 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                         } catch (e) {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.anErrorOccurred(e.toString()));
+                            Get.snackbar(AppLocalizations.of(context)!.error, "${AppLocalizations.of(context)!.anErrorOccurred}: ${e.toString()}");
                           }
                         } finally {
                           // Clean up the stream controller

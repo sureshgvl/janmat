@@ -41,7 +41,7 @@ class _StateSelectionModalState extends State<StateSelectionModal> {
         final marathiNameMatch = state.marathiName?.toLowerCase().contains(lowerQuery) ?? false;
 
         // Search in state ID
-        final idMatch = state.stateId.toLowerCase().contains(lowerQuery);
+        final idMatch = state.id.toLowerCase().contains(lowerQuery);
 
         // Search in state code
         final codeMatch = state.code?.toLowerCase().contains(lowerQuery) ?? false;
@@ -65,7 +65,7 @@ class _StateSelectionModalState extends State<StateSelectionModal> {
     // Debug: Print loaded states
     debugPrint('🔍 StateSelectionModal - Building with ${widget.states.length} states');
     for (final state in widget.states) {
-      debugPrint('   State: ${state.stateId} - Name: ${state.name} - Marathi: ${state.marathiName} - Code: ${state.code}');
+      debugPrint('   State: ${state.id} - Name: ${state.name} - Marathi: ${state.marathiName} - Code: ${state.code}');
     }
 
     return Container(
@@ -174,14 +174,14 @@ class _StateSelectionModalState extends State<StateSelectionModal> {
                     itemCount: filteredStates.length,
                     itemBuilder: (context, index) {
                       final state = filteredStates[index];
-                      final isSelected = widget.selectedStateId == state.stateId;
-                      final isActive = state.isActive;
+                      final isSelected = widget.selectedStateId == state.id;
+                      final isActive = state.isActive ?? true;
 
                       return InkWell(
                         onTap: !isActive
                             ? null
                             : () {
-                                widget.onStateSelected(state.stateId);
+                                widget.onStateSelected(state.id);
                                 Navigator.of(context).pop();
                               },
                         child: Container(

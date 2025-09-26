@@ -25,6 +25,9 @@ import 'services/language_service.dart';
 import 'services/background_initializer.dart';
 import 'services/background_sync_manager.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/features/candidate/candidate_localizations.dart';
+import 'l10n/features/chat/chat_localizations.dart';
+import 'l10n/features/auth/auth_localizations.dart';
 import 'utils/performance_monitor.dart';
 import 'features/auth/repositories/auth_repository.dart';
 
@@ -293,7 +296,12 @@ class MyApp extends StatelessWidget {
             ),
           ),
           locale: initialLocale,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: [
+            ...AppLocalizations.localizationsDelegates,
+            CandidateLocalizations.delegate,
+            ChatLocalizations.delegate,
+            AuthLocalizations.delegate,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           initialBinding: AppBindings(),
           initialRoute: initialRoute,

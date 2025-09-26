@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/auth/auth_localizations.dart';
 import '../controllers/auth_controller.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -9,6 +10,9 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AuthController controller = Get.find<AuthController>();
+
+    // Get translations with fallback to ensure they always work
+    final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Container(
@@ -38,45 +42,36 @@ class LoginScreen extends StatelessWidget {
                         height: 80,
                         width: 80,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 10),
+                      
                       Text(
-                        'Janmat',
+                        appLocalizations.welcomeMessage,
                         style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
+                          fontSize: 25,
+                          color: Colors.purple,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.welcomeMessage,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.symmetric(horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue[200]!),
-                        ),
-                        child: Text(
-                          '📱 For phone verification, a browser may open to complete the security check. Please complete the verification and return to the app.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.blue[800],
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
+                      // Container(
+                      //   padding: const EdgeInsets.all(12),
+                      //   margin: const EdgeInsets.symmetric(horizontal: 20),
+                      //   decoration: BoxDecoration(
+                      //     color: Colors.blue[50],
+                      //     borderRadius: BorderRadius.circular(8),
+                      //     border: Border.all(color: Colors.blue[200]!),
+                      //   ),
+                      //   child: Text(
+                      //     authLocalizations.phoneVerificationNotice,
+                      //     style: TextStyle(
+                      //       fontSize: 14,
+                      //       color: Colors.blue[800],
+                      //       fontWeight: FontWeight.w500,
+                      //     ),
+                      //     textAlign: TextAlign.center,
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 32),
                       Card(
                         elevation: 8,
                         shape: RoundedRectangleBorder(
@@ -108,13 +103,16 @@ class LoginScreen extends StatelessWidget {
     BuildContext context,
     AuthController controller,
   ) {
+    // Get translations with fallback to ensure they always work
+    final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
+
     return Column(
       children: [
         TextField(
           controller: controller.phoneController,
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.phoneNumber,
+            labelText: authLocalizations.translate('phoneNumber'),
             prefixText: '+91 ',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -146,13 +144,13 @@ class LoginScreen extends StatelessWidget {
                     children: [
                       const CircularProgressIndicator(),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Sending OTP...',
+                      Text(
+                        authLocalizations.sendingOTP,
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'This may take a moment if verification is required.',
+                        authLocalizations.verificationMayTakeTime,
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                         textAlign: TextAlign.center,
                       ),
@@ -198,10 +196,10 @@ class LoginScreen extends StatelessWidget {
                         ),
                       ),
                       SizedBox(width: 10),
-                      Text('Sending...'),
+                      Text(authLocalizations.sending),
                     ],
                   )
-                : Text(AppLocalizations.of(context)!.sendOTP),
+                : Text(authLocalizations.translate('sendOTP')),
           ),
         ),
       ],
@@ -209,12 +207,13 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildOTPScreen(BuildContext context, AuthController controller) {
+    // Get translations with fallback to ensure they always work
+    final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
+
     return Column(
       children: [
         Text(
-          AppLocalizations.of(
-            context,
-          )!.enterOTP(controller.phoneController.text),
+          authLocalizations.enterOTP(controller.phoneController.text),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
@@ -222,7 +221,7 @@ class LoginScreen extends StatelessWidget {
           controller: controller.otpController,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.otp,
+            labelText: authLocalizations.otp,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -255,8 +254,8 @@ class LoginScreen extends StatelessWidget {
                                 children: [
                                   const CircularProgressIndicator(),
                                   const SizedBox(height: 16),
-                                  const Text(
-                                    'Verifying OTP...',
+                                  Text(
+                                    authLocalizations.verifyingOTP,
                                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                   ),
                                 ],
@@ -283,7 +282,7 @@ class LoginScreen extends StatelessWidget {
                     ),
                     elevation: 2,
                   ),
-                  child: Text(AppLocalizations.of(context)!.verifyOTP),
+                  child: Text(authLocalizations.verifyOTP),
                 ),
               ),
             ),
@@ -296,7 +295,7 @@ class LoginScreen extends StatelessWidget {
               ? TextButton(
                   onPressed: controller.resendOTP,
                   child: Text(
-                    'Resend OTP',
+                    authLocalizations.resendOTP,
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
                       fontWeight: FontWeight.w600,
@@ -304,7 +303,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                 )
               : Text(
-                  'Resend OTP in ${controller.otpTimer.value}s',
+                  authLocalizations.resendOTPIn(controller.otpTimer.value),
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -314,7 +313,7 @@ class LoginScreen extends StatelessWidget {
         const SizedBox(height: 10),
         TextButton(
           onPressed: controller.goBackToPhoneInput,
-          child: Text(AppLocalizations.of(context)!.changePhoneNumber),
+          child: Text(authLocalizations.changePhoneNumber),
         ),
       ],
     );
@@ -324,6 +323,9 @@ class LoginScreen extends StatelessWidget {
     BuildContext context,
     AuthController controller,
   ) {
+    // Get translations with fallback to ensure they always work
+    final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       child: FutureBuilder<Map<String, dynamic>?>(
@@ -365,7 +367,7 @@ class LoginScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Continue as ${storedAccount?['displayName'] ?? 'User'}',
+                                  authLocalizations.continueAs(storedAccount?['displayName'] ?? 'User'),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -403,8 +405,8 @@ class LoginScreen extends StatelessWidget {
                             height: 24,
                             width: 24,
                           ),
-                    label: const Text(
-                      'Sign in with different account',
+                    label: Text(
+                      authLocalizations.signInWithDifferentAccount,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -427,7 +429,7 @@ class LoginScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      'Choose how you want to sign in',
+                      authLocalizations.chooseHowToSignIn,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -457,8 +459,8 @@ class LoginScreen extends StatelessWidget {
                           ),
                     label: Text(
                       controller.isLoading.value
-                          ? 'Signing in...'
-                          : AppLocalizations.of(context)!.signInWithGoogle,
+                          ? authLocalizations.signingIn
+                          : authLocalizations.translate('signInWithGoogle'),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

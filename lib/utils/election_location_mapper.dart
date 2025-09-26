@@ -302,44 +302,33 @@ class ElectionLocationMapper {
         'key': 'municipal_corporation',
         'nameEn': 'Municipal Corporation',
         'nameMr': 'महानगरपालिका',
-        'descriptionEn': 'City-level elections for major cities',
-        'descriptionMr': 'मोठ्या शहरांसाठी शहर-स्तरीय निवडणुका',
       },
       {
         'key': 'municipal_council',
         'nameEn': 'Municipal Council',
         'nameMr': 'नगरपरिषद',
-        'descriptionEn': 'Town-level elections for medium cities',
-        'descriptionMr': 'मध्यम शहरांसाठी शहर-स्तरीय निवडणुका',
       },
       {
         'key': 'nagar_panchayat',
         'nameEn': 'Nagar Panchayat',
         'nameMr': 'नगर पंचायत',
-        'descriptionEn': 'Local body elections for small towns',
-        'descriptionMr': 'लहान शहरांसाठी स्थानिक स्वराज्य संस्था निवडणुका',
       },
       {
         'key': 'zilla_parishad',
         'nameEn': 'Zilla Parishad',
         'nameMr': 'जिल्हा परिषद',
-        'descriptionEn': 'District-level rural local body elections',
-        'descriptionMr': 'जिल्हा-स्तरीय ग्रामीण स्थानिक स्वराज्य संस्था निवडणुका',
       },
       {
         'key': 'panchayat_samiti',
         'nameEn': 'Panchayat Samiti',
         'nameMr': 'पंचायत समिती',
-        'descriptionEn': 'Block-level rural local body elections',
-        'descriptionMr': 'तालुका-स्तरीय ग्रामीण स्थानिक स्वराज्य संस्था निवडणुका',
       },
       {
         'key': 'gram_panchayat',
         'nameEn': 'Gram Panchayat',
         'nameMr': 'ग्राम पंचायत',
-        'descriptionEn': 'Village-level local body elections',
-        'descriptionMr': 'गाव-स्तरीय स्थानिक स्वराज्य संस्था निवडणुका',
       },
     ];
   }
+
 }

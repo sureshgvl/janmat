@@ -1,0 +1,15 @@
+{
+  "settings": "Settings",
+  "language": "Language",
+  "notifications": "Notifications",
+  "darkMode": "Dark Mode",
+  "about": "About",
+  "logOut": "Log Out",
+  "deleteAccount": "Delete Account",
+  "permanentlyDeleteYourAccountAndData": "Permanently delete your account and data",
+  "deleteAccountConfirmation": "Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including:\n\n• Your profile information\n• Chat conversations and messages\n• XP points and rewards\n• Following/followers data\n\nThis action is irreversible.",
+  "accountDeletedSuccessfully": "Your account has been deleted successfully.",
+  "failedToDeleteAccount": "Failed to delete account: {error}",
+  "failedToLogout": "Failed to logout: {error}",
+  "customizeAppSettings": "Customize app settings"
+}

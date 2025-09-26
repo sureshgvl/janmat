@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
-import '../../../../l10n/app_localizations.dart';
+import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/demo_data_service.dart';
 import '../../controllers/candidate_data_controller.dart';
@@ -68,8 +68,8 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     // Award XP for supporting manifesto
     if (_isLiked) {
       Get.snackbar(
-        AppLocalizations.of(context)!.xpEarned,
-        AppLocalizations.of(context)!.earnedXpForSupportingManifesto('10'),
+        'xpEarned'.tr,
+        CandidateTranslations.tr('earnedXpForSupportingManifesto', args: {'count': '10'}),
         backgroundColor: Colors.green.shade100,
         colorText: Colors.green.shade800,
         duration: const Duration(seconds: 2),
@@ -85,8 +85,8 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     });
 
     Get.snackbar(
-      AppLocalizations.of(context)!.thankYou,
-      AppLocalizations.of(context)!.feedbackRecorded,
+      'thankYou'.tr,
+      'feedbackRecorded'.tr,
       backgroundColor: Colors.blue.shade100,
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
@@ -111,7 +111,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context)!.shareFunctionalityComingSoon, overflow: TextOverflow.ellipsis),
+        content: Text('shareFunctionalityComingSoon'.tr, overflow: TextOverflow.ellipsis),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -121,7 +121,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
     if (_commentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.pleaseEnterComment, overflow: TextOverflow.ellipsis),
+          content: Text('pleaseEnterComment'.tr, overflow: TextOverflow.ellipsis),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -140,8 +140,8 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 
     // Award XP for commenting
     Get.snackbar(
-      AppLocalizations.of(context)!.xpEarned,
-      AppLocalizations.of(context)!.earnedXpForCommenting('5'),
+      'xpEarned'.tr,
+      CandidateTranslations.tr('earnedXpForCommenting', args: {'count': '5'}),
       backgroundColor: Colors.blue.shade100,
       colorText: Colors.blue.shade800,
       duration: const Duration(seconds: 2),
@@ -184,7 +184,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
     showDialog(
       context: context,
       builder: (context) =>
-          ReusableVideoWidget(videoUrl: videoUrl, title: AppLocalizations.of(context)!.manifestoVideo),
+          ReusableVideoWidget(videoUrl: videoUrl, title: CandidateTranslations.tr('manifestoVideo')),
     );
   }
 
@@ -388,7 +388,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                AppLocalizations.of(context)!.manifestoTitle,
+                                CandidateTranslations.tr('manifestoTitle'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -399,7 +399,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                AppLocalizations.of(context)!.notAvailable,
+                                'notAvailable'.tr,
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: Colors.grey.shade500,
@@ -419,7 +419,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                   // Display Manifesto Items
                   if (manifestoPromises.isNotEmpty) ...[
                     Text(
-                      AppLocalizations.of(context)!.promisesTitle,
+                      CandidateTranslations.tr('promisesTitle'),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
@@ -525,7 +525,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'promisesTitle'.tr,
+                            CandidateTranslations.tr('promisesTitle'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -535,7 +535,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            AppLocalizations.of(context)!.notAvailable,
+                            'notAvailable'.tr,
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.grey.shade500,
@@ -561,7 +561,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.of(context)!.additionalResources,
+                          CandidateTranslations.tr('additionalResources'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -589,7 +589,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  AppLocalizations.of(context)!.manifestoPdfAvailable,
+                                  CandidateTranslations.tr('manifestoPdfAvailable'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF374151),
@@ -612,7 +612,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   Icons.download,
                                   color: Colors.blue,
                                 ),
-                                tooltip: 'downloadPdf'.tr,
+                                tooltip: CandidateTranslations.tr('downloadPdf'),
                               ),
                             ],
                           ),
@@ -627,7 +627,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'pdfDocument'.tr,
+                                  CandidateTranslations.tr('pdfDocument'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade600,
@@ -637,7 +637,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               Flexible(
                                 child: Text(
-                                  'notAvailable'.tr,
+                                  CandidateTranslations.tr('notAvailable'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade500,
@@ -675,7 +675,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'manifestoImage'.tr,
+                                      CandidateTranslations.tr('manifestoImage'),
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -780,7 +780,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                         .image!,
                                   ),
                                   icon: const Icon(Icons.fullscreen, size: 16),
-                                  label: Text('viewFullImage'.tr),
+                                  label: Text(CandidateTranslations.tr('viewFullImage')),
                                   style: TextButton.styleFrom(
                                     foregroundColor: Colors.blue.shade600,
                                     textStyle: const TextStyle(fontSize: 12),
@@ -800,7 +800,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'image'.tr,
+                                  CandidateTranslations.tr('image'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade600,
@@ -810,7 +810,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               Flexible(
                                 child: Text(
-                                  'notAvailable'.tr,
+                                  CandidateTranslations.tr('notAvailable'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade500,
@@ -845,7 +845,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'manifestoVideo'.tr,
+                                    CandidateTranslations.tr('manifestoVideo'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -880,7 +880,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      'tapToPlayVideo'.tr,
+                                      CandidateTranslations.tr('tapToPlayVideo'),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,
@@ -900,7 +900,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                       Icons.play_circle_fill,
                                       size: 16,
                                     ),
-                                    label: Text('play'.tr, overflow: TextOverflow.ellipsis),
+                                    label: Text(CandidateTranslations.tr('play'), overflow: TextOverflow.ellipsis),
                                     style: TextButton.styleFrom(
                                       foregroundColor: Colors.purple.shade600,
                                       textStyle: const TextStyle(fontSize: 12),
@@ -921,7 +921,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'video'.tr,
+                                  CandidateTranslations.tr('video'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade600,
@@ -931,7 +931,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                               ),
                               Flexible(
                                 child: Text(
-                                  'notAvailable'.tr,
+                                  CandidateTranslations.tr('notAvailable'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade500,
@@ -974,8 +974,8 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                 ),
                                 label: Text(
                                   _isLiked
-                                      ? 'supportedWithCount'.tr.trArgs([_likeCount.toString()])
-                                      : 'supportThisManifesto'.tr,
+                                      ? CandidateTranslations.tr('supportedWithCount', args: {'count': _likeCount.toString()})
+                                      : CandidateTranslations.tr('supportThisManifesto'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: _isLiked ? Colors.red : Colors.black,
@@ -1008,7 +1008,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
 
                           // Poll Section
                           Text(
-                            'whatIssueMattersMost'.tr,
+                            CandidateTranslations.tr('whatIssueMattersMost'),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -1023,19 +1023,19 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                             children: [
                               _buildPollOption(
                                 'development',
-                                'developmentInfrastructure'.tr,
+                                CandidateTranslations.tr('developmentInfrastructure'),
                               ),
                               _buildPollOption(
                                 'transparency',
-                                'transparencyGovernance'.tr,
+                                CandidateTranslations.tr('transparencyGovernance'),
                               ),
                               _buildPollOption(
                                 'youth_education',
-                                'youthEducation'.tr,
+                                CandidateTranslations.tr('youthEducation'),
                               ),
                               _buildPollOption(
                                 'women_safety',
-                                'womenSafety'.tr,
+                                CandidateTranslations.tr('womenSafety'),
                               ),
                             ],
                           ),
@@ -1048,7 +1048,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                             children: [
                               Expanded(
                                 child: Text(
-                                  'comments'.tr,
+                                  CandidateTranslations.tr('comments'),
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -1073,7 +1073,7 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
                                     const SizedBox(width: 4),
                                     Text(
                                       _showComments
-                                          ? 'hideComments'.tr
+                                          ? CandidateTranslations.tr('hideComments')
                                           : '${_comments.length}',
                                       style: TextStyle(
                                         fontSize: 12,

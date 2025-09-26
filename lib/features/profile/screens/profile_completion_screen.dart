@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../models/user_model.dart';
@@ -199,7 +199,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     required IconData icon,
     bool showPreFilledHelper = false,
   }) {
-    final localizations = AppLocalizations.of(context)!;
+    final localizations = ProfileLocalizations.of(context)!;
 
     return InputDecoration(
       labelText: label,
@@ -250,7 +250,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
           states = updatedSnapshot.docs.map((doc) {
             final data = doc.data();
             debugPrint('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'}');
-            return state_model.State.fromJson({'stateId': doc.id, ...data});
+            return state_model.State.fromJson({'id': doc.id, ...data});
           }).toList();
 
           debugPrint('✅ Sample states added and loaded successfully');
@@ -270,11 +270,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       // Set default state to Maharashtra if available
       final maharashtraState = states.firstWhere(
         (state) => state.name == 'Maharashtra',
-        orElse: () => states.isNotEmpty ? states.first : state_model.State(stateId: '', name: ''),
+        orElse: () => states.isNotEmpty ? states.first : state_model.State(id: '', name: ''),
       );
 
-      if (maharashtraState.stateId.isNotEmpty) {
-        selectedStateId = maharashtraState.stateId;
+      if (maharashtraState.id.isNotEmpty) {
+        selectedStateId = maharashtraState.id;
         debugPrint('✅ Default state set to: ${maharashtraState.name}');
       }
 
@@ -334,7 +334,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         districts = districtsSnapshot.docs.map((doc) {
           final data = doc.data();
           debugPrint('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
-          return District.fromJson({'districtId': doc.id, ...data});
+          return District.fromJson({'id': doc.id, 'stateId': selectedStateId!, ...data});
         }).toList();
 
         // Load bodies for each district
@@ -343,22 +343,23 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               .collection('states')
               .doc(selectedStateId!)
               .collection('districts')
-              .doc(district.districtId)
+              .doc(district.id)
               .collection('bodies')
               .get();
 
           debugPrint(
-            '📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.districtId}',
+            '📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.id}',
           );
 
-          districtBodies[district.districtId] = bodiesSnapshot.docs.map((doc) {
+          districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
             final data = doc.data();
             debugPrint(
               '🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})',
             );
             return Body.fromJson({
-              'bodyId': doc.id,
-              'districtId': district.districtId,
+              'id': doc.id,
+              'districtId': district.id,
+              'stateId': selectedStateId!,
               ...data,
             });
           }).toList();
@@ -434,7 +435,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     String bodyId,
     BuildContext context,
   ) async {
-    final localizations = AppLocalizations.of(context)!;
+    final localizations = ProfileLocalizations.of(context)!;
 
     try {
       final wards = await candidateRepository.getWardsByDistrictAndBody(
@@ -553,10 +554,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       builder: (BuildContext context) {
         return WardSelectionModal(
           wards: bodyWards[selectedBodyId!] ?? [],
-          selectedWardId: selectedWard?.wardId,
+          selectedWardId: selectedWard?.id,
           onWardSelected: (wardId) {
             final ward = bodyWards[selectedBodyId!]!.firstWhere(
-              (w) => w.wardId == wardId,
+              (w) => w.id == wardId,
             );
             setState(() {
               selectedWard = ward;
@@ -610,7 +611,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
 
   Future<void> _saveProfile(BuildContext context) async {
-    final localizations = AppLocalizations.of(context)!;
+    final localizations = ProfileLocalizations.of(context)!;
 
     if (!_formKey.currentState!.validate()) return;
 
@@ -675,7 +676,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         districtId: selectedDistrictId!,
         stateId: selectedStateId!,
         bodyId: selectedBodyId!,
-        wardId: selectedWard!.wardId,
+        wardId: selectedWard!.id,
         area: selectedArea,
         xpPoints: 0,
         premium: false,
@@ -727,27 +728,27 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
              userId: currentUser.uid,
              name: nameController.text.trim(),
              party: selectedParty!.id, // Use selected party key
-            districtId: selectedDistrictId!,
-            stateId: selectedStateId!,
-            bodyId: selectedBodyId!,
-            wardId: selectedWard!.wardId,
-            contact: Contact(
-              phone: '+91${phoneController.text.trim()}',
-              email: currentUser.email,
-            ),
-            sponsored: false,
-            premium: false,
-            createdAt: DateTime.now(),
-            manifesto: null, // Can be updated later in dashboard
-            extraInfo: ExtraInfo(
-              basicInfo: BasicInfoData(
-                fullName: nameController.text.trim(),
-                dateOfBirth: selectedBirthDate?.toIso8601String(),
-                age: age,
-                gender: selectedGender,
-              ),
-            ),
-          );
+             districtId: selectedDistrictId!,
+             stateId: selectedStateId!,
+             bodyId: selectedBodyId!,
+             wardId: selectedWard!.id,
+             contact: Contact(
+               phone: '+91${phoneController.text.trim()}',
+               email: currentUser.email,
+             ),
+             sponsored: false,
+             premium: false,
+             createdAt: DateTime.now(),
+             manifesto: null, // Can be updated later in dashboard
+             extraInfo: ExtraInfo(
+               basicInfo: BasicInfoData(
+                 fullName: nameController.text.trim(),
+                 dateOfBirth: selectedBirthDate?.toIso8601String(),
+                 age: age,
+                 gender: selectedGender,
+               ),
+             ),
+           );
 
           // Save basic candidate record to make them visible to voters
           debugPrint(
@@ -815,7 +816,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    final localizations = ProfileLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
@@ -832,7 +833,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               children: [
                 // Header
                 Text(
-                  localizations.welcomeCompleteYourProfile,
+                  localizations.translate('welcomeCompleteYourProfile'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -990,7 +991,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           ? Builder(
                               builder: (context) {
                                 final selectedState = states.firstWhere(
-                                  (state) => state.stateId == selectedStateId,
+                                  (state) => state.id == selectedStateId,
                                 );
                                 // Show Marathi name if available, otherwise English name
                                 final displayName = selectedState.marathiName ?? selectedState.name;
@@ -1052,7 +1053,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                           ? Text(
                               districts
                                   .firstWhere(
-                                    (d) => d.districtId == selectedDistrictId,
+                                    (d) => d.id == selectedDistrictId,
                                   )
                                   .name,
                               style: const TextStyle(fontSize: 16),
@@ -1088,18 +1089,18 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                 final body =
                                     districtBodies[selectedDistrictId!]!
                                         .firstWhere(
-                                          (b) => b.bodyId == selectedBodyId,
+                                          (b) => b.id == selectedBodyId,
                                           orElse: () => Body(
-                                            bodyId: '',
-                                            districtId: '',
+                                            id: '',
                                             name: '',
-                                            type: '',
-                                            wardCount: 0,
+                                            type: BodyType.municipal_corporation,
+                                            districtId: '',
+                                            stateId: '',
                                           ),
                                         );
                                 return Text(
-                                  body.bodyId.isNotEmpty
-                                      ? '${body.name} (${body.type})'
+                                  body.id.isNotEmpty
+                                      ? '${body.name} (${body.type.toString().split('.').last})'
                                       : selectedBodyId!,
                                   style: const TextStyle(fontSize: 16),
                                 );
@@ -1167,7 +1168,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                 // Format ward display like "वॉर्ड 1 - Ward Name"
                                 final numberMatch = RegExp(r'ward_(\d+)')
                                     .firstMatch(
-                                      selectedWard!.wardId.toLowerCase(),
+                                      selectedWard!.id.toLowerCase(),
                                     );
                                 final displayText = numberMatch != null
                                     ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'

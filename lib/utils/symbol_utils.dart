@@ -28,7 +28,7 @@ class SymbolUtils {
       "nameMr": "भारतीय जनता पार्टी",
       "image": "bjp.png",
       "party_symbolEn": "Lotus",
-      "party_symbolMr": "कमल"
+      "party_symbolMr": "कमळ"
     },
     {
       "key": "ncp_ajit",
@@ -47,8 +47,8 @@ class SymbolUtils {
       "nameEn": "Nationalist Congress Party (Sharad Pawar)",
       "nameMr": "राष्ट्रवादी काँग्रेस पक्ष (शरद पवार)",
       "image": "ncp_sp.png",
-      "party_symbolEn": "Clock",
-      "party_symbolMr": "घड्याळ"
+      "party_symbolEn": "A Traditional Trumpet",
+      "party_symbolMr": "तुतारी"
     },
     {
       "key": "shiv_sena_shinde",
@@ -57,8 +57,8 @@ class SymbolUtils {
       "nameEn": "Balasahebanchi Shiv Sena (Shinde)",
       "nameMr": "बाळासाहेबांची शिवसेना (शिंदे)",
       "image": "shiv_sena_shinde.png",
-      "party_symbolEn": "Bow and Arrow",
-      "party_symbolMr": "धनुष्य आणि बाण"
+      "party_symbolEn": "Bow - Arrow",
+      "party_symbolMr": "धनुष्यबाण"
     },
     {
       "key": "shiv_sena_ubt",
@@ -67,8 +67,8 @@ class SymbolUtils {
       "nameEn": "Shiv Sena (Uddhav Balasaheb Thackeray)",
       "nameMr": "शिवसेना (उद्धव बाळासाहेब ठाकरे)",
       "image": "shiv_sena_ubt.jpeg",
-      "party_symbolEn": "Bow and Arrow",
-      "party_symbolMr": "धनुष्य आणि बाण"
+      "party_symbolEn": "Torch",
+      "party_symbolMr": "मशाल"
     },
     {
       "key": "mns",
@@ -278,6 +278,18 @@ class SymbolUtils {
     }
 
     return party['nameEn'] ?? party['shortNameEn'] ?? key;
+  }
+
+  /// Get party symbol name with explicit locale preference
+  static String getPartySymbolNameWithLocale(String key, String locale) {
+    final party = getPartyByKey(key);
+    if (party == null) return 'Unknown';
+
+    if (locale == 'mr' && party['party_symbolMr'] != null) {
+      return party['party_symbolMr']!;
+    }
+
+    return party['party_symbolEn'] ?? 'Unknown';
   }
 
   /// Convert old party name format to new key format

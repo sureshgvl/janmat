@@ -255,19 +255,19 @@ class _ElectionTypeSelectionModalState extends State<ElectionTypeSelectionModal>
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? electionType.color.withOpacity(0.1)
+                                ? electionType.color.withValues(alpha: 0.1)
                                 : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
-                                  ? electionType.color.withOpacity(0.3)
+                                  ? electionType.color.withValues(alpha: 0.3)
                                   : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: electionType.color.withOpacity(0.1),
+                                      color: electionType.color.withValues(alpha: 0.1),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -280,7 +280,7 @@ class _ElectionTypeSelectionModalState extends State<ElectionTypeSelectionModal>
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: electionType.color.withOpacity(0.1),
+                                  color: electionType.color.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -300,7 +300,7 @@ class _ElectionTypeSelectionModalState extends State<ElectionTypeSelectionModal>
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                         color: isSelected
-                                            ? electionType.color.withOpacity(0.8)
+                                            ? electionType.color.withValues(alpha: 0.8)
                                             : Colors.black87,
                                       ),
                                     ),

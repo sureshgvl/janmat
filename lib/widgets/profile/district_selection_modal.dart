@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/district_model.dart';
 import '../../models/body_model.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/features/profile/profile_localizations.dart';
 
 class DistrictSelectionModal extends StatefulWidget {
   final List<District> districts;
@@ -41,7 +41,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
         final nameMatch = district.name.toLowerCase().contains(lowerQuery);
 
         // Search in district ID
-        final idMatch = district.districtId.toLowerCase().contains(lowerQuery);
+        final idMatch = district.id.toLowerCase().contains(lowerQuery);
 
         // Search for Marathi equivalents (e.g., "pune" should find "पुणे")
         final marathiMatch = _hasMarathiEquivalent(district.name, lowerQuery);
@@ -107,7 +107,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    final localizations = ProfileLocalizations.of(context) ?? ProfileLocalizations.current;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -216,10 +216,10 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                     itemBuilder: (context, index) {
                       final district = filteredDistricts[index];
                       final isSelected =
-                          widget.selectedDistrictId == district.districtId;
+                          widget.selectedDistrictId == district.id;
                       final hasBodies =
                           widget
-                              .districtBodies[district.districtId]
+                              .districtBodies[district.id]
                               ?.isNotEmpty ??
                           false;
                       final isDisabled = !hasBodies;
@@ -228,7 +228,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                         onTap: isDisabled
                             ? null
                             : () {
-                                widget.onDistrictSelected(district.districtId);
+                                widget.onDistrictSelected(district.id);
                                 Navigator.of(context).pop();
                               },
                         child: Container(
@@ -295,7 +295,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                     Row(
                                       children: [
                                         Text(
-                                          district.districtId.toUpperCase(),
+                                          district.id.toUpperCase(),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: isDisabled

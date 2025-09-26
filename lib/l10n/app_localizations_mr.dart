@@ -15,35 +15,6 @@ class AppLocalizationsMr extends AppLocalizations {
   String get welcomeMessage => 'जनमतमध्ये आपले स्वागत आहे';
 
   @override
-  String get phoneNumber => 'फोन नंबर';
-
-  @override
-  String get sending => 'पाठवत आहे...';
-
-  @override
-  String get sendOTP => 'OTP पाठवा';
-
-  @override
-  String enterOTP(Object phone) {
-    return '+91$phone वर पाठवलेला OTP टाका';
-  }
-
-  @override
-  String get otp => 'OTP';
-
-  @override
-  String get verifying => 'तपासत आहे...';
-
-  @override
-  String get verifyOTP => 'OTP सत्यापित करा';
-
-  @override
-  String get changePhoneNumber => 'फोन नंबर बदला';
-
-  @override
-  String get signInWithGoogle => 'Google सह साइन इन करा';
-
-  @override
   String get settings => 'सेटिंग्ज';
 
   @override
@@ -77,52 +48,126 @@ class AppLocalizationsMr extends AppLocalizations {
   String get feed => 'फीड';
 
   @override
-  String get browseCandidates => 'उमेदवार पाहा';
+  String get error => 'त्रुटी';
 
   @override
-  String get wardDiscussions => 'वॉर्ड चर्चा';
+  String get success => 'यशस्वी';
 
   @override
-  String get surveysPolls => 'सर्वेक्षणे आणि मतदान';
+  String get cancel => 'रद्द करा';
 
   @override
-  String get userAccount => 'वापरकर्ता खाते';
+  String get close => 'बंद करा';
 
   @override
-  String get votes => 'मत';
+  String get retry => 'पुन्हा प्रयत्न करा';
 
   @override
-  String get myAreaCandidates => 'माझ्या क्षेत्रातील उमेदवार';
+  String get createNewChatRoom => 'नवीन गप्पा खोली तयार करा';
 
   @override
-  String get candidatesFromYourWard => 'तुमच्या वॉर्डमधील उमेदवार';
+  String get roomTitle => 'खोलीचे शीर्षक';
+
+  @override
+  String get messageLimitReached => 'संदेश मर्यादा संपली';
+
+  @override
+  String get messageLimitReachedDescription => 'आपण आपल्या दैनंदिन संदेश मर्यादेत पोहोचला आहात. सुरू ठेवण्यासाठी पर्याय निवडा:';
+
+  @override
+  String remainingMessages(Object count) {
+    return 'उरलेले संदेश: $count';
+  }
+
+  @override
+  String get watchAdForXP => 'जाहिरात पहा (+3-5 XP)';
+
+  @override
+  String get buyXP => 'XP खरेदी करा';
+
+  @override
+  String get initializeSampleData => 'नमुना डेटा सुरू करा';
+
+  @override
+  String get initializeSampleDataDescription => 'हे चाचणीसाठी नमुना गप्पा खोल्या आणि संदेश तयार करेल. हे फक्त प्रशासक वापरकर्त्यांसाठी उपलब्ध आहे.\n\nसुरू ठेवायचे?';
+
+  @override
+  String get initialize => 'सुरू करा';
+
+  @override
+  String get loadingRewardedAd => 'बक्षीस जाहिरात लोड करत आहे...';
+
+  @override
+  String get manageYourCampaignAndConnectWithVoters => 'आपली मोहीम व्यवस्थापित करा आणि मतदारांशी जोडा';
+
+  @override
+  String get stayInformedAboutYourLocalCandidates => 'आपल्या स्थानिक उमेदवारांबद्दल माहिती मिळवा';
+
+  @override
+  String get premiumTrialActive => 'प्रीमियम चाचणी सक्रिय';
+
+  @override
+  String get oneDayRemainingUpgrade => '1 दिवस उरला - प्रीमियम वैशिष्ट्ये सुरू ठेवण्यासाठी अपग्रेड करा!';
+
+  @override
+  String daysRemainingInTrial(Object days) {
+    return 'आपल्या चाचणीत $days दिवस उरले आहेत';
+  }
+
+  @override
+  String get upgrade => 'अपग्रेड';
+
+  @override
+  String get premiumUpgradeFeatureComingSoon => 'प्रीमियम अपग्रेड वैशिष्ट्य लवकरच येत आहे!';
+
+  @override
+  String get unlockPremiumFeatures => 'प्रीमियम वैशिष्ट्ये अनलॉक करा';
+
+  @override
+  String get enjoyFullPremiumFeaturesDuringTrial => 'आपल्या चाचणीदरम्यान पूर्ण प्रीमियम वैशिष्ट्ये अनुभवा';
+
+  @override
+  String get getPremiumVisibilityAndAnalytics => 'प्रीमियम दृश्यमानता आणि विश्लेषण मिळवा';
+
+  @override
+  String get accessExclusiveContentAndFeatures => 'विशिष्ट सामग्री आणि वैशिष्ट्यांमध्ये प्रवेश मिळवा';
+
+  @override
+  String get explorePremium => 'प्रीमियम एक्सप्लोर करा';
+
+  @override
+  String get quickActions => 'द्रुत क्रिया';
+
+  @override
+  String get browseCandidates => 'उमेदवार ब्राउझ करा';
+
+  @override
+  String get myArea => 'माझा परिसर';
+
+  @override
+  String failedToLogout(Object error) {
+    return 'लॉगआउट करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmation => 'आपण खात्री आहात की आपले खाते हटवू इच्छिता? ही क्रिया पूर्ववत केली जाऊ शकत नाही आणि आपली सर्व डेटा कायमची हटवेल यामध्ये:\n\n• आपली प्रोफाइल माहिती\n• गप्पा संभाषणे आणि संदेश\n• XP गुण आणि बक्षिसे\n• फॉलो/फॉलोअर्स डेटा\n\nही क्रिया अपरिवर्तनीय आहे.';
+
+  @override
+  String get accountDeletedSuccessfully => 'आपले खाते यशस्वीरित्या हटवले गेले आहे.';
+
+  @override
+  String failedToDeleteAccount(Object error) {
+    return 'खाते हटवण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get myAreaCandidates => 'माझ्या परिसरातील उमेदवार';
 
   @override
   String get candidateDashboard => 'उमेदवार डॅशबोर्ड';
 
   @override
-  String get basicInfo => 'मूलभूत माहिती';
-
-  @override
-  String get achievements => 'उपलब्धी';
-
-  @override
-  String get manifesto => 'घोषणापत्र';
-
-  @override
-  String get contact => 'संपर्क';
-
-  @override
-  String get media => 'मीडिया';
-
-  @override
-  String get events => 'कार्यक्रम';
-
-  @override
-  String get highlight => 'मुख्य मुद्दे';
-
-  @override
-  String get analytics => 'विश्लेषण';
+  String get changePartySymbolTitle => 'पार्टी चिन्ह बदला';
 
   @override
   String get searchByWard => 'वॉर्डनुसार शोधा';
@@ -137,817 +182,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get deleteAccount => 'खाते हटवा';
 
   @override
-  String get permanentlyDeleteYourAccountAndData => 'तुमचे खाते आणि डेटा कायमचा हटवा';
-
-  @override
-  String get error => 'त्रुटी';
-
-  @override
-  String failedToLogout(Object error) {
-    return 'लॉगआउट करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get manageYourCampaignAndConnectWithVoters => 'तुमच्या प्रचाराचे व्यवस्थापन करा आणि मतदारांशी संपर्क साधा';
-
-  @override
-  String get stayInformedAboutYourLocalCandidates => 'तुमच्या स्थानिक उमेदवारांबद्दल माहिती मिळवा';
-
-  @override
-  String get premiumTrialActive => 'प्रीमियम ट्रायल सक्रिय';
-
-  @override
-  String get oneDayRemainingUpgrade => '1 दिवस शिल्लक - प्रीमियम वैशिष्ट्ये सुरू ठेवण्यासाठी अपग्रेड करा!';
-
-  @override
-  String daysRemainingInTrial(Object days) {
-    return 'तुमच्या ट्रायलमध्ये $days दिवस शिल्लक';
-  }
-
-  @override
-  String get upgrade => 'अपग्रेड';
-
-  @override
-  String get upgradeAvailable => 'अपग्रेड उपलब्ध';
-
-  @override
-  String get premiumUpgradeFeatureComingSoon => 'प्रीमियम अपग्रेड वैशिष्ट्य लवकरच येत आहे!';
-
-  @override
-  String get unlockPremiumFeatures => 'प्रीमियम वैशिष्ट्ये अनलॉक करा';
-
-  @override
-  String get enjoyFullPremiumFeaturesDuringTrial => 'तुमच्या ट्रायल दरम्यान संपूर्ण प्रीमियम वैशिष्ट्ये अनुभवा';
-
-  @override
-  String get getPremiumVisibilityAndAnalytics => 'प्रीमियम दृश्यमानता आणि विश्लेषण मिळवा';
-
-  @override
-  String get accessExclusiveContentAndFeatures => 'विशेष सामग्री आणि वैशिष्ट्ये मिळवा';
-
-  @override
-  String get explorePremium => 'प्रीमियम एक्सप्लोर करा';
-
-  @override
-  String get quickActions => 'द्रुत क्रिया';
-
-  @override
-  String get myArea => 'माझे क्षेत्र';
-
-  @override
-  String get manageYourCampaign => 'तुमच्या प्रचाराचे व्यवस्थापन करा';
-
-  @override
-  String get viewAnalyticsAndUpdateYourProfile => 'विश्लेषण पहा आणि तुमचे प्रोफाइल अपडेट करा';
-
-  @override
-  String get deleteAccountConfirmation => 'तुम्हाला खरोखर तुमचे खाते हटवायचे आहे का? ही क्रिया पूर्ववत केली जाऊ शकत नाही आणि तुमचे सर्व डेटा कायमचा हटवेल यात:\n\n• तुमची प्रोफाइल माहिती\n• गप्पा आणि संदेश\n• XP गुण आणि बक्षिसे\n• फॉलोइंग/फॉलोअर्स डेटा\n\nही क्रिया अपरिवर्तनीय आहे.';
-
-  @override
-  String get cancel => 'रद्द करा';
-
-  @override
-  String get success => 'यशस्वी';
-
-  @override
-  String get accountDeletedSuccessfully => 'तुमचे खाते यशस्वीरित्या हटवले गेले आहे.';
-
-  @override
-  String failedToDeleteAccount(Object error) {
-    return 'खाते हटवण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get userDataNotFound => 'वापरकर्ता डेटा सापडला नाही';
-
-  @override
-  String get accountDetails => 'खाते तपशील';
-
-  @override
-  String get premium => 'प्रीमियम';
-
-  @override
-  String get xpPoints => 'XP गुण';
-
-  @override
-  String get logOut => 'लॉग आउट';
-
-  @override
-  String get searchCandidates => 'उमेदवार शोधा';
-
-  @override
-  String get selectCity => 'शहर निवडा';
-
-  @override
-  String get selectWard => 'वॉर्ड निवडा';
-
-  @override
-  String get retry => 'पुन्हा प्रयत्न करा';
-
-  @override
-  String get noCandidatesFound => 'कोणतेही उमेदवार सापडले नाहीत';
-
-  @override
-  String get selectWardToViewCandidates => 'उमेदवार पाहण्यासाठी वॉर्ड निवडा';
-
-  @override
-  String get sponsored => 'प्रायोजित';
-
-  @override
-  String get loadingMessages => 'संदेश लोड होत आहेत...';
-
-  @override
-  String get noMessagesYet => 'अद्याप कोणतेही संदेश नाहीत';
-
-  @override
-  String startConversation(Object roomName) {
-    return '$roomName मध्ये संभाषण सुरू करा';
-  }
-
-  @override
-  String get sendImage => 'प्रतिमा पाठवा';
-
-  @override
-  String get createPoll => 'मतदान तयार करा';
-
-  @override
-  String get pollCreated => 'मतदान तयार झाले!';
-
-  @override
-  String get pollSharedInChat => 'तुमचे मतदान गप्पामध्ये सामायिक केले गेले आहे';
-
-  @override
-  String get roomInfo => 'खोली माहिती';
-
-  @override
-  String get leaveRoom => 'खोली सोडा';
-
-  @override
-  String get type => 'प्रकार';
-
-  @override
-  String get public => 'सार्वजनिक';
-
-  @override
-  String get private => 'खाजगी';
-
-  @override
-  String get close => 'बंद करा';
-
-  @override
-  String get initializeSampleData => 'नमुना डेटा सुरू करा';
-
-  @override
-  String get refreshWardRoom => 'वॉर्ड खोली रिफ्रेश करा';
-
-  @override
-  String get debug => 'डीबग';
-
-  @override
-  String get userDataRefreshed => 'वापरकर्ता डेटा रिफ्रेश झाला आणि वॉर्ड खोली तपासली गेली';
-
-  @override
-  String get refreshChatRooms => 'गप्पा खोल्या रिफ्रेश करा';
-
-  @override
-  String get refreshed => 'रिफ्रेश झाले';
-
-  @override
-  String get chatRoomsUpdated => 'गप्पा खोल्या अपडेट झाल्या';
-
-  @override
-  String get noChatRoomsAvailable => 'कोणत्याही गप्पा खोल्या उपलब्ध नाहीत';
-
-  @override
-  String chatRoomsWillAppearHere(Object userName) {
-    return 'गप्पा खोल्या उपलब्ध झाल्यावर येथे दिसतील\nवापरकर्ता: $userName';
-  }
-
-  @override
-  String get refreshRooms => 'खोल्या रिफ्रेश करा';
-
-  @override
-  String get watchAd => 'जाहिरात पहा';
-
-  @override
-  String get messageLimitReached => 'संदेश मर्यादा संपली';
-
-  @override
-  String get messageLimitReachedDescription => 'तुम्ही तुमच्या दैनंदिन संदेश मर्यादेत पोहोचलात. सुरू ठेवण्यासाठी पर्याय निवडा:';
-
-  @override
-  String remainingMessages(Object count) {
-    return 'शिल्लक संदेश: $count';
-  }
-
-  @override
-  String get watchAdForXP => 'जाहिरात पहा (+3-5 XP)';
-
-  @override
-  String get buyXP => 'XP खरेदी करा';
-
-  @override
-  String get earnedExtraMessages => 'तुम्हाला 10 अतिरिक्त संदेश मिळाले!';
-
-  @override
-  String get loadingRewardedAd => 'रिवॉर्डेड जाहिरात लोड होत आहे...';
-
-  @override
-  String get createNewChatRoom => 'नवीन गप्पा खोली तयार करा';
-
-  @override
-  String get roomTitle => 'खोली शीर्षक';
-
-  @override
-  String get enterRoomName => 'खोलीचे नाव टाका';
-
-  @override
-  String get descriptionOptional => 'वर्णन (पर्यायी)';
-
-  @override
-  String get briefDescriptionOfRoom => 'खोलीचे संक्षिप्त वर्णन';
-
-  @override
-  String get roomType => 'खोली प्रकार';
-
-  @override
-  String get publicRoom => 'सार्वजनिक खोली';
-
-  @override
-  String get privateRoom => 'खाजगी खोली';
-
-  @override
-  String get create => 'तयार करा';
-
-  @override
-  String get initializeSampleDataDescription => 'हे चाचणीच्या उद्देशाने नमुना गप्पा खोल्या आणि संदेश तयार करेल. हे फक्त प्रशासक वापरकर्त्यांसाठी उपलब्ध आहे.\n\nसुरू ठेवायचे का?';
-
-  @override
-  String get initialize => 'सुरू करा';
-
-  @override
-  String get candidateDataNotFound => 'उमेदवार डेटा सापडला नाही';
-
-  @override
-  String get candidateProfile => 'उमेदवार प्रोफाइल';
-
-  @override
-  String get candidateComparison => 'उमेदवार तुलना';
-
-  @override
-  String get candidateDataNotAvailable => 'उमेदवार डेटा उपलब्ध नाही';
-
-  @override
-  String get verified => 'सत्यापित';
-
-  @override
-  String get followers => 'फॉलोअर्स';
-
-  @override
-  String get following => 'फॉलोइंग';
-
-  @override
-  String get info => 'माहिती';
-
-  @override
-  String wardInfo(Object cityId, Object wardId) {
-    return 'वॉर्ड $wardId • $cityId';
-  }
-
-  @override
-  String joinedDate(Object date) {
-    return 'सामील झाले $date';
-  }
-
-  @override
-  String get viewAllFollowers => 'सर्व फॉलोअर्स पहा';
-
-  @override
-  String get upcomingEvents => 'आगामी कार्यक्रम';
-
-  @override
-  String translationFailed(Object error) {
-    return 'भाषांतर अयशस्वी: $error';
-  }
-
-  @override
-  String get downloadPdf => 'PDF डाउनलोड करा';
-
-  @override
-  String get english => 'इंग्रजी';
-
-  @override
-  String get marathi => 'मराठी';
-
-  @override
-  String get noManifestoAvailable => 'कोणतेही घोषणापत्र उपलब्ध नाही';
-
-  @override
-  String get photos => 'फोटो';
-
-  @override
-  String get demoVideo => 'डेमो व्हिडिओ';
-
-  @override
-  String get janMatAppDemo => 'जनमत अॅप डेमो';
-
-  @override
-  String get fullscreen => 'पूर्ण स्क्रीन';
-
-  @override
-  String get janMatAppDemoDescription => 'जनमत अॅप डेमो - आमचे प्लॅटफॉर्म कसे कार्य करते ते पहा';
-
-  @override
-  String get videos => 'व्हिडिओ';
-
-  @override
-  String get youtubeChannel => 'यूट्यूब चॅनेल';
-
-  @override
-  String get watchVideosAndUpdates => 'व्हिडिओ आणि अपडेट्स पहा';
-
-  @override
-  String get noMediaAvailable => 'कोणतेही मीडिया उपलब्ध नाही';
-
-  @override
-  String get contactInformation => 'संपर्क माहिती';
-
-  @override
-  String get phone => 'फोन';
-
-  @override
-  String get email => 'ईमेल';
-
-  @override
-  String get socialMedia => 'सोशल मीडिया';
-
-  @override
-  String get party_bjp => 'भारतीय जनता पक्ष';
-
-  @override
-  String get party_inc => 'भारतीय राष्ट्रीय काँग्रेस';
-
-  @override
-  String get party_ss_ubt => 'शिवसेना (उद्धव बाळासाहेब ठाकरे)';
-
-  @override
-  String get party_ss_shinde => 'बाळासाहेबांची शिवसेना';
-
-  @override
-  String get party_ncp_ajit => 'राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)';
-
-  @override
-  String get party_ncp_sp => 'राष्ट्रवादी काँग्रेस पक्ष (शरदचंद्र पवार)';
-
-  @override
-  String get party_mns => 'महाराष्ट्र नवनिर्माण सेना';
-
-  @override
-  String get party_pwpi => 'शेतकरी कामगार पक्ष';
-
-  @override
-  String get party_cpi_m => 'भारतीय कम्युनिस्ट पक्ष (मार्क्सवादी)';
-
-  @override
-  String get party_rsp => 'राष्ट्रीय समाज पक्ष';
-
-  @override
-  String get party_sp => 'समाजवादी पक्ष';
-
-  @override
-  String get party_bsp => 'बहुजन समाज पार्टी';
-
-  @override
-  String get party_bva => 'बहुजन विकास आघाडी';
-
-  @override
-  String get party_republican_sena => 'रिपब्लिकन सेना';
-
-  @override
-  String get party_abs => 'अखिल भारतीय सेना';
-
-  @override
-  String get party_vba => 'वंचित बहुजन आघाडी';
-
-  @override
-  String get party_independent => 'अपक्ष';
-
-  @override
-  String get changePartySymbolTitle => 'पक्ष आणि चिन्ह बदला';
-
-  @override
-  String get updateButton => 'अपडेट करा';
-
-  @override
-  String get updatePartyAffiliationHeader => 'तुमच्या पक्षाच्या संलग्नतेचे अपडेट करा';
-
-  @override
-  String get updatePartyAffiliationSubtitle => 'तुमचा पक्ष बदला किंवा स्वतंत्र होऊन सानुकूल चिन्ह वापरा.';
-
-  @override
-  String get currentParty => 'सध्याचा पक्ष';
-
-  @override
-  String symbolLabel(Object symbol) {
-    return 'चिन्ह: $symbol';
-  }
-
-  @override
-  String get newPartyLabel => 'नवीन पक्ष *';
-
-  @override
-  String get selectPartyValidation => 'कृपया तुमचा पक्ष निवडा';
-
-  @override
-  String get symbolNameLabel => 'चिन्हाचे नाव *';
-
-  @override
-  String get symbolNameHint => 'उदा., टेबल, खुर्ची, शिट्टी, पुस्तक, इ.';
-
-  @override
-  String get symbolNameValidation => 'कृपया अपक्ष उमेदवारांसाठी चिन्हाचे नाव टाका';
-
-  @override
-  String get symbolImageOptional => 'चिन्ह प्रतिमा (पर्यायी)';
-
-  @override
-  String get symbolImageDescription => 'तुमच्या निवडलेल्या चिन्हाची प्रतिमा अपलोड करा. न दिल्यास, डिफॉल्ट आयकॉन वापरला जाईल.';
-
-  @override
-  String get uploadSymbolImage => 'चिन्ह प्रतिमा अपलोड करा';
-
-  @override
-  String get importantNotice => 'महत्वाची सूचना';
-
-  @override
-  String get partyChangeWarning => 'तुमच्या पक्षाच्या संलग्नतेत बदल केल्याने तुमचे प्रोफाइल त्वरित अपडेट होईल. हा बदल सर्व मतदारांना दिसेल.';
-
-  @override
-  String get partyUpdateSuccess => 'तुमचा पक्ष आणि चिन्ह यशस्वीरित्या अपडेट झाले आहेत!';
-
-  @override
-  String partyUpdateError(Object error) {
-    return 'पक्ष आणि चिन्ह अपडेट करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get symbolUploadSuccess => 'चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली';
-
-  @override
-  String symbolUploadError(Object error) {
-    return 'चिन्ह प्रतिमा अपलोड करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get symbolImageSizeLimitError => 'प्रतिमेचा आकार 5MB पेक्षा कमी असावा. कृपया लहान प्रतिमा निवडा.';
-
-  @override
-  String get updatingText => 'अपडेट होत आहे...';
-
-  @override
-  String get updateInstructionText => 'तुमचा पक्ष आणि चिन्ह बदल जतन करण्यासाठी अपडेट टॅप करा';
-
-  @override
-  String get chooseYourRole => 'तुमची भूमिका निवडा';
-
-  @override
-  String get howWouldYouLikeToParticipate => 'तुम्हाला कशी सहभागी व्हायचे आहे?';
-
-  @override
-  String get selectYourRoleToCustomizeExperience => 'समुदायातील तुमच्या अनुभवाचे सानुकूलन करण्यासाठी तुमची भूमिका निवडा.';
-
-  @override
-  String get voter => 'मतदार';
-
-  @override
-  String get stayInformedAndParticipateInDiscussions => 'माहिती मिळवा आणि चर्चेत सहभागी व्हा';
-
-  @override
-  String get accessWardDiscussionsPollsAndCommunityUpdates => 'वॉर्ड चर्चा, मतदान आणि समुदाय अपडेट्समध्ये प्रवेश मिळवा';
-
-  @override
-  String get candidate => 'उमेदवार';
-
-  @override
-  String get runForOfficeAndConnectWithVoters => 'निवडणुकीसाठी उभे राहा आणि मतदारांशी संपर्क साधा';
-
-  @override
-  String get createYourProfileShareManifestoAndEngageWithCommunity => 'तुमचे प्रोफाइल तयार करा, घोषणापत्र सामायिक करा आणि समुदायाशी संवाद साधा';
-
-  @override
-  String get continueButton => 'सुरू ठेवा';
-
-  @override
-  String get youCanChangeYourRoleLaterInSettings => 'तुम्ही नंतर सेटिंग्जमध्ये तुमची भूमिका बदलू शकता';
-
-  @override
-  String get pleaseSelectARoleToContinue => 'सुरू ठेवण्यासाठी कृपया भूमिका निवडा';
-
-  @override
-  String get roleSelected => 'भूमिका निवडली!';
-
-  @override
-  String get youSelectedCandidatePleaseCompleteYourProfile => 'तुम्ही उमेदवार निवडला आहे. कृपया तुमचे प्रोफाइल पूर्ण करा.';
-
-  @override
-  String get youSelectedVoterPleaseCompleteYourProfile => 'तुम्ही मतदार निवडला आहे. कृपया तुमचे प्रोफाइल पूर्ण करा.';
-
-  @override
-  String failedToSaveRole(Object error) {
-    return 'भूमिका जतन करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get completeYourProfile => 'तुमचे प्रोफाइल पूर्ण करा';
-
-  @override
-  String get welcomeCompleteYourProfile => 'स्वागत आहे! सुरू ठेवण्यासाठी कृपया तुमचे प्रोफाइल पूर्ण करा.';
-
-  @override
-  String preFilledFromAccount(Object loginMethod) {
-    return '$loginMethod वरून काही माहिती आधीच भरली गेली आहे. हे तुम्हाला तुमच्या स्थानिक समुदायाशी जोडण्यात मदत करते.';
-  }
-
-  @override
-  String get fullName => 'पूर्ण नाव';
-
-  @override
-  String get fullNameRequired => 'पूर्ण नाव *';
-
-  @override
-  String get enterYourFullName => 'तुमचे पूर्ण नाव टाका';
-
-  @override
-  String get phoneNumberRequired => 'फोन नंबर *';
-
-  @override
-  String get enterYourPhoneNumber => 'तुमचा फोन नंबर टाका';
-
-  @override
-  String get birthDateRequired => 'जन्म तारीख *';
-
-  @override
-  String get selectYourBirthDate => 'तुमची जन्म तारीख निवडा';
-
-  @override
-  String get genderRequired => 'लिंग *';
-
-  @override
-  String get male => 'पुरुष';
-
-  @override
-  String get female => 'स्त्री';
-
-  @override
-  String get other => 'इतर';
-
-  @override
-  String get preferNotToSay => 'सांगू इच्छित नाही';
-
-  @override
-  String get stateRequired => 'राज्य *';
-
-  @override
-  String get selectYourState => 'तुमचे राज्य निवडा';
-
-  @override
-  String get selectStateFirst => 'आधी राज्य निवडा';
-
-  @override
-  String get districtRequired => 'जिल्हा *';
-
-  @override
-  String get selectYourDistrict => 'तुमचा जिल्हा निवडा';
-
-  @override
-  String get selectDistrictFirst => 'आधी जिल्हा निवडा';
-
-  @override
-  String get selectAreaFirst => 'आधी क्षेत्र निवडा';
-
-  @override
-  String get bodyRequired => 'संस्था *';
-
-  @override
-  String get selectYourBody => 'तुमची संस्था निवडा';
-
-  @override
-  String get cityRequired => 'शहर *';
-
-  @override
-  String get selectYourCity => 'तुमचे शहर निवडा';
-
-  @override
-  String get wardRequired => 'वॉर्ड *';
-
-  @override
-  String get selectYourWard => 'तुमचा वॉर्ड निवडा';
-
-  @override
-  String get areaRequired => 'क्षेत्र *';
-
-  @override
-  String get selectYourArea => 'तुमचे क्षेत्र निवडा';
-
-  @override
-  String get selectCityFirst => 'आधी शहर निवडा';
-
-  @override
-  String get completeProfile => 'प्रोफाइल पूर्ण करा';
-
-  @override
-  String get requiredFields => '* आवश्यक क्षेत्रे';
-
-  @override
-  String get pleaseEnterYourName => 'कृपया तुमचे नाव टाका';
-
-  @override
-  String get nameMustBeAtLeast2Characters => 'नाव कमीत कमी 2 अक्षरे असावे';
-
-  @override
-  String get pleaseEnterYourPhoneNumber => 'कृपया तुमचा फोन नंबर टाका';
-
-  @override
-  String get phoneNumberMustBe10Digits => 'फोन नंबर 10 अंकांचा असावा';
-
-  @override
-  String get pleaseEnterValidPhoneNumber => 'कृपया वैध फोन नंबर टाका';
-
-  @override
-  String get pleaseSelectYourBirthDate => 'कृपया तुमची जन्म तारीख निवडा';
-
-  @override
-  String get pleaseSelectYourGender => 'कृपया तुमचे लिंग निवडा';
-
-  @override
-  String get pleaseFillAllRequiredFields => 'कृपया सर्व आवश्यक क्षेत्रे भरा';
-
-  @override
-  String failedToLoadCities(Object error) {
-    return 'शहरे लोड करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String failedToLoadWards(Object error) {
-    return 'वॉर्ड लोड करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String failedToSaveProfile(Object error) {
-    return 'प्रोफाइल जतन करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get profileCompleted => 'प्रोफाइल पूर्ण झाला!';
-
-  @override
-  String get basicProfileCompletedSetupCandidate => 'मूलभूत प्रोफाइल पूर्ण झाला. आता तुमचा उमेदवार प्रोफाइल सेट अप करा.';
-
-  @override
-  String get profileCompletedWardChatCreated => 'प्रोफाइल पूर्ण झाला! तुमची वॉर्ड गप्पा खोली तयार झाली आहे.';
-
-  @override
-  String get autoFilledFromAccount => 'तुमच्या खात्यातून ऑटो-भरले';
-
-  @override
-  String get completeCandidateProfile => 'उमेदवार प्रोफाइल पूर्ण करा';
-
-  @override
-  String get completeYourCandidateProfile => 'तुमचा उमेदवार प्रोफाइल पूर्ण करा';
-
-  @override
-  String get fillDetailsCreateCandidateProfile => 'मतदारांशी संपर्क साधण्यासाठी तुमचा उमेदवार प्रोफाइल तयार करण्यासाठी तपशील भरा.';
-
-  @override
-  String get enterFullNameAsOnBallot => 'मतपत्रिकेवर दिसणारे तुमचे पूर्ण नाव टाका';
-
-  @override
-  String get politicalPartyRequired => 'राजकीय पक्ष *';
-
-  @override
-  String get symbolNameRequired => 'चिन्हाचे नाव *';
-
-  @override
-  String get manifestoOptional => 'घोषणापत्र (पर्यायी)';
-
-  @override
-  String get brieflyDescribeKeyPromises => 'तुमच्या प्रमुख वचनबद्धता आणि समुदायासाठी तुमचे दृष्टीपत्र संक्षिप्तपणे वर्णन करा';
-
-  @override
-  String get updateCandidateProfile => 'उमेदवार प्रोफाइल अपडेट करा';
-
-  @override
-  String get whatHappensNext => 'पुढे काय होईल?';
-
-  @override
-  String get candidateProfileBenefits => '• तुमचे प्रोफाइल तयार होईल आणि मतदारांना दिसेल\n• तुम्ही उमेदवार डॅशबोर्डमध्ये प्रवेश करू शकता आणि तुमच्या प्रचाराचे व्यवस्थापन करू शकता\n• प्रीमियम वैशिष्ट्ये वाढीव दृश्यमानतेसाठी उपलब्ध असतील\n• तुम्ही घोषणापत्र, संपर्क माहिती आणि मीडिया कधीही अपडेट करू शकता';
-
-  @override
-  String get changeRoleSelection => 'भूमिका निवड बदला';
-
-  @override
-  String get pleaseSelectYourParty => 'कृपया तुमचा पक्ष निवडा';
-
-  @override
-  String failedToCreateCandidateProfile(Object error) {
-    return 'उमेदवार प्रोफाइल तयार करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get imageSizeMustBeLessThan5MB => 'प्रतिमेचा आकार 5MB पेक्षा कमी असावा. कृपया लहान प्रतिमा निवडा.';
-
-  @override
-  String failedToUploadSymbolImage(Object error) {
-    return 'चिन्ह प्रतिमा अपलोड करण्यात अयशस्वी: $error';
-  }
-
-  @override
-  String get candidateProfileUpdated => 'यशस्वी!';
-
-  @override
-  String get candidateProfileUpdatedMessage => 'तुमचा उमेदवार प्रोफाइल अपडेट झाला आहे! तुम्हाला सर्व वैशिष्ट्ये ट्राय करण्यासाठी 3 दिवस प्रीमियम प्रवेश मिळाला आहे.';
-
-  @override
-  String get basicInfoUpdatedSuccessfully => 'मूलभूत माहिती यशस्वीरित्या अपडेट झाली';
-
-  @override
-  String get symbolImageUploadedSuccessfully => 'चिन्ह प्रतिमा यशस्वीरित्या अपलोड झाली';
-
-  @override
-  String get uploading => 'अपलोड होत आहे...';
-
-  @override
-  String get max5MB => 'कमाल 5MB';
-
-  @override
-  String get uploadImageOfChosenSymbol => 'तुमच्या निवडलेल्या चिन्हाची प्रतिमा अपलोड करा. न दिल्यास, डिफॉल्ट आयकॉन वापरला जाईल.';
-
-  @override
-  String get supportedFormatsJPGPNGMax5MB => 'समर्थित स्वरूप: JPG, PNG. कमाल फाइल आकार: 5MB.';
-
-  @override
-  String get imageUploadedSuccessfully => 'प्रतिमा यशस्वीरित्या अपलोड झाली';
-
-  @override
-  String get pleaseEnterSymbolNameForIndependent => 'कृपया अपक्ष उमेदवारांसाठी चिन्हाचे नाव टाका';
-
-  @override
-  String get pleaseSelectYourPoliticalParty => 'कृपया तुमचा राजकीय पक्ष निवडा';
-
-  @override
-  String get manifestoTitle => 'घोषणापत्र शीर्षक';
-
-  @override
-  String get manifestoTitleLabel => 'घोषणापत्र शीर्षक';
-
-  @override
-  String get manifestoTitleHint => 'उदा., वॉर्ड २३ विकास आणि पारदर्शकता योजना';
-
-  @override
-  String get useDemoTitle => 'डेमो शीर्षक वापरा';
-
-  @override
-  String get promises => 'वचनबद्धता';
-
-  @override
-  String get promisesTitle => 'वचनबद्धता';
-
-  @override
-  String promiseNumber(Object number) {
-    return 'वचनबद्धता $number';
-  }
-
-  @override
-  String get useDemoTemplate => 'डेमो टेम्प्लेट वापरा';
-
-  @override
-  String get deletePromise => 'वचनबद्धता हटवा';
-
-  @override
-  String get promiseTitle => 'वचनबद्धता शीर्षक';
-
-  @override
-  String get promiseTitleHint => 'उदा., स्वच्छ पाणी आणि चांगले रस्ते';
-
-  @override
-  String pointNumber(Object number) {
-    return 'बिंदू $number';
-  }
-
-  @override
-  String get pointHint1 => 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा';
-
-  @override
-  String get pointHint2 => 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात';
-
-  @override
-  String get deletePoint => 'बिंदू हटवा';
-
-  @override
-  String get addPoint => 'बिंदू जोडा';
-
-  @override
-  String get addNewPromise => 'नवीन वचनबद्धता जोडा';
+  String get permanentlyDeleteYourAccountAndData => 'आपले खाते आणि डेटा कायमची हटवा';
 
   @override
   String get uploadFiles => 'फायली अपलोड करा';
@@ -956,671 +191,310 @@ class AppLocalizationsMr extends AppLocalizations {
   String get uploadPdf => 'PDF अपलोड करा';
 
   @override
-  String get pdfFileLimit => 'फाइल < २० MB असावी';
-
-  @override
-  String get choosePdf => 'PDF निवडा';
+  String get pdfFileLimit => 'PDF फाइल मर्यादा';
 
   @override
   String get uploadImage => 'प्रतिमा अपलोड करा';
 
   @override
-  String get imageFileLimit => 'फाइल < १० MB असावी';
-
-  @override
-  String get chooseImage => 'प्रतिमा निवडा';
+  String get imageFileLimit => 'प्रतिमा फाइल मर्यादा';
 
   @override
   String get uploadVideo => 'व्हिडिओ अपलोड करा';
 
   @override
-  String get premiumVideo => 'प्रीमियम व्हिडिओ';
-
-  @override
-  String get videoFileLimit => 'फाइल < १०० MB असावी';
-
-  @override
-  String get premiumFeatureRequired => 'प्रीमियम वैशिष्ट्य आवश्यक';
-
-  @override
-  String get chooseVideo => 'व्हिडिओ निवडा';
+  String get videoFileLimit => 'व्हिडिओ फाइल मर्यादा';
 
   @override
   String filesReadyForUpload(Object count) {
-    return 'अपलोडसाठी तयार फायली ($count)';
+    return 'अपलोडसाठी तयार फायली: $count';
   }
 
   @override
-  String get filesUploadMessage => 'जेव्हा तुम्ही सेव्ह दाबाल तेव्हा या फायली सर्व्हरवर अपलोड केल्या जातील.';
+  String get filesUploadMessage => 'फायली अपलोड संदेश';
 
   @override
-  String get readyForUpload => 'अपलोडसाठी तयार';
+  String get features => 'वैशिष्ट्ये';
 
   @override
-  String get removeFromUploadQueue => 'अपलोड रांगेतून काढा';
+  String get buyNow => 'आता खरेदी करा';
 
   @override
-  String get manifestoPdf => 'घोषणापत्र PDF';
+  String get yourXpBalance => 'आपला XP बॅलन्स';
 
   @override
-  String get tapToViewDocument => 'तुमचे घोषणापत्र दस्तऐवज पाहण्यासाठी टॅप करा';
+  String get howToUseXpPoints => 'XP गुण कसे वापरावे';
 
   @override
-  String get openPdf => 'PDF उघडा';
+  String get symbolImageSizeLimitError => 'चिन्ह प्रतिमा आकार मर्यादा त्रुटी';
 
   @override
-  String get manifestoImage => 'घोषणापत्र प्रतिमा';
+  String get symbolUploadSuccess => 'चिन्ह यशस्वीरित्या अपलोड झाले';
 
   @override
-  String get tapImageFullscreen => 'पूर्ण स्क्रीनमध्ये प्रतिमा पाहण्यासाठी टॅप करा';
+  String symbolUploadError(Object error) {
+    return 'चिन्ह अपलोड त्रुटी: $error';
+  }
 
   @override
-  String get manifestoVideo => 'घोषणापत्र व्हिडिओ';
+  String get partyUpdateSuccess => 'पार्टी यशस्वीरित्या अपडेट झाली';
 
   @override
-  String get premiumVideoContent => 'प्रीमियम व्हिडिओ सामग्री उपलब्ध';
+  String partyUpdateError(Object error) {
+    return 'पार्टी अपडेट त्रुटी: $error';
+  }
 
   @override
-  String get manifestoAnalytics => 'घोषणापत्र विश्लेषण';
+  String get updatePartyAffiliationHeader => 'पार्टी संलग्नता अपडेट करा';
 
   @override
-  String get views => 'पहावे';
+  String get updatePartyAffiliationSubtitle => 'आपली पार्टी संलग्नता आणि चिन्ह अपडेट करा';
+
+  @override
+  String get currentParty => 'सध्याची पार्टी';
+
+  @override
+  String symbolLabel(Object symbol) {
+    return 'चिन्ह: $symbol';
+  }
+
+  @override
+  String get updateButton => 'अपडेट';
+
+  @override
+  String get updateInstructionText => 'आपली पार्टी आणि चिन्ह माहिती अपडेट करा';
+
+  @override
+  String get shareFunctionalityComingSoon => 'सामायिकरण कार्यक्षमता लवकरच येत आहे';
+
+  @override
+  String get like => 'लाइक';
 
   @override
   String get likes => 'लाइक';
 
   @override
-  String get shares => 'शेअर';
+  String get party_independent => 'स्वतंत्र';
 
   @override
-  String get downloads => 'डाउनलोड';
+  String get basicInformation => 'मूलभूत माहिती';
+
+  @override
+  String get age => 'वय';
+
+  @override
+  String get gender => 'लिंग';
+
+  @override
+  String get education => 'शिक्षण';
+
+  @override
+  String get address => 'पत्ता';
+
+  @override
+  String get location => 'स्थान';
+
+  @override
+  String get district => 'जिल्हा';
+
+  @override
+  String get ward => 'वॉर्ड';
+
+  @override
+  String get upgradeToPremium => 'प्रीमियममध्ये अपग्रेड करा';
+
+  @override
+  String get basicInfoUpdatedSuccessfully => 'मूलभूत माहिती यशस्वीरित्या अपडेट झाली';
 
   @override
   String get chooseManifestoTitle => 'घोषणापत्र शीर्षक निवडा';
 
   @override
-  String get selectLanguage => 'भाषा निवडा:';
+  String get selectLanguage => 'भाषा निवडा';
 
   @override
-  String get chooseTitle => 'शीर्षक निवडा:';
+  String get chooseTitle => 'शीर्षक निवडा';
 
   @override
-  String get standardDevelopmentFocus => 'मानक विकास केंद्रित';
+  String get standardDevelopmentFocus => 'मानक विकास फोकस';
 
   @override
   String get developmentWithTransparency => 'पारदर्शकतेसह विकास';
 
   @override
-  String get focusOnProgress => 'प्रगती आणि वाढ केंद्रित';
+  String get focusOnProgress => 'प्रगतीवर फोकस';
 
   @override
-  String get focusOnCitizenWelfare => 'नागरिक कल्याण केंद्रित';
+  String get focusOnCitizenWelfare => 'नागरिक कल्याणावर फोकस';
 
   @override
-  String get chooseDemoTemplate => 'डेमो टेम्प्लेट निवडा';
+  String get manifestoTitle => 'घोषणापत्र शीर्षक';
 
   @override
-  String get infrastructureCleanliness => 'पायाभूत सुविधा आणि स्वच्छता';
+  String get manifestoTitleLabel => 'घोषणापत्र शीर्षक';
 
   @override
-  String get infrastructureDescription => 'स्वच्छ पाणी, रस्ते आणि कचरा व्यवस्थापन';
+  String get manifestoTitleHint => 'घोषणापत्र शीर्षक टाका';
 
   @override
-  String get transparencyAccountability => 'पारदर्शकता आणि जबाबदारी';
+  String get useDemoTitle => 'डेमो शीर्षक वापरा';
 
   @override
-  String get transparencyDescription => 'खुलं शासन आणि नागरिक सहभाग';
+  String get manifestoPdf => 'घोषणापत्र PDF';
 
   @override
-  String get educationYouthDevelopment => 'शिक्षण आणि युवा विकास';
-
-  @override
-  String get educationDescription => 'डिजिटल शिक्षण आणि कौशल्य प्रशिक्षण';
-
-  @override
-  String get womenSafetyMeasures => 'महिला आणि सुरक्षा उपाय';
-
-  @override
-  String get womenSafetyDescription => 'महिला सशक्तीकरण आणि सुरक्षा';
-
-  @override
-  String get useThisTemplate => 'हे टेम्प्लेट वापरा';
-
-  @override
-  String get cleanWaterGoodRoads => 'स्वच्छ पाणी व चांगले रस्ते';
-
-  @override
-  String get provideCleanWater => 'प्रत्येक घराला २४x७ स्वच्छ पाणी पुरवठा.';
-
-  @override
-  String get potholeFreeRoads => 'खड्डेमुक्त वॉर्ड रस्ते १ वर्षात.';
-
-  @override
-  String get transparencyAccountabilityTitle => 'पारदर्शकता आणि जबाबदारी';
-
-  @override
-  String get regularMeetings => 'नियमित सार्वजनिक बैठक आणि अद्यतने';
-
-  @override
-  String get openBudgetDiscussion => 'खुला बजेट चर्चा';
-
-  @override
-  String get educationYouthTitle => 'शिक्षण आणि युवा विकास';
-
-  @override
-  String get digitalLibrary => 'डिजिटल लायब्ररी आणि ई-लर्निंग केंद्र';
-
-  @override
-  String get skillTrainingPrograms => 'कौशल्य प्रशिक्षण कार्यक्रम';
-
-  @override
-  String get womenSafetyTitle => 'महिला आणि सुरक्षा';
-
-  @override
-  String get specialHealthCenter => 'महिलांसाठी विशेष आरोग्य केंद्र';
-
-  @override
-  String get cctvCameras => 'प्रत्येक चौकात CCTV कॅमेरे';
-
-  @override
-  String get willBeDeletedWhenYouSave => 'जेव्हा तुम्ही सेव्ह कराल तेव्हा हटवले जाईल';
+  String get willBeDeletedWhenYouSave => 'आपण सेव्ह केल्यावर हटवले जाईल';
 
   @override
   String get markPdfForDeletion => 'PDF हटवण्यासाठी चिन्हांकित करा';
 
   @override
-  String get pdfDeletionWarning => 'हे PDF तुम्ही बदल सेव्ह केल्यावर कायमचा हटवले जाईल. ही क्रिया पूर्ववत केली जाऊ शकत नाही.';
+  String get pdfDeletionWarning => 'हे PDF फाइल कायमची हटवेल';
 
   @override
   String get markForDeletion => 'हटवण्यासाठी चिन्हांकित करा';
 
   @override
-  String get pdfMarkedForDeletion => 'PDF हटवण्यासाठी चिन्हांकित केले. पुष्टी करण्यासाठी सेव्ह दाबा.';
+  String get pdfMarkedForDeletion => 'PDF हटवण्यासाठी चिन्हांकित केले';
+
+  @override
+  String get manifestoImage => 'घोषणापत्र प्रतिमा';
 
   @override
   String get markImageForDeletion => 'प्रतिमा हटवण्यासाठी चिन्हांकित करा';
 
   @override
-  String get imageDeletionWarning => 'ही प्रतिमा तुम्ही बदल सेव्ह केल्यावर कायमचा हटवली जाईल. ही क्रिया पूर्ववत केली जाऊ शकत नाही.';
+  String get imageDeletionWarning => 'हे प्रतिमा फाइल कायमची हटवेल';
 
   @override
-  String get imageMarkedForDeletion => 'प्रतिमा हटवण्यासाठी चिन्हांकित केली. पुष्टी करण्यासाठी सेव्ह दाबा.';
+  String get imageMarkedForDeletion => 'प्रतिमा हटवण्यासाठी चिन्हांकित केली';
+
+  @override
+  String get manifestoVideo => 'घोषणापत्र व्हिडिओ';
+
+  @override
+  String get premiumFeatureMultiResolution => 'प्रीमियम वैशिष्ट्य: बहु-रिझोल्यूशन';
 
   @override
   String get markVideoForDeletion => 'व्हिडिओ हटवण्यासाठी चिन्हांकित करा';
 
   @override
-  String get videoDeletionWarning => 'हा व्हिडिओ तुम्ही बदल सेव्ह केल्यावर कायमचा हटवला जाईल. ही क्रिया पूर्ववत केली जाऊ शकत नाही.';
+  String get videoDeletionWarning => 'हे व्हिडिओ फाइल कायमची हटवेल';
 
   @override
-  String get videoMarkedForDeletion => 'व्हिडिओ हटवण्यासाठी चिन्हांकित केला. पुष्टी करण्यासाठी सेव्ह दाबा.';
+  String get videoMarkedForDeletion => 'व्हिडिओ हटवण्यासाठी चिन्हांकित केले';
 
   @override
-  String get premiumFeatureMultiResolution => 'प्रीमियम वैशिष्ट्य - बहु-रेजोल्यूशन व्हिडिओ प्रोसेसिंग';
+  String get premiumVideo => 'प्रीमियम व्हिडिओ';
 
   @override
-  String get selectDistrict => 'जिल्हा निवडा';
-
-  @override
-  String get selectArea => 'क्षेत्र निवडा (विभाग)';
-
-  @override
-  String get searchDistricts => 'जिल्हे शोधा...';
-
-  @override
-  String get searchAreas => 'क्षेत्रे शोधा...';
-
-  @override
-  String get searchWards => 'वॉर्ड शोधा...';
-
-  @override
-  String get noDistrictsFound => 'कोणतेही जिल्हे सापडले नाहीत';
-
-  @override
-  String get noAreasFound => 'कोणतीही क्षेत्रे सापडली नाहीत';
-
-  @override
-  String get noWardsFound => 'कोणतेही वॉर्ड सापडले नाहीत';
-
-  @override
-  String get tryDifferentSearchTerm => 'वेगळा शोध शब्द वापरा';
-
-  @override
-  String get noAreasAvailable => 'कोणतीही क्षेत्रे उपलब्ध नाहीत';
-
-  @override
-  String get areas => 'क्षेत्रे';
-
-  @override
-  String get noAreasAvailableInDistrict => 'या जिल्ह्यात कोणतीही क्षेत्रे उपलब्ध नाहीत';
-
-  @override
-  String get noWardsAvailableInArea => 'या क्षेत्रात कोणतेही वॉर्ड उपलब्ध नाहीत';
-
-  @override
-  String get profilePhotoUpdatedSuccessfully => 'प्रोफाइल फोटो यशस्वीरित्या अपडेट झाला!';
+  String get createPoll => 'मतदान तयार करा';
 
   @override
   String get pollQuestion => 'मतदान प्रश्न';
 
   @override
-  String get pollQuestionHint => 'तुम्हाला काय विचारायचे आहे?';
+  String get pollQuestionHint => 'आपला मतदान प्रश्न टाका';
 
   @override
   String get options => 'पर्याय';
 
   @override
-  String optionLabel(Object number) {
-    return 'पर्याय $number';
+  String optionLabel(Object index) {
+    return 'पर्याय $index';
   }
 
   @override
   String get removeOption => 'पर्याय काढा';
 
   @override
-  String addOption(Object current, Object max) {
-    return 'पर्याय जोडा ($current/$max)';
+  String addOption(Object count) {
+    return 'पर्याय जोडा $count';
   }
 
   @override
   String get expirationSettings => 'कालबाह्यता सेटिंग्ज';
 
   @override
-  String get defaultExpiration => 'डीफॉल्ट: 24 तास';
+  String get defaultExpiration => 'डीफॉल्ट कालबाह्यता';
 
   @override
-  String get expiresIn => 'कालबाह्य होईल:';
+  String get expiresIn => 'मध्ये कालबाह्य होईल';
 
   @override
-  String pollExpiresOn(Object dateTime) {
-    return 'मतदान कालबाह्य होईल: $dateTime';
+  String pollExpiresOn(Object date) {
+    return 'मतदान कालबाह्य होईल $date';
   }
 
   @override
   String get pleaseEnterPollQuestion => 'कृपया मतदान प्रश्न टाका';
 
   @override
-  String get pleaseAddAtLeast2Options => 'कृपया कमीत कमी 2 पर्याय जोडा';
+  String get pleaseAddAtLeast2Options => 'कृपया किमान 2 पर्याय जोडा';
 
   @override
-  String get loadingPoll => 'मतदान लोड होत आहे...';
+  String get promises => 'वचने';
 
   @override
-  String get pollNotFound => 'मतदान सापडले नाही';
+  String get addPoint => 'बिंदू जोडा';
 
   @override
-  String get voteRecorded => 'मत नोंदवले!';
+  String get addNewPromise => 'नवीन वचन जोडा';
 
   @override
-  String get voteRecordedMessage => 'तुमचा मत नोंदवला गेला आहे';
+  String get promisesTitle => 'वचने शीर्षक';
 
   @override
-  String get voteFailed => 'मत अयशस्वी';
+  String get selectPartyValidation => 'कृपया पार्टी निवडा';
 
   @override
-  String get voteFailedMessage => 'तुमचा मत नोंदवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
+  String get newPartyLabel => 'नवीन पार्टी';
 
   @override
-  String get pollExpiredMessage => 'हे मतदान कालबाह्य झाले आहे. मतदान आता उपलब्ध नाही.';
+  String get symbolNameLabel => 'चिन्ह नाव';
 
   @override
-  String get thankYouForVoting => 'मतदान केल्याबद्दल धन्यवाद!';
+  String get symbolNameHint => 'चिन्ह नाव टाका';
 
   @override
-  String get maximumOptions => 'कमाल पर्याय';
+  String get symbolNameValidation => 'चिन्ह नाव आवश्यक आहे';
 
   @override
-  String get maximumOptionsMessage => 'तुम्ही कमाल 10 पर्याय जोडू शकता';
+  String get symbolImageOptional => 'चिन्ह प्रतिमा (पर्यायी)';
 
   @override
-  String get minimumOptions => 'किमान पर्याय';
+  String get symbolImageDescription => 'आपल्या पार्टीच्या चिन्हासाठी प्रतिमा अपलोड करा';
 
   @override
-  String get minimumOptionsMessage => 'तुम्हाला कमीत कमी 2 पर्यायांची गरज आहे';
+  String get uploadSymbolImage => 'चिन्ह प्रतिमा अपलोड करा';
 
   @override
-  String get viewAndEditYourProfile => 'View and edit your profile';
+  String get importantNotice => 'महत्वाचे सूचना';
 
   @override
-  String get manageCampaignAndViewAnalytics => 'Manage your campaign and view analytics';
+  String get partyChangeWarning => 'पार्टी बदलल्याने आपले चिन्ह रीसेट होईल आणि आपल्या मोहिमेच्या दृश्यमानतेला परिणाम होऊ शकतो.';
 
   @override
-  String get updatePartyAffiliationAndSymbol => 'Update your party affiliation and symbol';
+  String get updatingText => 'अपडेट करत आहे...';
 
   @override
-  String get findCandidatesByLocation => 'Find candidates by location';
+  String get profileLiked => 'प्रोफाइल लाइक केले';
 
   @override
-  String get connectWithCommunityMembers => 'Connect with community members';
-
-  @override
-  String get customizeAppSettings => 'Customize app settings';
-
-  @override
-  String get profileLiked => 'Profile Liked';
-
-  @override
-  String get profileUnliked => 'Profile Unliked';
+  String get profileUnliked => 'प्रोफाइल अनलाइक केले';
 
   @override
   String checkOutCandidateProfile(Object name) {
-    return 'Check out $name\'s profile';
+    return '$name चे उमेदवार प्रोफाइल पहा';
   }
 
   @override
-  String partyLabel(Object party) {
-    return 'Party: $party';
+  String partyLabel(Object locale, Object party) {
+    return '$party ($locale)';
   }
 
   @override
   String locationLabel(Object district, Object ward) {
-    return 'Location: $district, $ward';
+    return '$district, $ward';
   }
-
-  @override
-  String get shareFunctionalityComingSoon => 'Share functionality coming soon';
-
-  @override
-  String get like => 'Like';
-
-  @override
-  String get basicInformation => 'Basic Information';
-
-  @override
-  String get age => 'Age';
-
-  @override
-  String get gender => 'Gender';
-
-  @override
-  String get education => 'Education';
-
-  @override
-  String get address => 'Address';
-
-  @override
-  String get location => 'Location';
-
-  @override
-  String get district => 'District';
-
-  @override
-  String get ward => 'Ward';
-
-  @override
-  String get premiumPlans => 'प्रीमियम योजना';
-
-  @override
-  String get xpStore => 'XP स्टोर';
-
-  @override
-  String get chooseYourPlan => 'तुमची योजना निवडा';
-
-  @override
-  String get buyXpPoints => 'XP गुण खरेदी करा';
-
-  @override
-  String get yourXpBalance => 'तुमचे XP बॅलन्स';
-
-  @override
-  String get xp => 'XP';
-
-  @override
-  String get upgradeToPremium => 'प्रीमियममध्ये अपग्रेड करा';
-
-  @override
-  String get buyNow => 'आता खरेदी करा';
-
-  @override
-  String get howToUseXpPoints => 'XP गुण कसे वापरावे';
-
-  @override
-  String get unlockPremiumContent => 'प्रीमियम सामग्री अनलॉक करा';
-
-  @override
-  String get accessExclusiveCandidateManifestosAndMedia => 'विशेष उमेदवार घोषणापत्रे आणि मीडिया मध्ये प्रवेश मिळवा';
-
-  @override
-  String get joinPremiumChatRooms => 'प्रीमियम गप्पा खोल्यांमध्ये सामील व्हा';
-
-  @override
-  String get participateInCandidateOnlyDiscussions => 'उमेदवार-फक्त चर्चेत सहभागी व्हा';
-
-  @override
-  String get voteInExclusivePolls => 'विशेष मतदानात मत द्या';
-
-  @override
-  String get influenceDecisionsWithPremiumVotingRights => 'प्रीमियम मतदान अधिकारांसह निर्णयांवर प्रभाव टाका';
-
-  @override
-  String get rewardOtherVoters => 'इतर मतदारांना बक्षीस द्या';
-
-  @override
-  String get giveXpPointsToHelpfulCommunityMembers => 'मदतनीस समुदाय सदस्यांना XP गुण द्या';
-
-  @override
-  String get noPlansAvailableAtTheMoment => 'सध्या कोणत्याही योजना उपलब्ध नाहीत';
-
-  @override
-  String get noXpPlansAvailableAtTheMoment => 'सध्या कोणत्याही XP योजना उपलब्ध नाहीत';
-
-  @override
-  String get limitedTimeOffer => 'मर्यादित कालावधी ऑफर!';
-
-  @override
-  String get soldOut => 'विकले गेले!';
-
-  @override
-  String get onlyRs1999ForFirst1000Candidates => 'पहिल्या 1,000 उमेदवारांसाठी फक्त ₹1,999!';
-
-  @override
-  String get rs1999PlanIsNowSoldOutRs5000PlanAvailable => '₹1,999 योजना आता संपली आहे. ₹5,000 योजना उपलब्ध आहे.';
-
-  @override
-  String get slotsLeft => 'स्लॉट शिल्लक';
-
-  @override
-  String get candidatesUpgraded => 'उमेदवार अपग्रेड झाले';
-
-  @override
-  String onlyRemainingSlotsRemainingUpgradeNowBeforePriceIncreases(Object remaining) {
-    return 'फक्त $remaining स्लॉट शिल्लक! किंमत वाढण्यापूर्वी आता अपग्रेड करा.';
-  }
-
-  @override
-  String get yourAccountStatus => 'तुमचे खाते स्थिती';
-
-  @override
-  String paymentMode(Object mode) {
-    return 'पेमेंट मोड: $mode';
-  }
-
-  @override
-  String get mockTesting => 'मॉक (चाचणी)';
-
-  @override
-  String get realRazorpay => 'खरे Razorpay';
-
-  @override
-  String get mockModeSimulatesPaymentWithoutRazorpayDialog => 'मॉक मोड Razorpay संवादाशिवाय पेमेंटचे अनुकरण करतो. संपूर्ण प्रवाह चाचणी करण्यासाठी हे वापरा.';
-
-  @override
-  String get realModeShowsActualRazorpayPaymentDialog => 'खरा मोड प्रत्यक्ष Razorpay पेमेंट संवाद दाखवतो सर्व पेमेंट पर्यायांसह. उत्पादन UI चाचणी करण्यासाठी हे वापरा.';
-
-  @override
-  String get name => 'नाव';
-
-  @override
-  String get role => 'भूमिका';
-
-  @override
-  String get xpBalance => 'XP बॅलन्स';
-
-  @override
-  String get premiumStatus => 'प्रीमियम स्थिती';
-
-  @override
-  String get currentPlan => 'सध्याची योजना';
-
-  @override
-  String get trialStatus => 'ट्रायल स्थिती';
-
-  @override
-  String get active => 'सक्रिय';
-
-  @override
-  String get profileComplete => 'प्रोफाइल पूर्ण';
-
-  @override
-  String get yes => 'होय';
-
-  @override
-  String get no => 'नाही';
-
-  @override
-  String get totalSubscriptions => 'एकूण सदस्यता';
-
-  @override
-  String get debugLogs => 'डीबग लॉग्ज';
-
-  @override
-  String get clearLogs => 'लॉग्ज साफ करा';
-
-  @override
-  String purchasePlanName(Object planName) {
-    return '$planName खरेदी करा';
-  }
-
-  @override
-  String areYouSureYouWantToPurchasePlanNameForPrice(Object featuresCount, Object planName, Object price) {
-    return 'तुम्हाला खरोखर $planName ₹$price साठी खरेदी करायची आहे का?\n\n$featuresCount प्रीमियम वैशिष्ट्ये अनलॉक होतील.\n\nतुम्हाला आमच्या सुरक्षित पेमेंट गेटवेवर पाठवले जाईल.';
-  }
-
-  @override
-  String get proceedToPayment => 'पेमेंटवर पुढे जा';
-
-  @override
-  String get pleaseLoginToMakeAPurchase => 'खरेदी करण्यासाठी कृपया लॉगिन करा';
-
-  @override
-  String get paymentError => 'पेमेंट त्रुटी';
-
-  @override
-  String get failedToInitiatePaymentPleaseTryAgain => 'पेमेंट सुरू करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.';
-
-  @override
-  String get paymentProcessInitiatedSuccessfully => 'पेमेंट प्रक्रिया यशस्वीरित्या सुरू झाली';
-
-  @override
-  String get features => 'वैशिष्ट्ये:';
-
-  @override
-  String get pdfDocument => 'PDF दस्तऐवज';
-
-  @override
-  String get notAvailable => 'उपलब्ध नाही';
-
-  @override
-  String get image => 'प्रतिमा';
-
-  @override
-  String get video => 'व्हिडिओ';
-
-  @override
-  String get viewFullImage => 'पूर्ण प्रतिमा पहा';
-
-  @override
-  String get tapToPlayVideo => 'व्हिडिओ प्ले करण्यासाठी टॅप करा';
-
-  @override
-  String get play => 'प्ले करा';
-
-  @override
-  String get additionalResources => 'अतिरिक्त संसाधने';
-
-  @override
-  String get manifestoPdfAvailable => 'घोषणापत्र PDF उपलब्ध';
-
-  @override
-  String get tapToViewInApp => 'अॅपमध्ये पाहण्यासाठी टॅप करा';
-
-  @override
-  String get couldNotOpenPdf => 'PDF उघडू शकत नाही';
-
-  @override
-  String get viewPdf => 'PDF पहा';
-
-  @override
-  String get comments => 'टिप्पण्या';
-
-  @override
-  String get hideComments => 'टिप्पण्या लपवा';
-
-  @override
-  String showCommentsWithCount(Object count) {
-    return 'टिप्पण्या दाखवा ($count)';
-  }
-
-  @override
-  String get shareYourThoughts => 'तुमचे विचार सामायिक करा...';
-
-  @override
-  String get postComment => 'टिप्पणी पोस्ट करा';
-
-  @override
-  String get noCommentsYet => 'अद्याप कोणत्याही टिप्पण्या नाहीत';
-
-  @override
-  String get anonymousVoter => 'अनामिक मतदार';
-
-  @override
-  String get replyFunctionalityComingSoon => 'उत्तर कार्यक्षमता लवकरच येत आहे';
-
-  @override
-  String get reply => 'उत्तर';
-
-  @override
-  String supportedWithCount(Object count) {
-    return 'समर्थित ($count)';
-  }
-
-  @override
-  String get supportThisManifesto => 'हे घोषणापत्र समर्थन करा';
-
-  @override
-  String get whatIssueMattersMost => 'तुमच्यासाठी कोणता मुद्दा सर्वात महत्त्वाचा आहे?';
-
-  @override
-  String get developmentInfrastructure => 'विकास आणि पायाभूत सुविधा';
-
-  @override
-  String get transparencyGovernance => 'पारदर्शकता आणि शासन';
-
-  @override
-  String get youthEducation => 'युवा आणि शिक्षण';
-
-  @override
-  String get womenSafety => 'महिला आणि सुरक्षा';
-
-  @override
-  String get xpEarned => 'XP मिळाले!';
-
-  @override
-  String earnedXpForSupportingManifesto(Object count) {
-    return 'घोषणापत्र समर्थन केल्याबद्दल $count XP मिळाले!';
-  }
-
-  @override
-  String earnedXpForCommenting(Object count) {
-    return 'टिप्पणी केल्याबद्दल $count XP मिळाले!';
-  }
-
-  @override
-  String get thankYou => 'धन्यवाद!';
-
-  @override
-  String get feedbackRecorded => 'तुमचा अभिप्राय नोंदवला गेला आहे.';
-
-  @override
-  String get pleaseEnterComment => 'कृपया टिप्पणी टाका.';
 }

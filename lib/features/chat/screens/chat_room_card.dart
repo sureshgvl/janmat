@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/chat/chat_localizations.dart';
 import '../controllers/chat_controller.dart';
 import '../../../models/chat_model.dart';
 import 'chat_room_screen.dart';
@@ -132,7 +133,7 @@ class ChatRoomCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          AppLocalizations.of(context)!.private,
+                          'Private',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,

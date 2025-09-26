@@ -1,0 +1,15 @@
+{
+  "settings": "सेटिंग्ज",
+  "language": "भाषा",
+  "notifications": "अधिसूचना",
+  "darkMode": "डार्क मोड",
+  "about": "विषयी",
+  "logOut": "लॉग आउट",
+  "deleteAccount": "खाते हटवा",
+  "permanentlyDeleteYourAccountAndData": "तुमचे खाते आणि डेटा कायमचा हटवा",
+  "deleteAccountConfirmation": "तुम्हाला खरोखर तुमचे खाते हटवायचे आहे का? ही क्रिया पूर्ववत केली जाऊ शकत नाही आणि तुमचे सर्व डेटा कायमचा हटवेल यात:\n\n• तुमची प्रोफाइल माहिती\n• गप्पा आणि संदेश\n• XP गुण आणि बक्षिसे\n• फॉलोइंग/फॉलोअर्स डेटा\n\nही क्रिया अपरिवर्तनीय आहे.",
+  "accountDeletedSuccessfully": "तुमचे खाते यशस्वीरित्या हटवले गेले आहे.",
+  "failedToDeleteAccount": "खाते हटवण्यात अयशस्वी: {error}",
+  "failedToLogout": "लॉगआउट करण्यात अयशस्वी: {error}",
+  "customizeAppSettings": "अॅप सेटिंग्ज सानुकूलित करा"
+}

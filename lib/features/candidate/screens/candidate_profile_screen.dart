@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../controllers/candidate_data_controller.dart';
@@ -59,7 +60,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Get.snackbar(
           AppLocalizations.of(context)!.error,
-          AppLocalizations.of(context)!.candidateDataNotFound,
+          CandidateLocalizations.of(context)?.candidateDataNotFound ?? 'Candidate data not found',
         );
         Get.back();
       });
@@ -106,13 +107,13 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       // Only log when tab change is complete
       //final tabNames = ['Info', 'Profile', 'Achievements', 'Manifesto', 'Contact', 'Media', 'Events', 'Highlight', 'Analytics'];
       final tabNames = [
-        AppLocalizations.of(context)!.info,
-        AppLocalizations.of(context)!.manifesto,
-        AppLocalizations.of(context)!.achievements,
-        AppLocalizations.of(context)!.media,
-        AppLocalizations.of(context)!.contact,
-        AppLocalizations.of(context)!.events,
-        AppLocalizations.of(context)!.analytics,
+        CandidateLocalizations.of(context)!.info,
+        CandidateLocalizations.of(context)!.manifesto,
+        CandidateLocalizations.of(context)!.achievements,
+        CandidateLocalizations.of(context)!.media,
+        CandidateLocalizations.of(context)!.contact,
+        CandidateLocalizations.of(context)!.events,
+        CandidateLocalizations.of(context)!.analytics,
         //'Profile',
         //'Highlight',
       ];
@@ -227,10 +228,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     if (candidate == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.candidateProfile),
+          title: Text(CandidateLocalizations.of(context)!.candidateProfile),
         ),
         body: Center(
-          child: Text(AppLocalizations.of(context)!.candidateDataNotAvailable),
+          child: Text(CandidateLocalizations.of(context)!.candidateDataNotAvailable),
         ),
       );
     }
@@ -240,7 +241,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.candidateProfile),
+        title: Text(CandidateLocalizations.of(context)!.candidateProfile),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -264,7 +265,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             SliverAppBar(
               backgroundColor: Colors.white,
               elevation: 0,
-              pinned: true,
+              pinned: false,
               floating: false,
               automaticallyImplyLeading: false, // Prevent automatic back button
               expandedHeight: 220, // Height of the scrollable header

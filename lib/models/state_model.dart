@@ -1,20 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class State {
-  final String stateId;
+  final String id;
   final String name;
   final String? marathiName;
   final String? code;
-  final bool isActive;
+  final bool? isActive;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   State({
-    required this.stateId,
+    required this.id,
     required this.name,
     this.marathiName,
     this.code,
-    this.isActive = true,
+    this.isActive,
     this.createdAt,
     this.updatedAt,
   });
@@ -40,11 +40,11 @@ class State {
     }
 
     return State(
-      stateId: json['stateId'] ?? json['id'] ?? '',
+      id: json['id'] ?? json['stateId'] ?? '',
       name: json['name'] ?? '',
       marathiName: json['marathiName'],
       code: json['code'],
-      isActive: json['isActive'] ?? true,
+      isActive: json['isActive'],
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -52,7 +52,7 @@ class State {
 
   Map<String, dynamic> toJson() {
     return {
-      'stateId': stateId,
+      'id': id,
       'name': name,
       'marathiName': marathiName,
       'code': code,
@@ -63,7 +63,7 @@ class State {
   }
 
   State copyWith({
-    String? stateId,
+    String? id,
     String? name,
     String? marathiName,
     String? code,
@@ -72,7 +72,7 @@ class State {
     DateTime? updatedAt,
   }) {
     return State(
-      stateId: stateId ?? this.stateId,
+      id: id ?? this.id,
       name: name ?? this.name,
       marathiName: marathiName ?? this.marathiName,
       code: code ?? this.code,
@@ -84,14 +84,14 @@ class State {
 
   @override
   String toString() {
-    return 'State(stateId: $stateId, name: $name, marathiName: $marathiName, code: $code, isActive: $isActive)';
+    return 'State(id: $id, name: $name, marathiName: $marathiName, code: $code, isActive: $isActive)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is State &&
-        other.stateId == stateId &&
+        other.id == id &&
         other.name == name &&
         other.marathiName == marathiName &&
         other.code == code &&
@@ -100,5 +100,5 @@ class State {
 
   @override
   int get hashCode =>
-      stateId.hashCode ^ name.hashCode ^ marathiName.hashCode ^ code.hashCode ^ isActive.hashCode;
+      id.hashCode ^ name.hashCode ^ marathiName.hashCode ^ code.hashCode ^ isActive.hashCode;
 }

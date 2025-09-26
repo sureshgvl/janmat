@@ -113,8 +113,8 @@ class FileUploadComponents {
     return buildUploadCard(
       context: context,
       fileType: FileType.custom,
-      title: AppLocalizations.of(context)!.uploadPdf,
-      subtitle: AppLocalizations.of(context)!.pdfFileLimit,
+      title: 'Upload PDF',
+      subtitle: 'File must be < 20 MB',
       isUploading: isUploading,
       onUpload: onUpload,
       cardColor: Colors.red,
@@ -132,8 +132,8 @@ class FileUploadComponents {
     return buildUploadCard(
       context: context,
       fileType: FileType.image,
-      title: AppLocalizations.of(context)!.uploadImage,
-      subtitle: AppLocalizations.of(context)!.imageFileLimit,
+      title: 'Upload Image',
+      subtitle: 'File must be < 10 MB',
       isUploading: isUploading,
       onUpload: onUpload,
       cardColor: Colors.green,
@@ -153,11 +153,11 @@ class FileUploadComponents {
       context: context,
       fileType: FileType.video,
       title: isPremiumUser
-          ? AppLocalizations.of(context)!.uploadVideo
-          : AppLocalizations.of(context)!.premiumVideo,
+          ? 'Upload Video'
+          : 'Premium Video',
       subtitle: isPremiumUser
-          ? AppLocalizations.of(context)!.videoFileLimit
-          : AppLocalizations.of(context)!.premiumFeatureRequired,
+          ? 'File must be < 100 MB'
+          : 'Premium feature required',
       isUploading: isUploading,
       onUpload: onUpload,
       cardColor: Colors.purple,

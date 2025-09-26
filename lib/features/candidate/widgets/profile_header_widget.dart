@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../common/whatsapp_image_viewer.dart';
@@ -35,7 +35,7 @@ class ProfileHeaderWidget extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                AppLocalizations.of(context)!.sponsored,
+                CandidateTranslations.tr('sponsored'),
                 style: const TextStyle(
                   color: Color(0xFF374151),
                   fontSize: 14,

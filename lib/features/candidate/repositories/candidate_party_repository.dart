@@ -221,27 +221,4 @@ class PartyRepository {
     ];
   }
 
-  // Create default parties if none exist
-  Future<void> _createDefaultParties() async {
-    try {
-      print('🏗️ PartyRepository: Creating default parties in Firebase...');
-
-      final defaultParties = _getMaharashtraParties();
-
-      // Create parties in batch
-      final batch = _firestore.batch();
-      for (final party in defaultParties) {
-        final docRef = _firestore.collection('parties').doc(party.id);
-        batch.set(docRef, party.toJson());
-      }
-
-      await batch.commit();
-      print(
-        '✅ PartyRepository: Successfully created ${defaultParties.length} default parties in Firebase',
-      );
-    } catch (e) {
-      print('❌ PartyRepository: Error creating default parties: $e');
-      rethrow;
-    }
-  }
 }

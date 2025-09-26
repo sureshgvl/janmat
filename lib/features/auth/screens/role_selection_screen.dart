@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/auth/auth_localizations.dart';
 import '../controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
 
@@ -20,12 +21,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   bool isLoading = false;
 
   Future<void> _saveRole() async {
-    final localizations = AppLocalizations.of(context)!;
+    final appLocalizations = AppLocalizations.of(context)!;
+    final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
 
     if (selectedRole == null) {
       Get.snackbar(
-        localizations.error,
-        localizations.pleaseSelectARoleToContinue,
+        appLocalizations.error,
+        authLocalizations.pleaseSelectARoleToContinue,
       );
       return;
     }
@@ -50,23 +52,23 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       if (selectedRole == 'candidate') {
         Get.offAllNamed('/profile-completion');
         Get.snackbar(
-          localizations.roleSelected,
-          localizations.youSelectedCandidatePleaseCompleteYourProfile,
+          authLocalizations.roleSelected,
+          authLocalizations.youSelectedCandidatePleaseCompleteYourProfile,
           duration: const Duration(seconds: 3),
         );
       } else {
         // For voter role, go to profile completion
         Get.offAllNamed('/profile-completion');
         Get.snackbar(
-          localizations.roleSelected,
-          localizations.youSelectedVoterPleaseCompleteYourProfile,
+          authLocalizations.roleSelected,
+          authLocalizations.youSelectedVoterPleaseCompleteYourProfile,
           duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
       Get.snackbar(
-        localizations.error,
-        localizations.failedToSaveRole(e.toString()),
+        appLocalizations.error,
+        authLocalizations.failedToSaveRole(e.toString()),
       );
     }
 
@@ -77,34 +79,33 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    final appLocalizations = AppLocalizations.of(context)!;
+    final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
 
     final List<Map<String, dynamic>> roles = [
-      {
-        'id': 'voter',
-        'title': localizations.voter,
-        'subtitle': localizations.stayInformedAndParticipateInDiscussions,
-        'description':
-            localizations.accessWardDiscussionsPollsAndCommunityUpdates,
-        'icon': Icons.how_to_vote,
-        'color': Colors.blue,
-      },
-      {
-        'id': 'candidate',
-        'title': localizations.candidate,
-        'subtitle': localizations.runForOfficeAndConnectWithVoters,
-        'description':
-            localizations.createYourProfileShareManifestoAndEngageWithCommunity,
-        'icon': Icons.account_balance,
-        'color': Colors.green,
-      },
-    ];
+       {
+         'id': 'voter',
+         'title': authLocalizations.voter,
+         'subtitle': authLocalizations.stayInformedAndParticipateInDiscussions,
+         'description': authLocalizations.accessWardDiscussionsPollsAndCommunityUpdates,
+         'icon': Icons.how_to_vote,
+         'color': Colors.blue,
+       },
+       {
+         'id': 'candidate',
+         'title': authLocalizations.candidate,
+         'subtitle': authLocalizations.runForOfficeAndConnectWithVoters,
+         'description': authLocalizations.createYourProfileShareManifestoAndEngageWithCommunity,
+         'icon': Icons.account_balance,
+         'color': Colors.green,
+       },
+     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.chooseYourRole),
-        automaticallyImplyLeading: false, // Prevent back button
-      ),
+         title: Text(authLocalizations.chooseYourRole),
+         automaticallyImplyLeading: false, // Prevent back button
+       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -113,7 +114,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             children: [
               // Header
               Text(
-                localizations.howWouldYouLikeToParticipate,
+                authLocalizations.howWouldYouLikeToParticipate,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -122,7 +123,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                localizations.selectYourRoleToCustomizeExperience,
+                authLocalizations.selectYourRoleToCustomizeExperience,
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
               const SizedBox(height: 32),
@@ -242,7 +243,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          localizations.continueButton,
+                          authLocalizations.continueButton,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -256,7 +257,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               // Info Text
               Center(
                 child: Text(
-                  localizations.youCanChangeYourRoleLaterInSettings,
+                  authLocalizations.youCanChangeYourRoleLaterInSettings,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey,

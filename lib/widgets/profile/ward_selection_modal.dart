@@ -37,7 +37,7 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
         final nameMatch = ward.name.toLowerCase().contains(lowerQuery);
 
         // Search in ward ID
-        final idMatch = ward.wardId.toLowerCase().contains(lowerQuery);
+        final idMatch = ward.id.toLowerCase().contains(lowerQuery);
 
         // Search in areas
         final areaMatch =
@@ -47,14 +47,14 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
         // Search in Marathi ward number (e.g., "ward 10" should find "वॉर्ड 10")
         final numberMatch =
             RegExp(r'ward\s*(\d+)').firstMatch(lowerQuery) != null &&
-            ward.wardId.toLowerCase().contains(
+            ward.id.toLowerCase().contains(
               'ward_${RegExp(r'ward\s*(\d+)').firstMatch(lowerQuery)!.group(1)}',
             );
 
         // Search in Marathi "वॉर्ड X" format
         final marathiMatch =
             lowerQuery.contains('वॉर्ड') &&
-            ward.wardId.toLowerCase().contains('ward_');
+            ward.id.toLowerCase().contains('ward_');
 
         return nameMatch || idMatch || areaMatch || numberMatch || marathiMatch;
       }).toList();
@@ -184,11 +184,11 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                     itemCount: filteredWards.length,
                     itemBuilder: (context, index) {
                       final ward = filteredWards[index];
-                      final isSelected = widget.selectedWardId == ward.wardId;
+                      final isSelected = widget.selectedWardId == ward.id;
 
                       return InkWell(
                         onTap: () {
-                          widget.onWardSelected(ward.wardId);
+                          widget.onWardSelected(ward.id);
                           Navigator.of(context).pop();
                         },
                         child: Container(
@@ -235,7 +235,7 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                                   children: [
                                     Text(
                                       _formatWardDisplay(
-                                        ward.wardId,
+                                        ward.id,
                                         ward.name,
                                       ),
                                       style: TextStyle(
@@ -250,7 +250,7 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
                                     Row(
                                       children: [
                                         Text(
-                                          ward.wardId.toUpperCase(),
+                                          ward.id.toUpperCase(),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey.shade600,

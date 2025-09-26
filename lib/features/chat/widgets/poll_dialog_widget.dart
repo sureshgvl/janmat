@@ -534,7 +534,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                   onPressed: _addOption,
                   icon: Icon(Icons.add_circle, color: Colors.blue.shade600),
                   label: Text(
-                    localizations.addOption(optionControllers.length, 10),
+                    localizations.addOption(optionControllers.length + 1),
                     style: TextStyle(color: Colors.blue.shade600),
                   ),
                 ),

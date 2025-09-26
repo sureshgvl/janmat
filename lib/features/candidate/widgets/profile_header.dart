@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../utils/symbol_utils.dart';
 
 class ProfileHeader extends StatelessWidget {
@@ -311,7 +311,7 @@ class ProfileHeader extends StatelessWidget {
                         children: [
                           _buildFacebookStyleStat(
                             _formatNumber(candidate.followersCount.toString()),
-                            AppLocalizations.of(context)!.followers,
+                            CandidateTranslations.tr('followers'),
                             Icons.people,
                           ),
                           Container(
@@ -321,7 +321,7 @@ class ProfileHeader extends StatelessWidget {
                           ),
                           _buildFacebookStyleStat(
                             _formatNumber(candidate.followingCount.toString()),
-                            AppLocalizations.of(context)!.following,
+                            CandidateTranslations.tr('following'),
                             Icons.person_add,
                           ),
                         ],

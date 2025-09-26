@@ -56,7 +56,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
         '''
 ${AppLocalizations.of(context)!.checkOutCandidateProfile(widget.candidate.name)}
 
-${widget.candidate.party.isNotEmpty ? AppLocalizations.of(context)!.partyLabel(SymbolUtils.getPartyFullNameWithLocale(widget.candidate.party, Localizations.localeOf(context).languageCode)) : AppLocalizations.of(context)!.party_independent}
+${widget.candidate.party.isNotEmpty ? SymbolUtils.getPartyFullNameWithLocale(widget.candidate.party, Localizations.localeOf(context).languageCode) : AppLocalizations.of(context)!.party_independent}
 ${AppLocalizations.of(context)!.locationLabel(widget.candidate.districtId, widget.candidate.wardId)}
 
 View their complete profile and manifesto at: [Your App URL]

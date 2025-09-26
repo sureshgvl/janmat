@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/polls/polls_localizations.dart';
 
 class PollsScreen extends StatelessWidget {
   const PollsScreen({super.key});
@@ -8,7 +8,7 @@ class PollsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)?.polls ?? 'Polls'),
+        title: Text(PollsLocalizations.of(context)?.translate('polls') ?? 'Polls'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -23,13 +23,13 @@ class PollsScreen extends StatelessWidget {
         children: [
           _buildPollCard(
             context,
-            'Ward Development Survey',
-            'How should we prioritize ward development?',
+            PollsLocalizations.of(context)?.translate('wardDevelopmentSurvey') ?? 'Ward Development Survey',
+            PollsLocalizations.of(context)?.translate('howShouldWePrioritizeWardDevelopment') ?? 'How should we prioritize ward development?',
             [
-              'Roads & Infrastructure',
-              'Education',
-              'Healthcare',
-              'Environment',
+              PollsLocalizations.of(context)?.translate('roadsAndInfrastructure') ?? 'Roads & Infrastructure',
+              PollsLocalizations.of(context)?.translate('education') ?? 'Education',
+              PollsLocalizations.of(context)?.translate('healthcare') ?? 'Healthcare',
+              PollsLocalizations.of(context)?.translate('environment') ?? 'Environment',
             ],
             [35, 25, 20, 20],
             120,
@@ -37,22 +37,27 @@ class PollsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildPollCard(
             context,
-            'Candidate Preference',
-            'Which candidate do you support?',
-            ['Candidate A', 'Candidate B', 'Candidate C', 'Undecided'],
+            PollsLocalizations.of(context)?.translate('candidatePreference') ?? 'Candidate Preference',
+            PollsLocalizations.of(context)?.translate('whichCandidateDoYouSupport') ?? 'Which candidate do you support?',
+            [
+              PollsLocalizations.of(context)?.translate('candidateA') ?? 'Candidate A',
+              PollsLocalizations.of(context)?.translate('candidateB') ?? 'Candidate B',
+              PollsLocalizations.of(context)?.translate('candidateC') ?? 'Candidate C',
+              PollsLocalizations.of(context)?.translate('undecided') ?? 'Undecided'
+            ],
             [40, 30, 15, 15],
             85,
           ),
           const SizedBox(height: 16),
           _buildPollCard(
             context,
-            'Budget Allocation',
-            'Where should we allocate more funds?',
+            PollsLocalizations.of(context)?.translate('budgetAllocation') ?? 'Budget Allocation',
+            PollsLocalizations.of(context)?.translate('whereShouldWeAllocateMoreFunds') ?? 'Where should we allocate more funds?',
             [
-              'Public Transport',
-              'Parks & Recreation',
-              'Public Safety',
-              'Education',
+              PollsLocalizations.of(context)?.translate('publicTransport') ?? 'Public Transport',
+              PollsLocalizations.of(context)?.translate('parksAndRecreation') ?? 'Parks & Recreation',
+              PollsLocalizations.of(context)?.translate('publicSafety') ?? 'Public Safety',
+              PollsLocalizations.of(context)?.translate('education') ?? 'Education',
             ],
             [28, 22, 30, 20],
             95,
@@ -87,7 +92,7 @@ class PollsScreen extends StatelessWidget {
             Text(question, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 16),
             Text(
-              '$totalVotes ${AppLocalizations.of(context)?.votes ?? 'votes'}',
+              '$totalVotes ${PollsLocalizations.of(context)?.translate('votes') ?? 'votes'}',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: Colors.grey),

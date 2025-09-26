@@ -49,7 +49,7 @@ class CandidateCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withOpacity(0.05)
+                  ? Colors.white.withValues(alpha: 0.05)
                   : Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [

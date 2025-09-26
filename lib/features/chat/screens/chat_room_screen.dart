@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/features/chat/chat_localizations.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/message_controller.dart';
 import '../../../models/chat_model.dart';
@@ -229,7 +230,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           Text(
-                            AppLocalizations.of(context)!.loadingMessages,
+                            'loadingMessages'.tr,
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                         ],
@@ -251,15 +252,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            AppLocalizations.of(context)!.noMessagesYet,
+                            'noMessagesYet'.tr,
                             style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            AppLocalizations.of(context)!.startConversation(
+                            'startConversation'.tr.trArgs([
                               widget.chatRoom.title ??
                                   _getDefaultRoomTitle(widget.chatRoom),
-                            ),
+                            ]),
                             style: const TextStyle(color: Colors.grey),
                             textAlign: TextAlign.center,
                           ),
@@ -540,7 +541,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.image),
-              title: Text(AppLocalizations.of(context)!.sendImage),
+              title: Text('sendImage'.tr),
               onTap: () {
                 Get.back();
                 controller.sendImageMessage();
@@ -548,7 +549,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.poll),
-              title: Text(AppLocalizations.of(context)!.createPoll),
+              title: Text('createPoll'.tr),
               onTap: () {
                 Get.back();
                 _showCreatePollDialog();
@@ -573,8 +574,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
           // Show success message
           Get.snackbar(
-            AppLocalizations.of(context)!.pollCreated,
-            AppLocalizations.of(context)!.pollSharedInChat,
+            'pollCreated'.tr,
+            'pollSharedInChat'.tr,
             backgroundColor: Colors.green.shade100,
             colorText: Colors.green.shade800,
             duration: const Duration(seconds: 3),
@@ -594,7 +595,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.info),
-              title: Text(AppLocalizations.of(context)!.roomInfo),
+              title: Text('roomInfo'.tr),
               onTap: () {
                 Get.back();
                 _showRoomInfo();
@@ -602,7 +603,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.exit_to_app),
-              title: Text(AppLocalizations.of(context)!.leaveRoom),
+              title: Text('leaveRoom'.tr),
               onTap: () {
                 Get.back();
                 _leaveRoom();
@@ -626,7 +627,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${AppLocalizations.of(context)!.type}: ${widget.chatRoom.type == 'public' ? AppLocalizations.of(context)!.public : AppLocalizations.of(context)!.private}',
+              '${ChatLocalizations.of(context)!.type}: ${widget.chatRoom.type == 'public' ? ChatLocalizations.of(context)!.public : ChatLocalizations.of(context)!.private}',
             ),
             Text('Description: ${widget.chatRoom.description}'),
             Text('Created: ${timeago.format(widget.chatRoom.createdAt)}'),

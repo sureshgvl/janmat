@@ -7,6 +7,7 @@ import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_event_repository.dart';
 import '../../../services/trial_service.dart';
 import '../../../services/file_upload_service.dart';
+import '../../../utils/symbol_utils.dart';
 
 class CandidateDataController extends GetxController {
   final CandidateRepository _candidateRepository = CandidateRepository();
@@ -335,6 +336,8 @@ class CandidateDataController extends GetxController {
         break;
       case 'party':
         editedData.value = editedData.value!.copyWith(party: value);
+        // Clear symbol cache when party changes to ensure fresh data
+        SymbolUtils.clearCache();
         break;
       case 'districtId':
         editedData.value = editedData.value!.copyWith(districtId: value);
