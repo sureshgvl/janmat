@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/body_model.dart';
-import '../../utils/location_translations.dart';
+import '../../utils/maharashtra_utils.dart';
 
 class AreaSelectionModal extends StatefulWidget {
    final List<Body> bodies;
@@ -239,7 +239,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${LocationTranslations.getDistrictDisplayName(widget.districtName, Localizations.localeOf(context))} - ${LocationTranslations.getBodyTypeDisplayName(body.type.toString().split('.').last, Localizations.localeOf(context))}',
+                                      '${MaharashtraUtils.getDistrictDisplayNameV2(widget.districtName, Localizations.localeOf(context))} - ${MaharashtraUtils.getBodyTypeDisplayNameV2(body.type.toString().split('.').last, Localizations.localeOf(context))}',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,

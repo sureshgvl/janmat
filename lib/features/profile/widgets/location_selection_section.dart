@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../models/body_model.dart';
-import '../../../utils/location_translations.dart';
+import '../../../utils/maharashtra_utils.dart';
 import '../../../widgets/profile/state_selection_modal.dart';
 import '../../../widgets/profile/district_selection_modal.dart';
 import '../../../widgets/profile/area_selection_modal.dart';
@@ -103,7 +103,7 @@ class LocationSelectionSection extends StatelessWidget {
               ),
               child: controller.selectedDistrictId != null
                   ? Text(
-                      LocationTranslations.getDistrictDisplayName(
+                      MaharashtraUtils.getDistrictDisplayNameV2(
                         controller.selectedDistrictId!,
                         Localizations.localeOf(context),
                       ),
@@ -151,7 +151,7 @@ class LocationSelectionSection extends StatelessWidget {
                                 );
                         return Text(
                           body.id.isNotEmpty
-                              ? '${LocationTranslations.getDistrictDisplayName(controller.selectedDistrictId!, Localizations.localeOf(context))} - ${LocationTranslations.getBodyTypeDisplayName(body.type.toString().split('.').last, Localizations.localeOf(context))}'
+                              ? '${MaharashtraUtils.getDistrictDisplayNameV2(controller.selectedDistrictId!, Localizations.localeOf(context))} - ${MaharashtraUtils.getBodyTypeDisplayNameV2(body.type.toString().split('.').last, Localizations.localeOf(context))}'
                               : controller.selectedBodyId!,
                           style: const TextStyle(fontSize: 16),
                         );
@@ -387,6 +387,11 @@ class LocationSelectionSection extends StatelessWidget {
   }
 
   void _showDistrictSelectionModal(BuildContext context) {
+    debugPrint('🔍 Opening District Selection Modal');
+    debugPrint('📊 Available districts: ${controller.districts.length}');
+    debugPrint('🏢 District bodies: ${controller.districtBodies.length}');
+    debugPrint('🎯 Selected district: ${controller.selectedDistrictId}');
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -403,7 +408,7 @@ class LocationSelectionSection extends StatelessWidget {
   }
 
   void _showBodySelectionModal(BuildContext context) {
-    final districtName = LocationTranslations.getDistrictDisplayName(
+    final districtName = MaharashtraUtils.getDistrictDisplayNameV2(
       controller.selectedDistrictId!,
       Localizations.localeOf(context),
     );

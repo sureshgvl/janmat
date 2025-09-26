@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/district_model.dart';
 import '../../models/body_model.dart';
 import '../../l10n/features/profile/profile_localizations.dart';
-import '../../utils/location_translations.dart';
+import '../../utils/maharashtra_utils.dart';
 
 class DistrictSelectionModal extends StatefulWidget {
   final List<District> districts;
@@ -30,6 +30,12 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
   void initState() {
     super.initState();
     filteredDistricts = List.from(widget.districts);
+
+    // Log districts being displayed
+    debugPrint('🏙️ District Selection Modal - Displaying ${widget.districts.length} districts:');
+    for (final district in widget.districts) {
+      debugPrint('  - ID: ${district.id}, Name: ${district.name}');
+    }
   }
 
   void _filterDistricts(String query) {
@@ -61,12 +67,12 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
       'thane': ['ठाणे', 'ठाणे'],
       'nagpur': ['नागपूर', 'नागपूर'],
       'nashik': ['नाशिक', 'नाशिक'],
-      'aurangabad': ['औरंगाबाद', 'औरंगाबाद'],
+      'chhatrapati_sambhajinagar': ['छत्रपती संभाजीनगर', 'छत्रपती संभाजीनगर'],
       'solapur': ['सोलापूर', 'सोलापूर'],
       'kolhapur': ['कोल्हापूर', 'कोल्हापूर'],
       'satara': ['सातारा', 'सातारा'],
       'sangli': ['सांगली', 'सांगली'],
-      'ahmednagar': ['अहमदनगर', 'अहमदनगर'],
+      'ahilyanagar': ['अहिल्यानगर', 'अहिल्यानगर'],
       'jalgaon': ['जळगाव', 'जळगाव'],
       'dhule': ['धुळे', 'धुळे'],
       'buldhana': ['बुलढाणा', 'बुलढाणा'],
@@ -78,7 +84,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
       'hingoli': ['हिंगोली', 'हिंगोली'],
       'nanded': ['नांदेड', 'नांदेड'],
       'latur': ['लातूर', 'लातूर'],
-      'osmanabad': ['उस्मानाबाद', 'उस्मानाबाद'],
+      'dharashiv': ['धाराशिव', 'धाराशिव'],
       'beed': ['बीड', 'बीड'],
       'parbhani': ['परभणी', 'परभणी'],
       'jalna': ['जालना', 'जालना'],
@@ -225,6 +231,13 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                           false;
                       final isDisabled = !hasBodies;
 
+                      // Log what gets displayed for each district
+                      final displayName = MaharashtraUtils.getDistrictDisplayNameV2(
+                        district.id,
+                        Localizations.localeOf(context),
+                      );
+                      debugPrint('📍 Displaying district: ID=${district.id}, Name=${district.name}, DisplayName=$displayName, Selected=$isSelected, Disabled=$isDisabled');
+
                       return InkWell(
                         onTap: isDisabled
                             ? null
@@ -281,7 +294,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      LocationTranslations.getDistrictDisplayName(
+                                      MaharashtraUtils.getDistrictDisplayNameV2(
                                         district.id,
                                         Localizations.localeOf(context),
                                       ),

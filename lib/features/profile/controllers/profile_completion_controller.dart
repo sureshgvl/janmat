@@ -295,8 +295,15 @@ class ProfileCompletionController extends GetxController {
         districts = districtsSnapshot.docs.map((doc) {
           final data = doc.data();
           debugPrint('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
+          debugPrint('📊 Loaded district data: $data');
           return District.fromJson({'id': doc.id, 'stateId': selectedStateId!, ...data});
         }).toList();
+
+        // Log all loaded districts
+        debugPrint('✅ Loaded ${districts.length} districts from Firestore:');
+        for (final district in districts) {
+          debugPrint('  - ID: ${district.id}, Name: ${district.name}');
+        }
 
         // Load bodies for each district
         for (final district in districts) {
@@ -442,10 +449,12 @@ class ProfileCompletionController extends GetxController {
   }
 
   void onDistrictSelected(String districtId) {
+    debugPrint('🎯 District selected: $districtId');
     selectedDistrictId = districtId;
     selectedBodyId = null;
     selectedWard = null;
     bodyWards.clear();
+    debugPrint('🔄 Cleared body and ward selections');
     update();
   }
 
