@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/theme_constants.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -6,6 +7,7 @@ class CustomButton extends StatelessWidget {
   final bool isLoading;
   final Color? backgroundColor;
   final Color? textColor;
+  final TextStyle? textStyle;
 
   const CustomButton({
     super.key,
@@ -14,6 +16,7 @@ class CustomButton extends StatelessWidget {
     this.isLoading = false,
     this.backgroundColor,
     this.textColor,
+    this.textStyle,
   });
 
   @override
@@ -21,7 +24,7 @@ class CustomButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
+        backgroundColor: backgroundColor ?? AppColors.primary,
         foregroundColor: textColor ?? Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -35,7 +38,15 @@ class CustomButton extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
-          : Text(text),
+          : Text(
+              text,
+              style: textStyle ??
+                  const TextStyle(
+                    fontSize: 18, // Increased from default 14px to 18px
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+            ),
     );
   }
 }

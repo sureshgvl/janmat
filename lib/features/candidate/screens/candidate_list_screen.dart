@@ -474,6 +474,11 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   }
 
   void _showBodySelectionModal(BuildContext context) {
+    final selectedDistrict = districts.firstWhere(
+      (d) => d.id == selectedDistrictId,
+    );
+    final districtName = selectedDistrict.name;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -482,6 +487,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         return AreaSelectionModal(
           bodies: districtBodies[selectedDistrictId!]!,
           selectedBodyId: selectedBodyId,
+          districtName: districtName,
           onBodySelected: (bodyId) {
             setState(() {
               selectedBodyId = bodyId;

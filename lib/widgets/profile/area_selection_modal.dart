@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../models/body_model.dart';
+import '../../utils/location_translations.dart';
 
 class AreaSelectionModal extends StatefulWidget {
-  final List<Body> bodies;
-  final String? selectedBodyId;
-  final Function(String) onBodySelected;
+   final List<Body> bodies;
+   final String? selectedBodyId;
+   final String districtName;
+   final Function(String) onBodySelected;
 
-  const AreaSelectionModal({
-    super.key,
-    required this.bodies,
-    required this.selectedBodyId,
-    required this.onBodySelected,
-  });
+   const AreaSelectionModal({
+     super.key,
+     required this.bodies,
+     required this.selectedBodyId,
+     required this.districtName,
+     required this.onBodySelected,
+   });
 
   @override
   State<AreaSelectionModal> createState() => _AreaSelectionModalState();
@@ -236,7 +239,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${body.name} (${body.type})',
+                                      '${LocationTranslations.getDistrictDisplayName(widget.districtName, Localizations.localeOf(context))} - ${LocationTranslations.getBodyTypeDisplayName(body.type.toString().split('.').last, Localizations.localeOf(context))}',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,

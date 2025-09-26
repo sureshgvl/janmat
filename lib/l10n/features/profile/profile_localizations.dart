@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import '../../../models/body_model.dart';
 
 class ProfileLocalizations {
   final Locale locale;
@@ -116,6 +117,19 @@ class ProfileLocalizations {
   String get profileCompletedMessage => translate('profileCompletedMessage');
   String get selectDistrict => translate('selectDistrict');
   String get searchDistricts => translate('searchDistricts');
+  String get areaLabel => translate('areaLabel');
+  String get selectAreaLabel => translate('selectAreaLabel');
+  String get noAreasAvailable => translate('noAreasAvailable');
+  String wardDisplayFormat(String number, String name) => translate('wardDisplayFormat', args: {'number': number, 'name': name});
+  String get selectWardLabel => translate('selectWardLabel');
+  String get noWardsAvailable => translate('noWardsAvailable');
+  String get sampleStatesAdded => translate('sampleStatesAdded');
+  String failedToAddSampleStates(String error) => translate('failedToAddSampleStates', args: {'error': error});
+  String get addSampleStatesDebug => translate('addSampleStatesDebug');
+  String get viewWardAreas => translate('viewWardAreas');
+  String get searchWards => translate('searchWards');
+  String get wardAreasTitle => translate('wardAreasTitle');
+
 }
 
 class _ProfileLocalizationsDelegate extends LocalizationsDelegate<ProfileLocalizations> {

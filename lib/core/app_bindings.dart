@@ -9,8 +9,8 @@ import '../services/razorpay_service.dart';
 class AppBindings extends Bindings {
   @override
   void dependencies() {
-    // Lazy put AuthController to avoid timing issues with initial route
-    Get.lazyPut<AuthController>(() => AuthController());
+    // Put AuthController to ensure it's always available
+    Get.put<AuthController>(AuthController());
 
     // Put other controllers
     Get.put<ChatController>(ChatController());

@@ -73,5 +73,17 @@
   "success": "Success",
   "profileCompleted": "Profile Completed!",
   "failedToSaveProfile": "Failed to save profile: {error}",
-  "completeYourProfile": "Complete Your Profile"
+  "completeYourProfile": "Complete Your Profile",
+  "areaLabel": "Area (विभाग) *",
+  "selectAreaLabel": "Select Area (विभाग)",
+  "noAreasAvailable": "No areas available in this district",
+  "wardDisplayFormat": "वॉर्ड {number} - {name}",
+  "selectWardLabel": "Select Ward (वॉर्ड)",
+  "noWardsAvailable": "No wards available in this area",
+  "sampleStatesAdded": "Sample states added successfully",
+  "failedToAddSampleStates": "Failed to add sample states: {error}",
+  "addSampleStatesDebug": "Add Sample States (Debug)",
+  "viewWardAreas": "View Ward Areas",
+  "searchWards": "Search wards...",
+  "wardAreasTitle": "Ward Areas"
 }

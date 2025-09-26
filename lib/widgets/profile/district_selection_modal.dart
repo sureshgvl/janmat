@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/district_model.dart';
 import '../../models/body_model.dart';
 import '../../l10n/features/profile/profile_localizations.dart';
+import '../../utils/location_translations.dart';
 
 class DistrictSelectionModal extends StatefulWidget {
   final List<District> districts;
@@ -280,7 +281,10 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      district.name,
+                                      LocationTranslations.getDistrictDisplayName(
+                                        district.id,
+                                        Localizations.localeOf(context),
+                                      ),
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
