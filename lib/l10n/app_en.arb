@@ -55,6 +55,8 @@
   "upgradeToUnlockPremiumFeatures": "Upgrade to unlock premium features",
   "deleteAccount": "Delete Account",
   "permanentlyDeleteYourAccountAndData": "Permanently delete your account and data",
+  "logout": "Logout",
+  "signOutOfYourAccount": "Sign out of your account",
   "uploadFiles": "Upload Files",
   "uploadPdf": "Upload PDF",
   "pdfFileLimit": "PDF File Limit",

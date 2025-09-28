@@ -517,9 +517,7 @@ class AuthRepository {
           role: role ?? '', // Default to empty string for first-time users
           roleSelected: false,
           profileCompleted: false,
-          wardId: '',
-          districtId: '', // Will be set during profile completion
-          bodyId: '', // Will be set during profile completion
+          electionAreas: [], // Will be set during profile completion
           xpPoints: 0,
           premium: false,
           createdAt: DateTime.now(),

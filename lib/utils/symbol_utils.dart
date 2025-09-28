@@ -134,7 +134,7 @@ class SymbolUtils {
       "key": "npp",
       "shortNameEn": "NPP",
       "shortNameMr": "रापापा",
-      "nameEn": "National Peoples Party",
+      "nameEn": "National People Party",
       "nameMr": "राष्ट्रीय लोक पार्टी",
       "image": "npp.png",
       "party_symbolEn": "Book",
@@ -177,8 +177,8 @@ class SymbolUtils {
       "nameEn": "Bahujan Vikas Aaghadi",
       "nameMr": "बहुजन विकास आघाडी",
       "image": "pwp.jpg",
-      "party_symbolEn": "Unknown",
-      "party_symbolMr": "अज्ञात"
+      "party_symbolEn": "Whistle",
+      "party_symbolMr": "शिट्टी"
     },
     {
       "key": "abs",
@@ -337,61 +337,49 @@ class SymbolUtils {
   }
 
   /// Get party symbol path with support for independent candidate symbol images
-  /// This is the centralized, optimized version that replaces all duplicate functions
+  /// Optimized: Only caches for independent candidates, direct lookup for parties
   static String getPartySymbolPath(String party, {Candidate? candidate}) {
-    // Create cache key
-    final cacheKey = '${party}_${candidate?.candidateId ?? 'null'}';
+    debugPrint('🔍 [SymbolUtils] Getting symbol for party: $party');
 
-    // Return cached result if available
-    if (_symbolCache.containsKey(cacheKey)) {
-      return _symbolCache[cacheKey]!;
-    }
-
-    // First check if candidate data exists
-    if (candidate == null) {
-      debugPrint('⚠️ [SymbolUtils] No candidate data available');
-      const result = 'assets/symbols/default.png';
-      _symbolCache[cacheKey] = result;
-      return result;
-    }
-
-    debugPrint(
-      '🔍 [SymbolUtils] For party: $party, Candidate: ${candidate.name}',
-    );
-
-    // Handle independent candidates - check for symbol image URL first
+    // Handle independent candidates with potential caching
     if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
       debugPrint('🎯 [SymbolUtils] Independent candidate detected');
 
-      // For independent candidates, check if there's a symbol image URL in extraInfo
-      if (candidate.extraInfo?.media != null &&
-          candidate.extraInfo!.media!.isNotEmpty) {
-        final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
-          (item) => item['type'] == 'symbolImage',
-          orElse: () => <String, dynamic>{},
-        );
-        if (symbolImageItem.isNotEmpty) {
-          final symbolImageUrl = symbolImageItem['url'] as String?;
-          if (symbolImageUrl != null &&
-              symbolImageUrl.isNotEmpty &&
-              symbolImageUrl.startsWith('http')) {
-            debugPrint(
-              '🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl',
-            );
-            _symbolCache[cacheKey] = symbolImageUrl;
-            return symbolImageUrl; // Return the Firebase Storage URL
+      // Only cache if we have candidate data
+      if (candidate != null) {
+        final cacheKey = 'independent_${candidate.candidateId}';
+
+        // Check cache first
+        if (_symbolCache.containsKey(cacheKey)) {
+          return _symbolCache[cacheKey]!;
+        }
+
+        // Check for uploaded symbol image URL
+        if (candidate.extraInfo?.media != null &&
+            candidate.extraInfo!.media!.isNotEmpty) {
+          final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
+            (item) => item['type'] == 'symbolImage',
+            orElse: () => <String, dynamic>{},
+          );
+          if (symbolImageItem.isNotEmpty) {
+            final symbolImageUrl = symbolImageItem['url'] as String?;
+            if (symbolImageUrl != null &&
+                symbolImageUrl.isNotEmpty &&
+                symbolImageUrl.startsWith('http')) {
+              debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
+              _symbolCache[cacheKey] = symbolImageUrl;
+              return symbolImageUrl;
+            }
           }
         }
       }
 
-      // Fallback to default independent symbol if no valid image URL
+      // Fallback for independent candidates (no caching needed for static asset)
       debugPrint('🎨 [SymbolUtils] Using default independent asset');
-      const result = 'assets/symbols/independent.png';
-      _symbolCache[cacheKey] = result;
-      return result;
+      return 'assets/symbols/independent.png';
     }
 
-    // For party-affiliated candidates, use the new structured party data
+    // For regular parties - Direct lookup, no caching needed
     debugPrint('🏛️ [SymbolUtils] Party-affiliated candidate detected');
 
     // Try to find party by name first
@@ -405,45 +393,28 @@ class SymbolUtils {
       }
     }
 
-    // If still not found, try to handle special cases
+    // Handle special cases for common variations
     if (partyData == null || partyData.isEmpty) {
-      // Handle common variations and typos
       if (party.contains('Congress') || party.contains('कॉंग्रेस')) {
         partyData = getPartyByKey('inc');
       } else if (party.contains('BJP') || party.contains('भाजप')) {
         partyData = getPartyByKey('bjp');
       } else if (party.contains('NCP') || party.contains('राष्ट्रवादी')) {
-        // Determine which NCP faction based on candidate info or default to Ajit
-        if (candidate != null) {
-          // You can add logic here to determine NCP faction based on candidate data
-          partyData = getPartyByKey('ncp_ajit'); // Default
-        } else {
-          partyData = getPartyByKey('ncp_ajit');
-        }
+        partyData = getPartyByKey('ncp_ajit'); // Default to Ajit faction
       } else if (party.contains('Shiv Sena') || party.contains('शिवसेना')) {
-        // Determine which Shiv Sena faction based on candidate info or default to Shinde
-        if (candidate != null) {
-          // You can add logic here to determine Shiv Sena faction based on candidate data
-          partyData = getPartyByKey('shiv_sena_shinde'); // Default
-        } else {
-          partyData = getPartyByKey('shiv_sena_shinde');
-        }
+        partyData = getPartyByKey('shiv_sena_shinde'); // Default to Shinde faction
       }
     }
 
-    // Get symbol path from party data
+    // Return symbol path from party data
     if (partyData != null && partyData['image'] != null) {
-      final symbolFile = partyData['image']!;
-      final result = 'assets/symbols/$symbolFile';
+      final result = 'assets/symbols/${partyData['image']!}';
       debugPrint('🏛️ [SymbolUtils] Using party asset: $result');
-      _symbolCache[cacheKey] = result;
       return result;
     }
 
     debugPrint('🏛️ [SymbolUtils] Using default asset');
-    const result = 'assets/symbols/default.png';
-    _symbolCache[cacheKey] = result;
-    return result;
+    return 'assets/symbols/default.png';
   }
 
   /// Get party symbol path using Party model (preferred method)

@@ -154,13 +154,21 @@ class ChatController extends GetxController {
 
     final user = _cachedUser;
     if (user != null) {
+      // Get the regular election area (assuming user has one)
+      final regularArea = user.electionAreas.isNotEmpty
+          ? user.electionAreas.firstWhere(
+              (area) => area.type == ElectionType.regular,
+              orElse: () => user.electionAreas.first,
+            )
+          : null;
+
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
         districtId: user.districtId,
-        bodyId: user.bodyId,
-        wardId: user.wardId,
-        area: user.area,
+        bodyId: regularArea?.bodyId,
+        wardId: regularArea?.wardId,
+        area: regularArea?.area,
       );
 
       // Load user quota
@@ -193,13 +201,21 @@ class ChatController extends GetxController {
   Future<void> fetchChatRooms() async {
     final user = _cachedUser;
     if (user != null) {
+      // Get the regular election area (assuming user has one)
+      final regularArea = user.electionAreas.isNotEmpty
+          ? user.electionAreas.firstWhere(
+              (area) => area.type == ElectionType.regular,
+              orElse: () => user.electionAreas.first,
+            )
+          : null;
+
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
         districtId: user.districtId,
-        bodyId: user.bodyId,
-        wardId: user.wardId,
-        area: user.area,
+        bodyId: regularArea?.bodyId,
+        wardId: regularArea?.wardId,
+        area: regularArea?.area,
       );
     } else {
       debugPrint('⚠️ No user data available for fetching chat rooms');
@@ -537,13 +553,21 @@ class ChatController extends GetxController {
   Future<void> refreshChatRooms() async {
     final user = _cachedUser;
     if (user != null) {
+      // Get the regular election area (assuming user has one)
+      final regularArea = user.electionAreas.isNotEmpty
+          ? user.electionAreas.firstWhere(
+              (area) => area.type == ElectionType.regular,
+              orElse: () => user.electionAreas.first,
+            )
+          : null;
+
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
         districtId: user.districtId,
-        bodyId: user.bodyId,
-        wardId: user.wardId,
-        area: user.area,
+        bodyId: regularArea?.bodyId,
+        wardId: regularArea?.wardId,
+        area: regularArea?.area,
       );
     } else {
       debugPrint('⚠️ No user data available for refreshing chat rooms');

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
+import '../../../models/user_model.dart';
 import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';
@@ -490,9 +491,47 @@ class CandidateRepository {
 
   // Calculate cache hit rate (simplified)
   double _calculateCacheHitRate() {
-    // This would need to be tracked with actual hit/miss counters
-    // For now, return a placeholder
-    return 0.85; // 85% hit rate as example
+    // Get cache statistics from PerformanceMonitor
+    final summary = perf_monitor.PerformanceMonitor().getFirebaseSummary();
+    final cacheHitRateStr = summary['cache_hit_rate'] as String;
+    if (cacheHitRateStr == '0%') return 0.0;
+
+    // Parse percentage string to double
+    final percentage = double.tryParse(cacheHitRateStr.replaceAll('%', ''));
+    return percentage != null ? percentage / 100.0 : 0.0;
+  }
+
+  // Get candidates for a user based on their election areas (NEW METHOD)
+  Future<List<Candidate>> getCandidatesForUser(UserModel user) async {
+    try {
+      debugPrint('🔍 Getting candidates for user: ${user.uid}');
+      debugPrint('📊 User has ${user.electionAreas.length} election areas');
+
+      List<Candidate> allCandidates = [];
+
+      for (ElectionArea area in user.electionAreas) {
+        debugPrint('🔍 Searching in area: ${area.type.name} - ${area.wardId}');
+
+        try {
+          final candidates = await getCandidatesByWard(
+            user.districtId ?? '',
+            area.bodyId,
+            area.wardId,
+          );
+          allCandidates.addAll(candidates);
+          debugPrint('✅ Found ${candidates.length} candidates in ${area.wardId}');
+        } catch (e) {
+          debugPrint('⚠️ Error searching in ${area.wardId}: $e');
+          // Continue with other areas even if one fails
+        }
+      }
+
+      debugPrint('✅ Total candidates found: ${allCandidates.length}');
+      return allCandidates;
+    } catch (e) {
+      debugPrint('❌ Error getting candidates for user: $e');
+      throw Exception('Failed to get candidates for user: $e');
+    }
   }
 
   // Get candidates by ward with advanced optimizations
@@ -514,6 +553,7 @@ class CandidateRepository {
         'candidates',
         cachedData.length,
       );
+      monitor.trackCacheHit('candidate_ward');
       monitor.stopTimer('getCandidatesByWard');
       debugPrint(
         '⚡ MULTI_CACHE HIT: Returning ${cachedData.length} cached candidates for ward $wardId',
@@ -1041,11 +1081,32 @@ class CandidateRepository {
       }
 
       final userData = userDoc.data()!;
-      final districtId =
-          userData['districtId'] ??
-          userData['cityId']; // Backward compatibility
-      final bodyId = userData['bodyId'];
-      final wardId = userData['wardId'];
+      String? districtId;
+      String? bodyId;
+      String? wardId;
+
+      // First try to get from direct fields (legacy)
+      districtId = userData['districtId'] ?? userData['cityId']; // Backward compatibility
+      bodyId = userData['bodyId'];
+      wardId = userData['wardId'];
+
+      // If not found, extract from electionAreas (new structure)
+      if ((districtId == null || wardId == null) && userData['electionAreas'] != null) {
+        final electionAreas = userData['electionAreas'] as List;
+        if (electionAreas.isNotEmpty) {
+          // Use the first regular election area, or any area if no regular found
+          final regularArea = electionAreas.firstWhere(
+            (area) => area['type'] == 'regular',
+            orElse: () => electionAreas.first,
+          );
+
+          if (regularArea != null) {
+            districtId ??= userData['districtId'] ?? userData['cityId']; // Still need district from user
+            bodyId ??= regularArea['bodyId'];
+            wardId ??= regularArea['wardId'];
+          }
+        }
+      }
 
       if (districtId == null ||
           wardId == null ||
@@ -1159,56 +1220,208 @@ class CandidateRepository {
     }
   }
 
-  // Fallback brute force search (for backward compatibility)
+  // Optimized brute force search (limited to user's selected district)
   Future<Candidate?> _getCandidateDataBruteForce(String userId) async {
-    debugPrint('🔍 Falling back to brute force search for userId: $userId');
-    final districtsSnapshot = await _firestore
-        .collection('states')
-        .doc(DEFAULT_STATE_ID)
-        .collection('districts')
-        .get();
-    debugPrint('📊 Found ${districtsSnapshot.docs.length} districts to search');
+    debugPrint('🔍 Falling back to targeted brute force search for userId: $userId');
 
-    for (var districtDoc in districtsSnapshot.docs) {
-      debugPrint('🔍 Searching district: ${districtDoc.id}');
-      final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
-      debugPrint(
-        '📊 Found ${bodiesSnapshot.docs.length} bodies in district ${districtDoc.id}',
-      );
+    try {
+      // First try to get user's selected location from their profile
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      String? userStateId;
+      String? userDistrictId;
+      String? userBodyId;
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        userStateId = userData['stateId'] as String?;
+        userDistrictId = userData['districtId'] as String?;
+
+        // Extract location data from electionAreas (new structure)
+        String? userWardId;
+        if (userData['electionAreas'] != null && (userData['electionAreas'] as List).isNotEmpty) {
+          final electionAreas = userData['electionAreas'] as List;
+          final regularArea = electionAreas.firstWhere(
+            (area) => area['type'] == 'regular',
+            orElse: () => electionAreas.first,
+          );
+          if (regularArea != null) {
+            userBodyId = regularArea['bodyId'] as String?;
+            userWardId = regularArea['wardId'] as String?;
+          }
+        }
+
+        // Fallback to direct fields if electionAreas didn't provide data
+        userDistrictId ??= userData['districtId'] ?? userData['cityId'];
+        userBodyId ??= userData['bodyId'];
+        userWardId ??= userData['wardId'];
+
+        debugPrint('🎯 Found user location: State: $userStateId, District: $userDistrictId, Body: $userBodyId, Ward: $userWardId');
+      }
+
+      // If user has selected a district, search only in that district
+      if (userDistrictId != null && userDistrictId.isNotEmpty) {
+        debugPrint('🎯 Searching only in user\'s selected district: $userDistrictId');
+        return await _searchInSpecificDistrict(userId, userDistrictId, userBodyId);
+      }
+
+      // Fallback: Search in user's state (limited scope)
+      final searchStateId = userStateId ?? DEFAULT_STATE_ID;
+      debugPrint('🔍 Searching in user\'s state: $searchStateId');
+
+      final districtsSnapshot = await _firestore
+          .collection('states')
+          .doc(searchStateId)
+          .collection('districts')
+          .limit(5) // Limit to first 5 districts for performance
+          .get();
+      debugPrint('📊 Found ${districtsSnapshot.docs.length} districts to search in $searchStateId (limited to 5)');
+
+      for (var districtDoc in districtsSnapshot.docs) {
+        debugPrint('🔍 Searching district: ${districtDoc.id}');
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').limit(3).get();
+        debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${districtDoc.id} (limited to 3)');
+
+        for (var bodyDoc in bodiesSnapshot.docs) {
+          debugPrint('🔍 Searching body: ${bodyDoc.id} in district ${districtDoc.id}');
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').limit(5).get();
+          debugPrint('📊 Found ${wardsSnapshot.docs.length} wards in ${districtDoc.id}/${bodyDoc.id} (limited to 5)');
+
+          for (var wardDoc in wardsSnapshot.docs) {
+            debugPrint('🔍 Searching ward: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id}');
+            final candidatesSnapshot = await wardDoc.reference
+                .collection('candidates')
+                .where('userId', isEqualTo: userId)
+                .limit(1)
+                .get();
+
+            if (candidatesSnapshot.docs.isNotEmpty) {
+              final doc = candidatesSnapshot.docs.first;
+              final data = doc.data();
+              final candidateData = Map<String, dynamic>.from(data);
+              candidateData['candidateId'] = doc.id;
+
+              // Update user document with district/body/ward info for future use
+              await ensureUserDocumentExists(
+                userId,
+                districtId: districtDoc.id,
+                bodyId: bodyDoc.id,
+                wardId: wardDoc.id,
+              );
+
+              debugPrint('✅ Found candidate via targeted search: ${candidateData['name']} (ID: ${doc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+              return Candidate.fromJson(candidateData);
+            }
+          }
+        }
+      }
+
+      debugPrint('❌ No candidate found via targeted brute force search');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error in targeted brute force search: $e');
+      return null;
+    }
+  }
+
+  // Helper method to search in a specific district
+  Future<Candidate?> _searchInSpecificDistrict(String userId, String districtId, String? bodyId) async {
+    try {
+      debugPrint('🎯 Searching in specific district: $districtId');
+
+      // First get user's ward from their electionAreas
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      String? userWardId;
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        if (userData['electionAreas'] != null && (userData['electionAreas'] as List).isNotEmpty) {
+          final electionAreas = userData['electionAreas'] as List;
+          final regularArea = electionAreas.firstWhere(
+            (area) => area['type'] == 'regular',
+            orElse: () => electionAreas.first,
+          );
+          if (regularArea != null) {
+            userWardId = regularArea['wardId'] as String?;
+          }
+        }
+      }
+
+      if (userWardId == null) {
+        debugPrint('⚠️ User has no ward information, falling back to full search');
+        // Fallback to old method if no ward info
+        return await _searchInSpecificDistrictFull(userId, districtId, bodyId);
+      }
+
+      debugPrint('🎯 User ward: $userWardId, searching only in this ward');
+
+      // If user has selected a specific body, only search in that body
+      final bodyToSearch = bodyId ?? 'pune_m_cop'; // Default fallback
+
+      debugPrint('🔍 Searching in ward: $userWardId in $districtId/$bodyToSearch');
+      final candidatesSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyToSearch)
+          .collection('wards')
+          .doc(userWardId)
+          .collection('candidates')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (candidatesSnapshot.docs.isNotEmpty) {
+        final doc = candidatesSnapshot.docs.first;
+        final data = doc.data();
+        final candidateData = Map<String, dynamic>.from(data);
+        candidateData['candidateId'] = doc.id;
+
+        debugPrint('✅ Found candidate in user\'s ward: ${candidateData['name']} (ID: ${doc.id}) in $districtId/$bodyToSearch/$userWardId');
+        return Candidate.fromJson(candidateData);
+      }
+
+      debugPrint('❌ No candidate found in user\'s ward: $districtId/$bodyToSearch/$userWardId');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error searching in specific district: $e');
+      return null;
+    }
+  }
+
+  // Fallback method for full district search (old behavior)
+  Future<Candidate?> _searchInSpecificDistrictFull(String userId, String districtId, String? bodyId) async {
+    try {
+      debugPrint('🔍 Falling back to full district search: $districtId');
+
+      final bodiesSnapshot = await _firestore
+          .collection('states')
+          .doc(DEFAULT_STATE_ID)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .get();
+
+      debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
 
       for (var bodyDoc in bodiesSnapshot.docs) {
-        debugPrint('🔍 Searching body: ${bodyDoc.id} in district ${districtDoc.id}');
+        // If user has selected a specific body, only search in that body
+        if (bodyId != null && bodyDoc.id != bodyId) {
+          continue;
+        }
+
+        debugPrint('🔍 Searching body: ${bodyDoc.id} in district $districtId');
         final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
-        debugPrint(
-          '📊 Found ${wardsSnapshot.docs.length} wards in ${districtDoc.id}/${bodyDoc.id}',
-        );
+        debugPrint('📊 Found ${wardsSnapshot.docs.length} wards in $districtId/${bodyDoc.id}');
 
         for (var wardDoc in wardsSnapshot.docs) {
-          debugPrint('🔍 Searching ward: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id}');
+          debugPrint('🔍 Searching ward: ${wardDoc.id} in $districtId/${bodyDoc.id}');
           final candidatesSnapshot = await wardDoc.reference
               .collection('candidates')
               .where('userId', isEqualTo: userId)
               .limit(1)
               .get();
-
-          debugPrint(
-            '👤 Found ${candidatesSnapshot.docs.length} candidates in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}',
-          );
-
-          // Debug: Check all candidates in this ward to see their userIds
-          if (candidatesSnapshot.docs.isEmpty) {
-            final allCandidates = await wardDoc.reference
-                .collection('candidates')
-                .get();
-            debugPrint(
-              '📋 Total candidates in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}: ${allCandidates.docs.length}',
-            );
-            for (var doc in allCandidates.docs) {
-              final data = doc.data();
-              final candidateUserId = data['userId'];
-              debugPrint('   Candidate ${doc.id}: userId = $candidateUserId');
-            }
-          }
 
           if (candidatesSnapshot.docs.isNotEmpty) {
             final doc = candidatesSnapshot.docs.first;
@@ -1216,24 +1429,28 @@ class CandidateRepository {
             final candidateData = Map<String, dynamic>.from(data);
             candidateData['candidateId'] = doc.id;
 
-            // Update user document with district/body/ward info for future use
+            // Update user document with body/ward info for future use
             await ensureUserDocumentExists(
               userId,
-              districtId: districtDoc.id,
+              districtId: districtId,
               bodyId: bodyDoc.id,
               wardId: wardDoc.id,
             );
 
-            debugPrint(
-              '✅ Found candidate via brute force: ${candidateData['name']} (ID: ${doc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}',
-            );
+            debugPrint('✅ Found candidate in specific district: ${candidateData['name']} (ID: ${doc.id}) in $districtId/${bodyDoc.id}/${wardDoc.id}');
             return Candidate.fromJson(candidateData);
           }
         }
       }
+
+      debugPrint('❌ No candidate found in specific district: $districtId');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error searching in specific district: $e');
+      return null;
     }
 
-    debugPrint('❌ No candidate found via brute force search');
+    debugPrint('❌ No candidate found via targeted brute force search');
     return null;
   }
 

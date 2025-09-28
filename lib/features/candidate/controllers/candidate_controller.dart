@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
+import '../../../models/user_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../utils/advanced_analytics.dart';
@@ -27,6 +28,75 @@ class CandidateController extends GetxController {
   // Follow/Unfollow state management
   Map<String, bool> followStatus = {}; // candidateId -> isFollowing
   Map<String, bool> followLoading = {}; // candidateId -> isLoading
+
+  // Fetch candidates for a user based on their election areas (NEW METHOD)
+  Future<void> fetchCandidatesForUser(UserModel user) async {
+    debugPrint('🔄 [Controller] Fetching candidates for user: ${user.uid}');
+    debugPrint('📊 User has ${user.electionAreas.length} election areas');
+
+    // Track user interaction
+    _analytics.trackUserInteraction(
+      'fetch_candidates_for_user',
+      'candidate_list_screen',
+      metadata: {
+        'userId': user.uid,
+        'electionAreasCount': user.electionAreas.length,
+        'electionTypes': user.electionAreas.map((e) => e.type.name).toList(),
+      },
+    );
+
+    isLoading = true;
+    errorMessage = null;
+    update();
+
+    final startTime = DateTime.now();
+
+    try {
+      candidates = await _repository.getCandidatesForUser(user);
+
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+
+      debugPrint('✅ [Controller] Found ${candidates.length} candidates for user: ${user.uid}');
+
+      // Track successful operation
+      _analytics.trackPerformanceMetric(
+        'candidate_load_time_for_user',
+        loadTime.toDouble(),
+      );
+      _analytics.trackFirebaseOperation(
+        'read',
+        'candidates',
+        candidates.length,
+        success: true,
+      );
+
+      // Memory management - register for cleanup
+      _memoryManager.registerObject(
+        'user_candidates_${user.uid}',
+        candidates,
+        ttl: Duration(minutes: 15),
+        category: 'user_candidates',
+        metadata: {'count': candidates.length, 'userId': user.uid},
+      );
+    } catch (e) {
+      debugPrint('❌ [Controller] Failed to fetch candidates for user: $e');
+
+      // Track failed operation
+      _analytics.trackFirebaseOperation(
+        'read',
+        'candidates',
+        0,
+        success: false,
+        error: e.toString(),
+      );
+
+      errorMessage = e.toString();
+      candidates = [];
+    }
+
+    isLoading = false;
+    update();
+  }
 
   // Fetch candidates by ward with analytics
   Future<void> fetchCandidatesByWard(

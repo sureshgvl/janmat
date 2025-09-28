@@ -1,5 +1,59 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum ElectionType {
+  regular,
+  zp,
+  ps,
+}
+
+class ElectionArea {
+  final String bodyId;
+  final String wardId;
+  final String? area;
+  final ElectionType type;
+
+  const ElectionArea({
+    required this.bodyId,
+    required this.wardId,
+    this.area,
+    required this.type,
+  });
+
+  factory ElectionArea.fromJson(Map<String, dynamic> json) {
+    return ElectionArea(
+      bodyId: json['bodyId'] ?? '',
+      wardId: json['wardId'] ?? '',
+      area: json['area'],
+      type: ElectionType.values.firstWhere(
+        (e) => e.name == (json['type'] ?? 'regular'),
+        orElse: () => ElectionType.regular,
+      ),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'bodyId': bodyId,
+      'wardId': wardId,
+      'area': area,
+      'type': type.name,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ElectionArea &&
+        other.bodyId == bodyId &&
+        other.wardId == wardId &&
+        other.area == area &&
+        other.type == type;
+  }
+
+  @override
+  int get hashCode => Object.hash(bodyId, wardId, area, type);
+}
+
 class UserModel {
   final String uid;
   final String name;
@@ -8,11 +62,72 @@ class UserModel {
   final String role;
   final bool roleSelected;
   final bool profileCompleted;
-  final String wardId;
   final String? districtId;
   final String? stateId;
-  final String? bodyId;
-  final String? area;
+  final List<ElectionArea> electionAreas;
+
+  // Backward compatibility getters
+  String? get bodyId {
+    if (electionAreas.isNotEmpty) {
+      return electionAreas.first.bodyId;
+    }
+    return null;
+  }
+
+  String? get area {
+    if (electionAreas.isNotEmpty) {
+      return electionAreas.first.area;
+    }
+    return null;
+  }
+
+  String? get zpBodyId {
+    try {
+      return electionAreas.firstWhere((area) => area.type == ElectionType.zp).bodyId;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String? get zpWardId {
+    try {
+      return electionAreas.firstWhere((area) => area.type == ElectionType.zp).wardId;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String? get zpArea {
+    try {
+      return electionAreas.firstWhere((area) => area.type == ElectionType.zp).area;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String? get psBodyId {
+    try {
+      return electionAreas.firstWhere((area) => area.type == ElectionType.ps).bodyId;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String? get psWardId {
+    try {
+      return electionAreas.firstWhere((area) => area.type == ElectionType.ps).wardId;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String? get psArea {
+    try {
+      return electionAreas.firstWhere((area) => area.type == ElectionType.ps).area;
+    } catch (e) {
+      return null;
+    }
+  }
   final int xpPoints;
   final bool premium;
   final String? subscriptionPlanId; // current active subscription
@@ -26,6 +141,14 @@ class UserModel {
   final String? photoURL;
   final int followingCount;
 
+  // Getter to get primary ward ID (for backward compatibility)
+  String get wardId {
+    if (electionAreas.isNotEmpty) {
+      return electionAreas.first.wardId;
+    }
+    return ''; // fallback
+  }
+
   UserModel({
     required this.uid,
     required this.name,
@@ -34,11 +157,9 @@ class UserModel {
     required this.role,
     required this.roleSelected,
     required this.profileCompleted,
-    required this.wardId,
     this.districtId,
     this.stateId,
-    this.bodyId,
-    this.area,
+    this.electionAreas = const [],
     required this.xpPoints,
     required this.premium,
     this.subscriptionPlanId,
@@ -79,6 +200,19 @@ class UserModel {
       }
     }
 
+    // Handle migration from old structure to new structure
+    List<ElectionArea> areas = [];
+
+    if (json.containsKey('electionAreas') && json['electionAreas'] != null) {
+      // New structure
+      areas = (json['electionAreas'] as List<dynamic>?)
+          ?.map((e) => ElectionArea.fromJson(e as Map<String, dynamic>))
+          .toList() ?? [];
+    } else {
+      // Migrate from old structure
+      areas = _migrateFromOldStructure(json);
+    }
+
     return UserModel(
       uid: json['uid'] ?? '',
       name: json['name'] ?? '',
@@ -87,11 +221,9 @@ class UserModel {
       role: json['role'] ?? 'voter',
       roleSelected: json['roleSelected'] ?? false,
       profileCompleted: json['profileCompleted'] ?? false,
-      wardId: json['wardId'] ?? '',
       districtId: json['districtId'],
       stateId: json['stateId'],
-      bodyId: json['bodyId'],
-      area: json['area'],
+      electionAreas: areas,
       xpPoints: json['xpPoints'] ?? 0,
       premium: json['premium'] ?? false,
       subscriptionPlanId: json['subscriptionPlanId'],
@@ -106,6 +238,43 @@ class UserModel {
     );
   }
 
+  // Helper method to migrate from old structure
+  static List<ElectionArea> _migrateFromOldStructure(Map<String, dynamic> json) {
+    List<ElectionArea> areas = [];
+
+    // Migrate regular election area
+    if (json.containsKey('bodyId') && json['bodyId'] != null && json['bodyId'].toString().isNotEmpty) {
+      areas.add(ElectionArea(
+        bodyId: json['bodyId'],
+        wardId: json['wardId'] ?? '',
+        area: json['area'],
+        type: ElectionType.regular,
+      ));
+    }
+
+    // Migrate ZP election area
+    if (json.containsKey('zpBodyId') && json['zpBodyId'] != null && json['zpBodyId'].toString().isNotEmpty) {
+      areas.add(ElectionArea(
+        bodyId: json['zpBodyId'],
+        wardId: json['zpWardId'] ?? '',
+        area: json['zpArea'],
+        type: ElectionType.zp,
+      ));
+    }
+
+    // Migrate PS election area
+    if (json.containsKey('psBodyId') && json['psBodyId'] != null && json['psBodyId'].toString().isNotEmpty) {
+      areas.add(ElectionArea(
+        bodyId: json['psBodyId'],
+        wardId: json['psWardId'] ?? '',
+        area: json['psArea'],
+        type: ElectionType.ps,
+      ));
+    }
+
+    return areas;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
@@ -115,11 +284,9 @@ class UserModel {
       'role': role,
       'roleSelected': roleSelected,
       'profileCompleted': profileCompleted,
-      'wardId': wardId,
       'districtId': districtId,
       'stateId': stateId,
-      'bodyId': bodyId,
-      'area': area,
+      'electionAreas': electionAreas.map((e) => e.toJson()).toList(),
       'xpPoints': xpPoints,
       'premium': premium,
       'subscriptionPlanId': subscriptionPlanId,
@@ -142,11 +309,9 @@ class UserModel {
     String? role,
     bool? roleSelected,
     bool? profileCompleted,
-    String? wardId,
     String? districtId,
     String? stateId,
-    String? bodyId,
-    String? area,
+    List<ElectionArea>? electionAreas,
     int? xpPoints,
     bool? premium,
     String? subscriptionPlanId,
@@ -167,11 +332,9 @@ class UserModel {
       role: role ?? this.role,
       roleSelected: roleSelected ?? this.roleSelected,
       profileCompleted: profileCompleted ?? this.profileCompleted,
-      wardId: wardId ?? this.wardId,
       districtId: districtId ?? this.districtId,
       stateId: stateId ?? this.stateId,
-      bodyId: bodyId ?? this.bodyId,
-      area: area ?? this.area,
+      electionAreas: electionAreas ?? this.electionAreas,
       xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
       subscriptionPlanId: subscriptionPlanId ?? this.subscriptionPlanId,

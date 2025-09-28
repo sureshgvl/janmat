@@ -90,10 +90,8 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
           role: data['role'] ?? 'voter',
           roleSelected: data['roleSelected'] ?? false,
           profileCompleted: data['profileCompleted'] ?? false,
-          wardId: data['wardId'] ?? '',
+          electionAreas: [],
           districtId: data['districtId'] ?? '',
-          bodyId: data['bodyId'] ?? '',
-          area: data['area'],
           xpPoints: data['xpPoints'] ?? 0,
           premium: data['premium'] ?? false,
           createdAt: data['createdAt'] != null

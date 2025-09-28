@@ -185,6 +185,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permanentlyDeleteYourAccountAndData => 'Permanently delete your account and data';
 
   @override
+  String get logout => 'Logout';
+
+  @override
+  String get signOutOfYourAccount => 'Sign out of your account';
+
+  @override
   String get uploadFiles => 'Upload Files';
 
   @override

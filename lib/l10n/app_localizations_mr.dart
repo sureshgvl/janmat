@@ -185,6 +185,12 @@ class AppLocalizationsMr extends AppLocalizations {
   String get permanentlyDeleteYourAccountAndData => 'आपले खाते आणि डेटा कायमची हटवा';
 
   @override
+  String get logout => 'लॉगआउट';
+
+  @override
+  String get signOutOfYourAccount => 'आपल्या खात्यातून साइन आउट करा';
+
+  @override
   String get uploadFiles => 'फायली अपलोड करा';
 
   @override

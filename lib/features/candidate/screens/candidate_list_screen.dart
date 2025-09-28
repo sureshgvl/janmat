@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_controller.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
+import '../../../models/user_model.dart';
 import '../../../utils/debouncer.dart';
 import '../../../widgets/profile/district_selection_modal.dart';
 import '../../../widgets/profile/area_selection_modal.dart';
 import '../../../widgets/profile/ward_selection_modal.dart';
 import '../../../utils/progressive_loader.dart';
+import '../../../utils/maharashtra_utils.dart';
 import '../models/candidate_model.dart';
 import '../widgets/candidate_card.dart';
 
@@ -239,8 +242,10 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     // Cache miss - load from Firestore
     debugPrint('🔄 Loading districts from Firestore');
     try {
-      // Load districts from Firestore
+      // Load districts from Firestore (correct path: states/stateId/districts)
       final districtsSnapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra') // Use the correct state ID
           .collection('districts')
           .get();
       districts = districtsSnapshot.docs.map((doc) {
@@ -248,26 +253,10 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         return District.fromJson({'id': doc.id, ...data});
       }).toList();
 
-      // Load bodies for each district
-      for (final district in districts) {
-        final bodiesSnapshot = await FirebaseFirestore.instance
-            .collection('districts')
-            .doc(district.id)
-            .collection('bodies')
-            .get();
-        districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
-          final data = doc.data();
-          return Body.fromJson({
-            'id': doc.id,
-            'id': district.id,
-            'stateId': 'MH', // Assuming Maharashtra state
-            ...data,
-          });
-        }).toList();
-      }
+      debugPrint('✅ [CANDIDATE_LIST] Loaded ${districts.length} districts');
 
-      // Cache the loaded data
-      await _cacheLocationData();
+      // Don't load bodies upfront - load them on-demand when district is selected
+      // This optimizes performance and reduces unnecessary Firebase calls
 
       setState(() {
         isLoadingDistricts = false;
@@ -288,6 +277,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       if (widget.initialDistrictId != null &&
           districts.any((d) => d.id == widget.initialDistrictId)) {
         setState(() => selectedDistrictId = widget.initialDistrictId);
+
+        // Load bodies for the initial district
+        await _loadBodiesForDistrict(widget.initialDistrictId!);
 
         if (widget.initialBodyId != null &&
             districtBodies[widget.initialDistrictId]?.any(
@@ -324,8 +316,38 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
             }
           }
         }
+      } else {
+        // Try to load candidates for current user if no initial values provided
+        await _loadCandidatesForCurrentUser();
       }
     });
+  }
+
+  // Load candidates for current user based on their election areas
+  Future<void> _loadCandidatesForCurrentUser() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+
+      // Get user data from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final userModel = UserModel.fromJson(userData);
+
+        debugPrint('🔍 Loading candidates for user: ${userModel.uid}');
+        debugPrint('📊 User has ${userModel.electionAreas.length} election areas');
+
+        // Use the new method to fetch candidates for user
+        await controller.fetchCandidatesForUser(userModel);
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading candidates for current user: $e');
+    }
   }
 
   // Debounced search functionality
@@ -417,10 +439,13 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       return;
     }
 
-    debugPrint('🔄 Loading wards from Firestore for $districtId/$bodyId');
+    debugPrint('🔄 [CANDIDATE_LIST] Loading wards from Firestore for $districtId/$bodyId');
+    debugPrint('🔍 [CANDIDATE_LIST] State: maharashtra, District: $districtId, Body: $bodyId');
     try {
       // Load wards for the selected district and body
       final wardsSnapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -430,6 +455,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       final wards = wardsSnapshot.docs.map((doc) {
         final data = doc.data();
+        debugPrint('   Ward: ${doc.id} - ${data['name'] ?? 'No name'}');
         return Ward.fromJson({
           ...data,
           'wardId': doc.id,
@@ -439,6 +465,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       }).toList();
 
       bodyWards[cacheKey] = wards;
+      debugPrint('✅ [CANDIDATE_LIST] Successfully loaded ${wards.length} wards for body $bodyId');
 
       // Update cache
       await _cacheLocationData();
@@ -446,6 +473,45 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       setState(() {});
     } catch (e) {
       debugPrint('Error loading wards: $e');
+    }
+  }
+
+  Future<void> _loadBodiesForDistrict(String districtId) async {
+    // Check if bodies are already loaded for this district
+    if (districtBodies.containsKey(districtId)) {
+      debugPrint('⚡ CACHE HIT: Using cached bodies for district $districtId');
+      return;
+    }
+
+    debugPrint('🔄 [CANDIDATE_LIST] Loading bodies for district $districtId');
+    try {
+      final bodiesSnapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .get();
+
+      debugPrint('📊 [CANDIDATE_LIST] Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
+
+      districtBodies[districtId] = bodiesSnapshot.docs.map((doc) {
+        final data = doc.data();
+        debugPrint('🏢 [CANDIDATE_LIST] Body: ${doc.id} - ${data['name'] ?? 'No name'} (${data['type'] ?? 'No type'})');
+        return Body.fromJson({
+          'id': doc.id,
+          'districtId': districtId,
+          'stateId': 'MH', // Assuming Maharashtra state
+          ...data,
+        });
+      }).toList();
+
+      // Update cache
+      await _cacheLocationData();
+
+      setState(() {});
+    } catch (e) {
+      debugPrint('❌ Error loading bodies for district $districtId: $e');
     }
   }
 
@@ -459,7 +525,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           districts: districts,
           districtBodies: districtBodies,
           selectedDistrictId: selectedDistrictId,
-          onDistrictSelected: (districtId) {
+          onDistrictSelected: (districtId) async {
             setState(() {
               selectedDistrictId = districtId;
               selectedBodyId = null;
@@ -467,6 +533,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
               bodyWards.clear();
             });
             controller.clearCandidates();
+
+            // Load bodies for the selected district
+            await _loadBodiesForDistrict(districtId);
           },
         );
       },
@@ -489,6 +558,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           selectedBodyId: selectedBodyId,
           districtName: districtName,
           onBodySelected: (bodyId) {
+            debugPrint('🎯 [CANDIDATE_LIST] Body selected: $bodyId for district: $selectedDistrictId');
             setState(() {
               selectedBodyId = bodyId;
               selectedWard = null;
@@ -569,7 +639,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                       child: TextField(
                         onChanged: _onSearchChanged,
                         decoration: InputDecoration(
-                          hintText: 'Search candidates by name or party...',
+                          hintText: CandidateLocalizations.of(context)!.searchCandidatesHint,
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
@@ -600,23 +670,21 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                         onTap: () => _showDistrictSelectionModal(context),
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: 'Select District',
+                            labelText: CandidateLocalizations.of(context)!.selectDistrict,
                             border: const OutlineInputBorder(),
                             prefixIcon: const Icon(Icons.location_city),
                             suffixIcon: const Icon(Icons.arrow_drop_down),
                           ),
                           child: selectedDistrictId != null
                               ? Text(
-                                  districts
-                                      .firstWhere(
-                                        (d) =>
-                                            d.id == selectedDistrictId,
-                                      )
-                                      .name,
+                                  MaharashtraUtils.getDistrictDisplayNameV2(
+                                    selectedDistrictId!,
+                                    Localizations.localeOf(context),
+                                  ),
                                   style: const TextStyle(fontSize: 16),
                                 )
-                              : const Text(
-                                  'Select District',
+                              : Text(
+                                  CandidateLocalizations.of(context)!.selectDistrict,
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
@@ -634,7 +702,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                         onTap: () => _showBodySelectionModal(context),
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: 'Select Area (विभाग)',
+                            labelText: CandidateLocalizations.of(context)!.selectArea,
                             border: const OutlineInputBorder(),
                             prefixIcon: const Icon(Icons.business),
                             suffixIcon: const Icon(Icons.arrow_drop_down),
@@ -656,14 +724,14 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                             );
                                     return Text(
                                       body.id.isNotEmpty
-                                          ? '${body.name} (${body.type.toString().split('.').last})'
+                                          ? '${body.name} (${CandidateLocalizations.of(context)!.translateBodyType(body.type.toString().split('.').last)})'
                                           : selectedBodyId!,
                                       style: const TextStyle(fontSize: 16),
                                     );
                                   },
                                 )
-                              : const Text(
-                                  'Select Area (विभाग)',
+                              : Text(
+                                  CandidateLocalizations.of(context)!.selectArea,
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
@@ -687,13 +755,13 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             const SizedBox(width: 12),
                             Text(
                               selectedDistrictId == null
-                                  ? 'Select district first'
+                                  ? CandidateLocalizations.of(context)!.selectDistrictFirst
                                   : districtBodies[selectedDistrictId!] ==
                                             null ||
                                         districtBodies[selectedDistrictId!]!
                                             .isEmpty
-                                  ? 'No areas available in this district'
-                                  : 'Select Area (विभाग)',
+                                  ? CandidateLocalizations.of(context)!.noAreasAvailable
+                                  : CandidateLocalizations.of(context)!.selectArea,
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 16,
@@ -712,7 +780,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                         onTap: () => _showWardSelectionModal(context),
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: 'Select Ward (वॉर्ड)',
+                            labelText: CandidateLocalizations.of(context)!.selectWard,
                             border: const OutlineInputBorder(),
                             prefixIcon: const Icon(Icons.home),
                             suffixIcon: const Icon(Icons.arrow_drop_down),
@@ -734,8 +802,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                     );
                                   },
                                 )
-                              : const Text(
-                                  'Select Ward (वॉर्ड)',
+                              : Text(
+                                  CandidateLocalizations.of(context)!.selectWard,
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
@@ -759,11 +827,11 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             const SizedBox(width: 12),
                             Text(
                               selectedBodyId == null
-                                  ? 'Select area first'
+                                  ? CandidateLocalizations.of(context)!.selectAreaFirst
                                   : bodyWards[wardCacheKey] == null ||
                                         bodyWards[wardCacheKey]!.isEmpty
-                                  ? 'No wards available in this area'
-                                  : 'Select Ward (वॉर्ड)',
+                                  ? CandidateLocalizations.of(context)!.noWardsAvailable
+                                  : CandidateLocalizations.of(context)!.selectWard,
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 16,

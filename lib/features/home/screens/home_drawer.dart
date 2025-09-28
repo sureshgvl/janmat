@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
@@ -11,20 +12,19 @@ import '../../candidate/screens/change_party_symbol_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../monetization/screens/monetization_screen.dart';
 import '../../chat/screens/chat_list_screen.dart';
+import '../../auth/controllers/auth_controller.dart';
 import 'home_navigation.dart';
 
 class HomeDrawer extends StatelessWidget {
   final UserModel? userModel;
   final Candidate? candidateModel;
   final User? currentUser;
-  final Future<void> Function(BuildContext, UserModel?) onDeleteAccount;
 
   const HomeDrawer({
     super.key,
     required this.userModel,
     required this.candidateModel,
     required this.currentUser,
-    required this.onDeleteAccount,
   });
 
   @override
@@ -267,15 +267,47 @@ class HomeDrawer extends StatelessWidget {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            leading: const Icon(Icons.logout, color: Colors.orange),
             title: Text(
-              AppLocalizations.of(context)!.deleteAccount,
-              style: TextStyle(color: Colors.red),
+              AppLocalizations.of(context)!.logout,
+              style: TextStyle(color: Colors.orange),
             ),
             subtitle: Text(
-              AppLocalizations.of(context)!.permanentlyDeleteYourAccountAndData,
+              AppLocalizations.of(context)!.signOutOfYourAccount,
             ),
-            onTap: () => onDeleteAccount(context, userModel),
+            onTap: () async {
+              // Show confirmation dialog
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
+                        child: const Text('Logout'),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (shouldLogout == true) {
+                // Close drawer first
+                Navigator.of(context).pop();
+                // Then logout
+                final authController = Get.find<AuthController>();
+                await authController.logout();
+              }
+            },
           ),
         ],
       ),

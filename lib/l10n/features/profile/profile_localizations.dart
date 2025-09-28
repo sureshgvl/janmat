@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import '../../../models/body_model.dart';
 
 class ProfileLocalizations {
   final Locale locale;
@@ -129,6 +128,48 @@ class ProfileLocalizations {
   String get viewWardAreas => translate('viewWardAreas');
   String get searchWards => translate('searchWards');
   String get wardAreasTitle => translate('wardAreasTitle');
+
+  // ZP+PS Election strings
+  String get selectElectionType => translate('selectElectionType');
+  String get electionTypeRequired => translate('electionTypeRequired');
+  String get municipalCorporation => translate('municipalCorporation');
+  String get municipalCouncil => translate('municipalCouncil');
+  String get nagarPanchayat => translate('nagarPanchayat');
+  String get zillaParishad => translate('zillaParishad');
+  String get panchayatSamiti => translate('panchayatSamiti');
+  String get zpPsCombined => translate('zpPsCombined');
+  String get regularElection => translate('regularElection');
+  String get zpBodyRequired => translate('zpBodyRequired');
+  String get selectZPBody => translate('selectZPBody');
+  String get zpWardRequired => translate('zpWardRequired');
+  String get selectZPWard => translate('selectZPWard');
+  String get zpAreaRequired => translate('zpAreaRequired');
+  String get selectZPArea => translate('selectZPArea');
+  String get psBodyRequired => translate('psBodyRequired');
+  String get selectPSBody => translate('selectPSBody');
+  String get psWardRequired => translate('psWardRequired');
+  String get selectPSWard => translate('selectPSWard');
+  String get psAreaRequired => translate('psAreaRequired');
+  String get selectPSArea => translate('selectPSArea');
+  String get selectElectionTypeFirst => translate('selectElectionTypeFirst');
+  String get selectZPBodyFirst => translate('selectZPBodyFirst');
+  String get selectPSBodyFirst => translate('selectPSBodyFirst');
+  String get noZPBodiesAvailable => translate('noZPBodiesAvailable');
+  String get noPSBodiesAvailable => translate('noPSBodiesAvailable');
+  String get noZPWardsAvailable => translate('noZPWardsAvailable');
+  String get noPSWardsAvailable => translate('noPSWardsAvailable');
+  String get zpAreaLabel => translate('zpAreaLabel');
+  String get psAreaLabel => translate('psAreaLabel');
+  String get selectZPWardLabel => translate('selectZPWardLabel');
+  String get selectPSWardLabel => translate('selectPSWardLabel');
+  String get selectZPAreaLabel => translate('selectZPAreaLabel');
+  String get selectPSAreaLabel => translate('selectPSAreaLabel');
+  String zpWardDisplayFormat(String id) => translate('zpWardDisplayFormat', args: {'id': id});
+  String psWardDisplayFormat(String id) => translate('psWardDisplayFormat', args: {'id': id});
+  String get combinedElectionDescription => translate('combinedElectionDescription');
+  String get regularElectionDescription => translate('regularElectionDescription');
+  String get selectPoliticalParty => translate('selectPoliticalParty');
+  String get selectYourPoliticalParty => translate('selectYourPoliticalParty');
 
 }
 

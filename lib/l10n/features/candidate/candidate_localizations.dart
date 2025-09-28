@@ -90,6 +90,50 @@ class CandidateLocalizations {
   String get gender => translate('gender');
   String get education => translate('education');
   String get address => translate('address');
+  String get selectDistrict => translate('selectDistrict');
+  String get selectArea => translate('selectArea');
+  String get selectWard => translate('selectWard');
+  String get searchCandidatesHint => translate('searchCandidatesHint');
+  String get selectDistrictFirst => translate('selectDistrictFirst');
+  String get noAreasAvailable => translate('noAreasAvailable');
+  String get selectAreaFirst => translate('selectAreaFirst');
+  String get noWardsAvailable => translate('noWardsAvailable');
+  String get selectWardFirst => translate('selectWardFirst');
+  String get municipalCorporation => translate('municipalCorporation');
+  String get municipalCouncil => translate('municipalCouncil');
+  String get nagarPanchayat => translate('nagarPanchayat');
+  String get zillaParishad => translate('zillaParishad');
+  String get panchayatSamiti => translate('panchayatSamiti');
+  String get cantonmentBoard => translate('cantonmentBoard');
+  String get townAreaCommittee => translate('townAreaCommittee');
+  String get notifiedAreaCommittee => translate('notifiedAreaCommittee');
+  String get industrialTownship => translate('industrialTownship');
+
+  // Helper method to translate body types
+  String translateBodyType(String bodyType) {
+    switch (bodyType) {
+      case 'municipal_corporation':
+        return municipalCorporation;
+      case 'municipal_council':
+        return municipalCouncil;
+      case 'nagar_panchayat':
+        return nagarPanchayat;
+      case 'zilla_parishad':
+        return zillaParishad;
+      case 'panchayat_samiti':
+        return panchayatSamiti;
+      case 'cantonment_board':
+        return cantonmentBoard;
+      case 'town_area_committee':
+        return townAreaCommittee;
+      case 'notified_area_committee':
+        return notifiedAreaCommittee;
+      case 'industrial_township':
+        return industrialTownship;
+      default:
+        return bodyType; // Fallback to original if not found
+    }
+  }
 }
 
 class _CandidateLocalizationsDelegate extends LocalizationsDelegate<CandidateLocalizations> {

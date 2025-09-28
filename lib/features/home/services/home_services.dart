@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../candidate/repositories/candidate_repository.dart';
+import '../../candidate/controllers/candidate_data_controller.dart';
 
 class HomeServices {
-  final CandidateRepository _candidateRepository = CandidateRepository();
 
   Future<Map<String, dynamic>> getUserData(String? uid) async {
     // Check if user is authenticated before attempting to fetch data
@@ -43,19 +43,25 @@ class HomeServices {
       final userData = userDoc.data() as Map<String, dynamic>;
       userModel = UserModel.fromJson(userData);
 
-      // If user is a candidate, fetch candidate data from hierarchical structure
-      if (userModel.role == 'candidate') {
+      // Get candidate data from CandidateDataController if available
+      if (userModel.profileCompleted && userModel.role == 'candidate') {
         try {
-          candidateModel = await _candidateRepository.getCandidateData(uid);
-          debugPrint(
-            '🏛️ Home Screen: Fetched candidate data for ${userModel.name}',
-          );
-          debugPrint('   Party: ${candidateModel?.party ?? 'No party data'}');
-          debugPrint('   Symbol path: ${candidateModel?.party ?? ''}');
+          // Try to get candidate data from the controller if it's already loaded
+          final candidateController = Get.find<CandidateDataController>();
+          if (candidateController.candidateData.value != null) {
+            candidateModel = candidateController.candidateData.value;
+            debugPrint(
+              '🏛️ Home Screen: Using cached candidate data for ${userModel.name}',
+            );
+          } else {
+            debugPrint('⏭️ Candidate data not yet loaded in controller, will be loaded separately');
+          }
         } catch (e) {
-          debugPrint('❌ Error fetching candidate data: $e');
+          debugPrint('⚠️ Could not get candidate data from controller: $e');
           // Continue without candidate data if there's an error
         }
+      } else {
+        debugPrint('⏭️ Skipping candidate data - profile not completed or user is not a candidate');
       }
     }
 

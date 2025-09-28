@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../auth/repositories/auth_repository.dart';
-import '../../auth/controllers/auth_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
+import '../../candidate/controllers/candidate_data_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
-import '../../monetization/controllers/monetization_controller.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../services/home_services.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
 import 'home_actions.dart';
+import '../../candidate/controllers/candidate_data_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
   bool _shouldRefreshData = false;
-  bool _isLoggingOut = false; // Add loading state for logout
   int _refreshCounter = 0; // Add counter to force future refresh
 
   @override
@@ -80,143 +78,69 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // User is authenticated, proceed with normal UI
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.home),
-        actions: [
-          //logout
-          IconButton(
-            icon: _isLoggingOut
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.logout),
-            tooltip: _isLoggingOut ? 'Logging out...' : 'Logout',
-            onPressed: _isLoggingOut
-                ? null
-                : () async {
-                    debugPrint('🔘 Logout button pressed');
-                    setState(() => _isLoggingOut = true);
-
-                    try {
-                      final authRepository = AuthRepository();
-                      await authRepository.signOut();
-
-                      // Delete all controllers to prevent state persistence between users
-                      try {
-                        if (Get.isRegistered<CandidateController>()) {
-                          Get.delete<CandidateController>();
-                          debugPrint('✅ CandidateController deleted');
-                        }
-                        if (Get.isRegistered<ChatController>()) {
-                          Get.delete<ChatController>();
-                          debugPrint('✅ ChatController deleted');
-                        }
-                        if (Get.isRegistered<MonetizationController>()) {
-                          Get.delete<MonetizationController>();
-                          debugPrint('✅ MonetizationController deleted');
-                        }
-                        if (Get.isRegistered<AuthController>()) {
-                          Get.delete<AuthController>();
-                          debugPrint('✅ AuthController deleted');
-                        }
-                      } catch (e) {
-                        debugPrint('⚠️ Could not delete controllers: $e');
-                      }
-
-                      // Reset login controller state (if available) - but since we deleted it, this is not needed
-                      // The controller will be recreated when needed
-
-                      // Small delay to ensure auth state change has propagated
-                      await Future.delayed(const Duration(milliseconds: 500));
-
-                      // Force navigation to login screen
-                      Get.offAllNamed('/login');
-                    } catch (e) {
-                      debugPrint('❌ Logout failed: $e');
-                      Get.snackbar(
-                        AppLocalizations.of(context)!.error,
-                        AppLocalizations.of(
-                          context,
-                        )!.failedToLogout(e.toString()),
-                      );
-                    } finally {
-                      if (mounted) {
-                        setState(() => _isLoggingOut = false);
-                      }
-                    }
-                  },
+    return GetBuilder<CandidateDataController>(
+      init: CandidateDataController(),
+      builder: (candidateController) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context)!.home),
           ),
-        ],
-      ),
-      drawer: FutureBuilder<Map<String, dynamic>>(
-        future: _homeServices.getUserData(currentUser.uid), // User is guaranteed to be non-null here
-        key: ValueKey('drawer_${currentUser.uid}_$_refreshCounter'), // Force rebuild with counter
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          drawer: FutureBuilder<Map<String, dynamic>>(
+            future: _homeServices.getUserData(currentUser.uid),
+            key: ValueKey('drawer_${currentUser.uid}_$_refreshCounter'),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          UserModel? userModel;
-          Candidate? candidateModel;
+              UserModel? userModel;
+              Candidate? candidateModel = candidateController.candidateData.value;
 
-          if (snapshot.hasData) {
-            userModel = snapshot.data!['user'];
-            candidateModel = snapshot.data!['candidate'];
-          }
+              if (snapshot.hasData) {
+                userModel = snapshot.data!['user'];
+              }
 
-          return HomeDrawer(
-            userModel: userModel,
-            candidateModel: candidateModel,
-            currentUser: currentUser,
-            onDeleteAccount: (context, userModel) async =>
-                await HomeActions.showDeleteAccountDialog(
-                  context,
-                  userModel,
-                  AppLocalizations.of(context)!,
-                ),
-          );
-        },
-      ),
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: () async {
-          // Force refresh by incrementing counter to create new future
-          setState(() {
-            _refreshCounter++;
-          });
-          // Add a small delay to show the refresh indicator
-          await Future.delayed(const Duration(milliseconds: 500));
-        },
-        child: FutureBuilder<Map<String, dynamic>>(
-          future: _homeServices.getUserData(currentUser.uid), // User is guaranteed to be non-null here
-          key: ValueKey('body_${currentUser.uid}_$_refreshCounter'), // Force rebuild with counter
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+              return HomeDrawer(
+                userModel: userModel,
+                candidateModel: candidateModel,
+                currentUser: currentUser,
+              );
+            },
+          ),
+          body: RefreshIndicator(
+            key: _refreshIndicatorKey,
+            onRefresh: () async {
+              setState(() {
+                _refreshCounter++;
+              });
+              await candidateController.refreshCandidateData();
+              await Future.delayed(const Duration(milliseconds: 500));
+            },
+            child: FutureBuilder<Map<String, dynamic>>(
+              future: _homeServices.getUserData(currentUser.uid),
+              key: ValueKey('body_${currentUser.uid}_$_refreshCounter'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            UserModel? userModel;
-            Candidate? candidateModel;
+                UserModel? userModel;
+                Candidate? candidateModel = candidateController.candidateData.value;
 
-            if (snapshot.hasData) {
-              userModel = snapshot.data!['user'];
-              candidateModel = snapshot.data!['candidate'];
-            }
+                if (snapshot.hasData) {
+                  userModel = snapshot.data!['user'];
+                }
 
-            return HomeBody(
-              userModel: userModel,
-              candidateModel: candidateModel,
-              currentUser: currentUser,
-            );
-          },
-        ),
-      ),
+                return HomeBody(
+                  userModel: userModel,
+                  candidateModel: candidateModel,
+                  currentUser: currentUser,
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

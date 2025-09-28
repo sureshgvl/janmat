@@ -224,12 +224,14 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                       final district = filteredDistricts[index];
                       final isSelected =
                           widget.selectedDistrictId == district.id;
+                      // Since bodies are loaded on-demand, don't disable districts
+                      // that haven't had their bodies loaded yet
                       final hasBodies =
                           widget
                               .districtBodies[district.id]
                               ?.isNotEmpty ??
                           false;
-                      final isDisabled = !hasBodies;
+                      final isDisabled = false; // Always enable districts
 
                       // Log what gets displayed for each district
                       final displayName = MaharashtraUtils.getDistrictDisplayNameV2(
@@ -257,15 +259,11 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Colors.blue.shade50
-                                : isDisabled
-                                ? Colors.grey.shade100
                                 : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
                                   ? Colors.blue.shade200
-                                  : isDisabled
-                                  ? Colors.grey.shade300
                                   : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
@@ -283,9 +281,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                             children: [
                               Icon(
                                 Icons.location_city,
-                                color: isDisabled
-                                    ? Colors.grey.shade400
-                                    : Colors.blue,
+                                color: Colors.blue,
                                 size: 24,
                               ),
                               const SizedBox(width: 16),
@@ -303,8 +299,6 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                         fontWeight: FontWeight.w600,
                                         color: isSelected
                                             ? Colors.blue.shade800
-                                            : isDisabled
-                                            ? Colors.grey.shade500
                                             : Colors.black87,
                                       ),
                                     ),
@@ -315,33 +309,9 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                                           district.id.toUpperCase(),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: isDisabled
-                                                ? Colors.grey.shade400
-                                                : Colors.grey.shade600,
+                                            color: Colors.grey.shade600,
                                           ),
                                         ),
-                                        if (isDisabled) ...[
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red.shade100,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              'No Areas',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.red.shade700,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
                                       ],
                                     ),
                                   ],

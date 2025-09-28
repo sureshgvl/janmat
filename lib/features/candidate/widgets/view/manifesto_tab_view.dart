@@ -32,6 +32,7 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
   bool get wantKeepAlive => true;
 
   late final CandidateDataController? _dataController;
+  final ScrollController _scrollController = ScrollController();
 
   // Voter interaction state
   bool _isLiked = false;
@@ -57,6 +58,13 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     } else {
       _dataController = null;
     }
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _toggleLike() {
@@ -301,7 +309,9 @@ Read their complete manifesto and learn about their vision at: [Your App URL]
         displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
 
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
+      physics: const ClampingScrollPhysics(), // Prevent overscroll that causes setState during build
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

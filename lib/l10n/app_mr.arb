@@ -55,6 +55,8 @@
   "upgradeToUnlockPremiumFeatures": "प्रीमियम वैशिष्ट्ये अनलॉक करण्यासाठी अपग्रेड करा",
   "deleteAccount": "खाते हटवा",
   "permanentlyDeleteYourAccountAndData": "आपले खाते आणि डेटा कायमची हटवा",
+  "logout": "लॉगआउट",
+  "signOutOfYourAccount": "आपल्या खात्यातून साइन आउट करा",
   "uploadFiles": "फायली अपलोड करा",
   "uploadPdf": "PDF अपलोड करा",
   "pdfFileLimit": "PDF फाइल मर्यादा",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_achievement_model.dart';
 import '../repositories/candidate_repository.dart';
@@ -50,6 +51,25 @@ class CandidateDataController extends GetxController {
 
     isLoading.value = true;
     try {
+      // First check if user has completed their profile
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        debugPrint('⏭️ User document not found, skipping candidate data fetch');
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final profileCompleted = userData['profileCompleted'] ?? false;
+
+      if (!profileCompleted) {
+        debugPrint('⏭️ Profile not completed, skipping candidate data fetch');
+        return;
+      }
+
       final data = await _candidateRepository.getCandidateData(user.uid);
       if (data != null) {
         candidateData.value = data;

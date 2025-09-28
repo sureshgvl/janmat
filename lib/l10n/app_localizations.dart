@@ -431,6 +431,18 @@ abstract class AppLocalizations {
   /// **'Permanently delete your account and data'**
   String get permanentlyDeleteYourAccountAndData;
 
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get logout;
+
+  /// No description provided for @signOutOfYourAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of your account'**
+  String get signOutOfYourAccount;
+
   /// No description provided for @uploadFiles.
   ///
   /// In en, this message translates to:

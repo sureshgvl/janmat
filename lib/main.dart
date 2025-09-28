@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -46,9 +47,10 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize background services for zero frame skipping
+  // Initialize background services asynchronously for better performance
   final backgroundInit = BackgroundInitializer();
-  await backgroundInit.initializeAllServices();
+  // Run in parallel with other initializations
+  final backgroundInitFuture = backgroundInit.initializeAllServices();
 
   // CRITICAL: Initialize Firebase BEFORE creating any controllers
   startPerformanceTimer('firebase_init');
@@ -57,149 +59,102 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Enable Firestore offline persistence with optimized settings
-    try {
-      FirebaseFirestore.instance.settings = const Settings(
-        persistenceEnabled: true,
-        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-        // Enable local cache for better offline performance
-        host: null, // Use default host
-        sslEnabled: true,
-      );
-
-      // Configure offline cache persistence for better performance
-      // Note: Persistence is now enabled via Settings above
-      debugPrint('ℹ️ Firestore persistence configured via Settings');
-
-      debugPrint('✅ Firestore offline persistence enabled with optimizations');
-    } catch (e) {
-      debugPrint('⚠️ Failed to enable Firestore offline persistence: $e');
-    }
-
-    // Initialize Firebase App Check with improved error handling and graceful degradation
-    bool appCheckEnabled = false;
-    try {
-      // For now, disable App Check entirely to prevent the repeated token failures
-      // This is a temporary measure until App Check can be properly configured
-      debugPrint('ℹ️ Firebase App Check temporarily disabled to prevent token failures');
-      debugPrint('ℹ️ App will function normally but with reduced security for Firebase operations');
-
-      // TODO: Re-enable App Check once properly configured in Firebase console
-      // if (kDebugMode) {
-      //   await FirebaseAppCheck.instance.activate(
-      //     androidProvider: AndroidProvider.debug,
-      //     appleProvider: AppleProvider.appAttest,
-      //   );
-      //   appCheckEnabled = true;
-      //   debugPrint('✅ Firebase App Check activated successfully (debug mode)');
-      // } else {
-      //   // Release mode App Check configuration would go here
-      // }
-
-      appCheckEnabled = false;
-    } catch (e) {
-      debugPrint('⚠️ Firebase App Check initialization failed: $e');
-      appCheckEnabled = false;
-    }
-
-    if (!appCheckEnabled) {
-      debugPrint('ℹ️ App Check disabled - Firebase operations will work without security tokens');
-      debugPrint('ℹ️ This is normal for development and will be re-enabled in production');
-    }
-
-    // Configure Firebase for development (suppresses App Check warnings)
-    if (kDebugMode) {
-      // In debug mode, we can safely ignore App Check warnings
-      // as they don't affect functionality, just show warnings
-      debugPrint('🔧 Firebase configured for development mode');
-      debugPrint(
-        'ℹ️ App Check warnings are normal in development and can be ignored',
-      );
-    }
-
-    debugPrint(
-      '✅ Firebase initialized synchronously for controller compatibility',
+    // Configure Firestore with optimized settings (non-blocking)
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      host: null,
+      sslEnabled: true,
     );
+    debugPrint('✅ Firestore configured with optimizations');
 
-    // Initialize Firebase optimization systems
-    startPerformanceTimer('optimizations_init');
-    try {
-      // Initialize error recovery system
-      final errorRecovery = ErrorRecoveryManager();
-      debugPrint('✅ Error recovery system initialized');
-
-      // Initialize analytics system
-      final analytics = AdvancedAnalyticsManager();
-      debugPrint('✅ Advanced analytics system initialized');
-
-      // Initialize memory management system
-      final memoryManager = MemoryManager();
-      debugPrint('✅ Memory management system initialized');
-
-      // Initialize multi-level caching system
-      final cache = MultiLevelCache();
-      debugPrint('✅ Multi-level cache system initialized');
-
-      // Initialize A/B testing framework
-      final abTesting = ABTestingFramework();
-      debugPrint('✅ A/B testing framework initialized');
-
-      // Initialize data compression system
-      final dataCompression = DataCompressionManager();
-      debugPrint('✅ Data compression system initialized');
-
-      // Start user session tracking if user is logged in
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        analytics.startUserSession(
-          currentUser.uid,
-          'unknown',
-        ); // Role will be updated when loaded
-        debugPrint('✅ User session tracking started for: ${currentUser.uid}');
-      }
-
-      // Warm up cache with essential data
-      await cache.warmup([
-        'app_config',
-        'user_settings',
-        'districts_list',
-        'cities_list',
-      ]);
-      debugPrint('✅ Cache warmup completed');
-    } catch (e) {
-      debugPrint('⚠️ Optimization system initialization failed: $e');
-      // Continue with app startup even if optimizations fail
-    }
-    stopPerformanceTimer('optimizations_init');
-
-    // Initialize background sync manager
-    try {
-      final syncManager = BackgroundSyncManager();
-      syncManager.initialize();
-      debugPrint('✅ Background sync manager initialized');
-    } catch (e) {
-      debugPrint('⚠️ Background sync manager initialization failed: $e');
-    }
-
-    // Analyze and cleanup storage on app startup
-    try {
-      final authRepository = AuthRepository();
-      await authRepository.analyzeAndCleanupStorage();
-    } catch (e) {
-      debugPrint('ℹ️ Storage analysis failed: $e');
-    }
+    debugPrint('✅ Firebase initialized');
   } catch (e) {
     debugPrint('❌ Firebase initialization failed: $e');
   }
   stopPerformanceTimer('firebase_init');
 
-  // Check for app updates
-  await checkForUpdate();
+  // Initialize essential services in parallel
+  startPerformanceTimer('services_init');
+  try {
+    final futures = <Future>[];
+
+    // Initialize optimization systems in parallel
+    futures.add(Future(() async {
+      final errorRecovery = ErrorRecoveryManager();
+      debugPrint('✅ Error recovery system initialized');
+    }));
+
+    futures.add(Future(() async {
+      final analytics = AdvancedAnalyticsManager();
+      debugPrint('✅ Advanced analytics system initialized');
+    }));
+
+    futures.add(Future(() async {
+      final memoryManager = MemoryManager();
+      debugPrint('✅ Memory management system initialized');
+    }));
+
+    futures.add(Future(() async {
+      final cache = MultiLevelCache();
+      debugPrint('✅ Multi-level cache system initialized');
+    }));
+
+    futures.add(Future(() async {
+      final abTesting = ABTestingFramework();
+      debugPrint('✅ A/B testing framework initialized');
+    }));
+
+    futures.add(Future(() async {
+      final dataCompression = DataCompressionManager();
+      debugPrint('✅ Data compression system initialized');
+    }));
+
+    // Wait for background init to complete
+    await backgroundInitFuture;
+
+    // Initialize background sync manager (non-blocking)
+    Future(() async {
+      try {
+        final syncManager = BackgroundSyncManager();
+        syncManager.initialize();
+        debugPrint('✅ Background sync manager initialized');
+      } catch (e) {
+        debugPrint('⚠️ Background sync manager initialization failed: $e');
+      }
+    });
+
+    // Wait for essential services to complete
+    await Future.wait(futures);
+
+    // Start user session tracking if user is logged in (non-blocking)
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      Future(() async {
+        final analytics = AdvancedAnalyticsManager();
+        analytics.startUserSession(currentUser.uid, 'unknown');
+        debugPrint('✅ User session tracking started for: ${currentUser.uid}');
+      });
+    }
+
+  } catch (e) {
+    debugPrint('⚠️ Services initialization failed: $e');
+  }
+  stopPerformanceTimer('services_init');
+
+  // Check for app updates (run in background, don't block startup)
+  Future(() async {
+    try {
+      await checkForUpdate();
+    } catch (e) {
+      debugPrint('Update check failed: $e');
+    }
+  });
 
   stopPerformanceTimer('app_startup');
 
-  // Log performance report in debug mode
-  logPerformanceReport();
+  // Log performance report in debug mode (non-blocking)
+  Future(() => logPerformanceReport());
 
   runApp(const MyApp());
 }
@@ -382,23 +337,62 @@ class MyApp extends StatelessWidget {
     }
 
     // For authenticated users, check their completion status
-    // This needs to be fast to avoid blocking the UI
+    // OPTIMIZATION: Use cached user data if available, otherwise fetch quickly
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      // Try to get from cache first (much faster)
+      final cache = MultiLevelCache();
+      final cachedUserData = await cache.get<Map<String, dynamic>>('user_${currentUser.uid}');
 
-      if (userDoc.exists) {
-        final userData = userDoc.data()!;
+      Map<String, dynamic>? userData;
+      if (cachedUserData != null) {
+        userData = cachedUserData;
+        debugPrint('⚡ Using cached user data for initial route determination');
+      } else {
+        // Fallback to Firestore query with timeout to prevent blocking
+        final userDocFuture = FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+
+        // Add timeout to prevent blocking UI for too long
+        final userDoc = await userDocFuture.timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            debugPrint('⏰ User data fetch timed out, using defaults');
+            throw TimeoutException('User data fetch timed out');
+          },
+        );
+
+        if (userDoc != null && userDoc.exists) {
+          userData = userDoc.data()!;
+          // Cache for future use
+          await cache.set('user_${currentUser.uid}', userData, ttl: Duration(minutes: 5));
+        }
+      }
+
+      if (userData != null) {
+        debugPrint('🔍 Raw user data: $userData');
+
         final role = userData['role'] as String? ?? '';
         final districtId = userData['districtId'] as String? ?? '';
-        final bodyId = userData['bodyId'] as String? ?? '';
-        final wardId = userData['wardId'] as String? ?? '';
 
-        debugPrint(
-          '🔍 User state check - Role: "$role", District: "$districtId", Body: "$bodyId", Ward: "$wardId"',
-        );
+        // Extract location data from electionAreas (new structure)
+        String bodyId = '';
+        String wardId = '';
+        if (userData['electionAreas'] != null && (userData['electionAreas'] as List).isNotEmpty) {
+          final electionAreas = userData['electionAreas'] as List;
+          final regularArea = electionAreas.firstWhere(
+            (area) => area['type'] == 'regular',
+            orElse: () => electionAreas.first,
+          );
+
+          if (regularArea != null) {
+            bodyId = regularArea['bodyId'] ?? '';
+            wardId = regularArea['wardId'] ?? '';
+          }
+        }
+
+        debugPrint('🔍 User state check - Role: "$role", District: "$districtId", Body: "$bodyId", Ward: "$wardId"');
 
         // Step 1: Check if role is selected
         if (role.isEmpty) {
@@ -412,9 +406,7 @@ class MyApp extends StatelessWidget {
 
         if (!profileCompleted) {
           // Profile not completed, go to profile completion
-          debugPrint(
-            '🎯 Redirecting to profile completion - profile not completed',
-          );
+          debugPrint('🎯 Redirecting to profile completion - profile not completed');
           return {
             'route': '/profile-completion',
             'locale': locale,
@@ -424,9 +416,6 @@ class MyApp extends StatelessWidget {
 
         // Step 3: Profile is completed, go to home for all users
         debugPrint('✅ Profile completed, redirecting to home');
-
-        // All checks passed - user can go to home
-        debugPrint('✅ All user checks passed - redirecting to home');
         return {'route': '/home', 'locale': locale};
       } else {
         debugPrint('⚠️ User document not found - redirecting to login');

@@ -9,12 +9,9 @@ import '../../../models/user_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/state_model.dart' as state_model;
 import '../../candidate/models/candidate_model.dart';
-import '../../candidate/models/candidate_party_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
-import '../../candidate/repositories/candidate_party_repository.dart';
-import '../../../utils/symbol_utils.dart';
 import '../../../utils/add_sample_states.dart';
 
 class ProfileCompletionController extends GetxController {
@@ -26,7 +23,6 @@ class ProfileCompletionController extends GetxController {
   final AuthController loginController = Get.find<AuthController>();
   final ChatController chatController = Get.find<ChatController>();
   final candidateRepository = CandidateRepository();
-  final partyRepository = PartyRepository();
 
   // Form controllers
   final nameController = TextEditingController();
@@ -39,17 +35,25 @@ class ProfileCompletionController extends GetxController {
   String? selectedBodyId;
   Ward? selectedWard;
   String? selectedArea;
-  Party? selectedParty;
+  // ZP+PS Election fields
+  String? selectedElectionType; // 'regular' or 'zp_ps_combined'
+  String? selectedZPBodyId; // Zilla Parishad body ID
+  String? selectedZPWardId; // Zilla Parishad ward ID
+  String? selectedZPArea; // Zilla Parishad area
+  String? selectedPSBodyId; // Panchayat Samiti body ID
+  String? selectedPSWardId; // Panchayat Samiti ward ID
+  String? selectedPSArea; // Panchayat Samiti area
+
+  // Party selection for candidates
+  String? selectedPartyId;
 
   // Data collections
   List<District> districts = [];
   Map<String, List<Body>> districtBodies = {};
   Map<String, List<Ward>> bodyWards = {};
-  List<Party> parties = [];
   List<state_model.State> states = [];
   bool isLoading = false;
   bool isLoadingDistricts = true;
-  bool isLoadingParties = true;
   bool isLoadingStates = true;
   bool isNamePreFilled = false;
   bool isPhonePreFilled = false;
@@ -89,9 +93,8 @@ class ProfileCompletionController extends GetxController {
     // Add a small delay to ensure Firebase auth is fully initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        loadStates();
-        loadDistricts();
-        loadParties();
+        loadStates(); // Load only states initially
+        // Removed loadParties() - not needed in profile completion UI
         loadUserRole();
         preFillUserData();
       });
@@ -239,6 +242,11 @@ class ProfileCompletionController extends GetxController {
       if (maharashtraState.id.isNotEmpty) {
         selectedStateId = maharashtraState.id;
         debugPrint('✅ Default state set to: ${maharashtraState.name}');
+
+        // Automatically load districts for the default state
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          loadDistrictsForState(maharashtraState.id);
+        });
       }
 
       isLoadingStates = false;
@@ -253,108 +261,51 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  Future<void> loadDistricts() async {
+  // Optimized: Load districts only for selected state
+  Future<void> loadDistrictsForState(String stateId) async {
     const int maxRetries = 3;
     int retryCount = 0;
 
     while (retryCount < maxRetries) {
       try {
-        // Ensure user is authenticated before making the query
-        final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser == null) {
-          debugPrint(
-            '⚠️ No authenticated user found, waiting for authentication...',
-          );
-          // Wait for authentication to be established
-          await Future.delayed(const Duration(seconds: 2));
-          final retryUser = FirebaseAuth.instance.currentUser;
-          if (retryUser == null) {
-            throw Exception('User not authenticated');
-          }
-        }
-
-        debugPrint(
-          '🔍 Loading districts for user: ${currentUser?.uid} (attempt ${retryCount + 1})',
-        );
-
-        // Load districts from Firestore (state-based structure)
-        if (selectedStateId == null) {
-          throw Exception('No state selected');
-        }
+        debugPrint('🔍 Loading districts for state: $stateId (attempt ${retryCount + 1})');
 
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('states')
-            .doc(selectedStateId!)
+            .doc(stateId)
             .collection('districts')
             .get();
 
-        debugPrint(
-          '📊 Found ${districtsSnapshot.docs.length} districts in Firestore',
-        );
+        debugPrint('📊 Found ${districtsSnapshot.docs.length} districts in state $stateId');
+
+        // Clear previous data
+        districts.clear();
+        districtBodies.clear();
 
         districts = districtsSnapshot.docs.map((doc) {
           final data = doc.data();
           debugPrint('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
-          debugPrint('📊 Loaded district data: $data');
-          return District.fromJson({'id': doc.id, 'stateId': selectedStateId!, ...data});
+          return District.fromJson({'id': doc.id, 'stateId': stateId, ...data});
         }).toList();
 
-        // Log all loaded districts
-        debugPrint('✅ Loaded ${districts.length} districts from Firestore:');
-        for (final district in districts) {
-          debugPrint('  - ID: ${district.id}, Name: ${district.name}');
-        }
-
-        // Load bodies for each district
-        for (final district in districts) {
-          final bodiesSnapshot = await FirebaseFirestore.instance
-              .collection('states')
-              .doc(selectedStateId!)
-              .collection('districts')
-              .doc(district.id)
-              .collection('bodies')
-              .get();
-
-          debugPrint(
-            '📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.id}',
-          );
-
-          districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
-            final data = doc.data();
-            debugPrint(
-              '🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})',
-            );
-            return Body.fromJson({
-              'id': doc.id,
-              'districtId': district.id,
-              'stateId': selectedStateId!,
-              ...data,
-            });
-          }).toList();
-        }
+        // Load bodies only for the selected state
+        await _loadBodiesForDistricts(stateId);
 
         isLoadingDistricts = false;
         update();
 
-        debugPrint(
-          '✅ Successfully loaded ${districts.length} districts with bodies',
-        );
-        return; // Success, exit the retry loop
+        debugPrint('✅ Successfully loaded ${districts.length} districts for state $stateId');
+        return;
       } catch (e) {
         retryCount++;
-        debugPrint('❌ Failed to load districts (attempt $retryCount): $e');
+        debugPrint('❌ Failed to load districts for state $stateId (attempt $retryCount): $e');
 
         if (retryCount < maxRetries) {
           debugPrint('🔄 Retrying in ${retryCount * 2} seconds...');
           await Future.delayed(Duration(seconds: retryCount * 2));
         } else {
-          // Final attempt failed
           debugPrint('❌ All retry attempts failed for loading districts');
-          // For now, keep the error message in English since we don't have context here
-          Get.snackbar(
-            'Error', // TODO: Localize this
-            'Failed to load districts after $maxRetries attempts: $e',
-          );
+          Get.snackbar('Error', 'Failed to load districts after $maxRetries attempts: $e');
           isLoadingDistricts = false;
           update();
         }
@@ -362,17 +313,118 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  Future<void> loadParties() async {
-    try {
-      parties = await partyRepository.getActiveParties();
-      isLoadingParties = false;
-      update();
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load parties: $e'); // TODO: Localize this
-      isLoadingParties = false;
-      update();
+  // Helper method to load bodies for multiple districts
+  Future<void> _loadBodiesForDistricts(String stateId) async {
+    for (final district in districts) {
+      try {
+        final bodiesSnapshot = await FirebaseFirestore.instance
+            .collection('states')
+            .doc(stateId)
+            .collection('districts')
+            .doc(district.id)
+            .collection('bodies')
+            .get();
+
+        debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.id}');
+
+        districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
+          final data = doc.data();
+          return Body.fromJson({
+            'id': doc.id,
+            'districtId': district.id,
+            'stateId': stateId,
+            ...data,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint('❌ Failed to load bodies for district ${district.id}: $e');
+        districtBodies[district.id] = []; // Set empty list on error
+      }
     }
   }
+
+  // Optimized: Load bodies only for selected district
+  Future<void> loadBodiesForDistrict(String districtId) async {
+    try {
+      debugPrint('🔍 Loading bodies for district: $districtId');
+
+      // Clear previous bodies and wards for this district
+      districtBodies.remove(districtId);
+      bodyWards.clear();
+
+      final bodiesSnapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(selectedStateId!)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .get();
+
+      debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
+
+      districtBodies[districtId] = bodiesSnapshot.docs.map((doc) {
+        final data = doc.data();
+        debugPrint('🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})');
+        return Body.fromJson({
+          'id': doc.id,
+          'districtId': districtId,
+          'stateId': selectedStateId!,
+          ...data,
+        });
+      }).toList();
+
+      update();
+      debugPrint('✅ Successfully loaded ${districtBodies[districtId]!.length} bodies for district $districtId');
+    } catch (e) {
+      debugPrint('❌ Failed to load bodies for district $districtId: $e');
+      Get.snackbar('Error', 'Failed to load bodies: $e');
+    }
+  }
+
+  // Optimized: Load wards only for selected body
+  Future<void> loadWardsForBody(String districtId, String bodyId) async {
+    try {
+      debugPrint('🔍 [PROFILE_CONTROLLER] Loading wards for body: $bodyId in district: $districtId');
+
+      // Clear previous wards for this body
+      bodyWards.remove(bodyId);
+
+      final wardsSnapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(selectedStateId!)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .get();
+
+      debugPrint('📊 Found ${wardsSnapshot.docs.length} wards in body $bodyId');
+
+      // Debug: Print ward IDs
+      for (final doc in wardsSnapshot.docs) {
+        debugPrint('   Ward: ${doc.id} - ${doc.data()['name'] ?? 'No name'}');
+      }
+
+      bodyWards[bodyId] = wardsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return Ward.fromJson({
+          ...data,
+          'wardId': doc.id,
+          'districtId': districtId,
+          'bodyId': bodyId,
+          'stateId': selectedStateId!,
+        });
+      }).toList();
+
+      update();
+      debugPrint('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');
+    } catch (e) {
+      debugPrint('❌ Failed to load wards for body $bodyId: $e');
+      Get.snackbar('Error', 'Failed to load wards: $e');
+    }
+  }
+
 
   Future<void> loadUserRole() async {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -397,21 +449,8 @@ class ProfileCompletionController extends GetxController {
     String bodyId,
     BuildContext context,
   ) async {
-    final localizations = ProfileLocalizations.of(context)!;
-
-    try {
-      final wards = await candidateRepository.getWardsByDistrictAndBody(
-        districtId,
-        bodyId,
-      );
-      bodyWards[bodyId] = wards;
-      update();
-    } catch (e) {
-      Get.snackbar(
-        localizations.error,
-        localizations.failedToLoadWards(e.toString()),
-      );
-    }
+    // Use the new optimized loading method
+    await loadWardsForBody(districtId, bodyId);
   }
 
   Future<void> selectBirthDate(BuildContext context) async {
@@ -439,13 +478,25 @@ class ProfileCompletionController extends GetxController {
     selectedDistrictId = null;
     selectedBodyId = null;
     selectedWard = null;
+    // Reset ZP+PS selections when state changes
+    selectedElectionType = null;
+    selectedZPBodyId = null;
+    selectedZPWardId = null;
+    selectedZPArea = null;
+    selectedPSBodyId = null;
+    selectedPSWardId = null;
+    selectedPSArea = null;
+    // Reset party selection when state changes
+    selectedPartyId = null;
+
     districts.clear();
     districtBodies.clear();
     bodyWards.clear();
     isLoadingDistricts = true;
     update();
-    // Reload districts for the selected state
-    loadDistricts();
+
+    // Load districts only for the selected state
+    loadDistrictsForState(stateId);
   }
 
   void onDistrictSelected(String districtId) {
@@ -453,15 +504,30 @@ class ProfileCompletionController extends GetxController {
     selectedDistrictId = districtId;
     selectedBodyId = null;
     selectedWard = null;
+    // Reset ZP+PS selections when district changes
+    selectedZPBodyId = null;
+    selectedZPWardId = null;
+    selectedZPArea = null;
+    selectedPSBodyId = null;
+    selectedPSWardId = null;
+    selectedPSArea = null;
+
     bodyWards.clear();
     debugPrint('🔄 Cleared body and ward selections');
+
+    // Load bodies only for the selected district
+    loadBodiesForDistrict(districtId);
     update();
   }
 
   void onBodySelected(String bodyId) {
+    debugPrint('🎯 [PROFILE_CONTROLLER] Body selected: $bodyId for district: $selectedDistrictId');
     selectedBodyId = bodyId;
     selectedWard = null;
     bodyWards.clear();
+
+    // Load wards only for the selected body
+    loadWardsForBody(selectedDistrictId!, bodyId);
     update();
   }
 
@@ -479,11 +545,189 @@ class ProfileCompletionController extends GetxController {
     update();
   }
 
-  void onPartySelected(String partyId) {
-    selectedParty = parties.firstWhere(
-      (party) => party.id == partyId,
-    );
+  // Party selection method (for future use if needed)
+  // void onPartySelected(String partyId) {
+  //   selectedParty = parties.firstWhere(
+  //     (party) => party.id == partyId,
+  //   );
+  //   update();
+  // }
+
+  // ZP+PS Election methods
+  void onElectionTypeSelected(String electionType) {
+    selectedElectionType = electionType;
+    // Reset ZP+PS selections when election type changes
+    selectedZPBodyId = null;
+    selectedZPWardId = null;
+    selectedPSBodyId = null;
+    selectedPSWardId = null;
+
+    // Auto-select body based on election type
+    if (selectedDistrictId != null && districtBodies[selectedDistrictId!] != null) {
+      final bodies = districtBodies[selectedDistrictId!]!;
+      BodyType targetType;
+
+      switch (electionType) {
+        case 'municipal_corporation':
+          targetType = BodyType.municipal_corporation;
+          break;
+        case 'municipal_council':
+          targetType = BodyType.municipal_council;
+          break;
+        case 'nagar_panchayat':
+          targetType = BodyType.nagar_panchayat;
+          break;
+        case 'zilla_parishad':
+          targetType = BodyType.zilla_parishad;
+          break;
+        case 'panchayat_samiti':
+          targetType = BodyType.panchayat_samiti;
+          break;
+        case 'zp_ps_combined':
+          // For ZP+PS combined, auto-select both ZP and PS bodies
+          _autoSelectZPandPSBodies();
+          update();
+          return;
+        default:
+          update();
+          return;
+      }
+
+      // Find the first body of the target type
+      final matchingBody = bodies.firstWhere(
+        (body) => body.type == targetType,
+        orElse: () => Body(
+          id: '',
+          name: '',
+          type: targetType,
+          districtId: selectedDistrictId!,
+          stateId: selectedStateId ?? '',
+        ),
+      );
+
+      if (matchingBody.id.isNotEmpty) {
+        // For regular elections (including individual ZP/PS), set the regular body
+        selectedBodyId = matchingBody.id;
+        selectedWard = null;
+        bodyWards.clear();
+        // Load wards for the selected body
+        loadWardsForBody(selectedDistrictId!, matchingBody.id);
+      }
+    }
+
     update();
+  }
+
+  void onZPBodySelected(String bodyId) {
+    selectedZPBodyId = bodyId;
+    selectedZPWardId = null; // Reset ward when body changes
+    // Load wards only for the selected ZP body
+    loadWardsForBody(selectedDistrictId!, bodyId);
+    update();
+  }
+
+  void onZPWardSelected(String wardId) {
+    selectedZPWardId = wardId;
+    selectedZPArea = null; // Reset area when ward changes
+
+    // Also set selectedWard to the ZP ward for consistency
+    if (districtBodies.isNotEmpty && bodyWards.isNotEmpty) {
+      // Find the ward in the available wards
+      for (var bodyWardsList in bodyWards.values) {
+        final ward = bodyWardsList.firstWhere(
+          (w) => w.id == wardId,
+          orElse: () => bodyWardsList.firstWhere(
+            (w) => w.id.isNotEmpty,
+            orElse: () => Ward(
+              id: wardId,
+              name: 'ZP Ward $wardId',
+              districtId: selectedDistrictId ?? '',
+              bodyId: selectedZPBodyId ?? '',
+              stateId: selectedStateId ?? '',
+            ),
+          ),
+        );
+        selectedWard = ward;
+        break;
+      }
+    }
+
+    update();
+  }
+
+  void onPSBodySelected(String bodyId) {
+    selectedPSBodyId = bodyId;
+    selectedPSWardId = null; // Reset ward when body changes
+    // Load wards only for the selected PS body
+    loadWardsForBody(selectedDistrictId!, bodyId);
+    update();
+  }
+
+  void onPSWardSelected(String wardId) {
+    selectedPSWardId = wardId;
+    selectedPSArea = null; // Reset area when ward changes
+    update();
+  }
+
+  // ZP+PS Area selection methods
+  void onZPAreaSelected(String area) {
+    selectedZPArea = area;
+    update();
+  }
+
+  void onPSAreaSelected(String area) {
+    selectedPSArea = area;
+    update();
+  }
+
+  void onPartySelected(String partyId) {
+    selectedPartyId = partyId;
+    update();
+  }
+
+  // Helper method to auto-select ZP and PS bodies for combined elections
+  void _autoSelectZPandPSBodies() {
+    if (selectedDistrictId == null || districtBodies[selectedDistrictId!] == null) return;
+
+    final bodies = districtBodies[selectedDistrictId!]!;
+
+    // Find ZP body
+    final zpBody = bodies.firstWhere(
+      (body) => body.type == BodyType.zilla_parishad,
+      orElse: () => Body(
+        id: '',
+        name: '',
+        type: BodyType.zilla_parishad,
+        districtId: selectedDistrictId!,
+        stateId: selectedStateId ?? '',
+      ),
+    );
+
+    // Find PS body
+    final psBody = bodies.firstWhere(
+      (body) => body.type == BodyType.panchayat_samiti,
+      orElse: () => Body(
+        id: '',
+        name: '',
+        type: BodyType.panchayat_samiti,
+        districtId: selectedDistrictId!,
+        stateId: selectedStateId ?? '',
+      ),
+    );
+
+    if (zpBody.id.isNotEmpty) {
+      selectedZPBodyId = zpBody.id;
+      selectedZPWardId = null;
+      // Load wards for ZP body
+      loadWardsForBody(selectedDistrictId!, zpBody.id);
+    }
+
+    if (psBody.id.isNotEmpty) {
+      selectedPSBodyId = psBody.id;
+      selectedPSWardId = null;
+      // Load wards for PS body
+      loadWardsForBody(selectedDistrictId!, psBody.id);
+    }
   }
 
   void updateSelectedGender(String? value) {
@@ -513,10 +757,11 @@ class ProfileCompletionController extends GetxController {
     onAreaSelected(area);
   }
 
-  void updateSelectedParty(Party party) {
-    selectedParty = party;
-    update();
-  }
+  // Party selection method (for future use if needed)
+  // void updateSelectedParty(Party party) {
+  //   selectedParty = party;
+  //   update();
+  // }
 
   InputDecoration buildInputDecoration(
     BuildContext context, {
@@ -546,8 +791,6 @@ class ProfileCompletionController extends GetxController {
 
     if (selectedStateId == null ||
         selectedDistrictId == null ||
-        selectedBodyId == null ||
-        selectedWard == null ||
         selectedGender == null) {
       Get.snackbar(
         localizations.error,
@@ -556,8 +799,52 @@ class ProfileCompletionController extends GetxController {
       return;
     }
 
+    // Validate election type selection based on user role
+    if (currentUserRole == 'candidate' && selectedElectionType == 'zp_ps_combined') {
+      Get.snackbar(
+        localizations.error,
+        'Candidates can only select one election type. ZP+PS combined is only for voters.',
+      );
+      return;
+    }
+
+    // Prevent voters from selecting individual ZP or PS (they should use combined option)
+    if (currentUserRole != 'candidate' &&
+        (selectedElectionType == 'zilla_parishad' || selectedElectionType == 'panchayat_samiti')) {
+      Get.snackbar(
+        localizations.error,
+        'Voters should select ZP+PS Combined for rural elections.',
+      );
+      return;
+    }
+
+    // Validate based on election type and user role
+    if (selectedElectionType == 'zp_ps_combined') {
+      // ZP+PS validation - Only for voters
+      if (selectedZPBodyId == null ||
+          selectedZPWardId == null ||
+          selectedPSBodyId == null ||
+          selectedPSWardId == null) {
+        Get.snackbar(
+          localizations.error,
+          'Please select ZP body, ZP ward, PS body, and PS ward',
+        );
+        return;
+      }
+    } else {
+      // Regular election validation
+      if (selectedBodyId == null || selectedWard == null) {
+        Get.snackbar(
+          localizations.error,
+          localizations.pleaseFillAllRequiredFields,
+        );
+        return;
+      }
+    }
+
     // Check if area selection is required and selected (only for non-candidates)
     if (currentUserRole != 'candidate' &&
+        selectedWard != null &&
         selectedWard!.areas != null &&
         selectedWard!.areas!.isNotEmpty &&
         selectedArea == null) {
@@ -565,11 +852,11 @@ class ProfileCompletionController extends GetxController {
       return;
     }
 
-    // For candidates, party selection is required
-    if (currentUserRole == 'candidate' && selectedParty == null) {
+    // Validate party selection for candidates
+    if (currentUserRole == 'candidate' && selectedPartyId == null) {
       Get.snackbar(
         localizations.error,
-        localizations.pleaseSelectYourPoliticalParty,
+        'Please select your political party',
       );
       return;
     }
@@ -592,6 +879,39 @@ class ProfileCompletionController extends GetxController {
       final currentRole = userDoc.data()?['role'] ?? 'voter';
 
 
+      // Create election areas based on selection type
+      List<ElectionArea> electionAreas = [];
+
+      if (selectedElectionType == 'zp_ps_combined') {
+        // ZP+PS combined elections - Both ZP and PS required
+        if (selectedZPBodyId != null && selectedZPWardId != null) {
+          electionAreas.add(ElectionArea(
+            bodyId: selectedZPBodyId!,
+            wardId: selectedZPWardId!,
+            area: selectedZPArea,
+            type: ElectionType.zp,
+          ));
+        }
+        if (selectedPSBodyId != null && selectedPSWardId != null) {
+          electionAreas.add(ElectionArea(
+            bodyId: selectedPSBodyId!,
+            wardId: selectedPSWardId!,
+            area: selectedPSArea,
+            type: ElectionType.ps,
+          ));
+        }
+      } else {
+        // Regular elections
+        if (selectedBodyId != null && selectedWard != null) {
+          electionAreas.add(ElectionArea(
+            bodyId: selectedBodyId!,
+            wardId: selectedWard!.id,
+            area: selectedArea,
+            type: ElectionType.regular,
+          ));
+        }
+      }
+
       // Create updated user model
       final updatedUser = UserModel(
         uid: currentUser.uid,
@@ -603,9 +923,7 @@ class ProfileCompletionController extends GetxController {
         profileCompleted: true,
         districtId: selectedDistrictId!,
         stateId: selectedStateId!,
-        bodyId: selectedBodyId!,
-        wardId: selectedWard!.id,
-        area: selectedArea,
+        electionAreas: electionAreas,
         xpPoints: 0,
         premium: false,
         createdAt: DateTime.now(),
@@ -651,15 +969,19 @@ class ProfileCompletionController extends GetxController {
           }
 
           // Create basic candidate record with birthdate, gender, and selected party
+          // Candidates can only have regular elections (ZP+PS is for voters only)
+          final primaryWardId = selectedWard!.id;
+          final primaryBodyId = selectedBodyId!;
+
            final candidate = Candidate(
             candidateId: 'temp_${currentUser.uid}', // Temporary ID
             userId: currentUser.uid,
             name: nameController.text.trim(),
-            party: selectedParty!.id, // Use selected party key
+            party: selectedPartyId ?? 'independent', // Use selected party or default to independent
             districtId: selectedDistrictId!,
             stateId: selectedStateId!,
-            bodyId: selectedBodyId!,
-            wardId: selectedWard!.id,
+            bodyId: primaryBodyId,
+            wardId: primaryWardId,
             contact: Contact(
               phone: '+91${phoneController.text.trim()}',
               email: currentUser.email,

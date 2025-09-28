@@ -75,6 +75,31 @@ class AuthController extends GetxController {
     await _authRepository.clearLastGoogleAccount();
   }
 
+  // Logout method
+  Future<void> logout() async {
+    try {
+      debugPrint('🚪 [AUTH_CONTROLLER] Starting logout process...');
+
+      // Clear stored Google account info
+      await _clearStoredGoogleAccount();
+
+      // Sign out from Firebase Auth
+      await FirebaseAuth.instance.signOut();
+
+      // Clear any cached data or controllers if needed
+      // Note: GetX controllers will be disposed when navigating to login
+
+      debugPrint('✅ [AUTH_CONTROLLER] Logout completed successfully');
+
+      // Navigate to login screen
+      Get.offAllNamed('/login');
+      Get.snackbar('Success', 'Logged out successfully');
+    } catch (e) {
+      debugPrint('❌ [AUTH_CONTROLLER] Logout failed: $e');
+      Get.snackbar('Error', 'Failed to logout: ${e.toString()}');
+    }
+  }
+
   // Find existing user by phone number in Firestore
   Future<Map<String, dynamic>?> _findExistingUserByPhone(String phoneNumber) async {
     try {

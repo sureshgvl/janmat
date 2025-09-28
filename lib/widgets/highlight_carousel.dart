@@ -125,29 +125,27 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
           ),
         ),
 
-        // Carousel using PageView
+        // Carousel using PageView with performance optimizations
         SizedBox(
           height: 220,
           child: PageView.builder(
             controller: _pageController,
             itemCount: highlights.length,
             onPageChanged: _onPageChanged,
+            // Add physics to prevent overscroll issues
+            physics: const BouncingScrollPhysics(),
             itemBuilder: (context, index) {
               final highlight = highlights[index];
-              return AnimatedBuilder(
-                animation: _pageController,
-                builder: (context, child) {
-                  double value = 1.0;
-                  if (_pageController.position.haveDimensions) {
-                    value = _pageController.page! - index;
-                    value = (1 - (value.abs() * 0.2)).clamp(0.0, 1.0);
-                  }
-                  return Center(
-                    child: SizedBox(
-                      height: Curves.easeOut.transform(value) * 220,
-                      width: Curves.easeOut.transform(value) * 160,
-                      child: child,
-                    ),
+              return TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 200),
+                tween: Tween<double>(
+                  begin: 1.0,
+                  end: _currentIndex == index ? 1.0 : 0.8,
+                ),
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: child,
                   );
                 },
                 child: HighlightCard(

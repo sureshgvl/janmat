@@ -114,8 +114,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         CandidateLocalizations.of(context)!.contact,
         CandidateLocalizations.of(context)!.events,
         CandidateLocalizations.of(context)!.analytics,
-        //'Profile',
-        //'Highlight',
       ];
       final currentTab = tabNames[_tabController!.index];
 

@@ -37,12 +37,21 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         if (userDoc.exists) {
           currentUser = UserModel.fromJson(userDoc.data()!);
 
-          // Load candidates from user's ward using new district/body/ward structure
-          await candidateController.fetchCandidatesByWard(
-            currentUser!.districtId!,
-            currentUser!.bodyId!,
-            currentUser!.wardId,
-          );
+          // Load candidates from user's ward using new electionAreas structure
+          final regularArea = currentUser!.electionAreas.isNotEmpty
+              ? currentUser!.electionAreas.firstWhere(
+                  (area) => area.type == ElectionType.regular,
+                  orElse: () => currentUser!.electionAreas.first,
+                )
+              : null;
+
+          if (regularArea != null) {
+            await candidateController.fetchCandidatesByWard(
+              currentUser!.districtId!,
+              regularArea.bodyId,
+              regularArea.wardId,
+            );
+          }
 
           // If current user is a candidate, add them to the list
           if (currentUser!.role == 'candidate') {
