@@ -9,13 +9,30 @@ class MonetizationRepository {
 
   Future<List<SubscriptionPlan>> getAllPlans() async {
     try {
+      debugPrint('🔥 FIRESTORE: Fetching all plans from database...');
       final snapshot = await _firestore.collection('plans').get();
-      return snapshot.docs.map((doc) {
+
+      debugPrint('✅ FIRESTORE: Found ${snapshot.docs.length} plan documents');
+
+      // Debug log each document before processing
+      for (var doc in snapshot.docs) {
+        debugPrint('📄 PLAN DOCUMENT: ${doc.id}');
+        debugPrint('   Raw Data: ${doc.data()}');
+      }
+
+      final plans = snapshot.docs.map((doc) {
         final data = doc.data();
         data['planId'] = doc.id;
+        debugPrint('🔄 PROCESSING PLAN: ${doc.id} with data: $data');
         return SubscriptionPlan.fromJson(data);
       }).toList();
+
+      debugPrint('✅ FIRESTORE: Successfully processed ${plans.length} plans');
+      return plans;
     } catch (e) {
+      debugPrint('❌ FIRESTORE ERROR: Failed to fetch plans: $e');
+      debugPrint('   Error Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to fetch plans: $e');
     }
   }
@@ -300,6 +317,8 @@ class MonetizationRepository {
   // Initialize default plans (run once during app setup)
   Future<void> initializeDefaultPlans() async {
     try {
+      debugPrint('🔧 INITIALIZING DEFAULT PLANS...');
+      debugPrint('   This will create/update all 4 candidate plans in Firestore');
       final batch = _firestore.batch();
 
       // Candidate plans - Free, Basic, Gold, Platinum
@@ -584,7 +603,13 @@ class MonetizationRepository {
 
 
       await batch.commit();
+      debugPrint('✅ DEFAULT PLANS INITIALIZED SUCCESSFULLY');
+      debugPrint('   Created/Updated: Free, Basic, Gold, Platinum plans');
+      debugPrint('   All plans are now ready for use');
     } catch (e) {
+      debugPrint('❌ FAILED TO INITIALIZE DEFAULT PLANS: $e');
+      debugPrint('   Error Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to initialize default plans: $e');
     }
   }

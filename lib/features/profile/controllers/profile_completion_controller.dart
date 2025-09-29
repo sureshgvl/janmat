@@ -13,6 +13,7 @@ import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../../utils/add_sample_states.dart';
+import '../../../services/local_database_service.dart';
 
 class ProfileCompletionController extends GetxController {
   // User data passed from main.dart to avoid duplicate Firebase call
@@ -23,6 +24,9 @@ class ProfileCompletionController extends GetxController {
   final AuthController loginController = Get.find<AuthController>();
   final ChatController chatController = Get.find<ChatController>();
   final candidateRepository = CandidateRepository();
+
+  // Location database service for automatic data caching
+  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
 
   // Form controllers
   final nameController = TextEditingController();
@@ -60,8 +64,11 @@ class ProfileCompletionController extends GetxController {
   String? currentUserRole;
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
+
+    // Location database service is ready to use (SQLite auto-initializes)
+    debugPrint('✅ Location database service ready in ProfileCompletionController');
 
     // Get user data passed from main.dart
     final args = Get.arguments;
@@ -229,8 +236,21 @@ class ProfileCompletionController extends GetxController {
         states = statesSnapshot.docs.map((doc) {
           final data = doc.data();
           debugPrint('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']}');
-          return state_model.State.fromJson({'stateId': doc.id, ...data});
+          return state_model.State.fromJson({'id': doc.id, ...data});
         }).toList();
+
+        // 🚀 OPTIMIZED: Cache states directly from fetched data (no redundant Firebase call)
+        debugPrint('🌍 [Profile] Caching ${states.length} states in SQLite during profile completion');
+        try {
+          await _locationDatabase.insertDistricts(states.map((state) => District(
+            id: state.id,
+            name: state.name,
+            stateId: state.id, // States are stored as districts with stateId = id
+          )).toList());
+          debugPrint('✅ [Profile] States cached successfully in SQLite');
+        } catch (e) {
+          debugPrint('❌ [Profile] Failed to cache states: $e');
+        }
       }
 
       // Set default state to Maharashtra if available
@@ -288,6 +308,15 @@ class ProfileCompletionController extends GetxController {
           return District.fromJson({'id': doc.id, 'stateId': stateId, ...data});
         }).toList();
 
+        // 🚀 OPTIMIZED: Cache districts directly from fetched data (no redundant Firebase call)
+        debugPrint('🏙️ [Profile] Caching ${districts.length} districts in SQLite for state: $stateId');
+        try {
+          await _locationDatabase.insertDistricts(districts);
+          debugPrint('✅ [Profile] Districts cached successfully in SQLite');
+        } catch (e) {
+          debugPrint('❌ [Profile] Failed to cache districts: $e');
+        }
+
         // Load bodies only for the selected state
         await _loadBodiesForDistricts(stateId);
 
@@ -336,6 +365,15 @@ class ProfileCompletionController extends GetxController {
             ...data,
           });
         }).toList();
+
+        // 🚀 OPTIMIZED: Cache bodies directly from fetched data (no redundant Firebase call)
+        debugPrint('🏛️ [Profile] Caching ${districtBodies[district.id]!.length} bodies in SQLite for district: ${district.id}');
+        try {
+          await _locationDatabase.insertBodies(districtBodies[district.id]!);
+          debugPrint('✅ [Profile] Bodies cached successfully in SQLite');
+        } catch (e) {
+          debugPrint('❌ [Profile] Failed to cache bodies for district ${district.id}: $e');
+        }
       } catch (e) {
         debugPrint('❌ Failed to load bodies for district ${district.id}: $e');
         districtBodies[district.id] = []; // Set empty list on error
@@ -416,6 +454,15 @@ class ProfileCompletionController extends GetxController {
           'stateId': selectedStateId!,
         });
       }).toList();
+
+      // 🚀 OPTIMIZED: Cache wards directly from fetched data (no redundant Firebase call)
+      debugPrint('🏛️ [Profile] Caching ${bodyWards[bodyId]!.length} wards in SQLite for $districtId/$bodyId');
+      try {
+        await _locationDatabase.insertWards(bodyWards[bodyId]!);
+        debugPrint('✅ [Profile] Wards cached successfully in SQLite');
+      } catch (e) {
+        debugPrint('❌ [Profile] Failed to cache wards for $districtId/$bodyId: $e');
+      }
 
       update();
       debugPrint('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');

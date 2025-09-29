@@ -165,6 +165,16 @@ class AuthRepository {
                   debugPrint('✅ [GOOGLE_SIGNIN] Silent sign-in returned expected account - using it');
                   googleUser = silentUser;
                   break; // Success - use silent sign-in result
+                } else if (expectedEmail == null) {
+                  // No stored account expected (user was deleted), but silent sign-in succeeded
+                  // This means the user has a cached Google account but no Firebase user
+                  // Use the silent sign-in result and clear any stale stored account data
+                  debugPrint('ℹ️ [GOOGLE_SIGNIN] No stored account expected, but silent sign-in succeeded - using cached account');
+                  debugPrint('   Using account: ${silentUser.email}');
+                  googleUser = silentUser;
+                  // Clear any stale stored account data since we're using a different account
+                  await clearLastGoogleAccount();
+                  break; // Success - use silent sign-in result
                 } else {
                   debugPrint('⚠️ [GOOGLE_SIGNIN] Silent sign-in returned different account than expected');
                   debugPrint('   Expected: $expectedEmail, Got: ${silentUser.email}');

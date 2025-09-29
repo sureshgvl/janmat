@@ -20,6 +20,10 @@ import '../widgets/follow_stats_widget.dart';
 import '../widgets/profile_tab_bar_widget.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../services/plan_service.dart';
+import '../../../services/local_database_service.dart';
+import '../../../models/district_model.dart';
+import '../../../models/body_model.dart';
+import '../../../models/ward_model.dart';
 import '../repositories/candidate_repository.dart';
 import 'candidate_dashboard_screen.dart';
 
@@ -37,6 +41,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   final CandidateDataController dataController =
       Get.find<CandidateDataController>();
   final CandidateRepository candidateRepository = CandidateRepository();
+  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   TabController? _tabController;
   final bool _isUploadingPhoto = false;
@@ -44,6 +49,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   bool _hasSponsoredBanner = false;
   bool _hasPremiumBadge = false;
   bool _hasHighlightCarousel = false;
+
+  // Location data variables
+  String? _wardName;
+  String? _districtName;
+  String? _bodyName;
 
   @override
   void initState() {
@@ -75,8 +85,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         candidate != null &&
         currentUserId == candidate!.userId;
 
-    // Add dummy data for demonstration if data is missing
-    _addDummyDataIfNeeded();
 
     // Check follow status when screen loads
     if (currentUserId != null && candidate != null) {
@@ -94,6 +102,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
     // Load plan features
     _loadPlanFeatures();
+
+    // Load location data
+    _loadLocationData();
   }
 
   @override
@@ -145,10 +156,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     return locale.languageCode; // Returns 'en' or 'mr'
   }
 
-  void _addDummyDataIfNeeded() {
-    // Removed all dummy data - now showing actual Firebase data only
-    // The app will display real data from Firestore or show empty states
-  }
 
   // Format date
   String formatDate(DateTime date) {
@@ -180,6 +187,146 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       } catch (e) {
         // Ignore errors, use default values
       }
+    }
+  }
+
+  // Load location data
+  Future<void> _loadLocationData() async {
+    debugPrint('🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}');
+    debugPrint('📍 [Candidate Profile] IDs: district=${candidate?.districtId}, body=${candidate?.bodyId}, ward=${candidate?.wardId}');
+
+    if (candidate == null) return;
+
+    try {
+      // Load location data from SQLite cache
+      final locationData = await _locationDatabase.getCandidateLocationData(
+        candidate!.districtId,
+        candidate!.bodyId,
+        candidate!.wardId,
+      );
+
+      // Check if ward data is missing (most likely to be missing)
+      if (locationData['wardName'] == null) {
+        debugPrint('⚠️ [Candidate Profile] Ward data not found in cache, triggering sync...');
+
+        // Trigger background sync for missing location data
+        await _syncMissingLocationData();
+
+        // Try loading again after sync
+        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
+          candidate!.districtId,
+          candidate!.bodyId,
+          candidate!.wardId,
+        );
+
+        if (mounted) {
+          setState(() {
+            _districtName = updatedLocationData['districtName'];
+            _bodyName = updatedLocationData['bodyName'];
+            _wardName = updatedLocationData['wardName'];
+          });
+        }
+
+        debugPrint('✅ [Candidate Profile] Location data loaded after sync:');
+        debugPrint('   📍 District: $_districtName');
+        debugPrint('   🏛️ Body: $_bodyName');
+        debugPrint('   🏛️ Ward: $_wardName');
+      } else {
+        if (mounted) {
+          setState(() {
+            _districtName = locationData['districtName'];
+            _bodyName = locationData['bodyName'];
+            _wardName = locationData['wardName'];
+          });
+        }
+
+        debugPrint('✅ [Candidate Profile] Location data loaded successfully from SQLite:');
+        debugPrint('   📍 District: $_districtName');
+        debugPrint('   🏛️ Body: $_bodyName');
+        debugPrint('   🏛️ Ward: $_wardName');
+      }
+    } catch (e) {
+      debugPrint('❌ [Candidate Profile] Error loading location data: $e');
+
+      // Fallback to ID-based display if sync fails
+      if (mounted) {
+        setState(() {
+          _districtName = candidate!.districtId;
+          _bodyName = candidate!.bodyId;
+          _wardName = 'Ward ${candidate!.wardId}';
+        });
+      }
+    }
+  }
+
+  // Sync missing location data from Firebase to SQLite
+  Future<void> _syncMissingLocationData() async {
+    try {
+      debugPrint('🔄 [Candidate Profile] Syncing missing location data from Firebase...');
+
+      // Sync district data if missing
+      if (_districtName == null) {
+        debugPrint('🏙️ [Sync] Fetching district data for ${candidate?.districtId}');
+        final districts = await candidateRepository.getAllDistricts();
+        final district = districts.firstWhere(
+          (d) => d.id == candidate?.districtId,
+          orElse: () => District(
+            id: candidate!.districtId,
+            name: candidate!.districtId,
+            stateId: 'maharashtra',
+          ),
+        );
+        await _locationDatabase.insertDistricts([district]);
+        debugPrint('✅ [Sync] District data synced');
+      }
+
+      // Sync body data if missing
+      if (_bodyName == null) {
+        debugPrint('🏛️ [Sync] Fetching body data for ${candidate?.bodyId}');
+        // Note: We need to get bodies for the district first
+        final bodies = await candidateRepository.getWardsByDistrictAndBody(
+          candidate!.districtId,
+          candidate!.bodyId,
+        );
+        // Extract body info from wards (since we don't have direct body fetch)
+        if (bodies.isNotEmpty) {
+          final body = Body(
+            id: candidate!.bodyId,
+            name: candidate!.bodyId, // Fallback name
+            type: BodyType.municipal_corporation, // Default
+            districtId: candidate!.districtId,
+            stateId: 'maharashtra',
+          );
+          await _locationDatabase.insertBodies([body]);
+          debugPrint('✅ [Sync] Body data synced');
+        }
+      }
+
+      // Sync ward data (most critical)
+      if (_wardName == null) {
+        debugPrint('🏛️ [Sync] Fetching ward data for ${candidate?.wardId}');
+        final wards = await candidateRepository.getWardsByDistrictAndBody(
+          candidate!.districtId,
+          candidate!.bodyId,
+        );
+        final ward = wards.firstWhere(
+          (w) => w.id == candidate?.wardId,
+          orElse: () => Ward(
+            id: candidate!.wardId,
+            name: 'Ward ${candidate!.wardId}',
+            districtId: candidate!.districtId,
+            bodyId: candidate!.bodyId,
+            stateId: 'maharashtra',
+          ),
+        );
+        await _locationDatabase.insertWards([ward]);
+        debugPrint('✅ [Sync] Ward data synced');
+      }
+
+      debugPrint('✅ [Candidate Profile] Location data sync completed');
+    } catch (e) {
+      debugPrint('❌ [Candidate Profile] Error syncing location data: $e');
+      // Continue with fallback display
     }
   }
 
@@ -278,6 +425,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
                         hasPremiumBadge: _hasPremiumBadge,
                         isUploadingPhoto: _isUploadingPhoto,
                         getCurrentLocale: _getCurrentLocale,
+                        wardName: _wardName,
+                        districtName: _districtName,
+                        bodyName: _bodyName,
                       ),
                       FollowStatsWidget(
                         candidate: candidate!,
@@ -308,6 +458,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
                       candidate: candidate,
                     ),
                 formatDate: formatDate,
+                wardName: _wardName,
+                districtName: _districtName,
+                bodyName: _bodyName,
               ),
 
               // Manifesto Tab

@@ -10,6 +10,9 @@ class ProfileHeaderWidget extends StatelessWidget {
   final bool hasPremiumBadge;
   final bool isUploadingPhoto;
   final String Function() getCurrentLocale;
+  final String? wardName;
+  final String? districtName;
+  final String? bodyName;
 
   const ProfileHeaderWidget({
     super.key,
@@ -18,6 +21,9 @@ class ProfileHeaderWidget extends StatelessWidget {
     required this.hasPremiumBadge,
     required this.isUploadingPhoto,
     required this.getCurrentLocale,
+    this.wardName,
+    this.districtName,
+    this.bodyName,
   });
 
   @override
@@ -193,7 +199,9 @@ class ProfileHeaderWidget extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Ward 25, Pune', // Using placeholder for now
+                      wardName != null
+                          ? '${wardName!} • ${districtName ?? candidate.districtId}'
+                          : 'Ward ${candidate.wardId}, ${candidate.districtId}',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,

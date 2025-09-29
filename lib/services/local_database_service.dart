@@ -1,0 +1,397 @@
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import '../models/district_model.dart';
+import '../models/body_model.dart';
+import '../models/ward_model.dart';
+
+class LocalDatabaseService {
+  static Database? _database;
+  static const String _dbName = 'janmat_local.db';
+  static const int _dbVersion = 2;
+
+  // Table names
+  static const String districtsTable = 'districts';
+  static const String bodiesTable = 'bodies';
+  static const String wardsTable = 'wards';
+  static const String cacheMetadataTable = 'cache_metadata';
+
+  // Cache metadata columns
+  static const String columnCacheKey = 'cache_key';
+  static const String columnLastUpdated = 'last_updated';
+  static const String columnDataVersion = 'data_version';
+
+  // Initialize database
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    // Initialize FFI for desktop platforms
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final path = join(documentsDirectory.path, _dbName);
+    return await openDatabase(
+      path,
+      version: _dbVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    await _createDistrictsTable(db);
+    await _createBodiesTable(db);
+    await _createWardsTable(db);
+    await _createCacheMetadataTable(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    // Handle future database upgrades
+    if (oldVersion < newVersion) {
+      // Add new columns or tables as needed
+    }
+  }
+
+  // Create districts table
+  Future<void> _createDistrictsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $districtsTable (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        stateId TEXT NOT NULL,
+        municipalCorporation TEXT,
+        municipalCouncil TEXT,
+        nagarPanchayat TEXT,
+        zillaParishad TEXT,
+        panchayatSamiti TEXT,
+        municipalCorporationPdfUrl TEXT,
+        municipalCouncilPdfUrl TEXT,
+        nagarPanchayatPdfUrl TEXT,
+        zillaParishadPdfUrl TEXT,
+        panchayatSamitiPdfUrl TEXT,
+        createdAt TEXT,
+        UNIQUE(id)
+      )
+    ''');
+  }
+
+  // Create bodies table
+  Future<void> _createBodiesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $bodiesTable (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        districtId TEXT NOT NULL,
+        stateId TEXT NOT NULL,
+        ward_count INTEGER,
+        area_to_ward TEXT,
+        source TEXT,
+        special TEXT,
+        createdAt TEXT,
+        UNIQUE(id),
+        FOREIGN KEY (districtId) REFERENCES $districtsTable (id)
+      )
+    ''');
+  }
+
+  // Create wards table
+  Future<void> _createWardsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $wardsTable (
+        id TEXT PRIMARY KEY,
+        districtId TEXT NOT NULL,
+        bodyId TEXT NOT NULL,
+        name TEXT NOT NULL,
+        number INTEGER,
+        stateId TEXT NOT NULL,
+        population_total INTEGER,
+        sc_population INTEGER,
+        st_population INTEGER,
+        areas TEXT,
+        assembly_constituency TEXT,
+        parliamentary_constituency TEXT,
+        createdAt TEXT,
+        UNIQUE(id),
+        FOREIGN KEY (districtId) REFERENCES $districtsTable (id),
+        FOREIGN KEY (bodyId) REFERENCES $bodiesTable (id)
+      )
+    ''');
+  }
+
+  // Create cache metadata table
+  Future<void> _createCacheMetadataTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $cacheMetadataTable (
+        $columnCacheKey TEXT PRIMARY KEY,
+        $columnLastUpdated TEXT NOT NULL,
+        $columnDataVersion INTEGER DEFAULT 1
+      )
+    ''');
+  }
+
+  // District operations
+  Future<void> insertDistricts(List<District> districts) async {
+    debugPrint('📍 [SQLite] Starting to insert ${districts.length} districts into local database');
+    final db = await database;
+    final batch = db.batch();
+    for (var district in districts) {
+      batch.insert(
+        districtsTable,
+        district.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit();
+    await _updateCacheMetadata('districts');
+    debugPrint('✅ [SQLite] Successfully inserted ${districts.length} districts into local database');
+    if (districts.isNotEmpty) {
+      debugPrint('📍 [SQLite] Sample districts cached: ${districts.take(2).map((d) => '${d.id}:${d.name}').join(', ')}');
+    }
+  }
+
+  Future<District?> getDistrict(String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      districtsTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return District.fromJson(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> insertBodies(List<Body> bodies) async {
+    debugPrint('🏛️ [SQLite] Starting to insert ${bodies.length} bodies into local database');
+    final db = await database;
+    final batch = db.batch();
+    for (var body in bodies) {
+      batch.insert(
+        bodiesTable,
+        body.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit();
+    await _updateCacheMetadata('bodies');
+    debugPrint('✅ [SQLite] Successfully inserted ${bodies.length} bodies into local database');
+    if (bodies.isNotEmpty) {
+      debugPrint('🏛️ [SQLite] Sample bodies cached: ${bodies.take(2).map((b) => '${b.id}:${b.name}').join(', ')}');
+    }
+  }
+
+  Future<Body?> getBody(String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      bodiesTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return Body.fromJson(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> insertWards(List<Ward> wards) async {
+    debugPrint('🏛️ [SQLite] Starting to insert ${wards.length} wards into local database');
+    final db = await database;
+    final batch = db.batch();
+    for (var ward in wards) {
+      final wardData = ward.toJson();
+      debugPrint('🏛️ [SQLite] Ward data before conversion: id=${wardData['id']}, districtId=${wardData['districtId']}, bodyId=${wardData['bodyId']}, name=${wardData['name']}');
+      // Convert areas list to comma-separated string for SQLite storage
+      if (wardData['areas'] != null && wardData['areas'] is List) {
+        wardData['areas'] = (wardData['areas'] as List).join(',');
+      }
+      debugPrint('🏛️ [SQLite] Ward data after conversion: $wardData');
+      batch.insert(
+        wardsTable,
+        wardData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit();
+    await _updateCacheMetadata('wards');
+    debugPrint('✅ [SQLite] Successfully inserted ${wards.length} wards into local database');
+    if (wards.isNotEmpty) {
+      debugPrint('🏛️ [SQLite] Sample wards cached: ${wards.take(2).map((w) => '${w.id}:${w.name}').join(', ')}');
+    }
+  }
+
+  Future<Ward?> getWard(String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      wardsTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      final wardData = Map<String, dynamic>.from(maps.first);
+      // Convert areas string back to List<String> for Ward.fromJson
+      if (wardData['areas'] != null && wardData['areas'] is String) {
+        wardData['areas'] = (wardData['areas'] as String).split(',').where((s) => s.isNotEmpty).toList();
+      }
+      return Ward.fromJson(wardData);
+    }
+    return null;
+  }
+
+  // Get ward name by IDs (optimized query for candidate profile)
+  Future<String?> getWardName(String districtId, String bodyId, String wardId) async {
+    debugPrint('🔍 [SQLite] getWardName: Querying for districtId=$districtId, bodyId=$bodyId, wardId=$wardId');
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      wardsTable,
+      columns: ['name'],
+      where: 'districtId = ? AND bodyId = ? AND id = ?',
+      whereArgs: [districtId, bodyId, wardId],
+    );
+    debugPrint('🔍 [SQLite] getWardName: Found ${maps.length} results');
+    if (maps.isNotEmpty) {
+      final name = maps.first['name'] as String?;
+      debugPrint('🔍 [SQLite] getWardName: Returning ward name: "$name"');
+      return name;
+    }
+    debugPrint('🔍 [SQLite] getWardName: No ward found, returning null');
+    return null;
+  }
+
+  // Get district name by ID
+  Future<String?> getDistrictName(String districtId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      districtsTable,
+      columns: ['name'],
+      where: 'id = ?',
+      whereArgs: [districtId],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['name'] as String?;
+    }
+    return null;
+  }
+
+  // Get body name by ID
+  Future<String?> getBodyName(String bodyId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      bodiesTable,
+      columns: ['name'],
+      where: 'id = ?',
+      whereArgs: [bodyId],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['name'] as String?;
+    }
+    return null;
+  }
+
+  // Cache metadata operations
+  Future<void> _updateCacheMetadata(String cacheKey) async {
+    final db = await database;
+    await db.insert(
+      cacheMetadataTable,
+      {
+        columnCacheKey: cacheKey,
+        columnLastUpdated: DateTime.now().toIso8601String(),
+        columnDataVersion: 1,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<DateTime?> getLastUpdateTime(String cacheKey) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      cacheMetadataTable,
+      columns: [columnLastUpdated],
+      where: '$columnCacheKey = ?',
+      whereArgs: [cacheKey],
+    );
+    if (maps.isNotEmpty) {
+      return DateTime.parse(maps.first[columnLastUpdated] as String);
+    }
+    return null;
+  }
+
+  // Clear all data (useful for testing or reset)
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete(districtsTable);
+    await db.delete(bodiesTable);
+    await db.delete(wardsTable);
+    await db.delete(cacheMetadataTable);
+  }
+
+  // Get database statistics
+  Future<Map<String, int>> getStatistics() async {
+    final db = await database;
+    final districtCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $districtsTable'),
+    ) ?? 0;
+    final bodyCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $bodiesTable'),
+    ) ?? 0;
+    final wardCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $wardsTable'),
+    ) ?? 0;
+
+    return {
+      'districts': districtCount,
+      'bodies': bodyCount,
+      'wards': wardCount,
+    };
+  }
+
+  // Get candidate location data (district name, body name, ward name)
+  Future<Map<String, String?>> getCandidateLocationData(
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
+    debugPrint('🔍 [SQLite] Fetching location data for candidate: district=$districtId, body=$bodyId, ward=$wardId');
+    try {
+      final districtName = await getDistrictName(districtId);
+      final bodyName = await getBodyName(bodyId);
+      final wardName = await getWardName(districtId, bodyId, wardId);
+
+      final result = {
+        'districtName': districtName,
+        'bodyName': bodyName,
+        'wardName': wardName,
+      };
+
+      debugPrint('✅ [SQLite] Location data retrieved: District="$districtName", Body="$bodyName", Ward="$wardName"');
+      return result;
+    } catch (e) {
+      debugPrint('❌ [LocalDatabaseService] Error getting candidate location data: $e');
+      final fallbackResult = {
+        'districtName': districtId,
+        'bodyName': bodyId,
+        'wardName': 'Ward $wardId',
+      };
+      debugPrint('⚠️ [SQLite] Using fallback location data: $fallbackResult');
+      return fallbackResult;
+    }
+  }
+
+  // Close database
+  Future<void> close() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+}

@@ -47,10 +47,20 @@ class _MonetizationScreenState extends State<MonetizationScreen>
   }
 
   Future<void> _loadUserData() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      await _controller.loadUserXPBalance(currentUser.uid);
-      await _controller.loadUserStatusData();
+    try {
+      debugPrint('🔄 MONETIZATION SCREEN: Loading user data...');
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser != null) {
+        debugPrint('👤 User found: ${currentUser.uid}');
+        await _controller.loadUserXPBalance(currentUser.uid);
+        await _controller.loadUserStatusData();
+        debugPrint('✅ User data loaded successfully');
+      } else {
+        debugPrint('❌ No authenticated user found in monetization screen');
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading user data: $e');
     }
   }
 
@@ -62,8 +72,8 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: 'Premium Plans'),
-            Tab(text: 'XP Store'),
+            Obx(() => Tab(text: _controller.plansTabText)),
+            Tab(text: 'My Status'),
           ],
         ),
         actions: [
@@ -72,6 +82,11 @@ class _MonetizationScreenState extends State<MonetizationScreen>
             tooltip: 'Initialize Default Plans',
             onPressed: _initializeDefaultPlans,
           ),
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Refresh Plans (Hot Reload Fix)',
+            onPressed: _refreshPlans,
+          ),
         ],
       ),
       body: Obx(() {
@@ -79,7 +94,10 @@ class _MonetizationScreenState extends State<MonetizationScreen>
           isLoading: _controller.isLoading.value,
           child: TabBarView(
             controller: _tabController,
-            children: [_buildPlansComparison(), _buildVoterPlans()],
+            children: [
+              Obx(() => _controller.showAllPlans ? _buildPlansComparison() : _buildVoterPlans()),
+              _buildUserStatus(),
+            ],
           ),
         );
       }),
@@ -209,13 +227,51 @@ class _MonetizationScreenState extends State<MonetizationScreen>
   // Temporary method to initialize default plans (remove after first use)
   void _initializeDefaultPlans() async {
     debugPrint('🔧 INITIALIZING DEFAULT PLANS FROM MONETIZATION SCREEN...');
-    await _controller.initializeDefaultPlans();
-    Get.snackbar(
-      'Success',
-      'Default plans initialized successfully!',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
+    debugPrint('   User clicked initialize button - starting plan creation process');
+
+    try {
+      await _controller.initializeDefaultPlans();
+      debugPrint('✅ INITIALIZATION COMPLETED SUCCESSFULLY');
+      Get.snackbar(
+        'Success',
+        'Default plans initialized successfully!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      debugPrint('❌ INITIALIZATION FAILED: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to initialize plans: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Method to refresh plans (useful for hot reload issues)
+  void _refreshPlans() async {
+    debugPrint('🔄 REFRESHING PLANS FROM MONETIZATION SCREEN...');
+    debugPrint('   User clicked refresh button - fixing hot reload issues');
+
+    try {
+      await _controller.refreshPlans();
+      debugPrint('✅ REFRESH COMPLETED SUCCESSFULLY');
+      Get.snackbar(
+        'Success',
+        'Plans refreshed successfully!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      debugPrint('❌ REFRESH FAILED: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to refresh plans: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   int _countEnabledFeatures(SubscriptionPlan plan) {
@@ -240,5 +296,31 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     if (plan.profileFeatures.customBranding == true) count++;
 
     return count;
+  }
+
+  Widget _buildUserStatus() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // User Status Section
+          UserStatusSection(controller: _controller),
+
+          const SizedBox(height: 24),
+
+          // XP Balance Section (for voters)
+          if (_controller.showOnlyXPPlans) ...[
+            XPBalanceSection(controller: _controller),
+            const SizedBox(height: 24),
+          ],
+
+          // XP Usage Info (for voters)
+          if (_controller.showOnlyXPPlans) ...[
+            XPUsageInfo(),
+          ],
+        ],
+      ),
+    );
   }
 }

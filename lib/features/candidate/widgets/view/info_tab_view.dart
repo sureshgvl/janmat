@@ -1,37 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/candidate_model.dart';
-import '../../controllers/candidate_controller.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../../utils/symbol_utils.dart';
 
-class InfoTab extends StatefulWidget {
+class InfoTab extends StatelessWidget {
   final Candidate candidate;
   final String Function(String) getPartySymbolPath;
   final String Function(DateTime) formatDate;
+  final String? wardName;
+  final String? districtName;
+  final String? bodyName;
 
   const InfoTab({
     super.key,
     required this.candidate,
     required this.getPartySymbolPath,
     required this.formatDate,
+    this.wardName,
+    this.districtName,
+    this.bodyName,
   });
 
-  @override
-  State<InfoTab> createState() => _InfoTabState();
-}
-
-class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-  final CandidateController controller = Get.find<CandidateController>();
-  final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
-  double infoTitleFontSize = 14;
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -70,10 +63,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                           borderRadius: BorderRadius.circular(8),
                           image: DecorationImage(
                             image: SymbolUtils.getSymbolImageProvider(
-                              SymbolUtils.getPartySymbolPath(
-                                widget.candidate.party,
-                                candidate: widget.candidate,
-                              ),
+                              getPartySymbolPath(candidate.party),
                             ),
                             fit: BoxFit.cover,
                           ),
@@ -90,7 +80,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                       ),
                       child: Text(
                         SymbolUtils.getPartySymbolNameWithLocale(
-                          widget.candidate.party,
+                          candidate.party,
                           Localizations.localeOf(context).languageCode,
                         ),
                         style: const TextStyle(
@@ -109,7 +99,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     children: [
                       Text(
                         SymbolUtils.getPartyFullNameWithLocale(
-                          widget.candidate.party,
+                          candidate.party,
                           Localizations.localeOf(context).languageCode,
                         ),
                         style: const TextStyle(
@@ -120,13 +110,9 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        CandidateLocalizations.of(context)!.translate(
-                          'wardInfo',
-                          args: {
-                            'wardId': widget.candidate.wardId.toString(),
-                            'cityId': widget.candidate.districtId,
-                          },
-                        ),
+                        wardName != null
+                            ? '${wardName!} • ${districtName ?? candidate.districtId}'
+                            : 'Ward ${candidate.wardId}, ${candidate.districtId}',
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6b7280),
@@ -137,8 +123,8 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                       //   CandidateLocalizations.of(context)!.translate(
                       //     'joinedDate',
                       //     args: {
-                      //       'date': widget.formatDate(
-                      //         widget.candidate.createdAt,
+                      //       'date': candidate.formatDate(
+                      //         candidate.createdAt,
                       //       ),
                       //     },
                       //   ),
@@ -156,8 +142,8 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
 
 
           // Events (if available)
-          if (widget.candidate.extraInfo?.events != null &&
-              widget.candidate.extraInfo!.events!.isNotEmpty) ...[
+          if (candidate.extraInfo?.events != null &&
+              candidate.extraInfo!.events!.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(24),
@@ -202,7 +188,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  ...widget.candidate.extraInfo!.events!.map(
+                  ...candidate.extraInfo!.events!.map(
                     (event) => Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(16),
@@ -288,10 +274,10 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
           ],
 
           // Personal Information (Age, Gender, Education, Address)
-          if ((widget.candidate.extraInfo?.basicInfo?.age != null) ||
-              (widget.candidate.extraInfo?.basicInfo?.gender != null) ||
-              (widget.candidate.extraInfo?.basicInfo?.education != null) ||
-              (widget.candidate.extraInfo?.contact?.address != null)) ...[
+          if ((candidate.extraInfo?.basicInfo?.age != null) ||
+              (candidate.extraInfo?.basicInfo?.gender != null) ||
+              (candidate.extraInfo?.basicInfo?.education != null) ||
+              (candidate.extraInfo?.contact?.address != null)) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(24),
@@ -358,7 +344,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                             Text(
                               CandidateLocalizations.of(context)!.fullName,
                               style: TextStyle(
-                                fontSize: infoTitleFontSize,
+                                fontSize: 14,
                                 color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
@@ -367,7 +353,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          widget.candidate.name,
+                          candidate.name,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -379,12 +365,12 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                   ),
                   const SizedBox(height: 16),
                   // Age and Gender Row
-                  if (widget.candidate.extraInfo?.basicInfo?.age != null ||
-                      widget.candidate.extraInfo?.basicInfo?.gender !=
+                  if (candidate.extraInfo?.basicInfo?.age != null ||
+                      candidate.extraInfo?.basicInfo?.gender !=
                           null) ...[
                     Row(
                       children: [
-                        if (widget.candidate.extraInfo?.basicInfo?.age !=
+                        if (candidate.extraInfo?.basicInfo?.age !=
                             null) ...[
                           Expanded(
                             child: Container(
@@ -408,7 +394,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                                       Text(
                                         CandidateLocalizations.of(context)!.age,
                                         style: TextStyle(
-                                          fontSize: infoTitleFontSize,
+                                          fontSize: 14,
                                           color: Colors.grey[600],
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -417,7 +403,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '${widget.candidate.extraInfo!.basicInfo!.age}',
+                                    '${candidate.extraInfo!.basicInfo!.age}',
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -428,11 +414,11 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                               ),
                             ),
                           ),
-                          if (widget.candidate.extraInfo?.basicInfo?.gender !=
+                          if (candidate.extraInfo?.basicInfo?.gender !=
                               null)
                             const SizedBox(width: 12),
                         ],
-                        if (widget.candidate.extraInfo?.basicInfo?.gender !=
+                        if (candidate.extraInfo?.basicInfo?.gender !=
                             null) ...[
                           Expanded(
                             child: Container(
@@ -456,7 +442,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                                       Text(
                                         CandidateLocalizations.of(context)!.gender,
                                         style: TextStyle(
-                                          fontSize: infoTitleFontSize,
+                                          fontSize: 14,
                                           color: Colors.grey[600],
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -465,11 +451,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    widget
-                                        .candidate
-                                        .extraInfo!
-                                        .basicInfo!
-                                        .gender!,
+                                    candidate.extraInfo!.basicInfo!.gender!,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -486,7 +468,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     const SizedBox(height: 16),
                   ],
                   // Education
-                  if (widget.candidate.extraInfo?.basicInfo?.education !=
+                  if (candidate.extraInfo?.basicInfo?.education !=
                       null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -509,7 +491,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                               Text(
                                 CandidateLocalizations.of(context)!.education,
                                 style: TextStyle(
-                                  fontSize: infoTitleFontSize,
+                                  fontSize: 14,
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -518,7 +500,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            widget.candidate.extraInfo!.basicInfo!.education!,
+                            candidate.extraInfo!.basicInfo!.education!,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -531,7 +513,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                     const SizedBox(height: 16),
                   ],
                   // Address
-                  if (widget.candidate.extraInfo?.contact?.address != null) ...[
+                  if (candidate.extraInfo?.contact?.address != null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -553,7 +535,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                               Text(
                                 CandidateLocalizations.of(context)!.address,
                                 style: TextStyle(
-                                  fontSize: infoTitleFontSize,
+                                  fontSize: 14,
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -562,7 +544,7 @@ class _InfoTabState extends State<InfoTab> with AutomaticKeepAliveClientMixin {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            widget.candidate.extraInfo!.contact!.address!,
+                            candidate.extraInfo!.contact!.address!,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

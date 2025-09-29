@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../models/candidate_model.dart';
+import '../../controllers/candidate_controller.dart';
 import '../../../../utils/symbol_utils.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../utils/maharashtra_utils.dart';
+import '../../../../services/local_database_service.dart';
+import '../../../../models/district_model.dart';
+import '../../../../models/ward_model.dart';
 
 class ProfileTabView extends StatefulWidget {
   final Candidate candidate;
@@ -30,11 +36,178 @@ class _ProfileTabViewState extends State<ProfileTabView>
   bool _isProfileLiked = false;
   int _profileLikes = 0;
 
+  // Location display state
+  String? _districtName;
+  String? _wardDisplayName;
+  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
+
   @override
   void initState() {
     super.initState();
     // Initialize with some mock data - in real app this would come from server
     _profileLikes = widget.candidate.followersCount ?? 0;
+
+    // Load location data
+    _loadLocationData();
+  }
+
+  // Load location data from cache or fallback to utils
+  Future<void> _loadLocationData() async {
+    debugPrint('🔍 [Profile Tab] Loading location data for candidate ${widget.candidate.candidateId}');
+    debugPrint('📍 [Profile Tab] IDs: district=${widget.candidate.districtId}, body=${widget.candidate.bodyId}, ward=${widget.candidate.wardId}');
+
+    try {
+      // Load location data from SQLite cache
+      final locationData = await _locationDatabase.getCandidateLocationData(
+        widget.candidate.districtId,
+        widget.candidate.bodyId,
+        widget.candidate.wardId,
+      );
+
+      // Check if ward data is missing (most likely to be missing)
+      if (locationData['wardName'] == null) {
+        debugPrint('⚠️ [Profile Tab] Ward data not found in cache, triggering sync...');
+
+        // Trigger background sync for missing location data
+        await _syncMissingLocationData();
+
+        // Try loading again after sync
+        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
+          widget.candidate.districtId,
+          widget.candidate.bodyId,
+          widget.candidate.wardId,
+        );
+
+        if (mounted) {
+          setState(() {
+            _districtName = updatedLocationData['districtName'];
+            _wardDisplayName = updatedLocationData['wardName'];
+          });
+        }
+
+        debugPrint('✅ [Profile Tab] Location data loaded after sync:');
+        debugPrint('   📍 District: $_districtName');
+        debugPrint('   🏛️ Ward: $_wardDisplayName');
+      } else {
+        if (mounted) {
+          setState(() {
+            _districtName = locationData['districtName'];
+            _wardDisplayName = locationData['wardName'];
+          });
+        }
+
+        debugPrint('✅ [Profile Tab] Location data loaded successfully from SQLite:');
+        debugPrint('   📍 District: $_districtName');
+        debugPrint('   🏛️ Ward: $_wardDisplayName');
+      }
+    } catch (e) {
+      debugPrint('❌ [Profile Tab] Error loading location data: $e');
+
+      // Fallback to ID-based display if sync fails
+      if (mounted) {
+        setState(() {
+          _districtName = widget.candidate.districtId;
+          _wardDisplayName = 'Ward ${widget.candidate.wardId}';
+        });
+      }
+    }
+  }
+
+  // Fallback method using MaharashtraUtils for localization
+  void _loadLocationDataFromUtils() {
+    final locale = Localizations.localeOf(context);
+    final languageCode = locale.languageCode;
+
+    // Get district name from utils
+    final districtName = MaharashtraUtils.getDistrictDisplayNameWithLocale(
+      widget.candidate.districtId,
+      languageCode,
+    );
+
+    // Get ward display name (extract number and format)
+    final wardNumber = MaharashtraUtils.getWardNumber(widget.candidate.wardId);
+    String wardDisplayName;
+    if (wardNumber != null) {
+      wardDisplayName = languageCode == 'mr'
+          ? 'वॉर्ड $wardNumber'
+          : 'Ward $wardNumber';
+    } else {
+      wardDisplayName = widget.candidate.wardId; // Fallback
+    }
+
+    if (mounted) {
+      setState(() {
+        _districtName = districtName;
+        _wardDisplayName = wardDisplayName;
+      });
+    }
+  }
+
+  // Sync missing location data from Firebase to SQLite
+  Future<void> _syncMissingLocationData() async {
+    try {
+      debugPrint('🔄 [Profile Tab] Syncing missing location data...');
+
+      // Import candidate repository dynamically to avoid circular imports
+      final candidateRepository = Get.find<CandidateController>().candidateRepository;
+
+      // Sync district data if missing
+      if (_districtName == null) {
+        debugPrint('🏙️ [Sync] Fetching district data for ${widget.candidate.districtId}');
+        final districts = await candidateRepository.getAllDistricts();
+        final district = districts.firstWhere(
+          (d) => d.id == widget.candidate.districtId,
+          orElse: () => District(
+            id: widget.candidate.districtId,
+            name: widget.candidate.districtId,
+            stateId: 'maharashtra',
+          ),
+        );
+        await _locationDatabase.insertDistricts([district]);
+        debugPrint('✅ [Sync] District data synced');
+      }
+
+      // Sync ward data (most critical)
+      if (_wardDisplayName == null) {
+        debugPrint('🏛️ [Sync] Fetching ward data for ${widget.candidate.wardId}');
+        final wards = await candidateRepository.getWardsByDistrictAndBody(
+          widget.candidate.districtId,
+          widget.candidate.bodyId,
+        );
+        final ward = wards.firstWhere(
+          (w) => w.id == widget.candidate.wardId,
+          orElse: () => Ward(
+            id: widget.candidate.wardId,
+            name: 'Ward ${widget.candidate.wardId}',
+            districtId: widget.candidate.districtId,
+            bodyId: widget.candidate.bodyId,
+            stateId: 'maharashtra',
+          ),
+        );
+        await _locationDatabase.insertWards([ward]);
+        debugPrint('✅ [Sync] Ward data synced');
+
+        // Reload location data after sync
+        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
+          widget.candidate.districtId,
+          widget.candidate.bodyId,
+          widget.candidate.wardId,
+        );
+
+        if (mounted) {
+          setState(() {
+            _districtName = updatedLocationData['districtName'];
+            _wardDisplayName = updatedLocationData['wardName'];
+          });
+        }
+      }
+
+      debugPrint('✅ [Profile Tab] Location data sync completed');
+    } catch (e) {
+      debugPrint('❌ [Profile Tab] Error syncing location data: $e');
+      // Fallback to utils-based localization
+      _loadLocationDataFromUtils();
+    }
   }
 
   void _toggleProfileLike() {
@@ -99,6 +272,7 @@ View their complete profile and manifesto at: [Your App URL]
               children: [
                 // Profile Photo and Basic Info
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CircleAvatar(
                       radius: 50,
@@ -120,128 +294,18 @@ View their complete profile and manifesto at: [Your App URL]
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.candidate.name,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1f2937),
-                                  ),
-                                ),
-                              ),
-                              // Like Count - Always visible (even for own profile)
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade50,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Colors.red.shade200,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.favorite,
-                                      size: 16,
-                                      color: Colors.red.shade600,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _profileLikes.toString(),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700],
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    if (_profileLikes == 1)
-                                      Text(
-                                        AppLocalizations.of(context)!.like,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey[600],
-                                        ),
-                                      )
-                                    else
-                                      Text(
-                                        AppLocalizations.of(context)!.likes,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-
-                              // Interactive Like and Share buttons - Only for voters
-                              if (widget.showVoterInteractions) ...[
-                                const SizedBox(width: 8),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Like Button
-                                    GestureDetector(
-                                      onTap: _toggleProfileLike,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: _isProfileLiked
-                                              ? Colors.red.shade50
-                                              : Colors.grey.shade50,
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          border: Border.all(
-                                            color: _isProfileLiked
-                                                ? Colors.red.shade200
-                                                : Colors.grey.shade300,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          _isProfileLiked
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          size: 16,
-                                          color: _isProfileLiked
-                                              ? Colors.red
-                                              : Colors.grey[600],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Share Button
-                                    GestureDetector(
-                                      onTap: _shareProfile,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade50,
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.blue.shade200,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.share,
-                                          size: 16,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
+                          // Candidate Name - Full width
+                          Text(
+                            widget.candidate.name,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1f2937),
+                            ),
                           ),
                           const SizedBox(height: 8),
+
+                          // Party Information
                           Row(
                             children: [
                               if (widget.candidate.party.toLowerCase().contains(
@@ -326,6 +390,115 @@ View their complete profile and manifesto at: [Your App URL]
                         ],
                       ),
                     ),
+                  ],
+                ),
+
+                // Like Count and Interactive Buttons - At the end
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Like Count - Always visible
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.red.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.favorite,
+                            size: 16,
+                            color: Colors.red.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _profileLikes.toString(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (_profileLikes == 1)
+                            Text(
+                              AppLocalizations.of(context)!.like,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                              ),
+                            )
+                          else
+                            Text(
+                              AppLocalizations.of(context)!.likes,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Interactive Like and Share buttons - Only for voters
+                    if (widget.showVoterInteractions)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Like Button
+                          GestureDetector(
+                            onTap: _toggleProfileLike,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _isProfileLiked
+                                    ? Colors.red.shade50
+                                    : Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _isProfileLiked
+                                      ? Colors.red.shade200
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Icon(
+                                _isProfileLiked
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 16,
+                                color: _isProfileLiked
+                                    ? Colors.red
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Share Button
+                          GestureDetector(
+                            onTap: _shareProfile,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.share,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ],
@@ -590,7 +763,7 @@ View their complete profile and manifesto at: [Your App URL]
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.candidate.districtId,
+                              _districtName ?? widget.candidate.districtId,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -623,7 +796,7 @@ View their complete profile and manifesto at: [Your App URL]
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.candidate.wardId,
+                              _wardDisplayName ?? widget.candidate.wardId,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,

@@ -311,6 +311,32 @@ class MyApp extends StatelessWidget {
     );
   }
 
+  // Wait for Firebase Auth to properly initialize
+  Future<User?> _waitForFirebaseAuthInitialization() async {
+    // First check if we already have a current user
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      debugPrint('🔐 Firebase Auth already has current user: ${currentUser.uid}');
+      return currentUser;
+    }
+
+    // Wait for auth state changes with a timeout
+    try {
+      final user = await FirebaseAuth.instance.authStateChanges().first.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('⏰ Firebase Auth initialization timeout');
+          return null;
+        },
+      );
+      debugPrint('🔐 Firebase Auth state determined: ${user?.uid ?? 'null'}');
+      return user;
+    } catch (e) {
+      debugPrint('⚠️ Error waiting for Firebase Auth: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>> _getInitialAppData() async {
     final languageService = LanguageService();
 
@@ -329,12 +355,16 @@ class MyApp extends StatelessWidget {
     // Debug: Print current locale being used
     debugPrint('🌐 Initial app locale: ${locale.languageCode}');
 
-    // Fast check for Firebase Auth user (doesn't require network)
-    final User? currentUser = FirebaseAuth.instance.currentUser;
+    // Wait for Firebase Auth to properly initialize and determine auth state
+    debugPrint('🔐 Waiting for Firebase Auth initialization...');
+    final User? currentUser = await _waitForFirebaseAuthInitialization();
 
     if (currentUser == null) {
+      debugPrint('🔐 No authenticated user found, showing login screen');
       return {'route': '/login', 'locale': locale};
     }
+
+    debugPrint('🔐 User authenticated: ${currentUser.uid}, checking profile status...');
 
     // For authenticated users, check their completion status
     // OPTIMIZATION: Use cached user data if available, otherwise fetch quickly
@@ -365,8 +395,20 @@ class MyApp extends StatelessWidget {
 
         if (userDoc != null && userDoc.exists) {
           userData = userDoc.data()!;
-          // Cache for future use
-          await cache.set('user_${currentUser.uid}', userData, ttl: Duration(minutes: 5));
+
+          // Cache only essential routing data to avoid serialization issues
+          try {
+            final routingData = {
+              'role': userData['role'],
+              'profileCompleted': userData['profileCompleted'],
+              'districtId': userData['districtId'],
+            };
+            await cache.set('user_${currentUser.uid}', routingData, ttl: Duration(minutes: 5));
+            debugPrint('✅ Routing data cached successfully');
+          } catch (e) {
+            debugPrint('⚠️ Failed to cache routing data: $e');
+            // Continue without caching - not critical
+          }
         }
       }
 
