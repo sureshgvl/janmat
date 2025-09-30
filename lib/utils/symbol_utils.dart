@@ -382,14 +382,19 @@ class SymbolUtils {
     // For regular parties - Direct lookup, no caching needed
     debugPrint('🏛️ [SymbolUtils] Party-affiliated candidate detected');
 
-    // Try to find party by name first
-    Map<String, String>? partyData = getPartyByName(party);
+    // First check if the party string is already a key
+    Map<String, String>? partyData = getPartyByKey(party);
 
-    // If not found by name, try to get key from name and then find by key
+    // If not a key, try to find party by name
     if (partyData == null || partyData.isEmpty) {
-      String? partyKey = getPartyKeyFromName(party);
-      if (partyKey != null) {
-        partyData = getPartyByKey(partyKey);
+      partyData = getPartyByName(party);
+
+      // If not found by name, try to get key from name and then find by key
+      if (partyData == null || partyData.isEmpty) {
+        String? partyKey = getPartyKeyFromName(party);
+        if (partyKey != null) {
+          partyData = getPartyByKey(partyKey);
+        }
       }
     }
 

@@ -2,13 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../features/candidate/repositories/candidate_repository.dart';
 import '../event_notification_service.dart';
 
 class CandidateFollowingNotifications {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'us-central1');
   final CandidateRepository _candidateRepository = CandidateRepository();
   final EventNotificationService _eventNotificationService = EventNotificationService();
 
@@ -63,7 +65,7 @@ class CandidateFollowingNotifications {
         'candidateId': candidateId,
         'followerId': followerId,
         'followerName': followerName,
-        'followerCount': followerCount + 1,
+        'followerCount': (followerCount + 1).toString(),
       });
 
       // Store notification in database
@@ -72,7 +74,7 @@ class CandidateFollowingNotifications {
         'candidateId': candidateId,
         'followerId': followerId,
         'followerName': followerName,
-        'followerCount': followerCount + 1,
+        'followerCount': (followerCount + 1).toString(),
       });
 
       // Check for follower milestones
@@ -110,16 +112,16 @@ class CandidateFollowingNotifications {
       await _sendPushNotification(candidateToken, title, body, {
         'type': 'follower_milestone',
         'candidateId': candidateId,
-        'followerCount': followerCount,
-        'milestone': followerCount,
+        'followerCount': followerCount.toString(),
+        'milestone': followerCount.toString(),
       });
 
       // Store notification in database
       await _storeNotification(candidateUserId, title, body, {
         'type': 'follower_milestone',
         'candidateId': candidateId,
-        'followerCount': followerCount,
-        'milestone': followerCount,
+        'followerCount': followerCount.toString(),
+        'milestone': followerCount.toString(),
       });
     } catch (e) {
       debugPrint('Error sending follower milestone notification: $e');
@@ -164,7 +166,7 @@ class CandidateFollowingNotifications {
         'candidateId': candidateId,
         'unfollowerId': unfollowerId,
         'unfollowerName': unfollowerName,
-        'followerCount': followerCount,
+        'followerCount': followerCount.toString(),
       });
 
       // Store notification in database
@@ -173,7 +175,7 @@ class CandidateFollowingNotifications {
         'candidateId': candidateId,
         'unfollowerId': unfollowerId,
         'unfollowerName': unfollowerName,
-        'followerCount': followerCount,
+        'followerCount': followerCount.toString(),
       });
     } catch (e) {
       debugPrint('Error sending unfollow notification: $e');
@@ -561,10 +563,14 @@ class CandidateFollowingNotifications {
       debugPrint('Title: $title');
       debugPrint('Body: $body');
       debugPrint('Data: $data');
+      debugPrint('Data types: ${data.map((k, v) => MapEntry(k, v.runtimeType))}');
 
       // Call Firebase Cloud Function to send push notification
       try {
+        debugPrint('📞 Calling Firebase Function: sendPushNotification');
         final callable = _functions.httpsCallable('sendPushNotification');
+        debugPrint('📦 Function data: token=${token.substring(0, 20)}..., title=$title, body=$body');
+
         final result = await callable.call({
           'token': token,
           'title': title,
@@ -575,6 +581,17 @@ class CandidateFollowingNotifications {
         debugPrint('✅ Push notification sent successfully: ${result.data}');
       } catch (functionError) {
         debugPrint('❌ Firebase Function error: $functionError');
+        debugPrint('❌ Function error details: ${functionError.toString()}');
+
+        // Try to get more specific error information
+        if (functionError is FirebaseFunctionsException) {
+          debugPrint('❌ Function code: ${functionError.code}');
+          debugPrint('❌ Function message: ${functionError.message}');
+          debugPrint('❌ Function details: ${functionError.details}');
+        }
+
+        // Note: Direct FCM fallback removed - now only using Firebase Functions
+        debugPrint('⚠️ Firebase Function failed - no fallback available');
 
         // Fallback: Try HTTP request to Firebase Functions URL
         // Uncomment and configure if you prefer direct HTTP calls
@@ -602,6 +619,7 @@ class CandidateFollowingNotifications {
       // Don't throw - allow the app to continue even if push notifications fail
     }
   }
+
 
   // Helper method to store notification in database
   Future<void> _storeNotification(

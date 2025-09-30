@@ -1,13 +1,56 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as https from 'https';
 
-// Initialize Firebase Admin
+// Initialize Firebase Admin - let it auto-discover credentials
 admin.initializeApp();
+
+// Note: Using Firebase Admin SDK with FCM V1 API - no server key needed
+// The Admin SDK handles authentication automatically via service account
+
+// Test function to check Firebase Admin SDK
+export const testFirebaseAdmin = functions.https.onCall(async (data, context) => {
+  try {
+    console.log('🧪 Testing Firebase Admin SDK...');
+
+    // Test basic Admin SDK functionality
+    const testMessage = {
+      notification: {
+        title: 'Test Notification',
+        body: 'This is a test from Firebase Functions',
+      },
+      data: {
+        test: 'true',
+        timestamp: Date.now().toString(),
+      },
+      token: 'test-token', // This will fail but we'll see the error
+    };
+
+    console.log('📤 Attempting to send test message...');
+    const result = await admin.messaging().send(testMessage);
+
+    return {
+      success: true,
+      message: 'Firebase Admin SDK is working',
+      result: result,
+    };
+  } catch (error: any) {
+    console.error('❌ Firebase Admin SDK test failed:', error);
+    return {
+      success: false,
+      error: error.message,
+      code: error.code,
+      details: JSON.stringify(error, null, 2),
+    };
+  }
+});
 
 // Send push notification
 export const sendPushNotification = functions.https.onCall(async (data, context) => {
   try {
     const { token, title, body, notificationData } = data;
+
+    console.log('📨 SendPushNotification called with:', { token: token?.substring(0, 20) + '...', title, body });
 
     if (!token) {
       throw new functions.https.HttpsError('invalid-argument', 'FCM token is required');
@@ -17,7 +60,7 @@ export const sendPushNotification = functions.https.onCall(async (data, context)
       throw new functions.https.HttpsError('invalid-argument', 'Title and body are required');
     }
 
-    // Create notification payload
+    // Create notification payload for Admin SDK
     const payload = {
       notification: {
         title: title,
@@ -28,20 +71,45 @@ export const sendPushNotification = functions.https.onCall(async (data, context)
         ...notificationData,
         timestamp: Date.now().toString(),
       },
+      token: token, // Use token instead of to
     };
 
-    // Send notification
-    const response = await admin.messaging().sendToDevice(token, payload);
+    console.log('🔧 Using payload for Admin SDK:', JSON.stringify(payload, null, 2));
 
-    console.log('✅ Push notification sent successfully:', response);
+    // Send via Firebase Admin SDK (FCM V1 API)
+    console.log('🚀 Sending via Firebase Admin SDK (FCM V1 API)...');
+    console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
-    return {
-      success: true,
-      messageId: response,
-    };
+    try {
+      const response = await admin.messaging().send(payload);
+      console.log('✅ Push notification sent successfully via Admin SDK:', response);
+      return {
+        success: true,
+        messageId: response,
+        method: 'admin_sdk',
+      };
+    } catch (adminError: any) {
+      console.error('❌ Admin SDK error:', adminError);
+      console.error('❌ Error code:', adminError?.code);
+      console.error('❌ Error message:', adminError?.message);
+
+      // Check specific error types
+      if (adminError?.code === 'messaging/authentication-error') {
+        console.error('❌ Authentication error - Firebase project configuration issue');
+      } else if (adminError?.code === 'messaging/invalid-argument') {
+        console.error('❌ Invalid argument - payload format issue');
+      } else if (adminError?.code === 'messaging/invalid-registration-token') {
+        console.error('❌ Invalid FCM token provided');
+      } else if (adminError?.code === 'messaging/registration-token-not-registered') {
+        console.error('❌ FCM token not registered - user may have uninstalled app');
+      }
+
+      throw adminError;
+    }
   } catch (error) {
     console.error('❌ Error sending push notification:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to send push notification');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new functions.https.HttpsError('internal', `Failed to send push notification: ${errorMessage}`);
   }
 });
 

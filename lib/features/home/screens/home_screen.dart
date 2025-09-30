@@ -12,6 +12,8 @@ import 'home_drawer.dart';
 import 'home_body.dart';
 import 'home_actions.dart';
 import '../../candidate/controllers/candidate_data_controller.dart';
+// TEMPORARY IMPORT - REMOVE AFTER DEBUGGING
+import '../../../debug_fcm_temp_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,6 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(AppLocalizations.of(context)!.home),
+            actions: const [
+              // TEMPORARY DEBUG BUTTON - REMOVE AFTER DEBUGGING
+              FCMDebugButton(),
+            ],
           ),
           drawer: FutureBuilder<Map<String, dynamic>>(
             future: _homeServices.getUserData(currentUser.uid),

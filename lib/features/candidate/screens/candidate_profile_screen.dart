@@ -60,7 +60,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     super.initState();
 
     // Initialize TabController for performance monitoring
-    _tabController = TabController(length: 8, vsync: this);
+    // Length is 7 for non-own profiles (no analytics), 8 for own profile (with analytics)
+    _tabController = TabController(length: _isOwnProfile ? 8 : 7, vsync: this);
     _tabController?.addListener(_onTabChanged);
 
     // Check if arguments are provided
@@ -116,16 +117,21 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   void _onTabChanged() {
     if (_tabController?.indexIsChanging == false) {
       // Only log when tab change is complete
-      //final tabNames = ['Info', 'Profile', 'Achievements', 'Manifesto', 'Contact', 'Media', 'Events', 'Highlight', 'Analytics'];
       final tabNames = [
         CandidateLocalizations.of(context)!.info,
         CandidateLocalizations.of(context)!.manifesto,
+        CandidateLocalizations.of(context)!.profile,
         CandidateLocalizations.of(context)!.achievements,
         CandidateLocalizations.of(context)!.media,
         CandidateLocalizations.of(context)!.contact,
         CandidateLocalizations.of(context)!.events,
-        CandidateLocalizations.of(context)!.analytics,
       ];
+
+      // Add analytics tab name only for own profile
+      if (_isOwnProfile) {
+        tabNames.add(CandidateLocalizations.of(context)!.analytics);
+      }
+
       final currentTab = tabNames[_tabController!.index];
 
       // Only log in debug mode
@@ -330,6 +336,81 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
+  // Build tab views conditionally
+  List<Widget> _buildTabViews() {
+    final List<Widget> tabViews = [
+      // Info Tab
+      InfoTab(
+        candidate: candidate!,
+        getPartySymbolPath: (party) =>
+            SymbolUtils.getPartySymbolPath(
+              party,
+              candidate: candidate,
+            ),
+        formatDate: formatDate,
+        wardName: _wardName,
+        districtName: _districtName,
+        bodyName: _bodyName,
+      ),
+
+      // Manifesto Tab
+      ManifestoTabView(
+        candidate: candidate!,
+        isOwnProfile: _isOwnProfile,
+        showVoterInteractions:
+            true, // Show voter interactions in profile view
+      ),
+
+      // Profile Tab
+      ProfileTabView(
+        candidate: candidate!,
+        isOwnProfile: _isOwnProfile,
+        showVoterInteractions:
+            !_isOwnProfile, // Show like/share buttons for voters only
+      ),
+
+      // Achievements Tab
+      AchievementsSection(
+        candidateData: candidate!,
+        editedData: null,
+        isEditing: false,
+        onAchievementsChange: (value) {},
+      ),
+
+      // Media Tab
+      MediaTabView(
+        candidate: candidate!,
+        isOwnProfile: false,
+      ),
+
+      // Contact Tab
+      ContactTab(candidate: candidate!),
+
+      // Events Tab
+      Builder(
+        builder: (context) {
+          if (currentUserId == candidate!.userId) {
+            return EventsTabEdit(
+              candidateData: candidate!,
+              editedData: null,
+              isEditing: false,
+              onEventsChange: (value) {},
+            );
+          } else {
+            return VoterEventsSection(candidateData: candidate!);
+          }
+        },
+      ),
+    ];
+
+    // Add Analytics tab only for own profile
+    if (_isOwnProfile) {
+      tabViews.add(FollowersAnalyticsSection(candidateData: candidate!));
+    }
+
+    return tabViews;
+  }
+
   // Refresh candidate data
   Future<void> _refreshCandidateData() async {
     try {
@@ -441,110 +522,14 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             ),
 
             // Pinned Tab Bar
-            ProfileTabBarWidget(tabController: _tabController!),
+            ProfileTabBarWidget(tabController: _tabController!, isOwnProfile: _isOwnProfile),
           ];
         },
         body: RefreshIndicator(
           onRefresh: _refreshCandidateData,
           child: TabBarView(
             controller: _tabController,
-            children: [
-              // Info Tab
-              InfoTab(
-                candidate: candidate!,
-                getPartySymbolPath: (party) =>
-                    SymbolUtils.getPartySymbolPath(
-                      party,
-                      candidate: candidate,
-                    ),
-                formatDate: formatDate,
-                wardName: _wardName,
-                districtName: _districtName,
-                bodyName: _bodyName,
-              ),
-
-              // Manifesto Tab
-              ManifestoTabView(
-                candidate: candidate!,
-                isOwnProfile: _isOwnProfile,
-                showVoterInteractions:
-                    true, // Show voter interactions in profile view
-              ),
-
-              // Profile Tab
-              ProfileTabView(
-                candidate: candidate!,
-                isOwnProfile: _isOwnProfile,
-                showVoterInteractions:
-                    !_isOwnProfile, // Show like/share buttons for voters only
-              ),
-
-              // Achievements Tab
-              AchievementsSection(
-                candidateData: candidate!,
-                editedData: null,
-                isEditing: false,
-                onAchievementsChange: (value) {},
-              ),
-
-              // Media Tab
-              MediaTabView(
-                candidate: candidate!,
-                isOwnProfile: false,
-              ),
-
-              // Contact Tab
-              ContactTab(candidate: candidate!),
-
-              // Events Tab
-              Builder(
-                builder: (context) {
-                  if (currentUserId == candidate!.userId) {
-                    return EventsTabEdit(
-                      candidateData: candidate!,
-                      editedData: null,
-                      isEditing: false,
-                      onEventsChange: (value) {},
-                    );
-                  } else {
-                    return VoterEventsSection(candidateData: candidate!);
-                  }
-                },
-              ),
-
-              // Highlight Tab
-              // Builder(
-              //   builder: (context) {
-              //     debugPrint('📊 [TAB LOG] Highlight Tab - Candidate: ${candidate!.name}');
-              //     debugPrint('📊 [TAB LOG] Highlight Tab - Has Highlight: ${candidate!.extraInfo?.highlight != null}');
-              //     debugPrint('📊 [TAB LOG] Highlight Tab - Highlight Enabled: ${candidate!.extraInfo?.highlight?.enabled ?? false}');
-              //     return HighlightTabEdit(
-              //       candidateData: candidate!,
-              //       editedData: null,
-              //       isEditing: false,
-              //       onHighlightChange: (value) {},
-              //     );
-              //   },
-              // ),
-
-              // Analytics Tab
-              FollowersAnalyticsSection(candidateData: candidate!),
-
-              // Profile Tab (Bio section)
-              // Builder(
-              //   builder: (context) {
-              //     debugPrint('📊 [TAB LOG] Profile Tab - Candidate: ${candidate!.name}');
-              //     debugPrint('📊 [TAB LOG] Profile Tab - Bio: ${candidate!.extraInfo?.bio ?? "No bio available"}');
-              //     debugPrint('📊 [TAB LOG] Profile Tab - Has Bio: ${candidate!.extraInfo?.bio?.isNotEmpty ?? false}');
-              //     return ProfileTabEdit(
-              //       candidateData: candidate!,
-              //       editedData: null,
-              //       isEditing: false,
-              //       onBioChange: (value) {},
-              //     );
-              //   },
-              // ),
-            ],
+            children: _buildTabViews(),
           ),
         ),
       ),

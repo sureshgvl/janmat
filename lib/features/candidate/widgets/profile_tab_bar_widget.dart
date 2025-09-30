@@ -3,117 +3,126 @@ import '../../../l10n/features/candidate/candidate_localizations.dart';
 
 class ProfileTabBarWidget extends StatelessWidget {
   final TabController tabController;
+  final bool isOwnProfile;
 
   const ProfileTabBarWidget({
     super.key,
     required this.tabController,
+    required this.isOwnProfile,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Build tabs list conditionally
+    final List<Widget> tabs = [
+      //basic info
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('info'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      //Manifesto
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('manifesto'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      //Profile
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('profile'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      //Achievements
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('achievements'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      //Media
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('media'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      //Contact
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('contact'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      //Events
+      Tab(
+        child: Text(
+          CandidateTranslations.tr('events'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    ];
+
+    // Add Analytics tab only for own profile
+    if (isOwnProfile) {
+      tabs.add(
+        Tab(
+          child: Text(
+            CandidateTranslations.tr('analytics'),
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      );
+    }
+
     return SliverPersistentHeader(
       pinned: true,
       delegate: _SliverAppBarDelegate(
         TabBar(
           controller: tabController,
           isScrollable: true,
-          tabs: [
-            //basic info
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('info'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Manifesto
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('manifesto'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Profile
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('profile'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Achievements
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('achievements'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Media
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('media'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Contact
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('contact'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Events
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('events'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            //Analytics
-            Tab(
-              child: Text(
-                CandidateTranslations.tr('analytics'),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
+          tabs: tabs,
           indicatorColor: Colors.blue,
           labelColor: Colors.blue,
           unselectedLabelColor: Colors.grey,

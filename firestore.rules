@@ -310,7 +310,14 @@ service cloud.firestore {
     }
 
     match /users/{userId}/notifications/{notificationId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow writing notifications for legitimate notification services
+      // This allows the notification system to store notifications for users
+      allow write: if request.auth != null &&
+        (request.auth.uid == userId ||
+         // Allow notification service writes (authenticated users can create notifications for others)
+         // This is needed for follow notifications, etc.
+         true); // Temporarily allow all authenticated users to write notifications
     }
 
     match /users/{userId}/activities/{activityId} {

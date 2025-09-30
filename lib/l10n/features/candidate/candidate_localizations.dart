@@ -74,6 +74,7 @@ class CandidateLocalizations {
   String get contact => translate('contact');
   String get events => translate('events');
   String get analytics => translate('analytics');
+  String get profile => translate('profile');
   String get candidateProfile => translate('candidateProfile');
   String get candidateDataNotAvailable => translate('candidateDataNotAvailable');
   String get candidateDashboard => translate('candidateDashboard');
