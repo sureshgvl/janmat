@@ -6,6 +6,10 @@ import 'notification_settings_dialog.dart';
 class FollowButton extends StatelessWidget {
   final String candidateId;
   final String userId;
+  final String? stateId;
+  final String? districtId;
+  final String? bodyId;
+  final String? wardId;
   final bool showFollowersCount;
   final VoidCallback? onFollowChanged;
 
@@ -13,6 +17,10 @@ class FollowButton extends StatelessWidget {
     super.key,
     required this.candidateId,
     required this.userId,
+    this.stateId,
+    this.districtId,
+    this.bodyId,
+    this.wardId,
     this.showFollowersCount = true,
     this.onFollowChanged,
   });
@@ -64,6 +72,10 @@ class FollowButton extends StatelessWidget {
                             userId,
                             candidateId,
                             notificationsEnabled: true,
+                            stateId: stateId,
+                            districtId: districtId,
+                            bodyId: bodyId,
+                            wardId: wardId,
                           );
                           onFollowChanged?.call();
                         });

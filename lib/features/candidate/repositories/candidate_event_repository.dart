@@ -1,8 +1,61 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 
 class EventRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+
+  // Get candidate's actual state ID (helper method)
+  Future<String> _getCandidateStateId(String candidateId) async {
+    try {
+      // First try to get from index
+      final indexDoc = await _firestore
+          .collection('candidate_index')
+          .doc(candidateId)
+          .get();
+
+      if (indexDoc.exists) {
+        final indexData = indexDoc.data()!;
+        final stateId = indexData['stateId'];
+        if (stateId != null && stateId.isNotEmpty) {
+          return stateId;
+        }
+      }
+
+      // Fallback: Search across all states to find the candidate
+      final statesSnapshot = await _firestore.collection('states').get();
+
+      for (var stateDoc in statesSnapshot.docs) {
+        final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+
+        for (var districtDoc in districtsSnapshot.docs) {
+          final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+
+          for (var bodyDoc in bodiesSnapshot.docs) {
+            final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+
+            for (var wardDoc in wardsSnapshot.docs) {
+              final candidateDoc = await wardDoc.reference
+                  .collection('candidates')
+                  .doc(candidateId)
+                  .get();
+
+              if (candidateDoc.exists) {
+                return stateDoc.id; // Return the actual state ID
+              }
+            }
+          }
+        }
+      }
+
+      // Candidate not found in any state
+      throw Exception('Candidate $candidateId not found in any state');
+    } catch (e) {
+      debugPrint('❌ Failed to get candidate state ID: $e');
+      throw Exception('Unable to determine candidate state: $e');
+    }
+  }
 
   // RSVP status enum
   static const String RSVP_INTERESTED = 'interested';
@@ -17,6 +70,7 @@ class EventRepository {
     String rsvpType,
   ) async {
     try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
         throw Exception('Candidate not found');
@@ -24,7 +78,7 @@ class EventRepository {
 
       final candidateRef = _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(candidateStateId)
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -108,6 +162,7 @@ class EventRepository {
     String userId,
   ) async {
     try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
         throw Exception('Candidate not found');
@@ -115,7 +170,7 @@ class EventRepository {
 
       final candidateRef = _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(candidateStateId)
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -178,6 +233,7 @@ class EventRepository {
     String userId,
   ) async {
     try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
         return null;
@@ -185,7 +241,7 @@ class EventRepository {
 
       final candidateDoc = await _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(candidateStateId)
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -239,6 +295,7 @@ class EventRepository {
     String eventId,
   ) async {
     try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
         return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
@@ -246,7 +303,7 @@ class EventRepository {
 
       final candidateDoc = await _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(candidateStateId)
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -304,6 +361,7 @@ class EventRepository {
   // Get all events for a candidate
   Future<List<EventData>> getCandidateEvents(String candidateId) async {
     try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
         return [];
@@ -311,7 +369,7 @@ class EventRepository {
 
       final candidateDoc = await _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(candidateStateId)
           .collection('districts')
           .doc(candidateLocation['districtId'])
           .collection('bodies')
@@ -361,9 +419,10 @@ class EventRepository {
     String candidateId,
   ) async {
     try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
       final districtsSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(candidateStateId)
           .collection('districts')
           .get();
 

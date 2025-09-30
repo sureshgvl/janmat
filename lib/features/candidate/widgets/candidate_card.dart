@@ -300,6 +300,11 @@ class CandidateCard extends StatelessWidget {
                       final isFollowing = controller.followStatus[candidate.candidateId] ?? false;
                       final isLoading = controller.followLoading[candidate.candidateId] ?? false;
 
+                      // Hide follow button if already following
+                      if (isFollowing) {
+                        return const SizedBox.shrink();
+                      }
+
                       return Container(
                         width: 36,
                         height: 36,
@@ -312,18 +317,18 @@ class CandidateCard extends StatelessWidget {
                               ? null
                               : () async {
                                   final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-                                  if (!isFollowing) {
-                                    await controller.followCandidate(
-                                      userId,
-                                      candidate.candidateId,
-                                    );
-                                  } else {
-                                    await controller.toggleFollow(userId, candidate.candidateId);
-                                  }
+                                  await controller.followCandidate(
+                                    userId,
+                                    candidate.candidateId,
+                                    stateId: candidate.stateId,
+                                    districtId: candidate.districtId,
+                                    bodyId: candidate.bodyId,
+                                    wardId: candidate.wardId,
+                                  );
                                   onFollowChanged?.call();
                                 },
                           icon: Icon(
-                            isFollowing ? Icons.done : Icons.person_add,
+                            Icons.person_add,
                             size: 20,
                             color: const Color(0xFF1173d4),
                           ),

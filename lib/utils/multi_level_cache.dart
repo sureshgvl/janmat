@@ -333,6 +333,42 @@ class DiskCache {
   Future<void> _ensureInitialized() async {
     _prefs ??= await SharedPreferences.getInstance();
     _cacheDir ??= await getApplicationCacheDirectory();
+    await _loadMetadata();
+  }
+
+  Future<void> _loadMetadata() async {
+    if (_prefs == null) return;
+    final metadataJson = _prefs!.getString('disk_cache_metadata');
+    if (metadataJson != null) {
+      try {
+        final metadataMap = jsonDecode(metadataJson) as Map<String, dynamic>;
+        _metadata.clear();
+        metadataMap.forEach((key, value) {
+          final entryMap = value as Map<String, dynamic>;
+          _metadata[key] = CacheEntry(
+            value: null, // We'll load from file when needed
+            expiryTime: entryMap['expiryTime'] != null
+                ? DateTime.parse(entryMap['expiryTime'])
+                : null,
+            priority: CachePriority.values[entryMap['priority'] ?? 1],
+          );
+        });
+      } catch (e) {
+        debugPrint('Error loading disk cache metadata: $e');
+      }
+    }
+  }
+
+  Future<void> _saveMetadata() async {
+    if (_prefs == null) return;
+    final metadataMap = <String, dynamic>{};
+    _metadata.forEach((key, entry) {
+      metadataMap[key] = {
+        'expiryTime': entry.expiryTime?.toIso8601String(),
+        'priority': entry.priority.index,
+      };
+    });
+    await _prefs!.setString('disk_cache_metadata', jsonEncode(metadataMap));
   }
 
   Future<T?> get<T>(String key) async {
@@ -376,6 +412,8 @@ class DiskCache {
     final file = File('${_cacheDir!.path}/$key');
     final content = jsonEncode(value);
     await file.writeAsString(content);
+
+    await _saveMetadata();
   }
 
   Future<void> remove(String key) async {
@@ -386,6 +424,7 @@ class DiskCache {
     if (await file.exists()) {
       await file.delete();
     }
+    await _saveMetadata();
   }
 
   Future<void> clear() async {
@@ -400,6 +439,7 @@ class DiskCache {
         }
       }
     }
+    await _saveMetadata();
   }
 
   Map<String, dynamic> getStats() {

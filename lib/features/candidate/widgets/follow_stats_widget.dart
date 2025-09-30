@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_controller.dart';
 import '../screens/followers_list_screen.dart';
 
 class FollowStatsWidget extends StatelessWidget {
@@ -27,32 +29,53 @@ class FollowStatsWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Follow Button (hide if user.id == candidate.id)
+          // Follow/Following Button (hide if user.id == candidate.id)
           if (currentUserId != candidate.userId)
             Expanded(
               child: Container(
                 margin: const EdgeInsets.symmetric(
                   horizontal: 4,
                 ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement follow functionality
+                child: GetBuilder<CandidateController>(
+                  builder: (controller) {
+                    final isFollowing = controller.followStatus[candidate.candidateId] ?? false;
+                    final isLoading = controller.followLoading[candidate.candidateId] ?? false;
+
+                    return ElevatedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                              if (!isFollowing) {
+                                await controller.followCandidate(
+                                  userId,
+                                  candidate.candidateId,
+                                  stateId: candidate.stateId,
+                                  districtId: candidate.districtId,
+                                  bodyId: candidate.bodyId,
+                                  wardId: candidate.wardId,
+                                );
+                              } else {
+                                await controller.toggleFollow(userId, candidate.candidateId);
+                              }
+                            },
+                      icon: Icon(
+                        isFollowing ? Icons.check : Icons.person_add,
+                        size: 16,
+                      ),
+                      label: Text(isFollowing ? 'Following' : 'Follow'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isFollowing ? Colors.green : Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    );
                   },
-                  icon: const Icon(
-                    Icons.person_add,
-                    size: 16,
-                  ),
-                  label: const Text('Follow'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                 ),
               ),
             ),

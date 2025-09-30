@@ -3,20 +3,23 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/district_model.dart';
 import '../models/body_model.dart';
 import '../models/ward_model.dart';
+import '../features/candidate/models/candidate_model.dart';
 
 class LocalDatabaseService {
   static Database? _database;
   static const String _dbName = 'janmat_local.db';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 4; // Increment to force database recreation with candidates table
 
   // Table names
   static const String districtsTable = 'districts';
   static const String bodiesTable = 'bodies';
   static const String wardsTable = 'wards';
+  static const String candidatesTable = 'candidates';
   static const String cacheMetadataTable = 'cache_metadata';
 
   // Cache metadata columns
@@ -51,14 +54,45 @@ class LocalDatabaseService {
     await _createDistrictsTable(db);
     await _createBodiesTable(db);
     await _createWardsTable(db);
+    await _createCandidatesTable(db);
     await _createCacheMetadataTable(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Handle future database upgrades
-    if (oldVersion < newVersion) {
-      // Add new columns or tables as needed
+    // Handle database upgrades
+    if (oldVersion < 4 && newVersion >= 4) {
+      // Upgrade to version 4: Add candidates table
+      debugPrint('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding candidates table');
+
+      // Check if candidates table exists, create if not
+      final candidatesExists = await _tableExists(db, candidatesTable);
+      if (!candidatesExists) {
+        await _createCandidatesTable(db);
+        debugPrint('✅ [SQLite] Created candidates table');
+      } else {
+        debugPrint('ℹ️ [SQLite] Candidates table already exists, skipping creation');
+      }
+
+      // Check if cache_metadata table exists, create if not
+      final metadataExists = await _tableExists(db, cacheMetadataTable);
+      if (!metadataExists) {
+        await _createCacheMetadataTable(db);
+        debugPrint('✅ [SQLite] Created cache_metadata table');
+      } else {
+        debugPrint('ℹ️ [SQLite] Cache_metadata table already exists, skipping creation');
+      }
+
+      debugPrint('✅ [SQLite] Database upgrade to v4 completed');
     }
+  }
+
+  // Helper method to check if a table exists
+  Future<bool> _tableExists(Database db, String tableName) async {
+    final result = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      [tableName],
+    );
+    return result.isNotEmpty;
   }
 
   // Create districts table
@@ -124,6 +158,28 @@ class LocalDatabaseService {
         UNIQUE(id),
         FOREIGN KEY (districtId) REFERENCES $districtsTable (id),
         FOREIGN KEY (bodyId) REFERENCES $bodiesTable (id)
+      )
+    ''');
+  }
+
+  // Create candidates table
+  Future<void> _createCandidatesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $candidatesTable (
+        id TEXT PRIMARY KEY,
+        wardId TEXT NOT NULL,
+        districtId TEXT NOT NULL,
+        bodyId TEXT NOT NULL,
+        stateId TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        name TEXT NOT NULL,
+        party TEXT NOT NULL,
+        photo TEXT,
+        followersCount INTEGER DEFAULT 0,
+        data TEXT NOT NULL,
+        lastUpdated TEXT NOT NULL,
+        UNIQUE(id),
+        FOREIGN KEY (wardId) REFERENCES $wardsTable (id)
       )
     ''');
   }
@@ -246,6 +302,123 @@ class LocalDatabaseService {
       return Ward.fromJson(wardData);
     }
     return null;
+  }
+
+  // Candidate operations
+  Future<void> insertCandidates(List<Candidate> candidates, String wardId) async {
+    final startTime = DateTime.now();
+    debugPrint('💾 [SQLite:Candidates] Starting batch insert operation');
+    debugPrint('   - Candidates to insert: ${candidates.length}');
+    debugPrint('   - Ward ID: $wardId');
+
+    final db = await database;
+    final batch = db.batch();
+
+    for (var candidate in candidates) {
+      final candidateData = {
+        'id': candidate.candidateId,
+        'wardId': wardId,
+        'districtId': candidate.districtId,
+        'bodyId': candidate.bodyId,
+        'stateId': candidate.stateId ?? 'maharashtra',
+        'userId': candidate.userId ?? '',
+        'name': candidate.name,
+        'party': candidate.party,
+        'photo': candidate.photo,
+        'followersCount': candidate.followersCount,
+        'data': candidate.toJson().toString(),
+        'lastUpdated': DateTime.now().toIso8601String(),
+      };
+      batch.insert(
+        candidatesTable,
+        candidateData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    final batchStartTime = DateTime.now();
+    await batch.commit();
+    final batchTime = DateTime.now().difference(batchStartTime).inMilliseconds;
+
+    final metadataStartTime = DateTime.now();
+    await _updateCacheMetadata('candidates_$wardId');
+    final metadataTime = DateTime.now().difference(metadataStartTime).inMilliseconds;
+
+    final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+
+    debugPrint('✅ [SQLite:Candidates] Batch insert completed successfully');
+    debugPrint('   - Total time: ${totalTime}ms');
+    debugPrint('   - Batch commit time: ${batchTime}ms');
+    debugPrint('   - Metadata update time: ${metadataTime}ms');
+    debugPrint('   - Cache key: candidates_$wardId');
+  }
+
+  Future<List<Candidate>?> getCandidatesForWard(String wardId) async {
+    final startTime = DateTime.now();
+    try {
+      debugPrint('🔍 [SQLite:Candidates] Querying candidates for ward: $wardId');
+
+      // Check if candidates cache is valid (24 hours)
+      final cacheCheckStart = DateTime.now();
+      final lastUpdate = await getLastUpdateTime('candidates_$wardId');
+      final cacheAge = lastUpdate != null ? DateTime.now().difference(lastUpdate) : null;
+      final isCacheValid = lastUpdate != null &&
+          DateTime.now().difference(lastUpdate) < const Duration(hours: 24);
+      final cacheCheckTime = DateTime.now().difference(cacheCheckStart).inMilliseconds;
+
+      debugPrint('📊 [SQLite:Candidates] Cache validation:');
+      debugPrint('   - Cache key: candidates_$wardId');
+      debugPrint('   - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
+      debugPrint('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
+      debugPrint('   - Is valid: $isCacheValid');
+      debugPrint('   - Validation time: ${cacheCheckTime}ms');
+
+      if (!isCacheValid) {
+        debugPrint('🔄 [SQLite:Candidates] Cache expired or missing for ward: $wardId');
+        return null;
+      }
+
+      final db = await database;
+      final queryStartTime = DateTime.now();
+      final List<Map<String, dynamic>> maps = await db.query(
+        candidatesTable,
+        where: 'wardId = ?',
+        whereArgs: [wardId],
+      );
+      final queryTime = DateTime.now().difference(queryStartTime).inMilliseconds;
+
+      debugPrint('📊 [SQLite:Candidates] Database query completed:');
+      debugPrint('   - Rows returned: ${maps.length}');
+      debugPrint('   - Query time: ${queryTime}ms');
+
+      if (maps.isEmpty) {
+        debugPrint('🔄 [SQLite:Candidates] No candidates found in database for ward: $wardId');
+        return null;
+      }
+
+      final parseStartTime = DateTime.now();
+      final candidates = maps.map((map) {
+        // Parse the JSON data back to Candidate
+        final data = map['data'] as String;
+        return Candidate.fromJson(Map<String, dynamic>.from(json.decode(data)));
+      }).toList();
+      final parseTime = DateTime.now().difference(parseStartTime).inMilliseconds;
+
+      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+
+      debugPrint('✅ [SQLite:Candidates] Successfully loaded candidates from cache');
+      debugPrint('   - Ward: $wardId');
+      debugPrint('   - Candidates: ${candidates.length}');
+      debugPrint('   - Parse time: ${parseTime}ms');
+      debugPrint('   - Total time: ${totalTime}ms');
+      debugPrint('   - Sample: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
+
+      return candidates;
+    } catch (e) {
+      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+      debugPrint('❌ [SQLite:Candidates] Error loading candidates (${totalTime}ms): $e');
+      return null;
+    }
   }
 
   // Get ward name by IDs (optimized query for candidate profile)

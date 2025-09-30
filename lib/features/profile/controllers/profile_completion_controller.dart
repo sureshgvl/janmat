@@ -253,20 +253,22 @@ class ProfileCompletionController extends GetxController {
         }
       }
 
-      // Set default state to Maharashtra if available
-      final maharashtraState = states.firstWhere(
-        (state) => state.name == 'Maharashtra',
+      // Set default state - prefer Maharashtra if available, otherwise use first available state
+      final defaultState = states.firstWhere(
+        (state) => state.name.toLowerCase() == 'maharashtra',
         orElse: () => states.isNotEmpty ? states.first : state_model.State(id: '', name: ''),
       );
 
-      if (maharashtraState.id.isNotEmpty) {
-        selectedStateId = maharashtraState.id;
-        debugPrint('✅ Default state set to: ${maharashtraState.name}');
+      if (defaultState.id.isNotEmpty) {
+        selectedStateId = defaultState.id;
+        debugPrint('✅ Default state set to: ${defaultState.name} (ID: ${defaultState.id})');
 
         // Automatically load districts for the default state
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          loadDistrictsForState(maharashtraState.id);
+          loadDistrictsForState(defaultState.id);
         });
+      } else {
+        debugPrint('⚠️ No states available to set as default');
       }
 
       isLoadingStates = false;
@@ -1058,6 +1060,7 @@ class ProfileCompletionController extends GetxController {
           //create candidate and get actual ID
           final actualCandidateId = await candidateRepository.createCandidate(
             candidate,
+            stateId: selectedStateId,
           );
 
           // here we have to create candidate chat room as well

@@ -18,17 +18,21 @@ import '../../../utils/progressive_loader.dart';
 import '../../../utils/maharashtra_utils.dart';
 import '../models/candidate_model.dart';
 import '../widgets/candidate_card.dart';
+import '../../../services/local_database_service.dart';
+import '../../chat/controllers/chat_controller.dart';
 
 class CandidateListScreen extends StatefulWidget {
   final String? initialDistrictId;
   final String? initialBodyId;
   final String? initialWardId;
+  final String? stateId; // Make state configurable
 
   const CandidateListScreen({
     super.key,
     this.initialDistrictId,
     this.initialBodyId,
     this.initialWardId,
+    this.stateId, // Default will be handled in state
   });
 
   @override
@@ -37,6 +41,8 @@ class CandidateListScreen extends StatefulWidget {
 
 class _CandidateListScreenState extends State<CandidateListScreen> {
   final CandidateController controller = Get.put(CandidateController());
+  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
+  late String selectedStateId; // Make state configurable
   String? selectedDistrictId;
   String? selectedBodyId;
   Ward? selectedWard;
@@ -46,12 +52,18 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   Map<String, List<Ward>> bodyWards = {};
   bool isLoadingDistricts = true;
 
-  // Progressive loading
+  // Progressive loading and scrolling
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   DocumentSnapshot? _lastDocument;
   final int _pageSize = 20;
+
+  // Swipe gesture detection and pull-to-refresh
+  double _dragStartY = 0.0;
+  double _dragDistance = 0.0;
+  static const double _minSwipeDistance = 100.0;
+  bool _showRefreshIndicator = false;
 
   // Cache keys
   static const String _districtsCacheKey = 'cached_districts';
@@ -73,6 +85,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   @override
   void initState() {
     super.initState();
+    selectedStateId = widget.stateId ?? 'maharashtra'; // Default to maharashtra for backward compatibility
     _searchDebouncer = SearchDebouncer();
     _scrollController.addListener(_onScroll);
     _initializeCacheAndLoadDistricts();
@@ -93,6 +106,60 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         selectedWard != null &&
         !_isSearching) {
       _loadMoreCandidates();
+    }
+  }
+
+  // Handle swipe gestures for better UX
+  void _onVerticalDragStart(DragStartDetails details) {
+    _dragStartY = details.globalPosition.dy;
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    final currentY = details.globalPosition.dy;
+    _dragDistance = _dragStartY - currentY; // Positive when swiping up
+
+    // Show refresh indicator when pulling down
+    if (_dragDistance < -50 && !_showRefreshIndicator) {
+      setState(() => _showRefreshIndicator = true);
+    } else if (_dragDistance > -50 && _showRefreshIndicator) {
+      setState(() => _showRefreshIndicator = false);
+    }
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    // Check if it was a pull-down to refresh gesture
+    if (_dragDistance < -_minSwipeDistance) {
+      debugPrint('🔄 Pull down detected - refreshing candidates');
+      _refreshCandidates();
+    }
+    // Check if it was a swipe up gesture
+    else if (_dragDistance > _minSwipeDistance && selectedWard != null) {
+      debugPrint('🔄 Swipe up detected - loading more candidates');
+      _loadMoreCandidates();
+    }
+
+    _dragDistance = 0.0; // Reset drag distance
+    if (_showRefreshIndicator) {
+      setState(() => _showRefreshIndicator = false);
+    }
+  }
+
+  Future<void> _refreshCandidates() async {
+    if (selectedDistrictId != null && selectedBodyId != null && selectedWard != null) {
+      setState(() => controller.isLoading = true);
+
+      try {
+        await controller.fetchCandidatesByWard(
+          selectedDistrictId!,
+          selectedBodyId!,
+          selectedWard!.id,
+        );
+        debugPrint('✅ Candidates refreshed successfully');
+      } catch (e) {
+        debugPrint('❌ Failed to refresh candidates: $e');
+      } finally {
+        setState(() => controller.isLoading = false);
+      }
     }
   }
 
@@ -229,8 +296,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   }
 
   Future<void> _loadDistricts() async {
-    // Try to load from cache first
-    final cacheLoaded = await _loadCachedLocationData();
+    // Try to load from SQLite cache first
+    final cacheLoaded = await _loadDistrictsFromSQLite();
     if (cacheLoaded) {
       setState(() {
         isLoadingDistricts = false;
@@ -239,13 +306,13 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       return;
     }
 
-    // Cache miss - load from Firestore
+    // SQLite cache miss - load from Firestore
     debugPrint('🔄 Loading districts from Firestore');
     try {
       // Load districts from Firestore (correct path: states/stateId/districts)
       final districtsSnapshot = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra') // Use the correct state ID
+          .doc(selectedStateId) // Use the configurable state ID
           .collection('districts')
           .get();
       districts = districtsSnapshot.docs.map((doc) {
@@ -253,7 +320,10 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         return District.fromJson({'id': doc.id, ...data});
       }).toList();
 
-      debugPrint('✅ [CANDIDATE_LIST] Loaded ${districts.length} districts');
+      debugPrint('✅ [CANDIDATE_LIST] Loaded ${districts.length} districts from Firebase');
+
+      // Cache districts in SQLite for future use
+      await _locationDatabase.insertDistricts(districts);
 
       // Don't load bodies upfront - load them on-demand when district is selected
       // This optimizes performance and reduces unnecessary Firebase calls
@@ -264,10 +334,61 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       _setInitialValues();
     } catch (e) {
-      debugPrint('Error loading districts: $e');
+      debugPrint('❌ Error loading districts from Firebase: $e');
       setState(() {
         isLoadingDistricts = false;
       });
+    }
+  }
+
+  // Load districts from SQLite cache
+  Future<bool> _loadDistrictsFromSQLite() async {
+    final startTime = DateTime.now();
+    try {
+      debugPrint('🔍 [CANDIDATE_LIST:SQLite] Checking districts cache for state: $selectedStateId');
+
+      // Check if districts cache is valid (24 hours)
+      final lastUpdate = await _locationDatabase.getLastUpdateTime('districts');
+      final cacheAge = lastUpdate != null ? DateTime.now().difference(lastUpdate) : null;
+      final isCacheValid = lastUpdate != null &&
+          DateTime.now().difference(lastUpdate) < _cacheValidityDuration;
+
+      debugPrint('📊 [CANDIDATE_LIST:SQLite] Districts cache status:');
+      debugPrint('   - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
+      debugPrint('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
+      debugPrint('   - Is valid: $isCacheValid');
+
+      if (!isCacheValid) {
+        debugPrint('🔄 [CANDIDATE_LIST:SQLite] Districts cache expired or missing - will fetch from Firebase');
+        return false;
+      }
+
+      // Load districts from SQLite - filter by stateId
+      final db = await _locationDatabase.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        LocalDatabaseService.districtsTable,
+        where: 'stateId = ?',
+        whereArgs: [selectedStateId],
+      );
+
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+
+      if (maps.isEmpty) {
+        debugPrint('🔄 [CANDIDATE_LIST:SQLite] No districts found in SQLite for state: $selectedStateId (load time: ${loadTime}ms)');
+        return false;
+      }
+
+      districts = maps.map((map) => District.fromJson(map)).toList();
+      debugPrint('✅ [CANDIDATE_LIST:SQLite] CACHE HIT - Loaded ${districts.length} districts from SQLite');
+      debugPrint('   - State: $selectedStateId');
+      debugPrint('   - Load time: ${loadTime}ms');
+      debugPrint('   - Sample districts: ${districts.take(3).map((d) => '${d.id}:${d.name}').join(', ')}');
+
+      return true;
+    } catch (e) {
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+      debugPrint('❌ [CANDIDATE_LIST:SQLite] Error loading districts from SQLite (${loadTime}ms): $e');
+      return false;
     }
   }
 
@@ -326,25 +447,20 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   // Load candidates for current user based on their election areas
   Future<void> _loadCandidatesForCurrentUser() async {
     try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) return;
+      // Use existing currentUser data from ChatController instead of Firebase call
+      final chatController = Get.find<ChatController>();
+      final userModel = chatController.currentUser;
 
-      // Get user data from Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-
-      if (userDoc.exists) {
-        final userData = userDoc.data()!;
-        final userModel = UserModel.fromJson(userData);
-
-        debugPrint('🔍 Loading candidates for user: ${userModel.uid}');
-        debugPrint('📊 User has ${userModel.electionAreas.length} election areas');
-
-        // Use the new method to fetch candidates for user
-        await controller.fetchCandidatesForUser(userModel);
+      if (userModel == null) {
+        debugPrint('⚠️ No current user data available, skipping candidate loading');
+        return;
       }
+
+      debugPrint('🔍 Loading candidates for user: ${userModel.uid}');
+      debugPrint('📊 User has ${userModel.electionAreas.length} election areas');
+
+      // Use the new method to fetch candidates for user
+      await controller.fetchCandidatesForUser(userModel);
     } catch (e) {
       debugPrint('❌ Error loading candidates for current user: $e');
     }
@@ -439,13 +555,20 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       return;
     }
 
+    // Try to load from SQLite cache first
+    final cacheLoaded = await _loadWardsFromSQLite(districtId, bodyId, cacheKey);
+    if (cacheLoaded) {
+      setState(() {});
+      return;
+    }
+
     debugPrint('🔄 [CANDIDATE_LIST] Loading wards from Firestore for $districtId/$bodyId');
-    debugPrint('🔍 [CANDIDATE_LIST] State: maharashtra, District: $districtId, Body: $bodyId');
+    debugPrint('🔍 [CANDIDATE_LIST] State: $selectedStateId, District: $districtId, Body: $bodyId');
     try {
       // Load wards for the selected district and body
       final wardsSnapshot = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra')
+          .doc(selectedStateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -465,14 +588,52 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       }).toList();
 
       bodyWards[cacheKey] = wards;
-      debugPrint('✅ [CANDIDATE_LIST] Successfully loaded ${wards.length} wards for body $bodyId');
+      debugPrint('✅ [CANDIDATE_LIST] Successfully loaded ${wards.length} wards for body $bodyId from Firebase');
 
-      // Update cache
-      await _cacheLocationData();
+      // Cache wards in SQLite for future use
+      await _locationDatabase.insertWards(wards);
 
       setState(() {});
     } catch (e) {
-      debugPrint('Error loading wards: $e');
+      debugPrint('❌ Error loading wards from Firebase: $e');
+    }
+  }
+
+  // Load wards from SQLite cache
+  Future<bool> _loadWardsFromSQLite(String districtId, String bodyId, String cacheKey) async {
+    try {
+      debugPrint('🔍 [CANDIDATE_LIST] Checking SQLite cache for wards: $districtId/$bodyId');
+
+      // Check if wards cache is valid (24 hours)
+      final lastUpdate = await _locationDatabase.getLastUpdateTime('wards');
+      final isCacheValid = lastUpdate != null &&
+          DateTime.now().difference(lastUpdate) < _cacheValidityDuration;
+
+      if (!isCacheValid) {
+        debugPrint('🔄 [CANDIDATE_LIST] Wards cache expired or missing');
+        return false;
+      }
+
+      // Load wards from SQLite for this district and body
+      final db = await _locationDatabase.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        LocalDatabaseService.wardsTable,
+        where: 'districtId = ? AND bodyId = ? AND stateId = ?',
+        whereArgs: [districtId, bodyId, selectedStateId],
+      );
+
+      if (maps.isEmpty) {
+        debugPrint('🔄 [CANDIDATE_LIST] No wards found in SQLite for $districtId/$bodyId');
+        return false;
+      }
+
+      bodyWards[cacheKey] = maps.map((map) => Ward.fromJson(map)).toList();
+      debugPrint('✅ [CANDIDATE_LIST] Loaded ${bodyWards[cacheKey]!.length} wards from SQLite cache for $districtId/$bodyId');
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ [CANDIDATE_LIST] Error loading wards from SQLite: $e');
+      return false;
     }
   }
 
@@ -483,17 +644,24 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       return;
     }
 
-    debugPrint('🔄 [CANDIDATE_LIST] Loading bodies for district $districtId');
+    // Try to load from SQLite cache first
+    final cacheLoaded = await _loadBodiesFromSQLite(districtId);
+    if (cacheLoaded) {
+      setState(() {});
+      return;
+    }
+
+    debugPrint('🔄 [CANDIDATE_LIST] Loading bodies for district $districtId from Firebase');
     try {
       final bodiesSnapshot = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra')
+          .doc(selectedStateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
           .get();
 
-      debugPrint('📊 [CANDIDATE_LIST] Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
+      debugPrint('📊 [CANDIDATE_LIST] Found ${bodiesSnapshot.docs.length} bodies in district $districtId from Firebase');
 
       districtBodies[districtId] = bodiesSnapshot.docs.map((doc) {
         final data = doc.data();
@@ -501,17 +669,55 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         return Body.fromJson({
           'id': doc.id,
           'districtId': districtId,
-          'stateId': 'MH', // Assuming Maharashtra state
+          'stateId': selectedStateId, // Use dynamic state ID
           ...data,
         });
       }).toList();
 
-      // Update cache
-      await _cacheLocationData();
+      // Cache bodies in SQLite for future use
+      await _locationDatabase.insertBodies(districtBodies[districtId]!);
 
       setState(() {});
     } catch (e) {
-      debugPrint('❌ Error loading bodies for district $districtId: $e');
+      debugPrint('❌ Error loading bodies for district $districtId from Firebase: $e');
+    }
+  }
+
+  // Load bodies from SQLite cache
+  Future<bool> _loadBodiesFromSQLite(String districtId) async {
+    try {
+      debugPrint('🔍 [CANDIDATE_LIST] Checking SQLite cache for bodies in district: $districtId');
+
+      // Check if bodies cache is valid (24 hours)
+      final lastUpdate = await _locationDatabase.getLastUpdateTime('bodies');
+      final isCacheValid = lastUpdate != null &&
+          DateTime.now().difference(lastUpdate) < _cacheValidityDuration;
+
+      if (!isCacheValid) {
+        debugPrint('🔄 [CANDIDATE_LIST] Bodies cache expired or missing');
+        return false;
+      }
+
+      // Load bodies from SQLite for this district
+      final db = await _locationDatabase.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        LocalDatabaseService.bodiesTable,
+        where: 'districtId = ? AND stateId = ?',
+        whereArgs: [districtId, selectedStateId],
+      );
+
+      if (maps.isEmpty) {
+        debugPrint('🔄 [CANDIDATE_LIST] No bodies found in SQLite for district: $districtId');
+        return false;
+      }
+
+      districtBodies[districtId] = maps.map((map) => Body.fromJson(map)).toList();
+      debugPrint('✅ [CANDIDATE_LIST] Loaded ${districtBodies[districtId]!.length} bodies from SQLite cache for district: $districtId');
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ [CANDIDATE_LIST] Error loading bodies from SQLite: $e');
+      return false;
     }
   }
 
@@ -615,337 +821,403 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(CandidateLocalizations.of(context)!.searchCandidates),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh candidates',
+            onPressed: selectedWard != null ? _refreshCandidates : null,
+          ),
+        ],
       ),
-      body: GetBuilder<CandidateController>(
-        builder: (controller) {
-          return Column(
-            children: [
-              // District, Body and Ward Selection
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Search Field
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: TextField(
-                        onChanged: _onSearchChanged,
-                        decoration: InputDecoration(
-                          hintText: CandidateLocalizations.of(context)!.searchCandidatesHint,
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: _clearSearch,
-                                )
-                              : _isSearching
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : null,
-                          border: const OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                      ),
-                    ),
-
-                    // District Selection
-                    if (isLoadingDistricts)
-                      const Center(child: CircularProgressIndicator())
-                    else
-                      InkWell(
-                        onTap: () => _showDistrictSelectionModal(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: CandidateLocalizations.of(context)!.selectDistrict,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.location_city),
-                            suffixIcon: const Icon(Icons.arrow_drop_down),
-                          ),
-                          child: selectedDistrictId != null
-                              ? Text(
-                                  MaharashtraUtils.getDistrictDisplayNameV2(
-                                    selectedDistrictId!,
-                                    Localizations.localeOf(context),
-                                  ),
-                                  style: const TextStyle(fontSize: 16),
-                                )
-                              : Text(
-                                  CandidateLocalizations.of(context)!.selectDistrict,
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Body Selection
-                    if (selectedDistrictId != null &&
-                        districtBodies[selectedDistrictId!] != null &&
-                        districtBodies[selectedDistrictId!]!.isNotEmpty)
-                      InkWell(
-                        onTap: () => _showBodySelectionModal(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: CandidateLocalizations.of(context)!.selectArea,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.business),
-                            suffixIcon: const Icon(Icons.arrow_drop_down),
-                          ),
-                          child: selectedBodyId != null
-                              ? Builder(
-                                  builder: (context) {
-                                    final body =
-                                        districtBodies[selectedDistrictId!]!
-                                            .firstWhere(
-                                              (b) => b.id == selectedBodyId,
-                                              orElse: () => Body(
-                                                id: '',
-                                                name: '',
-                                                type: BodyType.municipal_corporation,
-                                                districtId: '',
-                                                stateId: '',
-                                              ),
-                                            );
-                                    return Text(
-                                      body.id.isNotEmpty
-                                          ? '${body.name} (${CandidateLocalizations.of(context)!.translateBodyType(body.type.toString().split('.').last)})'
-                                          : selectedBodyId!,
-                                      style: const TextStyle(fontSize: 16),
-                                    );
-                                  },
-                                )
-                              : Text(
-                                  CandidateLocalizations.of(context)!.selectArea,
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.business, color: Colors.grey),
-                            const SizedBox(width: 12),
-                            Text(
-                              selectedDistrictId == null
-                                  ? CandidateLocalizations.of(context)!.selectDistrictFirst
-                                  : districtBodies[selectedDistrictId!] ==
-                                            null ||
-                                        districtBodies[selectedDistrictId!]!
-                                            .isEmpty
-                                  ? CandidateLocalizations.of(context)!.noAreasAvailable
-                                  : CandidateLocalizations.of(context)!.selectArea,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 16,
-                              ),
+      body: GestureDetector(
+        onVerticalDragStart: _onVerticalDragStart,
+        onVerticalDragUpdate: _onVerticalDragUpdate,
+        onVerticalDragEnd: _onVerticalDragEnd,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          child: GetBuilder<CandidateController>(
+            builder: (controller) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Search and Filters Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Colors.grey[100],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Search Field
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: TextField(
+                            onChanged: _onSearchChanged,
+                            decoration: InputDecoration(
+                              hintText: CandidateLocalizations.of(context)!.searchCandidatesHint,
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: _clearSearch,
+                                    )
+                                  : _isSearching
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : null,
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.grey[50],
                             ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Ward Selection
-                    if (selectedBodyId != null &&
-                        bodyWards[wardCacheKey] != null &&
-                        bodyWards[wardCacheKey]!.isNotEmpty)
-                      InkWell(
-                        onTap: () => _showWardSelectionModal(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: CandidateLocalizations.of(context)!.selectWard,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.home),
-                            suffixIcon: const Icon(Icons.arrow_drop_down),
                           ),
-                          child: selectedWard != null
-                              ? Builder(
-                                  builder: (context) {
-                                    // Format ward display like "वॉर्ड 1 - Ward Name"
-                                    final numberMatch = RegExp(r'ward_(\d+)')
-                                        .firstMatch(
-                                          selectedWard!.id.toLowerCase(),
+                        ),
+
+                        // District Selection
+                        if (isLoadingDistricts)
+                          const Center(child: CircularProgressIndicator())
+                        else
+                          InkWell(
+                            onTap: () => _showDistrictSelectionModal(context),
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: CandidateLocalizations.of(context)!.selectDistrict,
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.location_city),
+                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                              ),
+                              child: selectedDistrictId != null
+                                  ? Text(
+                                      MaharashtraUtils.getDistrictDisplayNameV2(
+                                        selectedDistrictId!,
+                                        Localizations.localeOf(context),
+                                      ),
+                                      style: const TextStyle(fontSize: 16),
+                                    )
+                                  : Text(
+                                      CandidateLocalizations.of(context)!.selectDistrict,
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+
+                        // Body Selection
+                        if (selectedDistrictId != null &&
+                            districtBodies[selectedDistrictId!] != null &&
+                            districtBodies[selectedDistrictId!]!.isNotEmpty)
+                          InkWell(
+                            onTap: () => _showBodySelectionModal(context),
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: CandidateLocalizations.of(context)!.selectArea,
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.business),
+                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                              ),
+                              child: selectedBodyId != null
+                                  ? Builder(
+                                      builder: (context) {
+                                        final body =
+                                            districtBodies[selectedDistrictId!]!
+                                                .firstWhere(
+                                                  (b) => b.id == selectedBodyId,
+                                                  orElse: () => Body(
+                                                    id: '',
+                                                    name: '',
+                                                    type: BodyType.municipal_corporation,
+                                                    districtId: '',
+                                                    stateId: '',
+                                                  ),
+                                                );
+                                        return Text(
+                                          body.id.isNotEmpty
+                                              ? '${body.name} (${CandidateLocalizations.of(context)!.translateBodyType(body.type.toString().split('.').last)})'
+                                              : selectedBodyId!,
+                                          style: const TextStyle(fontSize: 16),
                                         );
-                                    final displayText = numberMatch != null
-                                        ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
-                                        : selectedWard!.name;
-                                    return Text(
-                                      displayText,
-                                      style: const TextStyle(fontSize: 16),
-                                    );
-                                  },
-                                )
-                              : Text(
-                                  CandidateLocalizations.of(context)!.selectWard,
+                                      },
+                                    )
+                                  : Text(
+                                      CandidateLocalizations.of(context)!.selectArea,
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.business, color: Colors.grey),
+                                const SizedBox(width: 12),
+                                Text(
+                                  selectedDistrictId == null
+                                      ? CandidateLocalizations.of(context)!.selectDistrictFirst
+                                      : districtBodies[selectedDistrictId!] ==
+                                                  null ||
+                                              districtBodies[selectedDistrictId!]!
+                                                  .isEmpty
+                                          ? CandidateLocalizations.of(context)!.noAreasAvailable
+                                          : CandidateLocalizations.of(context)!.selectArea,
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    color: Colors.grey.shade600,
                                     fontSize: 16,
                                   ),
                                 ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.home, color: Colors.grey),
-                            const SizedBox(width: 12),
-                            Text(
-                              selectedBodyId == null
-                                  ? CandidateLocalizations.of(context)!.selectAreaFirst
-                                  : bodyWards[wardCacheKey] == null ||
-                                        bodyWards[wardCacheKey]!.isEmpty
-                                  ? CandidateLocalizations.of(context)!.noWardsAvailable
-                                  : CandidateLocalizations.of(context)!.selectWard,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 16,
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+
+                        // Ward Selection
+                        if (selectedBodyId != null &&
+                            bodyWards[wardCacheKey] != null &&
+                            bodyWards[wardCacheKey]!.isNotEmpty)
+                          InkWell(
+                            onTap: () => _showWardSelectionModal(context),
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: CandidateLocalizations.of(context)!.selectWard,
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.home),
+                                suffixIcon: const Icon(Icons.arrow_drop_down),
                               ),
+                              child: selectedWard != null
+                                  ? Builder(
+                                      builder: (context) {
+                                        // Format ward display like "वॉर्ड 1 - Ward Name"
+                                        final numberMatch = RegExp(r'ward_(\d+)')
+                                            .firstMatch(
+                                              selectedWard!.id.toLowerCase(),
+                                            );
+                                        final displayText = numberMatch != null
+                                            ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
+                                            : selectedWard!.name;
+                                        return Text(
+                                          displayText,
+                                          style: const TextStyle(fontSize: 16),
+                                        );
+                                      },
+                                    )
+                                  : Text(
+                                      CandidateLocalizations.of(context)!.selectWard,
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                             ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.home, color: Colors.grey),
+                                const SizedBox(width: 12),
+                                Text(
+                                  selectedBodyId == null
+                                      ? CandidateLocalizations.of(context)!.selectAreaFirst
+                                      : bodyWards[wardCacheKey] == null ||
+                                              bodyWards[wardCacheKey]!.isEmpty
+                                          ? CandidateLocalizations.of(context)!.noWardsAvailable
+                                          : CandidateLocalizations.of(context)!.selectWard,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
 
-
-              // Results Section
-              Expanded(
-                child: controller.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : controller.errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.error,
-                              size: 48,
-                              color: Colors.red,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              controller.errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                controller.clearError();
-                                if (selectedDistrictId != null &&
-                                    selectedBodyId != null &&
-                                    selectedWard != null) {
-                                  controller.fetchCandidatesByWard(
-                                    selectedDistrictId!,
-                                    selectedBodyId!,
-                                    selectedWard!.id,
-                                  );
-                                }
-                              },
-                              child: Text(AppLocalizations.of(context)!.retry),
-                            ),
-                          ],
-                        ),
-                      )
-                    : controller.candidates.isEmpty && selectedWard != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.search_off,
-                              size: 48,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              CandidateLocalizations.of(context)!.noCandidatesFound,
-                              style: TextStyle(
-                                fontSize: 18,
+                  // Results Section
+                  controller.isLoading
+                      ? Container(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          alignment: Alignment.center,
+                          child: const CircularProgressIndicator(),
+                        )
+                      : controller.errorMessage != null
+                      ? Container(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error,
+                                size: 48,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                controller.errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  controller.clearError();
+                                  if (selectedDistrictId != null &&
+                                      selectedBodyId != null &&
+                                      selectedWard != null) {
+                                    controller.fetchCandidatesByWard(
+                                      selectedDistrictId!,
+                                      selectedBodyId!,
+                                      selectedWard!.id,
+                                    );
+                                  }
+                                },
+                                child: Text(AppLocalizations.of(context)!.retry),
+                              ),
+                            ],
+                          ),
+                        )
+                      : controller.candidates.isEmpty && selectedWard != null
+                      ? Container(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.search_off,
+                                size: 48,
                                 color: Colors.grey,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${CandidateLocalizations.of(context)!.noCandidatesFound} ${selectedWard!.name}',
-                              style: const TextStyle(color: Colors.grey),
+                              const SizedBox(height: 16),
+                              Text(
+                                CandidateLocalizations.of(context)!.noCandidatesFound,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${CandidateLocalizations.of(context)!.noCandidatesFound} ${selectedWard!.name}',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        )
+                      : selectedWard == null
+                      ? Container(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          alignment: Alignment.center,
+                          child: Text(
+                            CandidateLocalizations.of(
+                              context,
+                            )!.selectWardToViewCandidates,
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            // Pull to refresh indicator
+                            if (_showRefreshIndicator)
+                              Container(
+                                height: 60,
+                                alignment: Alignment.center,
+                                color: Colors.blue.shade50,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.refresh,
+                                      color: Colors.blue,
+                                      size: 24,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Pull down to refresh',
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                            // Candidate List
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              itemCount:
+                                  controller.candidates.length +
+                                  (_isLoadingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == controller.candidates.length) {
+                                  // Show loading indicator at the end
+                                  return Container(
+                                    padding: const EdgeInsets.all(16),
+                                    alignment: Alignment.center,
+                                    child: const CircularProgressIndicator(),
+                                  );
+                                }
+
+                                final candidate = controller.candidates[index];
+                                return CandidateCard(candidate: candidate);
+                              },
                             ),
                           ],
                         ),
-                      )
-                    : selectedWard == null
-                    ? Center(
-                        child: Text(
-                          CandidateLocalizations.of(
-                            context,
-                          )!.selectWardToViewCandidates,
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount:
-                            controller.candidates.length +
-                            (_isLoadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == controller.candidates.length) {
-                            // Show loading indicator at the end
-                            return Container(
-                              padding: const EdgeInsets.all(16),
-                              alignment: Alignment.center,
-                              child: const CircularProgressIndicator(),
-                            );
-                          }
-
-                          final candidate = controller.candidates[index];
-                          return CandidateCard(candidate: candidate);
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
+                ],
+              );
+            },
+          ),
+        ),
       ),
+      floatingActionButton: selectedWard != null
+          ? FloatingActionButton(
+              onPressed: _scrollToTop,
+              tooltip: 'Scroll to top',
+              child: const Icon(Icons.arrow_upward),
+            )
+          : null,
     );
   }
 
-
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
 }

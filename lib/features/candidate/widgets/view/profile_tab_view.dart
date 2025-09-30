@@ -160,7 +160,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
           orElse: () => District(
             id: widget.candidate.districtId,
             name: widget.candidate.districtId,
-            stateId: 'maharashtra',
+            stateId: widget.candidate.stateId ?? 'maharashtra', // Use candidate's actual state ID
           ),
         );
         await _locationDatabase.insertDistricts([district]);
@@ -181,7 +181,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
             name: 'Ward ${widget.candidate.wardId}',
             districtId: widget.candidate.districtId,
             bodyId: widget.candidate.bodyId,
-            stateId: 'maharashtra',
+            stateId: widget.candidate.stateId ?? 'maharashtra', // Use candidate's actual state ID
           ),
         );
         await _locationDatabase.insertWards([ward]);

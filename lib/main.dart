@@ -25,6 +25,7 @@ import 'core/app_bindings.dart';
 import 'services/language_service.dart';
 import 'services/background_initializer.dart';
 import 'services/background_sync_manager.dart';
+import 'services/fcm_service.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/chat/chat_localizations.dart';
@@ -69,10 +70,19 @@ void main() async {
     debugPrint('✅ Firestore configured with optimizations');
 
     debugPrint('✅ Firebase initialized');
-  } catch (e) {
-    debugPrint('❌ Firebase initialization failed: $e');
-  }
-  stopPerformanceTimer('firebase_init');
+
+    // Initialize FCM for push notifications
+    try {
+      final fcmService = FCMService();
+      await fcmService.initialize();
+      debugPrint('✅ FCM service initialized');
+    } catch (e) {
+      debugPrint('⚠️ FCM initialization failed: $e');
+    }
+   } catch (e) {
+     debugPrint('❌ Firebase initialization failed: $e');
+   }
+   stopPerformanceTimer('firebase_init');
 
   // Initialize essential services in parallel
   startPerformanceTimer('services_init');
@@ -384,9 +394,10 @@ class MyApp extends StatelessWidget {
             .doc(currentUser.uid)
             .get();
 
-        // Add timeout to prevent blocking UI for too long
+        // Add timeout to prevent blocking UI for too long (longer in debug mode)
+        final timeoutDuration = kDebugMode ? const Duration(seconds: 15) : const Duration(seconds: 5);
         final userDoc = await userDocFuture.timeout(
-          const Duration(seconds: 3),
+          timeoutDuration,
           onTimeout: () {
             debugPrint('⏰ User data fetch timed out, using defaults');
             throw TimeoutException('User data fetch timed out');
@@ -403,7 +414,7 @@ class MyApp extends StatelessWidget {
               'profileCompleted': userData['profileCompleted'],
               'districtId': userData['districtId'],
             };
-            await cache.set('user_${currentUser.uid}', routingData, ttl: Duration(minutes: 5));
+            await cache.set('user_${currentUser.uid}', routingData, ttl: Duration(hours: 1));
             debugPrint('✅ Routing data cached successfully');
           } catch (e) {
             debugPrint('⚠️ Failed to cache routing data: $e');
@@ -465,8 +476,14 @@ class MyApp extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('⚠️ Error checking user state: $e');
-      // On error, redirect to login to be safe
-      return {'route': '/login', 'locale': locale};
+      // On error, if user is authenticated, assume profile completed and go to home
+      // This provides a permanent solution for hot reload issues
+      if (currentUser != null) {
+        debugPrint('🔄 User authenticated but data fetch failed, defaulting to home');
+        return {'route': '/home', 'locale': locale};
+      } else {
+        return {'route': '/login', 'locale': locale};
+      }
     }
   }
 }

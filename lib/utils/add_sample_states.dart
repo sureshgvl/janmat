@@ -131,9 +131,32 @@ class SampleStatesManager {
     }
   }
 
-  static Future<void> addSampleDistrictsForMaharashtra() async {
+  static Future<void> addSampleDistrictsForState(String stateId, List<Map<String, String>> districts) async {
     final firestore = FirebaseFirestore.instance;
 
+    try {
+      for (final district in districts) {
+        await firestore
+            .collection('states')
+            .doc(stateId)
+            .collection('districts')
+            .doc(district['districtId'])
+            .set({
+              ...district,
+              'createdAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+        print('✅ Added district: ${district['districtId']} to state: $stateId');
+      }
+
+      print('🎉 Successfully added ${districts.length} districts to state: $stateId');
+    } catch (e) {
+      print('❌ Error adding sample districts: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> addSampleDistrictsForMaharashtra() async {
     // Sample districts for Maharashtra
     final sampleDistricts = [
       {'districtId': 'pune', 'name': 'Pune'},
@@ -143,25 +166,6 @@ class SampleStatesManager {
       {'districtId': 'nashik', 'name': 'Nashik'},
     ];
 
-    try {
-      for (final district in sampleDistricts) {
-        await firestore
-            .collection('states')
-            .doc('maharashtra')
-            .collection('districts')
-            .doc(district['districtId'])
-            .set({
-              ...district,
-              'createdAt': FieldValue.serverTimestamp(),
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-        print('✅ Added district: ${district['districtId']}');
-      }
-
-      print('🎉 Successfully added ${sampleDistricts.length} districts to Maharashtra');
-    } catch (e) {
-      print('❌ Error adding sample districts: $e');
-      rethrow;
-    }
+    await addSampleDistrictsForState('maharashtra', sampleDistricts);
   }
 }

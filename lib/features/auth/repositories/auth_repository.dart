@@ -14,6 +14,7 @@ import '../../candidate/controllers/candidate_controller.dart';
 import '../../../services/admob_service.dart';
 import '../../../services/user_cache_service.dart';
 import '../../../services/background_sync_manager.dart';
+import '../../../services/fcm_service.dart';
 import '../../../utils/performance_monitor.dart';
 
 class AuthRepository {
@@ -25,6 +26,7 @@ class AuthRepository {
   );
   final UserCacheService _cacheService = UserCacheService();
   final BackgroundSyncManager _syncManager = BackgroundSyncManager();
+  final FCMService _fcmService = FCMService();
 
 
   // Phone Authentication with improved reCAPTCHA handling and timeout
@@ -415,6 +417,13 @@ class AuthRepository {
       await _createOrUpdateUserMinimal(userCredential.user!);
       final userCreationDuration = DateTime.now().difference(userCreationStart);
       debugPrint('✅ [GOOGLE_SIGNIN] Minimal user record created in ${userCreationDuration.inMilliseconds}ms');
+
+      // Step 5.5: Update FCM token for push notifications
+      debugPrint('📱 [GOOGLE_SIGNIN] Updating FCM token...');
+      final fcmUpdateStart = DateTime.now();
+      await _updateUserFCMToken(userCredential.user!);
+      final fcmUpdateDuration = DateTime.now().difference(fcmUpdateStart);
+      debugPrint('✅ [GOOGLE_SIGNIN] FCM token updated in ${fcmUpdateDuration.inMilliseconds}ms');
 
       // Step 6: Start background sync for heavy operations
       debugPrint('🔄 [GOOGLE_SIGNIN] Starting background synchronization...');
@@ -2168,6 +2177,27 @@ class AuthRepository {
 
     // Use the background sync manager for comprehensive sync
     _syncManager.performFullBackgroundSync(user);
+  }
+
+  // Update user's FCM token for push notifications
+  Future<void> _updateUserFCMToken(User user) async {
+    try {
+      debugPrint('📱 Updating FCM token for user: ${user.uid}');
+
+      // Get current FCM token
+      final fcmToken = await _fcmService.getCurrentToken();
+
+      if (fcmToken != null) {
+        // Update token in user's document
+        await _fcmService.updateUserFCMToken(user.uid, fcmToken);
+        debugPrint('✅ FCM token updated for user: ${user.uid}');
+      } else {
+        debugPrint('⚠️ No FCM token available for user: ${user.uid}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating FCM token: $e');
+      // Don't throw - FCM token update failure shouldn't break authentication
+    }
   }
 
 

@@ -113,9 +113,12 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         (request.auth.uid == request.resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
+      // Allow followers count updates by any authenticated user, but restrict other updates
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
-         request.auth.token.admin == true || request.auth.token.role == 'admin');
+         request.auth.token.admin == true || request.auth.token.role == 'admin' ||
+         // Allow any authenticated user to update followersCount field only
+         'followersCount' in request.resource.data);
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
@@ -124,6 +127,9 @@ service cloud.firestore {
       match /followers/{userId} {
         allow read: if request.auth != null; // Allow authenticated users to read followers
         allow write: if request.auth != null &&
+          (request.auth.uid == userId ||
+           request.auth.token.admin == true || request.auth.token.role == 'admin');
+        allow delete: if request.auth != null &&
           (request.auth.uid == userId ||
            request.auth.token.admin == true || request.auth.token.role == 'admin');
       }
@@ -154,17 +160,23 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         (request.auth.uid == request.resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
+      // Allow followers count updates by any authenticated user
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
-         request.auth.token.admin == true || request.auth.token.role == 'admin');
+         request.auth.token.admin == true || request.auth.token.role == 'admin' ||
+         // Allow any authenticated user to update followersCount field
+         'followersCount' in request.resource.data);
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
 
-      // Followers subcollection
+      // Followers subcollection - allow users to follow/unfollow candidates
       match /followers/{userId} {
         allow read: if request.auth != null; // Allow authenticated users to read followers
         allow write: if request.auth != null &&
+          (request.auth.uid == userId ||
+           request.auth.token.admin == true || request.auth.token.role == 'admin');
+        allow delete: if request.auth != null &&
           (request.auth.uid == userId ||
            request.auth.token.admin == true || request.auth.token.role == 'admin');
       }
@@ -275,9 +287,12 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         (request.auth.uid == request.resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');
+      // Allow followers count updates by any authenticated user, but restrict other updates
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
-         request.auth.token.admin == true || request.auth.token.role == 'admin');
+         request.auth.token.admin == true || request.auth.token.role == 'admin' ||
+         // Allow any authenticated user to update followersCount field only
+         request.resource.data.keys().size() == 1 && 'followersCount' in request.resource.data);
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');

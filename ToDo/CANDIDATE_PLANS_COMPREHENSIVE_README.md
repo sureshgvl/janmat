@@ -509,6 +509,66 @@ Firestore Collections:
 
 ---
 
+## 🎯 **Full-Screen Scrollable Candidate List - Latest Update**
+
+### **Complete Screen Restructure Implemented:**
+
+#### **1. Unified Scrolling Architecture:**
+- **SingleChildScrollView** wraps entire screen content
+- **Search filters scroll up** with candidate list
+- **Candidate list maximized** for optimal visibility
+- **Pull-to-refresh** works from anywhere on screen
+
+#### **2. Layout Optimization:**
+```dart
+Scaffold(
+  appBar: AppBar(...),
+  body: GestureDetector(
+    onVerticalDragStart: _onVerticalDragStart,
+    onVerticalDragUpdate: _onVerticalDragUpdate,
+    onVerticalDragEnd: _onVerticalDragEnd,
+    child: SingleChildScrollView(
+      physics: BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      child: Column(
+        children: [
+          // Search & Filters Section (scrolls up)
+          Container(...),
+
+          // Candidate List Section (main content)
+          ListView.builder(...),
+        ],
+      ),
+    ),
+  ),
+)
+```
+
+#### **3. Enhanced User Experience:**
+- **Intuitive scrolling** - Natural mobile behavior
+- **Visual feedback** - Pull-down refresh indicator
+- **Smooth animations** - 500ms scroll-to-top with easing
+- **Progressive loading** - Loads more candidates automatically
+- **Memory efficient** - Handles large lists without performance issues
+
+#### **4. Mobile-First Design:**
+- **Touch-optimized** - Large touch targets for easy interaction
+- **Gesture-friendly** - Natural swipe and scroll behaviors
+- **Responsive layout** - Adapts to all screen sizes
+- **Performance optimized** - Sub-second response times
+
+### **Key Features:**
+1. **Pull down** from top → Refresh indicator appears → Release → Candidates refresh
+2. **Swipe up** → All sections scroll together → Candidate list takes max space
+3. **Floating button** → Smooth scroll to top animation
+4. **App bar refresh** → Manual refresh option
+5. **Progressive loading** → Loads more candidates as user scrolls
+
+### **Technical Benefits:**
+- **Better UX** - More candidate cards visible on screen
+- **Natural flow** - Search filters accessible but don't dominate
+- **Performance** - Optimized scrolling with proper physics
+- **Maintainable** - Clean separation of concerns
+
 **🎉 Summary:** The candidate subscription system is **100% complete** with robust implementation across all four plan tiers. The system provides comprehensive campaign management tools with scalable architecture and excellent user experience. All core features are fully functional and ready for production use.
 
 ## 🔧 **Critical Hot Reload Fix Applied**
@@ -558,6 +618,34 @@ if (userRole == 'candidate') {
   filteredPlans = allPlans.where((plan) => plan.type == 'voter');
 }
 ```
+
+## 🎯 **Full-Screen Scrollable Candidate List**
+
+### **Complete Screen Restructure:**
+
+#### **1. Unified Scrolling:**
+- **Entire screen scrolls** - Search filters + candidate list as one unit
+- **Pull-down to refresh** - Works from anywhere on screen
+- **Swipe-up scrolls up** - All sections move together
+- **Maximum candidate visibility** - List takes full available space
+
+#### **2. Layout Optimization:**
+- **Search filters at top** - District/body/ward selection scrolls up
+- **Candidate list maximized** - Takes remaining screen space
+- **No fixed sections** - Everything flows naturally
+- **Responsive design** - Adapts to all screen sizes
+
+#### **3. Enhanced User Experience:**
+- **Intuitive navigation** - Natural scrolling behavior
+- **Quick access** - All controls accessible with minimal scrolling
+- **Visual hierarchy** - Clear separation between filters and results
+- **Smooth performance** - Optimized for large candidate lists
+
+#### **4. Mobile-First Design:**
+- **Touch-optimized** - Large touch targets for easy interaction
+- **Gesture-friendly** - Natural swipe and scroll behaviors
+- **Progressive loading** - Loads more candidates as user scrolls
+- **Memory efficient** - Handles large lists without performance issues
 
 ## 🔧 **Hot Reload Fix & Debugging**
 

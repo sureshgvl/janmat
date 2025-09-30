@@ -273,7 +273,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           orElse: () => District(
             id: candidate!.districtId,
             name: candidate!.districtId,
-            stateId: 'maharashtra',
+            stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID with fallback
           ),
         );
         await _locationDatabase.insertDistricts([district]);
@@ -295,7 +295,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             name: candidate!.bodyId, // Fallback name
             type: BodyType.municipal_corporation, // Default
             districtId: candidate!.districtId,
-            stateId: 'maharashtra',
+            stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID
           );
           await _locationDatabase.insertBodies([body]);
           debugPrint('✅ [Sync] Body data synced');
@@ -316,7 +316,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             name: 'Ward ${candidate!.wardId}',
             districtId: candidate!.districtId,
             bodyId: candidate!.bodyId,
-            stateId: 'maharashtra',
+            stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID
           ),
         );
         await _locationDatabase.insertWards([ward]);
