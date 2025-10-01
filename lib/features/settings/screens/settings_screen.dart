@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../services/language_service.dart';
+import '../../../services/fcm_service.dart';
 import 'device_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -16,6 +17,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedLanguage = 'en'; // Default to English
   bool _isChangingLanguage = false;
+  bool _notificationsEnabled = true;
+  bool _darkModeEnabled = false;
+  bool _isLoadingSettings = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
 
   @override
   void didChangeDependencies() {
@@ -48,6 +58,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           _selectedLanguage = locale.languageCode;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final fcmService = FCMService();
+      final hasPermission = await fcmService.hasNotificationPermission();
+      if (mounted) {
+        setState(() {
+          _notificationsEnabled = hasPermission;
+          _isLoadingSettings = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSettings = false;
         });
       }
     }
@@ -136,30 +166,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: Text(
             AppLocalizations.of(context)?.notifications ?? 'Notifications',
           ),
+          subtitle: _isLoadingSettings ? const Text('Loading...') : null,
           trailing: Switch(
-            value: true, // You can connect this to actual settings
-            onChanged: (value) {
-              // Handle notification toggle
-            },
+            value: _notificationsEnabled,
+            onChanged: _isLoadingSettings ? null : _toggleNotifications,
           ),
         ),
         ListTile(
           leading: const Icon(Icons.dark_mode),
           title: Text(AppLocalizations.of(context)?.darkMode ?? 'Dark Mode'),
+          subtitle: const Text('Coming soon'),
           trailing: Switch(
-            value: false, // You can connect this to actual settings
-            onChanged: (value) {
-              // Handle dark mode toggle
-            },
+            value: _darkModeEnabled,
+            onChanged: _toggleDarkMode,
           ),
         ),
         ListTile(
           leading: const Icon(Icons.info),
           title: Text(AppLocalizations.of(context)?.about ?? 'About'),
           trailing: const Icon(Icons.arrow_forward_ios),
-          onTap: () {
-            // Navigate to about screen
-          },
+          onTap: _showAboutDialog,
         ),
       ],
     );
@@ -245,5 +271,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
         });
       }
     }
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    try {
+      final fcmService = FCMService();
+      bool success = false;
+
+      if (value) {
+        // Request permission
+        success = await fcmService.requestNotificationPermission();
+      } else {
+        // Note: FCM doesn't provide a direct way to disable notifications
+        // We can only show a message that user needs to disable in system settings
+        Get.snackbar(
+          'Notifications',
+          'To disable notifications, please go to your device settings and disable notifications for this app.',
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _notificationsEnabled = success;
+        });
+      }
+
+      Get.snackbar(
+        'Notifications',
+        success ? 'Notifications enabled' : 'Failed to enable notifications. Please check your device settings.',
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      debugPrint('Error toggling notifications: $e');
+      Get.snackbar('Error', 'Failed to change notification settings');
+    }
+  }
+
+  void _toggleDarkMode(bool value) {
+    // For now, just show a message that dark mode is coming soon
+    setState(() {
+      _darkModeEnabled = value;
+    });
+
+    if (value) {
+      Get.snackbar(
+        'Dark Mode',
+        'Dark mode feature is coming soon!',
+        duration: const Duration(seconds: 2),
+      );
+      // Reset to false after showing message
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _darkModeEnabled = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('About JanMat'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Version: 1.0.0'),
+            const SizedBox(height: 8),
+            const Text('JanMat is a platform connecting citizens with political candidates and fostering democratic engagement.'),
+            const SizedBox(height: 16),
+            const Text('Features:'),
+            const SizedBox(height: 4),
+            const Text('• Candidate profiles and information'),
+            const Text('• Real-time chat and discussions'),
+            const Text('• Election updates and notifications'),
+            const Text('• Multi-language support'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }

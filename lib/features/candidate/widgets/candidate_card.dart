@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../../../utils/symbol_utils.dart';
+import '../../../utils/theme_constants.dart';
 
 class CandidateCard extends StatelessWidget {
   final Candidate candidate;
@@ -37,61 +38,93 @@ class CandidateCard extends StatelessWidget {
     final isPremiumCandidate = candidate.sponsored || candidate.followersCount > 1000;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
             Get.toNamed('/candidate-profile', arguments: candidate);
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           child: Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.white,
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.04)
+                      : AppColors.background,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              border: Border.all(
+                color: isPremiumCandidate
+                    ? Colors.amber.withOpacity(0.3)
+                    : AppColors.borderLight,
+                width: isPremiumCandidate ? 1.5 : 1.0,
+              ),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
+                AppShadows.light,
+                if (isPremiumCandidate) AppShadows.medium,
               ],
             ),
             child: Row(
               children: [
                 // Candidate Photo
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 70,
+                  height: 70,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: candidate.photo != null && candidate.photo!.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(candidate.photo!),
-                            fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                    border: Border.all(
+                      color: isPremiumCandidate
+                          ? Colors.amber.withOpacity(0.6)
+                          : AppColors.borderLight,
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                      image: candidate.photo != null && candidate.photo!.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(candidate.photo!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      color: candidate.photo == null || candidate.photo!.isEmpty
+                          ? (isPremiumCandidate
+                              ? Colors.amber.shade100
+                              : Colors.grey.shade200)
+                          : null,
+                    ),
+                    child: candidate.photo == null || candidate.photo!.isEmpty
+                        ? Center(
+                            child: Text(
+                              candidate.name[0].toUpperCase(),
+                              style: AppTypography.labelLarge.copyWith(
+                                color: isPremiumCandidate
+                                    ? Colors.amber.shade800
+                                    : Colors.grey.shade600,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 28,
+                              ),
+                            ),
                           )
                         : null,
-                    color: candidate.photo == null || candidate.photo!.isEmpty
-                        ? (isPremiumCandidate
-                            ? Colors.blue.shade600
-                            : Colors.grey.shade400)
-                        : null,
                   ),
-                  child: candidate.photo == null || candidate.photo!.isEmpty
-                      ? Center(
-                          child: Text(
-                            candidate.name[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
-                            ),
-                          ),
-                        )
-                      : null,
                 ),
                 const SizedBox(width: 12),
 
@@ -106,33 +139,31 @@ class CandidateCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               displayName,
-                              style: TextStyle(
-                                fontSize: 16,
+                              style: AppTypography.bodyLarge.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : const Color(0xFF1f2937),
+                                color: AppColors.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (isCurrentUser) ...[
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.sm),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
+                                horizontal: AppSpacing.sm,
+                                vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
-                                borderRadius: BorderRadius.circular(8),
+                                gradient: LinearGradient(
+                                  colors: [AppColors.primary, AppColors.secondary],
+                                ),
+                                borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'YOU',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.blue,
+                                style: AppTypography.caption.copyWith(
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -141,7 +172,7 @@ class CandidateCard extends StatelessWidget {
                         ],
                       ),
 
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.sm),
 
                       // Education and Party row
                       Row(
@@ -151,8 +182,8 @@ class CandidateCard extends StatelessWidget {
                             child: Row(
                               children: [
                                 Container(
-                                  width: 20,
-                                  height: 20,
+                                  width: 18,
+                                  height: 18,
                                   decoration: BoxDecoration(
                                     image: DecorationImage(
                                       image: SymbolUtils.getSymbolImageProvider(
@@ -165,18 +196,16 @@ class CandidateCard extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Text(
                                     SymbolUtils.getPartyDisplayNameWithLocale(
                                       candidate.party,
                                       Localizations.localeOf(context).languageCode,
                                     ),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white.withOpacity(0.6)
-                                          : const Color(0xFF6b7280),
+                                    style: AppTypography.bodySmall.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -186,111 +215,107 @@ class CandidateCard extends StatelessWidget {
                             ),
                           ),
 
-                          const SizedBox(width: 10),
+                          const SizedBox(width: AppSpacing.sm),
                           // Education
                           if (education != null && education.isNotEmpty)
                             Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.school,
-                                    size: 16,
-                                    color: const Color(0xFF1173d4),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      education,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context).brightness == Brightness.dark
-                                            ? Colors.white.withOpacity(0.6)
-                                            : const Color(0xFF6b7280),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.info.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.school,
+                                      size: 14,
+                                      color: AppColors.info,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        education,
+                                        style: AppTypography.bodySmall.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.info,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                         ],
                       ),
 
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.sm),
 
-                      // Achievements and Premium badge row
-                      Row(
-                        children: [
-                          // Achievements
-                          if (achievements != null && achievements.isNotEmpty)
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.emoji_events,
-                                  size: 16,
-                                  color: Colors.amber.shade500,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${achievements.length} Achievement${achievements.length > 1 ? 's' : ''}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white.withOpacity(0.6)
-                                        : const Color(0xFF6b7280),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                          const Spacer(),
-
-                          // Premium/Free Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isPremiumCandidate
-                                  ? Colors.amber.withOpacity(0.1)
-                                  : Colors.grey.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(9999),
-                            ),
-                            child: Text(
-                              isPremiumCandidate ? 'Premium' : 'Free',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isPremiumCandidate
-                                    ? Colors.amber.shade600
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
+                      // Achievements row
+                      if (achievements != null && achievements.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: 4,
                           ),
-                        ],
-                      ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.emoji_events,
+                                size: 14,
+                                color: Colors.amber.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${achievements.length} Achievement${achievements.length > 1 ? 's' : ''}',
+                                style: AppTypography.caption.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
 
                 // Follow Button or Current User Indicator
                 if (isCurrentUser)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
                     ),
-                    child: const Text(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.secondary],
+                      ),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
                       'YOU',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   )
@@ -306,11 +331,24 @@ class CandidateCard extends StatelessWidget {
                       }
 
                       return Container(
-                        width: 36,
-                        height: 36,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1173d4).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(18),
+                          gradient: LinearGradient(
+                            colors: [AppColors.info.withOpacity(0.2), AppColors.info.withOpacity(0.1)],
+                          ),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: AppColors.info.withOpacity(0.3),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.info.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
                         child: IconButton(
                           onPressed: isLoading
@@ -327,11 +365,20 @@ class CandidateCard extends StatelessWidget {
                                   );
                                   onFollowChanged?.call();
                                 },
-                          icon: Icon(
-                            Icons.person_add,
-                            size: 20,
-                            color: const Color(0xFF1173d4),
-                          ),
+                          icon: isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.info),
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.person_add,
+                                  size: 22,
+                                  color: AppColors.info,
+                                ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),

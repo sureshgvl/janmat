@@ -167,6 +167,7 @@ void main() async {
   Future(() => logPerformanceReport());
 
   runApp(const MyApp());
+  
 }
 
 Future<void> checkForUpdate() async {

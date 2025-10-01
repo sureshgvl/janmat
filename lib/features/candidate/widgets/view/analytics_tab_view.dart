@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import '../../../../services/manifesto_likes_service.dart';
+import '../../../../services/manifesto_comments_service.dart';
+import '../../../../services/manifesto_poll_service.dart';
 
 class AnalyticsTabView extends StatefulWidget {
   final Candidate candidate;
@@ -19,6 +22,59 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
+
+  // Real-time engagement metrics
+  int _manifestoLikes = 0;
+  int _manifestoComments = 0;
+  int _pollParticipation = 0;
+
+  // Stream subscriptions
+  Stream<int>? _likesStream;
+  Stream<List<dynamic>>? _commentsStream;
+  Stream<Map<String, int>>? _pollStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeStreams();
+  }
+
+  @override
+  void dispose() {
+    _likesStream = null;
+    _commentsStream = null;
+    _pollStream = null;
+    super.dispose();
+  }
+
+  void _initializeStreams() {
+    final manifestoId = widget.candidate.candidateId;
+
+    // Likes stream
+    _likesStream = ManifestoLikesService.getLikeCountStream(manifestoId);
+    _likesStream?.listen((count) {
+      if (mounted) {
+        setState(() => _manifestoLikes = count);
+      }
+    });
+
+    // Comments stream
+    _commentsStream = ManifestoCommentsService.getComments(manifestoId);
+    _commentsStream?.listen((comments) {
+      if (mounted) {
+        setState(() => _manifestoComments = comments.length);
+      }
+    });
+
+    // Poll participation stream
+    _pollStream = ManifestoPollService.getPollResultsStream(manifestoId);
+    _pollStream?.listen((results) {
+      if (mounted) {
+        final totalVotes = results.values.fold(0, (sum, count) => sum + count);
+        setState(() => _pollParticipation = totalVotes);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +197,46 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
                   subtitle: 'Total followers',
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  title: 'Manifesto Likes',
+                  value: '$_manifestoLikes',
+                  icon: Icons.thumb_up,
+                  color: Colors.red,
+                  subtitle: 'Total likes on manifesto',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricCard(
+                  title: 'Manifesto Comments',
+                  value: '$_manifestoComments',
+                  icon: Icons.comment,
+                  color: Colors.blue,
+                  subtitle: 'Total comments on manifesto',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  title: 'Poll Participation',
+                  value: '$_pollParticipation',
+                  icon: Icons.poll,
+                  color: Colors.green,
+                  subtitle: 'Total poll votes',
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(child: SizedBox()), // Empty space for balance
             ],
           ),
 

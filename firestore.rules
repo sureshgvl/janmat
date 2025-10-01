@@ -246,6 +246,38 @@ service cloud.firestore {
          request.auth.token.admin == true || request.auth.token.role == 'admin');
     }
 
+    // Manifesto likes and comments system
+    match /likes/{likeId} {
+      // Allow authenticated users to read all likes (for counting)
+      allow read: if request.auth != null;
+      // Allow users to create/delete their own likes
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+      allow delete: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+    }
+
+    match /comments/{commentId} {
+      // Allow authenticated users to read all comments
+      allow read: if request.auth != null;
+      // Allow users to create their own comments
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+      // Allow users to update/delete their own comments
+      allow update, delete: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+    }
+
+    match /comment_likes/{likeId} {
+      // Allow authenticated users to read all comment likes (for counting)
+      allow read: if request.auth != null;
+      // Allow users to create/delete their own comment likes
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+      allow delete: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+    }
+
     // Legacy collections (for backward compatibility)
     match /conversations/{conversationId} {
       allow read, write: if request.auth != null;

@@ -46,8 +46,8 @@ This document provides a detailed analysis of the four candidate subscription pl
 | **Price** | ₹0 | ₹499 | ₹1,499 | ₹2,999 |
 | **Basic Profile** | ✅ | ✅ | ✅ | ✅ |
 | **Contact Info** | Basic | Extended + Social | Extended + Social | Extended + Social + Priority |
-| **Manifesto** | Text Only (3 promises) | PDF + 5 promises | Video + Unlimited | Multiple Versions + 10 promises |
-| **Media Gallery** | ❌ | 10 items (5 img, 1 video) | Unlimited | Unlimited + Priority |
+| **Manifesto** | Title + 2 promises + PDF | PDF + 5 promises | Video + Unlimited | Multiple Versions + 10 promises |
+| **Media Gallery** | 1 image | 10 items (5 img, 1 video) | Unlimited | Unlimited + Priority |
 | **Achievements** | ❌ | 5 max | Unlimited | Unlimited + Featured |
 | **Events** | ❌ | 3 events | Unlimited | Unlimited + Featured |
 | **Analytics** | ❌ | Basic Views | Advanced | Full Dashboard + Real-time |
@@ -73,17 +73,22 @@ This document provides a detailed analysis of the four candidate subscription pl
   - Phone and email contact
   - Short biography text
 
-- **Limited Manifesto**
-  - Text-only content
-  - Maximum 3 promises
-  - No PDF or video uploads
+- **Basic Manifesto**
+  - Custom manifesto title
+  - Up to 2 promises
+  - PDF upload capability
+  - No video uploads
+
+- **Limited Media Gallery**
+  - 1 image upload
+  - No video or YouTube links
 
 - **Basic Dashboard Access**
   - Profile viewing and editing
   - Follower count display
 
 #### **❌ Disabled Features:**
-- Media gallery (photos/videos)
+- Video uploads in media gallery
 - Achievements section
 - Events management
 - Analytics dashboard
@@ -93,7 +98,7 @@ This document provides a detailed analysis of the four candidate subscription pl
 - Admin support
 
 #### **🎯 Use Case:**
-Perfect for candidates who want to establish basic online presence and test platform features before investing.
+Perfect for candidates who want to establish a basic online presence with essential manifesto content and one photo, while testing platform features before upgrading to premium plans.
 
 ---
 

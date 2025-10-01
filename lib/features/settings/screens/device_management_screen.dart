@@ -88,6 +88,53 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
     );
   }
 
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Manage Your Devices',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'View and manage all devices where you\'re signed in. You can sign out from devices you no longer use to keep your account secure.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.blue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'The device marked as "Current" is the one you\'re using right now.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -112,112 +159,115 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       builder: (context, snapshot) {
         final currentDeviceId = snapshot.data ?? '';
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _devices.length,
-          itemBuilder: (context, index) {
-            final device = _devices[index];
-            final isCurrentDevice = device.deviceId == currentDeviceId;
+        return ListView(
+          children: [
+            _buildHeader(),
+            ..._devices.map((device) {
+              final isCurrentDevice = device.deviceId == currentDeviceId;
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _getDeviceIcon(device.platform),
-                          color: isCurrentDevice ? Colors.green : Colors.grey,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                device.deviceName,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${device.platform} • ${device.appVersion}',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: Colors.grey),
-                              ),
-                            ],
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _getDeviceIcon(device.platform),
+                            color: isCurrentDevice ? Colors.green : Colors.grey,
                           ),
-                        ),
-                        if (isCurrentDevice)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.green),
-                            ),
-                            child: const Text(
-                              'Current',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  device.deviceName,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${device.platform} • Version ${device.appVersion}',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: Colors.grey),
+                                ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(
-                          device.isActive ? Icons.check_circle : Icons.cancel,
-                          color: device.isActive ? Colors.green : Colors.red,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          device.isActive ? 'Active' : 'Inactive',
-                          style: TextStyle(
-                            color: device.isActive ? Colors.green : Colors.red,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          _formatDateTime(device.lastLogin),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                    if (!isCurrentDevice && device.isActive)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () => _signOutDevice(
-                            device.deviceId,
-                            device.deviceName,
-                          ),
-                          icon: const Icon(Icons.logout, size: 16),
-                          label: const Text('Sign Out'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                        ),
+                          if (isCurrentDevice)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.green),
+                              ),
+                              child: const Text(
+                                'Current Device',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(
+                            device.isActive ? Icons.check_circle : Icons.cancel,
+                            color: device.isActive ? Colors.green : Colors.red,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            device.isActive ? 'Active' : 'Inactive',
+                            style: TextStyle(
+                              color: device.isActive ? Colors.green : Colors.red,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Last login: ${_formatDateTime(device.lastLogin)}',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      if (!isCurrentDevice && device.isActive)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () => _signOutDevice(
+                                device.deviceId,
+                                device.deviceName,
+                              ),
+                              icon: const Icon(Icons.logout, size: 16),
+                              label: const Text('Sign Out from this Device'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            }),
+          ],
         );
       },
     );

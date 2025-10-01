@@ -1,0 +1,328 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../models/candidate_model.dart';
+import '../../../../services/demo_data_service.dart';
+import '../../../../l10n/features/candidate/candidate_localizations.dart';
+import 'manifesto_resources_section.dart';
+
+class ManifestoContentBuilder extends StatefulWidget {
+  final Candidate candidate;
+  final String? currentUserId;
+  final bool showVoterInteractions;
+
+  const ManifestoContentBuilder({
+    super.key,
+    required this.candidate,
+    required this.currentUserId,
+    required this.showVoterInteractions,
+  });
+
+  @override
+  State<ManifestoContentBuilder> createState() => _ManifestoContentBuilderState();
+}
+
+class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
+  void _shareManifesto() {
+    Get.snackbar(
+      'share'.tr,
+      CandidateTranslations.tr('shareFunctionalityComingSoon'),
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final manifestoPromises = widget.candidate.extraInfo?.manifesto?.promises ?? [];
+    final manifesto = widget.candidate.manifesto ?? '';
+
+    // Use demo manifesto items if no real items exist
+    final displayManifestoPromises = manifestoPromises.isNotEmpty
+        ? manifestoPromises
+        : DemoDataService.getDemoManifestoPromises('development', 'en');
+
+    final hasStructuredData = displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
+
+    // final manifestoId = widget.candidate.candidateId ?? widget.candidate.userId ?? '';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasStructuredData || manifesto.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Simple Manifesto Title
+                if (widget.candidate.extraInfo?.manifesto?.title != null &&
+                    widget.candidate.extraInfo!.manifesto!.title!.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.candidate.extraInfo!.manifesto!.title!,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _shareManifesto,
+                          icon: const Icon(Icons.share, color: Colors.blue),
+                          tooltip: 'Share Manifesto',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Simple Promises List
+                if (manifestoPromises.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.assignment_turned_in,
+                                color: Colors.green.shade600,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                CandidateTranslations.tr('promises'),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${manifestoPromises.length}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                        ...displayManifestoPromises.map((promise) {
+                          final title = promise['title'] as String? ?? '';
+                          final points = promise['points'] as List<dynamic>? ?? [];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ...points.map((point) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        '• ',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          point.toString(),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Simple Resources Section
+                ManifestoResourcesSection(
+                  pdfUrl: widget.candidate.extraInfo?.manifesto?.pdfUrl,
+                  imageUrl: widget.candidate.extraInfo?.manifesto?.image,
+                  videoUrl: widget.candidate.extraInfo?.manifesto?.videoUrl,
+                ),
+
+                // Simple Voter Interactions (if enabled)
+                if (widget.showVoterInteractions) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.poll,
+                              color: Colors.blue.shade600,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Voter Interactions',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => Get.snackbar(
+                                  'Poll',
+                                  'Poll functionality coming soon!',
+                                ),
+                                icon: const Icon(Icons.poll),
+                                label: const Text('Vote in Poll'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade600,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => Get.snackbar(
+                                  'Comments',
+                                  'Comments functionality coming soon!',
+                                ),
+                                icon: const Icon(Icons.comment),
+                                label: const Text('View Comments'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.blue.shade600,
+                                  side: BorderSide(color: Colors.blue.shade600),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else
+            // Simple empty state
+            Center(
+              child: Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.description,
+                      size: 48,
+                      color: Colors.blue.shade600,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Manifesto Coming Soon',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'This candidate is preparing their manifesto. Check back soon!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}

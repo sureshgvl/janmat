@@ -38,11 +38,11 @@ class ManifestoTabEdit extends StatefulWidget {
 }
 
 class ManifestoTabEditState extends State<ManifestoTabEdit> {
-  late TextEditingController _manifestoController;
-  late TextEditingController _titleController;
-  late List<Map<String, dynamic>> _promiseControllers;
-  String? _originalText;
-  List<Map<String, dynamic>> _localFiles = [];
+   late TextEditingController _manifestoController;
+   late TextEditingController _titleController;
+   late List<Map<String, dynamic>> _promiseControllers;
+   String? _originalText;
+   List<Map<String, dynamic>> _localFiles = [];
 
   // Files marked for deletion (will be deleted on save)
   bool _isPdfMarkedForDeletion = false;
@@ -162,32 +162,6 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     }
   }
 
-  // Strip simple markdown bold markers for display
-  String _stripBoldMarkers(String s) {
-    if (s.isEmpty) return s;
-    // Remove any ** surrounding markers and any standalone occurrences
-    final trimmed = s.trim();
-    if (trimmed.startsWith('**') &&
-        trimmed.endsWith('**') &&
-        trimmed.length >= 4) {
-      return trimmed.substring(2, trimmed.length - 2).trim();
-    }
-    return trimmed.replaceAll('**', '').trim();
-  }
-
-  @override
-  void dispose() {
-    _manifestoController.dispose();
-    _titleController.dispose();
-    for (var controllerMap in _promiseControllers) {
-      (controllerMap['title'] as TextEditingController?)?.dispose();
-      for (var pointController
-          in (controllerMap['points'] as List<TextEditingController>? ?? [])) {
-        pointController.dispose();
-      }
-    }
-    super.dispose();
-  }
 
   void _showDemoTitleOptions() {
     String selectedLanguage = 'en'; // Default to English
@@ -398,6 +372,34 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       ),
     );
   }
+
+  // Strip simple markdown bold markers for display
+  String _stripBoldMarkers(String s) {
+    if (s.isEmpty) return s;
+    // Remove any ** surrounding markers and any standalone occurrences
+    final trimmed = s.trim();
+    if (trimmed.startsWith('**') &&
+        trimmed.endsWith('**') &&
+        trimmed.length >= 4) {
+      return trimmed.substring(2, trimmed.length - 2).trim();
+    }
+    return trimmed.replaceAll('**', '').trim();
+  }
+
+  @override
+  void dispose() {
+    _manifestoController.dispose();
+    _titleController.dispose();
+    for (var controllerMap in _promiseControllers) {
+      (controllerMap['title'] as TextEditingController?)?.dispose();
+      for (var pointController
+          in (controllerMap['points'] as List<TextEditingController>? ?? [])) {
+        pointController.dispose();
+      }
+    }
+    super.dispose();
+  }
+
 
   // Clean up local file after upload
   Future<void> _cleanupLocalFile(String localPath) async {

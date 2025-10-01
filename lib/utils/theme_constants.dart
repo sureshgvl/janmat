@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Primary Colors - Neutral Patriotic Theme
@@ -58,51 +59,51 @@ class AppColors {
 }
 
 class AppTypography {
-  // Headings
-  static const TextStyle heading1 = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-    height: 1.2,
-  );
+   // Headings
+   static TextStyle heading1 = GoogleFonts.notoSans(
+     fontSize: 32,
+     fontWeight: FontWeight.bold,
+     color: AppColors.textPrimary,
+     height: 1.2,
+   );
 
-  static const TextStyle heading2 = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-    height: 1.3,
-  );
+   static TextStyle heading2 = GoogleFonts.notoSans(
+     fontSize: 24,
+     fontWeight: FontWeight.bold,
+     color: AppColors.textPrimary,
+     height: 1.3,
+   );
 
-  static const TextStyle heading3 = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-    height: 1.4,
-  );
+   static TextStyle heading3 = GoogleFonts.notoSans(
+     fontSize: 20,
+     fontWeight: FontWeight.bold,
+     color: AppColors.textPrimary,
+     height: 1.4,
+   );
 
-  static const TextStyle heading4 = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.4,
-  );
+   static TextStyle heading4 = GoogleFonts.notoSans(
+     fontSize: 18,
+     fontWeight: FontWeight.w600,
+     color: AppColors.textPrimary,
+     height: 1.4,
+   );
 
   // Body Text
-  static const TextStyle bodyLarge = TextStyle(
+  static TextStyle bodyLarge = GoogleFonts.notoSans(
     fontSize: 16,
     fontWeight: FontWeight.normal,
     color: AppColors.textPrimary,
     height: 1.5,
   );
 
-  static const TextStyle bodyMedium = TextStyle(
+  static TextStyle bodyMedium = GoogleFonts.notoSans(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     color: AppColors.textSecondary,
     height: 1.5,
   );
 
-  static const TextStyle bodySmall = TextStyle(
+  static TextStyle bodySmall = GoogleFonts.notoSans(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     color: AppColors.textMuted,
@@ -110,21 +111,21 @@ class AppTypography {
   );
 
   // Labels and Captions
-  static const TextStyle labelLarge = TextStyle(
+  static TextStyle labelLarge = GoogleFonts.notoSans(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
     letterSpacing: 0.5,
   );
 
-  static const TextStyle labelMedium = TextStyle(
+  static TextStyle labelMedium = GoogleFonts.notoSans(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
     letterSpacing: 0.5,
   );
 
-  static const TextStyle caption = TextStyle(
+  static TextStyle caption = GoogleFonts.notoSans(
     fontSize: 11,
     fontWeight: FontWeight.normal,
     color: AppColors.textMuted,

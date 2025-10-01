@@ -16,6 +16,7 @@ import '../../../widgets/profile/area_selection_modal.dart';
 import '../../../widgets/profile/ward_selection_modal.dart';
 import '../../../utils/progressive_loader.dart';
 import '../../../utils/maharashtra_utils.dart';
+import '../../../utils/theme_constants.dart';
 import '../models/candidate_model.dart';
 import '../widgets/candidate_card.dart';
 import '../../../services/local_database_service.dart';
@@ -820,12 +821,29 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(CandidateLocalizations.of(context)!.searchCandidates),
+        title: Text(
+          CandidateLocalizations.of(context)!.searchCandidates,
+          style: AppTypography.heading4.copyWith(
+            color: AppColors.accent,
+          ),
+        ),
+        backgroundColor: AppColors.primary,
+        elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh candidates',
-            onPressed: selectedWard != null ? _refreshCandidates : null,
+          Container(
+            margin: const EdgeInsets.only(right: AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.refresh,
+                color: AppColors.accent,
+              ),
+              tooltip: 'Refresh candidates',
+              onPressed: selectedWard != null ? _refreshCandidates : null,
+            ),
           ),
         ],
       ),
@@ -845,71 +863,143 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                 children: [
                   // Search and Filters Section
                   Container(
-                    padding: const EdgeInsets.all(16),
-                    color: Colors.grey[100],
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.05),
+                          AppColors.secondary.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(AppBorderRadius.lg),
+                        bottomRight: Radius.circular(AppBorderRadius.lg),
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Search Field
                         Container(
-                          margin: const EdgeInsets.only(bottom: 16),
+                          margin: const EdgeInsets.only(bottom: AppSpacing.md),
                           child: TextField(
                             onChanged: _onSearchChanged,
                             decoration: InputDecoration(
                               hintText: CandidateLocalizations.of(context)!.searchCandidatesHint,
-                              prefixIcon: const Icon(Icons.search),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: AppColors.textSecondary,
+                              ),
                               suffixIcon: _searchQuery.isNotEmpty
                                   ? IconButton(
-                                      icon: const Icon(Icons.clear),
+                                      icon: Icon(
+                                        Icons.clear,
+                                        color: AppColors.textSecondary,
+                                      ),
                                       onPressed: _clearSearch,
                                     )
                                   : _isSearching
-                                      ? const SizedBox(
+                                      ? SizedBox(
                                           width: 20,
                                           height: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                                           ),
                                         )
                                       : null,
-                              border: const OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                                borderSide: BorderSide(color: AppColors.borderLight),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                                borderSide: BorderSide(color: AppColors.borderLight),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                              ),
                               filled: true,
-                              fillColor: Colors.grey[50],
+                              fillColor: AppColors.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm,
+                              ),
                             ),
+                            style: AppTypography.bodyMedium,
                           ),
                         ),
 
                         // District Selection
                         if (isLoadingDistricts)
-                          const Center(child: CircularProgressIndicator())
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            alignment: Alignment.center,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            ),
+                          )
                         else
                           InkWell(
                             onTap: () => _showDistrictSelectionModal(context),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: CandidateLocalizations.of(context)!.selectDistrict,
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.location_city),
-                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                            child: Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                                border: Border.all(color: AppColors.borderLight),
+                                boxShadow: [AppShadows.light],
                               ),
-                              child: selectedDistrictId != null
-                                  ? Text(
-                                      MaharashtraUtils.getDistrictDisplayNameV2(
-                                        selectedDistrictId!,
-                                        Localizations.localeOf(context),
-                                      ),
-                                      style: const TextStyle(fontSize: 16),
-                                    )
-                                  : Text(
-                                      CandidateLocalizations.of(context)!.selectDistrict,
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 16,
-                                      ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_city,
+                                    color: AppColors.primary,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          CandidateLocalizations.of(context)!.selectDistrict,
+                                          style: AppTypography.caption.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          selectedDistrictId != null
+                                              ? MaharashtraUtils.getDistrictDisplayNameV2(
+                                                  selectedDistrictId!,
+                                                  Localizations.localeOf(context),
+                                                )
+                                              : CandidateLocalizations.of(context)!.selectDistrict,
+                                          style: AppTypography.bodyMedium.copyWith(
+                                            color: selectedDistrictId != null
+                                                ? AppColors.textPrimary
+                                                : AppColors.textMuted,
+                                            fontWeight: selectedDistrictId != null
+                                                ? FontWeight.w500
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_drop_down,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Body Selection
                         if (selectedDistrictId != null &&
@@ -917,77 +1007,109 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             districtBodies[selectedDistrictId!]!.isNotEmpty)
                           InkWell(
                             onTap: () => _showBodySelectionModal(context),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: CandidateLocalizations.of(context)!.selectArea,
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.business),
-                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                            child: Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                                border: Border.all(color: AppColors.borderLight),
+                                boxShadow: [AppShadows.light],
                               ),
-                              child: selectedBodyId != null
-                                  ? Builder(
-                                      builder: (context) {
-                                        final body =
-                                            districtBodies[selectedDistrictId!]!
-                                                .firstWhere(
-                                                  (b) => b.id == selectedBodyId,
-                                                  orElse: () => Body(
-                                                    id: '',
-                                                    name: '',
-                                                    type: BodyType.municipal_corporation,
-                                                    districtId: '',
-                                                    stateId: '',
-                                                  ),
-                                                );
-                                        return Text(
-                                          body.id.isNotEmpty
-                                              ? '${body.name} (${CandidateLocalizations.of(context)!.translateBodyType(body.type.toString().split('.').last)})'
-                                              : selectedBodyId!,
-                                          style: const TextStyle(fontSize: 16),
-                                        );
-                                      },
-                                    )
-                                  : Text(
-                                      CandidateLocalizations.of(context)!.selectArea,
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 16,
-                                      ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.business,
+                                    color: AppColors.secondary,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          CandidateLocalizations.of(context)!.selectArea,
+                                          style: AppTypography.caption.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Builder(
+                                          builder: (context) {
+                                            if (selectedBodyId != null) {
+                                              final body = districtBodies[selectedDistrictId!]!
+                                                  .firstWhere(
+                                                    (b) => b.id == selectedBodyId,
+                                                    orElse: () => Body(
+                                                      id: '',
+                                                      name: '',
+                                                      type: BodyType.municipal_corporation,
+                                                      districtId: '',
+                                                      stateId: '',
+                                                    ),
+                                                  );
+                                              return Text(
+                                                body.id.isNotEmpty
+                                                    ? '${body.name} (${CandidateLocalizations.of(context)!.translateBodyType(body.type.toString().split('.').last)})'
+                                                    : selectedBodyId!,
+                                                style: AppTypography.bodyMedium.copyWith(
+                                                  color: AppColors.textPrimary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              );
+                                            }
+                                            return Text(
+                                              CandidateLocalizations.of(context)!.selectArea,
+                                              style: AppTypography.bodyMedium.copyWith(
+                                                color: AppColors.textMuted,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_drop_down,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
                             ),
                           )
                         else
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 16,
-                            ),
+                            padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.surface.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                              border: Border.all(color: AppColors.borderLight),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.business, color: Colors.grey),
-                                const SizedBox(width: 12),
-                                Text(
-                                  selectedDistrictId == null
-                                      ? CandidateLocalizations.of(context)!.selectDistrictFirst
-                                      : districtBodies[selectedDistrictId!] ==
-                                                  null ||
-                                              districtBodies[selectedDistrictId!]!
-                                                  .isEmpty
-                                          ? CandidateLocalizations.of(context)!.noAreasAvailable
-                                          : CandidateLocalizations.of(context)!.selectArea,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 16,
+                                Icon(
+                                  Icons.business,
+                                  color: AppColors.textMuted,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    selectedDistrictId == null
+                                        ? CandidateLocalizations.of(context)!.selectDistrictFirst
+                                        : districtBodies[selectedDistrictId!] == null ||
+                                            districtBodies[selectedDistrictId!]!.isEmpty
+                                        ? CandidateLocalizations.of(context)!.noAreasAvailable
+                                        : CandidateLocalizations.of(context)!.selectArea,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Ward Selection
                         if (selectedBodyId != null &&
@@ -995,63 +1117,98 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                             bodyWards[wardCacheKey]!.isNotEmpty)
                           InkWell(
                             onTap: () => _showWardSelectionModal(context),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: CandidateLocalizations.of(context)!.selectWard,
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.home),
-                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                            child: Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                                border: Border.all(color: AppColors.borderLight),
+                                boxShadow: [AppShadows.light],
                               ),
-                              child: selectedWard != null
-                                  ? Builder(
-                                      builder: (context) {
-                                        // Format ward display like "वॉर्ड 1 - Ward Name"
-                                        final numberMatch = RegExp(r'ward_(\d+)')
-                                            .firstMatch(
-                                              selectedWard!.id.toLowerCase(),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.home,
+                                    color: AppColors.accent,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          CandidateLocalizations.of(context)!.selectWard,
+                                          style: AppTypography.caption.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Builder(
+                                          builder: (context) {
+                                            if (selectedWard != null) {
+                                              // Format ward display like "वॉर्ड 1 - Ward Name"
+                                              final numberMatch = RegExp(r'ward_(\d+)')
+                                                  .firstMatch(
+                                                    selectedWard!.id.toLowerCase(),
+                                                  );
+                                              final displayText = numberMatch != null
+                                                  ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
+                                                  : selectedWard!.name;
+                                              return Text(
+                                                displayText,
+                                                style: AppTypography.bodyMedium.copyWith(
+                                                  color: AppColors.textPrimary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              );
+                                            }
+                                            return Text(
+                                              CandidateLocalizations.of(context)!.selectWard,
+                                              style: AppTypography.bodyMedium.copyWith(
+                                                color: AppColors.textMuted,
+                                              ),
                                             );
-                                        final displayText = numberMatch != null
-                                            ? 'वॉर्ड ${numberMatch.group(1)} - ${selectedWard!.name}'
-                                            : selectedWard!.name;
-                                        return Text(
-                                          displayText,
-                                          style: const TextStyle(fontSize: 16),
-                                        );
-                                      },
-                                    )
-                                  : Text(
-                                      CandidateLocalizations.of(context)!.selectWard,
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 16,
-                                      ),
+                                          },
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_drop_down,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
                             ),
                           )
                         else
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 16,
-                            ),
+                            padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.surface.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                              border: Border.all(color: AppColors.borderLight),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.home, color: Colors.grey),
-                                const SizedBox(width: 12),
-                                Text(
-                                  selectedBodyId == null
-                                      ? CandidateLocalizations.of(context)!.selectAreaFirst
-                                      : bodyWards[wardCacheKey] == null ||
-                                              bodyWards[wardCacheKey]!.isEmpty
-                                          ? CandidateLocalizations.of(context)!.noWardsAvailable
-                                          : CandidateLocalizations.of(context)!.selectWard,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 16,
+                                Icon(
+                                  Icons.home,
+                                  color: AppColors.textMuted,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    selectedBodyId == null
+                                        ? CandidateLocalizations.of(context)!.selectAreaFirst
+                                        : bodyWards[wardCacheKey] == null ||
+                                            bodyWards[wardCacheKey]!.isEmpty
+                                        ? CandidateLocalizations.of(context)!.noWardsAvailable
+                                        : CandidateLocalizations.of(context)!.selectWard,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1151,22 +1308,28 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                               Container(
                                 height: 60,
                                 alignment: Alignment.center,
-                                color: Colors.blue.shade50,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primary.withOpacity(0.1),
+                                      AppColors.secondary.withOpacity(0.1),
+                                    ],
+                                  ),
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.refresh,
-                                      color: Colors.blue,
+                                      color: AppColors.primary,
                                       size: 24,
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: AppSpacing.sm),
                                     Text(
                                       'Pull down to refresh',
-                                      style: TextStyle(
-                                        color: Colors.blue.shade700,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                      style: AppTypography.labelMedium.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
@@ -1174,26 +1337,49 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                               ),
 
                             // Candidate List
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.all(16),
-                              itemCount:
-                                  controller.candidates.length +
-                                  (_isLoadingMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == controller.candidates.length) {
-                                  // Show loading indicator at the end
-                                  return Container(
-                                    padding: const EdgeInsets.all(16),
-                                    alignment: Alignment.center,
-                                    child: const CircularProgressIndicator(),
-                                  );
-                                }
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(AppBorderRadius.lg),
+                                  topRight: Radius.circular(AppBorderRadius.lg),
+                                ),
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                itemCount: controller.candidates.length + (_isLoadingMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == controller.candidates.length) {
+                                    // Show loading indicator at the end
+                                    return Container(
+                                      padding: const EdgeInsets.all(AppSpacing.lg),
+                                      alignment: Alignment.center,
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                      ),
+                                    );
+                                  }
 
-                                final candidate = controller.candidates[index];
-                                return CandidateCard(candidate: candidate);
-                              },
+                                  final candidate = controller.candidates[index];
+                                  return TweenAnimationBuilder<double>(
+                                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                                    duration: Duration(milliseconds: 300 + (index * 50)),
+                                    curve: Curves.easeOut,
+                                    builder: (context, value, child) {
+                                      return Transform.translate(
+                                        offset: Offset(0, 20 * (1 - value)),
+                                        child: Opacity(
+                                          opacity: value,
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: CandidateCard(candidate: candidate),
+                                  );
+                                },
+                              ),
                             ),
                           ],
                         ),
@@ -1204,10 +1390,30 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         ),
       ),
       floatingActionButton: selectedWard != null
-          ? FloatingActionButton(
-              onPressed: _scrollToTop,
-              tooltip: 'Scroll to top',
-              child: const Icon(Icons.arrow_upward),
+          ? Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.secondary],
+                ),
+                borderRadius: BorderRadius.circular(AppBorderRadius.xxl),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                onPressed: _scrollToTop,
+                tooltip: 'Scroll to top',
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: const Icon(
+                  Icons.arrow_upward,
+                  color: Colors.white,
+                ),
+              ),
             )
           : null,
     );

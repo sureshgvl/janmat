@@ -360,6 +360,9 @@ class AnalyticsData {
   final double? engagementRate;
   final Map<String, dynamic>? topPerformingContent;
   final Map<String, dynamic>? demographics;
+  final int? manifestoLikes;
+  final int? manifestoComments;
+  final int? pollParticipation;
 
   AnalyticsData({
     this.profileViews,
@@ -368,6 +371,9 @@ class AnalyticsData {
     this.engagementRate,
     this.topPerformingContent,
     this.demographics,
+    this.manifestoLikes,
+    this.manifestoComments,
+    this.pollParticipation,
   });
 
   factory AnalyticsData.fromJson(Map<String, dynamic> json) {
@@ -380,6 +386,9 @@ class AnalyticsData {
       engagementRate: json['engagement_rate']?.toDouble(),
       topPerformingContent: json['top_performing_content'],
       demographics: json['demographics'],
+      manifestoLikes: json['manifesto_likes'],
+      manifestoComments: json['manifesto_comments'],
+      pollParticipation: json['poll_participation'],
     );
   }
 
@@ -391,6 +400,9 @@ class AnalyticsData {
       'engagement_rate': engagementRate,
       'top_performing_content': topPerformingContent,
       'demographics': demographics,
+      'manifesto_likes': manifestoLikes,
+      'manifesto_comments': manifestoComments,
+      'poll_participation': pollParticipation,
     };
   }
 }

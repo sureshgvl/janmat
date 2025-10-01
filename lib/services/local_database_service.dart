@@ -13,7 +13,7 @@ import '../features/candidate/models/candidate_model.dart';
 class LocalDatabaseService {
   static Database? _database;
   static const String _dbName = 'janmat_local.db';
-  static const int _dbVersion = 4; // Increment to force database recreation with candidates table
+  static const int _dbVersion = 5; // Increment to add manifesto interaction tables
 
   // Table names
   static const String districtsTable = 'districts';
@@ -21,6 +21,9 @@ class LocalDatabaseService {
   static const String wardsTable = 'wards';
   static const String candidatesTable = 'candidates';
   static const String cacheMetadataTable = 'cache_metadata';
+  static const String commentsTable = 'comments';
+  static const String likesTable = 'likes';
+  static const String pollsTable = 'polls';
 
   // Cache metadata columns
   static const String columnCacheKey = 'cache_key';
@@ -56,6 +59,9 @@ class LocalDatabaseService {
     await _createWardsTable(db);
     await _createCandidatesTable(db);
     await _createCacheMetadataTable(db);
+    await _createCommentsTable(db);
+    await _createLikesTable(db);
+    await _createPollsTable(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -83,6 +89,40 @@ class LocalDatabaseService {
       }
 
       debugPrint('✅ [SQLite] Database upgrade to v4 completed');
+    }
+
+    if (oldVersion < 5 && newVersion >= 5) {
+      // Upgrade to version 5: Add manifesto interaction tables
+      debugPrint('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding manifesto interaction tables');
+
+      // Check if comments table exists, create if not
+      final commentsExists = await _tableExists(db, commentsTable);
+      if (!commentsExists) {
+        await _createCommentsTable(db);
+        debugPrint('✅ [SQLite] Created comments table');
+      } else {
+        debugPrint('ℹ️ [SQLite] Comments table already exists, skipping creation');
+      }
+
+      // Check if likes table exists, create if not
+      final likesExists = await _tableExists(db, likesTable);
+      if (!likesExists) {
+        await _createLikesTable(db);
+        debugPrint('✅ [SQLite] Created likes table');
+      } else {
+        debugPrint('ℹ️ [SQLite] Likes table already exists, skipping creation');
+      }
+
+      // Check if polls table exists, create if not
+      final pollsExists = await _tableExists(db, pollsTable);
+      if (!pollsExists) {
+        await _createPollsTable(db);
+        debugPrint('✅ [SQLite] Created polls table');
+      } else {
+        debugPrint('ℹ️ [SQLite] Polls table already exists, skipping creation');
+      }
+
+      debugPrint('✅ [SQLite] Database upgrade to v5 completed');
     }
   }
 
@@ -195,6 +235,53 @@ class LocalDatabaseService {
     ''');
   }
 
+  // Create comments table
+  Future<void> _createCommentsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $commentsTable (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        postId TEXT NOT NULL,
+        text TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        parentId TEXT,
+        synced INTEGER DEFAULT 0,
+        syncAction TEXT,
+        UNIQUE(id)
+      )
+    ''');
+  }
+
+  // Create likes table
+  Future<void> _createLikesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $likesTable (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        postId TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        synced INTEGER DEFAULT 0,
+        syncAction TEXT,
+        UNIQUE(id)
+      )
+    ''');
+  }
+
+  // Create polls table
+  Future<void> _createPollsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $pollsTable (
+        manifestoId TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        option TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        synced INTEGER DEFAULT 0,
+        syncAction TEXT,
+        PRIMARY KEY (manifestoId, userId)
+      )
+    ''');
+  }
+
   // District operations
   Future<void> insertDistricts(List<District> districts) async {
     debugPrint('📍 [SQLite] Starting to insert ${districts.length} districts into local database');
@@ -208,7 +295,7 @@ class LocalDatabaseService {
       );
     }
     await batch.commit();
-    await _updateCacheMetadata('districts');
+    await updateCacheMetadata('districts');
     debugPrint('✅ [SQLite] Successfully inserted ${districts.length} districts into local database');
     if (districts.isNotEmpty) {
       debugPrint('📍 [SQLite] Sample districts cached: ${districts.take(2).map((d) => '${d.id}:${d.name}').join(', ')}');
@@ -240,7 +327,7 @@ class LocalDatabaseService {
       );
     }
     await batch.commit();
-    await _updateCacheMetadata('bodies');
+    await updateCacheMetadata('bodies');
     debugPrint('✅ [SQLite] Successfully inserted ${bodies.length} bodies into local database');
     if (bodies.isNotEmpty) {
       debugPrint('🏛️ [SQLite] Sample bodies cached: ${bodies.take(2).map((b) => '${b.id}:${b.name}').join(', ')}');
@@ -279,7 +366,7 @@ class LocalDatabaseService {
       );
     }
     await batch.commit();
-    await _updateCacheMetadata('wards');
+    await updateCacheMetadata('wards');
     debugPrint('✅ [SQLite] Successfully inserted ${wards.length} wards into local database');
     if (wards.isNotEmpty) {
       debugPrint('🏛️ [SQLite] Sample wards cached: ${wards.take(2).map((w) => '${w.id}:${w.name}').join(', ')}');
@@ -341,7 +428,7 @@ class LocalDatabaseService {
     final batchTime = DateTime.now().difference(batchStartTime).inMilliseconds;
 
     final metadataStartTime = DateTime.now();
-    await _updateCacheMetadata('candidates_$wardId');
+    await updateCacheMetadata('candidates_$wardId');
     final metadataTime = DateTime.now().difference(metadataStartTime).inMilliseconds;
 
     final totalTime = DateTime.now().difference(startTime).inMilliseconds;
@@ -472,7 +559,7 @@ class LocalDatabaseService {
   }
 
   // Cache metadata operations
-  Future<void> _updateCacheMetadata(String cacheKey) async {
+  Future<void> updateCacheMetadata(String cacheKey) async {
     final db = await database;
     await db.insert(
       cacheMetadataTable,
@@ -505,6 +592,10 @@ class LocalDatabaseService {
     await db.delete(districtsTable);
     await db.delete(bodiesTable);
     await db.delete(wardsTable);
+    await db.delete(candidatesTable);
+    await db.delete(commentsTable);
+    await db.delete(likesTable);
+    await db.delete(pollsTable);
     await db.delete(cacheMetadataTable);
   }
 
@@ -520,11 +611,27 @@ class LocalDatabaseService {
     final wardCount = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM $wardsTable'),
     ) ?? 0;
+    final candidateCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $candidatesTable'),
+    ) ?? 0;
+    final commentCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $commentsTable'),
+    ) ?? 0;
+    final likeCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $likesTable'),
+    ) ?? 0;
+    final pollCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $pollsTable'),
+    ) ?? 0;
 
     return {
       'districts': districtCount,
       'bodies': bodyCount,
       'wards': wardCount,
+      'candidates': candidateCount,
+      'comments': commentCount,
+      'likes': likeCount,
+      'polls': pollCount,
     };
   }
 

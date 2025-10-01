@@ -337,13 +337,13 @@ class MonetizationRepository {
           },
           'manifesto': {
             'enabled': true,
-            'permissions': ['view'],
+            'permissions': ['view', 'edit'],
             'features': {
-              'textOnly': true,
-              'pdfUpload': false,
+              'textOnly': false,
+              'pdfUpload': true,
               'videoUpload': false,
-              'promises': false,
-              'maxPromises': 0,
+              'promises': true,
+              'maxPromises': 2,
             },
           },
           'achievements': {
@@ -352,10 +352,10 @@ class MonetizationRepository {
             'maxAchievements': 0,
           },
           'media': {
-            'enabled': false,
-            'permissions': [],
-            'maxMediaItems': 0,
-            'maxImagesPerItem': 0,
+            'enabled': true,
+            'permissions': ['view', 'edit', 'upload'],
+            'maxMediaItems': 1,
+            'maxImagesPerItem': 1,
             'maxVideosPerItem': 0,
             'maxYouTubeLinksPerItem': 0,
           },
