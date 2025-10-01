@@ -6,6 +6,7 @@ import '../../../../utils/symbol_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../utils/maharashtra_utils.dart';
 import '../../../../services/local_database_service.dart';
+import '../../../../services/share_service.dart';
 import '../../../../models/district_model.dart';
 import '../../../../models/ward_model.dart';
 
@@ -225,23 +226,24 @@ class _ProfileTabViewState extends State<ProfileTabView>
   }
 
   void _shareProfile() async {
-    final profileText =
-        '''
-${AppLocalizations.of(context)!.checkOutCandidateProfile(widget.candidate.name)}
-
-${widget.candidate.party.isNotEmpty ? SymbolUtils.getPartyFullNameWithLocale(widget.candidate.party, Localizations.localeOf(context).languageCode) : AppLocalizations.of(context)!.party_independent}
-${AppLocalizations.of(context)!.locationLabel(widget.candidate.districtId, widget.candidate.wardId)}
-
-View their complete profile and manifesto at: [Your App URL]
-''';
-
-    // For now, just show a snackbar - in real app you'd use share_plus or url_launcher
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.shareFunctionalityComingSoon),
+    try {
+      await ShareService.shareCandidateProfile(widget.candidate);
+      Get.snackbar(
+        'share'.tr,
+        'Profile shared successfully!',
         duration: const Duration(seconds: 2),
-      ),
-    );
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'share'.tr,
+        'Failed to share profile. Please try again.',
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+    }
   }
 
   @override

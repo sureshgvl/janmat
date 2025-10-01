@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/demo_data_service.dart';
+import '../../../../services/share_service.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import 'manifesto_resources_section.dart';
 
@@ -22,12 +23,25 @@ class ManifestoContentBuilder extends StatefulWidget {
 }
 
 class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
-  void _shareManifesto() {
-    Get.snackbar(
-      'share'.tr,
-      CandidateTranslations.tr('shareFunctionalityComingSoon'),
-      duration: const Duration(seconds: 2),
-    );
+  void _shareManifesto() async {
+    try {
+      await ShareService.shareCandidateManifesto(widget.candidate);
+      Get.snackbar(
+        'share'.tr,
+        'Manifesto shared successfully!',
+        duration: const Duration(seconds: 2),
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'share'.tr,
+        'Failed to share manifesto. Please try again.',
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+    }
   }
 
 
