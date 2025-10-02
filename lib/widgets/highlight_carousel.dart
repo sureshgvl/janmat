@@ -22,13 +22,10 @@ class HighlightCarousel extends StatefulWidget {
 class _HighlightCarouselState extends State<HighlightCarousel> {
   List<Highlight> highlights = [];
   bool isLoading = true;
-  int _currentIndex = 0;
-  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.9);
     _loadHighlights();
   }
 
@@ -38,12 +35,6 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
     if (oldWidget.wardId != widget.wardId) {
       _loadHighlights();
     }
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadHighlights() async {
@@ -83,13 +74,6 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
     print('Navigate to candidate: ${highlight.candidateId}');
   }
 
-  void _onPageChanged(int index) {
-    setState(() => _currentIndex = index);
-    // Track impression for the new visible highlight
-    if (highlights.isNotEmpty && index < highlights.length) {
-      HighlightService.trackImpression(highlights[index].id);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,59 +109,22 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
           ),
         ),
 
-        // Carousel using PageView with performance optimizations
+        // Horizontal scrolling carousel - matches HTML design
         SizedBox(
-          height: 220,
-          child: PageView.builder(
-            controller: _pageController,
+          height: 200, // Adjust height for horizontal cards
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: highlights.length,
-            onPageChanged: _onPageChanged,
-            // Add physics to prevent overscroll issues
-            physics: const BouncingScrollPhysics(),
             itemBuilder: (context, index) {
               final highlight = highlights[index];
-              return TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 200),
-                tween: Tween<double>(
-                  begin: 1.0,
-                  end: _currentIndex == index ? 1.0 : 0.8,
-                ),
-                builder: (context, scale, child) {
-                  return Transform.scale(
-                    scale: scale,
-                    child: child,
-                  );
-                },
-                child: HighlightCard(
-                  highlight: highlight,
-                  onTap: () => _onHighlightTap(highlight),
-                ),
+              return HighlightCard(
+                highlight: highlight,
+                onTap: () => _onHighlightTap(highlight),
               );
             },
           ),
         ),
-
-        // Dots indicator
-        if (highlights.length > 1) ...[
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              highlights.length,
-              (index) => Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _currentIndex == index
-                      ? const Color(0xFF1976d2) // Primary blue
-                      : Colors.grey.withOpacity(0.3),
-                ),
-              ),
-            ),
-          ),
-        ],
 
         const SizedBox(height: 24),
       ],

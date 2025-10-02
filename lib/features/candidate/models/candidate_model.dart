@@ -321,6 +321,14 @@ class HighlightData {
   final String? priority;
   final String? expiresAt;
 
+  // Banner configuration fields
+  final String? bannerStyle;
+  final String? callToAction;
+  final String? priorityLevel;
+  final List<String>? targetLocations;
+  final bool? showAnalytics;
+  final String? customMessage;
+
   HighlightData({
     required this.enabled,
     this.title,
@@ -328,6 +336,13 @@ class HighlightData {
     this.imageUrl,
     this.priority,
     this.expiresAt,
+    // Banner config fields
+    this.bannerStyle,
+    this.callToAction,
+    this.priorityLevel,
+    this.targetLocations,
+    this.showAnalytics,
+    this.customMessage,
   });
 
   factory HighlightData.fromJson(Map<String, dynamic> json) {
@@ -338,6 +353,15 @@ class HighlightData {
       imageUrl: json['image_url'],
       priority: json['priority'],
       expiresAt: json['expires_at'],
+      // Banner config fields
+      bannerStyle: json['bannerStyle'] ?? json['banner_style'],
+      callToAction: json['callToAction'] ?? json['call_to_action'],
+      priorityLevel: json['priorityLevel'] ?? json['priority_level'],
+      targetLocations: json['targetLocations'] != null
+          ? List<String>.from(json['targetLocations'])
+          : null,
+      showAnalytics: json['showAnalytics'] ?? json['show_analytics'],
+      customMessage: json['customMessage'] ?? json['custom_message'],
     );
   }
 
@@ -349,6 +373,13 @@ class HighlightData {
       'image_url': imageUrl,
       'priority': priority,
       'expires_at': expiresAt,
+      // Banner config fields
+      'bannerStyle': bannerStyle,
+      'callToAction': callToAction,
+      'priorityLevel': priorityLevel,
+      'targetLocations': targetLocations,
+      'showAnalytics': showAnalytics,
+      'customMessage': customMessage,
     };
   }
 }

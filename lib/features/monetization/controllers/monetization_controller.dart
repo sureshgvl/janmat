@@ -5,7 +5,10 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/plan_model.dart';
 import '../../../models/user_model.dart';
+import '../../../models/body_model.dart';
 import '../../../services/razorpay_service.dart';
+import '../../../services/local_database_service.dart';
+import '../../../services/highlight_service.dart';
 import '../repositories/monetization_repository.dart';
 
 class MonetizationController extends GetxController {
@@ -64,7 +67,7 @@ class MonetizationController extends GetxController {
 
   Future<void> loadPlans() async {
     try {
-      debugPrint('🔄 MONETIZATION CONTROLLER: Loading plans based on user role...');
+      debugPrint('🔄 MONETIZATION CONTROLLER: Loading plans based on user role and election type...');
 
       // Get current user to check role
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -89,21 +92,36 @@ class MonetizationController extends GetxController {
 
       debugPrint('👤 User Role: $userRole');
 
-      // Fallback: If we already have user model loaded, use that role
-      if (currentUserModel.value != null) {
-        final modelRole = currentUserModel.value!.role;
-        debugPrint('🔄 Using role from user model: $modelRole');
-      }
-
       // Load all plans first
       final allPlans = await _repository.getAllPlans();
 
-      // Filter plans based on user role
+      // Filter plans based on user role and election type
       List<SubscriptionPlan> filteredPlans;
       if (userRole == 'candidate') {
-        // Candidates see all plans (candidate plans + voter XP plans)
-        filteredPlans = allPlans;
-        debugPrint('🏛️ CANDIDATE USER: Showing all ${allPlans.length} plans');
+        // For candidates, get their election type and filter plans
+        final userElectionType = await getUserElectionType(currentUser.uid);
+        debugPrint('🏛️ CANDIDATE USER: Election type: $userElectionType');
+
+        if (userElectionType != null) {
+          // Show plans that have pricing for this election type + voter plans + free plans
+          filteredPlans = allPlans.where((plan) {
+            // Always include voter plans (XP plans)
+            if (plan.type == 'voter') return true;
+
+            // Always include free plans
+            if (plan.planId == 'free_plan') return true;
+
+            // Include candidate plans that have pricing for user's election type
+            return plan.pricing.containsKey(userElectionType) &&
+                   plan.pricing[userElectionType]!.isNotEmpty;
+          }).toList();
+
+          debugPrint('🏛️ CANDIDATE USER: Showing ${filteredPlans.length} plans for election type: $userElectionType');
+        } else {
+          // If election type cannot be determined, show all plans
+          filteredPlans = allPlans;
+          debugPrint('🏛️ CANDIDATE USER: Could not determine election type, showing all ${allPlans.length} plans');
+        }
       } else {
         // Voters see only XP plans
         filteredPlans = allPlans.where((plan) => plan.type == 'voter').toList();
@@ -116,7 +134,7 @@ class MonetizationController extends GetxController {
       // Debug log each plan with all its features
       for (var plan in allPlans) {
         debugPrint('📋 PLAN DETAILS: ${plan.name} (${plan.planId})');
-        debugPrint('   💰 Price: ₹${plan.price}');
+        debugPrint('   💰 Type: ${plan.type} (pricing structure updated)');
         debugPrint('   🏷️  Type: ${plan.type}');
         debugPrint('   ✅ Active: ${plan.isActive}');
 
@@ -153,6 +171,23 @@ class MonetizationController extends GetxController {
         debugPrint('      👨‍💼 Admin Support: ${plan.profileFeatures.adminSupport}');
         debugPrint('      🎨 Custom Branding: ${plan.profileFeatures.customBranding}');
 
+        // Log pricing structure
+        debugPrint('   💰 PRICING STRUCTURE:');
+        if (plan.pricing.isEmpty) {
+          debugPrint('      ❌ No pricing data available');
+        } else {
+          plan.pricing.forEach((electionType, validityPricing) {
+            debugPrint('      🗳️  Election Type: $electionType');
+            if (validityPricing.isEmpty) {
+              debugPrint('         ❌ No validity periods');
+            } else {
+              validityPricing.forEach((days, price) {
+                debugPrint('         ⏰ $days days: ₹$price');
+              });
+            }
+          });
+        }
+
         debugPrint('   ──────────────────────────────────────────────────────────');
       }
     } catch (e) {
@@ -172,6 +207,124 @@ class MonetizationController extends GetxController {
 
   SubscriptionPlan? getPlanById(String planId) {
     return plans.firstWhereOrNull((plan) => plan.planId == planId);
+  }
+
+  // Election Type Derivation using SQLite cache
+  Future<String?> getUserElectionType(String userId) async {
+    try {
+      debugPrint('🔍 Getting election type for user: $userId');
+
+      // Get user document to access electionAreas
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists) {
+        debugPrint('❌ User document not found');
+        return null;
+      }
+
+      final userData = userDoc.data()!;
+      final electionAreas = userData['electionAreas'] as List<dynamic>?;
+
+      if (electionAreas == null || electionAreas.isEmpty) {
+        debugPrint('⚠️ No election areas found for user');
+        return null;
+      }
+
+      // For candidates, use the first (and typically only) election area
+      final primaryArea = electionAreas[0] as Map<String, dynamic>;
+      final bodyId = primaryArea['bodyId'] as String;
+
+      final stateId = userData['stateId'];
+      final districtId = userData['districtId'];
+
+      if (stateId == null || districtId == null) {
+        debugPrint('⚠️ Missing stateId or districtId');
+        return null;
+      }
+
+      // Try SQLite cache first for better performance
+      debugPrint('🔍 Checking SQLite cache for body: $bodyId');
+      final localDb = LocalDatabaseService();
+      final cachedBodies = await localDb.getBodiesForDistrict(districtId);
+      final cachedBody = cachedBodies.firstWhereOrNull(
+        (body) => body.id == bodyId,
+      );
+
+      if (cachedBody != null) {
+        debugPrint('✅ Found body in SQLite cache: ${cachedBody.type}');
+        return _mapBodyTypeToElectionType(cachedBody.type);
+      }
+
+      // Fallback to Firebase if not in cache
+      debugPrint('⚠️ Body not in cache, querying Firebase...');
+      final bodyDoc = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .get();
+
+      if (!bodyDoc.exists) {
+        debugPrint('❌ Body document not found in Firebase');
+        return null;
+      }
+
+      final bodyTypeString = bodyDoc.data()?['type'] as String?;
+      debugPrint('✅ Retrieved body type from Firebase: $bodyTypeString');
+
+      // Convert string to BodyType enum
+      BodyType? bodyType;
+      switch (bodyTypeString) {
+        case 'municipal_corporation':
+          bodyType = BodyType.municipal_corporation;
+          break;
+        case 'municipal_council':
+          bodyType = BodyType.municipal_council;
+          break;
+        case 'nagar_panchayat':
+          bodyType = BodyType.nagar_panchayat;
+          break;
+        case 'zilla_parishad':
+          bodyType = BodyType.zilla_parishad;
+          break;
+        case 'panchayat_samiti':
+          bodyType = BodyType.panchayat_samiti;
+          break;
+        default:
+          bodyType = null;
+      }
+
+      return _mapBodyTypeToElectionType(bodyType);
+
+    } catch (e) {
+      debugPrint('❌ Error getting user election type: $e');
+      return null;
+    }
+  }
+
+  String? _mapBodyTypeToElectionType(BodyType? bodyType) {
+    if (bodyType == null) return null;
+
+    switch (bodyType) {
+      case BodyType.municipal_corporation:
+        return 'municipal_corporation';
+      case BodyType.municipal_council:
+        return 'municipal_council';
+      case BodyType.nagar_panchayat:
+        return 'nagar_panchayat';
+      case BodyType.zilla_parishad:
+        return 'zilla_parishad';
+      case BodyType.panchayat_samiti:
+        return 'panchayat_samiti';
+      default:
+        debugPrint('⚠️ Unknown body type: $bodyType');
+        return null;
+    }
   }
 
   // User Subscription Management
@@ -214,12 +367,15 @@ class MonetizationController extends GetxController {
       }
 
       // Create subscription record
+      // For legacy XP plans, use a default amount (this method is deprecated)
+      final amountPaid = plan.type == 'voter' ? 0 : 0; // XP plans are free or have different pricing
+
       final subscription = UserSubscription(
         subscriptionId: '',
         userId: userId,
         planId: plan.planId,
         planType: plan.type,
-        amountPaid: plan.price,
+        amountPaid: amountPaid,
         purchasedAt: DateTime.now(),
         isActive: true,
       );
@@ -329,10 +485,145 @@ class MonetizationController extends GetxController {
 
   // Payment Integration with Razorpay
 
+  Future<bool> processPaymentWithElection(String planId, String electionType, int validityDays) async {
+    debugPrint('💰 STARTING PAYMENT PROCESS WITH ELECTION DATA');
+    debugPrint('   Plan ID: $planId');
+    debugPrint('   Election Type: $electionType');
+    debugPrint('   Validity Days: $validityDays');
+
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      // Get current user
+      debugPrint('👤 Checking user authentication...');
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint('❌ User not authenticated');
+        errorMessage.value = 'User not authenticated';
+        return false;
+      }
+      debugPrint('✅ User authenticated: ${currentUser.uid}');
+
+      // Get plan details
+      debugPrint('📋 Fetching plan details...');
+      final plan = getPlanById(planId);
+      if (plan == null) {
+        debugPrint('❌ Plan not found: $planId');
+        errorMessage.value = 'Plan not found';
+        return false;
+      }
+      debugPrint('✅ Plan found: ${plan.name}');
+
+      // Calculate amount from pricing structure
+      final amount = plan.pricing[electionType]?[validityDays];
+      if (amount == null) {
+        debugPrint('❌ Invalid pricing for election type $electionType and validity $validityDays');
+        errorMessage.value = 'Invalid plan configuration for your election type';
+        return false;
+      }
+      debugPrint('✅ Calculated amount: ₹${amount}');
+
+      // Check if using mock payment or real Razorpay
+      if (useMockPayment.value) {
+        debugPrint('🎯 USING MOCK PAYMENT MODE');
+
+        // Show payment processing message
+        Get.snackbar(
+          'Processing Payment',
+          'Please wait while we process your payment...',
+          backgroundColor: Colors.blue,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+          showProgressIndicator: true,
+        );
+
+        // Simulate payment processing time
+        await Future.delayed(const Duration(seconds: 3));
+
+        debugPrint('✅ Mock payment processing completed');
+
+        // Simulate payment success directly
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final paymentId = 'pay_test_$timestamp';
+        final orderId = 'order_${planId}_${electionType}_${validityDays}_$timestamp';
+        final signature = 'test_signature_$timestamp';
+
+        debugPrint('✅ Mock payment successful');
+        debugPrint('   Payment ID: $paymentId');
+        debugPrint('   Order ID: $orderId');
+
+        // Handle payment success directly with election data
+        _handleMockPaymentSuccessWithElection(paymentId, orderId, signature, planId, electionType, validityDays);
+      } else {
+        debugPrint('💳 USING REAL RAZORPAY PAYMENT MODE');
+
+        // Get Razorpay service
+        debugPrint('🔧 Getting Razorpay service...');
+        final razorpayService = Get.find<RazorpayService>();
+        debugPrint('✅ Razorpay service obtained');
+
+        // Create order (in production, this should be done on backend)
+        debugPrint('📝 Creating payment order...');
+        final orderId = await razorpayService.createOrder(
+          amount: amount,
+          currency: 'INR',
+          receipt: 'receipt_$planId',
+          notes: {
+            'planId': planId,
+            'userId': currentUser.uid,
+            'electionType': electionType,
+            'validityDays': validityDays.toString(),
+            'calculatedAmount': amount.toString(),
+          },
+        );
+
+        if (orderId == null) {
+          debugPrint('⚠️ Order ID is null (test mode) - proceeding without order');
+          // In test mode, we can proceed without order ID
+          // Razorpay will handle the payment directly
+        } else {
+          debugPrint('✅ Order created: $orderId');
+        }
+
+        // Start Razorpay payment with enhanced options for test mode
+        debugPrint('🚀 Starting Razorpay payment with full options...');
+        razorpayService.startPayment(
+          orderId: orderId ?? 'order_${planId}_${electionType}_${validityDays}_${DateTime.now().millisecondsSinceEpoch}',
+          amount: amount * 100, // Convert rupees to paisa for Razorpay
+          description: 'Purchase ${plan.name} (${validityDays} days)',
+          contact: currentUser.phoneNumber ?? '',
+          email: currentUser.email ?? '',
+          prefillName: currentUser.displayName,
+          notes: {
+            'planId': planId,
+            'userId': currentUser.uid,
+            'electionType': electionType,
+            'validityDays': validityDays.toString(),
+          },
+        );
+
+        debugPrint('✅ Razorpay payment initiated with all payment options');
+        // Payment result will be handled by callbacks
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ PAYMENT PROCESS ERROR: $e');
+      debugPrint('   Error Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: ${StackTrace.current}');
+      errorMessage.value = 'Payment failed: $e';
+      return false;
+    } finally {
+      isLoading.value = false;
+      debugPrint('🔄 Payment process loading state reset');
+    }
+  }
+
   Future<bool> processPayment(String planId, int amount) async {
     debugPrint('💰 STARTING PAYMENT PROCESS');
     debugPrint('   Plan ID: $planId');
-    debugPrint('   Amount: ₹${amount / 100} (${amount} paisa)');
+    debugPrint('   Amount: ₹${amount}');
 
     try {
       isLoading.value = true;
@@ -535,6 +826,38 @@ class MonetizationController extends GetxController {
     );
   }
 
+  // Handle mock payment success with election data
+  void _handleMockPaymentSuccessWithElection(String paymentId, String orderId, String signature,
+                                            String planId, String electionType, int validityDays) {
+    debugPrint('🎉 MOCK PAYMENT SUCCESS HANDLER WITH ELECTION CALLED');
+    debugPrint('   Payment ID: $paymentId');
+    debugPrint('   Order ID: $orderId');
+    debugPrint('   Signature: $signature');
+    debugPrint('   Plan ID: $planId');
+    debugPrint('   Election Type: $electionType');
+    debugPrint('   Validity Days: $validityDays');
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    debugPrint('   Current User: ${currentUser?.uid ?? 'null'}');
+
+    if (currentUser != null) {
+      debugPrint('🔄 Completing purchase after mock payment with election data...');
+      // Complete the purchase with election data
+      _completePurchaseAfterPaymentWithElection(currentUser.uid, planId, electionType, validityDays);
+    } else {
+      debugPrint('❌ No authenticated user found for completing purchase');
+    }
+
+    debugPrint('🔔 Showing success snackbar');
+    Get.snackbar(
+      'Payment Successful!',
+      'Your payment has been processed successfully.',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
   // Complete purchase after successful payment
   Future<void> _completePurchaseAfterPayment(String userId, String planId) async {
     debugPrint('🔄 COMPLETING PURCHASE AFTER PAYMENT');
@@ -552,12 +875,15 @@ class MonetizationController extends GetxController {
 
       // Create subscription record
       debugPrint('📝 Creating subscription record...');
+      // For legacy method, use default amount (this method is deprecated)
+      final amountPaid = plan.type == 'voter' ? 0 : 0;
+
       final subscription = UserSubscription(
         subscriptionId: '',
         userId: userId,
         planId: planId,
         planType: plan.type,
-        amountPaid: plan.price,
+        amountPaid: amountPaid,
         purchasedAt: DateTime.now(),
         isActive: true,
       );
@@ -592,6 +918,188 @@ class MonetizationController extends GetxController {
       debugPrint('   Error Type: ${e.runtimeType}');
       debugPrint('   Stack Trace: ${StackTrace.current}');
       errorMessage.value = 'Failed to complete purchase: $e';
+    }
+  }
+
+  // Complete purchase after successful payment with election data
+  Future<void> _completePurchaseAfterPaymentWithElection(String userId, String planId,
+                                                        String electionType, int validityDays) async {
+    debugPrint('🔄 COMPLETING PURCHASE AFTER PAYMENT WITH ELECTION DATA');
+    debugPrint('   User ID: $userId');
+    debugPrint('   Plan ID: $planId');
+    debugPrint('   Election Type: $electionType');
+    debugPrint('   Validity Days: $validityDays');
+
+    try {
+      debugPrint('📋 Getting plan details...');
+      final plan = getPlanById(planId);
+      if (plan == null) {
+        debugPrint('❌ Plan not found, aborting purchase completion');
+        return;
+      }
+      debugPrint('✅ Plan details: ${plan.name} (${plan.type})');
+
+      // Calculate amount from pricing structure
+      final amountPaid = plan.pricing[electionType]?[validityDays];
+      if (amountPaid == null) {
+        debugPrint('❌ Invalid pricing, aborting purchase completion');
+        return;
+      }
+
+      // Calculate expiration date
+      final purchasedAt = DateTime.now();
+      final expiresAt = purchasedAt.add(Duration(days: validityDays));
+
+      // Create subscription record with election data
+      debugPrint('📝 Creating subscription record with election data...');
+      final subscription = UserSubscription(
+        subscriptionId: '',
+        userId: userId,
+        planId: planId,
+        planType: plan.type,
+        electionType: electionType, // New field
+        validityDays: validityDays, // New field
+        amountPaid: amountPaid,
+        purchasedAt: purchasedAt,
+        expiresAt: expiresAt, // New field
+        isActive: true,
+      );
+
+      final subscriptionId = await _repository.createSubscription(subscription);
+      debugPrint('✅ Subscription created with ID: $subscriptionId');
+
+      // Update user based on plan type
+      if (plan.type == 'candidate') {
+        debugPrint('👤 Upgrading user to premium candidate...');
+        await _repository.upgradeUserToPremiumCandidate(userId);
+        await _repository.updateUserSubscription(
+          userId,
+          planId,
+          expiresAt, // Now we have an expiration date
+        );
+        debugPrint('✅ User upgraded to premium candidate with expiration');
+
+        // For Platinum plan, create welcome content
+        if (planId == 'platinum_plan') {
+          await _createPlatinumWelcomeContent(userId);
+        }
+      }
+
+      // Reload data
+      debugPrint('🔄 Reloading user data...');
+      await loadUserSubscriptions(userId);
+      await loadAnalyticsData();
+      debugPrint('✅ User data reloaded');
+
+      debugPrint('🎉 PURCHASE COMPLETED SUCCESSFULLY WITH ELECTION DATA');
+      debugPrint('   Plan: $planId');
+      debugPrint('   User: $userId');
+      debugPrint('   Election Type: $electionType');
+      debugPrint('   Validity Days: $validityDays');
+      debugPrint('   Expires: $expiresAt');
+    } catch (e) {
+      debugPrint('❌ ERROR COMPLETING PURCHASE WITH ELECTION DATA: $e');
+      debugPrint('   Error Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: ${StackTrace.current}');
+      errorMessage.value = 'Failed to complete purchase: $e';
+    }
+  }
+
+  // Create welcome content for Platinum users
+  Future<void> _createPlatinumWelcomeContent(String userId) async {
+    try {
+      debugPrint('🏆 Creating Platinum welcome content for user: $userId');
+
+      // Get candidate data
+      final candidateData = await _getCandidateDataForUser(userId);
+      if (candidateData == null) {
+        debugPrint('⚠️ No candidate data found for Platinum welcome content');
+        return;
+      }
+
+      // Create Platinum highlight
+      await HighlightService.createPlatinumHighlight(
+        candidateId: candidateData['candidateId'],
+        districtId: candidateData['districtId'],
+        bodyId: candidateData['bodyId'],
+        wardId: candidateData['wardId'],
+        candidateName: candidateData['name'],
+        party: candidateData['party'] ?? 'Independent',
+        imageUrl: candidateData['photo'],
+      );
+
+      // Create welcome sponsored post
+      await HighlightService.createPushFeedItem(
+        candidateId: candidateData['candidateId'],
+        wardId: candidateData['wardId'],
+        title: '🎉 Platinum Plan Activated!',
+        message: '${candidateData['name']} is now a Platinum member with maximum visibility!',
+        imageUrl: candidateData['photo'],
+      );
+
+      debugPrint('✅ Platinum welcome content created');
+    } catch (e) {
+      debugPrint('❌ Error creating Platinum welcome content: $e');
+    }
+  }
+
+  // Get candidate data for a user
+  Future<Map<String, dynamic>?> _getCandidateDataForUser(String userId) async {
+    try {
+      debugPrint('🔍 Looking for candidate data for user: $userId');
+
+      // Get user document to find candidate location
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists) {
+        debugPrint('❌ User document not found');
+        return null;
+      }
+
+      final userData = userDoc.data()!;
+      final electionAreas = userData['electionAreas'] as List<dynamic>?;
+
+      if (electionAreas == null || electionAreas.isEmpty) {
+        debugPrint('⚠️ No election areas found for user');
+        return null;
+      }
+
+      // Use first election area
+      final primaryArea = electionAreas[0] as Map<String, dynamic>;
+      final bodyId = primaryArea['bodyId'] as String;
+      final wardId = primaryArea['wardId'] as String;
+
+      // Get candidate data from the old structure (for now)
+      final candidateQuery = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .doc(userData['districtId'])
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (candidateQuery.docs.isEmpty) {
+        debugPrint('❌ No candidate found for user');
+        return null;
+      }
+
+      final candidateData = candidateQuery.docs.first.data();
+      candidateData['candidateId'] = candidateQuery.docs.first.id;
+
+      debugPrint('✅ Found candidate: ${candidateData['name']}');
+      return candidateData;
+    } catch (e) {
+      debugPrint('❌ Error getting candidate data: $e');
+      return null;
     }
   }
 

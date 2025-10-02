@@ -31,34 +31,29 @@ class PlanUtils {
       return 'Already Upgraded';
     }
 
-    return plan.price == 0 ? 'Free' : 'Upgrade';
+    // For new pricing system, always show 'Select Plan' for candidate plans
+    if (plan.type == 'candidate') {
+      return 'Select Plan';
+    }
+
+    return 'Upgrade'; // Default for other plan types
   }
 
   /// Check if a button should be disabled
   static bool shouldDisableButton(SubscriptionPlan plan, String? currentPlanId, bool isCandidatePlan) {
     if (!isCandidatePlan) {
-      return plan.price == 0; // No button for free plans
+      return false; // XP plans don't have disable logic
     }
 
     if (currentPlanId == null) return false;
 
-    // Define plan hierarchy (assuming plan names indicate level)
-    final planHierarchy = {
-      'basic': 1,
-      'gold': 2,
-      'platinum': 3,
-    };
-
-    final currentPlanLevel = planHierarchy[currentPlanId.toLowerCase()] ?? 0;
-    final thisPlanLevel = planHierarchy[plan.name.toLowerCase()] ?? 0;
-
-    // Disable if current plan is same or higher level
-    return thisPlanLevel <= currentPlanLevel;
+    // For new pricing system, always allow selection (logic handled in UI)
+    return false;
   }
 
-  /// Sort plans by price in ascending order
+  /// Sort plans by name (since pricing is now election-specific)
   static List<SubscriptionPlan> sortPlansByPrice(List<SubscriptionPlan> plans) {
-    return plans.toList()..sort((a, b) => a.price.compareTo(b.price));
+    return plans.toList()..sort((a, b) => a.name.compareTo(b.name));
   }
 
   /// Filter plans by type

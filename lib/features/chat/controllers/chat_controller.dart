@@ -165,6 +165,7 @@ class ChatController extends GetxController {
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
+        stateId: user.stateId,
         districtId: user.districtId,
         bodyId: regularArea?.bodyId,
         wardId: regularArea?.wardId,
@@ -212,6 +213,7 @@ class ChatController extends GetxController {
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
+        stateId: user.stateId,
         districtId: user.districtId,
         bodyId: regularArea?.bodyId,
         wardId: regularArea?.wardId,
@@ -269,7 +271,7 @@ class ChatController extends GetxController {
   Future<void> sendMessage(String roomId, Message message) async {
     final userId = _cachedUser?.uid ?? message.senderId;
     if (message.type == 'text') {
-      await _messageController.sendTextMessage(roomId, message.text, userId);
+      await _messageController.sendTextMessage(roomId, message.text, userId, existingMessage: message);
     } else if (message.type == 'image') {
       await _messageController.sendImageMessage(
         roomId,
@@ -564,6 +566,7 @@ class ChatController extends GetxController {
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
+        stateId: user.stateId,
         districtId: user.districtId,
         bodyId: regularArea?.bodyId,
         wardId: regularArea?.wardId,

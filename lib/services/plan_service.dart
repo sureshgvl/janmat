@@ -247,4 +247,5 @@ class PlanService {
 
     return plan.dashboardTabs.media.maxMediaItems;
   }
+
 }

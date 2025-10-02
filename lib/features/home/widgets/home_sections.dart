@@ -48,6 +48,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
   Widget build(BuildContext context) {
     // Get location data for highlights
     final locationData = _getLocationData();
+    debugPrint('🏠 HomeBodyContent: Using location - ${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -124,13 +125,14 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
   }
 
   Map<String, String> _getLocationData() {
-    // Priority: Candidate's location data
+    // Priority 1: Candidate's location data (for candidates)
     if (widget.candidateModel?.districtId != null &&
         widget.candidateModel!.districtId.isNotEmpty &&
         widget.candidateModel?.bodyId != null &&
         widget.candidateModel!.bodyId.isNotEmpty &&
         widget.candidateModel?.wardId != null &&
         widget.candidateModel!.wardId.isNotEmpty) {
+      debugPrint('🏠 Home: Using candidate location: ${widget.candidateModel!.districtId}/${widget.candidateModel!.bodyId}/${widget.candidateModel!.wardId}');
       return {
         'districtId': widget.candidateModel!.districtId,
         'bodyId': widget.candidateModel!.bodyId,
@@ -138,13 +140,39 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
       };
     }
 
-    // For voters or when candidate data is incomplete
-    // You can implement location-based detection here
-    // For now, return default Pune location
+    // Priority 2: User's election areas (for voters and candidates)
+    if (widget.userModel?.electionAreas != null &&
+        widget.userModel!.electionAreas.isNotEmpty) {
+      final primaryArea = widget.userModel!.electionAreas.first;
+      final districtId = widget.userModel!.districtId ?? 'pune';
+      debugPrint('🏠 Home: Using user election area: $districtId/${primaryArea.bodyId}/${primaryArea.wardId}');
+      return {
+        'districtId': districtId,
+        'bodyId': primaryArea.bodyId,
+        'wardId': primaryArea.wardId,
+      };
+    }
+
+    // Priority 3: User's direct location fields (legacy support)
+    if (widget.userModel?.districtId != null &&
+        widget.userModel!.districtId!.isNotEmpty) {
+      final districtId = widget.userModel!.districtId!;
+      final bodyId = widget.userModel!.bodyId ?? 'pune_m_cop';
+      final wardId = widget.userModel!.wardId ?? 'ward_17';
+      debugPrint('🏠 Home: Using user direct location: $districtId/$bodyId/$wardId');
+      return {
+        'districtId': districtId,
+        'bodyId': bodyId,
+        'wardId': wardId,
+      };
+    }
+
+    // Fallback: Default Pune location (consistent with voter search)
+    debugPrint('🏠 Home: Using fallback location: pune/pune_m_cop/ward_17');
     return {
-      'districtId': 'Pune',
-      'bodyId': 'pune_city',
-      'wardId': 'ward_pune_1',
+      'districtId': 'pune',
+      'bodyId': 'pune_m_cop',
+      'wardId': 'ward_17',
     };
   }
 

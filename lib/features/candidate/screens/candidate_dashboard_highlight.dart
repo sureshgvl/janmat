@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/candidate_data_controller.dart';
-import '../widgets/edit/candidate_highlight_tab_edit.dart';
+import '../widgets/edit/highlight_tab_edit_refactored.dart';
 import '../widgets/view/highlight_tab_view.dart';
 import '../../../widgets/loading_overlay.dart';
 

@@ -402,7 +402,7 @@ class SubscriptionPlan {
   final String planId;
   final String name;
   final String type;
-  final int price;
+  final Map<String, Map<int, int>> pricing; // electionType -> validityDays -> price
   final bool isActive;
   final DashboardTabs dashboardTabs;
   final ProfileFeatures profileFeatures;
@@ -414,7 +414,7 @@ class SubscriptionPlan {
     required this.planId,
     required this.name,
     required this.type,
-    required this.price,
+    required this.pricing,
     required this.isActive,
     required this.dashboardTabs,
     required this.profileFeatures,
@@ -437,12 +437,26 @@ class SubscriptionPlan {
       updatedAt = DateTime.parse(json['updatedAt']);
     }
 
+    // Handle pricing structure - convert from Firestore format
+    Map<String, Map<int, int>> pricing = {};
+    if (json['pricing'] != null) {
+      final pricingJson = json['pricing'] as Map<String, dynamic>;
+      pricingJson.forEach((electionType, validityMap) {
+        if (validityMap is Map) {
+          pricing[electionType] = {};
+          validityMap.forEach((days, price) {
+            pricing[electionType]![int.parse(days.toString())] = price as int;
+          });
+        }
+      });
+    }
+
     return SubscriptionPlan(
       id: json['id'] ?? '',
       planId: json['planId'] ?? '',
       name: json['name'] ?? '',
       type: json['type'] ?? '',
-      price: json['price'] ?? 0,
+      pricing: pricing,
       isActive: json['isActive'] ?? true,
       dashboardTabs: DashboardTabs.fromJson(json['dashboardTabs'] ?? {}),
       profileFeatures: ProfileFeatures.fromJson(json['profileFeatures'] ?? {}),
@@ -452,12 +466,18 @@ class SubscriptionPlan {
   }
 
   Map<String, dynamic> toJson() {
+    // Convert pricing to Firestore-compatible format
+    Map<String, dynamic> pricingJson = {};
+    pricing.forEach((electionType, validityMap) {
+      pricingJson[electionType] = validityMap.map((days, price) => MapEntry(days.toString(), price));
+    });
+
     return {
       'id': id,
       'planId': planId,
       'name': name,
       'type': type,
-      'price': price,
+      'pricing': pricingJson,
       'isActive': isActive,
       'dashboardTabs': dashboardTabs.toJson(),
       'profileFeatures': profileFeatures.toJson(),
@@ -471,7 +491,7 @@ class SubscriptionPlan {
     String? planId,
     String? name,
     String? type,
-    int? price,
+    Map<String, Map<int, int>>? pricing,
     bool? isActive,
     DashboardTabs? dashboardTabs,
     ProfileFeatures? profileFeatures,
@@ -483,7 +503,7 @@ class SubscriptionPlan {
       planId: planId ?? this.planId,
       name: name ?? this.name,
       type: type ?? this.type,
-      price: price ?? this.price,
+      pricing: pricing ?? this.pricing,
       isActive: isActive ?? this.isActive,
       dashboardTabs: dashboardTabs ?? this.dashboardTabs,
       profileFeatures: profileFeatures ?? this.profileFeatures,
@@ -498,9 +518,11 @@ class UserSubscription {
   final String userId;
   final String planId;
   final String planType; // 'candidate' or 'voter'
+  final String? electionType; // election type for candidate plans
+  final int? validityDays; // validity period in days
   final int amountPaid;
   final DateTime purchasedAt;
-  final DateTime? expiresAt; // for recurring subscriptions
+  final DateTime? expiresAt; // calculated from validityDays
   final bool isActive;
   final Map<String, dynamic>? metadata; // additional data
 
@@ -509,6 +531,8 @@ class UserSubscription {
     required this.userId,
     required this.planId,
     required this.planType,
+    this.electionType,
+    this.validityDays,
     required this.amountPaid,
     required this.purchasedAt,
     this.expiresAt,
@@ -538,6 +562,8 @@ class UserSubscription {
       userId: json['userId'] ?? '',
       planId: json['planId'] ?? '',
       planType: json['planType'] ?? '',
+      electionType: json['electionType'],
+      validityDays: json['validityDays'],
       amountPaid: json['amountPaid'] ?? 0,
       purchasedAt: purchasedAt,
       expiresAt: expiresAt,
@@ -552,6 +578,8 @@ class UserSubscription {
       'userId': userId,
       'planId': planId,
       'planType': planType,
+      'electionType': electionType,
+      'validityDays': validityDays,
       'amountPaid': amountPaid,
       'purchasedAt': purchasedAt.toIso8601String(),
       'expiresAt': expiresAt?.toIso8601String(),

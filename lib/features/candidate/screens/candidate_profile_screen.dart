@@ -498,24 +498,26 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   color: Colors.white,
-                  child: Column(
-                    children: [
-                      ProfileHeaderWidget(
-                        candidate: candidate!,
-                        hasSponsoredBanner: _hasSponsoredBanner,
-                        hasPremiumBadge: _hasPremiumBadge,
-                        isUploadingPhoto: _isUploadingPhoto,
-                        getCurrentLocale: _getCurrentLocale,
-                        wardName: _wardName,
-                        districtName: _districtName,
-                        bodyName: _bodyName,
-                      ),
-                      FollowStatsWidget(
-                        candidate: candidate!,
-                        currentUserId: currentUserId,
-                        formatNumber: _formatNumber,
-                      ),
-                    ],
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        ProfileHeaderWidget(
+                          candidate: candidate!,
+                          hasSponsoredBanner: _hasSponsoredBanner,
+                          hasPremiumBadge: _hasPremiumBadge,
+                          isUploadingPhoto: _isUploadingPhoto,
+                          getCurrentLocale: _getCurrentLocale,
+                          wardName: _wardName,
+                          districtName: _districtName,
+                          bodyName: _bodyName,
+                        ),
+                        FollowStatsWidget(
+                          candidate: candidate!,
+                          currentUserId: currentUserId,
+                          formatNumber: _formatNumber,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -140,6 +140,7 @@ class ChatRepository {
   Future<List<ChatRoom>> getChatRoomsForUser(
     String userId,
     String userRole, {
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -148,13 +149,13 @@ class ChatRepository {
     // BREAKPOINT REPO-1: Start of getChatRoomsForUser
     debugPrint('🔍 BREAKPOINT REPO-1: getChatRoomsForUser called');
     debugPrint(
-      '🔍 BREAKPOINT REPO-1: User ID: $userId, Role: $userRole, District: $districtId, Body: $bodyId, Ward: $wardId',
+      '🔍 BREAKPOINT REPO-1: User ID: $userId, Role: $userRole, State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId',
     );
 
     // Create cache key based on user and parameters
     final cacheKey = userRole == 'voter'
-        ? '${userId}_${userRole}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
-        : '${userId}_${userRole}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
+        ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
+        : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
 
     // BREAKPOINT REPO-2: Cache check
     debugPrint('🔍 BREAKPOINT REPO-2: Cache key: $cacheKey');
@@ -175,17 +176,18 @@ class ChatRepository {
     try {
       // BREAKPOINT REPO-3: Location data check
       debugPrint(
-        '🔍 BREAKPOINT REPO-3: Initial location data - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+        '🔍 BREAKPOINT REPO-3: Initial location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
       );
 
       // If location data is not provided, try to get it from user profile
-      if (districtId == null || bodyId == null || wardId == null) {
+      if (stateId == null || districtId == null || bodyId == null || wardId == null) {
         debugPrint(
           '🔍 BREAKPOINT REPO-4: Fetching location data from user profile',
         );
         final userDoc = await _firestore.collection('users').doc(userId).get();
         if (userDoc.exists) {
           final userData = userDoc.data()!;
+          stateId = userData['stateId'];
           districtId =
               userData['districtId'] ??
               userData['cityId']; // Backward compatibility
@@ -193,7 +195,7 @@ class ChatRepository {
           wardId = userData['wardId'];
           area = userData['area'];
           debugPrint(
-            '🔍 BREAKPOINT REPO-4: Updated location data - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+            '🔍 BREAKPOINT REPO-4: Updated location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
           );
         } else {
           debugPrint('🔍 BREAKPOINT REPO-4: User document not found');
@@ -259,22 +261,24 @@ class ChatRepository {
           // BREAKPOINT REPO-8: Candidate filtering
           debugPrint('🔍 BREAKPOINT REPO-8: Filtering rooms for candidate');
           debugPrint(
-            '🔍 BREAKPOINT REPO-8: User location - District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+            '🔍 BREAKPOINT REPO-8: User location - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
           );
 
           allRooms = allRooms.where((room) {
             final isOwnRoom = room.createdBy == userId;
             final isWardRoom =
+                stateId != null &&
                 districtId != null &&
                 bodyId != null &&
                 wardId != null &&
-                room.roomId == 'ward_${districtId}_${bodyId}_$wardId';
+                room.roomId == 'ward_${stateId}_${districtId}_${bodyId}_$wardId';
             final isAreaRoom =
+                stateId != null &&
                 districtId != null &&
                 bodyId != null &&
                 wardId != null &&
                 room.roomId.startsWith(
-                  'area_${districtId}_${bodyId}_${wardId}_',
+                  'area_${stateId}_${districtId}_${bodyId}_${wardId}_',
                 );
             final isCandidateRoom =
                 room.roomId.startsWith('candidate_') &&
@@ -301,10 +305,10 @@ class ChatRepository {
         } else {
           // BREAKPOINT REPO-9: Voter filtering
           debugPrint('🔍 BREAKPOINT REPO-9: Filtering rooms for voter');
-          if (districtId != null && bodyId != null && wardId != null) {
-            final wardRoomId = 'ward_${districtId}_${bodyId}_$wardId';
+          if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+            final wardRoomId = 'ward_${stateId}_${districtId}_${bodyId}_$wardId';
             final areaRoomId = area != null
-                ? 'area_${districtId}_${bodyId}_${wardId}_$area'
+                ? 'area_${stateId}_${districtId}_${bodyId}_${wardId}_$area'
                 : null;
             debugPrint(
               '🔍 BREAKPOINT REPO-9: Looking for ward room: $wardRoomId',
@@ -514,6 +518,7 @@ class ChatRepository {
   Future<Map<String, dynamic>> initializeAppData(
     String userId,
     String userRole, {
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -528,6 +533,7 @@ class ChatRepository {
         getChatRoomsForUser(
           userId,
           userRole,
+          stateId: stateId,
           districtId: districtId,
           bodyId: bodyId,
           wardId: wardId,
@@ -1616,6 +1622,7 @@ class ChatRepository {
   Future<int> getUnreadMessageCount(
     String userId, {
     String? userRole,
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -1624,6 +1631,7 @@ class ChatRepository {
     try {
       // Get user's role and location if not provided
       if (userRole == null ||
+          stateId == null ||
           districtId == null ||
           wardId == null ||
           area == null) {
@@ -1631,6 +1639,7 @@ class ChatRepository {
         if (userDoc.exists) {
           final userData = userDoc.data()!;
           userRole ??= userData['role'] ?? 'voter';
+          stateId ??= userData['stateId'];
           districtId ??=
               userData['districtId'] ??
               userData['cityId']; // Backward compatibility
@@ -1644,6 +1653,7 @@ class ChatRepository {
       final rooms = await getChatRoomsForUser(
         userId,
         userRole ?? 'voter',
+        stateId: stateId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,

@@ -12,6 +12,7 @@ import 'candidate_dashboard_contact.dart';
 import 'candidate_dashboard_media.dart';
 import 'candidate_dashboard_events.dart';
 import 'candidate_dashboard_analytics.dart';
+import 'candidate_dashboard_highlight.dart';
 
 class CandidateDashboardScreen extends StatefulWidget {
   const CandidateDashboardScreen({super.key});
@@ -33,6 +34,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   bool canUploadMedia = false;
   bool canManageEvents = false;
   bool canViewAnalytics = false;
+  bool canManageHighlights = false;
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         canUploadMedia = plan.dashboardTabs.media.enabled;
         canManageEvents = plan.dashboardTabs.events.enabled;
         canViewAnalytics = plan.dashboardTabs.analytics.enabled;
+        canManageHighlights = plan.profileFeatures.highlightCarousel || plan.profileFeatures.multipleHighlights == true;
       } else {
         // Free plan defaults
         canEditManifesto = true; // Basic manifesto access
@@ -73,6 +76,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         canUploadMedia = false;
         canManageEvents = false;
         canViewAnalytics = false;
+        canManageHighlights = false;
       }
 
       // Update tab controller with correct length after loading features
@@ -114,6 +118,14 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
       tabs.add({
         'title': CandidateLocalizations.of(context)!.media,
         'widget': const CandidateDashboardMedia(),
+      });
+    }
+
+    // Highlights - available for Gold and Platinum plans
+    if (canManageHighlights) {
+      tabs.add({
+        'title': 'Highlights', // TODO: Add to localizations
+        'widget': const CandidateDashboardHighlight(),
       });
     }
 

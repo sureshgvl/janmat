@@ -6,11 +6,17 @@ import '../../../models/plan_model.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/plan_comparison_table.dart';
 import '../widgets/plan_card.dart';
+import '../widgets/plan_card_with_validity_options.dart';
+import '../widgets/election_type_banner.dart';
+import '../widgets/candidate_plans_section.dart';
 import '../widgets/user_status_section.dart';
 import '../widgets/xp_balance_section.dart';
 import '../widgets/xp_usage_info.dart';
 import '../utils/plan_utils.dart';
+import '../utils/purchase_handlers.dart';
+import '../utils/monetization_utils.dart';
 import '../../common/loading_overlay.dart';
+import '../../../utils/migrate_candidates_to_states.dart';
 
 class MonetizationScreen extends StatefulWidget {
   const MonetizationScreen({super.key});
@@ -23,6 +29,8 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     with SingleTickerProviderStateMixin {
   final MonetizationController _controller = Get.put(MonetizationController());
   late TabController _tabController;
+  String? _userElectionType;
+  late PurchaseHandlers _purchaseHandlers;
 
   @override
   void initState() {
@@ -30,6 +38,15 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadUserData();
+  }
+
+  void _initializePurchaseHandlers() {
+    _purchaseHandlers = PurchaseHandlers(
+      controller: _controller,
+      userElectionType: _userElectionType,
+      formatElectionType: MonetizationUtils.formatElectionType,
+      countEnabledFeatures: MonetizationUtils.countEnabledFeatures,
+    );
   }
 
   @override
@@ -55,6 +72,14 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         debugPrint('👤 User found: ${currentUser.uid}');
         await _controller.loadUserXPBalance(currentUser.uid);
         await _controller.loadUserStatusData();
+
+        // Get user's election type for plan filtering
+        _userElectionType = await _controller.getUserElectionType(currentUser.uid);
+        debugPrint('🏛️ User election type: $_userElectionType');
+
+        // Initialize purchase handlers with user data
+        _initializePurchaseHandlers();
+
         debugPrint('✅ User data loaded successfully');
       } else {
         debugPrint('❌ No authenticated user found in monetization screen');
@@ -87,6 +112,11 @@ class _MonetizationScreenState extends State<MonetizationScreen>
             tooltip: 'Refresh Plans (Hot Reload Fix)',
             onPressed: _refreshPlans,
           ),
+          IconButton(
+            icon: const Icon(Icons.move_up),
+            tooltip: 'Migrate Candidates to States',
+            onPressed: _migrateCandidates,
+          ),
         ],
       ),
       body: Obx(() {
@@ -95,7 +125,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
           child: TabBarView(
             controller: _tabController,
             children: [
-              Obx(() => _controller.showAllPlans ? _buildPlansComparison() : _buildVoterPlans()),
+              Obx(() => _controller.showAllPlans ? _buildPlansComparison() : _buildCandidatePlans()),
               _buildUserStatus(),
             ],
           ),
@@ -122,107 +152,88 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     );
   }
 
-  Widget _buildVoterPlans() {
+  Widget _buildCandidatePlans() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // XP Balance Section
-          XPBalanceSection(controller: _controller),
+          // Election Type Banner
+          if (_userElectionType != null) ...[
+            ElectionTypeBanner(
+              electionType: _userElectionType!,
+              formatElectionType: MonetizationUtils.formatElectionType,
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Section Header - Compact
+          const Text(
+            'Premium Plans',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 6),
+
+          const Text(
+            'Select a validity period to unlock premium features',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Candidate Plans Section
+          CandidatePlansSection(
+            controller: _controller,
+            userElectionType: _userElectionType,
+            onPurchaseWithValidity: (plan, validityDays) =>
+              _purchaseHandlers.handlePurchaseWithValidity(context, plan, validityDays),
+            onPurchase: (plan) =>
+              _purchaseHandlers.handlePurchase(context, plan),
+          ),
 
           const SizedBox(height: 24),
 
-          // XP Plans Section
-          Text(
-            'Buy XP Points',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          // XP Plans Section (for voters who might also want XP)
+          if (_controller.showOnlyXPPlans) ...[
+            const Divider(),
+            const SizedBox(height: 16),
+            const Text(
+              'XP Plans',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            XPBalanceSection(controller: _controller),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 16),
+            Obx(() {
+              final voterPlans = PlanUtils.filterPlansByType(_controller.plans, 'voter');
 
-          Obx(() {
-            final voterPlans = PlanUtils.filterPlansByType(_controller.plans, 'voter');
+              if (voterPlans.isEmpty) {
+                return const Center(
+                  child: Text('No XP plans available at the moment'),
+                );
+              }
 
-            if (voterPlans.isEmpty) {
-              return const Center(
-                child: Text('No XP plans available at the moment'),
+              return Column(
+                children: voterPlans.map((plan) => PlanCard(
+                  plan: plan,
+                  controller: _controller,
+                  isCandidatePlan: false,
+                  onPurchase: () => _purchaseHandlers.handlePurchase(context, plan),
+                )).toList(),
               );
-            }
+            }),
 
-            return Column(
-              children: voterPlans.map((plan) => PlanCard(
-                plan: plan,
-                controller: _controller,
-                isCandidatePlan: false,
-                onPurchase: () => _handlePurchase(plan),
-              )).toList(),
-            );
-          }),
-
-          const SizedBox(height: 24),
-
-          // XP Usage Info
-          XPUsageInfo(),
+            const SizedBox(height: 16),
+            XPUsageInfo(),
+          ],
         ],
       ),
     );
   }
 
-  void _handlePurchase(SubscriptionPlan plan) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      Get.snackbar(
-        'Error',
-        'Please login to make a purchase',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Purchase ${plan.name}'),
-        content: Text(
-          'Are you sure you want to purchase ${plan.name} for ₹${plan.price}?\n\n'
-          '${_countEnabledFeatures(plan)} premium features will be unlocked.\n\n'
-          'You will be redirected to our secure payment gateway.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Proceed to Payment'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      // Start the payment process with Razorpay
-      debugPrint('💳 Starting payment process for plan: ${plan.planId}');
-      final success = await _controller.processPayment(plan.planId, plan.price);
-
-      if (success) {
-        // Payment initiated successfully - result will be handled by callbacks
-        debugPrint('✅ Payment process initiated successfully');
-      } else {
-        Get.snackbar(
-          'Payment Error',
-          _controller.errorMessage.value.isNotEmpty
-              ? _controller.errorMessage.value
-              : 'Failed to initiate payment. Please try again.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
-    }
-  }
+  // Purchase handlers are now in PurchaseHandlers class
 
   // Temporary method to initialize default plans (remove after first use)
   void _initializeDefaultPlans() async {
@@ -274,29 +285,33 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     }
   }
 
-  int _countEnabledFeatures(SubscriptionPlan plan) {
-    int count = 0;
+  // Method to migrate candidates to new state-based structure
+  void _migrateCandidates() async {
+    debugPrint('🔄 MIGRATING CANDIDATES TO STATE-BASED STRUCTURE...');
+    debugPrint('   User clicked migrate button - moving candidates from old structure');
 
-    // Dashboard Tabs
-    if (plan.dashboardTabs.basicInfo.enabled) count++;
-    if (plan.dashboardTabs.manifesto.enabled) count++;
-    if (plan.dashboardTabs.achievements.enabled) count++;
-    if (plan.dashboardTabs.media.enabled) count++;
-    if (plan.dashboardTabs.contact.enabled) count++;
-    if (plan.dashboardTabs.events.enabled) count++;
-    if (plan.dashboardTabs.analytics.enabled) count++;
-
-    // Profile Features
-    if (plan.profileFeatures.premiumBadge) count++;
-    if (plan.profileFeatures.sponsoredBanner) count++;
-    if (plan.profileFeatures.highlightCarousel) count++;
-    if (plan.profileFeatures.pushNotifications) count++;
-    if (plan.profileFeatures.multipleHighlights == true) count++;
-    if (plan.profileFeatures.adminSupport == true) count++;
-    if (plan.profileFeatures.customBranding == true) count++;
-
-    return count;
+    try {
+      await CandidateMigrationManager.migrateCandidatesToStates();
+      await CandidateMigrationManager.verifyMigration();
+      debugPrint('✅ MIGRATION COMPLETED SUCCESSFULLY');
+      Get.snackbar(
+        'Success',
+        'Candidates migrated to new structure!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      debugPrint('❌ MIGRATION FAILED: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to migrate candidates: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
+
+  // Utility methods are now in MonetizationUtils class
 
   Widget _buildUserStatus() {
     return SingleChildScrollView(

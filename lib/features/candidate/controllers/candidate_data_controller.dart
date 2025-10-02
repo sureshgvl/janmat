@@ -64,6 +64,13 @@ class CandidateDataController extends GetxController {
 
       final userData = userDoc.data()!;
       final profileCompleted = userData['profileCompleted'] ?? false;
+      final userRole = userData['role'] ?? 'voter';
+
+      // Only fetch candidate data for candidates, not voters
+      if (userRole != 'candidate') {
+        debugPrint('⏭️ User is not a candidate (role: $userRole), skipping candidate data fetch');
+        return;
+      }
 
       if (!profileCompleted) {
         debugPrint('⏭️ Profile not completed, skipping candidate data fetch');
@@ -210,7 +217,64 @@ class CandidateDataController extends GetxController {
         updatedExtra = currentExtra.copyWith(events: value);
         break;
       case 'highlight':
-        updatedExtra = currentExtra.copyWith(highlight: value);
+        // Handle both Map and HighlightData inputs
+        HighlightData? highlightData;
+        if (value is Map<String, dynamic>) {
+          // Check if this is HighlightConfig data (has bannerStyle) or HighlightData (has title/message)
+          if (value.containsKey('bannerStyle') || value.containsKey('callToAction')) {
+            // This is HighlightConfig data - map all fields to HighlightData
+            final currentHighlight = currentExtra.highlight;
+            highlightData = HighlightData(
+              enabled: value['enabled'] ?? currentHighlight?.enabled ?? false,
+              title: value['callToAction'] ?? currentHighlight?.title ?? 'View Profile',
+              message: value['customMessage'] ?? currentHighlight?.message ?? '',
+              imageUrl: currentHighlight?.imageUrl, // Keep existing image
+              priority: value['priorityLevel'] ?? currentHighlight?.priority ?? 'normal',
+              expiresAt: currentHighlight?.expiresAt,
+              // Banner config fields
+              bannerStyle: value['bannerStyle'] ?? currentHighlight?.bannerStyle ?? 'premium',
+              callToAction: value['callToAction'] ?? currentHighlight?.callToAction ?? 'View Profile',
+              priorityLevel: value['priorityLevel'] ?? currentHighlight?.priorityLevel ?? 'normal',
+              targetLocations: value['targetLocations'] != null
+                  ? List<String>.from(value['targetLocations'])
+                  : currentHighlight?.targetLocations ?? [],
+              showAnalytics: value['showAnalytics'] ?? currentHighlight?.showAnalytics ?? false,
+              customMessage: value['customMessage'] ?? currentHighlight?.customMessage ?? '',
+            );
+            // Track the full config for field-level updates
+            trackExtraInfoFieldChange(field, highlightData.toJson());
+
+            // If this is banner config data and enabled, sync with highlights collection
+            if (highlightData.enabled && value.containsKey('bannerStyle')) {
+              _syncBannerToHighlightsCollection(highlightData, value);
+            }
+          } else {
+            // This is regular HighlightData
+            final currentHighlight = currentExtra.highlight;
+            highlightData = HighlightData(
+              enabled: value['enabled'] ?? currentHighlight?.enabled ?? false,
+              title: value['title'] ?? currentHighlight?.title,
+              message: value['message'] ?? currentHighlight?.message,
+              imageUrl: value['image_url'] ?? currentHighlight?.imageUrl,
+              priority: value['priority'] ?? currentHighlight?.priority,
+              expiresAt: value['expires_at'] ?? currentHighlight?.expiresAt,
+              // Keep existing banner config if present
+              bannerStyle: currentHighlight?.bannerStyle,
+              callToAction: currentHighlight?.callToAction,
+              priorityLevel: currentHighlight?.priorityLevel,
+              targetLocations: currentHighlight?.targetLocations,
+              showAnalytics: currentHighlight?.showAnalytics,
+              customMessage: currentHighlight?.customMessage,
+            );
+            // Track the JSON version for field-level updates
+            trackExtraInfoFieldChange(field, highlightData.toJson());
+          }
+        } else if (value is HighlightData?) {
+          highlightData = value;
+          // Track the JSON version for field-level updates
+          trackExtraInfoFieldChange(field, highlightData?.toJson());
+        }
+        updatedExtra = currentExtra.copyWith(highlight: highlightData);
         break;
       case 'analytics':
         updatedExtra = currentExtra.copyWith(analytics: value);
@@ -589,6 +653,113 @@ class CandidateDataController extends GetxController {
   void updateEventsCache(List<EventData> updatedEvents) {
     events.assignAll(updatedEvents);
     eventsLastFetched.value = DateTime.now();
+  }
+
+  /// Sync banner configuration to highlights collection for home screen display
+  Future<void> _syncBannerToHighlightsCollection(HighlightData highlightData, Map<String, dynamic> config) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || candidateData.value == null) return;
+
+      final candidate = candidateData.value!;
+      final districtId = candidate.districtId ?? 'unknown';
+      final bodyId = candidate.bodyId ?? 'unknown';
+      final wardId = candidate.wardId ?? 'unknown';
+
+      debugPrint('🏷️ Syncing banner to highlights collection for ${candidate.name}');
+
+      // Check if highlight already exists
+      final existingHighlights = await FirebaseFirestore.instance
+          .collection('highlights')
+          .where('candidateId', isEqualTo: user.uid)
+          .where('locationKey', isEqualTo: '${districtId}_${bodyId}_$wardId')
+          .where('placement', arrayContains: 'top_banner')
+          .limit(1)
+          .get();
+
+      String? highlightId;
+
+      if (existingHighlights.docs.isNotEmpty) {
+        // Update existing highlight
+        highlightId = existingHighlights.docs.first.id;
+        debugPrint('🔄 Updating existing highlight: $highlightId');
+
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .update({
+              'bannerStyle': config['bannerStyle'] ?? 'premium',
+              'callToAction': config['callToAction'] ?? 'View Profile',
+              'priorityLevel': config['priorityLevel'] ?? 'normal',
+              'customMessage': config['customMessage'] ?? '',
+              'showAnalytics': config['showAnalytics'] ?? false,
+              'active': highlightData.enabled,
+              'priority': _getPriorityValue(config['priorityLevel'] ?? 'normal'),
+              'exclusive': (config['priorityLevel'] ?? 'normal') == 'urgent',
+              'rotation': (config['priorityLevel'] ?? 'normal') != 'urgent',
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+      } else if (highlightData.enabled) {
+        // Create new highlight
+        highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
+        debugPrint('➕ Creating new highlight: $highlightId');
+
+        final highlight = {
+          'highlightId': highlightId,
+          'candidateId': user.uid,
+          'wardId': wardId,
+          'districtId': districtId,
+          'bodyId': bodyId,
+          'locationKey': '${districtId}_${bodyId}_$wardId',
+          'package': 'platinum',
+          'placement': ['carousel', 'top_banner'],
+          'priority': _getPriorityValue(config['priorityLevel'] ?? 'normal'),
+          'startDate': FieldValue.serverTimestamp(),
+          'endDate': Timestamp.fromDate(DateTime.now().add(const Duration(days: 365))),
+          'active': true,
+          'exclusive': (config['priorityLevel'] ?? 'normal') == 'urgent',
+          'rotation': (config['priorityLevel'] ?? 'normal') != 'urgent',
+          'views': 0,
+          'clicks': 0,
+          'imageUrl': candidate.photo,
+          'candidateName': candidate.name ?? 'Candidate',
+          'party': candidate.party ?? 'Party',
+          'createdAt': FieldValue.serverTimestamp(),
+          // Banner configuration
+          'bannerStyle': config['bannerStyle'] ?? 'premium',
+          'callToAction': config['callToAction'] ?? 'View Profile',
+          'priorityLevel': config['priorityLevel'] ?? 'normal',
+          'customMessage': config['customMessage'] ?? '',
+          'showAnalytics': config['showAnalytics'] ?? false,
+        };
+
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .set(highlight);
+      }
+
+      if (highlightId != null) {
+        debugPrint('✅ Banner synced to highlights collection: $highlightId');
+        debugPrint('   Style: ${config['bannerStyle']}, Priority: ${config['priorityLevel']}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error syncing banner to highlights collection: $e');
+    }
+  }
+
+  // Helper method to convert priority level to numeric value
+  int _getPriorityValue(String priorityLevel) {
+    switch (priorityLevel) {
+      case 'normal':
+        return 5;
+      case 'high':
+        return 8;
+      case 'urgent':
+        return 10;
+      default:
+        return 5;
+    }
   }
 
   /// Debug method: Log all candidate data in the system

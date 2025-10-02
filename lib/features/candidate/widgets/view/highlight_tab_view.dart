@@ -68,7 +68,7 @@ class _HighlightTabViewState extends State<HighlightTabView>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Highlights',
+                            'Banner Configuration',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -77,9 +77,9 @@ class _HighlightTabViewState extends State<HighlightTabView>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            highlight?.enabled == true
-                                ? 'Active highlight message'
-                                : 'No active highlights',
+                            highlight != null && highlight.enabled == true
+                                ? 'Active banner configuration'
+                                : 'No banner configuration',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
@@ -96,8 +96,8 @@ class _HighlightTabViewState extends State<HighlightTabView>
 
           const SizedBox(height: 20),
 
-          // Highlight Content
-          if (highlight != null && highlight.enabled) ...[
+          // Banner Configuration Content
+          if (highlight != null && highlight.enabled == true) ...[
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -115,169 +115,81 @@ class _HighlightTabViewState extends State<HighlightTabView>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Priority Badge
-                  if (highlight.priority != null) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(highlight.priority!).shade50,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _getPriorityColor(
-                            highlight.priority!,
-                          ).shade200,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getPriorityIcon(highlight.priority!),
-                            size: 16,
-                            color: _getPriorityColor(
-                              highlight.priority!,
-                            ).shade600,
+                  // Banner Configuration Summary
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Current Banner Settings',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1f2937),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            highlight.priority!.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: _getPriorityColor(
-                                highlight.priority!,
-                              ).shade800,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Display banner configuration as key-value pairs
+                        _buildConfigItem('Banner Style', _getBannerStyleDisplay(highlight)),
+                        _buildConfigItem('Call to Action', _getCallToActionDisplay(highlight)),
+                        _buildConfigItem('Priority Level', _getPriorityDisplay(highlight)),
+                        if (highlight.message != null && highlight.message!.isNotEmpty)
+                          _buildConfigItem('Custom Message', highlight.message!),
+                        _buildConfigItem('Analytics', _getAnalyticsDisplay(highlight)),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Preview Section
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Banner Preview',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1f2937),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.grey.shade100,
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Banner preview will appear here\nwhen viewed on home screen',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Title
-                  if (highlight.title != null &&
-                      highlight.title!.isNotEmpty) ...[
-                    Text(
-                      highlight.title!,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1f2937),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Message
-                  if (highlight.message != null &&
-                      highlight.message!.isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Text(
-                        highlight.message!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          height: 1.5,
-                          color: Color(0xFF1f2937),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Image
-                  if (highlight.imageUrl != null &&
-                      highlight.imageUrl!.isNotEmpty) ...[
-                    Container(
-                      width: double.infinity,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          highlight.imageUrl!,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: Colors.grey.shade100,
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey.shade100,
-                              child: const Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.broken_image,
-                                      color: Colors.grey,
-                                      size: 48,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Failed to load image',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Expiration Info
-                  if (highlight.expiresAt != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.timer,
-                            size: 16,
-                            color: Colors.orange.shade600,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Expires: ${_formatDate(highlight.expiresAt!)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.orange.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -379,5 +291,52 @@ class _HighlightTabViewState extends State<HighlightTabView>
     } catch (e) {
       return dateString;
     }
+  }
+
+  Widget _buildConfigItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1f2937),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getBannerStyleDisplay(HighlightData highlight) {
+    return highlight.bannerStyle ?? 'Premium';
+  }
+
+  String _getCallToActionDisplay(HighlightData highlight) {
+    return highlight.callToAction ?? highlight.title ?? 'View Profile';
+  }
+
+  String _getPriorityDisplay(HighlightData highlight) {
+    return highlight.priorityLevel ?? highlight.priority ?? 'Medium';
+  }
+
+  String _getAnalyticsDisplay(HighlightData highlight) {
+    return highlight.showAnalytics == true ? 'Enabled' : 'Disabled';
   }
 }

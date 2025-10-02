@@ -347,6 +347,16 @@ class LocalDatabaseService {
     return null;
   }
 
+  Future<List<Body>> getBodiesForDistrict(String districtId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      bodiesTable,
+      where: 'districtId = ?',
+      whereArgs: [districtId],
+    );
+    return maps.map((map) => Body.fromJson(map)).toList();
+  }
+
   Future<void> insertWards(List<Ward> wards) async {
     debugPrint('🏛️ [SQLite] Starting to insert ${wards.length} wards into local database');
     final db = await database;

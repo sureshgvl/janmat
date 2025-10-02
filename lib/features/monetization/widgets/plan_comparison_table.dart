@@ -1,7 +1,10 @@
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
 import '../controllers/monetization_controller.dart';
+import '../screens/plan_selection_screen.dart';
+import 'plan_card_with_validity_options.dart';
 
 class PlanComparisonTable extends StatelessWidget {
   final MonetizationController controller;
@@ -17,7 +20,7 @@ class PlanComparisonTable extends StatelessWidget {
       final candidatePlans = controller.plans
           .where((plan) => plan.type == 'candidate' && plan.isActive)
           .toList()
-        ..sort((a, b) => a.price.compareTo(b.price));
+        ..sort((a, b) => a.name.compareTo(b.name)); // Sort by name instead of price
 
       if (candidatePlans.isEmpty) {
         return _buildEmptyState();
@@ -111,27 +114,21 @@ class PlanComparisonTable extends StatelessWidget {
 
         const SizedBox(height: 24),
 
-        // Plans Grid
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallScreen = constraints.maxWidth < 600;
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isSmallScreen ? 1 : (plans.length > 3 ? 3 : plans.length),
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: isSmallScreen ? 0.8 : 0.9,
-              ),
-              itemCount: plans.length,
-              itemBuilder: (context, index) {
-                final plan = plans[index];
-                final isCurrentPlan = currentPlanId == plan.planId;
-                final isPopular = index == 1; // Middle plan is popular
+        // Plans List - Better for mobile scrolling
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: plans.length,
+          itemBuilder: (context, index) {
+            final plan = plans[index];
+            final isCurrentPlan = currentPlanId == plan.planId;
+            final isPopular = index == 1; // First plan after free gets popular badge
 
-                return _buildPlanCard(context, plan, isCurrentPlan, isPopular);
-              },
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index < plans.length - 1 ? 16 : 0, // No bottom padding for last item
+              ),
+              child: _buildPlanCard(context, plan, isCurrentPlan, isPopular),
             );
           },
         ),
@@ -148,29 +145,31 @@ class PlanComparisonTable extends StatelessWidget {
     final canUpgrade = _canUpgradeToPlan(plan, controller.currentUserModel.value?.subscriptionPlanId);
 
     return Container(
+      width: double.infinity, // Full width for list view
+      constraints: const BoxConstraints(minHeight: 160), // Minimum height for consistency
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (isCurrentPlan ? Colors.blue : (isPopular ? Colors.orange : Colors.grey.shade300)).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: (isCurrentPlan ? Colors.blue : (isPopular ? Colors.orange : Colors.grey.shade300)).withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(
             color: isCurrentPlan ? Colors.blue : (isPopular ? Colors.orange : Colors.grey.shade200),
             width: isCurrentPlan ? 2 : (isPopular ? 2 : 1),
           ),
         ),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             gradient: isCurrentPlan
                 ? LinearGradient(
                     colors: [Colors.blue.shade50, Colors.white],
@@ -179,151 +178,175 @@ class PlanComparisonTable extends StatelessWidget {
                   )
                 : null,
           ),
-          child: Column(
-            children: [
-              // Plan Header
-              if (isPopular) ...[
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Plan Name Section - Centered with grey background
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'MOST POPULAR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              if (isCurrentPlan) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'CURRENT PLAN',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Plan Name
-              Text(
-                plan.name.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isCurrentPlan ? Colors.blue.shade800 : Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Price
-              Text(
-                '₹${plan.price}',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: isCurrentPlan ? Colors.blue.shade600 : Colors.green.shade600,
-                ),
-              ),
-
-              // XP Amount removed for candidate plans
-
-              const SizedBox(height: 20),
-
-              // Features Preview
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      'Key Features',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade700,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Centered Plan Name
+                      Text(
+                        plan.name,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isCurrentPlan ? Colors.blue.shade800 : Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    ..._getKeyFeatures(plan).take(3).map((feature) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Icon(
-                            feature['enabled'] as bool ? Icons.check_circle : Icons.cancel,
-                            color: feature['enabled'] as bool ? Colors.green : Colors.red,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
+
+                      // Badge positioned at top-right
+                      if (isPopular || isCurrentPlan)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isPopular ? Colors.orange : Colors.blue,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Text(
-                              feature['name'] as String,
+                              isPopular ? 'POPULAR' : 'ACTIVE',
                               style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ],
+                        ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Validity info for active plans
+                if (isCurrentPlan && controller.currentUserModel.value?.subscriptionExpiresAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Valid till ${_formatExpiryDate(controller.currentUserModel.value!.subscriptionExpiresAt!)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontStyle: FontStyle.italic,
                       ),
-                    )),
-                    if (_getKeyFeatures(plan).length > 3)
-                      Text(
-                        '+${_getKeyFeatures(plan).length - 3} more features',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                          fontStyle: FontStyle.italic,
+                    ),
+                  ),
+
+                // Key features preview - centered
+                Center(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    alignment: WrapAlignment.center, // Center align the chips
+                    children: _getKeyFeatures(plan).take(3).map((feature) =>
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          feature['name'] as String,
+                          style: TextStyle(fontSize: 10, color: Colors.grey.shade700),
                         ),
                       ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Action Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: canUpgrade ? () => _handlePurchase(context, plan) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: canUpgrade
-                        ? (isCurrentPlan ? Colors.blue : (isPopular ? Colors.orange : Colors.green))
-                        : Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: canUpgrade ? 4 : 0,
-                  ),
-                  child: Text(
-                    _getButtonText(plan, controller.currentUserModel.value?.subscriptionPlanId),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    ).toList(),
                   ),
                 ),
-              ),
-            ],
+
+                // Only show price and button for non-free plans
+                if (plan.planId != 'free_plan') ...[
+                  const SizedBox(height: 16),
+
+                  // Price with validity period - centered
+                  Center(
+                    child: Builder(
+                      builder: (context) {
+                        final firebaseUser = controller.currentFirebaseUser.value;
+                        final userId = firebaseUser?.uid ?? '';
+
+                        return FutureBuilder<String?>(
+                          future: controller.getUserElectionType(userId),
+                          builder: (context, snapshot) {
+                            final electionType = snapshot.data ?? 'municipal_corporation';
+                            final pricing = plan.pricing[electionType];
+                            final sevenDayPrice = pricing?[7] ?? pricing?.values.first ?? 99;
+
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '₹${sevenDayPrice}',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCurrentPlan ? Colors.blue.shade600 : Colors.green.shade600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                Text(
+                                  '7 days',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Action Button - Full width at bottom
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: canUpgrade ? () => _handlePurchase(context, plan) : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: canUpgrade
+                            ? (isCurrentPlan ? Colors.blue : (isPopular ? Colors.orange : Colors.green))
+                            : Colors.grey,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: canUpgrade ? 2 : 0,
+                        minimumSize: const Size(double.infinity, 40),
+                      ),
+                      child: Text(
+                        _getButtonText(plan, controller.currentUserModel.value?.subscriptionPlanId),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -500,7 +523,22 @@ class PlanComparisonTable extends StatelessWidget {
       return 'Already Upgraded';
     }
 
-    return plan.price == 0 ? 'Free' : 'Upgrade';
+    return 'Check and Purchase'; // Updated button text
+  }
+
+  String _formatExpiryDate(DateTime expiryDate) {
+    final now = DateTime.now();
+    final difference = expiryDate.difference(now);
+
+    if (difference.inDays > 0) {
+      return '${expiryDate.day}/${expiryDate.month}/${expiryDate.year}';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h left';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m left';
+    } else {
+      return 'Expired';
+    }
   }
 
   List<Map<String, dynamic>> _getKeyFeatures(SubscriptionPlan plan) {
@@ -552,13 +590,62 @@ class PlanComparisonTable extends StatelessWidget {
       return;
     }
 
+    // For new pricing system, navigate to plan selection with validity options
+    debugPrint('🔄 Navigating to plan selection for: ${plan.planId}');
+
+    // Get user's election type
+    final electionType = await controller.getUserElectionType(currentUser.uid) ?? 'municipal_corporation';
+
+    // Navigate to plan selection screen with validity options
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlanSelectionScreen(
+          plan: plan,
+          electionType: electionType,
+        ),
+      ),
+    );
+  }
+
+  void _handlePurchaseWithValidity(BuildContext context, SubscriptionPlan plan, int validityDays) async {
+    final currentUser = controller.currentFirebaseUser.value;
+    if (currentUser == null) {
+      Get.snackbar(
+        'Error',
+        'Please login to make a purchase',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Get user's election type
+    final electionType = await controller.getUserElectionType(currentUser.uid) ?? 'municipal_corporation';
+
+    // Get price from plan pricing
+    final price = plan.pricing[electionType]?[validityDays];
+    if (price == null) {
+      Get.snackbar(
+        'Error',
+        'Invalid plan configuration',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final expiryDate = DateTime.now().add(Duration(days: validityDays));
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Purchase ${plan.name}'),
         content: Text(
-          'Are you sure you want to purchase ${plan.name} for ₹${plan.price}?\n\n'
-          '${_getKeyFeatures(plan).length} premium features will be unlocked.\n\n'
+          'Purchase ${plan.name} for ${electionType.replaceAll('_', ' ')} election?\n\n'
+          'Validity: $validityDays days\n'
+          'Expires: ${expiryDate.toString().split(' ')[0]}\n'
+          'Amount: ₹${price}\n\n'
           'You will be redirected to our secure payment gateway.',
         ),
         actions: [
@@ -575,14 +662,11 @@ class PlanComparisonTable extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      // Start the payment process with Razorpay
-      debugPrint('💳 Starting payment process for plan: ${plan.planId}');
-      final success = await controller.processPayment(plan.planId, plan.price);
+      // Start the payment process with election type and validity days
+      debugPrint('💳 Starting payment process for plan: ${plan.planId}, election: ${electionType}, validity: $validityDays');
+      final success = await controller.processPaymentWithElection(plan.planId, electionType, validityDays);
 
-      if (success) {
-        // Payment initiated successfully - result will be handled by callbacks
-        debugPrint('✅ Payment process initiated successfully');
-      } else {
+      if (!success) {
         Get.snackbar(
           'Payment Error',
           controller.errorMessage.value.isNotEmpty

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Highlight {
@@ -162,6 +163,7 @@ class HighlightService {
     try {
       // Create composite location key for precise targeting
       final locationKey = '${districtId}_${bodyId}_$wardId';
+      debugPrint('🎠 HighlightService: Fetching highlights for locationKey: $locationKey');
 
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')
@@ -172,11 +174,18 @@ class HighlightService {
           .limit(10)
           .get();
 
-      return snapshot.docs
+      debugPrint('🎠 HighlightService: Found ${snapshot.docs.length} highlights for $locationKey');
+      final highlights = snapshot.docs
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
+
+      if (highlights.isNotEmpty) {
+        debugPrint('🎠 HighlightService: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
+      }
+
+      return highlights;
     } catch (e) {
-      print('Error fetching highlights: $e');
+      debugPrint('❌ HighlightService: Error fetching highlights: $e');
       return [];
     }
   }
@@ -190,6 +199,7 @@ class HighlightService {
     try {
       // Create composite location key for precise targeting
       final locationKey = '${districtId}_${bodyId}_$wardId';
+      debugPrint('🏷️ HighlightService: Fetching platinum banner for locationKey: $locationKey');
 
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')
@@ -200,12 +210,18 @@ class HighlightService {
           .limit(1)
           .get();
 
+      debugPrint('🏷️ HighlightService: Found ${snapshot.docs.length} platinum banners for $locationKey');
+
       if (snapshot.docs.isNotEmpty) {
-        return Highlight.fromJson(snapshot.docs.first.data());
+        final banner = Highlight.fromJson(snapshot.docs.first.data());
+        debugPrint('🏷️ HighlightService: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
+        return banner;
       }
+
+      debugPrint('🏷️ HighlightService: No platinum banner found for $locationKey');
       return null;
     } catch (e) {
-      print('Error fetching platinum banner: $e');
+      debugPrint('❌ HighlightService: Error fetching platinum banner: $e');
       return null;
     }
   }
@@ -384,6 +400,147 @@ class HighlightService {
     } catch (e) {
       print('Error fetching candidate highlights: $e');
       return [];
+    }
+  }
+
+
+  // Create Platinum highlight for real candidate
+  static Future<String?> createPlatinumHighlight({
+    required String candidateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateName,
+    required String party,
+    String? imageUrl,
+    String bannerStyle = 'premium',
+    String callToAction = 'View Profile',
+    String priorityLevel = 'normal',
+    String? customMessage,
+  }) async {
+    try {
+      debugPrint('🏆 HighlightService: Creating Platinum highlight for $candidateName');
+
+      final highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
+      final locationKey = '${districtId}_${bodyId}_$wardId';
+
+      // Calculate priority based on level
+      int priorityValue = _getPriorityValue(priorityLevel);
+
+      final highlight = Highlight(
+        id: highlightId,
+        candidateId: candidateId,
+        wardId: wardId,
+        districtId: districtId,
+        bodyId: bodyId,
+        locationKey: locationKey,
+        package: 'platinum', // Platinum package
+        placement: ['carousel', 'top_banner'], // Show in both carousel and banner
+        priority: priorityValue,
+        startDate: DateTime.now().subtract(const Duration(days: 1)),
+        endDate: DateTime.now().add(const Duration(days: 365)), // 1 year validity
+        active: true,
+        exclusive: priorityLevel == 'urgent', // Urgent gets exclusive placement
+        rotation: priorityLevel != 'urgent', // Don't rotate urgent items
+        views: 0,
+        clicks: 0,
+        imageUrl: imageUrl,
+        candidateName: candidateName,
+        party: party,
+        createdAt: DateTime.now(),
+      );
+
+      // Add enhanced metadata for Platinum features
+      final enhancedData = highlight.toJson();
+      enhancedData['bannerStyle'] = bannerStyle;
+      enhancedData['callToAction'] = callToAction;
+      enhancedData['priorityLevel'] = priorityLevel;
+      enhancedData['customMessage'] = customMessage;
+
+      await FirebaseFirestore.instance
+          .collection('highlights')
+          .doc(highlightId)
+          .set(enhancedData);
+
+      debugPrint('✅ HighlightService: Created Platinum highlight $highlightId for $candidateName');
+      debugPrint('   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
+      return highlightId;
+    } catch (e) {
+      debugPrint('❌ HighlightService: Error creating Platinum highlight: $e');
+      return null;
+    }
+  }
+
+  // Update existing highlight with enhanced configuration
+  static Future<bool> updateHighlightConfig({
+    required String highlightId,
+    String? bannerStyle,
+    String? callToAction,
+    String? priorityLevel,
+    String? customMessage,
+    bool? showAnalytics,
+  }) async {
+    try {
+      debugPrint('🔄 HighlightService: Updating highlight config for $highlightId');
+
+      final updates = <String, dynamic>{};
+      if (bannerStyle != null) updates['bannerStyle'] = bannerStyle;
+      if (callToAction != null) updates['callToAction'] = callToAction;
+      if (priorityLevel != null) {
+        updates['priorityLevel'] = priorityLevel;
+        updates['priority'] = _getPriorityValue(priorityLevel);
+        updates['exclusive'] = priorityLevel == 'urgent';
+        updates['rotation'] = priorityLevel != 'urgent';
+      }
+      if (customMessage != null) updates['customMessage'] = customMessage;
+      if (showAnalytics != null) updates['showAnalytics'] = showAnalytics;
+
+      if (updates.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .update(updates);
+
+        debugPrint('✅ HighlightService: Updated highlight $highlightId with ${updates.length} changes');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      debugPrint('❌ HighlightService: Error updating highlight config: $e');
+      return false;
+    }
+  }
+
+  // Get highlight configuration for editing
+  static Future<Map<String, dynamic>?> getHighlightConfig(String highlightId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('highlights')
+          .doc(highlightId)
+          .get();
+
+      if (doc.exists) {
+        return doc.data();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ HighlightService: Error getting highlight config: $e');
+      return null;
+    }
+  }
+
+  // Helper method to convert priority level to numeric value
+  static int _getPriorityValue(String priorityLevel) {
+    switch (priorityLevel) {
+      case 'normal':
+        return 5;
+      case 'high':
+        return 8;
+      case 'urgent':
+        return 10;
+      default:
+        return 5;
     }
   }
 }

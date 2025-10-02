@@ -72,111 +72,106 @@ class _HighlightCardState extends State<HighlightCard> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap ?? () => _defaultOnTap(context),
-      child: Container(
-        width: 160, // Smaller width for carousel
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20), // More rounded
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Profile Image
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade200, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+    return Container(
+      width: 160, // w-40 equivalent
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      child: GestureDetector(
+        onTap: widget.onTap ?? () => _defaultOnTap(context),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200, width: 1),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: CircleAvatar(
-                radius: 38,
-                backgroundImage: candidateProfileImageUrl != null
-                    ? NetworkImage(candidateProfileImageUrl!)
-                    : null,
-                backgroundColor: Colors.grey[100],
+            ],
+          ),
+          child: Column(
+            children: [
+              // Profile Image - matches HTML design
+              Container(
+                width: 70,
+                height: 70,
+                margin: const EdgeInsets.only(top: 8, bottom: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(50), // rounded-full
+                  image: candidateProfileImageUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(candidateProfileImageUrl!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                  color: Colors.grey[100],
+                ),
                 child: candidateProfileImageUrl == null
-                    ? Icon(Icons.person, color: Colors.grey, size: 32)
+                    ? const Icon(
+                        Icons.person,
+                        color: Colors.grey,
+                        size: 28,
+                      )
                     : null,
               ),
-            ),
 
-            const SizedBox(height: 12),
-
-            // Candidate Info
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                children: [
-                  Text(
-                    widget.highlight.candidateName ?? 'Candidate',
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-                    widget.highlight.party ?? 'Party',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // View Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _defaultOnTap(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[200],
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 0,
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+              // Candidate Info - matches HTML (reduced padding)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Column(
+                  children: [
+                    Text(
+                      widget.highlight.candidateName ?? 'Candidate',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                        fontSize: 12,
                       ),
-                      child: const Text('View'),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.highlight.party ?? 'Party',
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 10,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              // View Button - matches HTML design (smaller)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: ElevatedButton(
+                  onPressed: () => _defaultOnTap(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                    textStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    minimumSize: const Size(double.infinity, 28),
+                  ),
+                  child: const Text('View'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

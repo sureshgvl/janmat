@@ -101,14 +101,36 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            Text(
-              '₹${plan.price}',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isLimitedOffer ? Colors.orange : (isCurrentPlan ? Colors.blue : Colors.green),
+            // Price display logic
+            if (plan.planId == 'free_plan') ...[
+              const Text(
+                'FREE',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
               ),
-            ),
+            ] else if (plan.type == 'voter') ...[
+              const Text(
+                'XP Points',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ] else ...[
+              // For candidate plans without new pricing structure
+              const Text(
+                'Contact Support',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
 
             const SizedBox(height: 16),
 
@@ -123,8 +145,8 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Only show button if not disabled for free plans
-            if (!shouldDisableButton || plan.price > 0)
+            // Show button for all plans (free plans can be activated, others can be purchased)
+            if (true)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -147,7 +169,7 @@ class PlanCard extends StatelessWidget {
               ),
 
             // Show message for disabled buttons
-            if (shouldDisableButton && plan.price > 0)
+            if (shouldDisableButton)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -169,31 +191,34 @@ class PlanCard extends StatelessWidget {
   }
 
   bool _shouldDisableButton(String? currentPlanId) {
+    // Free plans are always available (unless already active)
+    if (plan.planId == 'free_plan') {
+      return currentPlanId == 'free_plan';
+    }
+
+    // XP plans don't disable buttons
     if (!isCandidatePlan) {
-      return plan.price == 0; // No button for free plans
+      return false;
     }
 
     if (currentPlanId == null) return false;
 
-    // Define plan hierarchy (assuming plan names indicate level)
-    final planHierarchy = {
-      'basic': 1,
-      'gold': 2,
-      'platinum': 3,
-    };
-
-    final currentPlanLevel = planHierarchy[currentPlanId.toLowerCase()] ?? 0;
-    final thisPlanLevel = planHierarchy[plan.name.toLowerCase()] ?? 0;
-
-    // Disable if current plan is same or higher level
-    return thisPlanLevel <= currentPlanLevel;
+    // For new pricing system, always allow selection
+    return false;
   }
 
   String _getButtonText(BuildContext context, String? currentPlanId) {
-    if (!isCandidatePlan) {
-      return plan.price == 0 ? 'Free' : AppLocalizations.of(context)!.buyNow;
+    // Free plans
+    if (plan.planId == 'free_plan') {
+      return currentPlanId == 'free_plan' ? 'Current Plan' : 'Activate Free Plan';
     }
 
+    // XP plans
+    if (!isCandidatePlan) {
+      return 'Buy Now';
+    }
+
+    // Candidate plans
     if (currentPlanId == plan.planId) {
       return 'Current Plan';
     }

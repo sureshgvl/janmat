@@ -23,6 +23,7 @@ class RoomController extends GetxController {
   Future<void> loadChatRooms(
     String userId,
     String userRole, {
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -33,6 +34,7 @@ class RoomController extends GetxController {
       final rooms = await _repository.getChatRoomsForUser(
         userId,
         userRole,
+        stateId: stateId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,

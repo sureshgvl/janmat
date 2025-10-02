@@ -48,11 +48,12 @@ class MessageController extends GetxController {
   Future<void> sendTextMessage(
     String roomId,
     String text,
-    String senderId,
-  ) async {
+    String senderId, {
+    Message? existingMessage,
+  }) async {
     if (text.trim().isEmpty) return;
 
-    final message = Message(
+    final message = existingMessage ?? Message(
       messageId: _generateMessageId(),
       text: text,
       senderId: senderId,
