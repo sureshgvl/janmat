@@ -61,6 +61,13 @@ Depending on your location, you may have the following rights:
 
 To exercise these rights, contact us at [your contact email].
 
+### Account Deletion
+To request deletion of your account and associated data:
+1. Contact us at [your contact email] with "Account Deletion Request" in the subject.
+2. Include your registered phone number or email.
+3. We will process your request within 30 days.
+4. Upon deletion, all personal data, chat history, and user-generated content will be permanently removed, except for data required for legal compliance which may be retained for up to 7 years.
+
 ## Children's Privacy
 
 The App is not intended for children under 13. We do not knowingly collect personal information from children under 13. If we become aware of such collection, we will delete the information immediately.
@@ -76,3 +83,6 @@ If you have any questions about this Privacy Policy, please contact us at:
 - Address: [your business address]
 
 By using Janmat, you acknowledge that you have read and understood this Privacy Policy.
+## Disclaimer
+
+JanMat is independently developed by SG Infinity. It is not affiliated with any government or election body.
