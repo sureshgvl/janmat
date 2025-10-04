@@ -328,3 +328,4 @@ class _KeyboardVisibilityObserver extends WidgetsBindingObserver {
     onKeyboardVisibilityChanged();
   }
 }
+

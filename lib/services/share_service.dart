@@ -91,3 +91,4 @@ class ShareService {
     return buffer.toString();
   }
 }
+

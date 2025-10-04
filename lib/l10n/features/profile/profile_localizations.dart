@@ -202,3 +202,4 @@ class ProfileTranslations {
     return ProfileLocalizations.current.translate(key, args: args);
   }
 }
+

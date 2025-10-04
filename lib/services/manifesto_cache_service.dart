@@ -338,3 +338,4 @@ class ManifestoCacheService {
     return await _dbService.getLastUpdateTime('manifesto_$manifestoId');
   }
 }
+

@@ -323,3 +323,4 @@ class _AreaInWardSelectionModalState extends State<AreaInWardSelectionModal> {
     );
   }
 }
+

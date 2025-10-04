@@ -272,7 +272,7 @@ class VideoPreviewWidget extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.8),
+                    color: Colors.black.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -300,7 +300,7 @@ class VideoPreviewWidget extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.8),
+                  color: Colors.black.withValues(alpha: 0.8),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -316,3 +316,4 @@ class VideoPreviewWidget extends StatelessWidget {
     );
   }
 }
+

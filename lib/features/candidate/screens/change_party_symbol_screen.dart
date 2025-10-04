@@ -104,9 +104,9 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
   Future<void> _loadParties() async {
     try {
-      print('🚀 ChangePartySymbolScreen: Starting to load parties...');
+      debugPrint('🚀 ChangePartySymbolScreen: Starting to load parties...');
       final fetchedParties = await partyRepository.getActiveParties();
-      print(
+      debugPrint(
         '📦 ChangePartySymbolScreen: Received ${fetchedParties.length} parties',
       );
 
@@ -115,17 +115,17 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           parties = fetchedParties;
           isLoadingParties = false;
         });
-        print(
+        debugPrint(
           '✅ ChangePartySymbolScreen: Parties loaded successfully, calling _loadCurrentData()',
         );
         _loadCurrentData(); // Reload current data now that parties are loaded
       } else {
-        print(
+        debugPrint(
           '⚠️ ChangePartySymbolScreen: Widget not mounted, skipping setState',
         );
       }
     } catch (e) {
-      print('❌ ChangePartySymbolScreen: Error loading parties: $e');
+      debugPrint('❌ ChangePartySymbolScreen: Error loading parties: $e');
       if (mounted) {
         setState(() {
           isLoadingParties = false;
@@ -1213,3 +1213,4 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     );
   }
 }
+

@@ -300,7 +300,7 @@ class _MediaTabViewState extends State<MediaTabView>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 6,
                               offset: const Offset(0, 3),
                             ),
@@ -327,7 +327,7 @@ class _MediaTabViewState extends State<MediaTabView>
                                     end: Alignment.bottomCenter,
                                     colors: [
                                       Colors.transparent,
-                                      Colors.black.withOpacity(0.4),
+                                      Colors.black.withValues(alpha: 0.4),
                                     ],
                                   ),
                                 ),
@@ -343,9 +343,7 @@ class _MediaTabViewState extends State<MediaTabView>
                                         child: Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(
-                                              0.9,
-                                            ),
+                                            color: Colors.white.withValues(alpha: 0.9),
                                             borderRadius: BorderRadius.circular(
                                               16,
                                             ),
@@ -385,7 +383,7 @@ class _MediaTabViewState extends State<MediaTabView>
                                           vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.6),
+                                          color: Colors.black.withValues(alpha: 0.6),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -479,7 +477,7 @@ class _MediaTabViewState extends State<MediaTabView>
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.9),
+                                      color: Colors.white.withValues(alpha: 0.9),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
@@ -563,7 +561,7 @@ class _MediaTabViewState extends State<MediaTabView>
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -682,9 +680,7 @@ class _MediaTabViewState extends State<MediaTabView>
                                         child: Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(
-                                              0.9,
-                                            ),
+                                            color: Colors.white.withValues(alpha: 0.9),
                                             borderRadius: BorderRadius.circular(
                                               16,
                                             ),
@@ -800,3 +796,4 @@ class _MediaTabViewState extends State<MediaTabView>
   }
 
 }
+

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,7 +16,7 @@ void main() {
 
   group('Debug Candidate Location', () {
     test('Check if candidate exists in legacy collection', () async {
-      print(
+      debugPrint(
         '🔍 Checking legacy /candidates collection for userId: efSlmEmHpyMrrAqF8i5V',
       );
 
@@ -28,19 +29,19 @@ void main() {
 
         if (candidatesSnapshot.docs.isNotEmpty) {
           final doc = candidatesSnapshot.docs.first;
-          print('✅ Found candidate in legacy collection:');
-          print('   Document ID: ${doc.id}');
-          print('   Data: ${doc.data()}');
+          debugPrint('✅ Found candidate in legacy collection:');
+          debugPrint('   Document ID: ${doc.id}');
+          debugPrint('   Data: ${doc.data()}');
         } else {
-          print('❌ No candidate found in legacy collection');
+          debugPrint('❌ No candidate found in legacy collection');
         }
       } catch (e) {
-        print('❌ Error checking legacy collection: $e');
+        debugPrint('❌ Error checking legacy collection: $e');
       }
     });
 
     test('Check if candidate exists in hierarchical structure', () async {
-      print(
+      debugPrint(
         '🔍 Checking hierarchical structure: /states/maharashtra/districts/Pune/bodies/pune_city/wards/ward_17/candidates/efSlmEmHpyMrrAqF8i5V',
       );
 
@@ -59,27 +60,27 @@ void main() {
             .get();
 
         if (candidateDoc.exists) {
-          print('✅ Found candidate in hierarchical structure:');
-          print('   Data: ${candidateDoc.data()}');
+          debugPrint('✅ Found candidate in hierarchical structure:');
+          debugPrint('   Data: ${candidateDoc.data()}');
         } else {
-          print('❌ No candidate found in hierarchical structure');
+          debugPrint('❌ No candidate found in hierarchical structure');
         }
       } catch (e) {
-        print('❌ Error checking hierarchical structure: $e');
+        debugPrint('❌ Error checking hierarchical structure: $e');
       }
     });
 
     test('Check if district collections exist', () async {
-      print('🔍 Checking if district collections exist');
+      debugPrint('🔍 Checking if district collections exist');
 
       try {
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('districts')
             .get();
 
-        print('📊 Found ${districtsSnapshot.docs.length} districts:');
+        debugPrint('📊 Found ${districtsSnapshot.docs.length} districts:');
         for (var doc in districtsSnapshot.docs) {
-          print('   - ${doc.id}');
+          debugPrint('   - ${doc.id}');
         }
 
         // Check if Pune district exists
@@ -91,7 +92,7 @@ void main() {
             .get();
 
         if (puneDoc.exists) {
-          print('✅ Pune district exists');
+          debugPrint('✅ Pune district exists');
 
           // Check bodies in Pune
           final bodiesSnapshot = await FirebaseFirestore.instance
@@ -102,9 +103,9 @@ void main() {
               .collection('bodies')
               .get();
 
-          print('📊 Found ${bodiesSnapshot.docs.length} bodies in Pune:');
+          debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in Pune:');
           for (var doc in bodiesSnapshot.docs) {
-            print('   - ${doc.id}');
+            debugPrint('   - ${doc.id}');
           }
 
           // Check if pune_city body exists
@@ -118,7 +119,7 @@ void main() {
               .get();
 
           if (puneCityDoc.exists) {
-            print('✅ pune_city body exists');
+            debugPrint('✅ pune_city body exists');
 
             // Check wards in pune_city
             final wardsSnapshot = await FirebaseFirestore.instance
@@ -131,9 +132,11 @@ void main() {
                 .collection('wards')
                 .get();
 
-            print('📊 Found ${wardsSnapshot.docs.length} wards in pune_city:');
+            debugPrint(
+              '📊 Found ${wardsSnapshot.docs.length} wards in pune_city:',
+            );
             for (var doc in wardsSnapshot.docs) {
-              print('   - ${doc.id}');
+              debugPrint('   - ${doc.id}');
             }
 
             // Check if ward_17 exists
@@ -149,7 +152,7 @@ void main() {
                 .get();
 
             if (ward17Doc.exists) {
-              print('✅ ward_17 exists');
+              debugPrint('✅ ward_17 exists');
 
               // Check candidates in ward_17
               final candidatesSnapshot = await FirebaseFirestore.instance
@@ -164,23 +167,23 @@ void main() {
                   .collection('candidates')
                   .get();
 
-              print(
+              debugPrint(
                 '📊 Found ${candidatesSnapshot.docs.length} candidates in ward_17:',
               );
               for (var doc in candidatesSnapshot.docs) {
-                print('   - ${doc.id}');
+                debugPrint('   - ${doc.id}');
               }
             } else {
-              print('❌ ward_17 does not exist');
+              debugPrint('❌ ward_17 does not exist');
             }
           } else {
-            print('❌ pune_city body does not exist');
+            debugPrint('❌ pune_city body does not exist');
           }
         } else {
-          print('❌ Pune district does not exist');
+          debugPrint('❌ Pune district does not exist');
         }
       } catch (e) {
-        print('❌ Error checking district collections: $e');
+        debugPrint('❌ Error checking district collections: $e');
       }
     });
   });

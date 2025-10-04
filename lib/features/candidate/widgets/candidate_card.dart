@@ -52,10 +52,10 @@ class CandidateCard extends StatelessWidget {
               gradient: LinearGradient(
                 colors: [
                   Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.08)
+                      ? Colors.white.withValues(alpha: 0.08)
                       : Colors.white,
                   Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.04)
+                      ? Colors.white.withValues(alpha: 0.04)
                       : AppColors.background,
                 ],
                 begin: Alignment.topLeft,
@@ -64,7 +64,7 @@ class CandidateCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
               border: Border.all(
                 color: isPremiumCandidate
-                    ? Colors.amber.withOpacity(0.3)
+                    ? Colors.amber.withValues(alpha: 0.3)
                     : AppColors.borderLight,
                 width: isPremiumCandidate ? 1.5 : 1.0,
               ),
@@ -83,13 +83,13 @@ class CandidateCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppBorderRadius.md),
                     border: Border.all(
                       color: isPremiumCandidate
-                          ? Colors.amber.withOpacity(0.6)
+                          ? Colors.amber.withValues(alpha: 0.6)
                           : AppColors.borderLight,
                       width: 2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -225,7 +225,7 @@ class CandidateCard extends StatelessWidget {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.info.withOpacity(0.1),
+                                  color: AppColors.info.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                                 ),
                                 child: Row(
@@ -264,7 +264,7 @@ class CandidateCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.1),
+                            color: Colors.amber.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                           ),
                           child: Row(
@@ -305,7 +305,7 @@ class CandidateCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -335,16 +335,16 @@ class CandidateCard extends StatelessWidget {
                         height: 44,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppColors.info.withOpacity(0.2), AppColors.info.withOpacity(0.1)],
+                            colors: [AppColors.info.withValues(alpha: 0.2), AppColors.info.withValues(alpha: 0.1)],
                           ),
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
-                            color: AppColors.info.withOpacity(0.3),
+                            color: AppColors.info.withValues(alpha: 0.3),
                             width: 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.info.withOpacity(0.2),
+                              color: AppColors.info.withValues(alpha: 0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 1),
                             ),
@@ -393,3 +393,4 @@ class CandidateCard extends StatelessWidget {
     );
   }
 }
+

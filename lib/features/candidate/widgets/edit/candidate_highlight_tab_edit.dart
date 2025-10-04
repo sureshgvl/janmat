@@ -691,7 +691,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -813,7 +813,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -996,3 +996,4 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
     );
   }
 }
+

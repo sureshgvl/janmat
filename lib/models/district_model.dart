@@ -129,3 +129,4 @@ class District {
   @override
   int get hashCode => id.hashCode ^ name.hashCode ^ stateId.hashCode;
 }
+

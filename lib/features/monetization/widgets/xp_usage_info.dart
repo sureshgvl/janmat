@@ -88,3 +88,4 @@ class XPUsageInfo extends StatelessWidget {
     );
   }
 }
+

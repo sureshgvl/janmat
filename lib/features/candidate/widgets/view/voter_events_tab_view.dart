@@ -145,7 +145,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           );
         } catch (notificationError) {
           // Don't fail the RSVP if notification fails
-          print('Notification error: $notificationError');
+          debugPrint('Notification error: $notificationError');
         }
 
         // Award gamification points
@@ -158,7 +158,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           );
         } catch (gamificationError) {
           // Don't fail the RSVP if gamification fails
-          print('Gamification error: $gamificationError');
+          debugPrint('Gamification error: $gamificationError');
         }
 
         Get.snackbar(
@@ -204,7 +204,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           );
         } catch (gamificationError) {
           // Don't fail the RSVP removal if gamification fails
-          print('Gamification error: $gamificationError');
+          debugPrint('Gamification error: $gamificationError');
         }
       }
     } catch (e) {
@@ -441,9 +441,9 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -476,3 +476,4 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     }
   }
 }
+

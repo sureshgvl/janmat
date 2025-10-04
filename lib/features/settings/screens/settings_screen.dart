@@ -125,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           if (_isChangingLanguage)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(child: CircularProgressIndicator()),
             ),
         ],
@@ -402,3 +402,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

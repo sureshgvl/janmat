@@ -60,8 +60,6 @@ class _StateSelectionModalState extends State<StateSelectionModal> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
-
     // Debug: Print loaded states
     debugPrint('🔍 StateSelectionModal - Building with ${widget.states.length} states');
     for (final state in widget.states) {
@@ -306,3 +304,4 @@ class _StateSelectionModalState extends State<StateSelectionModal> {
     );
   }
 }
+

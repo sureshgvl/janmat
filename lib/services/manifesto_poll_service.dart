@@ -215,3 +215,4 @@ class ManifestoPollService {
     return _monitor.getFirebaseSummary();
   }
 }
+

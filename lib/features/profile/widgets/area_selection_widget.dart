@@ -68,3 +68,4 @@ class AreaSelectionWidget extends StatelessWidget {
     );
   }
 }
+

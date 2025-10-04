@@ -339,3 +339,4 @@ class OptimizedFirestoreQuery {
     return stream;
   }
 }
+

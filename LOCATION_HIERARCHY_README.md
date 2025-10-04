@@ -273,7 +273,7 @@ Future<void> createDistrict(CreateDistrictData data) async {
   );
 
   if (response.statusCode == 200) {
-    print('District created successfully');
+   debugPrint('District created successfully');
   }
 }
 ```

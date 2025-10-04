@@ -162,3 +162,4 @@ class ManifestoCommentsService {
     return _monitor.getFirebaseSummary();
   }
 }
+

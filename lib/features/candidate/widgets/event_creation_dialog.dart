@@ -391,3 +391,4 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     );
   }
 }
+

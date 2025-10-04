@@ -224,7 +224,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               backgroundImage: userData != null && userData['photoURL'] != null
                   ? NetworkImage(userData['photoURL'])
                   : null,
@@ -322,3 +322,4 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
     }
   }
 }
+

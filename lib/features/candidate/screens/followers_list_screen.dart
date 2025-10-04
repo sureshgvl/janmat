@@ -206,7 +206,7 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
                       leading: CircleAvatar(
                         backgroundColor: Theme.of(
                           context,
-                        ).primaryColor.withOpacity(0.1),
+                        ).primaryColor.withValues(alpha: 0.1),
                         backgroundImage:
                             userData != null && userData['photoURL'] != null
                             ? NetworkImage(userData['photoURL'])
@@ -261,7 +261,7 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).primaryColor.withOpacity(0.1),
+                          ).primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -303,3 +303,4 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
     }
   }
 }
+

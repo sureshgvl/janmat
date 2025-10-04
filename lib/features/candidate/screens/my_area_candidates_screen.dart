@@ -184,3 +184,4 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
 
 }
+

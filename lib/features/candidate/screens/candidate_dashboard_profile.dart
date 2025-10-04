@@ -164,3 +164,4 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
     });
   }
 }
+

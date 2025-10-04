@@ -31,3 +31,4 @@ class AppBindings extends Bindings {
     ManifestoSyncService();
   }
 }
+

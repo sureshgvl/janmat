@@ -175,7 +175,7 @@ class _ModalSelectorState<T> extends State<ModalSelector<T>> {
                                   color: isSelected
                                       ? Theme.of(
                                           context,
-                                        ).primaryColor.withOpacity(0.1)
+                                        ).primaryColor.withValues(alpha: 0.1)
                                       : Colors.white,
                                   border: Border.all(
                                     color: isSelected
@@ -259,3 +259,4 @@ class _ModalSelectorState<T> extends State<ModalSelector<T>> {
     );
   }
 }
+

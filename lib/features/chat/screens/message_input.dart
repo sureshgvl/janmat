@@ -705,3 +705,4 @@ class _MessageInputState extends State<MessageInput> {
     }
   }
 }
+

@@ -961,3 +961,4 @@ class ChatController extends GetxController {
     );
   }
 }
+

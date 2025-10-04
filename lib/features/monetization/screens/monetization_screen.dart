@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../models/plan_model.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/plan_comparison_table.dart';
 import '../widgets/plan_card.dart';
-import '../widgets/plan_card_with_validity_options.dart';
 import '../widgets/election_type_banner.dart';
 import '../widgets/candidate_plans_section.dart';
 import '../widgets/user_status_section.dart';
@@ -339,3 +337,4 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     );
   }
 }
+

@@ -135,3 +135,4 @@ class ManifestoLikesService {
     return _monitor.getFirebaseSummary();
   }
 }
+

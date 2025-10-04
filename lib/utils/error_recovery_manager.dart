@@ -394,3 +394,4 @@ class FirebaseErrorRecovery {
     return _recoveryManager.getRecoveryStats();
   }
 }
+

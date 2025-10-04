@@ -174,3 +174,4 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
     });
   }
 }
+

@@ -507,3 +507,4 @@ class AppLocalizationsEn extends AppLocalizations {
     return '$district, $ward';
   }
 }
+

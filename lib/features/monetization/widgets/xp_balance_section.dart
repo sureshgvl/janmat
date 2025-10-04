@@ -58,3 +58,4 @@ class XPBalanceSection extends StatelessWidget {
     });
   }
 }
+

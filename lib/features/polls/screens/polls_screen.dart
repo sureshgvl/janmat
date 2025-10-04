@@ -131,3 +131,4 @@ class PollsScreen extends StatelessWidget {
     );
   }
 }
+

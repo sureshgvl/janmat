@@ -625,3 +625,4 @@ class PerformanceMonitor {
     return (cacheHitRate * 100).clamp(0, 100);
   }
 }
+

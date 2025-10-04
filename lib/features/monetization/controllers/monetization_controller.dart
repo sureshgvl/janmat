@@ -67,7 +67,9 @@ class MonetizationController extends GetxController {
 
   Future<void> loadPlans() async {
     try {
-      debugPrint('🔄 MONETIZATION CONTROLLER: Loading plans based on user role and election type...');
+      debugPrint(
+        '🔄 MONETIZATION CONTROLLER: Loading plans based on user role and election type...',
+      );
 
       // Get current user to check role
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -113,23 +115,31 @@ class MonetizationController extends GetxController {
 
             // Include candidate plans that have pricing for user's election type
             return plan.pricing.containsKey(userElectionType) &&
-                   plan.pricing[userElectionType]!.isNotEmpty;
+                plan.pricing[userElectionType]!.isNotEmpty;
           }).toList();
 
-          debugPrint('🏛️ CANDIDATE USER: Showing ${filteredPlans.length} plans for election type: $userElectionType');
+          debugPrint(
+            '🏛️ CANDIDATE USER: Showing ${filteredPlans.length} plans for election type: $userElectionType',
+          );
         } else {
           // If election type cannot be determined, show all plans
           filteredPlans = allPlans;
-          debugPrint('🏛️ CANDIDATE USER: Could not determine election type, showing all ${allPlans.length} plans');
+          debugPrint(
+            '🏛️ CANDIDATE USER: Could not determine election type, showing all ${allPlans.length} plans',
+          );
         }
       } else {
         // Voters see only XP plans
         filteredPlans = allPlans.where((plan) => plan.type == 'voter').toList();
-        debugPrint('🗳️ VOTER USER: Showing only ${filteredPlans.length} XP plans');
+        debugPrint(
+          '🗳️ VOTER USER: Showing only ${filteredPlans.length} XP plans',
+        );
       }
 
       plans.value = filteredPlans;
-      debugPrint('✅ MONETIZATION CONTROLLER: Successfully loaded ${filteredPlans.length} plans for $userRole');
+      debugPrint(
+        '✅ MONETIZATION CONTROLLER: Successfully loaded ${filteredPlans.length} plans for $userRole',
+      );
 
       // Debug log each plan with all its features
       for (var plan in allPlans) {
@@ -140,36 +150,74 @@ class MonetizationController extends GetxController {
 
         // Dashboard Tabs Debug
         debugPrint('   📊 DASHBOARD TABS:');
-        debugPrint('      🏠 Basic Info: ${plan.dashboardTabs.basicInfo.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.basicInfo.permissions}');
+        debugPrint(
+          '      🏠 Basic Info: ${plan.dashboardTabs.basicInfo.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.basicInfo.permissions}',
+        );
 
-        debugPrint('      📄 Manifesto: ${plan.dashboardTabs.manifesto.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.manifesto.permissions}');
-        debugPrint('         Features: TextOnly=${plan.dashboardTabs.manifesto.features.textOnly}, PDF=${plan.dashboardTabs.manifesto.features.pdfUpload}, Video=${plan.dashboardTabs.manifesto.features.videoUpload}');
-        debugPrint('         Promises: ${plan.dashboardTabs.manifesto.features.promises ? '✅' : '❌'} (Max: ${plan.dashboardTabs.manifesto.features.maxPromises})');
+        debugPrint(
+          '      📄 Manifesto: ${plan.dashboardTabs.manifesto.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.manifesto.permissions}',
+        );
+        debugPrint(
+          '         Features: TextOnly=${plan.dashboardTabs.manifesto.features.textOnly}, PDF=${plan.dashboardTabs.manifesto.features.pdfUpload}, Video=${plan.dashboardTabs.manifesto.features.videoUpload}',
+        );
+        debugPrint(
+          '         Promises: ${plan.dashboardTabs.manifesto.features.promises ? '✅' : '❌'} (Max: ${plan.dashboardTabs.manifesto.features.maxPromises})',
+        );
 
-        debugPrint('      🏆 Achievements: ${plan.dashboardTabs.achievements.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.achievements.permissions} (Max: ${plan.dashboardTabs.achievements.maxAchievements})');
+        debugPrint(
+          '      🏆 Achievements: ${plan.dashboardTabs.achievements.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.achievements.permissions} (Max: ${plan.dashboardTabs.achievements.maxAchievements})',
+        );
 
-        debugPrint('      📸 Media: ${plan.dashboardTabs.media.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.media.permissions}');
-        debugPrint('         Limits: ${plan.dashboardTabs.media.maxMediaItems} items, ${plan.dashboardTabs.media.maxImagesPerItem} img, ${plan.dashboardTabs.media.maxVideosPerItem} vid, ${plan.dashboardTabs.media.maxYouTubeLinksPerItem} links');
+        debugPrint(
+          '      📸 Media: ${plan.dashboardTabs.media.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.media.permissions}',
+        );
+        debugPrint(
+          '         Limits: ${plan.dashboardTabs.media.maxMediaItems} items, ${plan.dashboardTabs.media.maxImagesPerItem} img, ${plan.dashboardTabs.media.maxVideosPerItem} vid, ${plan.dashboardTabs.media.maxYouTubeLinksPerItem} links',
+        );
 
-        debugPrint('      📞 Contact: ${plan.dashboardTabs.contact.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.contact.permissions}');
-        debugPrint('         Features: Basic=${plan.dashboardTabs.contact.features.basic}, Extended=${plan.dashboardTabs.contact.features.extended}, Social=${plan.dashboardTabs.contact.features.socialLinks}, Priority=${plan.dashboardTabs.contact.features.prioritySupport}');
+        debugPrint(
+          '      📞 Contact: ${plan.dashboardTabs.contact.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.contact.permissions}',
+        );
+        debugPrint(
+          '         Features: Basic=${plan.dashboardTabs.contact.features.basic}, Extended=${plan.dashboardTabs.contact.features.extended}, Social=${plan.dashboardTabs.contact.features.socialLinks}, Priority=${plan.dashboardTabs.contact.features.prioritySupport}',
+        );
 
-        debugPrint('      🎪 Events: ${plan.dashboardTabs.events.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.events.permissions} (Max: ${plan.dashboardTabs.events.maxEvents})');
+        debugPrint(
+          '      🎪 Events: ${plan.dashboardTabs.events.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.events.permissions} (Max: ${plan.dashboardTabs.events.maxEvents})',
+        );
 
-        debugPrint('      📈 Analytics: ${plan.dashboardTabs.analytics.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.analytics.permissions}');
+        debugPrint(
+          '      📈 Analytics: ${plan.dashboardTabs.analytics.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.analytics.permissions}',
+        );
         if (plan.dashboardTabs.analytics.features != null) {
-          debugPrint('         Features: Basic=${plan.dashboardTabs.analytics.features!.basic}, Advanced=${plan.dashboardTabs.analytics.features!.advanced}, Full=${plan.dashboardTabs.analytics.features!.fullDashboard}, RealTime=${plan.dashboardTabs.analytics.features!.realTime}');
+          debugPrint(
+            '         Features: Basic=${plan.dashboardTabs.analytics.features!.basic}, Advanced=${plan.dashboardTabs.analytics.features!.advanced}, Full=${plan.dashboardTabs.analytics.features!.fullDashboard}, RealTime=${plan.dashboardTabs.analytics.features!.realTime}',
+          );
         }
 
         // Profile Features Debug
         debugPrint('   👤 PROFILE FEATURES:');
-        debugPrint('      🏷️  Premium Badge: ${plan.profileFeatures.premiumBadge}');
-        debugPrint('      📢 Sponsored Banner: ${plan.profileFeatures.sponsoredBanner}');
-        debugPrint('      🎠 Highlight Carousel: ${plan.profileFeatures.highlightCarousel}');
-        debugPrint('      📱 Push Notifications: ${plan.profileFeatures.pushNotifications}');
-        debugPrint('      🎯 Multiple Highlights: ${plan.profileFeatures.multipleHighlights}');
-        debugPrint('      👨‍💼 Admin Support: ${plan.profileFeatures.adminSupport}');
-        debugPrint('      🎨 Custom Branding: ${plan.profileFeatures.customBranding}');
+        debugPrint(
+          '      🏷️  Premium Badge: ${plan.profileFeatures.premiumBadge}',
+        );
+        debugPrint(
+          '      📢 Sponsored Banner: ${plan.profileFeatures.sponsoredBanner}',
+        );
+        debugPrint(
+          '      🎠 Highlight Carousel: ${plan.profileFeatures.highlightCarousel}',
+        );
+        debugPrint(
+          '      📱 Push Notifications: ${plan.profileFeatures.pushNotifications}',
+        );
+        debugPrint(
+          '      🎯 Multiple Highlights: ${plan.profileFeatures.multipleHighlights}',
+        );
+        debugPrint(
+          '      👨‍💼 Admin Support: ${plan.profileFeatures.adminSupport}',
+        );
+        debugPrint(
+          '      🎨 Custom Branding: ${plan.profileFeatures.customBranding}',
+        );
 
         // Log pricing structure
         debugPrint('   💰 PRICING STRUCTURE:');
@@ -188,7 +236,9 @@ class MonetizationController extends GetxController {
           });
         }
 
-        debugPrint('   ──────────────────────────────────────────────────────────');
+        debugPrint(
+          '   ──────────────────────────────────────────────────────────',
+        );
       }
     } catch (e) {
       debugPrint('❌ MONETIZATION CONTROLLER: Failed to load plans: $e');
@@ -300,7 +350,6 @@ class MonetizationController extends GetxController {
       }
 
       return _mapBodyTypeToElectionType(bodyType);
-
     } catch (e) {
       debugPrint('❌ Error getting user election type: $e');
       return null;
@@ -368,7 +417,9 @@ class MonetizationController extends GetxController {
 
       // Create subscription record
       // For legacy XP plans, use a default amount (this method is deprecated)
-      final amountPaid = plan.type == 'voter' ? 0 : 0; // XP plans are free or have different pricing
+      final amountPaid = plan.type == 'voter'
+          ? 0
+          : 0; // XP plans are free or have different pricing
 
       final subscription = UserSubscription(
         subscriptionId: '',
@@ -485,7 +536,11 @@ class MonetizationController extends GetxController {
 
   // Payment Integration with Razorpay
 
-  Future<bool> processPaymentWithElection(String planId, String electionType, int validityDays) async {
+  Future<bool> processPaymentWithElection(
+    String planId,
+    String electionType,
+    int validityDays,
+  ) async {
     debugPrint('💰 STARTING PAYMENT PROCESS WITH ELECTION DATA');
     debugPrint('   Plan ID: $planId');
     debugPrint('   Election Type: $electionType');
@@ -518,11 +573,14 @@ class MonetizationController extends GetxController {
       // Calculate amount from pricing structure
       final amount = plan.pricing[electionType]?[validityDays];
       if (amount == null) {
-        debugPrint('❌ Invalid pricing for election type $electionType and validity $validityDays');
-        errorMessage.value = 'Invalid plan configuration for your election type';
+        debugPrint(
+          '❌ Invalid pricing for election type $electionType and validity $validityDays',
+        );
+        errorMessage.value =
+            'Invalid plan configuration for your election type';
         return false;
       }
-      debugPrint('✅ Calculated amount: ₹${amount}');
+      debugPrint('✅ Calculated amount: ₹$amount');
 
       // Check if using mock payment or real Razorpay
       if (useMockPayment.value) {
@@ -546,7 +604,8 @@ class MonetizationController extends GetxController {
         // Simulate payment success directly
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final paymentId = 'pay_test_$timestamp';
-        final orderId = 'order_${planId}_${electionType}_${validityDays}_$timestamp';
+        final orderId =
+            'order_${planId}_${electionType}_${validityDays}_$timestamp';
         final signature = 'test_signature_$timestamp';
 
         debugPrint('✅ Mock payment successful');
@@ -554,7 +613,14 @@ class MonetizationController extends GetxController {
         debugPrint('   Order ID: $orderId');
 
         // Handle payment success directly with election data
-        _handleMockPaymentSuccessWithElection(paymentId, orderId, signature, planId, electionType, validityDays);
+        _handleMockPaymentSuccessWithElection(
+          paymentId,
+          orderId,
+          signature,
+          planId,
+          electionType,
+          validityDays,
+        );
       } else {
         debugPrint('💳 USING REAL RAZORPAY PAYMENT MODE');
 
@@ -579,7 +645,9 @@ class MonetizationController extends GetxController {
         );
 
         if (orderId == null) {
-          debugPrint('⚠️ Order ID is null (test mode) - proceeding without order');
+          debugPrint(
+            '⚠️ Order ID is null (test mode) - proceeding without order',
+          );
           // In test mode, we can proceed without order ID
           // Razorpay will handle the payment directly
         } else {
@@ -589,9 +657,11 @@ class MonetizationController extends GetxController {
         // Start Razorpay payment with enhanced options for test mode
         debugPrint('🚀 Starting Razorpay payment with full options...');
         razorpayService.startPayment(
-          orderId: orderId ?? 'order_${planId}_${electionType}_${validityDays}_${DateTime.now().millisecondsSinceEpoch}',
+          orderId:
+              orderId ??
+              'order_${planId}_${electionType}_${validityDays}_${DateTime.now().millisecondsSinceEpoch}',
           amount: amount * 100, // Convert rupees to paisa for Razorpay
-          description: 'Purchase ${plan.name} (${validityDays} days)',
+          description: 'Purchase $plan.name ($validityDays days)',
           contact: currentUser.phoneNumber ?? '',
           email: currentUser.email ?? '',
           prefillName: currentUser.displayName,
@@ -702,7 +772,9 @@ class MonetizationController extends GetxController {
         );
 
         if (orderId == null) {
-          debugPrint('⚠️ Order ID is null (test mode) - proceeding without order');
+          debugPrint(
+            '⚠️ Order ID is null (test mode) - proceeding without order',
+          );
           // In test mode, we can proceed without order ID
           // Razorpay will handle the payment directly
         } else {
@@ -712,16 +784,14 @@ class MonetizationController extends GetxController {
         // Start Razorpay payment with enhanced options for test mode
         debugPrint('🚀 Starting Razorpay payment with full options...');
         razorpayService.startPayment(
-          orderId: orderId ?? 'test_order_${DateTime.now().millisecondsSinceEpoch}',
+          orderId:
+              orderId ?? 'test_order_${DateTime.now().millisecondsSinceEpoch}',
           amount: amount,
-          description: 'Purchase ${plan.name}',
+          description: 'Purchase $plan.name',
           contact: currentUser.phoneNumber ?? '',
           email: currentUser.email ?? '',
           prefillName: currentUser.displayName,
-          notes: {
-            'planId': planId,
-            'userId': currentUser.uid,
-          },
+          notes: {'planId': planId, 'userId': currentUser.uid},
         );
 
         debugPrint('✅ Razorpay payment initiated with all payment options');
@@ -798,7 +868,12 @@ class MonetizationController extends GetxController {
   }
 
   // Handle mock payment success
-  void _handleMockPaymentSuccess(String paymentId, String orderId, String signature, String planId) {
+  void _handleMockPaymentSuccess(
+    String paymentId,
+    String orderId,
+    String signature,
+    String planId,
+  ) {
     debugPrint('🎉 MOCK PAYMENT SUCCESS HANDLER CALLED');
     debugPrint('   Payment ID: $paymentId');
     debugPrint('   Order ID: $orderId');
@@ -827,8 +902,14 @@ class MonetizationController extends GetxController {
   }
 
   // Handle mock payment success with election data
-  void _handleMockPaymentSuccessWithElection(String paymentId, String orderId, String signature,
-                                            String planId, String electionType, int validityDays) {
+  void _handleMockPaymentSuccessWithElection(
+    String paymentId,
+    String orderId,
+    String signature,
+    String planId,
+    String electionType,
+    int validityDays,
+  ) {
     debugPrint('🎉 MOCK PAYMENT SUCCESS HANDLER WITH ELECTION CALLED');
     debugPrint('   Payment ID: $paymentId');
     debugPrint('   Order ID: $orderId');
@@ -841,9 +922,16 @@ class MonetizationController extends GetxController {
     debugPrint('   Current User: ${currentUser?.uid ?? 'null'}');
 
     if (currentUser != null) {
-      debugPrint('🔄 Completing purchase after mock payment with election data...');
+      debugPrint(
+        '🔄 Completing purchase after mock payment with election data...',
+      );
       // Complete the purchase with election data
-      _completePurchaseAfterPaymentWithElection(currentUser.uid, planId, electionType, validityDays);
+      _completePurchaseAfterPaymentWithElection(
+        currentUser.uid,
+        planId,
+        electionType,
+        validityDays,
+      );
     } else {
       debugPrint('❌ No authenticated user found for completing purchase');
     }
@@ -859,7 +947,10 @@ class MonetizationController extends GetxController {
   }
 
   // Complete purchase after successful payment
-  Future<void> _completePurchaseAfterPayment(String userId, String planId) async {
+  Future<void> _completePurchaseAfterPayment(
+    String userId,
+    String planId,
+  ) async {
     debugPrint('🔄 COMPLETING PURCHASE AFTER PAYMENT');
     debugPrint('   User ID: $userId');
     debugPrint('   Plan ID: $planId');
@@ -888,8 +979,7 @@ class MonetizationController extends GetxController {
         isActive: true,
       );
 
-      final subscriptionId = await _repository.createSubscription(subscription);
-      debugPrint('✅ Subscription created with ID: $subscriptionId');
+      debugPrint('✅ Subscription created');
 
       // Update user based on plan type
       if (plan.type == 'candidate') {
@@ -922,8 +1012,12 @@ class MonetizationController extends GetxController {
   }
 
   // Complete purchase after successful payment with election data
-  Future<void> _completePurchaseAfterPaymentWithElection(String userId, String planId,
-                                                        String electionType, int validityDays) async {
+  Future<void> _completePurchaseAfterPaymentWithElection(
+    String userId,
+    String planId,
+    String electionType,
+    int validityDays,
+  ) async {
     debugPrint('🔄 COMPLETING PURCHASE AFTER PAYMENT WITH ELECTION DATA');
     debugPrint('   User ID: $userId');
     debugPrint('   Plan ID: $planId');
@@ -965,8 +1059,8 @@ class MonetizationController extends GetxController {
         isActive: true,
       );
 
-      final subscriptionId = await _repository.createSubscription(subscription);
-      debugPrint('✅ Subscription created with ID: $subscriptionId');
+      await _repository.createSubscription(subscription);
+      debugPrint('✅ Subscription created');
 
       // Update user based on plan type
       if (plan.type == 'candidate') {
@@ -1033,7 +1127,8 @@ class MonetizationController extends GetxController {
         candidateId: candidateData['candidateId'],
         wardId: candidateData['wardId'],
         title: '🎉 Platinum Plan Activated!',
-        message: '${candidateData['name']} is now a Platinum member with maximum visibility!',
+        message:
+            '${candidateData['name']} is now a Platinum member with maximum visibility!',
         imageUrl: candidateData['photo'],
       );
 
@@ -1197,7 +1292,9 @@ class MonetizationController extends GetxController {
       _addLog('   Premium: ${userModel.premium}');
       _addLog('   XP Points: ${userModel.xpPoints}');
       _addLog('   Profile Completed: ${userModel.profileCompleted}');
-      _addLog('   Subscription Plan: ${userModel.subscriptionPlanId ?? 'None'}');
+      _addLog(
+        '   Subscription Plan: ${userModel.subscriptionPlanId ?? 'None'}',
+      );
 
       if (userModel.subscriptionExpiresAt != null) {
         _addLog('   Subscription Expires: ${userModel.subscriptionExpiresAt}');
@@ -1217,7 +1314,9 @@ class MonetizationController extends GetxController {
       _addLog('   Total Subscriptions: ${userSubscriptions.length}');
 
       for (var subscription in userSubscriptions) {
-        _addLog('   - ${subscription.planType}: ${subscription.planId} (${subscription.isActive ? 'Active' : 'Inactive'})');
+        _addLog(
+          '   - ${subscription.planType}: ${subscription.planId} (${subscription.isActive ? 'Active' : 'Inactive'})',
+        );
       }
 
       // Load XP transactions
@@ -1225,11 +1324,12 @@ class MonetizationController extends GetxController {
       _addLog('   Recent XP Transactions: ${xpTransactions.length}');
 
       for (var transaction in xpTransactions.take(3)) {
-        _addLog('   - ${transaction.type}: ${transaction.amount} XP - ${transaction.description}');
+        _addLog(
+          '   - ${transaction.type}: ${transaction.amount} XP - ${transaction.description}',
+        );
       }
 
       _addLog('🎉 User status data loaded successfully');
-
     } catch (e) {
       _addLog('❌ Error loading user status: $e');
       debugPrint('Error loading user status: $e');
@@ -1269,7 +1369,9 @@ class MonetizationController extends GetxController {
       'premium': user.premium ?? false,
       'xpBalance': user.xpPoints,
       'subscriptionCount': userSubscriptions.length,
-      'activeSubscriptions': userSubscriptions.where((s) => s.isActive ?? false).length,
+      'activeSubscriptions': userSubscriptions
+          .where((s) => s.isActive ?? false)
+          .length,
       'trialActive': user.isTrialActive ?? false,
       'profileCompleted': user.profileCompleted ?? false,
     };

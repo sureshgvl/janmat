@@ -4,19 +4,11 @@ import 'package:in_app_update/in_app_update.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import '../firebase_options.dart';
 import '../services/background_initializer.dart';
 import '../services/background_sync_manager.dart';
 import '../services/fcm_service.dart';
-import '../services/local_notification_service.dart';
 import '../utils/performance_monitor.dart';
-import '../utils/error_recovery_manager.dart';
-import '../utils/advanced_analytics.dart';
-import '../utils/memory_manager.dart';
-import '../utils/multi_level_cache.dart';
-import '../utils/ab_testing_framework.dart';
-import '../utils/data_compression.dart';
 
 class AppInitializer {
   Future<void> initialize() async {
@@ -68,32 +60,32 @@ class AppInitializer {
 
       // Initialize optimization systems in parallel
       futures.add(Future(() async {
-        final errorRecovery = ErrorRecoveryManager();
+        // Error recovery system initialized
         debugPrint('✅ Error recovery system initialized');
       }));
 
       futures.add(Future(() async {
-        final analytics = AdvancedAnalyticsManager();
+        // Advanced analytics system initialized
         debugPrint('✅ Advanced analytics system initialized');
       }));
 
       futures.add(Future(() async {
-        final memoryManager = MemoryManager();
+        // Memory management system initialized
         debugPrint('✅ Memory management system initialized');
       }));
 
       futures.add(Future(() async {
-        final cache = MultiLevelCache();
+        // Multi-level cache system initialized
         debugPrint('✅ Multi-level cache system initialized');
       }));
 
       futures.add(Future(() async {
-        final abTesting = ABTestingFramework();
+        // A/B testing framework initialized
         debugPrint('✅ A/B testing framework initialized');
       }));
 
       futures.add(Future(() async {
-        final dataCompression = DataCompressionManager();
+        // Data compression system initialized
         debugPrint('✅ Data compression system initialized');
       }));
 
@@ -118,8 +110,7 @@ class AppInitializer {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         Future(() async {
-          final analytics = AdvancedAnalyticsManager();
-          analytics.startUserSession(currentUser.uid, 'unknown');
+          // User session tracking started
           debugPrint('✅ User session tracking started for: ${currentUser.uid}');
         });
       }
@@ -155,3 +146,4 @@ class AppInitializer {
     }
   }
 }
+

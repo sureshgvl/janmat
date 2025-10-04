@@ -162,3 +162,4 @@ Candidate _createTestCandidate() {
 
   return Candidate.fromJson(candidateData);
 }
+

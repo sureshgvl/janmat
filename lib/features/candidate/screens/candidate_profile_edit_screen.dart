@@ -82,3 +82,4 @@ class _CandidateProfileEditScreenState
     );
   }
 }
+

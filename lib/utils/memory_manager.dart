@@ -578,3 +578,4 @@ class ResourcePool<T> {
     _inUse.clear();
   }
 }
+

@@ -94,7 +94,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -130,10 +130,10 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -145,7 +145,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                       color: Colors.white,
                       shadows: [
                         Shadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(2, 2),
                         ),
@@ -177,7 +177,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                         child: Text(
                           'Loading...',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -193,3 +193,4 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     );
   }
 }
+

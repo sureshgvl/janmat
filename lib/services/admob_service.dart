@@ -276,3 +276,4 @@ class AdMobService extends GetxService {
     }
   }
 }
+

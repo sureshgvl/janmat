@@ -198,7 +198,7 @@ class _DemoDataModalState extends State<DemoDataModal> {
                               color: isSelected
                                   ? Theme.of(
                                       context,
-                                    ).primaryColor.withOpacity(0.1)
+                                    ).primaryColor.withValues(alpha: 0.1)
                                   : Colors.grey[100],
                               border: Border.all(
                                 color: isSelected
@@ -381,3 +381,4 @@ class _DemoDataModalState extends State<DemoDataModal> {
     );
   }
 }
+

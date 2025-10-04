@@ -100,3 +100,4 @@ class ApiDebouncer {
     _isLoading = false;
   }
 }
+

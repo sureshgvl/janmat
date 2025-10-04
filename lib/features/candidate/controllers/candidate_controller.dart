@@ -867,3 +867,4 @@ class CandidateController extends GetxController {
     }
   }
 }
+

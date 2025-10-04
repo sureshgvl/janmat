@@ -147,7 +147,7 @@ class AuthRepository {
             final storedAccount = await getLastGoogleAccount();
             final expectedEmail = storedAccount?['email'];
 
-            debugPrint('🔍 [GOOGLE_SIGNIN] "Continue as" mode - expecting account: ${storedAccount?['displayName']} (${expectedEmail})');
+            debugPrint('🔍 [GOOGLE_SIGNIN] "Continue as" mode - expecting account: ${storedAccount?['displayName']} ($expectedEmail)');
 
             // For "Continue as", we need to ensure we get the expected account
             // If silent sign-in returns a different account, we should force account picker
@@ -2105,7 +2105,7 @@ class AuthRepository {
       } catch (e) {
         if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
           // Authentication succeeded despite timeout
-          throw e;
+          rethrow;
         }
 
         retryCount++;
@@ -2267,3 +2267,4 @@ class AuthRepository {
     }
   }
 }
+

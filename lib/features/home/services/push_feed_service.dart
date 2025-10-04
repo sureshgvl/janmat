@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 
 class PushFeedService {
@@ -14,7 +15,7 @@ class PushFeedService {
     // Check if user is authenticated before fetching data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      print('ℹ️ User not authenticated, skipping push feed fetch');
+      debugPrint('ℹ️ User not authenticated, skipping push feed fetch');
       return [];
     }
 
@@ -33,7 +34,7 @@ class PushFeedService {
           .map((doc) => SponsoredUpdate.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      print('Error fetching push feed: $e');
+      debugPrint('Error fetching push feed: $e');
       return [];
     }
   }
@@ -68,7 +69,7 @@ class PushFeedService {
           .add(updateData);
       return docRef.id;
     } catch (e) {
-      print('Error creating sponsored update: $e');
+      debugPrint('Error creating sponsored update: $e');
       return null;
     }
   }
@@ -81,7 +82,7 @@ class PushFeedService {
       });
       return true;
     } catch (e) {
-      print('Error deactivating update: $e');
+      debugPrint('Error deactivating update: $e');
       return false;
     }
   }
@@ -99,7 +100,7 @@ class PushFeedService {
           .map((doc) => SponsoredUpdate.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      print('Error fetching author updates: $e');
+      debugPrint('Error fetching author updates: $e');
       return [];
     }
   }
@@ -120,8 +121,9 @@ class PushFeedService {
           .map((doc) => SponsoredUpdate.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      print('Error fetching district updates: $e');
+      debugPrint('Error fetching district updates: $e');
       return [];
     }
   }
 }
+

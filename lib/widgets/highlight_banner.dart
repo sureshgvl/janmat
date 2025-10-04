@@ -90,7 +90,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
 
   // Public method to refresh banner data when candidate profile is updated
   void refreshBannerData() {
-    print('🔄 [HighlightBanner] Refreshing banner data due to candidate profile update');
+    debugPrint('🔄 [HighlightBanner] Refreshing banner data due to candidate profile update');
     _loadPlatinumBanner();
   }
 
@@ -118,7 +118,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         try {
           // Use candidate repository to fetch candidate data (handles hierarchical structure)
           final candidateRepository = CandidateRepository();
-          print('🔍 [HighlightBanner] Fetching candidate data for ID: ${banner.candidateId}');
+          debugPrint('🔍 [HighlightBanner] Fetching candidate data for ID: ${banner.candidateId}');
           final candidate = await candidateRepository.getCandidateDataById(banner.candidateId);
 
           if (candidate != null) {
@@ -127,20 +127,20 @@ class _HighlightBannerState extends State<HighlightBanner> {
             candidateName = candidate.name;
 
             // Debug logging
-            print('🎯 [HighlightBanner] Candidate data loaded successfully:');
-            print('   candidateId: ${banner.candidateId}');
-            print('   name: ${candidate.name}');
-            print('   photo URL: $profileImageUrl');
-            print('   party: $candidateParty');
-            print('   candidate.party directly: ${candidate.party}');
-            print('   candidate.toJson()["party"]: ${candidate.toJson()["party"]}');
-            print('   Raw candidate object: ${candidate.toJson()}');
+            debugPrint('🎯 [HighlightBanner] Candidate data loaded successfully:');
+            debugPrint('   candidateId: ${banner.candidateId}');
+            debugPrint('   name: ${candidate.name}');
+            debugPrint('   photo URL: $profileImageUrl');
+            debugPrint('   party: $candidateParty');
+            debugPrint('   candidate.party directly: ${candidate.party}');
+            debugPrint('   candidate.toJson()["party"]: ${candidate.toJson()["party"]}');
+            debugPrint('   Raw candidate object: ${candidate.toJson()}');
           } else {
-            print('❌ [HighlightBanner] Candidate not found for ID: ${banner.candidateId}');
-            print('   This means getCandidateDataById returned null');
+            debugPrint('❌ [HighlightBanner] Candidate not found for ID: ${banner.candidateId}');
+            debugPrint('   This means getCandidateDataById returned null');
           }
         } catch (e) {
-          print('❌ [HighlightBanner] Error fetching candidate data: $e');
+          debugPrint('❌ [HighlightBanner] Error fetching candidate data: $e');
         }
       }
 
@@ -186,7 +186,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         // Animation removed - no longer needed
       }
     } catch (e) {
-      print('Error loading platinum banner: $e');
+      debugPrint('Error loading platinum banner: $e');
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -213,7 +213,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         // Navigate to candidate profile screen
         Get.to(() => const CandidateProfileScreen(), arguments: candidate);
       } else {
-        print('❌ [HighlightBanner] Candidate not found for navigation: ${platinumBanner!.candidateId}');
+        debugPrint('❌ [HighlightBanner] Candidate not found for navigation: ${platinumBanner!.candidateId}');
         // Fallback: show error message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -225,7 +225,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         }
       }
     } catch (e) {
-      print('❌ [HighlightBanner] Error navigating to candidate profile: $e');
+      debugPrint('❌ [HighlightBanner] Error navigating to candidate profile: $e');
       // Fallback: show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -257,7 +257,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         },
       });
     } catch (e) {
-      print('Error tracking banner view: $e');
+      debugPrint('Error tracking banner view: $e');
     }
   }
 
@@ -291,7 +291,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -320,7 +320,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
                           ? Image.network(
                               candidateProfileImageUrl!,
                               fit: BoxFit.cover,
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               colorBlendMode: BlendMode.overlay,
                               errorBuilder: (context, error, stackTrace) {
                                 // Fallback to stored highlight imageUrl if available
@@ -328,7 +328,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
                                   return Image.network(
                                     platinumBanner!.imageUrl!,
                                     fit: BoxFit.cover,
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: Colors.white.withValues(alpha: 0.3),
                                     colorBlendMode: BlendMode.overlay,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
@@ -365,7 +365,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
                               ? Image.network(
                                   platinumBanner!.imageUrl!,
                                   fit: BoxFit.cover,
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   colorBlendMode: BlendMode.overlay,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
@@ -464,3 +464,4 @@ class _HighlightBannerState extends State<HighlightBanner> {
     );
   }
 }
+

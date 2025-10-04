@@ -295,7 +295,7 @@ class ManifestoResourcesImproved extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.3),
+                          Colors.black.withValues(alpha: 0.3),
                         ],
                       ),
                     ),
@@ -318,7 +318,7 @@ class ManifestoResourcesImproved extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -347,7 +347,7 @@ class ManifestoResourcesImproved extends StatelessWidget {
                             Text(
                               'Tap to View',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 10,
                                 shadows: [
                                   Shadow(
@@ -473,7 +473,7 @@ class ManifestoResourcesImproved extends StatelessWidget {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: hasVideo
-                              ? Colors.white.withOpacity(0.9)
+                              ? Colors.white.withValues(alpha: 0.9)
                               : Colors.grey.shade300,
                             shape: BoxShape.circle,
                           ),
@@ -492,7 +492,7 @@ class ManifestoResourcesImproved extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
+                                color: Colors.black.withValues(alpha: 0.7),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
@@ -542,3 +542,4 @@ class ManifestoResourcesImproved extends StatelessWidget {
     );
   }
 }
+

@@ -64,7 +64,7 @@ class InitialAppDataService {
           },
         );
 
-        if (userDoc != null && userDoc.exists) {
+        if (userDoc.exists) {
           userData = userDoc.data()!;
 
           // Cache only essential routing data to avoid serialization issues
@@ -176,3 +176,4 @@ class InitialAppDataService {
     }
   }
 }
+

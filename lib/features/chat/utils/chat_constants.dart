@@ -87,3 +87,4 @@ class ChatConstants {
   static const String successFileUploaded = 'File uploaded successfully';
   static const String successPollCreated = 'Poll created successfully';
 }
+

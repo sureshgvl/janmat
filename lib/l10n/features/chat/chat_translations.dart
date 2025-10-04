@@ -95,3 +95,4 @@ class ChatTranslations {
 extension ChatTranslationsExtension on String {
   String get ctr => ChatTranslations._chatLocalizations.toString(); // This is a placeholder - actual implementation would need proper extension
 }
+

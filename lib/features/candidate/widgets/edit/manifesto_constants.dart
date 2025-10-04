@@ -219,3 +219,4 @@ class ManifestoConstants {
 extension ManifestoConstantsExtension on BuildContext {
   ManifestoConstants get constants => ManifestoConstants();
 }
+

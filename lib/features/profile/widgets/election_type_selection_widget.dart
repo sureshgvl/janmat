@@ -234,3 +234,4 @@ class ElectionTypeSelectionWidget extends StatelessWidget {
     }
   }
 }
+

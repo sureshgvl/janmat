@@ -38,3 +38,4 @@ class CandidateDashboardAnalytics extends StatelessWidget {
     });
   }
 }
+

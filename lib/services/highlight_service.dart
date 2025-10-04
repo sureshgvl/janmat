@@ -237,7 +237,7 @@ class HighlightService {
             'lastShown': FieldValue.serverTimestamp(),
           });
     } catch (e) {
-      print('Error tracking impression: $e');
+      debugPrint('Error tracking impression: $e');
     }
   }
 
@@ -249,7 +249,7 @@ class HighlightService {
           .doc(highlightId)
           .update({'clicks': FieldValue.increment(1)});
     } catch (e) {
-      print('Error tracking click: $e');
+      debugPrint('Error tracking click: $e');
     }
   }
 
@@ -306,7 +306,7 @@ class HighlightService {
 
       return highlightId;
     } catch (e) {
-      print('Error creating highlight: $e');
+      debugPrint('Error creating highlight: $e');
       return null;
     }
   }
@@ -328,7 +328,7 @@ class HighlightService {
           .map((doc) => PushFeedItem.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      print('Error fetching push feed: $e');
+      debugPrint('Error fetching push feed: $e');
       return [];
     }
   }
@@ -363,7 +363,7 @@ class HighlightService {
 
       return feedId;
     } catch (e) {
-      print('Error creating push feed item: $e');
+      debugPrint('Error creating push feed item: $e');
       return null;
     }
   }
@@ -379,7 +379,7 @@ class HighlightService {
           .doc(highlightId)
           .update({'active': active});
     } catch (e) {
-      print('Error updating highlight status: $e');
+      debugPrint('Error updating highlight status: $e');
     }
   }
 
@@ -398,7 +398,7 @@ class HighlightService {
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      print('Error fetching candidate highlights: $e');
+      debugPrint('Error fetching candidate highlights: $e');
       return [];
     }
   }
@@ -544,3 +544,4 @@ class HighlightService {
     }
   }
 }
+

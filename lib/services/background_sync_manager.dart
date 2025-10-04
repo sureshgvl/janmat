@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:get/get.dart';
 import '../models/user_model.dart';
 import 'user_cache_service.dart';
 
@@ -26,7 +25,7 @@ class BackgroundSyncManager {
       _processSyncQueue();
     });
 
-    print('🔄 Background sync manager initialized');
+    debugPrint('🔄 Background sync manager initialized');
   }
 
   // Add operation to background sync queue
@@ -96,7 +95,7 @@ class BackgroundSyncManager {
 
       _syncQueue.clear();
       final totalDuration = DateTime.now().difference(startTime);
-      debugPrint('🎉 [BACKGROUND_SYNC] Queue processing completed successfully in ${totalDuration.inSeconds}s (${totalProcessed} operations)');
+      debugPrint('🎉 [BACKGROUND_SYNC] Queue processing completed successfully in $totalDuration.inSeconds s ($totalProcessed operations)');
     } catch (e) {
       final totalDuration = DateTime.now().difference(startTime);
       debugPrint('❌ [BACKGROUND_SYNC] Error processing background sync queue after ${totalDuration.inSeconds}s: $e');
@@ -110,7 +109,7 @@ class BackgroundSyncManager {
   Future<void> syncUserProfileAfterLogin(User firebaseUser) async {
     addToSyncQueue(() async {
       try {
-        print('👤 Syncing user profile in background...');
+        debugPrint('👤 Syncing user profile in background...');
 
         final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
         final userSnapshot = await userDoc.get();
@@ -138,7 +137,7 @@ class BackgroundSyncManager {
           // Cache the user profile locally
           await _cacheService.cacheUserProfile(userModel);
 
-          print('✅ Full user profile created and cached');
+          debugPrint('✅ Full user profile created and cached');
         } else {
           // Update existing profile
           final existingData = userSnapshot.data()!;
@@ -155,10 +154,10 @@ class BackgroundSyncManager {
           final userModel = UserModel.fromJson({...existingData, ...updatedData});
           await _cacheService.cacheUserProfile(userModel);
 
-          print('✅ User profile updated and cache refreshed');
+          debugPrint('✅ User profile updated and cache refreshed');
         }
       } catch (e) {
-        print('⚠️ Error syncing user profile: $e');
+        debugPrint('⚠️ Error syncing user profile: $e');
       }
     });
   }
@@ -167,7 +166,7 @@ class BackgroundSyncManager {
   Future<void> syncUserPreferences(String userId) async {
     addToSyncQueue(() async {
       try {
-        print('🔄 Syncing user preferences...');
+        debugPrint('🔄 Syncing user preferences...');
 
         // Get local preferences and sync to Firestore
         final prefs = await _cacheService.getQuickUserData();
@@ -178,10 +177,10 @@ class BackgroundSyncManager {
             'preferences': prefs,
           }, SetOptions(merge: true));
 
-          print('✅ User preferences synced');
+          debugPrint('✅ User preferences synced');
         }
       } catch (e) {
-        print('⚠️ Error syncing user preferences: $e');
+        debugPrint('⚠️ Error syncing user preferences: $e');
       }
     });
   }
@@ -190,7 +189,7 @@ class BackgroundSyncManager {
   Future<void> syncUserQuota(String userId) async {
     addToSyncQueue(() async {
       try {
-        print('📊 Syncing user quota...');
+        debugPrint('📊 Syncing user quota...');
 
         final quotaRef = _firestore.collection('user_quotas').doc(userId);
         final quotaSnapshot = await quotaRef.get();
@@ -207,17 +206,17 @@ class BackgroundSyncManager {
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
-          print('✅ User quota created');
+          debugPrint('✅ User quota created');
         } else {
           // Update last activity
           await quotaRef.update({
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
-          print('✅ User quota updated');
+          debugPrint('✅ User quota updated');
         }
       } catch (e) {
-        print('⚠️ Error syncing user quota: $e');
+        debugPrint('⚠️ Error syncing user quota: $e');
       }
     });
   }
@@ -226,7 +225,7 @@ class BackgroundSyncManager {
   Future<void> cleanupExpiredData(String userId) async {
     addToSyncQueue(() async {
       try {
-        print('🧹 Cleaning up expired data...');
+        debugPrint('🧹 Cleaning up expired data...');
 
         // Clean up old cached data
         await _cacheService.clearUserCache();
@@ -234,9 +233,9 @@ class BackgroundSyncManager {
         // Clean up old Firestore data if needed
         // This could include cleaning up old messages, expired sessions, etc.
 
-        print('✅ Expired data cleaned up');
+        debugPrint('✅ Expired data cleaned up');
       } catch (e) {
-        print('⚠️ Error cleaning up expired data: $e');
+        debugPrint('⚠️ Error cleaning up expired data: $e');
       }
     });
   }
@@ -245,14 +244,14 @@ class BackgroundSyncManager {
   Future<void> registerDeviceBackground(String userId) async {
     addToSyncQueue(() async {
       try {
-        print('📱 Registering device in background...');
+        debugPrint('📱 Registering device in background...');
 
         // Device registration logic would go here
         // This would integrate with your DeviceService
 
-        print('✅ Device registered in background');
+        debugPrint('✅ Device registered in background');
       } catch (e) {
-        print('⚠️ Error registering device: $e');
+        debugPrint('⚠️ Error registering device: $e');
       }
     });
   }
@@ -290,7 +289,7 @@ class BackgroundSyncManager {
   void dispose() {
     _syncTimer?.cancel();
     _syncQueue.clear();
-    print('🧹 Background sync manager disposed');
+    debugPrint('🧹 Background sync manager disposed');
   }
 
   // Get sync queue status
@@ -302,3 +301,4 @@ class BackgroundSyncManager {
     };
   }
 }
+

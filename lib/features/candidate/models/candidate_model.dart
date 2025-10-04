@@ -855,3 +855,4 @@ class Candidate {
     );
   }
 }
+

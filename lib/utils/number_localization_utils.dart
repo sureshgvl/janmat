@@ -172,3 +172,4 @@ extension DoubleLocalizationExtensions on double {
     return NumberLocalizationUtils.formatPercentage(this, context, decimalPlaces: decimalPlaces);
   }
 }
+

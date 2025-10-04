@@ -354,3 +354,4 @@ class CandidateComparisonScreen extends StatelessWidget {
     );
   }
 }
+

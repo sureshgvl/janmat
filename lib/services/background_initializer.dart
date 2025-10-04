@@ -243,3 +243,4 @@ Future<void> _runFutureInCompute(Future<void> future) async {
 
 /// Global background initializer instance
 final backgroundInitializer = BackgroundInitializer();
+

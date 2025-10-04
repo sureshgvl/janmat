@@ -662,3 +662,4 @@ class MessageController extends GetxController {
     super.onClose();
   }
 }
+

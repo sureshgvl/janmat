@@ -18,7 +18,7 @@ class PlanService {
         return SubscriptionPlan.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error fetching plans: $e');
+      debugPrint('Error fetching plans: $e');
       return [];
     }
   }
@@ -37,7 +37,7 @@ class PlanService {
       }
       return null;
     } catch (e) {
-      print('Error fetching plan: $e');
+      debugPrint('Error fetching plan: $e');
       return null;
     }
   }
@@ -56,7 +56,7 @@ class PlanService {
         return SubscriptionPlan.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error fetching candidate plans: $e');
+      debugPrint('Error fetching candidate plans: $e');
       return [];
     }
   }
@@ -75,7 +75,7 @@ class PlanService {
         return SubscriptionPlan.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error fetching voter plans: $e');
+      debugPrint('Error fetching voter plans: $e');
       return [];
     }
   }
@@ -142,7 +142,7 @@ class PlanService {
 
       return await getPlanById(subscriptionPlanId);
     } catch (e) {
-      print('Error getting user plan: $e');
+      debugPrint('Error getting user plan: $e');
       return null;
     }
   }
@@ -249,3 +249,4 @@ class PlanService {
   }
 
 }
+

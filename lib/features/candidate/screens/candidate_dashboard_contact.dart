@@ -140,3 +140,4 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
     });
   }
 }
+

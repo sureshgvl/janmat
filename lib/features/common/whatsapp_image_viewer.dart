@@ -242,8 +242,8 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),
@@ -298,8 +298,8 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),
@@ -327,3 +327,4 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
     );
   }
 }
+

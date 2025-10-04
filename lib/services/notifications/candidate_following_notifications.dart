@@ -2,17 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../../features/candidate/repositories/candidate_repository.dart';
 import '../event_notification_service.dart';
 
 class CandidateFollowingNotifications {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'us-central1');
   final CandidateRepository _candidateRepository = CandidateRepository();
-  final EventNotificationService _eventNotificationService = EventNotificationService();
 
   // Notify candidate when they gain a new follower
   Future<void> sendNewFollowerNotification({
@@ -55,7 +51,6 @@ class CandidateFollowingNotifications {
       final followerCount = await _getCandidateFollowerCount(candidateId);
 
       // Create notification message
-      final displayName = finalCandidateName ?? 'Candidate';
       final title = 'New Follower!';
       final body = '$followerName started following you. You now have ${followerCount + 1} followers!';
 
@@ -645,3 +640,4 @@ class CandidateFollowingNotifications {
     }
   }
 }
+

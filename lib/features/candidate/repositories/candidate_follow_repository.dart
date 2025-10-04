@@ -645,3 +645,4 @@ class CandidateFollowRepository {
     }
   }
 }
+

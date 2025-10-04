@@ -124,3 +124,4 @@ class ManifestoResourcesDemo extends StatelessWidget {
     );
   }
 }
+

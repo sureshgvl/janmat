@@ -350,3 +350,4 @@ class _ElectionTypeSelectionModalState extends State<ElectionTypeSelectionModal>
     );
   }
 }
+

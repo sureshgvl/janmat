@@ -354,3 +354,4 @@ class VideoQualitySettings {
   String get formattedBitrate =>
       '${(bitrate / 1000000).toStringAsFixed(1)} Mbps';
 }
+

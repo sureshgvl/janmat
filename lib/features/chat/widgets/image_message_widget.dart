@@ -48,3 +48,4 @@ class ImageMessageWidget extends StatelessWidget {
     );
   }
 }
+

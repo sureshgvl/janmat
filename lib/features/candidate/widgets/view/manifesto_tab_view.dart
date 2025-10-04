@@ -81,3 +81,4 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     );
   }
 }
+

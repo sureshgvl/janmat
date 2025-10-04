@@ -95,3 +95,4 @@ class PollsTranslations {
     return PollsLocalizations.current.translate(key, args: args);
   }
 }
+

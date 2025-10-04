@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class SampleStatesManager {
   static Future<void> addSampleStates() async {
@@ -50,12 +51,12 @@ class SampleStatesManager {
       for (final stateData in sampleStates) {
         final stateId = stateData['stateId'] as String;
         await statesCollection.doc(stateId).set(stateData);
-        print('✅ Added state: $stateId');
+        debugPrint('✅ Added state: $stateId');
       }
 
-      print('🎉 Successfully added ${sampleStates.length} sample states to Firestore');
+      debugPrint('🎉 Successfully added ${sampleStates.length} sample states to Firestore');
     } catch (e) {
-      print('❌ Error adding sample states: $e');
+      debugPrint('❌ Error adding sample states: $e');
       rethrow;
     }
   }
@@ -105,7 +106,7 @@ class SampleStatesManager {
     };
 
     try {
-      print('🔄 Updating existing states with Marathi names...');
+      debugPrint('🔄 Updating existing states with Marathi names...');
 
       // Get all existing states
       final statesSnapshot = await statesCollection.get();
@@ -120,13 +121,13 @@ class SampleStatesManager {
             'marathiName': marathiNames[stateId],
             'updatedAt': FieldValue.serverTimestamp(),
           });
-          print('✅ Updated state: $stateId with Marathi name: ${marathiNames[stateId]}');
+          debugPrint('✅ Updated state: $stateId with Marathi name: ${marathiNames[stateId]}');
         }
       }
 
-      print('🎉 Successfully updated existing states with Marathi names');
+      debugPrint('🎉 Successfully updated existing states with Marathi names');
     } catch (e) {
-      print('❌ Error updating existing states: $e');
+      debugPrint('❌ Error updating existing states: $e');
       rethrow;
     }
   }
@@ -146,12 +147,12 @@ class SampleStatesManager {
               'createdAt': FieldValue.serverTimestamp(),
               'updatedAt': FieldValue.serverTimestamp(),
             });
-        print('✅ Added district: ${district['districtId']} to state: $stateId');
+        debugPrint('✅ Added district: ${district['districtId']} to state: $stateId');
       }
 
-      print('🎉 Successfully added ${districts.length} districts to state: $stateId');
+      debugPrint('🎉 Successfully added ${districts.length} districts to state: $stateId');
     } catch (e) {
-      print('❌ Error adding sample districts: $e');
+      debugPrint('❌ Error adding sample districts: $e');
       rethrow;
     }
   }
@@ -169,3 +170,4 @@ class SampleStatesManager {
     await addSampleDistrictsForState('maharashtra', sampleDistricts);
   }
 }
+

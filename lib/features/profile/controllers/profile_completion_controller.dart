@@ -1113,3 +1113,4 @@ class ProfileCompletionController extends GetxController {
     update();
   }
 }
+

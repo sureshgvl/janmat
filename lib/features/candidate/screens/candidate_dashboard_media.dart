@@ -157,3 +157,4 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
     });
   }
 }
+

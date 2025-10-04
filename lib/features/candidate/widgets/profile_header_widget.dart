@@ -91,7 +91,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -136,7 +136,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                         ),
                         child: const Center(
                           child: CircularProgressIndicator(
@@ -268,3 +268,4 @@ class ProfileHeaderWidget extends StatelessWidget {
     );
   }
 }
+

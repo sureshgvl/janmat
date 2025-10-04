@@ -113,7 +113,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                     ),
                     Expanded(
                       child: Text(
-                        '$days Days - ₹${price}',
+                        '$days Days - ₹$price',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -125,7 +125,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 ),
               ),
             );
-          }).toList(),
+          }),
 
           const SizedBox(height: 12),
 
@@ -144,7 +144,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               boxShadow: selectedValidityDays != null
                 ? [
                     BoxShadow(
-                      color: Colors.blue.shade300.withOpacity(0.3),
+                      color: Colors.blue.shade300.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -279,7 +279,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                             ),
                           ),
                           Text(
-                            '₹${price}', // Price in rupees (no division needed)
+                            '₹$price', // Price in rupees (no division needed)
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -442,3 +442,4 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
     );
   }
 }
+

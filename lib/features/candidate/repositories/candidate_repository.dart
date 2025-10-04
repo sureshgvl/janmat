@@ -140,3 +140,4 @@ class CandidateRepository {
   void clearExpiredCache() => _cacheManager.clearExpiredCache();
   Map<String, dynamic> getCacheStats() => _cacheManager.getCacheStats();
 }
+

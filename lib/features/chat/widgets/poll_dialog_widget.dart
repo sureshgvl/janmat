@@ -682,3 +682,4 @@ class CreatePollDialogState extends State<CreatePollDialog> {
     );
   }
 }
+

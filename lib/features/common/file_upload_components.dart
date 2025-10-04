@@ -20,9 +20,9 @@ class FileUploadComponents {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: cardColor.withOpacity(0.1),
+        color: cardColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: cardColor.withOpacity(0.2)),
+        border: Border.all(color: cardColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -44,7 +44,7 @@ class FileUploadComponents {
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: iconColor.withOpacity(0.8),
+                    color: iconColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -203,3 +203,4 @@ enum FileType {
   video,
   custom, // For PDF and other custom file types
 }
+

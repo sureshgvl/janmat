@@ -833,7 +833,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           Container(
             margin: const EdgeInsets.only(right: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.1),
+              color: AppColors.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
             ),
             child: IconButton(
@@ -867,8 +867,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary.withOpacity(0.05),
-                          AppColors.secondary.withOpacity(0.05),
+                          AppColors.primary.withValues(alpha: 0.05),
+                          AppColors.secondary.withValues(alpha: 0.05),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -1081,7 +1081,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              color: AppColors.surface.withOpacity(0.5),
+                              color: AppColors.surface.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(AppBorderRadius.md),
                               border: Border.all(color: AppColors.borderLight),
                             ),
@@ -1186,7 +1186,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              color: AppColors.surface.withOpacity(0.5),
+                              color: AppColors.surface.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(AppBorderRadius.md),
                               border: Border.all(color: AppColors.borderLight),
                             ),
@@ -1311,8 +1311,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppColors.primary.withOpacity(0.1),
-                                      AppColors.secondary.withOpacity(0.1),
+                                      AppColors.primary.withValues(alpha: 0.1),
+                                      AppColors.secondary.withValues(alpha: 0.1),
                                     ],
                                   ),
                                 ),
@@ -1398,7 +1398,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                 borderRadius: BorderRadius.circular(AppBorderRadius.xxl),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -1427,3 +1427,4 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     );
   }
 }
+

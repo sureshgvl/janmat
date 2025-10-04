@@ -145,3 +145,4 @@ class MessageFormatter {
     return urlRegex.allMatches(text).map((match) => match.group(0)!).toList();
   }
 }
+

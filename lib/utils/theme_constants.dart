@@ -169,3 +169,4 @@ class AppShadows {
     offset: Offset(0, 6),
   );
 }
+

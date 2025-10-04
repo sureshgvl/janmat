@@ -111,3 +111,4 @@ class CandidateProgressSection extends StatelessWidget {
     });
   }
 }
+

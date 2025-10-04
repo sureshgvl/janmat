@@ -186,3 +186,4 @@ class CandidateTranslations {
     return CandidateLocalizations.current.translate(key, args: args);
   }
 }
+

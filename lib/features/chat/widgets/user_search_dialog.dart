@@ -113,7 +113,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
         _isSearching = false;
       });
     } catch (e) {
-      print('Error searching users: $e');
+      debugPrint('Error searching users: $e');
       setState(() => _isSearching = false);
     }
   }
@@ -157,7 +157,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
       }
     } catch (e) {
       Get.back(); // Close loading
-      print('Error starting private chat: $e');
+      debugPrint('Error starting private chat: $e');
       Get.snackbar(
         'Error',
         'Failed to start private chat',
@@ -253,7 +253,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
                             final user = _searchResults[index];
                             return ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                                backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                 child: Text(
                                   user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                                   style: TextStyle(
@@ -307,3 +307,4 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
     );
   }
 }
+

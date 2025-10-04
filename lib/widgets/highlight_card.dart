@@ -45,7 +45,7 @@ class _HighlightCardState extends State<HighlightCard> {
         setState(() => isLoadingProfile = false);
       }
     } catch (e) {
-      print('Error fetching candidate profile image: $e');
+      debugPrint('Error fetching candidate profile image: $e');
       if (mounted) {
         setState(() => isLoadingProfile = false);
       }
@@ -66,7 +66,7 @@ class _HighlightCardState extends State<HighlightCard> {
         'deviceInfo': {'platform': 'mobile', 'appVersion': '1.0.0'},
       });
     } catch (e) {
-      print('Error tracking carousel view: $e');
+      debugPrint('Error tracking carousel view: $e');
     }
   }
 
@@ -84,7 +84,7 @@ class _HighlightCardState extends State<HighlightCard> {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -182,7 +182,7 @@ class _HighlightCardState extends State<HighlightCard> {
     HighlightService.trackClick(widget.highlight.id);
 
     // Default navigation - you'll need to implement this based on your routing
-    print('Navigate to candidate profile: ${widget.highlight.candidateId}');
+    debugPrint('Navigate to candidate profile: ${widget.highlight.candidateId}');
 
     // Example navigation (adjust based on your app's routing):
     // Navigator.pushNamed(
@@ -192,3 +192,4 @@ class _HighlightCardState extends State<HighlightCard> {
     // );
   }
 }
+

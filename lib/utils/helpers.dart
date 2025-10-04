@@ -119,3 +119,4 @@ class Helpers {
     return name.isNotEmpty ? name[0].toUpperCase() : '';
   }
 }
+

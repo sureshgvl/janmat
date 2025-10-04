@@ -102,3 +102,4 @@ class State {
   int get hashCode =>
       id.hashCode ^ name.hashCode ^ marathiName.hashCode ^ code.hashCode ^ isActive.hashCode;
 }
+

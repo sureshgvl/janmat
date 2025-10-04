@@ -9,9 +9,6 @@ class BackgroundLocationSyncService {
   final LocalDatabaseService _locationDatabase = LocalDatabaseService();
   final Connectivity _connectivity = Connectivity();
 
-  // Sync intervals
-  static const Duration _syncInterval = Duration(hours: 6); // Sync every 6 hours
-  static const Duration _initialDelay = Duration(minutes: 2); // Wait 2 minutes after app start
 
   // Singleton pattern
   static BackgroundLocationSyncService get instance {
@@ -134,3 +131,4 @@ class BackgroundLocationSyncService {
     return null;
   }
 }
+

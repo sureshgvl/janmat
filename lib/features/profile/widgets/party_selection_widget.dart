@@ -244,3 +244,4 @@ class PartySelectionWidget extends StatelessWidget {
     return party?.getDisplayName(Localizations.localeOf(context).languageCode) ?? partyId;
   }
 }
+

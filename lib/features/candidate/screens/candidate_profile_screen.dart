@@ -591,3 +591,4 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   }
 }
 
+

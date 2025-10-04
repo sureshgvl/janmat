@@ -199,3 +199,4 @@ class ChatInitializer {
     debugPrint('🎉 Chat system initialization complete!');
   }
 }
+

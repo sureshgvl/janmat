@@ -212,3 +212,4 @@ class CandidateCacheManager {
   List<String>? getCachedFollowing(String cacheKey) => _getCachedFollowing(cacheKey);
   void cacheData(String cacheKey, dynamic data) => _cacheData(cacheKey, data);
 }
+

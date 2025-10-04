@@ -145,7 +145,7 @@ class ChatRoomHelpers {
     if (readBy.length > 1) {
       return Colors.lightBlue; // Read by others
     } else {
-      return Colors.white.withOpacity(0.7); // Sent but not read
+      return Colors.white.withValues(alpha: 0.7); // Sent but not read
     }
   }
 
@@ -304,3 +304,4 @@ class ChatRoomHelpers {
     return options;
   }
 }
+

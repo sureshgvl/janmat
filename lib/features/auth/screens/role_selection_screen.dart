@@ -164,7 +164,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                                 width: 60,
                                 height: 60,
                                 decoration: BoxDecoration(
-                                  color: role['color'].withOpacity(0.1),
+                                  color: role['color'].withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -272,3 +272,4 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     );
   }
 }
+

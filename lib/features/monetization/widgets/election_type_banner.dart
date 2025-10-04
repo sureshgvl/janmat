@@ -38,3 +38,4 @@ class ElectionTypeBanner extends StatelessWidget {
     );
   }
 }
+

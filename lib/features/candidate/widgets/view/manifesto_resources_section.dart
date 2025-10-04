@@ -651,3 +651,4 @@ class VideoPreviewWidget extends StatelessWidget {
     );
   }
 }
+

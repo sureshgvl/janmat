@@ -58,7 +58,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
         });
       }
     } catch (e) {
-      print('Error loading highlights: $e');
+      debugPrint('Error loading highlights: $e');
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -71,7 +71,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
 
     // Navigate to candidate profile
     // You'll need to implement this navigation based on your app's routing
-    print('Navigate to candidate: ${highlight.candidateId}');
+    debugPrint('Navigate to candidate: ${highlight.candidateId}');
   }
 
 
@@ -131,3 +131,4 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
     );
   }
 }
+

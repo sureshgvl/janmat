@@ -80,7 +80,7 @@ class HomeWidgets {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color(0xFFFF9933).withOpacity(0.8),
+                const Color(0xFFFF9933).withValues(alpha: 0.8),
                 const Color(0xFFFF9933),
               ],
               begin: Alignment.topLeft,
@@ -149,7 +149,7 @@ class HomeWidgets {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF138808).withOpacity(0.8),
+              const Color(0xFF138808).withValues(alpha: 0.8),
               const Color(0xFF138808),
             ],
             begin: Alignment.topLeft,
@@ -186,7 +186,7 @@ class HomeWidgets {
                                   : AppLocalizations.of(context)!.getPremiumVisibilityAndAnalytics)
                               : AppLocalizations.of(context)!.accessExclusiveContentAndFeatures,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
                           ),
                         ),
@@ -286,7 +286,7 @@ class HomeWidgets {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -333,3 +333,4 @@ class HomeWidgets {
     }
   }
 }
+

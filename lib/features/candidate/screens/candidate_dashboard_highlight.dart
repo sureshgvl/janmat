@@ -168,3 +168,4 @@ class _CandidateDashboardHighlightState
     });
   }
 }
+

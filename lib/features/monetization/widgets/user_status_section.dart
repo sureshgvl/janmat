@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
 import '../controllers/monetization_controller.dart';
 
@@ -17,7 +16,6 @@ class UserStatusSection extends StatelessWidget {
     return Obx(() {
       final statusSummary = controller.getUserStatusSummary();
       final userModel = controller.currentUserModel.value;
-      final firebaseUser = controller.currentFirebaseUser.value;
 
       return Card(
         elevation: 4,
@@ -278,9 +276,9 @@ class UserStatusSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -303,3 +301,4 @@ class UserStatusSection extends StatelessWidget {
     );
   }
 }
+

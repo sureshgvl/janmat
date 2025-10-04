@@ -236,3 +236,4 @@ class FollowStatsWidget extends StatelessWidget {
     );
   }
 }
+

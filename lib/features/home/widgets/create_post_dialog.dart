@@ -215,3 +215,4 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
     );
   }
 }
+

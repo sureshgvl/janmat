@@ -69,7 +69,7 @@ class PreviewSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -144,7 +144,7 @@ class PreviewSection extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.7),
+                              Colors.black.withValues(alpha: 0.7),
                             ],
                           ),
                         ),
@@ -188,7 +188,7 @@ class PreviewSection extends StatelessWidget {
                                       ? '"${config.customMessage}"'
                                       : candidate.party ?? 'Political Party',
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     fontSize: 14,
                                     fontStyle: config.customMessage.isNotEmpty ? FontStyle.italic : FontStyle.normal,
                                     shadows: [
@@ -211,7 +211,7 @@ class PreviewSection extends StatelessWidget {
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -272,3 +272,4 @@ class PreviewSection extends StatelessWidget {
     );
   }
 }
+

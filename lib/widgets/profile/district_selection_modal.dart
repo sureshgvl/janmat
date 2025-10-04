@@ -226,11 +226,6 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                           widget.selectedDistrictId == district.id;
                       // Since bodies are loaded on-demand, don't disable districts
                       // that haven't had their bodies loaded yet
-                      final hasBodies =
-                          widget
-                              .districtBodies[district.id]
-                              ?.isNotEmpty ??
-                          false;
                       final isDisabled = false; // Always enable districts
 
                       // Log what gets displayed for each district
@@ -343,3 +338,4 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
     );
   }
 }
+

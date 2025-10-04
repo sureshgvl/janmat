@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
 
@@ -25,7 +26,7 @@ class PrivateChatService {
       }
       return null;
     } catch (e) {
-      print('Error checking existing private chat: $e');
+      debugPrint('Error checking existing private chat: $e');
       return null;
     }
   }
@@ -58,7 +59,7 @@ class PrivateChatService {
 
       return await _repository.createRoomWithMembers(chatRoom, [currentUserId, otherUserId]);
     } catch (e) {
-      print('Error creating private chat: $e');
+      debugPrint('Error creating private chat: $e');
       return null;
     }
   }
@@ -78,7 +79,7 @@ class PrivateChatService {
         return ChatRoom.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting private chats: $e');
+      debugPrint('Error getting private chats: $e');
       return [];
     }
   }
@@ -113,8 +114,9 @@ class PrivateChatService {
         'role': userData['role'] ?? 'voter',
       };
     } catch (e) {
-      print('Error getting private chat user info: $e');
+      debugPrint('Error getting private chat user info: $e');
       return null;
     }
   }
 }
+

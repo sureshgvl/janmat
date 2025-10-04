@@ -72,3 +72,4 @@ class ChatRoomDisplayInfo {
 
   bool get hasUnreadMessages => unreadCount > 0;
 }
+

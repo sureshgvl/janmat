@@ -352,3 +352,4 @@ class FileInfo {
 
   const FileInfo({required this.name, required this.url, required this.type});
 }
+

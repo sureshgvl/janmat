@@ -617,3 +617,4 @@ ChatLocalizations lookupChatLocalizations(Locale locale) {
     'that was used.'
   );
 }
+

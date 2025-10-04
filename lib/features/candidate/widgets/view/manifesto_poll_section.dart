@@ -225,3 +225,4 @@ class _ManifestoPollSectionState extends State<ManifestoPollSection> {
     );
   }
 }
+

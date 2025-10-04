@@ -163,11 +163,11 @@ class FeedWidgets {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1976d2).withOpacity(0.05), // Light blue background
+        color: const Color(0xFF1976d2).withValues(alpha: 0.05), // Light blue background
         borderRadius: BorderRadius.circular(20), // More rounded
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -186,7 +186,7 @@ class FeedWidgets {
                 border: Border.all(color: Colors.grey.shade200, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),
@@ -239,7 +239,7 @@ class FeedWidgets {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -277,7 +277,7 @@ class FeedWidgets {
         border: Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -302,7 +302,7 @@ class FeedWidgets {
                         border: Border.all(color: Colors.grey.shade200, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -459,3 +459,4 @@ class FeedWidgets {
     }
   }
 }
+

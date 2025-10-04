@@ -285,3 +285,4 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
     );
   }
 }
+

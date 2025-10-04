@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
@@ -113,7 +112,7 @@ class RazorpayService extends GetxService {
     Map<String, dynamic>? notes,
   }) {
     debugPrint('🚀 STARTING RAZORPAY PAYMENT PROCESS');
-    debugPrint('   Amount: ₹${amount / 100} (${amount} paisa)');
+    debugPrint('   Amount: ₹${amount / 100} ($amount paisa)');
 
     var options = {
       'key': razorpayKeyId,
@@ -151,7 +150,7 @@ class RazorpayService extends GetxService {
     Map<String, dynamic>? notes,
   }) async {
     debugPrint('📝 CREATING PAYMENT ORDER');
-    debugPrint('   Amount: ₹${amount / 100} (${amount} paisa)');
+    debugPrint('   Amount: ₹${amount / 100} ($amount paisa)');
 
     try {
       // For test mode, skip order creation to avoid API issues
@@ -201,3 +200,4 @@ class RazorpayService extends GetxService {
     };
   }
 }
+

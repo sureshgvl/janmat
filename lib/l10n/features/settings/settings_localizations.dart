@@ -95,3 +95,4 @@ class SettingsTranslations {
     return SettingsLocalizations.current.translate(key, args: args);
   }
 }
+

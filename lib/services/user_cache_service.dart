@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
@@ -20,9 +21,9 @@ class UserCacheService {
         prefs.setString(_cacheTimestampKey, timestamp),
       ]);
 
-      print('✅ User profile cached successfully');
+      debugPrint('✅ User profile cached successfully');
     } catch (e) {
-      print('❌ Error caching user profile: $e');
+      debugPrint('❌ Error caching user profile: $e');
     }
   }
 
@@ -37,7 +38,7 @@ class UserCacheService {
       final userData = jsonDecode(userJson) as Map<String, dynamic>;
       return UserModel.fromJson(userData);
     } catch (e) {
-      print('❌ Error retrieving cached user profile: $e');
+      debugPrint('❌ Error retrieving cached user profile: $e');
       return null;
     }
   }
@@ -47,9 +48,9 @@ class UserCacheService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userDataKey, jsonEncode(userData));
-      print('✅ Temporary user data cached');
+      debugPrint('✅ Temporary user data cached');
     } catch (e) {
-      print('❌ Error caching temporary user data: $e');
+      debugPrint('❌ Error caching temporary user data: $e');
     }
   }
 
@@ -63,7 +64,7 @@ class UserCacheService {
 
       return jsonDecode(tempDataJson) as Map<String, dynamic>;
     } catch (e) {
-      print('❌ Error retrieving cached temp user data: $e');
+      debugPrint('❌ Error retrieving cached temp user data: $e');
       return null;
     }
   }
@@ -82,7 +83,7 @@ class UserCacheService {
 
       return difference < _cacheValidityDuration;
     } catch (e) {
-      print('❌ Error checking cache validity: $e');
+      debugPrint('❌ Error checking cache validity: $e');
       return false;
     }
   }
@@ -96,9 +97,9 @@ class UserCacheService {
         prefs.remove(_userDataKey),
         prefs.remove(_cacheTimestampKey),
       ]);
-      print('✅ User cache cleared');
+      debugPrint('✅ User cache cleared');
     } catch (e) {
-      print('❌ Error clearing user cache: $e');
+      debugPrint('❌ Error clearing user cache: $e');
     }
   }
 
@@ -132,7 +133,7 @@ class UserCacheService {
 
       return null;
     } catch (e) {
-      print('❌ Error getting quick user data: $e');
+      debugPrint('❌ Error getting quick user data: $e');
       return null;
     }
   }
@@ -148,10 +149,11 @@ class UserCacheService {
         existingData.addAll(updates);
 
         await prefs.setString(_userCacheKey, jsonEncode(existingData));
-        print('✅ Cached user data updated');
+        debugPrint('✅ Cached user data updated');
       }
     } catch (e) {
-      print('❌ Error updating cached user data: $e');
+      debugPrint('❌ Error updating cached user data: $e');
     }
   }
 }
+

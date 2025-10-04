@@ -212,3 +212,4 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     );
   }
 }
+

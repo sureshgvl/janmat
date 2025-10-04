@@ -361,3 +361,4 @@ class PlanCard extends StatelessWidget {
     debugPrint('Purchasing plan: ${plan.planId}');
   }
 }
+

@@ -296,7 +296,7 @@ class MessageBubbleState extends State<MessageBubble> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 1,
                       offset: const Offset(0, 1),
                     ),
@@ -397,7 +397,7 @@ class MessageBubbleState extends State<MessageBubble> {
                               ),
                               decoration: BoxDecoration(
                                 color: widget.isCurrentUser
-                                    ? Colors.white.withOpacity(0.5)
+                                    ? Colors.white.withValues(alpha: 0.5)
                                     : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -544,7 +544,7 @@ class MessageBubbleState extends State<MessageBubble> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: widget.isCurrentUser
-              ? Colors.white.withOpacity(0.3)
+              ? Colors.white.withValues(alpha: 0.3)
               : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -586,12 +586,12 @@ class MessageBubbleState extends State<MessageBubble> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: widget.isCurrentUser
-              ? Colors.white.withOpacity(0.1)
+              ? Colors.white.withValues(alpha: 0.1)
               : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: widget.isCurrentUser
-                ? Colors.white.withOpacity(0.3)
+                ? Colors.white.withValues(alpha: 0.3)
                 : Colors.blue.shade200,
           ),
         ),
@@ -627,7 +627,7 @@ class MessageBubbleState extends State<MessageBubble> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: widget.isCurrentUser
-                    ? Colors.white.withOpacity(0.5)
+                    ? Colors.white.withValues(alpha: 0.5)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(6),
               ),
@@ -909,3 +909,4 @@ class MessageBubbleState extends State<MessageBubble> {
     );
   }
 }
+

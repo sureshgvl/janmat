@@ -175,3 +175,4 @@ class ChatRoomCard extends StatelessWidget {
     );
   }
 }
+

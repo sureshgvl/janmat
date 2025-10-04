@@ -310,3 +310,4 @@ class ChatLocalizationsEn extends ChatLocalizations {
   @override
   String get pleaseAddAtLeast2Options => 'Please add at least 2 options';
 }
+

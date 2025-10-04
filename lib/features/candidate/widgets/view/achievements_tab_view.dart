@@ -96,7 +96,7 @@ View their complete profile and achievements at: [Your App URL]
               border: Border.all(color: Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -175,7 +175,7 @@ View their complete profile and achievements at: [Your App URL]
                   border: Border.all(color: Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -422,3 +422,4 @@ View their complete profile and achievements at: [Your App URL]
     }
   }
 }
+

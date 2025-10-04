@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
-import '../../../utils/theme_constants.dart';
 import '../../../widgets/custom_button.dart';
 import '../controllers/profile_completion_controller.dart';
 
@@ -44,3 +43,4 @@ class ProfileCompletionActions extends StatelessWidget {
     );
   }
 }
+
