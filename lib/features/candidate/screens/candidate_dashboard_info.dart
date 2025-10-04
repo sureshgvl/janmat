@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/candidate_data_controller.dart';
 import '../../../utils/symbol_utils.dart';
-import '../widgets/view/basic_info_tab_view.dart';
+import '../widgets/view/basic_info/basic_info_view.dart';
+import '../widgets/edit/basic_info/basic_info_edit.dart';
 import '../../../widgets/loading_overlay.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../services/local_database_service.dart';
+import '../repositories/candidate_repository.dart';
+import '../../../models/district_model.dart';
+import '../../../models/body_model.dart';
+import '../../../models/ward_model.dart';
 
 class CandidateDashboardInfo extends StatefulWidget {
   const CandidateDashboardInfo({super.key});
@@ -16,8 +22,167 @@ class CandidateDashboardInfo extends StatefulWidget {
 
 class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
   final CandidateDataController controller = Get.put(CandidateDataController());
+  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
+  final CandidateRepository candidateRepository = CandidateRepository();
   bool isEditing = false;
   bool isSaving = false;
+
+  // Location data variables
+  String? _wardName;
+  String? _districtName;
+  String? _bodyName;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load location data when the screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadLocationData();
+    });
+  }
+
+  // Load location data
+  Future<void> _loadLocationData() async {
+    final candidate = controller.candidateData.value;
+    if (candidate == null) return;
+
+    debugPrint('🔍 [Dashboard Info] Loading location data for candidate ${candidate.candidateId}');
+    debugPrint('📍 [Dashboard Info] IDs: district=${candidate.districtId}, body=${candidate.bodyId}, ward=${candidate.wardId}');
+
+    try {
+      // Load location data from SQLite cache
+      final locationData = await _locationDatabase.getCandidateLocationData(
+        candidate.districtId,
+        candidate.bodyId,
+        candidate.wardId,
+        candidate.stateId,
+      );
+
+      // Check if ward data is missing (most likely to be missing)
+      if (locationData['wardName'] == null) {
+        debugPrint('⚠️ [Dashboard Info] Ward data not found in cache, triggering sync...');
+
+        // Trigger background sync for missing location data
+        await _syncMissingLocationData();
+
+        // Try loading again after sync
+        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
+          candidate.districtId,
+          candidate.bodyId,
+          candidate.wardId,
+          candidate.stateId,
+        );
+
+        if (mounted) {
+          setState(() {
+            _districtName = updatedLocationData['districtName'];
+            _bodyName = updatedLocationData['bodyName'];
+            _wardName = updatedLocationData['wardName'];
+          });
+        }
+
+        debugPrint('✅ [Dashboard Info] Location data loaded after sync:');
+        debugPrint('   📍 District: $_districtName');
+        debugPrint('   🏛️ Body: $_bodyName');
+        debugPrint('   🏛️ Ward: $_wardName');
+      } else {
+        if (mounted) {
+          setState(() {
+            _districtName = locationData['districtName'];
+            _bodyName = locationData['bodyName'];
+            _wardName = locationData['wardName'];
+          });
+        }
+
+        debugPrint('✅ [Dashboard Info] Location data loaded successfully from SQLite:');
+        debugPrint('   📍 District: $_districtName');
+        debugPrint('   🏛️ Body: $_bodyName');
+        debugPrint('   🏛️ Ward: $_wardName');
+      }
+    } catch (e) {
+      debugPrint('❌ [Dashboard Info] Error loading location data: $e');
+
+      // Fallback to ID-based display if sync fails
+      if (mounted) {
+        setState(() {
+          _districtName = candidate.districtId;
+          _bodyName = candidate.bodyId;
+          _wardName = 'Ward ${candidate.wardId}';
+        });
+      }
+    }
+  }
+
+  // Sync missing location data from Firebase to SQLite
+  Future<void> _syncMissingLocationData() async {
+    final candidate = controller.candidateData.value;
+    if (candidate == null) return;
+
+    try {
+      debugPrint('🔄 [Dashboard Info] Syncing missing location data from Firebase...');
+
+      // Sync district data if missing
+      if (_districtName == null) {
+        debugPrint('🏙️ [Sync] Fetching district data for ${candidate.districtId}');
+        final districts = await candidateRepository.getAllDistricts();
+        final district = districts.firstWhere(
+          (d) => d.id == candidate.districtId,
+          orElse: () => District(
+            id: candidate.districtId,
+            name: candidate.districtId,
+            stateId: candidate.stateId ?? 'maharashtra',
+          ),
+        );
+        await _locationDatabase.insertDistricts([district]);
+        debugPrint('✅ [Sync] District data synced');
+      }
+
+      // Sync body data if missing
+      if (_bodyName == null) {
+        debugPrint('🏛️ [Sync] Fetching body data for ${candidate.bodyId}');
+        final bodies = await candidateRepository.getWardsByDistrictAndBody(
+          candidate.districtId,
+          candidate.bodyId,
+        );
+        if (bodies.isNotEmpty) {
+          final body = Body(
+            id: candidate.bodyId,
+            name: candidate.bodyId,
+            type: BodyType.municipal_corporation,
+            districtId: candidate.districtId,
+            stateId: candidate.stateId ?? 'maharashtra',
+          );
+          await _locationDatabase.insertBodies([body]);
+          debugPrint('✅ [Sync] Body data synced');
+        }
+      }
+
+      // Sync ward data (most critical)
+      if (_wardName == null) {
+        debugPrint('🏛️ [Sync] Fetching ward data for ${candidate.wardId}');
+        final wards = await candidateRepository.getWardsByDistrictAndBody(
+          candidate.districtId,
+          candidate.bodyId,
+        );
+        final ward = wards.firstWhere(
+          (w) => w.id == candidate.wardId,
+          orElse: () => Ward(
+            id: candidate.wardId,
+            name: 'Ward ${candidate.wardId}',
+            districtId: candidate.districtId,
+            bodyId: candidate.bodyId,
+            stateId: candidate.stateId ?? 'maharashtra',
+          ),
+        );
+        await _locationDatabase.insertWards([ward]);
+        debugPrint('✅ [Sync] Ward data synced');
+      }
+
+      debugPrint('✅ [Dashboard Info] Location data sync completed');
+    } catch (e) {
+      debugPrint('❌ [Dashboard Info] Error syncing location data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,25 +197,45 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
 
       return Scaffold(
         body: SingleChildScrollView(
-          child: BasicInfoSection(
-            candidateData: controller.candidateData.value!,
-            editedData: controller.editedData.value,
-            isEditing: isEditing,
-            getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(
-              party,
-              candidate: controller.candidateData.value,
-            ),
-            onNameChange: (value) => controller.updateBasicInfo('name', value),
-            onCityChange: (value) =>
-                controller.updateBasicInfo('districtId', value),
-            onWardChange: (value) =>
-                controller.updateBasicInfo('wardId', value),
-            onPartyChange: (value) =>
-                controller.updateBasicInfo('party', value),
-            onPhotoChange: (value) => controller.updatePhoto(value),
-            onBasicInfoChange: (field, value) =>
-                controller.updateBasicInfo(field, value),
-          ),
+          child: isEditing
+              ? BasicInfoEdit(
+                  candidateData: controller.candidateData.value!,
+                  editedData: controller.editedData.value,
+                  getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(
+                    party,
+                    candidate: controller.candidateData.value,
+                  ),
+                  onNameChange: (value) => controller.updateBasicInfo('name', value),
+                  onCityChange: (value) =>
+                      controller.updateBasicInfo('districtId', value),
+                  onWardChange: (value) =>
+                      controller.updateBasicInfo('wardId', value),
+                  onPartyChange: (value) =>
+                      controller.updateBasicInfo('party', value),
+                  onPhotoChange: (value) => controller.updatePhoto(value),
+                  onBasicInfoChange: (field, value) =>
+                      controller.updateBasicInfo(field, value),
+                )
+              : Builder(
+                  builder: (context) {
+                    debugPrint('🔄 Dashboard building BasicInfoView');
+                    debugPrint('   candidateData exists: ${controller.candidateData.value != null}');
+                    debugPrint('   candidate name: ${controller.candidateData.value?.name}');
+                    debugPrint('   profession: ${controller.candidateData.value?.extraInfo?.basicInfo?.profession}');
+                    debugPrint('   wardName passed to BasicInfoView: $_wardName');
+                    debugPrint('   districtName passed to BasicInfoView: $_districtName');
+                    return BasicInfoView(
+                      candidate: controller.candidateData.value!,
+                      getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(
+                        party,
+                        candidate: controller.candidateData.value,
+                      ),
+                      districtName: _districtName,
+                      wardName: _wardName,
+                      bodyName: _bodyName,
+                    );
+                  },
+                ),
         ),
         floatingActionButton: isEditing
             ? Padding(

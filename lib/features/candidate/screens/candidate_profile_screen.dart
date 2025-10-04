@@ -168,6 +168,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     return '${date.day}/${date.month}/${date.year}';
   }
 
+
   // Sync with controller data for own profile
   void _syncWithControllerData() {
     if (_isOwnProfile && dataController.candidateData.value != null) {
@@ -204,18 +205,41 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     if (candidate == null) return;
 
     try {
+      // DEBUG: Print all ward data to see what's stored
+      debugPrint('🔍 [DEBUG] Checking all ward data in SQLite...');
+      final db = await _locationDatabase.database;
+      final allWards = await db.query('wards');
+      debugPrint('📊 [DEBUG] Total wards in SQLite: ${allWards.length}');
+      for (var ward in allWards) {
+        debugPrint('🏛️ [DEBUG] Ward: id=${ward['id']}, name="${ward['name']}", districtId=${ward['districtId']}, bodyId=${ward['bodyId']}, stateId=${ward['stateId']}');
+      }
+
+      // Specifically check ward_17 data
+      final ward17Data = allWards.where((w) => w['id'] == 'ward_17').toList();
+      if (ward17Data.isNotEmpty) {
+        debugPrint('🎯 [DEBUG] ward_17 data: ${ward17Data.first}');
+      } else {
+        debugPrint('❌ [DEBUG] ward_17 not found in SQLite');
+      }
+
       // Load location data from SQLite cache
       final locationData = await _locationDatabase.getCandidateLocationData(
         candidate!.districtId,
         candidate!.bodyId,
         candidate!.wardId,
+        candidate!.stateId,
       );
 
-      // Check if ward data is missing (most likely to be missing)
-      if (locationData['wardName'] == null) {
-        debugPrint('⚠️ [Candidate Profile] Ward data not found in cache, triggering sync...');
+      // Check if ward data is missing or corrupted
+      final rawWardName = locationData['wardName'];
+      final isWardDataCorrupted = rawWardName != null &&
+          (rawWardName.startsWith('Ward Ward ') ||
+           (rawWardName.startsWith('Ward ') && RegExp(r'^ward_\d+$').hasMatch(rawWardName.substring(5))));
 
-        // Trigger background sync for missing location data
+      if (locationData['wardName'] == null || isWardDataCorrupted) {
+        debugPrint('⚠️ [Candidate Profile] Ward data missing or corrupted (raw: "$rawWardName"), triggering sync...');
+
+        // Trigger background sync for missing/corrupted location data
         await _syncMissingLocationData();
 
         // Try loading again after sync
@@ -223,6 +247,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           candidate!.districtId,
           candidate!.bodyId,
           candidate!.wardId,
+          candidate!.stateId,
         );
 
         if (mounted) {
@@ -311,10 +336,23 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       // Sync ward data (most critical)
       if (_wardName == null) {
         debugPrint('🏛️ [Sync] Fetching ward data for ${candidate?.wardId}');
+        debugPrint('🏛️ [Sync] Candidate stateId: ${candidate!.stateId}');
+
+        // Get the correct stateId for this candidate
+        final stateId = candidate!.stateId ?? 'maharashtra'; // Default fallback
+        debugPrint('🏛️ [Sync] Using stateId: $stateId');
+
         final wards = await candidateRepository.getWardsByDistrictAndBody(
           candidate!.districtId,
           candidate!.bodyId,
+          candidate!.stateId, // Pass the candidate's stateId
         );
+
+        debugPrint('🏛️ [Sync] Found ${wards.length} wards from Firebase');
+        for (var w in wards) {
+          debugPrint('🏛️ [Sync] Ward: ${w.id} -> ${w.name}');
+        }
+
         final ward = wards.firstWhere(
           (w) => w.id == candidate?.wardId,
           orElse: () => Ward(
@@ -322,9 +360,14 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             name: 'Ward ${candidate!.wardId}',
             districtId: candidate!.districtId,
             bodyId: candidate!.bodyId,
-            stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID
+            stateId: stateId,
           ),
         );
+
+        debugPrint('🏛️ [Sync] Selected ward: ${ward.id} -> "${ward.name}"');
+
+        // Force update the ward data in SQLite to ensure we have the latest from Firebase
+        debugPrint('🔄 [Sync] Force updating ward data in SQLite: "${ward.name}"');
         await _locationDatabase.insertWards([ward]);
         debugPrint('✅ [Sync] Ward data synced');
       }
@@ -501,15 +544,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        ProfileHeaderWidget(
-                          candidate: candidate!,
-                          hasSponsoredBanner: _hasSponsoredBanner,
-                          hasPremiumBadge: _hasPremiumBadge,
-                          isUploadingPhoto: _isUploadingPhoto,
-                          getCurrentLocale: _getCurrentLocale,
-                          wardName: _wardName,
-                          districtName: _districtName,
-                          bodyName: _bodyName,
+                        Builder(
+                          builder: (context) {
+                            debugPrint('🏛️ [Profile Screen] Building ProfileHeaderWidget:');
+                            debugPrint('   wardName passed: $_wardName');
+                            debugPrint('   districtName passed: $_districtName');
+                            debugPrint('   candidate wardId: ${candidate!.wardId}');
+                            debugPrint('   candidate districtId: ${candidate!.districtId}');
+                            return ProfileHeaderWidget(
+                              candidate: candidate!,
+                              hasSponsoredBanner: _hasSponsoredBanner,
+                              hasPremiumBadge: _hasPremiumBadge,
+                              isUploadingPhoto: _isUploadingPhoto,
+                              getCurrentLocale: _getCurrentLocale,
+                              wardName: _wardName,
+                              districtName: _districtName,
+                              bodyName: _bodyName,
+                            );
+                          },
                         ),
                         FollowStatsWidget(
                           candidate: candidate!,

@@ -91,12 +91,6 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
   void initState() {
     super.initState();
     _customMessageController = TextEditingController(text: '');
-
-    // Add listener to update config when text changes
-    _customMessageController.addListener(() {
-      _config.customMessage = _customMessageController.text;
-    });
-
     _loadHighlight();
   }
 
@@ -558,6 +552,12 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.all(12),
                 ),
+                onChanged: (value) {
+                  // Update config directly without causing rebuild
+                  _config.customMessage = value;
+                  // Update preview without full rebuild
+                  setState(() {});
+                },
                 onEditingComplete: () {
                   // Update highlight when editing is complete
                   _updateHighlight();

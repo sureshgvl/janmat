@@ -1,0 +1,568 @@
+import 'package:flutter/material.dart';
+import '../../../models/candidate_model.dart';
+import 'photo_upload_handler.dart';
+import 'date_picker_handler.dart';
+import 'gender_selector.dart';
+import 'form_field_builder.dart';
+import 'demo_data_populator.dart';
+import '../../../../../../l10n/features/candidate/candidate_localizations.dart';
+
+/// BasicInfoEdit - Handles editing of candidate basic information
+/// Follows Single Responsibility Principle: Only responsible for editing logic
+class BasicInfoEdit extends StatefulWidget {
+  final Candidate candidateData;
+  final Candidate? editedData;
+  final String Function(String) getPartySymbolPath;
+  final Function(String) onNameChange;
+  final Function(String) onCityChange;
+  final Function(String) onWardChange;
+  final Function(String) onPhotoChange;
+  final Function(String) onPartyChange;
+  final Function(String, dynamic) onBasicInfoChange;
+
+  const BasicInfoEdit({
+    super.key,
+    required this.candidateData,
+    this.editedData,
+    required this.getPartySymbolPath,
+    required this.onNameChange,
+    required this.onCityChange,
+    required this.onWardChange,
+    required this.onPhotoChange,
+    required this.onPartyChange,
+    required this.onBasicInfoChange,
+  });
+
+  @override
+  State<BasicInfoEdit> createState() => _BasicInfoEditState();
+}
+
+class _BasicInfoEditState extends State<BasicInfoEdit> {
+  // Handler instances
+  final PhotoUploadHandler _photoHandler = PhotoUploadHandler();
+  final DatePickerHandler _dateHandler = DatePickerHandler();
+  final GenderSelector _genderSelector = GenderSelector();
+
+  bool _isUploadingPhoto = false;
+  late TextEditingController _nameController;
+  late TextEditingController _cityController;
+  late TextEditingController _wardController;
+  late TextEditingController _ageController;
+  late TextEditingController _genderController;
+  late TextEditingController _educationController;
+  late TextEditingController _addressController;
+  late TextEditingController _professionController;
+  late TextEditingController _languagesController;
+  late TextEditingController _experienceYearsController;
+  late TextEditingController _previousPositionsController;
+  late TextEditingController _symbolNameController;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = widget.editedData ?? widget.candidateData;
+    final extraInfo = data.extraInfo;
+
+    debugPrint('🎯 BasicInfoEdit initState - Education debug:');
+    debugPrint('   extraInfo exists: ${extraInfo != null}');
+    debugPrint('   basicInfo exists: ${extraInfo?.basicInfo != null}');
+    debugPrint('   education from basicInfo: ${extraInfo?.basicInfo?.education}');
+    debugPrint('   address from contact: ${extraInfo?.contact?.address}');
+
+    _nameController = TextEditingController(text: data.name);
+    _cityController = TextEditingController(text: data.districtId);
+    _wardController = TextEditingController(text: data.wardId);
+    _ageController = TextEditingController(
+      text: extraInfo?.basicInfo?.age?.toString() ?? '',
+    );
+    _genderController = TextEditingController(
+      text: extraInfo?.basicInfo?.gender ?? '',
+    );
+    _educationController = TextEditingController(
+      text: extraInfo?.basicInfo?.education ?? '',
+    );
+    _addressController = TextEditingController(
+      text: extraInfo?.contact?.address ?? '',
+    );
+    _professionController = TextEditingController(
+      text: extraInfo?.basicInfo?.profession ?? '',
+    );
+    _languagesController = TextEditingController(
+      text: extraInfo?.basicInfo?.languages?.join(', ') ?? '',
+    );
+    _experienceYearsController = TextEditingController(
+      text: extraInfo?.basicInfo?.experienceYears?.toString() ?? '',
+    );
+    _previousPositionsController = TextEditingController(
+      text: extraInfo?.basicInfo?.previousPositions?.join(', ') ?? '',
+    );
+    _symbolNameController = TextEditingController(
+      text: data.symbolName ?? '',
+    );
+
+    // Debug log initial state of all input boxes
+    debugPrint('🎬 BasicInfoEdit initState - Initial controller values:');
+    debugPrint('   👤 Name: "${_nameController.text}"');
+    debugPrint('   🎂 Age: "${_ageController.text}"');
+    debugPrint('   👥 Gender: "${_genderController.text}"');
+    debugPrint('   🎓 Education: "${_educationController.text}"');
+    debugPrint('   💼 Profession: "${_professionController.text}"');
+    debugPrint('   🌐 Languages: "${_languagesController.text}"');
+    debugPrint('   📅 Experience Years: "${_experienceYearsController.text}"');
+    debugPrint('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
+    debugPrint('   📍 Address: "${_addressController.text}"');
+    debugPrint('   🏛️ City: "${_cityController.text}"');
+    debugPrint('   🏘️ Ward: "${_wardController.text}"');
+    debugPrint('   🎯 Symbol Name: "${_symbolNameController.text}"');
+  }
+
+  @override
+  void didUpdateWidget(BasicInfoEdit oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Note: We don't update controller text in didUpdateWidget to preserve user input
+    // The controllers are initialized in initState and should maintain their state
+    // If external data changes are needed, they should come through the editedData parameter
+    debugPrint('🔄 BasicInfoEdit didUpdateWidget called');
+  }
+
+  @override
+  void dispose() {
+    // Debug log final state of all input boxes
+    debugPrint('🗂️ BasicInfoEdit dispose - Final controller values:');
+    debugPrint('   👤 Name: "${_nameController.text}"');
+    debugPrint('   🎂 Age: "${_ageController.text}"');
+    debugPrint('   👥 Gender: "${_genderController.text}"');
+    debugPrint('   🎓 Education: "${_educationController.text}"');
+    debugPrint('   💼 Profession: "${_professionController.text}"');
+    debugPrint('   🌐 Languages: "${_languagesController.text}"');
+    debugPrint('   📅 Experience Years: "${_experienceYearsController.text}"');
+    debugPrint('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
+    debugPrint('   📍 Address: "${_addressController.text}"');
+    debugPrint('   🏛️ City: "${_cityController.text}"');
+    debugPrint('   🏘️ Ward: "${_wardController.text}"');
+    debugPrint('   🎯 Symbol Name: "${_symbolNameController.text}"');
+
+    _nameController.dispose();
+    _cityController.dispose();
+    _wardController.dispose();
+    _ageController.dispose();
+    _genderController.dispose();
+    _educationController.dispose();
+    _addressController.dispose();
+    _professionController.dispose();
+    _languagesController.dispose();
+    _experienceYearsController.dispose();
+    _previousPositionsController.dispose();
+    _symbolNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    setState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final imagePath = await _photoHandler.pickAndCropImage(context);
+      if (imagePath != null) {
+        final userId = widget.candidateData.userId ?? '';
+        final photoUrl = await _photoHandler.uploadPhoto(imagePath, userId, context);
+        if (photoUrl != null) {
+          widget.onPhotoChange(photoUrl);
+        }
+      }
+    } finally {
+      setState(() {
+        _isUploadingPhoto = false;
+      });
+    }
+  }
+
+  Future<void> _selectBirthDate(BuildContext context) async {
+    final picked = await _dateHandler.selectBirthDate(context);
+    if (picked != null) {
+      final age = _dateHandler.calculateAge(picked);
+      _ageController.text = age.toString();
+      widget.onBasicInfoChange('age', age);
+      widget.onBasicInfoChange('date_of_birth', picked.toIso8601String());
+    }
+  }
+
+  Future<void> _selectGender(BuildContext context) async {
+    final result = await _genderSelector.selectGender(context);
+    if (result != null) {
+      _genderController.text = result;
+      widget.onBasicInfoChange('gender', result);
+    }
+  }
+
+  Widget _buildTextInputField({
+    required TextEditingController controller,
+    required String labelText,
+    required Function(String) onChanged,
+    TextInputType? keyboardType,
+    int? maxLines,
+  }) {
+    return CustomFormFieldBuilder.buildTextInputField(
+      controller: controller,
+      labelText: labelText,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+    );
+  }
+
+  void _populateDemoData() {
+    final demoData = DemoDataPopulator.getDemoData();
+
+    // Update controllers
+    _nameController.text = demoData['name'] as String;
+    _ageController.text = demoData['age'].toString();
+    _genderController.text = demoData['gender'] as String;
+    _educationController.text = demoData['education'] as String;
+    _professionController.text = demoData['profession'] as String;
+    _languagesController.text = (demoData['languages'] as List<String>).join(', ');
+    _experienceYearsController.text = demoData['experienceYears'].toString();
+    _previousPositionsController.text = (demoData['previousPositions'] as List<String>).join(', ');
+    _symbolNameController.text = demoData['symbolName'] as String;
+    _addressController.text = demoData['address'] as String;
+
+    // Update callbacks
+    demoData.forEach((key, value) {
+      if (key == 'name') {
+        widget.onNameChange(value as String);
+      } else {
+        widget.onBasicInfoChange(key, value);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.editedData ?? widget.candidateData;
+
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              CandidateLocalizations.of(context)!.personalInformation,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+
+            // Photo and Name Section
+            Row(
+              children: [
+                // Profile Photo with Camera Overlay
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage: data.photo != null
+                          ? NetworkImage(data.photo!)
+                          : null,
+                      child: data.photo == null
+                          ? Text(
+                              data.name[0].toUpperCase(),
+                              style: const TextStyle(fontSize: 24),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _isUploadingPhoto ? null : _pickAndUploadImage,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: _isUploadingPhoto
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: CandidateLocalizations.of(context)!.fullName,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: widget.onNameChange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Age field (editable text input with date picker option)
+            Row(
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                    TextFormField(
+                      controller: _ageController,
+                      decoration: InputDecoration(
+                        labelText: CandidateLocalizations.of(context)!.age,
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) =>
+                          widget.onBasicInfoChange('age', int.tryParse(value) ?? 0),
+                    ),
+                    Positioned(
+                      right: 8,
+                      top: 12,
+                      child: GestureDetector(
+                        onTap: () => _selectBirthDate(context),
+                        child: Icon(
+                          Icons.calendar_today,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _selectGender(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  CandidateLocalizations.of(context)!.gender,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                Text(
+                                  _genderController.text.isNotEmpty
+                                      ? _genderController.text
+                                      : CandidateLocalizations.of(context)!.tapToSelectGender,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: _genderController.text.isNotEmpty
+                                        ? Colors.black
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.grey.shade600,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Education field
+            _buildTextInputField(
+              controller: _educationController,
+              labelText: CandidateLocalizations.of(context)!.education,
+              onChanged: (value) => widget.onBasicInfoChange('education', value),
+            ),
+            const SizedBox(height: 16),
+
+            // Profession field
+            TextFormField(
+              controller: _professionController,
+              decoration: InputDecoration(
+                labelText: CandidateLocalizations.of(context)!.profession,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                debugPrint('🎯 Profession changed: $value');
+                debugPrint('   📝 Profession controller text: "${_professionController.text}"');
+                widget.onBasicInfoChange('profession', value);
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Languages field
+            TextFormField(
+              controller: _languagesController,
+              decoration: InputDecoration(
+                labelText: CandidateLocalizations.of(context)!.languagesCommaSeparated,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                debugPrint('🎯 Languages changed: $value');
+                debugPrint('   📝 Languages controller text: "${_languagesController.text}"');
+                widget.onBasicInfoChange('languages', value.split(',').map((e) => e.trim()).toList());
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Experience Years field
+            TextFormField(
+              controller: _experienceYearsController,
+              decoration: InputDecoration(
+                labelText: CandidateLocalizations.of(context)!.experienceYears,
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                debugPrint('🎯 Experience Years changed: $value');
+                debugPrint('   📝 Experience Years controller text: "${_experienceYearsController.text}"');
+                widget.onBasicInfoChange('experienceYears', int.tryParse(value) ?? 0);
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Previous Positions field
+            TextFormField(
+              controller: _previousPositionsController,
+              decoration: InputDecoration(
+                labelText: CandidateLocalizations.of(context)!.previousPositionsCommaSeparated,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                debugPrint('🎯 Previous Positions changed: $value');
+                debugPrint('   📝 Previous Positions controller text: "${_previousPositionsController.text}"');
+                widget.onBasicInfoChange('previousPositions', value.split(',').map((e) => e.trim()).toList());
+              },
+            ),
+
+            // Symbol Name field (only for independent candidates)
+            if (data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty) ...[
+              const SizedBox(height: 16),
+              _buildTextInputField(
+                controller: _symbolNameController,
+                labelText: CandidateLocalizations.of(context)!.symbolNameForIndependent,
+                onChanged: (value) {
+                  debugPrint('🎯 Symbol Name changed: $value');
+                  widget.onBasicInfoChange('symbolName', value);
+                },
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // Address field
+            _buildTextInputField(
+              controller: _addressController,
+              labelText: CandidateLocalizations.of(context)!.address,
+              maxLines: 2,
+              onChanged: (value) => widget.onBasicInfoChange('address', value),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Demo Data Button
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _populateDemoData,
+                icon: const Icon(Icons.lightbulb),
+                label: Text(CandidateLocalizations.of(context)!.useDemoData),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.black,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // City and Ward fields (non-editable)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    CandidateLocalizations.of(context)!.locationNonEditable,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          CandidateLocalizations.of(context)!.districtLabel(district: data.districtId),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          CandidateLocalizations.of(context)!.wardLabel(ward: data.wardId),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -985,8 +985,14 @@ class CandidateOperations {
       final fieldUpdates = <String, dynamic>{};
 
       extraInfoUpdates.forEach((key, value) {
-        fieldUpdates['extra_info.$key'] = value;
-        debugPrint('   Converting $key -> extra_info.$key = $value');
+        // Handle nested basic_info fields
+        if (['profession', 'languages', 'experienceYears', 'previousPositions', 'age', 'gender', 'education', 'dateOfBirth'].contains(key)) {
+          fieldUpdates['extra_info.basic_info.$key'] = value;
+          debugPrint('   Converting $key -> extra_info.basic_info.$key = $value');
+        } else {
+          fieldUpdates['extra_info.$key'] = value;
+          debugPrint('   Converting $key -> extra_info.$key = $value');
+        }
       });
 
       debugPrint('   Final field updates: $fieldUpdates');

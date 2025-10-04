@@ -137,6 +137,12 @@ abstract class AppLocalizations {
   /// **'About'**
   String get about;
 
+  /// No description provided for @aboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'JanMat is independently developed and not affiliated with any government authority, election commission, or political party.'**
+  String get aboutDescription;
+
   /// No description provided for @home.
   ///
   /// In en, this message translates to:

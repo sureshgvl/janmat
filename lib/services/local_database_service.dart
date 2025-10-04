@@ -519,14 +519,14 @@ class LocalDatabaseService {
   }
 
   // Get ward name by IDs (optimized query for candidate profile)
-  Future<String?> getWardName(String districtId, String bodyId, String wardId) async {
-    debugPrint('🔍 [SQLite] getWardName: Querying for districtId=$districtId, bodyId=$bodyId, wardId=$wardId');
+  Future<String?> getWardName(String districtId, String bodyId, String wardId, [String? stateId]) async {
+    debugPrint('🔍 [SQLite] getWardName: Querying for stateId=$stateId, districtId=$districtId, bodyId=$bodyId, wardId=$wardId');
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       wardsTable,
       columns: ['name'],
-      where: 'districtId = ? AND bodyId = ? AND id = ?',
-      whereArgs: [districtId, bodyId, wardId],
+      where: stateId != null ? 'districtId = ? AND bodyId = ? AND id = ? AND stateId = ?' : 'districtId = ? AND bodyId = ? AND id = ?',
+      whereArgs: stateId != null ? [districtId, bodyId, wardId, stateId] : [districtId, bodyId, wardId],
     );
     debugPrint('🔍 [SQLite] getWardName: Found ${maps.length} results');
     if (maps.isNotEmpty) {
@@ -539,13 +539,13 @@ class LocalDatabaseService {
   }
 
   // Get district name by ID
-  Future<String?> getDistrictName(String districtId) async {
+  Future<String?> getDistrictName(String districtId, [String? stateId]) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       districtsTable,
       columns: ['name'],
-      where: 'id = ?',
-      whereArgs: [districtId],
+      where: stateId != null ? 'id = ? AND stateId = ?' : 'id = ?',
+      whereArgs: stateId != null ? [districtId, stateId] : [districtId],
     );
     if (maps.isNotEmpty) {
       return maps.first['name'] as String?;
@@ -554,13 +554,13 @@ class LocalDatabaseService {
   }
 
   // Get body name by ID
-  Future<String?> getBodyName(String bodyId) async {
+  Future<String?> getBodyName(String bodyId, [String? stateId]) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       bodiesTable,
       columns: ['name'],
-      where: 'id = ?',
-      whereArgs: [bodyId],
+      where: stateId != null ? 'id = ? AND stateId = ?' : 'id = ?',
+      whereArgs: stateId != null ? [bodyId, stateId] : [bodyId],
     );
     if (maps.isNotEmpty) {
       return maps.first['name'] as String?;
@@ -650,12 +650,14 @@ class LocalDatabaseService {
     String districtId,
     String bodyId,
     String wardId,
+    [String? stateId]
   ) async {
-    debugPrint('🔍 [SQLite] Fetching location data for candidate: district=$districtId, body=$bodyId, ward=$wardId');
+    final effectiveStateId = stateId ?? 'maharashtra'; // Default fallback
+    debugPrint('🔍 [SQLite] Fetching location data for candidate: state=$effectiveStateId, district=$districtId, body=$bodyId, ward=$wardId');
     try {
-      final districtName = await getDistrictName(districtId);
-      final bodyName = await getBodyName(bodyId);
-      final wardName = await getWardName(districtId, bodyId, wardId);
+      final districtName = await getDistrictName(districtId, effectiveStateId);
+      final bodyName = await getBodyName(bodyId, effectiveStateId);
+      final wardName = await getWardName(districtId, bodyId, wardId, effectiveStateId);
 
       final result = {
         'districtName': districtName,

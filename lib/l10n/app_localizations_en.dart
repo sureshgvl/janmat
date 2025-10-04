@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get about => 'About';
 
   @override
+  String get aboutDescription => 'JanMat is independently developed and not affiliated with any government authority, election commission, or political party.';
+
+  @override
   String get home => 'Home';
 
   @override

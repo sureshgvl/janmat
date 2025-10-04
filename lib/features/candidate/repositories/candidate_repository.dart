@@ -55,15 +55,22 @@ class CandidateRepository {
   Future<bool> validateState(String stateId) => _stateManager.validateState(stateId);
   // TODO: These methods need to be updated for multi-state support
   // For now, using a temporary approach to maintain backward compatibility
-  Future<List<Ward>> getWardsByDistrictAndBody(String districtId, String bodyId) async {
+  Future<List<Ward>> getWardsByDistrictAndBody(String districtId, String bodyId, [String? stateId]) async {
+    // If stateId is provided, use it directly
+    if (stateId != null && stateId.isNotEmpty) {
+      debugPrint('🎯 [CandidateRepository] Using provided stateId: $stateId');
+      return _stateManager.getWardsByDistrictAndBody(stateId, districtId, bodyId);
+    }
+
     // For backward compatibility, try to determine state from context
     // This is a temporary solution - these methods should take stateId parameters
     try {
       // Try to get state from user's current context or use first available state
       final states = await getAllStates();
       if (states.isNotEmpty) {
-        final stateId = states.first['stateId'] as String;
-        return _stateManager.getWardsByDistrictAndBody(stateId, districtId, bodyId);
+        final defaultStateId = states.first['stateId'] as String;
+        debugPrint('⚠️ [CandidateRepository] No stateId provided, using first state: $defaultStateId');
+        return _stateManager.getWardsByDistrictAndBody(defaultStateId, districtId, bodyId);
       }
       throw Exception('No states available');
     } catch (e) {

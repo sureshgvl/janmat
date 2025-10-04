@@ -83,6 +83,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _checkNotificationSettings() async {
+    try {
+      final fcmService = FCMService();
+      final hasPermission = await fcmService.hasNotificationPermission();
+      if (mounted) {
+        setState(() {
+          _notificationsEnabled = hasPermission;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking notification settings: $e');
+    }
+  }
+
   // Refresh language selection when locale changes
   void _refreshLanguageSelection() {
     final locale = Localizations.localeOf(context);
@@ -281,14 +295,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (value) {
         // Request permission
         success = await fcmService.requestNotificationPermission();
+
+        if (success) {
+          // Double-check that permissions were actually granted
+          await Future.delayed(const Duration(milliseconds: 500));
+          final hasPermission = await fcmService.hasNotificationPermission();
+          success = hasPermission;
+        }
       } else {
         // Note: FCM doesn't provide a direct way to disable notifications
         // We can only show a message that user needs to disable in system settings
         Get.snackbar(
           'Notifications',
-          'To disable notifications, please go to your device settings and disable notifications for this app.',
-          duration: const Duration(seconds: 4),
+          'To disable notifications, please go to your device settings → Apps → JanMat → Notifications and disable them there.',
+          duration: const Duration(seconds: 5),
         );
+        // Keep the toggle as enabled since we can't actually disable it programmatically
+        if (mounted) {
+          setState(() {
+            _notificationsEnabled = true;
+          });
+        }
         return;
       }
 
@@ -298,14 +325,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         });
       }
 
-      Get.snackbar(
-        'Notifications',
-        success ? 'Notifications enabled' : 'Failed to enable notifications. Please check your device settings.',
-        duration: const Duration(seconds: 2),
-      );
+      if (success) {
+        Get.snackbar(
+          'Notifications',
+          'Notifications enabled successfully!',
+          duration: const Duration(seconds: 2),
+        );
+      } else {
+        Get.snackbar(
+          'Notifications',
+          'Failed to enable notifications. Please check your device settings and ensure JanMat has notification permissions.',
+          duration: const Duration(seconds: 4),
+        );
+      }
     } catch (e) {
       debugPrint('Error toggling notifications: $e');
-      Get.snackbar('Error', 'Failed to change notification settings');
+      Get.snackbar(
+        'Error',
+        'Failed to change notification settings. Please try again.',
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 

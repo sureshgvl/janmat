@@ -206,7 +206,7 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
       final age = _calculateAge(picked);
       _ageController.text = age.toString();
       widget.onBasicInfoChange('age', age);
-      widget.onBasicInfoChange('dateOfBirth', picked.toIso8601String());
+      widget.onBasicInfoChange('date_of_birth', picked.toIso8601String());
     }
   }
 
@@ -263,7 +263,7 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
     widget.onNameChange('राहुल पाटील');
     widget.onBasicInfoChange('age', 42);
     widget.onBasicInfoChange('gender', 'पुरुष');
-    widget.onBasicInfoChange('dateOfBirth', '1982-01-15T00:00:00.000Z');
+    widget.onBasicInfoChange('date_of_birth', '1982-01-15T00:00:00.000Z');
     widget.onBasicInfoChange('education', 'B.A. Political Science');
     widget.onBasicInfoChange('address', 'पुणे, महाराष्ट्र');
   }

@@ -84,11 +84,33 @@ class ContactSection extends StatelessWidget {
                 ),
                 onChanged: (value) => onSocialChange('twitter', value),
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: contact is ExtendedContact ? contact.officeAddress ?? '' : '',
+                decoration: const InputDecoration(
+                  labelText: 'Office Address',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => onContactChange('officeAddress', value),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: contact is ExtendedContact ? contact.officeHours ?? '' : '',
+                decoration: const InputDecoration(
+                  labelText: 'Office Hours',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => onContactChange('officeHours', value),
+              ),
             ] else ...[
               Text('Phone: $phone'),
               if (email != null) Text('Email: $email'),
               if (socialLinks != null)
                 ...socialLinks.entries.map((e) => Text('${e.key}: ${e.value}')),
+              if (contact is ExtendedContact && contact.officeAddress != null)
+                Text('Office Address: ${contact.officeAddress}'),
+              if (contact is ExtendedContact && contact.officeHours != null)
+                Text('Office Hours: ${contact.officeHours}'),
             ],
           ],
         ),

@@ -30,6 +30,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get about => 'विषयी';
 
   @override
+  String get aboutDescription => 'जनमत स्वतंत्रपणे विकसित केले गेले आहे आणि कोणत्याही सरकारी अधिकार, निवडणूक आयोग किंवा राजकीय पक्षाशी संलग्न नाही.';
+
+  @override
   String get home => 'मुख्यपृष्ठ';
 
   @override

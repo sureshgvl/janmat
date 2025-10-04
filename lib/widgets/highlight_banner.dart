@@ -5,18 +5,28 @@ import 'package:get/get.dart';
 import '../services/highlight_service.dart';
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
+import '../features/candidate/repositories/candidate_repository.dart';
+import '../utils/symbol_utils.dart';
 
 class HighlightBanner extends StatefulWidget {
-   final String districtId;
-   final String bodyId;
-   final String wardId;
+    final String districtId;
+    final String bodyId;
+    final String wardId;
+    final bool showViewMoreButton;
 
-   const HighlightBanner({
-     super.key,
-     required this.districtId,
-     required this.bodyId,
-     required this.wardId,
-   });
+    const HighlightBanner({
+      super.key,
+      required this.districtId,
+      required this.bodyId,
+      required this.wardId,
+      this.showViewMoreButton = false,
+    });
+
+   // Static method to refresh all banner instances
+   static void refreshBanners() {
+     // This will be called when candidate data is updated
+     // The banner will reload data on next build
+   }
 
    // Helper method to get gradient colors based on banner style
    static List<Color> getBannerGradient(String? bannerStyle) {
@@ -44,13 +54,18 @@ class HighlightBanner extends StatefulWidget {
 }
 
 class _HighlightBannerState extends State<HighlightBanner> {
-  Highlight? platinumBanner;
-  String? candidateProfileImageUrl;
-  bool isLoading = true;
-  String? bannerStyle;
-  String? callToAction;
-  String? customMessage;
-  String? priorityLevel;
+    Highlight? platinumBanner;
+    String? candidateProfileImageUrl;
+    String? candidateParty;
+    String? candidateName;
+    bool isLoading = true;
+    String? bannerStyle;
+    String? callToAction;
+    String? customMessage;
+    String? priorityLevel;
+
+    // Global key for external access
+    static final GlobalKey<_HighlightBannerState> _globalKey = GlobalKey<_HighlightBannerState>();
 
   @override
   void initState() {
@@ -66,6 +81,17 @@ class _HighlightBannerState extends State<HighlightBanner> {
         oldWidget.wardId != widget.wardId) {
       _loadPlatinumBanner();
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  // Public method to refresh banner data when candidate profile is updated
+  void refreshBannerData() {
+    print('🔄 [HighlightBanner] Refreshing banner data due to candidate profile update');
+    _loadPlatinumBanner();
   }
 
   Future<void> _loadPlatinumBanner() async {
@@ -85,20 +111,36 @@ class _HighlightBannerState extends State<HighlightBanner> {
         widget.wardId,
       );
 
-      // Fetch candidate's profile picture if banner exists
+      // Fetch candidate data if banner exists
       String? profileImageUrl;
+      String? candidateParty;
       if (banner != null && banner.candidateId.isNotEmpty) {
         try {
-          final candidateDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(banner.candidateId)
-              .get();
+          // Use candidate repository to fetch candidate data (handles hierarchical structure)
+          final candidateRepository = CandidateRepository();
+          print('🔍 [HighlightBanner] Fetching candidate data for ID: ${banner.candidateId}');
+          final candidate = await candidateRepository.getCandidateDataById(banner.candidateId);
 
-          if (candidateDoc.exists) {
-            profileImageUrl = candidateDoc.data()?['profileImageUrl'];
+          if (candidate != null) {
+            profileImageUrl = candidate.photo;
+            candidateParty = candidate.party;
+            candidateName = candidate.name;
+
+            // Debug logging
+            print('🎯 [HighlightBanner] Candidate data loaded successfully:');
+            print('   candidateId: ${banner.candidateId}');
+            print('   name: ${candidate.name}');
+            print('   photo URL: $profileImageUrl');
+            print('   party: $candidateParty');
+            print('   candidate.party directly: ${candidate.party}');
+            print('   candidate.toJson()["party"]: ${candidate.toJson()["party"]}');
+            print('   Raw candidate object: ${candidate.toJson()}');
+          } else {
+            print('❌ [HighlightBanner] Candidate not found for ID: ${banner.candidateId}');
+            print('   This means getCandidateDataById returned null');
           }
         } catch (e) {
-          print('Error fetching candidate profile image: $e');
+          print('❌ [HighlightBanner] Error fetching candidate data: $e');
         }
       }
 
@@ -132,12 +174,16 @@ class _HighlightBannerState extends State<HighlightBanner> {
         setState(() {
           platinumBanner = banner;
           candidateProfileImageUrl = profileImageUrl;
+          candidateParty = candidateParty;
+          candidateName = candidateName;
           bannerStyle = bannerStyleConfig;
           callToAction = callToActionConfig;
           customMessage = customMessageConfig;
           priorityLevel = priorityLevelConfig;
           isLoading = false;
         });
+
+        // Animation removed - no longer needed
       }
     } catch (e) {
       print('Error loading platinum banner: $e');
@@ -146,6 +192,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
       }
     }
   }
+
 
   void _onBannerTap() async {
     if (platinumBanner == null) return;
@@ -158,43 +205,27 @@ class _HighlightBannerState extends State<HighlightBanner> {
 
     // Navigate to candidate profile
     try {
-      // Fetch candidate data from Firestore
-      final candidateDoc = await FirebaseFirestore.instance
-          .collection('candidates')
-          .doc(platinumBanner!.candidateId)
-          .get();
+      // Use candidate repository to fetch candidate data (handles hierarchical structure)
+      final candidateRepository = CandidateRepository();
+      final candidate = await candidateRepository.getCandidateDataById(platinumBanner!.candidateId);
 
-      if (candidateDoc.exists && mounted) {
-        final candidateData = candidateDoc.data();
-        if (candidateData != null) {
-          // Create candidate object
-          final candidate = Candidate(
-            candidateId: platinumBanner!.candidateId,
-            userId: candidateData['userId'] ?? '',
-            name: candidateData['name'] ?? platinumBanner!.candidateName ?? '',
-            party: candidateData['party'] ?? platinumBanner!.party ?? '',
-            photo: candidateData['photo'],
-            districtId: candidateData['districtId'] ?? widget.districtId,
-            bodyId: candidateData['bodyId'] ?? widget.bodyId,
-            wardId: candidateData['wardId'] ?? widget.wardId,
-            stateId: candidateData['stateId'],
-            sponsored: candidateData['sponsored'] ?? false,
-            premium: candidateData['premium'] ?? false,
-            contact: Contact.fromJson(candidateData['contact'] ?? {}),
-            createdAt: candidateData['createdAt'] is Timestamp
-                ? (candidateData['createdAt'] as Timestamp).toDate()
-                : DateTime.now(),
-            extraInfo: candidateData['extraInfo'] != null
-                ? ExtraInfo.fromJson(candidateData['extraInfo'])
-                : null,
+      if (candidate != null && mounted) {
+        // Navigate to candidate profile screen
+        Get.to(() => const CandidateProfileScreen(), arguments: candidate);
+      } else {
+        print('❌ [HighlightBanner] Candidate not found for navigation: ${platinumBanner!.candidateId}');
+        // Fallback: show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to load candidate profile'),
+              duration: Duration(seconds: 2),
+            ),
           );
-
-          // Navigate to candidate profile screen
-          Get.to(() => const CandidateProfileScreen(), arguments: candidate);
         }
       }
     } catch (e) {
-      print('Error navigating to candidate profile: $e');
+      print('❌ [HighlightBanner] Error navigating to candidate profile: $e');
       // Fallback: show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -270,207 +301,165 @@ class _HighlightBannerState extends State<HighlightBanner> {
             borderRadius: BorderRadius.circular(12),
             child: GestureDetector(
               onTap: _onBannerTap,
-              child: Stack(
-                children: [
-                  // Background with custom gradient styling
-                  Container(
-                    height: 192, // h-48 equivalent
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: HighlightBanner.getBannerGradient(bannerStyle),
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: platinumBanner!.imageUrl != null
-                        ? Image.network(
-                            platinumBanner!.imageUrl!,
-                            fit: BoxFit.cover,
-                            color: Colors.white.withOpacity(0.3),
-                            colorBlendMode: BlendMode.overlay,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: HighlightBanner.getBannerGradient(bannerStyle),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.person,
-                                  size: 48,
-                                  color: Colors.white70,
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: HighlightBanner.getBannerGradient(bannerStyle),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 48,
-                              color: Colors.white70,
-                            ),
-                          ),
-                  ),
-
-                  // Highlight Badge - top left like HTML
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF9933), // Saffron color
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '⭐ HIGHLIGHT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Bottom gradient overlay - matches HTML
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      height: 100,
+              child: SizedBox(
+                height: 192,
+                child: Stack(
+                  children: [
+                    // Background with custom gradient styling
+                    Container(
+                      height: 192,
+                      width: double.infinity,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.7),
+                          colors: HighlightBanner.getBannerGradient(bannerStyle),
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: candidateProfileImageUrl != null
+                          ? Image.network(
+                              candidateProfileImageUrl!,
+                              fit: BoxFit.cover,
+                              color: Colors.white.withOpacity(0.3),
+                              colorBlendMode: BlendMode.overlay,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Fallback to stored highlight imageUrl if available
+                                if (platinumBanner!.imageUrl != null) {
+                                  return Image.network(
+                                    platinumBanner!.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    color: Colors.white.withOpacity(0.3),
+                                    colorBlendMode: BlendMode.overlay,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: HighlightBanner.getBannerGradient(bannerStyle),
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.person,
+                                          size: 48,
+                                          color: Colors.white70,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: HighlightBanner.getBannerGradient(bannerStyle),
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.person,
+                                      size: 48,
+                                      color: Colors.white70,
+                                    ),
+                                  );
+                                }
+                              },
+                            )
+                          : platinumBanner!.imageUrl != null
+                              ? Image.network(
+                                  platinumBanner!.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  color: Colors.white.withOpacity(0.3),
+                                  colorBlendMode: BlendMode.overlay,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: HighlightBanner.getBannerGradient(bannerStyle),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person,
+                                        size: 48,
+                                        color: Colors.white70,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: HighlightBanner.getBannerGradient(bannerStyle),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.person,
+                                    size: 48,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                    ),
+
+                    // Highlight Badge - top left like HTML
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF9933), // Saffron color
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '⭐ HIGHLIGHT',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                  ),
 
-                  // Content at bottom - matches HTML layout
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Row(
-                      children: [
-                        // Candidate info on left
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                platinumBanner!.candidateName ?? 'Featured Candidate',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              // Show custom message or party name
-                              Text(
-                                customMessage?.isNotEmpty == true
-                                    ? '"$customMessage"'
-                                    : platinumBanner!.party ?? 'Political Party',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 14,
-                                  fontStyle: customMessage?.isNotEmpty == true ? FontStyle.italic : FontStyle.normal,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black,
-                                      blurRadius: 2,
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
 
-                        // Party symbol on right - matches HTML
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.account_balance,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Impression tracking overlay
-                  Positioned.fill(child: Container(color: Colors.transparent)),
-                ],
+                    // Impression tracking overlay
+                    Positioned.fill(child: Container(color: Colors.transparent)),
+                  ],
+                ),
               ),
             ),
           ),
         ),
 
-        // View Profile button below banner - matches HTML
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _onBannerTap,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1976d2), // Primary blue
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        // View More button (conditional)
+        if (widget.showViewMoreButton) ...[
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _onBannerTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1976d2),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              elevation: 0,
-            ),
-            child: Text(
-              HighlightBanner.getCallToAction(callToAction),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              child: const Text(
+                'View More',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-        ),
-
-        const SizedBox(height: 24),
+          const SizedBox(height: 16),
+        ] else ...[
+          const SizedBox(height: 24),
+        ],
       ],
     );
   }

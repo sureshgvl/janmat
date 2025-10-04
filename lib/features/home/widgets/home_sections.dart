@@ -60,6 +60,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
             districtId: locationData['districtId']!,
             bodyId: locationData['bodyId']!,
             wardId: locationData['wardId']!,
+            showViewMoreButton: true,
           ),
 
           // SECTION 2: HIGHLIGHT CAROUSEL

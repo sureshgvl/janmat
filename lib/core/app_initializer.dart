@@ -9,6 +9,7 @@ import '../firebase_options.dart';
 import '../services/background_initializer.dart';
 import '../services/background_sync_manager.dart';
 import '../services/fcm_service.dart';
+import '../services/local_notification_service.dart';
 import '../utils/performance_monitor.dart';
 import '../utils/error_recovery_manager.dart';
 import '../utils/advanced_analytics.dart';

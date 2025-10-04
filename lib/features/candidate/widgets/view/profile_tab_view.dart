@@ -63,6 +63,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
         widget.candidate.districtId,
         widget.candidate.bodyId,
         widget.candidate.wardId,
+        widget.candidate.stateId,
       );
 
       // Check if ward data is missing (most likely to be missing)
@@ -77,6 +78,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
           widget.candidate.districtId,
           widget.candidate.bodyId,
           widget.candidate.wardId,
+          widget.candidate.stateId,
         );
 
         if (mounted) {
@@ -193,6 +195,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
           widget.candidate.districtId,
           widget.candidate.bodyId,
           widget.candidate.wardId,
+          widget.candidate.stateId,
         );
 
         if (mounted) {
@@ -382,6 +385,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                   ],

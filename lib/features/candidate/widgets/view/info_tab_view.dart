@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../models/candidate_model.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../../utils/symbol_utils.dart';
+import '../../../../utils/maharashtra_utils.dart';
 
 class InfoTab extends StatelessWidget {
   final Candidate candidate;
@@ -21,6 +22,25 @@ class InfoTab extends StatelessWidget {
     this.districtName,
     this.bodyName,
   });
+
+  // Helper method to translate gender values
+  String _translateGender(String? gender, BuildContext context) {
+    if (gender == null) return CandidateLocalizations.of(context)!.notSpecified;
+
+    switch (gender.toLowerCase()) {
+      case 'male':
+      case 'पुरुष':
+        return CandidateLocalizations.of(context)!.male;
+      case 'female':
+      case 'स्त्री':
+        return CandidateLocalizations.of(context)!.female;
+      case 'other':
+      case 'इतर':
+        return CandidateLocalizations.of(context)!.other;
+      default:
+        return gender;
+    }
+  }
 
 
   @override
@@ -79,10 +99,14 @@ class InfoTab extends StatelessWidget {
                         border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: Text(
-                        SymbolUtils.getPartySymbolNameWithLocale(
-                          candidate.party,
-                          Localizations.localeOf(context).languageCode,
-                        ),
+                        (candidate.party.toLowerCase().contains('independent') ||
+                                candidate.party.trim().isEmpty) &&
+                            candidate.symbolName?.isNotEmpty == true
+                            ? candidate.symbolName!
+                            : SymbolUtils.getPartySymbolNameWithLocale(
+                                candidate.party,
+                                Localizations.localeOf(context).languageCode,
+                              ),
                         style: const TextStyle(
                           fontSize: 16,
                           color: Color(0xFF1f2937),
@@ -109,14 +133,56 @@ class InfoTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        wardName != null
-                            ? '${wardName!} • ${districtName ?? candidate.districtId}'
-                            : 'Ward ${candidate.wardId}, ${candidate.districtId}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6b7280),
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final locale = Localizations.localeOf(context).languageCode;
+
+                          // Use MaharashtraUtils for ward name translation (same as BasicInfoView)
+                          final translatedWard = MaharashtraUtils.getWardDisplayNameWithLocale(
+                            candidate.wardId,
+                            locale,
+                          );
+
+                          // Use translated ward if translation succeeded, otherwise use SQLite data or fallback
+                          String displayWard;
+                          if (translatedWard != candidate.wardId) {
+                            // Translation succeeded
+                            displayWard = translatedWard;
+                          } else if (wardName?.isNotEmpty == true && wardName != candidate.wardId) {
+                            // Use cleaned SQLite data if available and different from raw wardId
+                            displayWard = wardName!;
+                          } else {
+                            // Fallback to wardId
+                            displayWard = candidate.wardId;
+                          }
+
+                          // Use MaharashtraUtils for district name translation
+                          final translatedDistrict = MaharashtraUtils.getDistrictDisplayNameWithLocale(
+                            candidate.districtId,
+                            locale,
+                          );
+                          final displayDistrict = translatedDistrict != candidate.districtId
+                            ? translatedDistrict
+                            : (districtName ?? candidate.districtId);
+
+                          // Construct final text: "Ward name, District name"
+                          final finalText = '$displayWard, $displayDistrict';
+
+                          // Debug logs
+                          debugPrint('🔍 [InfoTab] Location Display Debug:');
+                          debugPrint('   Locale: $locale');
+                          debugPrint('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
+                          debugPrint('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
+                          debugPrint('   Final Text: "$finalText"');
+
+                          return Text(
+                            finalText,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6b7280),
+                            ),
+                          );
+                        },
                       ),
                       //const SizedBox(height: 4),
                       // Text(
@@ -451,7 +517,7 @@ class InfoTab extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    candidate.extraInfo!.basicInfo!.gender!,
+                                    _translateGender(candidate.extraInfo!.basicInfo!.gender, context),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,

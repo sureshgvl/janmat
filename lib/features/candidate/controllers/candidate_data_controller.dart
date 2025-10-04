@@ -331,6 +331,58 @@ class CandidateDataController extends GetxController {
               previousPositions: currentBasicInfo.previousPositions,
             );
             break;
+          case 'profession':
+            updatedBasicInfo = BasicInfoData(
+              fullName: currentBasicInfo.fullName,
+              dateOfBirth: currentBasicInfo.dateOfBirth,
+              age: currentBasicInfo.age,
+              gender: currentBasicInfo.gender,
+              education: currentBasicInfo.education,
+              profession: value,
+              languages: currentBasicInfo.languages,
+              experienceYears: currentBasicInfo.experienceYears,
+              previousPositions: currentBasicInfo.previousPositions,
+            );
+            break;
+          case 'languages':
+            updatedBasicInfo = BasicInfoData(
+              fullName: currentBasicInfo.fullName,
+              dateOfBirth: currentBasicInfo.dateOfBirth,
+              age: currentBasicInfo.age,
+              gender: currentBasicInfo.gender,
+              education: currentBasicInfo.education,
+              profession: currentBasicInfo.profession,
+              languages: value is List ? List<String>.from(value) : [value.toString()],
+              experienceYears: currentBasicInfo.experienceYears,
+              previousPositions: currentBasicInfo.previousPositions,
+            );
+            break;
+          case 'experienceYears':
+            updatedBasicInfo = BasicInfoData(
+              fullName: currentBasicInfo.fullName,
+              dateOfBirth: currentBasicInfo.dateOfBirth,
+              age: currentBasicInfo.age,
+              gender: currentBasicInfo.gender,
+              education: currentBasicInfo.education,
+              profession: currentBasicInfo.profession,
+              languages: currentBasicInfo.languages,
+              experienceYears: value is int ? value : int.tryParse(value.toString()) ?? 0,
+              previousPositions: currentBasicInfo.previousPositions,
+            );
+            break;
+          case 'previousPositions':
+            updatedBasicInfo = BasicInfoData(
+              fullName: currentBasicInfo.fullName,
+              dateOfBirth: currentBasicInfo.dateOfBirth,
+              age: currentBasicInfo.age,
+              gender: currentBasicInfo.gender,
+              education: currentBasicInfo.education,
+              profession: currentBasicInfo.profession,
+              languages: currentBasicInfo.languages,
+              experienceYears: currentBasicInfo.experienceYears,
+              previousPositions: value is List ? List<String>.from(value) : [value.toString()],
+            );
+            break;
           case 'address':
             // Address is stored in contact, not basicInfo
             final currentContact = currentExtra.contact ?? ExtendedContact();
@@ -347,19 +399,19 @@ class CandidateDataController extends GetxController {
               extraInfo: updatedExtra,
             );
             return;
-          case 'dateOfBirth':
-            updatedBasicInfo = BasicInfoData(
-              fullName: currentBasicInfo.fullName,
-              dateOfBirth: value,
-              age: currentBasicInfo.age,
-              gender: currentBasicInfo.gender,
-              education: currentBasicInfo.education,
-              profession: currentBasicInfo.profession,
-              languages: currentBasicInfo.languages,
-              experienceYears: currentBasicInfo.experienceYears,
-              previousPositions: currentBasicInfo.previousPositions,
-            );
-            break;
+          case 'date_of_birth':
+                updatedBasicInfo = BasicInfoData(
+                  fullName: currentBasicInfo.fullName,
+                  dateOfBirth: value,
+                  age: currentBasicInfo.age,
+                  gender: currentBasicInfo.gender,
+                  education: currentBasicInfo.education,
+                  profession: currentBasicInfo.profession,
+                  languages: currentBasicInfo.languages,
+                  experienceYears: currentBasicInfo.experienceYears,
+                  previousPositions: currentBasicInfo.previousPositions,
+                );
+                break;
           default:
             updatedBasicInfo = currentBasicInfo;
         }
@@ -376,17 +428,33 @@ class CandidateDataController extends GetxController {
   void updateContact(String field, String value) {
     if (editedData.value == null) return;
 
-    final currentContact =
-        (editedData.value!.extraInfo?.contact ??
-                Contact(phone: '', email: null, socialLinks: null))
-            as Contact;
-    final updatedContact = Contact(
-      phone: field == 'phone' ? value : currentContact.phone,
-      email: field == 'email' ? value : currentContact.email,
-      socialLinks: field.startsWith('social_')
-          ? {...?currentContact.socialLinks, field.substring(7): value}
-          : currentContact.socialLinks,
-    );
+    final currentContact = editedData.value!.extraInfo?.contact;
+    ExtendedContact updatedContact;
+
+    if (currentContact is ExtendedContact) {
+      updatedContact = ExtendedContact(
+        phone: field == 'phone' ? value : currentContact.phone,
+        email: field == 'email' ? value : currentContact.email,
+        address: field == 'address' ? value : currentContact.address,
+        socialLinks: field.startsWith('social_')
+            ? {...?currentContact.socialLinks, field.substring(7): value}
+            : currentContact.socialLinks,
+        officeAddress: field == 'officeAddress' ? value : currentContact.officeAddress,
+        officeHours: field == 'officeHours' ? value : currentContact.officeHours,
+      );
+    } else {
+      // Fallback to basic Contact if not ExtendedContact
+      final basicContact = currentContact as Contact? ?? Contact(phone: '', email: null, socialLinks: null);
+      updatedContact = ExtendedContact(
+        phone: field == 'phone' ? value : basicContact.phone,
+        email: field == 'email' ? value : basicContact.email,
+        socialLinks: field.startsWith('social_')
+            ? {...?basicContact.socialLinks, field.substring(7): value}
+            : basicContact.socialLinks,
+        officeAddress: field == 'officeAddress' ? value : null,
+        officeHours: field == 'officeHours' ? value : null,
+      );
+    }
 
     updateExtraInfo('contact', updatedContact);
   }
@@ -414,6 +482,8 @@ class CandidateDataController extends GetxController {
   void updateBasicInfo(String field, dynamic value) {
     if (editedData.value == null) return;
 
+    debugPrint('🎯 updateBasicInfo called: field=$field, value=$value');
+
     switch (field) {
       case 'name':
         editedData.value = editedData.value!.copyWith(name: value);
@@ -432,12 +502,20 @@ class CandidateDataController extends GetxController {
       case 'wardId':
         editedData.value = editedData.value!.copyWith(wardId: value);
         break;
+      case 'symbolName':
+        editedData.value = editedData.value!.copyWith(symbolName: value);
+        break;
       case 'age':
       case 'gender':
       case 'education':
+      case 'profession':
+      case 'languages':
+      case 'experienceYears':
+      case 'previousPositions':
       case 'address':
-      case 'dateOfBirth':
+      case 'date_of_birth':
         // Track the change for field-level updates
+        debugPrint('   Tracking field change: $field = $value');
         trackExtraInfoFieldChange(field, value);
         updateExtraInfo(field, value);
         break;
@@ -455,6 +533,9 @@ class CandidateDataController extends GetxController {
       // First, upload any local photos to Firebase
       onProgress?.call('Uploading photos to cloud...');
       await _uploadLocalPhotosToFirebase();
+
+      // Update user document for basic info fields (name, photo)
+      final userDocumentUpdated = await _updateUserDocumentForBasicInfo(onProgress);
 
       // Use field-level updates for better performance
       if (_changedExtraInfoFields.isNotEmpty) {
@@ -477,14 +558,59 @@ class CandidateDataController extends GetxController {
 
       if (success) {
         debugPrint('   Save successful, updating candidateData');
-        onProgress?.call('Achievements saved successfully!');
+        onProgress?.call('Basic info saved successfully!');
         candidateData.value = editedData.value;
         clearChangeTracking(); // Clear tracking after successful save
+
+        // Refresh highlight banner if basic info (name/photo) was updated
+        if (userDocumentUpdated) {
+          _refreshHighlightBanner();
+        }
       }
 
       return success;
     } catch (e) {
       debugPrint('Error saving extra info: $e');
+      return false;
+    }
+  }
+
+  // Update user document for basic info fields (name, photo)
+  Future<bool> _updateUserDocumentForBasicInfo(Function(String)? onProgress) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || editedData.value == null) return false;
+
+      final candidate = editedData.value!;
+      Map<String, dynamic> userUpdates = {};
+
+      // Check if name was changed
+      if (candidate.name != candidateData.value?.name) {
+        userUpdates['name'] = candidate.name;
+        debugPrint('📝 Updating user name: ${candidate.name}');
+      }
+
+      // Check if photo was changed
+      if (candidate.photo != candidateData.value?.photo) {
+        userUpdates['photo'] = candidate.photo;
+        debugPrint('📷 Updating user photo: ${candidate.photo}');
+      }
+
+      // Update user document if there are changes
+      if (userUpdates.isNotEmpty) {
+        onProgress?.call('Updating user profile...');
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update(userUpdates);
+
+        debugPrint('✅ User document updated with: ${userUpdates.keys.join(', ')}');
+        return true; // Indicate that user document was updated
+      }
+      return false; // No updates made
+    } catch (e) {
+      debugPrint('❌ Error updating user document: $e');
+      // Don't throw - allow candidate data to still be saved
       return false;
     }
   }
@@ -759,6 +885,27 @@ class CandidateDataController extends GetxController {
         return 10;
       default:
         return 5;
+    }
+  }
+
+  /// Refresh highlight banner when candidate profile is updated
+  void _refreshHighlightBanner() {
+    try {
+      debugPrint('🔄 [CandidateController] Triggering highlight banner refresh');
+
+      // Since we can't directly access the banner widget, we'll use a simple approach:
+      // The banner will refresh itself on next location change or we can implement
+      // a more sophisticated refresh mechanism later
+
+      // For now, we'll just log that a refresh was requested
+      // In a future implementation, we could use:
+      // 1. A stream that the banner listens to
+      // 2. A global key to call refresh directly
+      // 3. Provider/Bloc pattern for state management
+
+      debugPrint('✅ Highlight banner refresh requested - banner will reload on next location change');
+    } catch (e) {
+      debugPrint('❌ Error refreshing highlight banner: $e');
     }
   }
 

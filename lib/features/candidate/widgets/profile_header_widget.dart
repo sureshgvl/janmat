@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
+import '../../../utils/maharashtra_utils.dart';
 import '../../common/whatsapp_image_viewer.dart';
 
 class ProfileHeaderWidget extends StatelessWidget {
@@ -198,14 +199,64 @@ class ProfileHeaderWidget extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      wardName != null
-                          ? '${wardName!} • ${districtName ?? candidate.districtId}'
-                          : 'Ward ${candidate.wardId}, ${candidate.districtId}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final locale = Localizations.localeOf(context).languageCode;
+
+                        // Use MaharashtraUtils for ward name translation (same as BasicInfoView)
+                        final translatedWard = MaharashtraUtils.getWardDisplayNameWithLocale(
+                          candidate.wardId,
+                          locale,
+                        );
+
+                        // Use translated ward if translation succeeded, otherwise use SQLite data or fallback
+                        String displayWard;
+                        if (translatedWard != candidate.wardId) {
+                          // Translation succeeded
+                          displayWard = translatedWard;
+                        } else if (wardName?.isNotEmpty == true && wardName != candidate.wardId) {
+                          // Use cleaned SQLite data if available and different from raw wardId
+                          displayWard = wardName!;
+                        } else {
+                          // Fallback to wardId
+                          displayWard = candidate.wardId;
+                        }
+
+                        debugPrint('🏛️ [ProfileHeader] Ward name resolution:');
+                        debugPrint('   wardId: ${candidate.wardId}');
+                        debugPrint('   locale: $locale');
+                        debugPrint('   translatedWard: $translatedWard');
+                        debugPrint('   wardName param: $wardName');
+                        debugPrint('   displayWard: $displayWard');
+
+                        // Use MaharashtraUtils for district name translation
+                        final translatedDistrict = MaharashtraUtils.getDistrictDisplayNameWithLocale(
+                          candidate.districtId,
+                          locale,
+                        );
+                        final displayDistrict = translatedDistrict != candidate.districtId
+                          ? translatedDistrict
+                          : (districtName ?? candidate.districtId);
+
+
+                        // Construct final text
+                        final finalText = '$displayWard • $displayDistrict';
+
+                        // Debug logs
+                        debugPrint('🔍 [ProfileHeader] Location Display Debug:');
+                        debugPrint('   Locale: $locale');
+                        debugPrint('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
+                        debugPrint('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
+                        debugPrint('   Final Text: "$finalText"');
+
+                        return Text(
+                          finalText,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

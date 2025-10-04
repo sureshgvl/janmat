@@ -11,6 +11,7 @@ import '../../candidate/screens/candidate_profile_screen.dart';
 import '../../candidate/screens/change_party_symbol_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../monetization/screens/monetization_screen.dart';
+import 'about_screen.dart';
 import '../../chat/screens/chat_list_screen.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'home_navigation.dart';
@@ -251,6 +252,16 @@ class HomeDrawer extends StatelessWidget {
               HomeNavigation.toRightToLeft(
                 const SettingsScreen(),
               ); // Navigate to settings screen
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: Text(AppLocalizations.of(context)!.about),
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              HomeNavigation.toRightToLeft(
+                const AboutScreen(),
+              ); // Navigate to about screen
             },
           ),
           const Divider(),

@@ -354,7 +354,16 @@ class SymbolUtils {
           return _symbolCache[cacheKey]!;
         }
 
-        // Check for uploaded symbol image URL
+        // Check for symbolUrl in candidate data (primary source)
+        if (candidate.symbolUrl != null &&
+            candidate.symbolUrl!.isNotEmpty &&
+            candidate.symbolUrl!.startsWith('http')) {
+          debugPrint('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
+          _symbolCache[cacheKey] = candidate.symbolUrl!;
+          return candidate.symbolUrl!;
+        }
+
+        // Fallback: Check for uploaded symbol image URL in media
         if (candidate.extraInfo?.media != null &&
             candidate.extraInfo!.media!.isNotEmpty) {
           final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
@@ -366,7 +375,7 @@ class SymbolUtils {
             if (symbolImageUrl != null &&
                 symbolImageUrl.isNotEmpty &&
                 symbolImageUrl.startsWith('http')) {
-              debugPrint('🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl');
+              debugPrint('🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl');
               _symbolCache[cacheKey] = symbolImageUrl;
               return symbolImageUrl;
             }
@@ -446,7 +455,16 @@ class SymbolUtils {
             party.name.toLowerCase().contains('independent'))) {
       debugPrint('🎯 [SymbolUtils] Independent candidate detected');
 
-      // For independent candidates, check if there's a symbol image URL in extraInfo
+      // Check for symbolUrl in candidate data (primary source)
+      if (candidate.symbolUrl != null &&
+          candidate.symbolUrl!.isNotEmpty &&
+          candidate.symbolUrl!.startsWith('http')) {
+        debugPrint('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
+        _symbolCache[cacheKey] = candidate.symbolUrl!;
+        return candidate.symbolUrl!;
+      }
+
+      // Fallback: Check for uploaded symbol image URL in media
       if (candidate.extraInfo?.media != null &&
           candidate.extraInfo!.media!.isNotEmpty) {
         final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
@@ -459,7 +477,7 @@ class SymbolUtils {
               symbolImageUrl.isNotEmpty &&
               symbolImageUrl.startsWith('http')) {
             debugPrint(
-              '🎨 [SymbolUtils] Using uploaded image URL: $symbolImageUrl',
+              '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',
             );
             _symbolCache[cacheKey] = symbolImageUrl;
             return symbolImageUrl; // Return the Firebase Storage URL

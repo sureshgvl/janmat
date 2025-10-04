@@ -2,14 +2,23 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'local_notification_service.dart';
 
 class FCMService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LocalNotificationService _localNotificationService = LocalNotificationService();
+
+  // Store current token for comparison during refresh
+  String? _currentToken;
 
   // Initialize FCM and request permissions
   Future<void> initialize() async {
     try {
+      // Initialize local notification service first
+      await _localNotificationService.initialize();
+      debugPrint('✅ Local notification service initialized');
+
       // Request permission for notifications
       NotificationSettings settings = await _firebaseMessaging.requestPermission(
         alert: true,
@@ -26,25 +35,24 @@ class FCMService {
         debugPrint('❌ FCM permissions denied');
       }
 
-      // Get FCM token
-      final fcmToken = await _firebaseMessaging.getToken();
-      if (fcmToken != null) {
-        debugPrint('🎫 FCM Token: $fcmToken');
+      // Get FCM token and store it
+      _currentToken = await _firebaseMessaging.getToken();
+      if (_currentToken != null) {
+        debugPrint('🎫 FCM Token: $_currentToken');
       } else {
         debugPrint('❌ Failed to get FCM token');
       }
 
-      // Listen for token refresh
+      // Listen for token refresh with improved handling
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
         debugPrint('🔄 FCM token refreshed: $newToken');
-        // Update token in all user documents where this old token exists
-        _updateTokenInDatabase(newToken);
+        _handleTokenRefresh(newToken);
       });
 
       // Handle background messages
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-      // Handle foreground messages
+      // Handle foreground messages with local notifications
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('📱 Received foreground message: ${message.notification?.title}');
         _handleForegroundMessage(message);
@@ -74,31 +82,60 @@ class FCMService {
     }
   }
 
-  // Get current FCM token
+  // Get current FCM token (from cache if available, otherwise fetch)
   Future<String?> getCurrentToken() async {
     try {
-      return await _firebaseMessaging.getToken();
+      // Return cached token if available
+      if (_currentToken != null) {
+        return _currentToken;
+      }
+
+      // Otherwise fetch from Firebase
+      _currentToken = await _firebaseMessaging.getToken();
+      return _currentToken;
     } catch (e) {
       debugPrint('❌ Error getting current FCM token: $e');
       return null;
     }
   }
 
-  // Update token in database when it refreshes
-  Future<void> _updateTokenInDatabase(String newToken) async {
+  // Handle token refresh with improved logic
+  Future<void> _handleTokenRefresh(String newToken) async {
     try {
-      // Find all users with the old token and update them
-      // This is a simplified approach - in production you'd want to track token-user mapping
-      final usersSnapshot = await _firestore
-          .collection('users')
-          .where('fcmToken', isEqualTo: newToken) // This won't work for refresh
-          .get();
+      // Store the new token
+      final oldToken = _currentToken;
+      _currentToken = newToken;
 
-      // For token refresh, we need a different approach
-      // Usually you'd store the current token and update it when it changes
-      debugPrint('🔄 Token refresh detected, tokens should be updated via user login');
+      debugPrint('🔄 Token refresh: $oldToken -> $newToken');
+
+      // If we have an old token, find and update all users with that token
+      if (oldToken != null && oldToken != newToken) {
+        final usersSnapshot = await _firestore
+            .collection('users')
+            .where('fcmToken', isEqualTo: oldToken)
+            .get();
+
+        if (usersSnapshot.docs.isNotEmpty) {
+          debugPrint('📝 Updating ${usersSnapshot.docs.length} user documents with new token');
+
+          // Update each user document with the new token
+          for (final doc in usersSnapshot.docs) {
+            await doc.reference.update({
+              'fcmToken': newToken,
+              'lastTokenUpdate': FieldValue.serverTimestamp(),
+            });
+          }
+
+          debugPrint('✅ Token updated for ${usersSnapshot.docs.length} users');
+        } else {
+          debugPrint('ℹ️ No users found with old token - token may not be stored yet');
+        }
+      } else {
+        debugPrint('ℹ️ First token or same token - no database update needed');
+      }
     } catch (e) {
-      debugPrint('❌ Error updating token in database: $e');
+      debugPrint('❌ Error handling token refresh: $e');
+      // Don't throw - token refresh should not break the app
     }
   }
 
@@ -108,13 +145,31 @@ class FCMService {
     debugPrint('🛌 Handling background message: ${message.messageId}');
   }
 
-  // Handle foreground messages
+  // Handle foreground messages with local notifications
   void _handleForegroundMessage(RemoteMessage message) {
-    // Show in-app notification or handle the message
     debugPrint('📱 Foreground message: ${message.notification?.body}');
+    debugPrint('📊 Message data: ${message.data}');
 
-    // You could show a local notification here or update the UI
-    // For now, we'll just log it
+    // Show local notification for foreground messages
+    if (message.notification != null) {
+      final title = message.notification!.title ?? 'JanMat';
+      final body = message.notification!.body ?? 'You have a new notification';
+
+      // Generate unique ID based on timestamp to avoid conflicts
+      final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
+
+      _localNotificationService.showNotification(
+        id: notificationId,
+        title: title,
+        body: body,
+        payload: message.data.toString(),
+      );
+
+      debugPrint('🔔 Local notification shown for foreground message');
+    }
+
+    // You can also update app state or trigger other actions here
+    // For example, refresh data, update badges, etc.
   }
 
   // Handle when app is opened from notification
