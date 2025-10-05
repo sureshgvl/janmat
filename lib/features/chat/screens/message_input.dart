@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import '../controllers/chat_controller.dart';
+import '../../../l10n/features/chat/chat_translations.dart';
 
 class MessageInput extends StatefulWidget {
   final ChatController controller;
@@ -268,7 +269,7 @@ class _MessageInputState extends State<MessageInput> {
                           const Icon(Icons.mic, color: Colors.red, size: 14),
                           const SizedBox(width: 6),
                           Text(
-                            'Recording ${_formatDuration(_recordingDuration)}',
+                            ChatTranslations.recording(_formatDuration(_recordingDuration)),
                             style: TextStyle(
                               color: Colors.red.shade700,
                               fontWeight: FontWeight.w500,
@@ -310,7 +311,7 @@ class _MessageInputState extends State<MessageInput> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  'Voice message (${_formatDuration(_recordingDuration)})',
+                                  ChatTranslations.voiceMessage(_formatDuration(_recordingDuration)),
                                   style: TextStyle(
                                     color: Colors.blue.shade700,
                                     fontWeight: FontWeight.w500,
@@ -355,7 +356,7 @@ class _MessageInputState extends State<MessageInput> {
                                   minHeight: 40,
                                 ),
                                 padding: EdgeInsets.zero,
-                                tooltip: _isPreviewPlaying ? 'Pause' : 'Play',
+                                tooltip: _isPreviewPlaying ? ChatTranslations.pause : ChatTranslations.play,
                               ),
 
                               // Send button
@@ -364,9 +365,9 @@ class _MessageInputState extends State<MessageInput> {
                                     ? _sendRecording
                                     : null,
                                 icon: const Icon(Icons.send, size: 14),
-                                label: const Text(
-                                  'Send',
-                                  style: TextStyle(fontSize: 12),
+                                label: Text(
+                                  ChatTranslations.send,
+                                  style: const TextStyle(fontSize: 12),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue.shade600,
@@ -395,7 +396,7 @@ class _MessageInputState extends State<MessageInput> {
                                   minHeight: 40,
                                 ),
                                 padding: EdgeInsets.zero,
-                                tooltip: 'Delete recording',
+                                tooltip: ChatTranslations.deleteRecording,
                               ),
                             ],
                           ),
@@ -410,10 +411,10 @@ class _MessageInputState extends State<MessageInput> {
                 controller: widget.textController,
                 decoration: InputDecoration(
                   hintText: controller.canSendMessage
-                      ? 'Type a message...'
+                      ? ChatTranslations.typeMessage
                       : controller.shouldShowWatchAdsButton
-                      ? 'Watch ad to earn XP and send messages'
-                      : 'Unable to send messages',
+                      ? ChatTranslations.watchAdToEarnXP
+                      : ChatTranslations.unableToSendMessages,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
@@ -458,7 +459,7 @@ class _MessageInputState extends State<MessageInput> {
                         const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          'XP: ${controller.currentUser?.xpPoints ?? 0}',
+                          ChatTranslations.xpPoints((controller.currentUser?.xpPoints ?? 0).toString()),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -474,7 +475,7 @@ class _MessageInputState extends State<MessageInput> {
                         const Icon(Icons.message, color: Colors.blue, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          'Messages: ${controller.remainingMessages}',
+                          ChatTranslations.messagesCount(controller.remainingMessages.toString()),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -495,7 +496,7 @@ class _MessageInputState extends State<MessageInput> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Premium',
+                            ChatTranslations.premium,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.green.shade600,
@@ -542,8 +543,8 @@ class _MessageInputState extends State<MessageInput> {
                           ? _toggleVoiceRecording
                           : null,
                       tooltip: controller.isRecording
-                          ? 'Stop recording'
-                          : 'Start voice recording',
+                          ? ChatTranslations.stopRecording
+                          : ChatTranslations.startVoiceRecording,
                     ),
                   ),
 
@@ -640,8 +641,8 @@ class _MessageInputState extends State<MessageInput> {
     // Check if user can send message before proceeding
     if (!widget.controller.canSendMessage) {
       Get.snackbar(
-        'Cannot Send Message',
-        'You have no remaining messages or XP. Please watch an ad to earn XP.',
+        ChatTranslations.cannotSendMessage,
+        ChatTranslations.noMessagesOrXP,
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade800,
         duration: const Duration(seconds: 4),
@@ -663,8 +664,8 @@ class _MessageInputState extends State<MessageInput> {
           _showRecordingPreviewInterface(recordingPath);
         } else {
           Get.snackbar(
-            'Recording Error',
-            'Failed to save recording. Please try again.',
+            ChatTranslations.recordingError,
+            ChatTranslations.failedToSaveRecording,
             backgroundColor: Colors.red.shade100,
             colorText: Colors.red.shade800,
             duration: const Duration(seconds: 3),
@@ -673,8 +674,8 @@ class _MessageInputState extends State<MessageInput> {
       } catch (e) {
         debugPrint('❌ UI DEBUG: Failed to stop voice recording: $e');
         Get.snackbar(
-          'Recording Error',
-          'Failed to stop recording. Please try again.',
+          ChatTranslations.recordingError,
+          ChatTranslations.failedToStopRecording,
           backgroundColor: Colors.red.shade100,
           colorText: Colors.red.shade800,
           duration: const Duration(seconds: 3),

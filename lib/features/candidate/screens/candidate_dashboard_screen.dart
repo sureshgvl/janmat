@@ -63,12 +63,24 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
       final plan = await PlanService.getUserPlan(userId);
 
       if (plan != null) {
-        canEditManifesto = plan.dashboardTabs.manifesto.enabled;
-        canDisplayAchievements = plan.dashboardTabs.achievements.enabled;
-        canUploadMedia = plan.dashboardTabs.media.enabled;
-        canManageEvents = plan.dashboardTabs.events.enabled;
-        canViewAnalytics = plan.dashboardTabs.analytics.enabled;
-        canManageHighlights = plan.profileFeatures.highlightCarousel || plan.profileFeatures.multipleHighlights == true;
+        // Check if this is a highlight plan (no dashboard access)
+        if (plan.type == 'highlight') {
+          // Highlight plans don't have dashboard access
+          canEditManifesto = false;
+          canDisplayAchievements = false;
+          canUploadMedia = false;
+          canManageEvents = false;
+          canViewAnalytics = false;
+          canManageHighlights = true; // They can manage their highlights
+        } else {
+          // Candidate plan with dashboard access
+          canEditManifesto = plan.dashboardTabs?.manifesto.enabled ?? false;
+          canDisplayAchievements = plan.dashboardTabs?.achievements.enabled ?? false;
+          canUploadMedia = plan.dashboardTabs?.media.enabled ?? false;
+          canManageEvents = plan.dashboardTabs?.events.enabled ?? false;
+          canViewAnalytics = plan.dashboardTabs?.analytics.enabled ?? false;
+          canManageHighlights = plan.profileFeatures.highlightCarousel || plan.profileFeatures.multipleHighlights == true;
+        }
       } else {
         // Free plan defaults
         canEditManifesto = true; // Basic manifesto access

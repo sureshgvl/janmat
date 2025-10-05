@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -8,7 +9,7 @@ import '../../../models/user_model.dart';
 import '../../../models/body_model.dart';
 import '../../../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
-import '../../../services/highlight_service.dart';
+import '../../../controllers/highlight_controller.dart';
 import '../repositories/monetization_repository.dart';
 
 class MonetizationController extends GetxController {
@@ -22,6 +23,10 @@ class MonetizationController extends GetxController {
   var isLoading = false.obs;
   var errorMessage = ''.obs;
 
+  // Session caching
+  bool _plansLoaded = false;
+  DateTime? _lastPlansLoadTime;
+
   // User status tracking
   var currentUserModel = Rxn<UserModel>();
   var currentFirebaseUser = Rxn<User>();
@@ -34,11 +39,21 @@ class MonetizationController extends GetxController {
   // Payment mode toggle for testing
   var useMockPayment = true.obs; // Set to false to test real Razorpay
 
+  // Real-time subscription monitoring
+  StreamSubscription<DocumentSnapshot>? _subscriptionListener;
+
   @override
   void onInit() {
     super.onInit();
     debugPrint('🎮 MONETIZATION CONTROLLER: Initializing...');
-    loadInitialData();
+    // Don't load data on init - let the screen control when to load
+    _setupRealtimeSubscriptionMonitoring();
+  }
+
+  @override
+  void onClose() {
+    _subscriptionListener?.cancel();
+    super.onClose();
   }
 
   Future<void> loadInitialData() async {
@@ -65,8 +80,18 @@ class MonetizationController extends GetxController {
 
   // Plan Management
 
-  Future<void> loadPlans() async {
+  Future<void> loadPlans({bool forceRefresh = false}) async {
     try {
+      // Check session cache first (unless force refresh)
+      if (!forceRefresh && _plansLoaded && _lastPlansLoadTime != null) {
+        final timeSinceLastLoad = DateTime.now().difference(_lastPlansLoadTime!);
+        // Cache for 30 minutes during session
+        if (timeSinceLastLoad.inMinutes < 30) {
+          debugPrint('📋 Using cached plans (loaded ${_lastPlansLoadTime!.toIso8601String()})');
+          return;
+        }
+      }
+
       debugPrint(
         '🔄 MONETIZATION CONTROLLER: Loading plans based on user role and election type...',
       );
@@ -105,13 +130,16 @@ class MonetizationController extends GetxController {
         debugPrint('🏛️ CANDIDATE USER: Election type: $userElectionType');
 
         if (userElectionType != null) {
-          // Show plans that have pricing for this election type + voter plans + free plans
+          // Show plans that have pricing for this election type + voter plans + free plans + highlight plans
           filteredPlans = allPlans.where((plan) {
             // Always include voter plans (XP plans)
             if (plan.type == 'voter') return true;
 
             // Always include free plans
             if (plan.planId == 'free_plan') return true;
+
+            // Always include highlight plans for candidates
+            if (plan.type == 'highlight') return true;
 
             // Include candidate plans that have pricing for user's election type
             return plan.pricing.containsKey(userElectionType) &&
@@ -137,8 +165,13 @@ class MonetizationController extends GetxController {
       }
 
       plans.value = filteredPlans;
+
+      // Update cache flags
+      _plansLoaded = true;
+      _lastPlansLoadTime = DateTime.now();
+
       debugPrint(
-        '✅ MONETIZATION CONTROLLER: Successfully loaded ${filteredPlans.length} plans for $userRole',
+        '✅ MONETIZATION CONTROLLER: Successfully loaded ${filteredPlans.length} plans for $userRole (cached: $_plansLoaded)',
       );
 
       // Debug log each plan with all its features
@@ -148,51 +181,55 @@ class MonetizationController extends GetxController {
         debugPrint('   🏷️  Type: ${plan.type}');
         debugPrint('   ✅ Active: ${plan.isActive}');
 
-        // Dashboard Tabs Debug
-        debugPrint('   📊 DASHBOARD TABS:');
-        debugPrint(
-          '      🏠 Basic Info: ${plan.dashboardTabs.basicInfo.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.basicInfo.permissions}',
-        );
-
-        debugPrint(
-          '      📄 Manifesto: ${plan.dashboardTabs.manifesto.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.manifesto.permissions}',
-        );
-        debugPrint(
-          '         Features: TextOnly=${plan.dashboardTabs.manifesto.features.textOnly}, PDF=${plan.dashboardTabs.manifesto.features.pdfUpload}, Video=${plan.dashboardTabs.manifesto.features.videoUpload}',
-        );
-        debugPrint(
-          '         Promises: ${plan.dashboardTabs.manifesto.features.promises ? '✅' : '❌'} (Max: ${plan.dashboardTabs.manifesto.features.maxPromises})',
-        );
-
-        debugPrint(
-          '      🏆 Achievements: ${plan.dashboardTabs.achievements.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.achievements.permissions} (Max: ${plan.dashboardTabs.achievements.maxAchievements})',
-        );
-
-        debugPrint(
-          '      📸 Media: ${plan.dashboardTabs.media.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.media.permissions}',
-        );
-        debugPrint(
-          '         Limits: ${plan.dashboardTabs.media.maxMediaItems} items, ${plan.dashboardTabs.media.maxImagesPerItem} img, ${plan.dashboardTabs.media.maxVideosPerItem} vid, ${plan.dashboardTabs.media.maxYouTubeLinksPerItem} links',
-        );
-
-        debugPrint(
-          '      📞 Contact: ${plan.dashboardTabs.contact.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.contact.permissions}',
-        );
-        debugPrint(
-          '         Features: Basic=${plan.dashboardTabs.contact.features.basic}, Extended=${plan.dashboardTabs.contact.features.extended}, Social=${plan.dashboardTabs.contact.features.socialLinks}, Priority=${plan.dashboardTabs.contact.features.prioritySupport}',
-        );
-
-        debugPrint(
-          '      🎪 Events: ${plan.dashboardTabs.events.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.events.permissions} (Max: ${plan.dashboardTabs.events.maxEvents})',
-        );
-
-        debugPrint(
-          '      📈 Analytics: ${plan.dashboardTabs.analytics.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs.analytics.permissions}',
-        );
-        if (plan.dashboardTabs.analytics.features != null) {
+        // Dashboard Tabs Debug (only for candidate plans)
+        if (plan.dashboardTabs != null) {
+          debugPrint('   📊 DASHBOARD TABS:');
           debugPrint(
-            '         Features: Basic=${plan.dashboardTabs.analytics.features!.basic}, Advanced=${plan.dashboardTabs.analytics.features!.advanced}, Full=${plan.dashboardTabs.analytics.features!.fullDashboard}, RealTime=${plan.dashboardTabs.analytics.features!.realTime}',
+            '      🏠 Basic Info: ${plan.dashboardTabs!.basicInfo.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.basicInfo.permissions}',
           );
+
+          debugPrint(
+            '      📄 Manifesto: ${plan.dashboardTabs!.manifesto.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.manifesto.permissions}',
+          );
+          debugPrint(
+            '         Features: TextOnly=${plan.dashboardTabs!.manifesto.features.textOnly}, PDF=${plan.dashboardTabs!.manifesto.features.pdfUpload}, Video=${plan.dashboardTabs!.manifesto.features.videoUpload}',
+          );
+          debugPrint(
+            '         Promises: ${plan.dashboardTabs!.manifesto.features.promises ? '✅' : '❌'} (Max: ${plan.dashboardTabs!.manifesto.features.maxPromises})',
+          );
+
+          debugPrint(
+            '      🏆 Achievements: ${plan.dashboardTabs!.achievements.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.achievements.permissions} (Max: ${plan.dashboardTabs!.achievements.maxAchievements})',
+          );
+
+          debugPrint(
+            '      📸 Media: ${plan.dashboardTabs!.media.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.media.permissions}',
+          );
+          debugPrint(
+            '         Limits: ${plan.dashboardTabs!.media.maxMediaItems} items, ${plan.dashboardTabs!.media.maxImagesPerItem} img, ${plan.dashboardTabs!.media.maxVideosPerItem} vid, ${plan.dashboardTabs!.media.maxYouTubeLinksPerItem} links',
+          );
+
+          debugPrint(
+            '      📞 Contact: ${plan.dashboardTabs!.contact.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.contact.permissions}',
+          );
+          debugPrint(
+            '         Features: Basic=${plan.dashboardTabs!.contact.features.basic}, Extended=${plan.dashboardTabs!.contact.features.extended}, Social=${plan.dashboardTabs!.contact.features.socialLinks}, Priority=${plan.dashboardTabs!.contact.features.prioritySupport}',
+          );
+
+          debugPrint(
+            '      🎪 Events: ${plan.dashboardTabs!.events.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.events.permissions} (Max: ${plan.dashboardTabs!.events.maxEvents})',
+          );
+
+          debugPrint(
+            '      📈 Analytics: ${plan.dashboardTabs!.analytics.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.analytics.permissions}',
+          );
+          if (plan.dashboardTabs!.analytics.features != null) {
+            debugPrint(
+              '         Features: Basic=${plan.dashboardTabs!.analytics.features!.basic}, Advanced=${plan.dashboardTabs!.analytics.features!.advanced}, Full=${plan.dashboardTabs!.analytics.features!.fullDashboard}, RealTime=${plan.dashboardTabs!.analytics.features!.realTime}',
+            );
+          }
+        } else {
+          debugPrint('   📊 DASHBOARD TABS: None (Highlight Plan)');
         }
 
         // Profile Features Debug
@@ -1111,8 +1148,11 @@ class MonetizationController extends GetxController {
         return;
       }
 
+      // Get highlight controller
+      final highlightController = Get.find<HighlightController>();
+
       // Create Platinum highlight
-      await HighlightService.createPlatinumHighlight(
+      await highlightController.createPlatinumHighlight(
         candidateId: candidateData['candidateId'],
         districtId: candidateData['districtId'],
         bodyId: candidateData['bodyId'],
@@ -1123,7 +1163,7 @@ class MonetizationController extends GetxController {
       );
 
       // Create welcome sponsored post
-      await HighlightService.createPushFeedItem(
+      await highlightController.createPushFeedItem(
         candidateId: candidateData['candidateId'],
         wardId: candidateData['wardId'],
         title: '🎉 Platinum Plan Activated!',
@@ -1233,11 +1273,15 @@ class MonetizationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      // Clear session cache
+      _plansLoaded = false;
+      _lastPlansLoadTime = null;
+
       // Clear current user model to force re-evaluation
       currentUserModel.value = null;
       currentFirebaseUser.value = null;
 
-      // Reload everything
+      // Reload everything with force refresh
       await loadInitialData();
 
       debugPrint('✅ FORCE REFRESH: Plans reloaded successfully');
@@ -1395,7 +1439,8 @@ class MonetizationController extends GetxController {
   // Role-based plan access
   bool get showAllPlans {
     final user = currentUserModel.value;
-    return user?.role == 'candidate';
+    // Show comparison table for voters, individual cards for candidates
+    return user?.role == 'voter';
   }
 
   bool get showOnlyXPPlans {
@@ -1410,5 +1455,70 @@ class MonetizationController extends GetxController {
 
   String get xpTabText {
     return 'XP Plans';
+  }
+
+  // Real-time subscription monitoring
+  void _setupRealtimeSubscriptionMonitoring() {
+    debugPrint('🔄 Setting up real-time subscription monitoring...');
+
+    ever(currentFirebaseUser, (User? user) {
+      if (user != null) {
+        _startUserSubscriptionListener(user.uid);
+      } else {
+        _stopUserSubscriptionListener();
+      }
+    });
+
+    // Start listening if user is already logged in
+    if (currentFirebaseUser.value != null) {
+      _startUserSubscriptionListener(currentFirebaseUser.value!.uid);
+    }
+  }
+
+  void _startUserSubscriptionListener(String userId) {
+    debugPrint('👂 Starting user subscription listener for: $userId');
+
+    _subscriptionListener?.cancel(); // Cancel any existing listener
+
+    _subscriptionListener = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .snapshots()
+        .listen((DocumentSnapshot snapshot) {
+          if (snapshot.exists) {
+            final userData = snapshot.data() as Map<String, dynamic>;
+            final userModel = UserModel.fromJson(userData);
+
+            // Update reactive variables
+            currentUserModel.value = userModel;
+
+            // Check if subscription just expired
+            final previousPremium = currentUserModel.value?.premium ?? false;
+            final currentPremium = userModel.premium ?? false;
+
+            if (previousPremium && !currentPremium) {
+              debugPrint('⚠️ Subscription expired - user downgraded to free plan');
+              // Trigger UI refresh
+              update();
+
+              // Show expiration notification
+              Get.snackbar(
+                'Plan Expired',
+                'Your premium plan has expired. Upgrade to continue enjoying premium features.',
+                backgroundColor: Colors.orange,
+                colorText: Colors.white,
+                duration: const Duration(seconds: 5),
+              );
+            }
+          }
+        }, onError: (error) {
+          debugPrint('❌ Error in user subscription listener: $error');
+        });
+  }
+
+  void _stopUserSubscriptionListener() {
+    debugPrint('🔇 Stopping user subscription listener');
+    _subscriptionListener?.cancel();
+    _subscriptionListener = null;
   }
 }

@@ -88,6 +88,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
           ...validityOptions.map((days) {
             final price = pricing[days]!;
             final isSelected = selectedValidityDays == days;
+            final displayText = '$days Days - ₹$price';
+
+            debugPrint('📅 [PlanCardWithValidityOptions] Compact validity option: "$displayText"');
 
             return GestureDetector(
               onTap: () => setState(() => selectedValidityDays = days),
@@ -113,7 +116,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                     ),
                     Expanded(
                       child: Text(
-                        '$days Days - ₹$price',
+                        displayText,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -237,6 +240,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 children: validityOptions.map((days) {
                   final price = pricing[days]!;
                   final isSelected = selectedValidityDays == days;
+                  final validityText = '$days Days';
+                  final expiryText = 'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}';
+
+                  debugPrint('📅 [PlanCardWithValidityOptions] Full validity option: "$validityText" - "$expiryText" - ₹$price');
 
                   return GestureDetector(
                     onTap: () => setState(() => selectedValidityDays = days),
@@ -264,7 +271,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '$days Days',
+                                  validityText,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -272,7 +279,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                                   ),
                                 ),
                                 Text(
-                                  'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}',
+                                  expiryText,
                                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
                               ],
@@ -325,42 +332,44 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
   List<Widget> _buildFeaturesList() {
     final features = <Widget>[];
 
-    // Dashboard Tabs Features
-    if (widget.plan.dashboardTabs.basicInfo.enabled) {
-      features.add(_buildFeatureItem('✓ Basic Info'));
-    }
-
-    if (widget.plan.dashboardTabs.manifesto.enabled) {
-      features.add(_buildFeatureItem('✓ Manifesto'));
-      if (widget.plan.dashboardTabs.manifesto.features.pdfUpload) {
-        features.add(_buildFeatureItem('  • PDF Upload'));
+    // Dashboard Tabs Features (only for candidate plans)
+    if (widget.plan.dashboardTabs != null) {
+      if (widget.plan.dashboardTabs!.basicInfo.enabled) {
+        features.add(_buildFeatureItem('✓ Basic Info'));
       }
-      if (widget.plan.dashboardTabs.manifesto.features.videoUpload) {
-        features.add(_buildFeatureItem('  • Video Upload'));
+
+      if (widget.plan.dashboardTabs!.manifesto.enabled) {
+        features.add(_buildFeatureItem('✓ Manifesto'));
+        if (widget.plan.dashboardTabs!.manifesto.features.pdfUpload) {
+          features.add(_buildFeatureItem('  • PDF Upload'));
+        }
+        if (widget.plan.dashboardTabs!.manifesto.features.videoUpload) {
+          features.add(_buildFeatureItem('  • Video Upload'));
+        }
       }
-    }
 
-    if (widget.plan.dashboardTabs.achievements.enabled) {
-      final max = widget.plan.dashboardTabs.achievements.maxAchievements == -1 ? 'Unlimited' : widget.plan.dashboardTabs.achievements.maxAchievements.toString();
-      features.add(_buildFeatureItem('✓ Achievements ($max)'));
-    }
+      if (widget.plan.dashboardTabs!.achievements.enabled) {
+        final max = widget.plan.dashboardTabs!.achievements.maxAchievements == -1 ? 'Unlimited' : widget.plan.dashboardTabs!.achievements.maxAchievements.toString();
+        features.add(_buildFeatureItem('✓ Achievements ($max)'));
+      }
 
-    if (widget.plan.dashboardTabs.media.enabled) {
-      final max = widget.plan.dashboardTabs.media.maxMediaItems == -1 ? 'Unlimited' : widget.plan.dashboardTabs.media.maxMediaItems.toString();
-      features.add(_buildFeatureItem('✓ Media ($max items)'));
-    }
+      if (widget.plan.dashboardTabs!.media.enabled) {
+        final max = widget.plan.dashboardTabs!.media.maxMediaItems == -1 ? 'Unlimited' : widget.plan.dashboardTabs!.media.maxMediaItems.toString();
+        features.add(_buildFeatureItem('✓ Media ($max items)'));
+      }
 
-    if (widget.plan.dashboardTabs.contact.enabled) {
-      features.add(_buildFeatureItem('✓ Contact'));
-    }
+      if (widget.plan.dashboardTabs!.contact.enabled) {
+        features.add(_buildFeatureItem('✓ Contact'));
+      }
 
-    if (widget.plan.dashboardTabs.events.enabled) {
-      final max = widget.plan.dashboardTabs.events.maxEvents == -1 ? 'Unlimited' : widget.plan.dashboardTabs.events.maxEvents.toString();
-      features.add(_buildFeatureItem('✓ Events ($max)'));
-    }
+      if (widget.plan.dashboardTabs!.events.enabled) {
+        final max = widget.plan.dashboardTabs!.events.maxEvents == -1 ? 'Unlimited' : widget.plan.dashboardTabs!.events.maxEvents.toString();
+        features.add(_buildFeatureItem('✓ Events ($max)'));
+      }
 
-    if (widget.plan.dashboardTabs.analytics.enabled) {
-      features.add(_buildFeatureItem('✓ Analytics'));
+      if (widget.plan.dashboardTabs!.analytics.enabled) {
+        features.add(_buildFeatureItem('✓ Analytics'));
+      }
     }
 
     // Profile Features
@@ -387,33 +396,35 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
   List<Widget> _buildCompactFeaturesList() {
     final features = <Widget>[];
 
-    // Dashboard Tabs Features - Compact version
-    if (widget.plan.dashboardTabs.basicInfo.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Basic Info'));
-    }
+    // Dashboard Tabs Features - Compact version (only for candidate plans)
+    if (widget.plan.dashboardTabs != null) {
+      if (widget.plan.dashboardTabs!.basicInfo.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Basic Info'));
+      }
 
-    if (widget.plan.dashboardTabs.manifesto.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Manifesto'));
-    }
+      if (widget.plan.dashboardTabs!.manifesto.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Manifesto'));
+      }
 
-    if (widget.plan.dashboardTabs.media.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Media Upload'));
-    }
+      if (widget.plan.dashboardTabs!.media.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Media Upload'));
+      }
 
-    if (widget.plan.dashboardTabs.analytics.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Analytics'));
-    }
+      if (widget.plan.dashboardTabs!.analytics.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Analytics'));
+      }
 
-    if (widget.plan.dashboardTabs.achievements.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Achievements'));
-    }
+      if (widget.plan.dashboardTabs!.achievements.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Achievements'));
+      }
 
-    if (widget.plan.dashboardTabs.contact.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Contact'));
-    }
+      if (widget.plan.dashboardTabs!.contact.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Contact'));
+      }
 
-    if (widget.plan.dashboardTabs.events.enabled) {
-      features.add(_buildCompactFeatureItem('✓ Events'));
+      if (widget.plan.dashboardTabs!.events.enabled) {
+        features.add(_buildCompactFeatureItem('✓ Events'));
+      }
     }
 
     // Profile Features - Compact version

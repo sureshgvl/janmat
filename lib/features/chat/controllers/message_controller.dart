@@ -53,6 +53,10 @@ class MessageController extends GetxController {
   }) async {
     if (text.trim().isEmpty) return;
 
+    // Check if this is a ward room and add broadcast control metadata
+    final isWardRoom = roomId.startsWith('ward_');
+    final metadata = isWardRoom ? {'broadcast': false} : null;
+
     final message = existingMessage ?? Message(
       messageId: _generateMessageId(),
       text: text,
@@ -61,6 +65,7 @@ class MessageController extends GetxController {
       createdAt: DateTime.now(),
       readBy: [senderId],
       status: MessageStatus.sending, // Mark as sending initially
+      metadata: metadata,
     );
 
     debugPrint(
@@ -207,6 +212,10 @@ class MessageController extends GetxController {
     String imagePath,
     String senderId,
   ) async {
+    // Check if this is a ward room and add broadcast control metadata
+    final isWardRoom = roomId.startsWith('ward_');
+    final metadata = isWardRoom ? {'broadcast': false} : null;
+
     final message = Message(
       messageId: _generateMessageId(),
       text: 'Image',
@@ -216,6 +225,7 @@ class MessageController extends GetxController {
       readBy: [senderId],
       mediaUrl: imagePath, // Local path initially
       mediaLocalPath: imagePath,
+      metadata: metadata,
     );
 
     // Save locally immediately and add to UI
@@ -283,11 +293,27 @@ class MessageController extends GetxController {
     debugPrint('MessageController: Image message queued for sending: ${message.messageId}');
   }
 
+  Future<void> sendPollMessage(String roomId, Message message) async {
+    // Check if this is a ward room and add broadcast control metadata
+    final isWardRoom = roomId.startsWith('ward_');
+    final metadata = isWardRoom ? {'broadcast': false} : null;
+    final pollMessage = message.copyWith(metadata: metadata);
+
+    debugPrint('📊 MessageController: Sending poll message: ${message.messageId} to room: $roomId');
+
+    // Send to server asynchronously (don't block UI)
+    _sendMessageToServer(pollMessage, roomId);
+  }
+
   Future<void> sendVoiceMessage(
     String roomId,
     String audioPath,
     String senderId,
   ) async {
+    // Check if this is a ward room and add broadcast control metadata
+    final isWardRoom = roomId.startsWith('ward_');
+    final metadata = isWardRoom ? {'broadcast': false} : null;
+
     final message = Message(
       messageId: _generateMessageId(),
       text: 'Voice message',
@@ -297,6 +323,7 @@ class MessageController extends GetxController {
       readBy: [senderId],
       mediaUrl: audioPath, // Local path initially
       mediaLocalPath: audioPath,
+      metadata: metadata,
     );
 
     // Save locally immediately and add to UI

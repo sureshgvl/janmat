@@ -11,6 +11,7 @@ import 'message_controller.dart';
 import 'room_controller.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
+import '../models/poll.dart';
 import '../models/user_quota.dart';
 import '../repositories/chat_repository.dart';
 import '../services/private_chat_service.dart';
@@ -284,6 +285,9 @@ class ChatController extends GetxController {
         message.mediaUrl!,
         userId,
       );
+    } else if (message.type == 'poll') {
+      // Handle poll messages - send directly to server
+      await _messageController.sendPollMessage(roomId, message);
     }
   }
 
@@ -890,8 +894,89 @@ class ChatController extends GetxController {
     List<String> options, {
     DateTime? expiresAt,
   }) async {
-    // Basic implementation - will be replaced when screens migrate
-    debugPrint('createPoll called with question: $question');
+    final user = _cachedUser;
+    final room = currentChatRoom.value;
+
+    if (user == null || room == null) {
+      debugPrint('❌ Cannot create poll: user or room is null');
+      Get.snackbar(
+        'Cannot Create Poll',
+        'Please select a chat room first.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    if (question.trim().isEmpty || options.length < 2) {
+      debugPrint('❌ Cannot create poll: invalid question or options');
+      Get.snackbar(
+        'Invalid Poll',
+        'Please provide a question and at least 2 options.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    try {
+      debugPrint('📊 Creating poll: "$question" with ${options.length} options, expires at: $expiresAt');
+
+      // Create poll object
+      final pollId = DateTime.now().millisecondsSinceEpoch.toString();
+      final poll = Poll(
+        pollId: pollId,
+        question: question,
+        options: options,
+        votes: {},
+        userVotes: {},
+        createdAt: DateTime.now(),
+        expiresAt: expiresAt,
+        isActive: true,
+      );
+
+      // Save poll to repository
+      await _repository.createPoll(room.roomId, poll);
+      debugPrint('✅ Poll created in repository: $pollId');
+
+      // Create poll message
+      final message = Message(
+        messageId: DateTime.now().millisecondsSinceEpoch.toString(),
+        text: '📊 $question',
+        senderId: user.uid,
+        type: 'poll',
+        createdAt: DateTime.now(),
+        readBy: [user.uid],
+        metadata: {'pollId': pollId},
+      );
+
+      // Add message to UI immediately
+      await _messageController.addMessageToUI(message, room.roomId);
+
+      // Send message to server
+      await sendMessage(room.roomId, message);
+
+      debugPrint('✅ Poll message sent successfully');
+
+      Get.snackbar(
+        'Poll Created',
+        'Your poll has been created successfully!',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to create poll: $e');
+      Get.snackbar(
+        'Poll Creation Failed',
+        'Failed to create poll. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   void clearCurrentChat() {
@@ -927,23 +1012,110 @@ class ChatController extends GetxController {
   }
 
   Future<void> retryMessage(String messageId) async {
-    // This method needs to be implemented
+    final room = currentChatRoom.value;
+    if (room == null) {
+      debugPrint('❌ Cannot retry message: no current room');
+      return;
+    }
+
+    await _messageController.retryMessage(room.roomId, messageId);
   }
 
   Future<void> addReaction(String messageId, String emoji) async {
-    // This method needs to be implemented
+    final user = _cachedUser;
+    final room = currentChatRoom.value;
+
+    if (user == null || room == null) {
+      debugPrint('❌ Cannot add reaction: user or room is null');
+      return;
+    }
+
+    try {
+      await _repository.addReactionToMessage(
+        room.roomId,
+        messageId,
+        user.uid,
+        emoji,
+      );
+      debugPrint('✅ Reaction added: $emoji to message $messageId in room ${room.roomId}');
+    } catch (e) {
+      debugPrint('❌ Failed to add reaction: $e');
+      Get.snackbar(
+        'Reaction Failed',
+        'Failed to add reaction. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   Future<void> refreshCurrentChatMessages() async {
-    // This method needs to be implemented
+    final room = currentChatRoom.value;
+    if (room == null) {
+      debugPrint('❌ Cannot refresh messages: no current room');
+      return;
+    }
+
+    // Reload messages for the current room
+    _messageController.loadMessagesForRoom(room.roomId);
+    debugPrint('🔄 Refreshed messages for room: ${room.roomId}');
   }
 
   Future<void> reportMessage(String messageId, String reason) async {
-    // This method needs to be implemented
+    final room = currentChatRoom.value;
+    if (room == null) {
+      debugPrint('❌ Cannot report message: no current room');
+      return;
+    }
+
+    try {
+      await _repository.reportMessage(room.roomId, messageId, _cachedUser?.uid ?? '', reason);
+      Get.snackbar(
+        'Message Reported',
+        'Thank you for your report. We will review it.',
+        backgroundColor: Colors.blue.shade100,
+        colorText: Colors.blue.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to report message: $e');
+      Get.snackbar(
+        'Report Failed',
+        'Failed to report message. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   Future<void> deleteMessage(String messageId) async {
-    // This method needs to be implemented
+    final room = currentChatRoom.value;
+    if (room == null) {
+      debugPrint('❌ Cannot delete message: no current room');
+      return;
+    }
+
+    try {
+      await _repository.deleteMessage(room.roomId, messageId);
+      Get.snackbar(
+        'Message Deleted',
+        'Message has been deleted successfully.',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to delete message: $e');
+      Get.snackbar(
+        'Delete Failed',
+        'Failed to delete message. Please try again.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   String? get currentRecordingPath => null; // Placeholder

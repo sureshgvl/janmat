@@ -26,6 +26,7 @@ class PlanCard extends StatelessWidget {
     final userModel = controller.currentUserModel.value;
     final currentPlanId = userModel?.subscriptionPlanId;
     final isCurrentPlan = currentPlanId == plan.planId;
+    final subscriptionExpiresAt = userModel?.subscriptionExpiresAt;
 
     // Determine if upgrade button should be disabled
     final shouldDisableButton = _shouldDisableButton(currentPlanId);
@@ -101,6 +102,10 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
+            // Show expiration countdown for current plan
+            if (isCurrentPlan && subscriptionExpiresAt != null)
+              _buildExpirationCountdown(context, subscriptionExpiresAt),
+
             // Price display logic
             if (plan.planId == 'free_plan') ...[
               const Text(
@@ -173,9 +178,7 @@ class PlanCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  isCurrentPlan
-                      ? 'This is your current active plan'
-                      : 'You have already upgraded to a higher plan',
+                  _getDisabledButtonMessage(currentPlanId),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -201,10 +204,49 @@ class PlanCard extends StatelessWidget {
       return false;
     }
 
+    // Highlight plans are separate purchases, not part of hierarchy
+    if (plan.type == 'highlight') {
+      return false; // Highlight plans are always available (if user has access)
+    }
+
     if (currentPlanId == null) return false;
 
-    // For new pricing system, always allow selection
-    return false;
+    // Check plan hierarchy for main candidate plans (free, basic, gold, platinum)
+    return _isLowerOrEqualPlan(currentPlanId, plan.planId);
+  }
+
+  // Define plan hierarchy (higher number = higher tier)
+  int _getPlanLevel(String planId) {
+    switch (planId) {
+      case 'free_plan': return 0;
+      case 'basic_plan': return 1;
+      case 'gold_plan': return 2;
+      case 'platinum_plan': return 3;
+      default: return 0;
+    }
+  }
+
+  // Check if current plan is higher or equal to target plan
+  bool _isLowerOrEqualPlan(String currentPlanId, String targetPlanId) {
+    return _getPlanLevel(currentPlanId) >= _getPlanLevel(targetPlanId);
+  }
+
+  String _getDisabledButtonMessage(String? currentPlanId) {
+    if (currentPlanId == plan.planId) {
+      return 'This is your current active plan';
+    }
+
+    if (currentPlanId != null && _isLowerOrEqualPlan(currentPlanId, plan.planId)) {
+      final currentLevel = _getPlanLevel(currentPlanId);
+      final targetLevel = _getPlanLevel(plan.planId);
+      if (currentLevel > targetLevel) {
+        return 'You have a higher plan active';
+      } else {
+        return 'This plan is already active';
+      }
+    }
+
+    return 'Plan not available';
   }
 
   String _getButtonText(BuildContext context, String? currentPlanId) {
@@ -227,71 +269,78 @@ class PlanCard extends StatelessWidget {
       return 'Already Upgraded';
     }
 
+    // Determine if this is an upgrade or downgrade
+    if (currentPlanId != null && _getPlanLevel(currentPlanId) < _getPlanLevel(plan.planId)) {
+      return 'Upgrade';
+    }
+
     return AppLocalizations.of(context)!.upgradeToPremium;
   }
 
   List<Widget> _buildFeatureList() {
     final features = <Widget>[];
 
-    // Dashboard Tabs Features
-    if (plan.dashboardTabs.basicInfo.enabled) {
-      features.add(_buildFeatureItem('Basic Info', true));
-    }
+    // Dashboard Tabs Features (only for candidate plans)
+    if (plan.dashboardTabs != null) {
+      if (plan.dashboardTabs!.basicInfo.enabled) {
+        features.add(_buildFeatureItem('Basic Info', true));
+      }
 
-    if (plan.dashboardTabs.manifesto.enabled) {
-      features.add(_buildFeatureItem('Manifesto', true));
-      if (plan.dashboardTabs.manifesto.features.pdfUpload) {
-        features.add(_buildFeatureItem('  • PDF Upload', true));
+      if (plan.dashboardTabs!.manifesto.enabled) {
+        features.add(_buildFeatureItem('Manifesto', true));
+        if (plan.dashboardTabs!.manifesto.features.pdfUpload) {
+          features.add(_buildFeatureItem('  • PDF Upload', true));
+        }
+        if (plan.dashboardTabs!.manifesto.features.videoUpload) {
+          features.add(_buildFeatureItem('  • Video Upload', true));
+        }
+        if (plan.dashboardTabs!.manifesto.features.promises) {
+          features.add(_buildFeatureItem('  • Promises (${plan.dashboardTabs!.manifesto.features.maxPromises})', true));
+        }
+        if (plan.dashboardTabs!.manifesto.features.multipleVersions == true) {
+          features.add(_buildFeatureItem('  • Multiple Versions', true));
+        }
       }
-      if (plan.dashboardTabs.manifesto.features.videoUpload) {
-        features.add(_buildFeatureItem('  • Video Upload', true));
-      }
-      if (plan.dashboardTabs.manifesto.features.promises) {
-        features.add(_buildFeatureItem('  • Promises (${plan.dashboardTabs.manifesto.features.maxPromises})', true));
-      }
-      if (plan.dashboardTabs.manifesto.features.multipleVersions == true) {
-        features.add(_buildFeatureItem('  • Multiple Versions', true));
-      }
-    }
 
-    if (plan.dashboardTabs.achievements.enabled) {
-      final max = plan.dashboardTabs.achievements.maxAchievements == -1 ? 'Unlimited' : plan.dashboardTabs.achievements.maxAchievements.toString();
-      features.add(_buildFeatureItem('Achievements ($max)', true));
-    }
+      if (plan.dashboardTabs!.achievements.enabled) {
+        final max = plan.dashboardTabs!.achievements.maxAchievements == -1 ? 'Unlimited' : plan.dashboardTabs!.achievements.maxAchievements.toString();
+        features.add(_buildFeatureItem('Achievements ($max)', true));
+      }
 
-    if (plan.dashboardTabs.media.enabled) {
-      final max = plan.dashboardTabs.media.maxMediaItems == -1 ? 'Unlimited' : plan.dashboardTabs.media.maxMediaItems.toString();
-      features.add(_buildFeatureItem('Media ($max items)', true));
-    }
+      if (plan.dashboardTabs!.media.enabled) {
+        final max = plan.dashboardTabs!.media.maxMediaItems == -1 ? 'Unlimited' : plan.dashboardTabs!.media.maxMediaItems.toString();
+        features.add(_buildFeatureItem('Media ($max items)', true));
+      }
 
-    if (plan.dashboardTabs.contact.enabled) {
-      features.add(_buildFeatureItem('Contact', true));
-      if (plan.dashboardTabs.contact.features.extended) {
-        features.add(_buildFeatureItem('  • Extended Info', true));
+      if (plan.dashboardTabs!.contact.enabled) {
+        features.add(_buildFeatureItem('Contact', true));
+        if (plan.dashboardTabs!.contact.features.extended) {
+          features.add(_buildFeatureItem('  • Extended Info', true));
+        }
+        if (plan.dashboardTabs!.contact.features.socialLinks) {
+          features.add(_buildFeatureItem('  • Social Links', true));
+        }
+        if (plan.dashboardTabs!.contact.features.prioritySupport == true) {
+          features.add(_buildFeatureItem('  • Priority Support', true));
+        }
       }
-      if (plan.dashboardTabs.contact.features.socialLinks) {
-        features.add(_buildFeatureItem('  • Social Links', true));
-      }
-      if (plan.dashboardTabs.contact.features.prioritySupport == true) {
-        features.add(_buildFeatureItem('  • Priority Support', true));
-      }
-    }
 
-    if (plan.dashboardTabs.events.enabled) {
-      final max = plan.dashboardTabs.events.maxEvents == -1 ? 'Unlimited' : plan.dashboardTabs.events.maxEvents.toString();
-      features.add(_buildFeatureItem('Events ($max)', true));
-    }
+      if (plan.dashboardTabs!.events.enabled) {
+        final max = plan.dashboardTabs!.events.maxEvents == -1 ? 'Unlimited' : plan.dashboardTabs!.events.maxEvents.toString();
+        features.add(_buildFeatureItem('Events ($max)', true));
+      }
 
-    if (plan.dashboardTabs.analytics.enabled) {
-      features.add(_buildFeatureItem('Analytics', true));
-      if (plan.dashboardTabs.analytics.features?.advanced == true) {
-        features.add(_buildFeatureItem('  • Advanced', true));
-      }
-      if (plan.dashboardTabs.analytics.features?.fullDashboard == true) {
-        features.add(_buildFeatureItem('  • Full Dashboard', true));
-      }
-      if (plan.dashboardTabs.analytics.features?.realTime == true) {
-        features.add(_buildFeatureItem('  • Real-time', true));
+      if (plan.dashboardTabs!.analytics.enabled) {
+        features.add(_buildFeatureItem('Analytics', true));
+        if (plan.dashboardTabs!.analytics.features?.advanced == true) {
+          features.add(_buildFeatureItem('  • Advanced', true));
+        }
+        if (plan.dashboardTabs!.analytics.features?.fullDashboard == true) {
+          features.add(_buildFeatureItem('  • Full Dashboard', true));
+        }
+        if (plan.dashboardTabs!.analytics.features?.realTime == true) {
+          features.add(_buildFeatureItem('  • Real-time', true));
+        }
       }
     }
 
@@ -336,6 +385,85 @@ class PlanCard extends StatelessWidget {
             child: Text(
               name,
               style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpirationCountdown(BuildContext context, DateTime expiresAt) {
+    final now = DateTime.now();
+    final difference = expiresAt.difference(now);
+
+    if (difference.isNegative) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red[700], size: 16),
+            const SizedBox(width: 6),
+            Text(
+              'Plan Expired',
+              style: TextStyle(
+                color: Colors.red[700],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final days = difference.inDays;
+    final hours = difference.inHours % 24;
+
+    String timeText;
+    Color backgroundColor;
+    Color borderColor;
+    Color textColor;
+
+    if (days > 0) {
+      timeText = '$days day${days > 1 ? 's' : ''} left';
+      backgroundColor = Colors.blue[50]!;
+      borderColor = Colors.blue[200]!;
+      textColor = Colors.blue[700]!;
+    } else if (hours > 0) {
+      timeText = '$hours hour${hours > 1 ? 's' : ''} left';
+      backgroundColor = Colors.orange[50]!;
+      borderColor = Colors.orange[200]!;
+      textColor = Colors.orange[700]!;
+    } else {
+      final minutes = difference.inMinutes % 60;
+      timeText = '$minutes minute${minutes > 1 ? 's' : ''} left';
+      backgroundColor = Colors.red[50]!;
+      borderColor = Colors.red[200]!;
+      textColor = Colors.red[700]!;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule, color: textColor, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            'Expires in $timeText',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

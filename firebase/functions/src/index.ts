@@ -1,6 +1,5 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as https from 'https';
 
 // Initialize Firebase Admin - let it auto-discover credentials
 admin.initializeApp();
@@ -280,5 +279,245 @@ export const updateUserFCMToken = functions.firestore
     } catch (error) {
       console.error('❌ Error updating user FCM token:', error);
       return null;
+    }
+  });
+
+// Scheduled function to check and expire subscriptions daily
+export const checkExpiredSubscriptions = functions.pubsub
+  .schedule('0 0 * * *') // Run daily at midnight UTC
+  .timeZone('Asia/Kolkata') // IST timezone
+  .onRun(async (context) => {
+    try {
+      console.log('⏰ Starting daily subscription expiration check...');
+
+      const now = admin.firestore.Timestamp.now();
+      const db = admin.firestore();
+
+      // Find all active subscriptions that have expired
+      const expiredSubscriptionsQuery = db
+        .collection('subscriptions')
+        .where('isActive', '==', true)
+        .where('expiresAt', '<', now);
+
+      const expiredSubscriptionsSnapshot = await expiredSubscriptionsQuery.get();
+
+      console.log(`📊 Found ${expiredSubscriptionsSnapshot.docs.length} expired subscriptions`);
+
+      if (expiredSubscriptionsSnapshot.empty) {
+        console.log('✅ No expired subscriptions to process');
+        return null;
+      }
+
+      // Process each expired subscription
+      const batch = db.batch();
+      const userUpdates: { [userId: string]: any } = {};
+      const notifications: Array<{token: string, title: string, body: string, data: any}> = [];
+
+      for (const doc of expiredSubscriptionsSnapshot.docs) {
+        const subscriptionData = doc.data();
+        const userId = subscriptionData.userId;
+        const planId = subscriptionData.planId;
+
+        console.log(`⏰ Processing expired subscription: ${doc.id} for user: ${userId}, plan: ${planId}`);
+
+        // Mark subscription as expired
+        batch.update(doc.ref, {
+          isActive: false,
+          expiredAt: now,
+          updatedAt: now,
+        });
+
+        // Prepare user downgrade (only if this was their active plan)
+        if (!userUpdates[userId]) {
+          userUpdates[userId] = {
+            premium: false,
+            subscriptionPlanId: null,
+            subscriptionExpiresAt: null,
+            updatedAt: now,
+          };
+        }
+
+        // Prepare expiration notification
+        try {
+          const userDoc = await db.collection('users').doc(userId).get();
+          const userData = userDoc.data();
+
+          if (userData?.fcmToken) {
+            const planName = planId === 'gold_plan' ? 'Gold' :
+                           planId === 'platinum_plan' ? 'Platinum' :
+                           planId === 'basic_plan' ? 'Basic' : 'Premium';
+
+            notifications.push({
+              token: userData.fcmToken,
+              title: `${planName} Plan Expired`,
+              body: `Your ${planName} plan has expired. Upgrade to continue enjoying premium features.`,
+              data: {
+                type: 'subscription_expired',
+                planId: planId,
+                userId: userId,
+              }
+            });
+          }
+        } catch (error) {
+          console.error(`❌ Error preparing notification for user ${userId}:`, error);
+        }
+      }
+
+      // Execute batch updates for subscriptions
+      await batch.commit();
+      console.log('✅ Marked subscriptions as expired');
+
+      // Update users (downgrade to free plan)
+      const userUpdatePromises = Object.entries(userUpdates).map(async ([userId, updateData]) => {
+        try {
+          await db.collection('users').doc(userId).update(updateData);
+          console.log(`✅ Downgraded user ${userId} to free plan`);
+        } catch (error) {
+          console.error(`❌ Error updating user ${userId}:`, error);
+        }
+      });
+
+      await Promise.all(userUpdatePromises);
+
+      // Send expiration notifications
+      if (notifications.length > 0) {
+        console.log(`📨 Sending ${notifications.length} expiration notifications...`);
+
+        for (const notification of notifications) {
+          try {
+            await admin.messaging().send({
+              notification: {
+                title: notification.title,
+                body: notification.body,
+              },
+              data: notification.data,
+              token: notification.token,
+            });
+            console.log(`✅ Sent expiration notification to user`);
+          } catch (error) {
+            console.error('❌ Error sending expiration notification:', error);
+          }
+        }
+      }
+
+      console.log('🎉 Subscription expiration check completed successfully');
+      return {
+        success: true,
+        processedSubscriptions: expiredSubscriptionsSnapshot.docs.length,
+        notificationsSent: notifications.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error in subscription expiration check:', error);
+      throw error;
+    }
+  });
+
+// Function to send expiration warnings (3 days, 1 day, 1 hour before expiry)
+export const sendExpirationWarnings = functions.pubsub
+  .schedule('0 */6 * * *') // Run every 6 hours
+  .timeZone('Asia/Kolkata')
+  .onRun(async (context) => {
+    try {
+      console.log('⚠️ Checking for subscriptions expiring soon...');
+
+      const db = admin.firestore();
+      const now = admin.firestore.Timestamp.now();
+
+      // Check for subscriptions expiring in 3 days, 1 day, and 1 hour
+      const warningThresholds = [
+        { hours: 72, label: '3 days' },    // 3 days
+        { hours: 24, label: '1 day' },     // 1 day
+        { hours: 1, label: '1 hour' },     // 1 hour
+      ];
+
+      const notifications: Array<{token: string, title: string, body: string, data: any}> = [];
+
+      for (const threshold of warningThresholds) {
+        const futureTime = new Date(now.toDate().getTime() + (threshold.hours * 60 * 60 * 1000));
+        const futureTimestamp = admin.firestore.Timestamp.fromDate(futureTime);
+
+        const expiringSoonQuery = db
+          .collection('subscriptions')
+          .where('isActive', '==', true)
+          .where('expiresAt', '>=', now)
+          .where('expiresAt', '<=', futureTimestamp);
+
+        const expiringSoonSnapshot = await expiringSoonQuery.get();
+
+        console.log(`📊 Found ${expiringSoonSnapshot.docs.length} subscriptions expiring in ${threshold.label}`);
+
+        for (const doc of expiringSoonSnapshot.docs) {
+          const subscriptionData = doc.data();
+          const userId = subscriptionData.userId;
+          const planId = subscriptionData.planId;
+
+          // Check if we already sent a warning for this subscription and threshold
+          const warningSent = subscriptionData[`warningSent_${threshold.hours}h`];
+          if (warningSent) continue;
+
+          try {
+            const userDoc = await db.collection('users').doc(userId).get();
+            const userData = userDoc.data();
+
+            if (userData?.fcmToken) {
+              const planName = planId === 'gold_plan' ? 'Gold' :
+                             planId === 'platinum_plan' ? 'Platinum' :
+                             planId === 'basic_plan' ? 'Basic' : 'Premium';
+
+              notifications.push({
+                token: userData.fcmToken,
+                title: `${planName} Plan Expires Soon`,
+                body: `Your ${planName} plan expires in ${threshold.label}. Renew now to avoid service interruption.`,
+                data: {
+                  type: 'subscription_warning',
+                  planId: planId,
+                  userId: userId,
+                  expiresIn: threshold.label,
+                }
+              });
+
+              // Mark warning as sent
+              await doc.ref.update({
+                [`warningSent_${threshold.hours}h`]: true,
+                updatedAt: now,
+              });
+            }
+          } catch (error) {
+            console.error(`❌ Error processing warning for subscription ${doc.id}:`, error);
+          }
+        }
+      }
+
+      // Send warning notifications
+      if (notifications.length > 0) {
+        console.log(`📨 Sending ${notifications.length} expiration warnings...`);
+
+        for (const notification of notifications) {
+          try {
+            await admin.messaging().send({
+              notification: {
+                title: notification.title,
+                body: notification.body,
+              },
+              data: notification.data,
+              token: notification.token,
+            });
+            console.log(`✅ Sent expiration warning`);
+          } catch (error) {
+            console.error('❌ Error sending expiration warning:', error);
+          }
+        }
+      }
+
+      console.log('✅ Expiration warnings check completed');
+      return {
+        success: true,
+        warningsSent: notifications.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error in expiration warnings check:', error);
+      throw error;
     }
   });

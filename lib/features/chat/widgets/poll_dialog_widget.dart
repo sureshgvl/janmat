@@ -9,12 +9,18 @@ class PollVotingDialog extends StatefulWidget {
   final String pollId;
   final String question;
   final String currentUserId;
+  final VoidCallback? onVoteCompleted;
+  final VoidCallback? onDialogOpened;
+  final Poll? cachedPoll; // Optional cached poll data
 
   const PollVotingDialog({
     super.key,
     required this.pollId,
     required this.question,
     required this.currentUserId,
+    this.onVoteCompleted,
+    this.onDialogOpened,
+    this.cachedPoll,
   });
 
   @override
@@ -31,16 +37,36 @@ class PollVotingDialogState extends State<PollVotingDialog> {
   void initState() {
     super.initState();
     _loadPollData();
+    // Notify that dialog opened (for scrolling to poll message)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onDialogOpened?.call();
+    });
   }
 
   Future<void> _loadPollData() async {
     try {
       debugPrint('🔍 Loading poll data for pollId: ${widget.pollId}');
 
-      // Get poll data from repository
-      final chatRepository = ChatRepository();
+      // Use cached poll data if available and recent (within 30 seconds)
+      if (widget.cachedPoll != null) {
+        final poll = widget.cachedPoll!;
+        final cacheAge = DateTime.now().difference(poll.createdAt);
+        if (cacheAge.inSeconds < 30) {
+          debugPrint('⚡ Using cached poll data (age: ${cacheAge.inSeconds}s)');
+          setState(() {
+            _poll = poll;
+            _hasVoted = poll.userVotes.containsKey(widget.currentUserId);
+            _selectedOption = poll.userVotes[widget.currentUserId];
+            _isLoading = false;
+          });
+          return;
+        } else {
+          debugPrint('📅 Cached poll data too old (${cacheAge.inSeconds}s), fetching fresh data');
+        }
+      }
 
-      // Get the specific poll by ID
+      // Get fresh poll data from repository
+      final chatRepository = ChatRepository();
       final poll = await chatRepository.getPollById(widget.pollId);
 
       if (poll != null) {
@@ -113,6 +139,9 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         colorText: Colors.green.shade800,
         duration: const Duration(seconds: 2),
       );
+
+      // Call the completion callback to notify parent (chat screen) to scroll
+      widget.onVoteCompleted?.call();
 
       // Close dialog after a short delay to show the success message
       Future.delayed(const Duration(seconds: 1), () {

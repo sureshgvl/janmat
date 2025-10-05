@@ -29,9 +29,64 @@ class RoomController extends GetxController {
     String? wardId,
     String? area,
   }) async {
-    isLoading.value = true;
+    // Check if we have cached data first
+    final cacheKey = userRole == 'voter'
+        ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
+        : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
+
+    final cachedRooms = _repository.getCachedRooms(cacheKey);
+
+    if (cachedRooms != null && cachedRooms.isNotEmpty) {
+      // Show cached data immediately
+      debugPrint('⚡ ROOM CONTROLLER: Showing ${cachedRooms.length} cached rooms immediately');
+      chatRooms.assignAll(cachedRooms);
+      await _calculateUnreadCounts(userId, cachedRooms);
+      _updateChatRoomDisplayInfos();
+
+      // Then fetch fresh data in background
+      isLoading.value = false; // Don't show loading since we have cached data
+      _loadFreshDataInBackground(userId, userRole, cacheKey, stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
+    } else {
+      // No cached data, show loading
+      isLoading.value = true;
+      try {
+        final rooms = await _repository.getChatRoomsForUser(
+          userId,
+          userRole,
+          stateId: stateId,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+          area: area,
+        );
+        chatRooms.assignAll(rooms);
+
+        // Calculate unread counts for each room
+        await _calculateUnreadCounts(userId, rooms);
+
+        _updateChatRoomDisplayInfos();
+      } catch (e) {
+        debugPrint('Error loading chat rooms: $e');
+      } finally {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  // Load fresh data in background when cached data is already displayed
+  Future<void> _loadFreshDataInBackground(
+    String userId,
+    String userRole,
+    String cacheKey, {
+    String? stateId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  }) async {
     try {
-      final rooms = await _repository.getChatRoomsForUser(
+      debugPrint('🔄 ROOM CONTROLLER: Loading fresh data in background...');
+      final freshRooms = await _repository.getChatRoomsForUser(
         userId,
         userRole,
         stateId: stateId,
@@ -40,16 +95,19 @@ class RoomController extends GetxController {
         wardId: wardId,
         area: area,
       );
-      chatRooms.assignAll(rooms);
 
-      // Calculate unread counts for each room
-      await _calculateUnreadCounts(userId, rooms);
-
-      _updateChatRoomDisplayInfos();
+      // Only update if we got different data
+      if (freshRooms.length != chatRooms.length ||
+          !freshRooms.every((room) => chatRooms.any((cached) => cached.roomId == room.roomId))) {
+        debugPrint('🔄 ROOM CONTROLLER: Fresh data differs from cache, updating UI');
+        chatRooms.assignAll(freshRooms);
+        await _calculateUnreadCounts(userId, freshRooms);
+        _updateChatRoomDisplayInfos();
+      } else {
+        debugPrint('🔄 ROOM CONTROLLER: Fresh data matches cache, no UI update needed');
+      }
     } catch (e) {
-      // Handle error
-    } finally {
-      isLoading.value = false;
+      debugPrint('Error loading fresh chat rooms in background: $e');
     }
   }
 

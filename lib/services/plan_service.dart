@@ -96,22 +96,22 @@ class PlanService {
         case 'Manifesto CRUD':
         case 'Limited Manifesto':
         case 'Manifesto View':
-          return plan.dashboardTabs.manifesto.enabled;
+          return plan.dashboardTabs?.manifesto.enabled ?? false;
         case 'Media Upload':
         case 'Unlimited Media':
         case 'Limited Media':
-          return plan.dashboardTabs.media.enabled;
+          return plan.dashboardTabs?.media.enabled ?? false;
         case 'Basic Analytics':
         case 'Advanced Analytics':
-          return plan.dashboardTabs.analytics.enabled;
+          return plan.dashboardTabs?.analytics.enabled ?? false;
         case 'Events Management':
-          return plan.dashboardTabs.events.enabled;
+          return plan.dashboardTabs?.events.enabled ?? false;
         case 'Achievements':
-          return plan.dashboardTabs.achievements.enabled;
+          return plan.dashboardTabs?.achievements.enabled ?? false;
         case 'Sponsored Visibility':
           return plan.profileFeatures.sponsoredBanner;
         case 'Priority Support':
-          return plan.dashboardTabs.contact.features.prioritySupport == true;
+          return plan.dashboardTabs?.contact.features.prioritySupport == true;
         case 'Custom Branding':
           return plan.profileFeatures.customBranding == true;
         default:
@@ -167,14 +167,14 @@ class PlanService {
     debugPrint('🔍 PLAN SERVICE: Checking manifesto edit permissions for user: $userId');
 
     final plan = await getUserPlan(userId);
-    if (plan == null) {
-      debugPrint('🔍 PLAN SERVICE: No plan found - returning false');
+    if (plan == null || plan.dashboardTabs == null) {
+      debugPrint('🔍 PLAN SERVICE: No plan found or highlight plan - returning false');
       return false;
     }
 
-    final enabled = plan.dashboardTabs.manifesto.enabled;
-    final hasEditPermission = plan.dashboardTabs.manifesto.permissions.contains('edit') ||
-                             plan.dashboardTabs.manifesto.permissions.contains('priority');
+    final enabled = plan.dashboardTabs!.manifesto.enabled;
+    final hasEditPermission = plan.dashboardTabs!.manifesto.permissions.contains('edit') ||
+                             plan.dashboardTabs!.manifesto.permissions.contains('priority');
 
     debugPrint('🔍 PLAN SERVICE: Manifesto enabled: $enabled, has edit permission: $hasEditPermission');
     return enabled && hasEditPermission;
@@ -182,40 +182,40 @@ class PlanService {
 
   static Future<bool> canUploadMedia(String userId) async {
     final plan = await getUserPlan(userId);
-    if (plan == null) return false;
+    if (plan == null || plan.dashboardTabs == null) return false;
 
-    return plan.dashboardTabs.media.enabled &&
-           (plan.dashboardTabs.media.permissions.contains('edit') ||
-            plan.dashboardTabs.media.permissions.contains('upload') ||
-            plan.dashboardTabs.media.permissions.contains('priority'));
+    return plan.dashboardTabs!.media.enabled &&
+           (plan.dashboardTabs!.media.permissions.contains('edit') ||
+            plan.dashboardTabs!.media.permissions.contains('upload') ||
+            plan.dashboardTabs!.media.permissions.contains('priority'));
   }
 
   static Future<bool> canViewAnalytics(String userId) async {
     final plan = await getUserPlan(userId);
-    if (plan == null) return false;
+    if (plan == null || plan.dashboardTabs == null) return false;
 
-    return plan.dashboardTabs.analytics.enabled &&
-           plan.dashboardTabs.analytics.permissions.contains('view');
+    return plan.dashboardTabs!.analytics.enabled &&
+           plan.dashboardTabs!.analytics.permissions.contains('view');
   }
 
   static Future<bool> canManageEvents(String userId) async {
     final plan = await getUserPlan(userId);
-    if (plan == null) return false;
+    if (plan == null || plan.dashboardTabs == null) return false;
 
-    return plan.dashboardTabs.events.enabled &&
-           (plan.dashboardTabs.events.permissions.contains('edit') ||
-            plan.dashboardTabs.events.permissions.contains('manage') ||
-            plan.dashboardTabs.events.permissions.contains('featured'));
+    return plan.dashboardTabs!.events.enabled &&
+           (plan.dashboardTabs!.events.permissions.contains('edit') ||
+            plan.dashboardTabs!.events.permissions.contains('manage') ||
+            plan.dashboardTabs!.events.permissions.contains('featured'));
   }
 
   static Future<bool> canDisplayAchievements(String userId) async {
     final plan = await getUserPlan(userId);
-    if (plan == null) return false;
+    if (plan == null || plan.dashboardTabs == null) return false;
 
-    return plan.dashboardTabs.achievements.enabled &&
-           (plan.dashboardTabs.achievements.permissions.contains('view') ||
-            plan.dashboardTabs.achievements.permissions.contains('edit') ||
-            plan.dashboardTabs.achievements.permissions.contains('featured'));
+    return plan.dashboardTabs!.achievements.enabled &&
+           (plan.dashboardTabs!.achievements.permissions.contains('view') ||
+            plan.dashboardTabs!.achievements.permissions.contains('edit') ||
+            plan.dashboardTabs!.achievements.permissions.contains('featured'));
   }
 
   static Future<bool> hasSponsoredVisibility(String userId) async {
@@ -229,7 +229,7 @@ class PlanService {
     final plan = await getUserPlan(userId);
     if (plan == null) return false;
 
-    return plan.dashboardTabs.contact.features.prioritySupport == true ||
+    return plan.dashboardTabs?.contact.features.prioritySupport == true ||
            plan.profileFeatures.adminSupport == true;
   }
 
@@ -243,9 +243,9 @@ class PlanService {
   /// Get media upload limit based on plan
   static Future<int> getMediaUploadLimit(String userId) async {
     final plan = await getUserPlan(userId);
-    if (plan == null || !plan.dashboardTabs.media.enabled) return 0;
+    if (plan == null || plan.dashboardTabs?.media.enabled != true) return 0;
 
-    return plan.dashboardTabs.media.maxMediaItems;
+    return plan.dashboardTabs!.media.maxMediaItems;
   }
 
 }

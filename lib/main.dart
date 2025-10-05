@@ -8,7 +8,6 @@ import 'core/app_routes.dart';
 import 'core/initial_app_data_service.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
-import 'l10n/features/chat/chat_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
 import 'l10n/features/profile/profile_localizations.dart';
 
@@ -45,7 +44,6 @@ class MyApp extends StatelessWidget {
           localizationsDelegates: [
             ...AppLocalizations.localizationsDelegates,
             CandidateLocalizations.delegate,
-            ChatLocalizations.delegate,
             AuthLocalizations.delegate,
             ProfileLocalizations.delegate,
           ],

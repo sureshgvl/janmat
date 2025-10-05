@@ -544,21 +544,23 @@ class PlanComparisonTable extends StatelessWidget {
   List<Map<String, dynamic>> _getKeyFeatures(SubscriptionPlan plan) {
     final features = <Map<String, dynamic>>[];
 
-    // Dashboard Tabs
-    if (plan.dashboardTabs.manifesto.enabled) {
-      features.add({'name': 'Manifesto', 'enabled': true});
-    }
-    if (plan.dashboardTabs.achievements.enabled) {
-      features.add({'name': 'Achievements', 'enabled': true});
-    }
-    if (plan.dashboardTabs.media.enabled) {
-      features.add({'name': 'Media Upload', 'enabled': true});
-    }
-    if (plan.dashboardTabs.events.enabled) {
-      features.add({'name': 'Events', 'enabled': true});
-    }
-    if (plan.dashboardTabs.analytics.enabled) {
-      features.add({'name': 'Analytics', 'enabled': true});
+    // Dashboard Tabs (only for candidate plans)
+    if (plan.dashboardTabs != null) {
+      if (plan.dashboardTabs!.manifesto.enabled) {
+        features.add({'name': 'Manifesto', 'enabled': true});
+      }
+      if (plan.dashboardTabs!.achievements.enabled) {
+        features.add({'name': 'Achievements', 'enabled': true});
+      }
+      if (plan.dashboardTabs!.media.enabled) {
+        features.add({'name': 'Media Upload', 'enabled': true});
+      }
+      if (plan.dashboardTabs!.events.enabled) {
+        features.add({'name': 'Events', 'enabled': true});
+      }
+      if (plan.dashboardTabs!.analytics.enabled) {
+        features.add({'name': 'Analytics', 'enabled': true});
+      }
     }
 
     // Profile Features

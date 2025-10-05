@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/highlight_service.dart';
+import 'package:get/get.dart';
+import '../models/highlight_model.dart';
+import '../controllers/highlight_controller.dart';
 import 'highlight_card.dart';
 
 class HighlightCarousel extends StatefulWidget {
@@ -22,11 +25,21 @@ class HighlightCarousel extends StatefulWidget {
 class _HighlightCarouselState extends State<HighlightCarousel> {
   List<Highlight> highlights = [];
   bool isLoading = true;
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _autoScrollTimer;
 
   @override
   void initState() {
     super.initState();
     _loadHighlights();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _autoScrollTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -46,16 +59,19 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
     setState(() => isLoading = true);
 
     try {
-      final loadedHighlights = await HighlightService.getActiveHighlights(
-        widget.districtId,
-        widget.bodyId,
-        widget.wardId,
+      final controller = Get.find<HighlightController>();
+      await controller.loadHighlights(
+        districtId: widget.districtId,
+        bodyId: widget.bodyId,
+        wardId: widget.wardId,
       );
+
       if (mounted) {
         setState(() {
-          highlights = loadedHighlights;
+          highlights = controller.highlights;
           isLoading = false;
         });
+        _startAutoScroll();
       }
     } catch (e) {
       debugPrint('Error loading highlights: $e');
@@ -65,9 +81,29 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
     }
   }
 
+  void _startAutoScroll() {
+    _autoScrollTimer?.cancel();
+    if (highlights.length <= 1) return;
+
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) return;
+
+      setState(() {
+        _currentPage = (_currentPage + 1) % highlights.length;
+      });
+
+      _pageController.animateToPage(
+        _currentPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
   void _onHighlightTap(Highlight highlight) async {
     // Track click
-    await HighlightService.trackClick(highlight.id);
+    final controller = Get.find<HighlightController>();
+    await controller.trackClick(highlight.id);
 
     // Navigate to candidate profile
     // You'll need to implement this navigation based on your app's routing
@@ -109,22 +145,52 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
           ),
         ),
 
-        // Horizontal scrolling carousel - matches HTML design
+        // Auto-rotating PageView carousel
         SizedBox(
           height: 200, // Adjust height for horizontal cards
-          child: ListView.builder(
+          child: PageView.builder(
+            controller: _pageController,
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: highlights.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+              });
+            },
             itemBuilder: (context, index) {
               final highlight = highlights[index];
-              return HighlightCard(
-                highlight: highlight,
-                onTap: () => _onHighlightTap(highlight),
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: HighlightCard(
+                  highlight: highlight,
+                  onTap: () => _onHighlightTap(highlight),
+                ),
               );
             },
           ),
         ),
+
+        // Page indicators
+        if (highlights.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              highlights.length,
+              (index) => Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentPage == index
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey[300],
+                ),
+              ),
+            ),
+          ),
+        ],
 
         const SizedBox(height: 24),
       ],

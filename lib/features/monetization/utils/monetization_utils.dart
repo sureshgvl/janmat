@@ -25,14 +25,16 @@ class MonetizationUtils {
   static int countEnabledFeatures(SubscriptionPlan plan) {
     int count = 0;
 
-    // Dashboard Tabs
-    if (plan.dashboardTabs.basicInfo.enabled) count++;
-    if (plan.dashboardTabs.manifesto.enabled) count++;
-    if (plan.dashboardTabs.achievements.enabled) count++;
-    if (plan.dashboardTabs.media.enabled) count++;
-    if (plan.dashboardTabs.contact.enabled) count++;
-    if (plan.dashboardTabs.events.enabled) count++;
-    if (plan.dashboardTabs.analytics.enabled) count++;
+    // Dashboard Tabs (only for candidate plans)
+    if (plan.dashboardTabs != null) {
+      if (plan.dashboardTabs!.basicInfo.enabled) count++;
+      if (plan.dashboardTabs!.manifesto.enabled) count++;
+      if (plan.dashboardTabs!.achievements.enabled) count++;
+      if (plan.dashboardTabs!.media.enabled) count++;
+      if (plan.dashboardTabs!.contact.enabled) count++;
+      if (plan.dashboardTabs!.events.enabled) count++;
+      if (plan.dashboardTabs!.analytics.enabled) count++;
+    }
 
     // Profile Features
     if (plan.profileFeatures.premiumBadge) count++;

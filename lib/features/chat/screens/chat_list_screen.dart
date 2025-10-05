@@ -31,7 +31,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('chatRooms'.tr),
+        title: Text(ChatTranslations.chatRooms),
         actions: [
           // Manual ward room creation button (only for candidates)
           GetBuilder<ChatController>(
@@ -134,15 +134,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
           if (controller.isLoading.value) {
             return Container(
               color: Colors.white, // Clean white background instead of blue gradient
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(), // Default color (blue) is fine on white
-                    SizedBox(height: 24),
+                    const CircularProgressIndicator(), // Default color (blue) is fine on white
+                    const SizedBox(height: 24),
                     Text(
-                      'Loading chat rooms...',
-                      style: TextStyle(
+                      'loadingChatRooms'.tr,
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black87, // Dark text on white background
                         fontWeight: FontWeight.w500,

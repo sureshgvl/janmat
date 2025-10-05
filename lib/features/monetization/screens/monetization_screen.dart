@@ -3,14 +3,11 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../controllers/monetization_controller.dart';
-import '../widgets/plan_comparison_table.dart';
-import '../widgets/plan_card.dart';
-import '../widgets/election_type_banner.dart';
-import '../widgets/candidate_plans_section.dart';
+import '../widgets/premium_plans_tab.dart';
+import '../widgets/xp_plans_tab.dart';
 import '../widgets/user_status_section.dart';
 import '../widgets/xp_balance_section.dart';
 import '../widgets/xp_usage_info.dart';
-import '../utils/plan_utils.dart';
 import '../utils/purchase_handlers.dart';
 import '../utils/monetization_utils.dart';
 import '../../common/loading_overlay.dart';
@@ -27,21 +24,21 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     with SingleTickerProviderStateMixin {
   final MonetizationController _controller = Get.put(MonetizationController());
   late TabController _tabController;
-  String? _userElectionType;
+  Rx<String?> _userElectionType = Rx<String?>(null);
   late PurchaseHandlers _purchaseHandlers;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(_onTabChanged);
+    // Only show Premium Plans tab for candidates
+    _tabController = TabController(length: 1, vsync: this);
     _loadUserData();
   }
 
   void _initializePurchaseHandlers() {
     _purchaseHandlers = PurchaseHandlers(
       controller: _controller,
-      userElectionType: _userElectionType,
+      userElectionType: _userElectionType.value,
       formatElectionType: MonetizationUtils.formatElectionType,
       countEnabledFeatures: MonetizationUtils.countEnabledFeatures,
     );
@@ -49,17 +46,11 @@ class _MonetizationScreenState extends State<MonetizationScreen>
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
 
-  void _onTabChanged() {
-    // Load user data when switching to voter tab (index 1)
-    if (_tabController.index == 1) {
-      _loadUserData();
-    }
-  }
+  // Tab listener removed since we only have one tab for candidates
 
   Future<void> _loadUserData() async {
     try {
@@ -72,8 +63,24 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         await _controller.loadUserStatusData();
 
         // Get user's election type for plan filtering
-        _userElectionType = await _controller.getUserElectionType(currentUser.uid);
-        debugPrint('🏛️ User election type: $_userElectionType');
+        final electionType = await _controller.getUserElectionType(currentUser.uid);
+        _userElectionType.value = electionType;
+        debugPrint('🏛️ User election type: $electionType (reactive: ${_userElectionType.value})');
+
+        // Load plans with user data (force refresh to ensure latest data)
+        debugPrint('📋 Loading plans with force refresh...');
+        await _controller.loadPlans(forceRefresh: true);
+        debugPrint('📋 Plans loaded. Total plans: ${_controller.plans.length}');
+
+        // Log plan details for debugging
+        for (var plan in _controller.plans) {
+          debugPrint('   📋 Plan: ${plan.name} (${plan.planId}) - Type: ${plan.type}');
+          if (plan.pricing.containsKey(_userElectionType)) {
+            debugPrint('      💰 Has pricing for $_userElectionType: ${plan.pricing[_userElectionType]!.keys.join(", ")}');
+          } else {
+            debugPrint('      ❌ No pricing for $_userElectionType');
+          }
+        }
 
         // Initialize purchase handlers with user data
         _initializePurchaseHandlers();
@@ -89,146 +96,76 @@ class _MonetizationScreenState extends State<MonetizationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.premiumFeatures),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Obx(() => Tab(text: _controller.plansTabText)),
-            Tab(text: 'My Status'),
+    return Obx(() {
+      final userRole = _controller.currentUserModel.value?.role ?? 'voter';
+      final isCandidate = userRole == 'candidate';
+
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.premiumFeatures),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: _buildTabs(isCandidate),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Refresh Plans',
+              onPressed: _refreshPlans,
+            ),
+            if (isCandidate) ...[
+              IconButton(
+                icon: const Icon(Icons.settings),
+                tooltip: 'Initialize Default Plans',
+                onPressed: _initializeDefaultPlans,
+              ),
+              IconButton(
+                icon: const Icon(Icons.move_up),
+                tooltip: 'Migrate Candidates to States',
+                onPressed: _migrateCandidates,
+              ),
+            ],
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Initialize Default Plans',
-            onPressed: _initializeDefaultPlans,
-          ),
-          IconButton(
-            icon: const Icon(Icons.sync),
-            tooltip: 'Refresh Plans (Hot Reload Fix)',
-            onPressed: _refreshPlans,
-          ),
-          IconButton(
-            icon: const Icon(Icons.move_up),
-            tooltip: 'Migrate Candidates to States',
-            onPressed: _migrateCandidates,
-          ),
-        ],
-      ),
-      body: Obx(() {
-        return LoadingOverlay(
+        body: LoadingOverlay(
           isLoading: _controller.isLoading.value,
           child: TabBarView(
             controller: _tabController,
-            children: [
-              Obx(() => _controller.showAllPlans ? _buildPlansComparison() : _buildCandidatePlans()),
-              _buildUserStatus(),
-            ],
+            children: _buildTabViews(context, isCandidate),
           ),
-        );
-      }),
-    );
+        ),
+      );
+    });
   }
 
-  Widget _buildPlansComparison() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // User Status Section
-          UserStatusSection(controller: _controller),
-
-          const SizedBox(height: 24),
-
-          // Plans Comparison Section
-          PlanComparisonTable(controller: _controller),
-        ],
-      ),
-    );
+  List<Tab> _buildTabs(bool isCandidate) {
+    if (isCandidate) {
+      return [
+        const Tab(text: 'Premium Plans'),
+      ];
+    } else {
+      return [
+        const Tab(text: 'XP Plans'),
+      ];
+    }
   }
 
-  Widget _buildCandidatePlans() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Election Type Banner
-          if (_userElectionType != null) ...[
-            ElectionTypeBanner(
-              electionType: _userElectionType!,
-              formatElectionType: MonetizationUtils.formatElectionType,
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // Section Header - Compact
-          const Text(
-            'Premium Plans',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 6),
-
-          const Text(
-            'Select a validity period to unlock premium features',
-            style: TextStyle(fontSize: 13, color: Colors.grey),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Candidate Plans Section
-          CandidatePlansSection(
-            controller: _controller,
-            userElectionType: _userElectionType,
-            onPurchaseWithValidity: (plan, validityDays) =>
-              _purchaseHandlers.handlePurchaseWithValidity(context, plan, validityDays),
-            onPurchase: (plan) =>
-              _purchaseHandlers.handlePurchase(context, plan),
-          ),
-
-          const SizedBox(height: 24),
-
-          // XP Plans Section (for voters who might also want XP)
-          if (_controller.showOnlyXPPlans) ...[
-            const Divider(),
-            const SizedBox(height: 16),
-            const Text(
-              'XP Plans',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            XPBalanceSection(controller: _controller),
-            const SizedBox(height: 16),
-
-            Obx(() {
-              final voterPlans = PlanUtils.filterPlansByType(_controller.plans, 'voter');
-
-              if (voterPlans.isEmpty) {
-                return const Center(
-                  child: Text('No XP plans available at the moment'),
-                );
-              }
-
-              return Column(
-                children: voterPlans.map((plan) => PlanCard(
-                  plan: plan,
-                  controller: _controller,
-                  isCandidatePlan: false,
-                  onPurchase: () => _purchaseHandlers.handlePurchase(context, plan),
-                )).toList(),
-              );
-            }),
-
-            const SizedBox(height: 16),
-            XPUsageInfo(),
-          ],
-        ],
-      ),
-    );
+  List<Widget> _buildTabViews(BuildContext context, bool isCandidate) {
+    if (isCandidate) {
+      return [
+        PremiumPlansTab(
+          controller: _controller,
+          userElectionType: _userElectionType.value,
+        ),
+      ];
+    } else {
+      return [
+        XpPlansTab(
+          controller: _controller,
+          isCandidate: false,
+        ),
+      ];
+    }
   }
 
   // Purchase handlers are now in PurchaseHandlers class
@@ -261,7 +198,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
   // Method to refresh plans (useful for hot reload issues)
   void _refreshPlans() async {
     debugPrint('🔄 REFRESHING PLANS FROM MONETIZATION SCREEN...');
-    debugPrint('   User clicked refresh button - fixing hot reload issues');
+    debugPrint('   User clicked refresh button - forcing cache refresh');
 
     try {
       await _controller.refreshPlans();
@@ -307,34 +244,6 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         colorText: Colors.white,
       );
     }
-  }
-
-  // Utility methods are now in MonetizationUtils class
-
-  Widget _buildUserStatus() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // User Status Section
-          UserStatusSection(controller: _controller),
-
-          const SizedBox(height: 24),
-
-          // XP Balance Section (for voters)
-          if (_controller.showOnlyXPPlans) ...[
-            XPBalanceSection(controller: _controller),
-            const SizedBox(height: 24),
-          ],
-
-          // XP Usage Info (for voters)
-          if (_controller.showOnlyXPPlans) ...[
-            XPUsageInfo(),
-          ],
-        ],
-      ),
-    );
   }
 }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../l10n/app_localizations.dart';
-import '../../../l10n/features/chat/chat_localizations.dart';
+import '../../../l10n/features/chat/chat_translations.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/message_controller.dart';
 import '../../../models/chat_model.dart';
@@ -490,6 +490,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         pollId: pollId,
         question: message.text.replaceFirst('📊 ', ''),
         currentUserId: controller.currentUser?.uid ?? '',
+        onDialogOpened: () {
+          // Scroll to the poll message when dialog opens to ensure it's visible
+          _scrollToPollMessage(message);
+        },
+        onVoteCompleted: () {
+          // Scroll to the poll message after voting to show updated results
+          _scrollToPollMessage(message);
+        },
       ),
     );
   }
@@ -541,7 +549,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.image),
-              title: Text('sendImage'.tr),
+              title: Text(ChatTranslations.sendImage),
               onTap: () {
                 Get.back();
                 controller.sendImageMessage();
@@ -549,7 +557,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.poll),
-              title: Text('createPoll'.tr),
+              title: Text(ChatTranslations.createPoll),
               onTap: () {
                 Get.back();
                 _showCreatePollDialog();
@@ -627,7 +635,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${ChatLocalizations.of(context)!.type}: ${widget.chatRoom.type == 'public' ? ChatLocalizations.of(context)!.public : ChatLocalizations.of(context)!.private}',
+              '${ChatTranslations.roomType}: ${widget.chatRoom.type == 'public' ? ChatTranslations.publicRoom : ChatTranslations.privateRoom}',
             ),
             Text('Description: ${widget.chatRoom.description}'),
             Text('Created: ${timeago.format(widget.chatRoom.createdAt)}'),
@@ -669,6 +677,44 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     } else {
       // User is scrolled up, don't auto-scroll to avoid interrupting reading
       debugPrint('User is scrolled up, skipping auto-scroll to preserve reading position');
+    }
+  }
+
+  // Scroll to a specific poll message to show updated vote results
+  void _scrollToPollMessage(Message pollMessage) {
+    // Find the index of the poll message in the grouped messages
+    for (int groupIndex = 0; groupIndex < _groupedMessages.length; groupIndex++) {
+      final group = _groupedMessages[groupIndex];
+      if (group['type'] == 'messages') {
+        final messages = group['messages'] as List<Message>;
+        final messageIndex = messages.indexWhere((msg) => msg.messageId == pollMessage.messageId);
+        if (messageIndex != -1) {
+          // Calculate the position in the ListView
+          int listViewIndex = groupIndex; // Account for date separators and previous groups
+
+          // Add the index within this message group
+          listViewIndex += messageIndex;
+
+          // Account for load more button if present
+          final hasMoreMessages = controller.messages.isNotEmpty &&
+              controller.messages.first.createdAt.isAfter(DateTime(2020)); // Rough check
+          if (hasMoreMessages) {
+            listViewIndex += 1; // Add 1 for the load more button
+          }
+
+          // Scroll to the calculated position
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            scrollController.animateTo(
+              listViewIndex * 100.0, // Rough estimate of item height
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          });
+
+          debugPrint('Scrolling to poll message at list index: $listViewIndex');
+          break;
+        }
+      }
     }
   }
 

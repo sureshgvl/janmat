@@ -397,15 +397,41 @@ class ProfileFeatures {
   }
 }
 
+// Highlight-specific features
+class HighlightFeatures {
+  final int maxHighlights;
+  final String priority; // 'normal', 'high', 'urgent'
+
+  HighlightFeatures({
+    required this.maxHighlights,
+    required this.priority,
+  });
+
+  factory HighlightFeatures.fromJson(Map<String, dynamic> json) {
+    return HighlightFeatures(
+      maxHighlights: json['maxHighlights'] ?? 4,
+      priority: json['priority'] ?? 'normal',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'maxHighlights': maxHighlights,
+      'priority': priority,
+    };
+  }
+}
+
 class SubscriptionPlan {
   final String id;
   final String planId;
   final String name;
-  final String type;
+  final String type; // 'candidate' or 'highlight'
   final Map<String, Map<int, int>> pricing; // electionType -> validityDays -> price
   final bool isActive;
-  final DashboardTabs dashboardTabs;
+  final DashboardTabs? dashboardTabs; // Only for candidate plans
   final ProfileFeatures profileFeatures;
+  final HighlightFeatures? highlightFeatures; // Only for highlight plans
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -416,8 +442,9 @@ class SubscriptionPlan {
     required this.type,
     required this.pricing,
     required this.isActive,
-    required this.dashboardTabs,
+    this.dashboardTabs, // Optional for highlight plans
     required this.profileFeatures,
+    this.highlightFeatures, // Optional for candidate plans
     this.createdAt,
     this.updatedAt,
   });
@@ -451,15 +478,18 @@ class SubscriptionPlan {
       });
     }
 
+    final planType = json['type'] ?? '';
+
     return SubscriptionPlan(
       id: json['id'] ?? '',
       planId: json['planId'] ?? '',
       name: json['name'] ?? '',
-      type: json['type'] ?? '',
+      type: planType,
       pricing: pricing,
       isActive: json['isActive'] ?? true,
-      dashboardTabs: DashboardTabs.fromJson(json['dashboardTabs'] ?? {}),
+      dashboardTabs: planType == 'candidate' ? DashboardTabs.fromJson(json['dashboardTabs'] ?? {}) : null,
       profileFeatures: ProfileFeatures.fromJson(json['profileFeatures'] ?? {}),
+      highlightFeatures: planType == 'highlight' ? HighlightFeatures.fromJson(json['highlightFeatures'] ?? {}) : null,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -472,18 +502,27 @@ class SubscriptionPlan {
       pricingJson[electionType] = validityMap.map((days, price) => MapEntry(days.toString(), price));
     });
 
-    return {
+    final json = {
       'id': id,
       'planId': planId,
       'name': name,
       'type': type,
       'pricing': pricingJson,
       'isActive': isActive,
-      'dashboardTabs': dashboardTabs.toJson(),
       'profileFeatures': profileFeatures.toJson(),
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
+
+    // Add optional fields based on plan type
+    if (dashboardTabs != null) {
+      json['dashboardTabs'] = dashboardTabs!.toJson();
+    }
+    if (highlightFeatures != null) {
+      json['highlightFeatures'] = highlightFeatures!.toJson();
+    }
+
+    return json;
   }
 
   SubscriptionPlan copyWith({
@@ -495,6 +534,7 @@ class SubscriptionPlan {
     bool? isActive,
     DashboardTabs? dashboardTabs,
     ProfileFeatures? profileFeatures,
+    HighlightFeatures? highlightFeatures,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -507,6 +547,7 @@ class SubscriptionPlan {
       isActive: isActive ?? this.isActive,
       dashboardTabs: dashboardTabs ?? this.dashboardTabs,
       profileFeatures: profileFeatures ?? this.profileFeatures,
+      highlightFeatures: highlightFeatures ?? this.highlightFeatures,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

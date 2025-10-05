@@ -38,6 +38,11 @@ class ChatRepository {
     return _isCacheValid(cacheKey) ? _roomCache[cacheKey] : null;
   }
 
+  // Public method to get cached rooms (for controller use)
+  List<ChatRoom>? getCachedRooms(String cacheKey) {
+    return _getCachedRooms(cacheKey);
+  }
+
   // Invalidate cache for a user
   void invalidateUserCache(String userId) {
     final keysToRemove = _roomCache.keys
