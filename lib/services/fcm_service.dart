@@ -19,6 +19,15 @@ class FCMService {
       await _localNotificationService.initialize();
       debugPrint('✅ Local notification service initialized');
 
+      // Configure FCM to NOT show notifications automatically
+      // We'll handle all notifications manually through local notifications
+      await _firebaseMessaging.setForegroundNotificationPresentationOptions(
+        alert: false, // Don't show alert
+        badge: true,  // Update badge
+        sound: false, // Don't play sound
+      );
+      debugPrint('✅ FCM configured to not show automatic notifications');
+
       // Request permission for notifications
       NotificationSettings settings = await _firebaseMessaging.requestPermission(
         alert: true,
@@ -143,29 +152,58 @@ class FCMService {
   static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp();
     debugPrint('🛌 Handling background message: ${message.messageId}');
+    debugPrint('📊 Background message data: ${message.data}');
+
+    // Extract notification details from data payload
+    final title = message.data['title'] ?? 'JanMat';
+    final body = message.data['body'] ?? 'You have a new notification';
+
+    // For background messages, we need to show local notification
+    // since FCM won't auto-show system notifications with data-only payloads
+    final localNotificationService = LocalNotificationService();
+    await localNotificationService.initialize();
+
+    final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
+    localNotificationService.showNotification(
+      id: notificationId,
+      title: title,
+      body: body,
+      payload: message.data.toString(),
+    );
+
+    debugPrint('🔔 Background local notification shown: $title');
   }
 
   // Handle foreground messages with local notifications
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint('📱 Foreground message: ${message.notification?.body}');
+    debugPrint('📱 Foreground message received');
     debugPrint('📊 Message data: ${message.data}');
+    debugPrint('📱 Message notification: ${message.notification}');
 
-    // Show local notification for foreground messages
+    // Extract notification details from data payload
+    final title = message.data['title'] ?? 'JanMat';
+    final body = message.data['body'] ?? 'You have a new notification';
+
+    // Generate unique ID based on timestamp to avoid conflicts
+    final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
+
+    _localNotificationService.showNotification(
+      id: notificationId,
+      title: title,
+      body: body,
+      payload: message.data.toString(),
+    );
+
+    debugPrint('🔔 Local notification shown for foreground message: $title');
+
+    // If FCM still shows a system notification despite data-only payload,
+    // immediately cancel it to prevent duplicate notifications
     if (message.notification != null) {
-      final title = message.notification!.title ?? 'JanMat';
-      final body = message.notification!.body ?? 'You have a new notification';
-
-      // Generate unique ID based on timestamp to avoid conflicts
-      final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
-
-      _localNotificationService.showNotification(
-        id: notificationId,
-        title: title,
-        body: body,
-        payload: message.data.toString(),
-      );
-
-      debugPrint('🔔 Local notification shown for foreground message');
+      debugPrint('⚠️ FCM showed system notification despite data-only payload, canceling...');
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _localNotificationService.cancelNotification(notificationId);
+        debugPrint('✅ Canceled duplicate system notification');
+      });
     }
 
     // You can also update app state or trigger other actions here

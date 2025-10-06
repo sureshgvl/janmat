@@ -8,6 +8,7 @@ import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_event_repository.dart';
 import '../../../services/trial_service.dart';
 import '../../../services/file_upload_service.dart';
+import '../../../services/notifications/constituency_notifications.dart';
 import '../../../utils/symbol_utils.dart';
 
 class CandidateDataController extends GetxController {
@@ -562,6 +563,9 @@ class CandidateDataController extends GetxController {
         candidateData.value = editedData.value;
         clearChangeTracking(); // Clear tracking after successful save
 
+        // Send constituency notification for profile updates
+        await _sendProfileUpdateNotification();
+
         // Refresh highlight banner if basic info (name/photo) was updated
         if (userDocumentUpdated) {
           _refreshHighlightBanner();
@@ -906,6 +910,56 @@ class CandidateDataController extends GetxController {
       debugPrint('✅ Highlight banner refresh requested - banner will reload on next location change');
     } catch (e) {
       debugPrint('❌ Error refreshing highlight banner: $e');
+    }
+  }
+
+  /// Send constituency notification when candidate profile is updated
+  Future<void> _sendProfileUpdateNotification() async {
+    try {
+      if (candidateData.value == null) return;
+
+      final candidate = candidateData.value!;
+      debugPrint('📢 [ProfileUpdate] Checking for profile update notifications...');
+
+      // Determine what type of update occurred
+      String updateType = 'profile';
+      String updateDescription = 'updated their profile';
+
+      // Check what fields were changed to provide more specific notifications
+      if (_changedExtraInfoFields.containsKey('profession')) {
+        updateType = 'profession';
+        updateDescription = 'updated their profession to ${_changedExtraInfoFields['profession']}';
+      } else if (_changedExtraInfoFields.containsKey('bio')) {
+        updateType = 'bio';
+        updateDescription = 'updated their bio';
+      } else if (_changedExtraInfoFields.containsKey('education')) {
+        updateType = 'education';
+        updateDescription = 'updated their education details';
+      } else if (_changedExtraInfoFields.containsKey('manifesto')) {
+        updateType = 'manifesto';
+        updateDescription = 'updated their manifesto';
+      } else if (_changedExtraInfoFields.containsKey('contact')) {
+        updateType = 'contact';
+        updateDescription = 'updated their contact information';
+      } else if (_changedExtraInfoFields.containsKey('achievements')) {
+        updateType = 'achievements';
+        updateDescription = 'updated their achievements';
+      }
+
+      debugPrint('📢 [ProfileUpdate] Sending notification: $updateType - $updateDescription');
+
+      // Send constituency notification
+      final constituencyNotifications = ConstituencyNotifications();
+      await constituencyNotifications.sendProfileUpdateNotification(
+        candidateId: candidate.candidateId,
+        updateType: updateType,
+        updateDescription: updateDescription,
+      );
+
+      debugPrint('✅ [ProfileUpdate] Profile update notification sent successfully');
+    } catch (e) {
+      debugPrint('❌ [ProfileUpdate] Error sending profile update notification: $e');
+      // Don't throw - profile save should succeed even if notification fails
     }
   }
 

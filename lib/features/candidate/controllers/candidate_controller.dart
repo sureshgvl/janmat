@@ -392,24 +392,33 @@ class CandidateController extends GetxController {
 
       // Send new follower notification to candidate
       try {
+        debugPrint('🔔 [Controller] Sending new follower notification...');
+        debugPrint('   - Follower ID: $userId');
+        debugPrint('   - Candidate ID: $candidateId');
+
         // Get candidate info for notification
         final candidate = await _repository.getCandidateDataById(candidateId);
         if (candidate != null) {
+          debugPrint('   - Candidate found: ${candidate.name} (${candidate.userId})');
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
             candidateName: candidate.name,
             candidateUserId: candidate.userId,
           );
+          debugPrint('✅ [Controller] New follower notification sent successfully');
         } else {
+          debugPrint('⚠️ [Controller] Candidate data not found, sending basic notification');
           // Fallback without candidate info
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
           );
+          debugPrint('✅ [Controller] Basic new follower notification sent');
         }
       } catch (e) {
-        debugPrint('⚠️ Could not send new follower notification: $e');
+        debugPrint('❌ [Controller] Failed to send new follower notification: $e');
+        debugPrint('   - Error details: ${e.toString()}');
       }
 
       // Notify chat controller to refresh cache since followed candidates changed

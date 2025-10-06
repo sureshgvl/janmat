@@ -17,65 +17,92 @@ class CandidateFollowingNotifications {
     String? candidateName,
     String? candidateUserId,
   }) async {
+    final startTime = DateTime.now();
+    debugPrint('🚀 [FollowerNotification] Starting new follower notification process...');
+    debugPrint('   - Candidate ID: $candidateId');
+    debugPrint('   - Follower ID: $followerId');
+    debugPrint('   - Provided candidate name: $candidateName');
+    debugPrint('   - Provided candidate userId: $candidateUserId');
+
     try {
       // Get follower details
+      debugPrint('👤 [FollowerNotification] Getting follower details...');
       final followerData = await _candidateRepository.getUserData(followerId);
       final followerName = followerData?['name'] ?? 'Someone';
+      debugPrint('   - Follower name: $followerName');
 
       // Use provided candidate info or try to get it
       String? finalCandidateName = candidateName;
       String? finalCandidateUserId = candidateUserId;
+      debugPrint('🔍 [FollowerNotification] Resolving candidate information...');
 
       if (finalCandidateUserId == null) {
+        debugPrint('   - No candidate userId provided, fetching from database...');
         // Try to get candidate data with fallback method
         final candidateData = await _getCandidateDataWithFallback(candidateId);
         if (candidateData != null) {
           finalCandidateName = candidateData['name'] as String?;
           finalCandidateUserId = candidateData['userId'] as String?;
+          debugPrint('   - Found candidate: $finalCandidateName ($finalCandidateUserId)');
+        } else {
+          debugPrint('   - Candidate data not found in database');
         }
       }
 
       if (finalCandidateUserId == null) {
-        debugPrint('⚠️ No candidate userId available for notification: $candidateId');
+        debugPrint('❌ [FollowerNotification] No candidate userId available for notification: $candidateId');
         return;
       }
 
       // Get candidate's FCM token
+      debugPrint('🔑 [FollowerNotification] Getting FCM token for candidate: $finalCandidateUserId');
       final candidateToken = await _getUserFCMToken(finalCandidateUserId);
       if (candidateToken == null) {
-        debugPrint('⚠️ No FCM token found for candidate: $finalCandidateUserId');
+        debugPrint('❌ [FollowerNotification] No FCM token found for candidate: $finalCandidateUserId');
         return;
       }
+      debugPrint('   - FCM token found: ${candidateToken.substring(0, 20)}...');
 
       // Get current follower count
+      debugPrint('📊 [FollowerNotification] Getting current follower count...');
       final followerCount = await _getCandidateFollowerCount(candidateId);
+      debugPrint('   - Current follower count: $followerCount');
 
       // Create notification message
       final title = 'New Follower!';
       final body = '$followerName started following you. You now have ${followerCount + 1} followers!';
+      debugPrint('📝 [FollowerNotification] Created notification:');
+      debugPrint('   - Title: $title');
+      debugPrint('   - Body: $body');
+
+      final notificationData = {
+        'type': 'new_follower',
+        'candidateId': candidateId,
+        'followerId': followerId,
+        'followerName': followerName,
+        'followerCount': (followerCount + 1).toString(),
+      };
 
       // Send push notification
-      await _sendPushNotification(candidateToken, title, body, {
-        'type': 'new_follower',
-        'candidateId': candidateId,
-        'followerId': followerId,
-        'followerName': followerName,
-        'followerCount': (followerCount + 1).toString(),
-      });
+      debugPrint('📤 [FollowerNotification] Sending push notification...');
+      await _sendPushNotification(candidateToken, title, body, notificationData);
+      debugPrint('✅ [FollowerNotification] Push notification sent');
 
       // Store notification in database
-      await _storeNotification(finalCandidateUserId, title, body, {
-        'type': 'new_follower',
-        'candidateId': candidateId,
-        'followerId': followerId,
-        'followerName': followerName,
-        'followerCount': (followerCount + 1).toString(),
-      });
+      debugPrint('💾 [FollowerNotification] Storing notification in database...');
+      await _storeNotification(finalCandidateUserId, title, body, notificationData);
+      debugPrint('✅ [FollowerNotification] Notification stored in database');
 
       // Check for follower milestones
+      debugPrint('🏆 [FollowerNotification] Checking for follower milestones...');
       await _checkAndSendFollowerMilestoneNotification(candidateId, followerCount + 1);
+
+      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+      debugPrint('🎉 [FollowerNotification] New follower notification completed successfully (${totalTime}ms)');
     } catch (e) {
-      debugPrint('Error sending new follower notification: $e');
+      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+      debugPrint('❌ [FollowerNotification] Error sending new follower notification (${totalTime}ms): $e');
+      debugPrint('   - Stack trace: ${StackTrace.current}');
     }
   }
 
@@ -177,66 +204,6 @@ class CandidateFollowingNotifications {
     }
   }
 
-  // Notify followers about candidate profile updates
-  Future<void> sendProfileUpdateNotification({
-    required String candidateId,
-    required String updateType, // 'photo', 'bio', 'contact', 'manifesto', etc.
-    required String updateDescription,
-  }) async {
-    try {
-      // Get candidate details with fallback
-      final candidateData = await _getCandidateDataWithFallback(candidateId);
-      if (candidateData == null) return;
-
-      // Get all followers
-      final followers = await _getCandidateFollowers(candidateId);
-      if (followers.isEmpty) return;
-
-      // Get candidate's FCM tokens for followers who have notifications enabled
-      final tokens = <String>[];
-      for (final follower in followers) {
-        if (follower['notificationsEnabled'] == true) {
-          final token = await _getUserFCMToken(follower['userId']);
-          if (token != null) {
-            tokens.add(token);
-          }
-        }
-      }
-
-      if (tokens.isEmpty) return;
-
-      // Create notification message
-      final candidateName = candidateData['name'] as String? ?? 'Candidate';
-      final title = 'Profile Update';
-      final body = '$candidateName updated their $updateType: $updateDescription';
-
-      // Send push notifications to all followers
-      for (final token in tokens) {
-        await _sendPushNotification(token, title, body, {
-          'type': 'profile_update',
-          'candidateId': candidateId,
-          'candidateName': candidateName,
-          'updateType': updateType,
-          'updateDescription': updateDescription,
-        });
-      }
-
-      // Store notifications in database for each follower
-      for (final follower in followers) {
-        if (follower['notificationsEnabled'] == true) {
-          await _storeNotification(follower['userId'], title, body, {
-            'type': 'profile_update',
-            'candidateId': candidateId,
-            'candidateName': candidateName,
-            'updateType': updateType,
-            'updateDescription': updateDescription,
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error sending profile update notification: $e');
-    }
-  }
 
   // Notify followers about new candidate posts/content (future feature)
   Future<void> sendNewPostNotification({
@@ -624,7 +591,13 @@ class CandidateFollowingNotifications {
     Map<String, dynamic> data,
   ) async {
     try {
-      await _firestore
+      debugPrint('💾 [StoreNotification] Storing notification in database...');
+      debugPrint('   - User ID: $userId');
+      debugPrint('   - Title: $title');
+      debugPrint('   - Body: $body');
+      debugPrint('   - Data keys: ${data.keys.join(', ')}');
+
+      final docRef = await _firestore
           .collection('users')
           .doc(userId)
           .collection('notifications')
@@ -635,8 +608,13 @@ class CandidateFollowingNotifications {
             'read': false,
             'createdAt': FieldValue.serverTimestamp(),
           });
+
+      debugPrint('✅ [StoreNotification] Notification stored successfully');
+      debugPrint('   - Document ID: ${docRef.id}');
+      debugPrint('   - Path: users/$userId/notifications/${docRef.id}');
     } catch (e) {
-      debugPrint('Error storing notification: $e');
+      debugPrint('❌ [StoreNotification] Error storing notification: $e');
+      debugPrint('   - Error type: ${e.runtimeType}');
     }
   }
 }

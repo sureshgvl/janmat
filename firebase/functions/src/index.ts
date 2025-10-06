@@ -60,14 +60,13 @@ export const sendPushNotification = functions.https.onCall(async (data, context)
     }
 
     // Create notification payload for Admin SDK
+    // Send only data payload - let the app handle notification display manually
+    // This prevents FCM from auto-showing system notifications
     const payload = {
-      notification: {
-        title: title,
-        body: body,
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-      },
       data: {
         ...notificationData,
+        title: title,
+        body: body,
         timestamp: Date.now().toString(),
       },
       token: token, // Use token instead of to
@@ -126,14 +125,12 @@ export const sendPushNotificationToMultiple = functions.https.onCall(async (data
     }
 
     // Create notification payload
+    // Send only data payload - let the app handle notification display manually
     const payload = {
-      notification: {
-        title: title,
-        body: body,
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-      },
       data: {
         ...notificationData,
+        title: title,
+        body: body,
         timestamp: Date.now().toString(),
       },
     };
@@ -224,14 +221,12 @@ export const sendNotificationToTopic = functions.https.onCall(async (data, conte
     }
 
     // Create notification payload
+    // Send only data payload - let the app handle notification display manually
     const payload = {
-      notification: {
-        title: title,
-        body: body,
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-      },
       data: {
         ...notificationData,
+        title: title,
+        body: body,
         timestamp: Date.now().toString(),
       },
     };

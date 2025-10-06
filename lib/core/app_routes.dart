@@ -12,6 +12,8 @@ import '../features/chat/screens/chat_list_screen.dart';
 import '../features/monetization/screens/monetization_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/settings/screens/device_management_screen.dart';
+import '../features/notifications/screens/notification_center_screen.dart';
+import '../features/notifications/screens/notification_preferences_screen.dart';
 import '../screens/main_tab_navigation.dart';
 
 class AppRoutes {
@@ -55,6 +57,14 @@ class AppRoutes {
     GetPage(
       name: '/device-management',
       page: () => const DeviceManagementScreen(),
+    ),
+    GetPage(
+      name: '/notifications',
+      page: () => const NotificationCenterScreen(),
+    ),
+    GetPage(
+      name: '/notification-preferences',
+      page: () => const NotificationPreferencesScreen(),
     ),
   ];
 }

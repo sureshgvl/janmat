@@ -8,6 +8,7 @@ import '../../../services/device_service.dart';
 import '../../../services/trial_service.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
+import '../../notifications/services/chat_notification_service.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -742,6 +743,27 @@ class AuthController extends GetxController {
         debugPrint('ℹ️ [EXISTING_USER_NAV] CandidateController already registered');
       }
 
+      // Initialize Chat Notification Service
+      debugPrint('🔔 [EXISTING_USER_NAV] Initializing Chat Notification Service...');
+      try {
+        final chatNotificationService = ChatNotificationService();
+        final userLocation = {
+          'stateId': userData['stateId'],
+          'districtId': userData['districtId'],
+          'bodyId': userData['bodyId'],
+          'wardId': userData['wardId'],
+          'area': userData['area'],
+        };
+        await chatNotificationService.initialize(
+          userId: userId,
+          userRole: userData['role'] ?? 'voter',
+          userLocation: userLocation,
+        );
+        debugPrint('✅ [EXISTING_USER_NAV] Chat Notification Service initialized');
+      } catch (e) {
+        debugPrint('⚠️ [EXISTING_USER_NAV] Chat Notification Service initialization failed: $e');
+      }
+
       debugPrint('🏠 [EXISTING_USER_NAV] Navigating to home screen...');
       Get.offAllNamed('/home');
       debugPrint('✅ [EXISTING_USER_NAV] Navigation to home completed');
@@ -804,6 +826,27 @@ class AuthController extends GetxController {
         }
 
         debugPrint('✅ [AUTH_CONTROLLER] Profile complete and role selected');
+
+        // Initialize Chat Notification Service
+        debugPrint('🔔 [AUTH_CONTROLLER] Initializing Chat Notification Service...');
+        try {
+          final chatNotificationService = ChatNotificationService();
+          final userLocation = {
+            'stateId': userData?['stateId'],
+            'districtId': userData?['districtId'],
+            'bodyId': userData?['bodyId'],
+            'wardId': userData?['wardId'],
+            'area': userData?['area'],
+          };
+          await chatNotificationService.initialize(
+            userId: user.uid,
+            userRole: userData?['role'] ?? 'voter',
+            userLocation: userLocation,
+          );
+          debugPrint('✅ [AUTH_CONTROLLER] Chat Notification Service initialized');
+        } catch (e) {
+          debugPrint('⚠️ [AUTH_CONTROLLER] Chat Notification Service initialization failed: $e');
+        }
       } else {
         // User document doesn't exist, need role selection first
         debugPrint('📄 [AUTH_CONTROLLER] User document not found, navigating to role selection...');

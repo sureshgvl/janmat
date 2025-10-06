@@ -76,13 +76,10 @@ exports.sendPushNotification = functions.https.onCall(async (data, context) => {
             throw new functions.https.HttpsError('invalid-argument', 'Title and body are required');
         }
         // Create notification payload for Admin SDK
+        // Send only data payload - let the app handle notification display manually
+        // This prevents FCM from auto-showing system notifications
         const payload = {
-            notification: {
-                title: title,
-                body: body,
-                clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-            },
-            data: Object.assign(Object.assign({}, notificationData), { timestamp: Date.now().toString() }),
+            data: Object.assign(Object.assign({}, notificationData), { title: title, body: body, timestamp: Date.now().toString() }),
             token: token, // Use token instead of to
         };
         console.log('🔧 Using payload for Admin SDK:', JSON.stringify(payload, null, 2));
@@ -135,13 +132,9 @@ exports.sendPushNotificationToMultiple = functions.https.onCall(async (data, con
             throw new functions.https.HttpsError('invalid-argument', 'Title and body are required');
         }
         // Create notification payload
+        // Send only data payload - let the app handle notification display manually
         const payload = {
-            notification: {
-                title: title,
-                body: body,
-                clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-            },
-            data: Object.assign(Object.assign({}, notificationData), { timestamp: Date.now().toString() }),
+            data: Object.assign(Object.assign({}, notificationData), { title: title, body: body, timestamp: Date.now().toString() }),
         };
         // Send notification to multiple tokens
         const response = await admin.messaging().sendToDevice(tokens, payload);
@@ -214,13 +207,9 @@ exports.sendNotificationToTopic = functions.https.onCall(async (data, context) =
             throw new functions.https.HttpsError('invalid-argument', 'Title and body are required');
         }
         // Create notification payload
+        // Send only data payload - let the app handle notification display manually
         const payload = {
-            notification: {
-                title: title,
-                body: body,
-                clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-            },
-            data: Object.assign(Object.assign({}, notificationData), { timestamp: Date.now().toString() }),
+            data: Object.assign(Object.assign({}, notificationData), { title: title, body: body, timestamp: Date.now().toString() }),
         };
         // Send notification to topic
         const response = await admin.messaging().sendToTopic(topic, payload);

@@ -13,6 +13,7 @@ import '../../settings/screens/settings_screen.dart';
 import '../../monetization/screens/monetization_screen.dart';
 import 'about_screen.dart';
 import '../../chat/screens/chat_list_screen.dart';
+import '../../notifications/screens/notification_center_screen.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'home_navigation.dart';
 
@@ -242,6 +243,16 @@ class HomeDrawer extends StatelessWidget {
               HomeNavigation.toRightToLeft(
                 const ChatListScreen(),
               ); // Navigate to chat list screen
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications),
+            title: const Text('Notifications'),
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              HomeNavigation.toRightToLeft(
+                const NotificationCenterScreen(),
+              ); // Navigate to notification center
             },
           ),
           ListTile(

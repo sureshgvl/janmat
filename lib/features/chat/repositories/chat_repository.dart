@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../models/chat_model.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
+import '../../notifications/services/poll_notification_service.dart';
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -1124,6 +1125,24 @@ class ChatRepository {
       });
 
       debugPrint('✅ Vote recorded for poll $pollId by user $userId');
+
+      // Send voting reminder notifications to non-voters (if poll is still active)
+      try {
+        final pollNotificationService = PollNotificationService();
+        // Get poll data to check if it's still active and get question
+        final poll = await getPollById(pollId);
+        if (poll != null && !poll.isExpired) {
+          await pollNotificationService.sendVotingReminders(
+            roomId: roomId,
+            pollId: pollId,
+            pollQuestion: poll.question,
+          );
+          debugPrint('🔔 Voting reminders sent for poll $pollId');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Failed to send voting reminders: $e');
+        // Don't fail the vote if notifications fail
+      }
     } catch (e) {
       throw Exception('Failed to vote on poll: $e');
     }

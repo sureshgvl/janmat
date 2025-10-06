@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../utils/performance_monitor.dart';
 import '../utils/connection_optimizer.dart';
 import 'manifesto_cache_service.dart';
+import '../features/notifications/services/poll_notification_service.dart';
 
 class ManifestoPollService {
   static final PerformanceMonitor _monitor = PerformanceMonitor();
@@ -90,6 +91,26 @@ class ManifestoPollService {
 
       _monitor.stopTimer('vote_on_manifesto_poll');
       debugPrint('✅ Vote recorded for manifesto $manifestoId by user $userId on option $option');
+
+      // Send voting reminder notifications (if poll is still active)
+      try {
+        final pollNotificationService = PollNotificationService();
+        // Get manifesto details for notification
+        final manifestoResults = await getPollResultsStream(manifestoId).first;
+        if (manifestoResults.isNotEmpty) {
+          // This is a simplified approach - in a real implementation,
+          // we'd need to get the manifesto title and candidate name
+          await pollNotificationService.notifyManifestoPollResults(
+            manifestoId: manifestoId,
+            candidateName: 'Candidate', // This should be fetched from manifesto data
+            finalResults: manifestoResults,
+          );
+          debugPrint('🔔 Manifesto poll results notifications sent');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Failed to send manifesto poll notifications: $e');
+        // Don't fail the vote if notifications fail
+      }
     } catch (e) {
       _monitor.stopTimer('vote_on_manifesto_poll');
       debugPrint('Error voting on manifesto poll: $e');

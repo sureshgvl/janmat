@@ -19,6 +19,7 @@ import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../../services/admob_service.dart';
 import '../../monetization/repositories/monetization_repository.dart';
+import '../../notifications/services/poll_notification_service.dart';
 
 class ChatController extends GetxController {
   // New controllers
@@ -959,6 +960,21 @@ class ChatController extends GetxController {
       await sendMessage(room.roomId, message);
 
       debugPrint('✅ Poll message sent successfully');
+
+      // Send notifications to room members about the new poll
+      try {
+        final pollNotificationService = PollNotificationService();
+        await pollNotificationService.notifyNewPollCreated(
+          roomId: room.roomId,
+          pollId: pollId,
+          creatorId: user.uid,
+          pollQuestion: question,
+        );
+        debugPrint('🔔 Poll creation notifications sent');
+      } catch (e) {
+        debugPrint('⚠️ Failed to send poll creation notifications: $e');
+        // Don't fail the poll creation if notifications fail
+      }
 
       Get.snackbar(
         'Poll Created',

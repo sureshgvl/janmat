@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../features/notifications/services/gamification_notification_service.dart';
 
 class GamificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GamificationNotificationService _notificationService = GamificationNotificationService();
 
   // Point values for different actions
   static const int POINTS_EVENT_INTERESTED = 5;
@@ -45,6 +47,9 @@ class GamificationService {
 
       // Check for achievements
       await _checkAndAwardAchievements(userId);
+
+      // Check for level up
+      await _notificationService.checkAndNotifyLevelUp(userId);
 
       debugPrint('Awarded $totalPoints points to user $userId for RSVP');
     } catch (e) {
@@ -241,7 +246,19 @@ class GamificationService {
           'achievements': allAchievements,
         });
 
-        // You could send achievement notifications here
+        // Send achievement notifications
+        for (final achievement in newAchievements) {
+          try {
+            await _notificationService.sendBadgeEarnedNotification(
+              userId: userId,
+              badgeType: achievement,
+              points: points,
+            );
+          } catch (e) {
+            debugPrint('Failed to send achievement notification: $e');
+          }
+        }
+
         debugPrint('User $userId earned achievements: $newAchievements');
       }
     } catch (e) {
