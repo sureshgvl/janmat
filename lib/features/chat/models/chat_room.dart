@@ -61,6 +61,7 @@ class ChatRoomDisplayInfo {
   final DateTime? lastMessageTime;
   final String? lastMessagePreview;
   final String? lastMessageSender;
+  final String? displayTitle;
 
   ChatRoomDisplayInfo({
     required this.room,
@@ -68,6 +69,7 @@ class ChatRoomDisplayInfo {
     this.lastMessageTime,
     this.lastMessagePreview,
     this.lastMessageSender,
+    this.displayTitle,
   });
 
   bool get hasUnreadMessages => unreadCount > 0;

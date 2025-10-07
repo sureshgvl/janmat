@@ -95,7 +95,9 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
           xpPoints: data['xpPoints'] ?? 0,
           premium: data['premium'] ?? false,
           createdAt: data['createdAt'] != null
-              ? DateTime.parse(data['createdAt'])
+              ? (data['createdAt'] is Timestamp
+                  ? data['createdAt'].toDate()
+                  : DateTime.parse(data['createdAt'].toString()))
               : DateTime.now(),
           photoURL: data['photoURL'],
         );

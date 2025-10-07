@@ -14,6 +14,7 @@ import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../../utils/add_sample_states.dart';
 import '../../../services/local_database_service.dart';
+import '../../../services/notifications/constituency_notifications.dart';
 
 class ProfileCompletionController extends GetxController {
   // User data passed from main.dart to avoid duplicate Firebase call
@@ -1080,6 +1081,19 @@ class ProfileCompletionController extends GetxController {
           debugPrint(
             '✅ User document updated with candidateId: $actualCandidateId',
           );
+
+          // Send notification to constituency voters about new candidate
+          try {
+            debugPrint('📢 Sending new candidate notification to constituency voters...');
+            final constituencyNotifications = ConstituencyNotifications();
+            await constituencyNotifications.sendCandidateProfileCreatedNotification(
+              candidateId: actualCandidateId,
+            );
+            debugPrint('✅ New candidate notification sent successfully');
+          } catch (e) {
+            debugPrint('⚠️ Failed to send new candidate notification: $e');
+            // Don't fail the entire profile completion if notification fails
+          }
         } catch (e) {
           debugPrint('⚠️ Failed to create basic candidate record: $e');
           // Continue with navigation even if candidate creation fails

@@ -4,6 +4,11 @@ import '../features/home/screens/home_screen.dart';
 import '../features/candidate/screens/candidate_list_screen.dart';
 import '../features/chat/screens/chat_list_screen.dart';
 import '../features/polls/screens/polls_screen.dart';
+import '../widgets/in_app_notification_banner.dart';
+import '../features/notifications/services/notification_manager.dart';
+import '../features/notifications/services/notification_badge_service.dart';
+import '../features/notifications/models/notification_model.dart';
+import '../features/notifications/models/notification_type.dart';
 
 class MainTabNavigation extends StatefulWidget {
   const MainTabNavigation({super.key});
@@ -14,6 +19,10 @@ class MainTabNavigation extends StatefulWidget {
 
 class _MainTabNavigationState extends State<MainTabNavigation> {
   int _selectedIndex = 0;
+  final InAppNotificationService _notificationService = InAppNotificationService();
+  final NotificationManager _notificationManager = NotificationManager();
+  final NotificationBadgeService _badgeService = NotificationBadgeService();
+  Stream<List<NotificationModel>>? _notificationStream;
 
   static final List<Widget> _widgetOptions = <Widget>[
     const HomeScreen(),
@@ -27,6 +36,126 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _setupNotificationListener();
+    _initializeBadgeService();
+  }
+
+  @override
+  void dispose() {
+    _notificationService.hideCurrentNotification();
+    super.dispose();
+  }
+
+  void _setupNotificationListener() {
+    try {
+      _notificationStream = _notificationManager.getNotificationsStream(limit: 1);
+      _notificationStream?.listen((notifications) {
+        if (notifications.isNotEmpty) {
+          final latestNotification = notifications.first;
+          // Only show in-app notification if it's unread and recent (within last minute)
+          final oneMinuteAgo = DateTime.now().subtract(const Duration(minutes: 1));
+          if (latestNotification.isUnread && latestNotification.createdAt.isAfter(oneMinuteAgo)) {
+            _showInAppNotification(latestNotification);
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to setup notification listener: $e');
+    }
+  }
+
+  void _initializeBadgeService() {
+    try {
+      // Initialize badge service with current user
+      // Note: In a real implementation, you'd get the current user ID from auth
+      // For now, we'll initialize it when the notification manager is ready
+      _notificationManager.initialize().then((_) {
+        // Badge will be updated automatically when notifications change
+        debugPrint('Badge service ready for updates');
+      });
+    } catch (e) {
+      debugPrint('Failed to initialize badge service: $e');
+    }
+  }
+
+  void _showInAppNotification(NotificationModel notification) {
+    if (!mounted) return;
+
+    _notificationService.showNotification(
+      notification: notification,
+      context: context,
+      onTap: () => _handleNotificationTap(notification),
+      onDismiss: () => _notificationManager.markAsRead(notification.id),
+    );
+  }
+
+  void _handleNotificationTap(NotificationModel notification) {
+    // Mark as read
+    _notificationManager.markAsRead(notification.id);
+
+    // Update badge count
+    final userId = (_notificationManager.controller as dynamic).currentUserId ?? '';
+    if (userId.isNotEmpty) {
+      _badgeService.decrementBadge(userId);
+    }
+
+    // Navigate based on notification type and data
+    _navigateBasedOnNotification(notification);
+  }
+
+  void _navigateBasedOnNotification(NotificationModel notification) {
+    final data = notification.data;
+
+    switch (notification.type) {
+      case NotificationType.newMessage:
+      case NotificationType.mention:
+        // Navigate to chat
+        if (data['chatId'] != null) {
+          // Navigate to specific chat room
+          setState(() {
+            _selectedIndex = 2; // Chat tab
+          });
+        }
+        break;
+
+      case NotificationType.newFollower:
+      case NotificationType.candidateProfileUpdate:
+        // Navigate to candidate profile
+        if (data['candidateId'] != null) {
+          // Navigate to candidate profile screen
+          setState(() {
+            _selectedIndex = 1; // Candidates tab
+          });
+        }
+        break;
+
+      case NotificationType.eventReminder:
+      case NotificationType.newEvent:
+        // Navigate to events section
+        setState(() {
+          _selectedIndex = 0; // Home tab (where events are shown)
+        });
+        break;
+
+      case NotificationType.newPoll:
+      case NotificationType.pollResult:
+        // Navigate to polls
+        setState(() {
+          _selectedIndex = 3; // Polls tab
+        });
+        break;
+
+      default:
+        // Default to home
+        setState(() {
+          _selectedIndex = 0;
+        });
+    }
   }
 
   @override

@@ -3,9 +3,12 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
+import '../../../models/user_model.dart';
+import '../../auth/repositories/auth_repository.dart';
 
 class RoomController extends GetxController {
   final ChatRepository _repository = ChatRepository();
+  final AuthRepository _authRepository = AuthRepository();
 
   // Room state
   var chatRooms = <ChatRoom>[].obs;
@@ -34,7 +37,7 @@ class RoomController extends GetxController {
         ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
         : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
 
-    final cachedRooms = _repository.getCachedRooms(cacheKey);
+    final cachedRooms = await _repository.getCachedRooms(cacheKey);
 
     if (cachedRooms != null && cachedRooms.isNotEmpty) {
       // Show cached data immediately
@@ -192,22 +195,75 @@ class RoomController extends GetxController {
   }
 
   // Update display info
-  void _updateChatRoomDisplayInfos() {
-    chatRoomDisplayInfos.assignAll(
-      chatRooms.map((room) {
-        return ChatRoomDisplayInfo(
-          room: room,
-          unreadCount: _unreadCounts[room.roomId] ?? 0,
-          lastMessageTime: _lastMessageTimes[room.roomId],
-          lastMessagePreview: _lastMessagePreviews[room.roomId],
-          lastMessageSender: _lastMessageSenders[room.roomId],
-        );
-      }).toList()..sort((a, b) {
-        final aTime = a.lastMessageTime ?? a.room.createdAt;
-        final bTime = b.lastMessageTime ?? b.room.createdAt;
-        return bTime.compareTo(aTime);
-      }),
-    );
+  void _updateChatRoomDisplayInfos() async {
+    final displayInfos = <ChatRoomDisplayInfo>[];
+
+    for (final room in chatRooms) {
+      String? displayTitle;
+
+      // For private chats, get the other user's name
+      if (room.type == 'private') {
+        try {
+          final userInfo = await _getPrivateChatDisplayTitle(room.roomId);
+          displayTitle = userInfo;
+        } catch (e) {
+          debugPrint('Error getting private chat display title: $e');
+          displayTitle = 'Private Chat';
+        }
+      }
+
+      displayInfos.add(ChatRoomDisplayInfo(
+        room: room,
+        unreadCount: _unreadCounts[room.roomId] ?? 0,
+        lastMessageTime: _lastMessageTimes[room.roomId],
+        lastMessagePreview: _lastMessagePreviews[room.roomId],
+        lastMessageSender: _lastMessageSenders[room.roomId],
+        displayTitle: displayTitle,
+      ));
+    }
+
+    // Sort by last message time
+    displayInfos.sort((a, b) {
+      final aTime = a.lastMessageTime ?? a.room.createdAt;
+      final bTime = b.lastMessageTime ?? b.room.createdAt;
+      return bTime.compareTo(aTime);
+    });
+
+    chatRoomDisplayInfos.assignAll(displayInfos);
+  }
+
+  // Get display title for private chat (other user's name)
+  Future<String?> _getPrivateChatDisplayTitle(String roomId) async {
+    try {
+      final roomDoc = await FirebaseFirestore.instance.collection('chats').doc(roomId).get();
+      if (!roomDoc.exists) return 'Private Chat';
+
+      final roomData = roomDoc.data() as Map<String, dynamic>;
+      final members = List<String>.from(roomData['members'] ?? []);
+
+      // Get current user ID from auth repository
+      final currentUser = _authRepository.currentUser;
+      if (currentUser == null) return 'Private Chat';
+      final currentUserId = currentUser.uid;
+
+      // Find the other user
+      final otherUserId = members.firstWhere(
+        (id) => id != currentUserId,
+        orElse: () => '',
+      );
+
+      if (otherUserId.isEmpty) return 'Private Chat';
+
+      // Get other user's info
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(otherUserId).get();
+      if (!userDoc.exists) return 'Private Chat';
+
+      final userData = userDoc.data() as Map<String, dynamic>;
+      return userData['name'] ?? 'Private Chat';
+    } catch (e) {
+      debugPrint('Error getting private chat display title: $e');
+      return 'Private Chat';
+    }
   }
 
   // Get total unread count

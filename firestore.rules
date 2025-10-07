@@ -64,12 +64,44 @@ service cloud.firestore {
       allow update: if request.auth != null;
     }
 
-    // Chat functionality
+    // Chat functionality - Legacy flat structure
     match /chats/{roomId} {
       allow read, write: if request.auth != null;
     }
 
     match /chats/{roomId}/messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Hierarchical Chat Structure - NEW!
+    // Ward-level chat rooms
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/chats/{roomId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/chats/{roomId}/messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Area-level chat rooms
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId} {
+      allow read: if request.auth != null; // Allow authenticated users to list areas in their ward
+    }
+
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId}/chats/{roomId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId}/chats/{roomId}/messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Candidate-level chat rooms
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId}/chats/{roomId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId}/chats/{roomId}/messages/{messageId} {
       allow read, write: if request.auth != null;
     }
 
@@ -415,6 +447,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == mappingId;
       allow read: if request.auth != null &&
         (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    // Collection Group Rules for Hierarchical Chat Queries - CRITICAL!
+    // This allows collectionGroup('chats') queries to work
+    match /{path=**}/chats/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    match /{path=**}/chats/{roomId}/messages/{messageId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }

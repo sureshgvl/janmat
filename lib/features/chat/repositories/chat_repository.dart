@@ -7,6 +7,117 @@ import '../../../models/chat_model.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../notifications/services/poll_notification_service.dart';
+import '../../notifications/services/notification_manager.dart';
+import '../../notifications/models/notification_type.dart';
+
+// WhatsApp-style Chat Metadata for efficient caching
+class ChatMetadata {
+  final String roomId;
+  final String title;
+  final String? description;
+  final String type;
+  final String createdBy;
+  final DateTime createdAt;
+  final DateTime? lastMessageTime;
+  final String? lastMessageText;
+  final String? lastMessageSender;
+  final int unreadCount;
+  final bool isPinned;
+  final bool isArchived;
+  final String? lastMessageType; // text, image, etc.
+
+  ChatMetadata({
+    required this.roomId,
+    required this.title,
+    this.description,
+    required this.type,
+    required this.createdBy,
+    required this.createdAt,
+    this.lastMessageTime,
+    this.lastMessageText,
+    this.lastMessageSender,
+    this.unreadCount = 0,
+    this.isPinned = false,
+    this.isArchived = false,
+    this.lastMessageType,
+  });
+
+  factory ChatMetadata.fromChatRoom(ChatRoom room, {int unreadCount = 0}) {
+    return ChatMetadata(
+      roomId: room.roomId,
+      title: room.title,
+      description: room.description,
+      type: room.type,
+      createdBy: room.createdBy,
+      createdAt: room.createdAt,
+      unreadCount: unreadCount,
+    );
+  }
+
+  ChatMetadata copyWith({
+    String? title,
+    String? description,
+    DateTime? lastMessageTime,
+    String? lastMessageText,
+    String? lastMessageSender,
+    int? unreadCount,
+    bool? isPinned,
+    bool? isArchived,
+    String? lastMessageType,
+  }) {
+    return ChatMetadata(
+      roomId: roomId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      type: type,
+      createdBy: createdBy,
+      createdAt: createdAt,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      lastMessageText: lastMessageText ?? this.lastMessageText,
+      lastMessageSender: lastMessageSender ?? this.lastMessageSender,
+      unreadCount: unreadCount ?? this.unreadCount,
+      isPinned: isPinned ?? this.isPinned,
+      isArchived: isArchived ?? this.isArchived,
+      lastMessageType: lastMessageType ?? this.lastMessageType,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'roomId': roomId,
+      'title': title,
+      'description': description,
+      'type': type,
+      'createdBy': createdBy,
+      'createdAt': createdAt.toIso8601String(),
+      'lastMessageTime': lastMessageTime?.toIso8601String(),
+      'lastMessageText': lastMessageText,
+      'lastMessageSender': lastMessageSender,
+      'unreadCount': unreadCount,
+      'isPinned': isPinned,
+      'isArchived': isArchived,
+      'lastMessageType': lastMessageType,
+    };
+  }
+
+  factory ChatMetadata.fromJson(Map<String, dynamic> json) {
+    return ChatMetadata(
+      roomId: json['roomId'],
+      title: json['title'],
+      description: json['description'],
+      type: json['type'],
+      createdBy: json['createdBy'],
+      createdAt: DateTime.parse(json['createdAt']),
+      lastMessageTime: json['lastMessageTime'] != null ? DateTime.parse(json['lastMessageTime']) : null,
+      lastMessageText: json['lastMessageText'],
+      lastMessageSender: json['lastMessageSender'],
+      unreadCount: json['unreadCount'] ?? 0,
+      isPinned: json['isPinned'] ?? false,
+      isArchived: json['isArchived'] ?? false,
+      lastMessageType: json['lastMessageType'],
+    );
+  }
+}
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,91 +125,239 @@ class ChatRepository {
   final _uuid = const Uuid();
   final CandidateRepository _candidateRepository = CandidateRepository();
 
-  // Repository-level caching
-  static final Map<String, List<ChatRoom>> _roomCache = {};
-  static final Map<String, DateTime> _roomTimestamps = {};
-  static const Duration _cacheValidityDuration = Duration(
-    minutes: 15,
-  ); // Longer than controller cache
+  // WhatsApp-style caching: Cache metadata, not full room data
+  static final Map<String, List<ChatMetadata>> _metadataCache = {};
+  static final Map<String, DateTime> _metadataTimestamps = {};
+  static const Duration _cacheValidityDuration = Duration(minutes: 15);
+
+  // Local storage for offline access (simulated with memory for now)
+  static final Map<String, List<ChatMetadata>> _localStorage = {};
 
   // Check if cache is valid
   bool _isCacheValid(String cacheKey) {
-    if (!_roomTimestamps.containsKey(cacheKey)) return false;
-    final cacheTime = _roomTimestamps[cacheKey]!;
+    if (!_metadataTimestamps.containsKey(cacheKey)) return false;
+    final cacheTime = _metadataTimestamps[cacheKey]!;
     return DateTime.now().difference(cacheTime) < _cacheValidityDuration;
   }
 
-  // Cache rooms for a user
-  void _cacheRooms(String cacheKey, List<ChatRoom> rooms) {
-    _roomCache[cacheKey] = List.from(rooms);
-    _roomTimestamps[cacheKey] = DateTime.now();
+  // Cache metadata for a user
+  void _cacheMetadata(String cacheKey, List<ChatMetadata> metadata) {
+    _metadataCache[cacheKey] = List.from(metadata);
+    _metadataTimestamps[cacheKey] = DateTime.now();
+    // Also save to local storage for offline access
+    _localStorage[cacheKey] = List.from(metadata);
   }
 
-  // Get cached rooms
-  List<ChatRoom>? _getCachedRooms(String cacheKey) {
-    return _isCacheValid(cacheKey) ? _roomCache[cacheKey] : null;
+  // Get cached metadata
+  List<ChatMetadata>? _getCachedMetadata(String cacheKey) {
+    return _isCacheValid(cacheKey) ? _metadataCache[cacheKey] : null;
   }
 
-  // Public method to get cached rooms (for controller use)
-  List<ChatRoom>? getCachedRooms(String cacheKey) {
-    return _getCachedRooms(cacheKey);
+  // Get from local storage (for offline access)
+  List<ChatMetadata>? _getLocalMetadata(String cacheKey) {
+    return _localStorage[cacheKey];
+  }
+
+  // Invalidate specific chat metadata
+  void invalidateChatMetadata(String cacheKey, String roomId) {
+    final cached = _metadataCache[cacheKey];
+    if (cached != null) {
+      cached.removeWhere((meta) => meta.roomId == roomId);
+      _metadataTimestamps[cacheKey] = DateTime.now(); // Update timestamp
+    }
+  }
+
+  // Update chat metadata (for new messages, etc.)
+  void updateChatMetadata(String cacheKey, String roomId, ChatMetadata updatedMetadata) {
+    final cached = _metadataCache[cacheKey];
+    if (cached != null) {
+      final index = cached.indexWhere((meta) => meta.roomId == roomId);
+      if (index != -1) {
+        cached[index] = updatedMetadata;
+      } else {
+        cached.add(updatedMetadata);
+      }
+      _metadataTimestamps[cacheKey] = DateTime.now();
+    }
+  }
+
+  // Convert metadata list to ChatRoom objects (for compatibility)
+  Future<List<ChatRoom>> _convertMetadataToRooms(
+    List<ChatMetadata> metadata,
+    String userId,
+    String userRole,
+    String? stateId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  ) async {
+    final rooms = <ChatRoom>[];
+
+    for (final meta in metadata) {
+      try {
+        // Try to get the full room data from Firestore
+        ChatRoom? room;
+        final roomPath = _getRoomPathFromId(meta.roomId);
+        final doc = await _firestore.doc(roomPath).get();
+
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          room = ChatRoom.fromJson(data);
+        } else {
+          // Fallback: create a basic room from metadata
+          room = ChatRoom(
+            roomId: meta.roomId,
+            title: meta.title,
+            description: meta.description ?? '',
+            type: meta.type,
+            createdBy: meta.createdBy,
+            createdAt: meta.createdAt,
+          );
+        }
+
+        if (room != null) {
+          rooms.add(room);
+        }
+      } catch (e) {
+        debugPrint('⚠️ Failed to convert metadata to room for ${meta.roomId}: $e');
+      }
+    }
+
+    return rooms;
+  }
+
+  // Public method to get cached rooms (for controller compatibility)
+  Future<List<ChatRoom>?> getCachedRooms(String cacheKey) async {
+    final metadata = _getCachedMetadata(cacheKey);
+    if (metadata != null) {
+      // Extract user info from cache key for conversion
+      // Format: {userId}_{userRole}_{stateId}_{districtId}_{bodyId}_{wardId}_{area}
+      final parts = cacheKey.split('_');
+      if (parts.length >= 2) {
+        final userId = parts[0];
+        final userRole = parts[1];
+        // Extract location data (this is a simplified approach)
+        String? stateId, districtId, bodyId, wardId, area;
+
+        if (parts.length >= 6) {
+          stateId = parts[2] != 'no_state' ? parts[2] : null;
+          districtId = parts[3] != 'no_district' ? parts[3] : null;
+          bodyId = parts[4] != 'no_body' ? parts[4] : null;
+          wardId = parts[5] != 'no_ward' ? parts[5] : null;
+          if (parts.length >= 7 && parts[6] != 'no_area') {
+            area = parts[6];
+          }
+        }
+
+        return await _convertMetadataToRooms(metadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
+      }
+    }
+    return null;
   }
 
   // Invalidate cache for a user
   void invalidateUserCache(String userId) {
-    final keysToRemove = _roomCache.keys
+    final keysToRemove = _metadataCache.keys
         .where((key) => key.contains(userId))
         .toList();
     for (final key in keysToRemove) {
-      _roomCache.remove(key);
-      _roomTimestamps.remove(key);
+      _metadataCache.remove(key);
+      _metadataTimestamps.remove(key);
     }
     debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} cache entries for user: $userId',
+      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for user: $userId',
     );
   }
 
   // Invalidate cache for a specific role
   void invalidateRoleCache(String userRole) {
-    final keysToRemove = _roomCache.keys
+    final keysToRemove = _metadataCache.keys
         .where((key) => key.contains('_${userRole}_'))
         .toList();
     for (final key in keysToRemove) {
-      _roomCache.remove(key);
-      _roomTimestamps.remove(key);
+      _metadataCache.remove(key);
+      _metadataTimestamps.remove(key);
     }
     debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} cache entries for role: $userRole',
+      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for role: $userRole',
     );
   }
 
   // Invalidate cache for a specific location
   void invalidateLocationCache(String cityId, String wardId) {
     final locationPattern = '${cityId}_$wardId';
-    final keysToRemove = _roomCache.keys
+    final keysToRemove = _metadataCache.keys
         .where((key) => key.contains(locationPattern))
         .toList();
     for (final key in keysToRemove) {
-      _roomCache.remove(key);
-      _roomTimestamps.remove(key);
+      _metadataCache.remove(key);
+      _metadataTimestamps.remove(key);
     }
     debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} cache entries for location: $locationPattern',
+      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for location: $locationPattern',
     );
   }
 
   // Invalidate cache when user follows/unfollows a candidate
   void invalidateUserFollowCache(String userId) {
-    final keysToRemove = _roomCache.keys
+    final keysToRemove = _metadataCache.keys
         .where((key) => key.startsWith('${userId}_voter_'))
         .toList();
     for (final key in keysToRemove) {
-      _roomCache.remove(key);
-      _roomTimestamps.remove(key);
+      _metadataCache.remove(key);
+      _metadataTimestamps.remove(key);
     }
     debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} cache entries for user follow changes: $userId',
+      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for user follow changes: $userId',
     );
+  }
+
+  // Force refresh cache for a user (used when new rooms are discovered)
+  void forceRefreshUserCache(String userId, String userRole) {
+    final keysToRemove = _metadataCache.keys
+        .where((key) => key.startsWith('${userId}_${userRole}_'))
+        .toList();
+    for (final key in keysToRemove) {
+      _metadataCache.remove(key);
+      _metadataTimestamps.remove(key);
+    }
+    debugPrint(
+      '🔄 Force refreshed ${keysToRemove.length} metadata cache entries for user: $userId ($userRole)',
+    );
+  }
+
+  // Clear old cache keys (for migration when cache key format changes)
+  void _clearOldCacheKeys(
+    String userId,
+    String userRole,
+    String? stateId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  ) {
+    final oldKeysToRemove = <String>[];
+
+    // Old format for voters (without area)
+    if (userRole == 'voter') {
+      final oldVoterKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}';
+      oldKeysToRemove.add(oldVoterKey);
+    }
+
+    // Old format for candidates (might have been different)
+    if (userRole == 'candidate') {
+      final oldCandidateKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}';
+      oldKeysToRemove.add(oldCandidateKey);
+    }
+
+    for (final key in oldKeysToRemove) {
+      if (_metadataCache.containsKey(key)) {
+        _metadataCache.remove(key);
+        _metadataTimestamps.remove(key);
+        debugPrint('🗑️ Cleared old metadata cache key: $key');
+      }
+    }
   }
 
   // Clear all expired cache entries
@@ -106,43 +365,52 @@ class ChatRepository {
     final now = DateTime.now();
     final expiredKeys = <String>[];
 
-    _roomTimestamps.forEach((key, timestamp) {
+    _metadataTimestamps.forEach((key, timestamp) {
       if (now.difference(timestamp) >= _cacheValidityDuration) {
         expiredKeys.add(key);
       }
     });
 
     for (final key in expiredKeys) {
-      _roomCache.remove(key);
-      _roomTimestamps.remove(key);
+      _metadataCache.remove(key);
+      _metadataTimestamps.remove(key);
     }
 
     if (expiredKeys.isNotEmpty) {
-      debugPrint('🧹 Cleared ${expiredKeys.length} expired cache entries');
+      debugPrint('🧹 Cleared ${expiredKeys.length} expired metadata cache entries');
     }
+  }
+
+  // Force clear all cache (for testing/debugging)
+  void clearAllCache() {
+    final count = _metadataCache.length;
+    _metadataCache.clear();
+    _metadataTimestamps.clear();
+    _localStorage.clear();
+    debugPrint('🗑️ Force cleared all $count metadata cache entries');
   }
 
   // Get cache statistics
   Map<String, dynamic> getCacheStats() {
     return {
-      'total_entries': _roomCache.length,
+      'total_entries': _metadataCache.length,
       'cache_size_mb':
-          (_roomCache.values
+          (_metadataCache.values
               .map(
-                (rooms) => rooms.length * 1024,
-              ) // Rough estimate: 1KB per room
+                (metadata) => metadata.length * 512, // Rough estimate: 512B per metadata
+              )
               .fold(0, (a, b) => a + b) /
           (1024 * 1024)),
-      'oldest_entry': _roomTimestamps.values.isNotEmpty
-          ? _roomTimestamps.values.reduce((a, b) => a.isBefore(b) ? a : b)
+      'oldest_entry': _metadataTimestamps.values.isNotEmpty
+          ? _metadataTimestamps.values.reduce((a, b) => a.isBefore(b) ? a : b)
           : null,
-      'newest_entry': _roomTimestamps.values.isNotEmpty
-          ? _roomTimestamps.values.reduce((a, b) => a.isAfter(b) ? a : b)
+      'newest_entry': _metadataTimestamps.values.isNotEmpty
+          ? _metadataTimestamps.values.reduce((a, b) => a.isAfter(b) ? a : b)
           : null,
     };
   }
 
-  // Get chat rooms for a user
+  // Get chat rooms for a user from hierarchical structure
   Future<List<ChatRoom>> getChatRoomsForUser(
     String userId,
     String userRole, {
@@ -159,21 +427,34 @@ class ChatRepository {
     );
 
     // Create cache key based on user and parameters
-    final cacheKey = userRole == 'voter'
-        ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
-        : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
+    final cacheKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
 
     // BREAKPOINT REPO-2: Cache check
     debugPrint('🔍 BREAKPOINT REPO-2: Cache key: $cacheKey');
 
-    // Check cache first
-    final cachedRooms = _getCachedRooms(cacheKey);
-    if (cachedRooms != null) {
+    // WhatsApp-style caching: Check metadata cache first
+    final cachedMetadata = _getCachedMetadata(cacheKey);
+    if (cachedMetadata != null) {
       debugPrint(
-        '⚡ REPOSITORY CACHE HIT: Returning ${cachedRooms.length} cached rooms for $userRole',
+        '⚡ REPOSITORY CACHE HIT: Returning ${cachedMetadata.length} cached metadata for $userRole',
       );
-      return cachedRooms;
+      // Convert metadata back to ChatRoom objects for compatibility
+      final rooms = await _convertMetadataToRooms(cachedMetadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
+      return rooms;
     }
+
+    // Check local storage for offline access
+    final localMetadata = _getLocalMetadata(cacheKey);
+    if (localMetadata != null && cachedMetadata == null) {
+      debugPrint(
+        '💾 LOCAL STORAGE HIT: Returning ${localMetadata.length} local metadata for $userRole',
+      );
+      final rooms = await _convertMetadataToRooms(localMetadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
+      return rooms;
+    }
+
+    // Clear old cache entries with different keys (for migration)
+    _clearOldCacheKeys(userId, userRole, stateId, districtId, bodyId, wardId, area);
 
     debugPrint(
       '🔄 REPOSITORY CACHE MISS: Fetching rooms from Firebase for $userRole',
@@ -214,52 +495,29 @@ class ChatRepository {
       );
 
       List<ChatRoom> allRooms = [];
-      Query query = _firestore.collection('chats');
 
       if (userRole == 'admin') {
-        // BREAKPOINT REPO-6: Admin query
-        debugPrint('🔍 BREAKPOINT REPO-6: Admin user - fetching all rooms');
-        query = query.orderBy('createdAt', descending: true);
-        final snapshot = await query.get();
+        // BREAKPOINT REPO-6: Admin query - use collection group to get all rooms
+        debugPrint('🔍 BREAKPOINT REPO-6: Admin user - fetching all rooms from hierarchical structure');
+        final snapshot = await _firestore.collectionGroup('chats').get();
         allRooms = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          data['roomId'] = doc.id;
           return ChatRoom.fromJson(data);
         }).toList();
         debugPrint(
           '🔍 BREAKPOINT REPO-6: Admin fetched ${allRooms.length} rooms',
         );
       } else {
-        // BREAKPOINT REPO-7: Non-admin query
+        // BREAKPOINT REPO-7: Non-admin query - use targeted queries for better performance
         debugPrint(
-          '🔍 BREAKPOINT REPO-7: Non-admin user - fetching public rooms',
+          '🔍 BREAKPOINT REPO-7: Non-admin user - using targeted queries for better performance',
         );
 
-        // Get public rooms
-        final publicQuery = query.where('type', isEqualTo: 'public');
-        final publicSnapshot = await publicQuery.get();
-        final publicRooms = publicSnapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          data['roomId'] = doc.id;
-          return ChatRoom.fromJson(data);
-        }).toList();
-
-        // Get private rooms where user is a member
-        final privateQuery = _firestore
-            .collection('chats')
-            .where('type', isEqualTo: 'private')
-            .where('members', arrayContains: userId);
-        final privateSnapshot = await privateQuery.get();
-        final privateRooms = privateSnapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          data['roomId'] = doc.id;
-          return ChatRoom.fromJson(data);
-        }).toList();
-
-        // Combine public and private rooms
-        allRooms = [...publicRooms, ...privateRooms];
+        // For non-admin users, query specific rooms directly instead of fetching everything
+        final targetedRooms = await _getTargetedRoomsForUser(userId, userRole, stateId, districtId, bodyId, wardId, area);
+        allRooms = targetedRooms;
         debugPrint(
-          '🔍 BREAKPOINT REPO-7: Fetched ${publicRooms.length} public + ${privateRooms.length} private = ${allRooms.length} total rooms',
+          '🔍 BREAKPOINT REPO-7: Fetched ${allRooms.length} targeted rooms for $userRole',
         );
 
         // Filter based on user role and location
@@ -283,9 +541,7 @@ class ChatRepository {
                 districtId != null &&
                 bodyId != null &&
                 wardId != null &&
-                room.roomId.startsWith(
-                  'area_${stateId}_${districtId}_${bodyId}_${wardId}_',
-                );
+                room.roomId.startsWith('area_${stateId}_${districtId}_${bodyId}_${wardId}_');
             final isCandidateRoom =
                 room.roomId.startsWith('candidate_') &&
                 room.createdBy == userId;
@@ -427,9 +683,10 @@ class ChatRepository {
         );
       }
 
-      // Cache the results
-      _cacheRooms(cacheKey, allRooms);
-      debugPrint('💾 Cached ${allRooms.length} rooms for cache key: $cacheKey');
+      // Cache the metadata results (WhatsApp style)
+      final metadata = allRooms.map((room) => ChatMetadata.fromChatRoom(room)).toList();
+      _cacheMetadata(cacheKey, metadata);
+      debugPrint('💾 Cached ${metadata.length} metadata entries for cache key: $cacheKey');
 
       // BREAKPOINT REPO-12: Returning result
       debugPrint(
@@ -441,7 +698,7 @@ class ChatRepository {
     }
   }
 
-  // Create a new chat room
+  // Create a new chat room in hierarchical structure
   Future<ChatRoom> createChatRoom(ChatRoom chatRoom) async {
     // BREAKPOINT CREATE-1: Start of createChatRoom
     debugPrint('🔍 BREAKPOINT CREATE-1: createChatRoom called');
@@ -452,19 +709,22 @@ class ChatRepository {
 
     try {
       // BREAKPOINT CREATE-2: Before Firestore operation
-      debugPrint('🔍 BREAKPOINT CREATE-2: Setting room data in Firestore');
-      final docRef = _firestore.collection('chats').doc(chatRoom.roomId);
+      debugPrint('🔍 BREAKPOINT CREATE-2: Setting room data in hierarchical structure');
+      final roomPath = _getRoomPathFromId(chatRoom.roomId);
+      final docRef = _firestore.doc(roomPath);
       await docRef.set(chatRoom.toJson());
 
       // BREAKPOINT CREATE-3: After successful creation
       debugPrint(
-        '🔍 BREAKPOINT CREATE-3: Room successfully created in Firestore',
+        '🔍 BREAKPOINT CREATE-3: Room successfully created in hierarchical structure',
       );
 
-      // Invalidate cache for the creator (they might see new rooms)
+      // Invalidate cache for the creator and related users
       invalidateUserCache(chatRoom.createdBy);
+      // Force refresh cache for the creator to see the new room immediately
+      forceRefreshUserCache(chatRoom.createdBy, 'candidate'); // Assume candidate for now
       debugPrint(
-        '🗑️ Invalidated cache for user ${chatRoom.createdBy} after room creation',
+        '🗑️ Invalidated and force refreshed cache for user ${chatRoom.createdBy} after room creation',
       );
 
       // BREAKPOINT CREATE-4: Returning result
@@ -575,11 +835,12 @@ class ChatRepository {
     }
   }
 
-  // Get messages for a chat room
+  // Get messages for a chat room from hierarchical structure
   Stream<List<Message>> getMessagesForRoom(String roomId) {
+    // Parse roomId to determine the hierarchical path
+    final roomPath = _getRoomPathFromId(roomId);
     return _firestore
-        .collection('chats')
-        .doc(roomId)
+        .doc(roomPath)
         .collection('messages')
         .orderBy('createdAt', descending: false)
         .snapshots()
@@ -664,7 +925,7 @@ class ChatRepository {
     }
   }
 
-  // Send a message
+  // Send a message to hierarchical chat room
   Future<Message> sendMessage(String roomId, Message message) async {
     try {
       // Only log in debug mode
@@ -675,9 +936,9 @@ class ChatRepository {
         return true;
       }());
 
+      final roomPath = _getRoomPathFromId(roomId);
       final docRef = _firestore
-          .collection('chats')
-          .doc(roomId)
+          .doc(roomPath)
           .collection('messages')
           .doc(message.messageId);
 
@@ -688,6 +949,14 @@ class ChatRepository {
         debugPrint('✅ Repository: Message saved to Firestore successfully');
         return true;
       }());
+
+      // Send notification to other room members (except sender)
+      try {
+        await _sendMessageNotification(roomId, message);
+      } catch (e) {
+        debugPrint('⚠️ Failed to send message notification: $e');
+        // Don't fail the message send if notification fails
+      }
 
       // Quota/XP handling is now done in the controller
 
@@ -1227,6 +1496,71 @@ class ChatRepository {
     }
   }
 
+  // Helper method to get hierarchical path from roomId
+  String _getRoomPathFromId(String roomId) {
+    debugPrint('🔧 Parsing roomId: $roomId');
+    // Parse roomId like "ward_maharashtra_pune_pune_m_cop_ward_17" or "area_maharashtra_pune_pune_m_cop_ward_17_माळवाडी"
+
+    if (roomId.startsWith('ward_')) {
+      // Format: ward_{stateId}_{districtId}_{bodyId}_{wardId}
+      // We need to parse from the end since bodyId can contain underscores
+      final withoutPrefix = roomId.substring(5); // Remove 'ward_'
+      final parts = withoutPrefix.split('_');
+
+      if (parts.length < 4) return 'chats/$roomId'; // Fallback
+
+      // Last part is wardId, second to last is districtId, first is stateId
+      // Everything in between is bodyId
+      final wardId = parts.last;
+      final districtId = parts[parts.length - 2];
+      final stateId = parts[0];
+      final bodyId = parts.sublist(1, parts.length - 2).join('_'); // Everything between state and district
+
+      debugPrint('🔧 Ward parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId');
+      // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/chats/ward_discussion
+      return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
+
+    } else if (roomId.startsWith('area_')) {
+      // Format: area_{stateId}_{districtId}_{bodyId}_{wardId}_{areaId}
+      // Use a more robust parsing approach that doesn't rely on underscore counting
+      final parts = roomId.split('_');
+
+      if (parts.length < 6) return 'chats/$roomId'; // Fallback - need at least area + 4 components + area name
+
+      // Known positions: area(0), stateId(1), districtId(2), wardId is the one before last
+      // Everything between districtId and wardId is bodyId (may contain underscores)
+      // Everything after wardId is areaId (may contain underscores)
+
+      final stateId = parts[1];
+      final districtId = parts[2];
+
+      // Find the wardId by looking for the pattern "ward_" followed by digits
+      int wardIndex = -1;
+      for (int i = 3; i < parts.length; i++) {
+        if (parts[i].startsWith('ward') && RegExp(r'^\d+$').hasMatch(parts[i].substring(4))) {
+          wardIndex = i;
+          break;
+        }
+      }
+
+      if (wardIndex == -1) return 'chats/$roomId'; // Fallback if ward not found
+
+      // Everything between districtId and wardId is bodyId
+      final bodyId = parts.sublist(3, wardIndex).join('_');
+      final wardId = parts[wardIndex];
+
+      // Everything after wardId is areaId
+      final areaId = parts.sublist(wardIndex + 1).join('_');
+
+      debugPrint('🔧 Area parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId, area: $areaId');
+      // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId}/chats/area_discussion
+      return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$areaId/chats/area_discussion';
+    }
+
+    debugPrint('🔧 Unknown room type, using fallback');
+    return 'chats/$roomId'; // Fallback
+  }
+
   // Helper methods
   Future<bool> _canUserSendMessage(String userId) async {
     try {
@@ -1287,6 +1621,253 @@ class ChatRepository {
       });
     } catch (e) {
       // Silently fail - quota tracking is not critical
+    }
+  }
+
+  // Get targeted rooms for a user (optimized queries)
+  Future<List<ChatRoom>> _getTargetedRoomsForUser(
+    String userId,
+    String userRole,
+    String? stateId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    String? area,
+  ) async {
+    debugPrint('🎯 _getTargetedRoomsForUser called for $userRole: $userId');
+    final rooms = <ChatRoom>[];
+
+    try {
+      if (userRole == 'candidate') {
+        debugPrint('👤 Processing candidate rooms for user: $userId');
+
+        // For candidates: query hierarchical structure for ward and area rooms
+        if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+          try {
+            // Get ward room from hierarchical structure
+            final wardPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
+            debugPrint('🔍 Looking for ward room at: $wardPath');
+
+            final wardDoc = await _firestore.doc(wardPath).get();
+            if (wardDoc.exists) {
+              final data = wardDoc.data() as Map<String, dynamic>;
+              final room = ChatRoom.fromJson(data);
+              rooms.add(room);
+              debugPrint('✅ Added ward room: ${room.title} (ID: ${room.roomId})');
+            } else {
+              debugPrint('⚠️ Ward room not found at: $wardPath');
+            }
+
+            // Get area rooms from hierarchical structure
+            // First, get areas from ward document to know which area rooms to look for
+            try {
+              debugPrint('👤 Getting areas from ward document: $wardId');
+              final wardDoc = await _firestore
+                  .collection('states')
+                  .doc(stateId)
+                  .collection('districts')
+                  .doc(districtId)
+                  .collection('bodies')
+                  .doc(bodyId)
+                  .collection('wards')
+                  .doc(wardId)
+                  .get();
+
+              if (wardDoc.exists) {
+                final wardData = wardDoc.data() as Map<String, dynamic>;
+                final areas = wardData['areas'] as List<dynamic>? ?? [];
+
+                debugPrint('👤 Found ${areas.length} areas in ward document: $areas');
+
+                // Query for area rooms in hierarchical structure
+                for (final area in areas) {
+                  if (area is String && area.isNotEmpty) {
+                    final areaPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
+                    debugPrint('🔍 Looking for area room at: $areaPath');
+
+                    final areaDoc = await _firestore.doc(areaPath).get();
+                    if (areaDoc.exists) {
+                      final data = areaDoc.data() as Map<String, dynamic>;
+                      final room = ChatRoom.fromJson(data);
+                      rooms.add(room);
+                      debugPrint('✅ Added area room: ${room.title} (ID: ${room.roomId})');
+                    } else {
+                      debugPrint('ℹ️ Area room not created yet: $areaPath');
+                    }
+                  }
+                }
+              } else {
+                debugPrint('⚠️ Ward document not found');
+              }
+            } catch (e) {
+              debugPrint('⚠️ Failed to get areas from ward document: $e');
+            }
+          } catch (e) {
+            debugPrint('⚠️ Failed to query hierarchical structure: $e');
+          }
+        }
+
+        // Add private chats for candidates
+        try {
+          debugPrint('👤 Getting private chats for candidate: $userId');
+          final privateRooms = await _firestore
+              .collection('chats')
+              .where('type', isEqualTo: 'private')
+              .where('members', arrayContains: userId)
+              .get();
+
+          for (final doc in privateRooms.docs) {
+            final data = doc.data();
+            final room = ChatRoom.fromJson(data);
+            rooms.add(room);
+            debugPrint('✅ Added private room for candidate: ${room.title} (ID: ${room.roomId})');
+          }
+          debugPrint('👤 Found ${privateRooms.docs.length} private rooms for candidate');
+        } catch (e) {
+          debugPrint('⚠️ Failed to get private rooms for candidate: $e');
+        }
+
+      } else if (userRole == 'voter') {
+        debugPrint('🗳️ Processing voter rooms for user: $userId');
+        // For voters: get ward room + area room + followed candidate rooms
+        final roomIds = <String>[];
+
+        // Add ward and area rooms if location data is available
+        if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+          roomIds.add('ward_${districtId}_${bodyId}_$wardId');
+
+          if (area != null && area.isNotEmpty) {
+            roomIds.add('area_${districtId}_${bodyId}_${wardId}_$area');
+          }
+
+          // Get followed candidate rooms in the same ward
+          final followedCandidateIds = await _candidateRepository.getUserFollowing(userId);
+          if (followedCandidateIds.isNotEmpty) {
+            final wardCandidateIds = await _getCandidateIdsInWard(districtId, bodyId, wardId);
+            final relevantCandidateIds = followedCandidateIds.where((id) => wardCandidateIds.contains(id)).toList();
+
+            for (final candidateId in relevantCandidateIds) {
+              final candidateRooms = await _getCandidateRoomIds(candidateId);
+              roomIds.addAll(candidateRooms);
+            }
+          }
+        }
+
+        debugPrint('🗳️ Voter roomIds to query: $roomIds');
+
+        // Query specific rooms from hierarchical structure
+        for (final roomId in roomIds.toSet()) { // Remove duplicates
+          try {
+            debugPrint('🔍 Checking room: $roomId');
+            ChatRoom? room;
+
+            // Use location data to construct the correct hierarchical path
+            String roomPath;
+            if (roomId.startsWith('ward_') && stateId != null && districtId != null && bodyId != null && wardId != null) {
+              roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
+              debugPrint('🔍 Constructed ward path: $roomPath');
+            } else if (roomId.startsWith('area_') && stateId != null && districtId != null && bodyId != null && wardId != null && area != null) {
+              roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
+              debugPrint('🔍 Constructed area path: $roomPath');
+            } else {
+              debugPrint('⚠️ Cannot construct path for roomId: $roomId');
+              continue;
+            }
+
+            final hierarchicalDoc = await _firestore.doc(roomPath).get();
+            if (hierarchicalDoc.exists) {
+              final data = hierarchicalDoc.data() as Map<String, dynamic>;
+              room = ChatRoom.fromJson(data);
+              debugPrint('✅ Found room at hierarchical path: ${room?.title}');
+            } else {
+              debugPrint('⚠️ Room not found at hierarchical path: $roomPath');
+            }
+
+            if (room != null) {
+              rooms.add(room);
+              debugPrint('✅ Added room: ${room.title}');
+            }
+          } catch (e) {
+            debugPrint('⚠️ Failed to fetch room $roomId: $e');
+          }
+        }
+
+        // Add private chats for voters
+        try {
+          debugPrint('🗳️ Getting private chats for voter: $userId');
+          final privateRooms = await _firestore
+              .collection('chats')
+              .where('type', isEqualTo: 'private')
+              .where('members', arrayContains: userId)
+              .get();
+
+          for (final doc in privateRooms.docs) {
+            final data = doc.data();
+            final room = ChatRoom.fromJson(data);
+            rooms.add(room);
+            debugPrint('✅ Added private room for voter: ${room.title} (ID: ${room.roomId})');
+          }
+          debugPrint('🗳️ Found ${privateRooms.docs.length} private rooms for voter');
+        } catch (e) {
+          debugPrint('⚠️ Failed to get private rooms for voter: $e');
+        }
+      }
+
+      // If no rooms found through targeted query, fall back to collection group query
+      if (rooms.isEmpty) {
+        debugPrint('⚠️ No rooms found through targeted query, falling back to collection group query');
+        final fallbackRooms = await _fallbackCollectionGroupQuery(userId, userRole);
+        rooms.addAll(fallbackRooms);
+        debugPrint('✅ Added ${fallbackRooms.length} rooms from fallback query');
+      }
+
+      debugPrint('✅ Targeted query returned ${rooms.length} rooms');
+      return rooms;
+
+    } catch (e) {
+      debugPrint('❌ Error in targeted room query: $e');
+      // Fallback to old method if targeted query fails
+      debugPrint('🔄 Falling back to collection group query');
+      return await _fallbackCollectionGroupQuery(userId, userRole);
+    }
+  }
+
+  // Get candidate room IDs for a specific candidate
+  Future<List<String>> _getCandidateRoomIds(String candidateId) async {
+    try {
+      // Query for rooms created by this candidate
+      final snapshot = await _firestore
+          .collection('chats')
+          .where('createdBy', isEqualTo: candidateId)
+          .where('type', isEqualTo: 'public') // Only public candidate rooms
+          .get();
+
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      debugPrint('⚠️ Failed to get candidate rooms for $candidateId: $e');
+      return [];
+    }
+  }
+
+  // Fallback method using collection group (for error recovery)
+  Future<List<ChatRoom>> _fallbackCollectionGroupQuery(String userId, String userRole) async {
+    try {
+      final allRoomsSnapshot = await _firestore.collectionGroup('chats').get();
+      final roomsFromSnapshot = allRoomsSnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return ChatRoom.fromJson(data);
+      }).toList();
+
+      // Filter rooms client-side (no index required)
+      final publicRooms = roomsFromSnapshot.where((room) => room.type == 'public').toList();
+      final privateRooms = roomsFromSnapshot.where((room) =>
+        room.type == 'private' && (room.members?.contains(userId) ?? false)
+      ).toList();
+
+      return [...publicRooms, ...privateRooms];
+    } catch (e) {
+      debugPrint('❌ Fallback query also failed: $e');
+      return [];
     }
   }
 
@@ -1370,6 +1951,7 @@ class ChatRepository {
 
   // Create area room if it doesn't exist
   Future<bool> createAreaRoomIfNeeded(
+    String stateId,
     String districtId,
     String bodyId,
     String wardId,
@@ -1377,7 +1959,7 @@ class ChatRepository {
     String creatorId,
   ) async {
     try {
-      final areaRoomId = 'area_${districtId}_${bodyId}_${wardId}_$areaId';
+      final areaRoomId = 'area_${stateId}_${districtId}_${bodyId}_${wardId}_$areaId';
 
       // Check if room already exists
       if (await areaRoomExists(districtId, bodyId, wardId, areaId)) {
@@ -1418,13 +2000,14 @@ class ChatRepository {
 
   // Create ward room if it doesn't exist
   Future<bool> createWardRoomIfNeeded(
+    String stateId,
     String districtId,
     String bodyId,
     String wardId,
     String creatorId,
   ) async {
     try {
-      final wardRoomId = 'ward_${districtId}_${bodyId}_$wardId';
+      final wardRoomId = 'ward_${stateId}_${districtId}_${bodyId}_$wardId';
 
       // Check if room already exists
       if (await wardRoomExists(districtId, bodyId, wardId)) {
@@ -1706,6 +2289,53 @@ class ChatRepository {
       return totalUnread;
     } catch (e) {
       return 0;
+    }
+  }
+
+  // Send notification to room members when a new message is sent
+  Future<void> _sendMessageNotification(String roomId, Message message) async {
+    try {
+      // Get room data from hierarchical structure to find members
+      final roomPath = _getRoomPathFromId(roomId);
+      final roomDoc = await _firestore.doc(roomPath).get();
+      if (!roomDoc.exists) return;
+
+      final roomData = roomDoc.data() as Map<String, dynamic>;
+      final members = List<String>.from(roomData['members'] ?? []);
+
+      // Get sender info
+      final senderDoc = await _firestore.collection('users').doc(message.senderId).get();
+      final senderName = senderDoc.exists
+          ? (senderDoc.data()?['name'] ?? 'Someone')
+          : 'Someone';
+
+      // Send notification to each member except the sender
+      final notificationManager = NotificationManager();
+      for (final memberId in members) {
+        if (memberId != message.senderId) {
+          try {
+            await notificationManager.sendNotification(
+              type: NotificationType.newMessage,
+              title: 'New Message',
+              body: '$senderName: ${message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text}',
+              data: {
+                'senderId': message.senderId,
+                'senderName': senderName,
+                'roomId': roomId,
+                'messageId': message.messageId,
+                'type': 'new_message',
+              },
+            );
+          } catch (e) {
+            debugPrint('⚠️ Failed to send message notification to user $memberId: $e');
+          }
+        }
+      }
+
+      debugPrint('✅ Sent message notifications to ${members.length - 1} room members');
+    } catch (e) {
+      debugPrint('⚠️ Failed to send message notifications: $e');
+      // Don't throw - this shouldn't break message sending
     }
   }
 }

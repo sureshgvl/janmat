@@ -10,8 +10,18 @@ enum NotificationType {
   newFollower,
   followerMilestone,
   candidateProfileUpdate,
+  candidateProfileCreated,
+  manifestoUpdate,
+  manifestoShared,
   candidateNewPost,
   candidateOnline,
+
+  // Campaign Milestones
+  profileCompletionMilestone,
+  manifestoCompletionMilestone,
+  eventCreationMilestone,
+  socialEngagementMilestone,
+  campaignProgressMilestone,
 
   // Events & RSVPs
   eventReminder,
@@ -68,8 +78,24 @@ extension NotificationTypeExtension on NotificationType {
         return 'Profile Update';
       case NotificationType.candidateNewPost:
         return 'New Post';
+      case NotificationType.candidateProfileCreated:
+        return 'New Candidate';
+      case NotificationType.manifestoUpdate:
+        return 'Manifesto Update';
+      case NotificationType.manifestoShared:
+        return 'Manifesto Shared';
       case NotificationType.candidateOnline:
         return 'Candidate Online';
+      case NotificationType.profileCompletionMilestone:
+        return 'Profile Milestone';
+      case NotificationType.manifestoCompletionMilestone:
+        return 'Manifesto Milestone';
+      case NotificationType.eventCreationMilestone:
+        return 'Event Milestone';
+      case NotificationType.socialEngagementMilestone:
+        return 'Engagement Milestone';
+      case NotificationType.campaignProgressMilestone:
+        return 'Campaign Milestone';
       case NotificationType.eventReminder:
         return 'Event Reminder';
       case NotificationType.newEvent:
@@ -128,6 +154,9 @@ extension NotificationTypeExtension on NotificationType {
       case NotificationType.newFollower:
       case NotificationType.followerMilestone:
       case NotificationType.candidateProfileUpdate:
+      case NotificationType.candidateProfileCreated:
+      case NotificationType.manifestoUpdate:
+      case NotificationType.manifestoShared:
       case NotificationType.candidateNewPost:
       case NotificationType.candidateOnline:
         return 'Following';
@@ -148,6 +177,11 @@ extension NotificationTypeExtension on NotificationType {
       case NotificationType.badgeEarned:
       case NotificationType.streakAchievement:
       case NotificationType.pointsEarned:
+      case NotificationType.profileCompletionMilestone:
+      case NotificationType.manifestoCompletionMilestone:
+      case NotificationType.eventCreationMilestone:
+      case NotificationType.socialEngagementMilestone:
+      case NotificationType.campaignProgressMilestone:
         return 'Achievements';
 
       case NotificationType.appUpdate:

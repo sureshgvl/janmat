@@ -36,8 +36,9 @@ class ChatHelpers {
   // Get display title for room
   static String getRoomDisplayTitle(ChatRoom chatRoom) {
     if (chatRoom.type == 'private') {
-      // For private rooms, title is the other user's name
-      return chatRoom.title ?? 'Private Chat';
+      // For private rooms, show generic title in list view
+      // Individual chat screen will show the other user's name
+      return 'Private Chat';
     } else if (chatRoom.roomId.startsWith('ward_')) {
       // For ward rooms, title is the city name
       return chatRoom.title ?? 'City Chat';

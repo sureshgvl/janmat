@@ -39,9 +39,12 @@ class PrivateChatService {
     String otherUserName,
   ) async {
     try {
+      debugPrint('🔐 Creating private chat between $currentUserId ($currentUserName) and $otherUserId ($otherUserName)');
+
       // Check if private chat already exists
       final existingChat = await getExistingPrivateChat(currentUserId, otherUserId);
       if (existingChat != null) {
+        debugPrint('✅ Private chat already exists: ${existingChat.roomId} with title: ${existingChat.title}');
         return existingChat;
       }
 
@@ -52,14 +55,16 @@ class PrivateChatService {
         createdAt: DateTime.now(),
         createdBy: currentUserId,
         type: 'private',
-        title: '$otherUserName', // Display name of the other user
+        title: otherUserName.trim().isNotEmpty ? otherUserName : 'Private Chat', // Display name of the other user
         description: 'Private conversation',
         members: [currentUserId, otherUserId],
       );
 
+      debugPrint('📝 Created private chat room: $roomId with title: "${chatRoom.title}"');
+
       return await _repository.createRoomWithMembers(chatRoom, [currentUserId, otherUserId]);
     } catch (e) {
-      debugPrint('Error creating private chat: $e');
+      debugPrint('❌ Error creating private chat: $e');
       return null;
     }
   }

@@ -53,31 +53,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
           // Quota indicator and refresh button
           Row(
             children: [
-              // Refresh button with consistent styling
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.refresh,
-                    color: Colors.blue.shade700,
-                    size: 20,
-                  ),
-                  tooltip: 'refreshChatRooms'.tr,
-                  onPressed: () async {
-                    await controller.refreshChatRooms();
-                    Get.snackbar(
-                      'refreshed'.tr,
-                      'chatRoomsUpdated'.tr,
-                      backgroundColor: Colors.green.shade100,
-                      colorText: Colors.green.shade800,
-                      duration: const Duration(seconds: 2),
-                    );
-                  },
-                ),
+              // Refresh button without background
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'refreshChatRooms'.tr,
+                onPressed: () async {
+                  await controller.refreshChatRooms();
+                  Get.snackbar(
+                    'refreshed'.tr,
+                    'chatRoomsUpdated'.tr,
+                    backgroundColor: Colors.green.shade100,
+                    colorText: Colors.green.shade800,
+                    duration: const Duration(seconds: 2),
+                  );
+                },
               ),
 
               // Quota indicator

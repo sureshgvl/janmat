@@ -9,6 +9,7 @@ import '../repositories/candidate_event_repository.dart';
 import '../../../services/trial_service.dart';
 import '../../../services/file_upload_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
+import '../../../services/notifications/campaign_milestones_notifications.dart';
 import '../../../utils/symbol_utils.dart';
 
 class CandidateDataController extends GetxController {
@@ -566,6 +567,12 @@ class CandidateDataController extends GetxController {
         // Send constituency notification for profile updates
         await _sendProfileUpdateNotification();
 
+        // Send manifesto update notification if manifesto was changed
+        await _sendManifestoUpdateNotification();
+
+        // Check for campaign milestones
+        await _checkCampaignMilestones();
+
         // Refresh highlight banner if basic info (name/photo) was updated
         if (userDocumentUpdated) {
           _refreshHighlightBanner();
@@ -960,6 +967,110 @@ class CandidateDataController extends GetxController {
     } catch (e) {
       debugPrint('❌ [ProfileUpdate] Error sending profile update notification: $e');
       // Don't throw - profile save should succeed even if notification fails
+    }
+  }
+
+  /// Check for campaign milestones after profile updates
+  Future<void> _checkCampaignMilestones() async {
+    try {
+      if (candidateData.value == null) return;
+
+      final candidate = candidateData.value!;
+      final candidateId = candidate.candidateId ?? candidate.userId ?? '';
+      if (candidateId.isEmpty) return;
+
+      final campaignMilestones = CampaignMilestonesNotifications();
+
+      // Check profile completion milestones
+      final profileData = {
+        'name': candidate.name,
+        'party': candidate.party,
+        'photo': candidate.photo,
+        'extraInfo': candidate.extraInfo?.toJson(),
+      };
+      await campaignMilestones.checkProfileCompletionMilestone(
+        candidateId: candidateId,
+        profileData: profileData,
+      );
+
+      // Check manifesto completion milestones if manifesto was updated
+      if (_changedExtraInfoFields.containsKey('manifesto')) {
+        final manifestoData = _changedExtraInfoFields['manifesto'];
+        if (manifestoData is Map<String, dynamic>) {
+          await campaignMilestones.checkManifestoCompletionMilestone(
+            candidateId: candidateId,
+            manifestoData: manifestoData,
+          );
+        }
+      }
+
+      debugPrint('✅ [CampaignMilestones] Milestone checks completed');
+    } catch (e) {
+      debugPrint('❌ [CampaignMilestones] Error checking milestones: $e');
+      // Don't throw - milestone checks shouldn't block profile saves
+    }
+  }
+
+  /// Send manifesto update notification when candidate updates their manifesto
+  Future<void> _sendManifestoUpdateNotification() async {
+    try {
+      if (candidateData.value == null) return;
+
+      // Check if manifesto was actually changed
+      if (!_changedExtraInfoFields.containsKey('manifesto')) {
+        debugPrint('📜 [ManifestoUpdate] No manifesto changes detected, skipping notification');
+        return;
+      }
+
+      final candidate = candidateData.value!;
+      debugPrint('📜 [ManifestoUpdate] Manifesto changes detected, sending notification...');
+
+      // Get manifesto details from the changed data
+      final manifestoData = _changedExtraInfoFields['manifesto'];
+      if (manifestoData is! Map<String, dynamic>) {
+        debugPrint('📜 [ManifestoUpdate] Invalid manifesto data format, skipping notification');
+        return;
+      }
+
+      // Determine update type and details
+      String updateType = 'update';
+      String manifestoTitle = manifestoData['title'] ?? 'Manifesto';
+      String? manifestoDescription;
+
+      // Check if this is a new manifesto or an update
+      final originalManifesto = candidateData.value?.extraInfo?.manifesto;
+      if (originalManifesto == null || originalManifesto.title == null || originalManifesto.title!.isEmpty) {
+        updateType = 'new';
+        debugPrint('📜 [ManifestoUpdate] Detected new manifesto creation');
+      } else {
+        updateType = 'update';
+        debugPrint('📜 [ManifestoUpdate] Detected manifesto update');
+      }
+
+      // Get description from promises if available
+      final promises = manifestoData['promises'];
+      if (promises is List && promises.isNotEmpty) {
+        manifestoDescription = '${promises.length} key promises';
+      }
+
+      debugPrint('📜 [ManifestoUpdate] Sending manifesto notification:');
+      debugPrint('   - Type: $updateType');
+      debugPrint('   - Title: $manifestoTitle');
+      debugPrint('   - Description: $manifestoDescription');
+
+      // Send manifesto update notification
+      final constituencyNotifications = ConstituencyNotifications();
+      await constituencyNotifications.sendManifestoUpdateNotification(
+        candidateId: candidate.candidateId,
+        updateType: updateType,
+        manifestoTitle: manifestoTitle,
+        manifestoDescription: manifestoDescription,
+      );
+
+      debugPrint('✅ [ManifestoUpdate] Manifesto update notification sent successfully');
+    } catch (e) {
+      debugPrint('❌ [ManifestoUpdate] Error sending manifesto update notification: $e');
+      // Don't throw - manifesto save should succeed even if notification fails
     }
   }
 

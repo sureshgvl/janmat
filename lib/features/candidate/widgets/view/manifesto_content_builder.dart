@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/demo_data_service.dart';
 import '../../../../services/share_service.dart';
+import '../../../../services/notifications/constituency_notifications.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import 'manifesto_resources_section.dart';
 
@@ -25,7 +26,20 @@ class ManifestoContentBuilder extends StatefulWidget {
 class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
   void _shareManifesto() async {
     try {
+      // Share the manifesto via native sharing
       await ShareService.shareCandidateManifesto(widget.candidate);
+
+      // Send notification to followers and constituency about the sharing
+      final manifestoTitle = widget.candidate.extraInfo?.manifesto?.title ?? 'Manifesto';
+      final constituencyNotifications = ConstituencyNotifications();
+
+      await constituencyNotifications.sendManifestoSharedNotification(
+        candidateId: widget.candidate.candidateId ?? widget.candidate.userId ?? '',
+        manifestoTitle: manifestoTitle,
+        shareMessage: null, // Could be enhanced to include custom message
+        sharePlatform: 'native_share', // Could detect actual platform
+      );
+
       Get.snackbar(
         'share'.tr,
         'Manifesto shared successfully!',

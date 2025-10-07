@@ -64,7 +64,7 @@ class ChatRoomCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            ChatHelpers.getRoomDisplayTitle(chatRoom),
+                            displayInfo.displayTitle ?? ChatHelpers.getRoomDisplayTitle(chatRoom),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: displayInfo.hasUnreadMessages

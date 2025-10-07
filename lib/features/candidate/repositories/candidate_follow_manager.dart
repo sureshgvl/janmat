@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../models/user_model.dart';
+import '../../notifications/services/notification_manager.dart';
+import '../../notifications/models/notification_type.dart';
 import 'candidate_cache_manager.dart';
 import 'candidate_state_manager.dart';
 
@@ -9,7 +11,6 @@ class CandidateFollowManager {
   final CandidateCacheManager _cacheManager;
   final CandidateStateManager _stateManager;
 
-
   CandidateFollowManager(
     this._firestore,
     this._cacheManager,
@@ -17,9 +18,12 @@ class CandidateFollowManager {
   );
 
   // Delegate cache methods to cache manager
-  void invalidateCache(String cacheKey) => _cacheManager.invalidateCache(cacheKey);
-  List<String>? _getCachedFollowing(String cacheKey) => _cacheManager.getCachedFollowing(cacheKey);
-  void _cacheData(String cacheKey, dynamic data) => _cacheManager.cacheData(cacheKey, data);
+  void invalidateCache(String cacheKey) =>
+      _cacheManager.invalidateCache(cacheKey);
+  List<String>? _getCachedFollowing(String cacheKey) =>
+      _cacheManager.getCachedFollowing(cacheKey);
+  void _cacheData(String cacheKey, dynamic data) =>
+      _cacheManager.cacheData(cacheKey, data);
 
   // Helper method for updating candidate index
   Future<void> _updateCandidateIndex(
@@ -61,9 +65,10 @@ class CandidateFollowManager {
       String? candidateWardId = wardId;
 
       // If location not provided, try to get from index or search
-      if (candidateStateId == null || candidateDistrictId == null ||
-          candidateBodyId == null || candidateWardId == null) {
-
+      if (candidateStateId == null ||
+          candidateDistrictId == null ||
+          candidateBodyId == null ||
+          candidateWardId == null) {
         // First try to get location from index
         final indexDoc = await _firestore
             .collection('candidate_index')
@@ -88,7 +93,9 @@ class CandidateFollowManager {
           final statesSnapshot = await _firestore.collection('states').get();
 
           for (var stateDoc in statesSnapshot.docs) {
-            final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+            final districtsSnapshot = await stateDoc.reference
+                .collection('districts')
+                .get();
 
             for (var districtDoc in districtsSnapshot.docs) {
               final bodiesSnapshot = await districtDoc.reference
@@ -172,7 +179,9 @@ class CandidateFollowManager {
               .collection('candidates')
               .doc(candidateId);
 
-          batch.update(candidateRef, {'followersCount': FieldValue.increment(1)});
+          batch.update(candidateRef, {
+            'followersCount': FieldValue.increment(1),
+          });
         } catch (e) {
           debugPrint('⚠️ Failed to update candidate in new structure: $e');
           debugPrint('🔄 Falling back to legacy candidate structure');
@@ -199,6 +208,14 @@ class CandidateFollowManager {
       batch.update(userRef, {'followingCount': FieldValue.increment(1)});
 
       await batch.commit();
+
+      // Send notification to candidate about new follower
+      try {
+        await _sendNewFollowerNotification(userId, candidateId);
+      } catch (e) {
+        debugPrint('⚠️ Failed to send follow notification: $e');
+        // Don't fail the follow operation if notification fails
+      }
 
       // Invalidate relevant caches
       invalidateCache('following_$userId');
@@ -229,7 +246,9 @@ class CandidateFollowManager {
         final indexData = indexDoc.data()!;
         candidateStateId = indexData['stateId']; // Get actual state ID
         if (candidateStateId == null) {
-          throw Exception('Candidate $candidateId not found in index or missing state information');
+          throw Exception(
+            'Candidate $candidateId not found in index or missing state information',
+          );
         }
         candidateDistrictId = indexData['districtId'];
         candidateBodyId = indexData['bodyId'];
@@ -245,7 +264,9 @@ class CandidateFollowManager {
         final statesSnapshot = await _firestore.collection('states').get();
 
         for (var stateDoc in statesSnapshot.docs) {
-          final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+          final districtsSnapshot = await stateDoc.reference
+              .collection('districts')
+              .get();
 
           for (var districtDoc in districtsSnapshot.docs) {
             final bodiesSnapshot = await districtDoc.reference
@@ -325,7 +346,9 @@ class CandidateFollowManager {
               .collection('candidates')
               .doc(candidateId);
 
-          batch.update(candidateRef, {'followersCount': FieldValue.increment(-1)});
+          batch.update(candidateRef, {
+            'followersCount': FieldValue.increment(-1),
+          });
         } catch (e) {
           debugPrint('⚠️ Failed to update candidate in new structure: $e');
           debugPrint('🔄 Falling back to legacy candidate structure');
@@ -380,7 +403,10 @@ class CandidateFollowManager {
     try {
       // First find the candidate's location in the new state/district/body/ward structure
       // Get candidate's state first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      final indexDoc = await _firestore
+          .collection('candidate_index')
+          .doc(candidateId)
+          .get();
       String? candidateStateId;
 
       if (indexDoc.exists) {
@@ -393,16 +419,25 @@ class CandidateFollowManager {
         final statesSnapshot = await _firestore.collection('states').get();
 
         for (var stateDoc in statesSnapshot.docs) {
-          final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+          final districtsSnapshot = await stateDoc.reference
+              .collection('districts')
+              .get();
 
           for (var districtDoc in districtsSnapshot.docs) {
-            final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+            final bodiesSnapshot = await districtDoc.reference
+                .collection('bodies')
+                .get();
 
             for (var bodyDoc in bodiesSnapshot.docs) {
-              final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+              final wardsSnapshot = await bodyDoc.reference
+                  .collection('wards')
+                  .get();
 
               for (var wardDoc in wardsSnapshot.docs) {
-                final candidateDoc = await wardDoc.reference.collection('candidates').doc(candidateId).get();
+                final candidateDoc = await wardDoc.reference
+                    .collection('candidates')
+                    .doc(candidateId)
+                    .get();
 
                 if (candidateDoc.exists) {
                   candidateStateId = stateDoc.id;
@@ -418,7 +453,9 @@ class CandidateFollowManager {
       }
 
       if (candidateStateId == null) {
-        debugPrint('⚠️ Candidate not found in any state - followers not available');
+        debugPrint(
+          '⚠️ Candidate not found in any state - followers not available',
+        );
         return [];
       }
 
@@ -486,7 +523,9 @@ class CandidateFollowManager {
       }
 
       // Candidate not in new structure - followers functionality may not be available
-      debugPrint('⚠️ Candidate not found in new structure - followers not available');
+      debugPrint(
+        '⚠️ Candidate not found in new structure - followers not available',
+      );
       return [];
     } catch (e) {
       throw Exception('Failed to get followers: $e');
@@ -553,7 +592,10 @@ class CandidateFollowManager {
     try {
       // First find the candidate's location in the new state/district/body/ward structure
       // Get candidate's state first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      final indexDoc = await _firestore
+          .collection('candidate_index')
+          .doc(candidateId)
+          .get();
       String? candidateStateId;
 
       if (indexDoc.exists) {
@@ -566,16 +608,25 @@ class CandidateFollowManager {
         final statesSnapshot = await _firestore.collection('states').get();
 
         for (var stateDoc in statesSnapshot.docs) {
-          final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+          final districtsSnapshot = await stateDoc.reference
+              .collection('districts')
+              .get();
 
           for (var districtDoc in districtsSnapshot.docs) {
-            final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+            final bodiesSnapshot = await districtDoc.reference
+                .collection('bodies')
+                .get();
 
             for (var bodyDoc in bodiesSnapshot.docs) {
-              final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+              final wardsSnapshot = await bodyDoc.reference
+                  .collection('wards')
+                  .get();
 
               for (var wardDoc in wardsSnapshot.docs) {
-                final candidateDoc = await wardDoc.reference.collection('candidates').doc(candidateId).get();
+                final candidateDoc = await wardDoc.reference
+                    .collection('candidates')
+                    .doc(candidateId)
+                    .get();
 
                 if (candidateDoc.exists) {
                   candidateStateId = stateDoc.id;
@@ -676,5 +727,47 @@ class CandidateFollowManager {
       throw Exception('Failed to update notification settings: $e');
     }
   }
-}
 
+  // Send notification to candidate when someone follows them
+  Future<void> _sendNewFollowerNotification(String followerId, String candidateId) async {
+    try {
+      // Get follower name
+      final followerDoc = await _firestore.collection('users').doc(followerId).get();
+      final followerName = followerDoc.data()?['name'] ?? 'Someone';
+
+      // Get candidate info to find their user ID
+      // First try to find the candidate document to get the userId
+      final candidateQuery = await _firestore
+          .collectionGroup('candidates')
+          .where('id', isEqualTo: candidateId)
+          .limit(1)
+          .get();
+
+      if (candidateQuery.docs.isNotEmpty) {
+        final candidateData = candidateQuery.docs.first.data();
+        final candidateUserId = candidateData['userId'];
+
+        if (candidateUserId != null && candidateUserId != followerId) {
+          // Send notification using NotificationManager
+          final notificationManager = NotificationManager();
+          await notificationManager.sendNotification(
+            type: NotificationType.newFollower,
+            title: 'New Follower',
+            body: '$followerName started following you',
+            data: {
+              'followerId': followerId,
+              'followerName': followerName,
+              'candidateId': candidateId,
+              'type': 'new_follower',
+            },
+          );
+
+          debugPrint('✅ Sent new follower notification to candidate: $candidateUserId');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to send new follower notification: $e');
+      // Don't throw - this shouldn't break the follow operation
+    }
+  }
+}
