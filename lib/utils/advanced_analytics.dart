@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'app_logger.dart';
 
 /// Advanced analytics and usage tracking system
 class AdvancedAnalyticsManager {
@@ -351,9 +352,7 @@ class AdvancedAnalyticsManager {
   }
 
   void _log(String message) {
-    if (kDebugMode) {
-      debugPrint('📊 ANALYTICS: $message');
-    }
+    AppLogger.abTest('ANALYTICS: $message');
   }
 
   void dispose() {
@@ -546,9 +545,7 @@ class AnalyticsDashboard {
   }
 
   void _log(String message) {
-    if (kDebugMode) {
-      debugPrint('📈 DASHBOARD: $message');
-    }
+    AppLogger.abTest('DASHBOARD: $message');
   }
 }
 

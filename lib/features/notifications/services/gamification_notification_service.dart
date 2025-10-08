@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../services/gamification_service.dart';
 import '../../../models/user_model.dart';
+import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
 import '../models/notification_status.dart';
 import '../models/notification_model.dart';
@@ -37,9 +38,9 @@ class GamificationNotificationService {
       );
 
       await _notificationRepository.createNotification(notification);
-      debugPrint('🔔 Level up notification sent for user $userId (Level $newLevel)');
+      AppLogger.common('🔔 Level up notification sent for user $userId (Level $newLevel)');
     } catch (e) {
-      debugPrint('❌ Failed to send level up notification: $e');
+      AppLogger.commonError('❌ Failed to send level up notification', error: e);
     }
   }
 
@@ -54,7 +55,7 @@ class GamificationNotificationService {
       final badgeDetails = allBadgeDetails[badgeType];
 
       if (badgeDetails == null) {
-        debugPrint('⚠️ Badge type $badgeType not found');
+        AppLogger.common('⚠️ Badge type $badgeType not found');
         return;
       }
 
@@ -76,9 +77,9 @@ class GamificationNotificationService {
       );
 
       await _notificationRepository.createNotification(notification);
-      debugPrint('🔔 Badge earned notification sent for user $userId ($badgeType)');
+      AppLogger.common('🔔 Badge earned notification sent for user $userId ($badgeType)');
     } catch (e) {
-      debugPrint('❌ Failed to send badge earned notification: $e');
+      AppLogger.commonError('❌ Failed to send badge earned notification', error: e);
     }
   }
 
@@ -104,9 +105,9 @@ class GamificationNotificationService {
       );
 
       await _notificationRepository.createNotification(notification);
-      debugPrint('🔔 Streak achievement notification sent for user $userId ($streakCount days)');
+      AppLogger.common('🔔 Streak achievement notification sent for user $userId ($streakCount days)');
     } catch (e) {
-      debugPrint('❌ Failed to send streak achievement notification: $e');
+      AppLogger.commonError('❌ Failed to send streak achievement notification', error: e);
     }
   }
 
@@ -134,9 +135,9 @@ class GamificationNotificationService {
       );
 
       await _notificationRepository.createNotification(notification);
-      debugPrint('🔔 Points earned notification sent for user $userId (+$pointsEarned points)');
+      AppLogger.common('🔔 Points earned notification sent for user $userId (+$pointsEarned points)');
     } catch (e) {
-      debugPrint('❌ Failed to send points earned notification: $e');
+      AppLogger.commonError('❌ Failed to send points earned notification', error: e);
     }
   }
 
@@ -159,7 +160,7 @@ class GamificationNotificationService {
         );
       }
     } catch (e) {
-      debugPrint('❌ Failed to check level up: $e');
+      AppLogger.commonError('❌ Failed to check level up', error: e);
     }
   }
 
@@ -193,7 +194,7 @@ class GamificationNotificationService {
         }
       }
     } catch (e) {
-      debugPrint('❌ Failed to check achievements: $e');
+      AppLogger.commonError('❌ Failed to check achievements', error: e);
     }
   }
 
@@ -222,7 +223,7 @@ class GamificationNotificationService {
       await checkAndNotifyAchievements(userId);
 
     } catch (e) {
-      debugPrint('❌ Failed to handle RSVP earned: $e');
+      AppLogger.commonError('❌ Failed to handle RSVP earned', error: e);
     }
   }
 
@@ -247,7 +248,7 @@ class GamificationNotificationService {
       await checkAndNotifyLevelUp(userId);
 
     } catch (e) {
-      debugPrint('❌ Failed to handle XP from ad: $e');
+      AppLogger.commonError('❌ Failed to handle XP from ad', error: e);
     }
   }
 
@@ -273,9 +274,9 @@ class GamificationNotificationService {
       );
 
       await _notificationRepository.createNotification(notification);
-      debugPrint('🔔 Milestone notification sent for user $userId ($milestoneType)');
+      AppLogger.common('🔔 Milestone notification sent for user $userId ($milestoneType)');
     } catch (e) {
-      debugPrint('❌ Failed to send milestone notification: $e');
+      AppLogger.commonError('❌ Failed to send milestone notification', error: e);
     }
   }
 }

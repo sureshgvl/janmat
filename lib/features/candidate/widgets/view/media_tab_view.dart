@@ -7,6 +7,7 @@ import '../../../common/video_player_screen.dart';
 import '../../../common/reusable_image_widget.dart';
 import '../../../common/reusable_video_widget.dart';
 import '../../../common/whatsapp_image_viewer.dart';
+import '../../../../utils/app_logger.dart';
 
 // Media Item Model (same as in edit widget)
 class MediaItem {
@@ -77,7 +78,7 @@ class _MediaTabViewState extends State<MediaTabView>
         }).toList();
       }
     } catch (e) {
-      debugPrint('Error parsing media data: $e');
+      AppLogger.candidateError('Error parsing media data: $e');
       mediaItems = [];
     }
 

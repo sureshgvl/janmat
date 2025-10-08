@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../candidate/controllers/candidate_controller.dart';
 import '../../candidate/controllers/candidate_data_controller.dart';
@@ -65,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // If user is not authenticated, redirect to login immediately
     if (currentUser == null) {
-      debugPrint('🚫 User not authenticated, redirecting to login');
+      AppLogger.common('🚫 User not authenticated, redirecting to login');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           Get.offAllNamed('/login');

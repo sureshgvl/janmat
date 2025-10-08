@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/performance_monitor.dart';
 import '../utils/connection_optimizer.dart';
+import '../utils/app_logger.dart';
 import 'manifesto_cache_service.dart';
 import '../features/notifications/services/poll_notification_service.dart';
 
@@ -21,7 +22,7 @@ class ManifestoPollService {
 
     // Prevent multiple simultaneous votes
     if (_votingInProgress[voteKey] == true) {
-      debugPrint('⚠️ Vote already in progress for $voteKey, skipping');
+      AppLogger.common('⚠️ Vote already in progress for $voteKey, skipping');
       return;
     }
 
@@ -75,7 +76,7 @@ class ManifestoPollService {
                 'updatedAt': FieldValue.serverTimestamp(),
               }, SetOptions(merge: true));
             } catch (transactionError) {
-              debugPrint('Transaction error: $transactionError');
+              AppLogger.common('Transaction error: $transactionError');
               // Don't rethrow here, let outer catch handle it
               throw transactionError;
             }
@@ -84,13 +85,13 @@ class ManifestoPollService {
           _monitor.trackFirebaseWrite('manifesto_polls', 1);
           await _cacheService.markPollVoteSynced(manifestoId, userId);
         } catch (e) {
-          debugPrint('Failed to sync poll vote to Firestore, will retry later: $e');
+          AppLogger.common('Failed to sync poll vote to Firestore, will retry later: $e');
           // Vote remains in cache as unsynced
         }
       }
 
       _monitor.stopTimer('vote_on_manifesto_poll');
-      debugPrint('✅ Vote recorded for manifesto $manifestoId by user $userId on option $option');
+      AppLogger.common('✅ Vote recorded for manifesto $manifestoId by user $userId on option $option');
 
       // Send voting reminder notifications (if poll is still active)
       try {
@@ -105,17 +106,18 @@ class ManifestoPollService {
             candidateName: 'Candidate', // This should be fetched from manifesto data
             finalResults: manifestoResults,
           );
-          debugPrint('🔔 Manifesto poll results notifications sent');
+          AppLogger.common('🔔 Manifesto poll results notifications sent');
         }
       } catch (e) {
-        debugPrint('⚠️ Failed to send manifesto poll notifications: $e');
+        AppLogger.common('⚠️ Failed to send manifesto poll notifications: $e');
         // Don't fail the vote if notifications fail
       }
     } catch (e) {
       _monitor.stopTimer('vote_on_manifesto_poll');
-      debugPrint('Error voting on manifesto poll: $e');
+      AppLogger.common('Error voting on manifesto poll: $e');
       throw Exception('Failed to vote on poll: $e');
-    } finally {
+    }
+    finally {
       // Always clear the voting flag
       _votingInProgress.remove(voteKey);
     }
@@ -183,7 +185,7 @@ class ManifestoPollService {
       return userVotes.containsKey(userId);
     } catch (e) {
       _monitor.stopTimer('check_user_voted_manifesto_poll');
-      debugPrint('Error checking user vote: $e');
+      AppLogger.common('Error checking user vote: $e');
       // Fall back to cache
       return await _cacheService.hasUserVoted(manifestoId, userId);
     }
@@ -225,7 +227,7 @@ class ManifestoPollService {
       return userVotes[userId];
     } catch (e) {
       _monitor.stopTimer('get_user_vote_manifesto_poll');
-      debugPrint('Error getting user vote: $e');
+      AppLogger.common('Error getting user vote: $e');
       // Fall back to cache
       return await _cacheService.getCachedUserVote(manifestoId, userId);
     }
@@ -236,4 +238,3 @@ class ManifestoPollService {
     return _monitor.getFirebaseSummary();
   }
 }
-

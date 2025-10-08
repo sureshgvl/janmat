@@ -11,6 +11,7 @@ import '../models/candidate_party_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_party_repository.dart';
 import '../../../utils/symbol_utils.dart';
+import '../../../utils/app_logger.dart';
 
 class ChangePartySymbolScreen extends StatefulWidget {
   final Candidate? currentCandidate;
@@ -46,21 +47,21 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('🎯 ChangePartySymbolScreen: Initializing screen');
-    debugPrint(
+    AppLogger.candidate('🎯 ChangePartySymbolScreen: Initializing screen');
+    AppLogger.candidate(
       '   Current candidate: ${widget.currentCandidate?.name ?? 'null'}',
     );
-    debugPrint('   Current user: ${widget.currentUser?.uid ?? 'null'}');
+    AppLogger.candidate('   Current user: ${widget.currentUser?.uid ?? 'null'}');
     _loadParties();
     _loadCurrentData();
   }
 
   void _loadCurrentData() {
-    debugPrint('📋 ChangePartySymbolScreen: Loading current candidate data');
+    AppLogger.candidate('📋 ChangePartySymbolScreen: Loading current candidate data');
     if (widget.currentCandidate != null) {
-      debugPrint('   Candidate: ${widget.currentCandidate!.name}');
-      debugPrint('   Current party: ${widget.currentCandidate!.party}');
-      debugPrint(
+      AppLogger.candidate('   Candidate: ${widget.currentCandidate!.name}');
+      AppLogger.candidate('   Current party: ${widget.currentCandidate!.party}');
+      AppLogger.candidate(
         '   Current symbol: ${widget.currentCandidate!.symbolName ?? 'none'}',
       );
 
@@ -70,13 +71,13 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           (party) => party.name == widget.currentCandidate!.party,
           orElse: () => parties.first,
         );
-        debugPrint('   Selected party: ${selectedParty?.name ?? 'none'}');
+        AppLogger.candidate('   Selected party: ${selectedParty?.name ?? 'none'}');
       }
 
       // Load symbol data
       if (widget.currentCandidate!.symbolName != null) {
         symbolNameController.text = widget.currentCandidate!.symbolName!;
-        debugPrint('   Symbol name loaded: ${widget.currentCandidate!.symbolName}');
+        AppLogger.candidate('   Symbol name loaded: ${widget.currentCandidate!.symbolName}');
       }
 
       // Load existing symbol image URL from extraInfo.media
@@ -89,24 +90,24 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
             );
         if (symbolImageItem.isNotEmpty) {
           symbolImageUrl = symbolImageItem['url'] as String?;
-          debugPrint('   Symbol image URL loaded: ${symbolImageUrl ?? 'none'}');
+          AppLogger.candidate('   Symbol image URL loaded: ${symbolImageUrl ?? 'none'}');
         }
       }
 
       isIndependent = widget.currentCandidate!.party.toLowerCase().contains(
         'independent',
       );
-      debugPrint('   Is independent: $isIndependent');
+      AppLogger.candidate('   Is independent: $isIndependent');
     } else {
-      debugPrint('   No candidate data available');
+      AppLogger.candidate('   No candidate data available');
     }
   }
 
   Future<void> _loadParties() async {
     try {
-      debugPrint('🚀 ChangePartySymbolScreen: Starting to load parties...');
+      AppLogger.candidate('🚀 ChangePartySymbolScreen: Starting to load parties...');
       final fetchedParties = await partyRepository.getActiveParties();
-      debugPrint(
+      AppLogger.candidate(
         '📦 ChangePartySymbolScreen: Received ${fetchedParties.length} parties',
       );
 
@@ -115,17 +116,17 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           parties = fetchedParties;
           isLoadingParties = false;
         });
-        debugPrint(
+        AppLogger.candidate(
           '✅ ChangePartySymbolScreen: Parties loaded successfully, calling _loadCurrentData()',
         );
         _loadCurrentData(); // Reload current data now that parties are loaded
       } else {
-        debugPrint(
+        AppLogger.candidate(
           '⚠️ ChangePartySymbolScreen: Widget not mounted, skipping setState',
         );
       }
     } catch (e) {
-      debugPrint('❌ ChangePartySymbolScreen: Error loading parties: $e');
+      AppLogger.candidateError('❌ ChangePartySymbolScreen: Error loading parties: $e');
       if (mounted) {
         setState(() {
           isLoadingParties = false;
@@ -166,33 +167,33 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   Future<void> _pickSymbolImage() async {
     final localizations = AppLocalizations.of(context)!;
 
-    debugPrint('📸 ChangePartySymbolScreen: Starting image upload process');
+    AppLogger.candidate('📸 ChangePartySymbolScreen: Starting image upload process');
     setState(() {
       isUploadingImage = true;
     });
 
     try {
       final ImagePicker picker = ImagePicker();
-      debugPrint('📸 ChangePartySymbolScreen: Opening image picker');
+      AppLogger.candidate('📸 ChangePartySymbolScreen: Opening image picker');
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image != null) {
-        debugPrint(
+        AppLogger.candidate(
           '📸 ChangePartySymbolScreen: Image selected - Path: ${image.path}',
         );
-        debugPrint('📸 ChangePartySymbolScreen: Image name: ${image.name}');
+        AppLogger.candidate('📸 ChangePartySymbolScreen: Image name: ${image.name}');
 
         // Check image file size (5MB limit)
         final file = File(image.path);
         final fileSize = await file.length();
         const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
 
-        debugPrint(
+        AppLogger.candidate(
           '📏 ChangePartySymbolScreen: File size check - Size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB, Limit: 5MB',
         );
 
         if (fileSize > maxSizeInBytes) {
-          debugPrint(
+          AppLogger.candidate(
             '❌ ChangePartySymbolScreen: File too large - rejecting upload',
           );
           Get.snackbar(
@@ -205,12 +206,12 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           return;
         }
 
-        debugPrint('✅ ChangePartySymbolScreen: File size validation passed');
+        AppLogger.candidate('✅ ChangePartySymbolScreen: File size validation passed');
 
         // Upload to Firebase Storage
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser == null) {
-          debugPrint('❌ ChangePartySymbolScreen: No authenticated user found');
+          AppLogger.candidate('❌ ChangePartySymbolScreen: No authenticated user found');
           setState(() {
             isUploadingImage = false;
           });
@@ -219,10 +220,10 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
         final fileName =
             '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        debugPrint(
+        AppLogger.candidate(
           '📤 ChangePartySymbolScreen: Preparing upload - User: ${currentUser.uid}, File: $fileName',
         );
-        debugPrint(
+        AppLogger.candidate(
           '📂 ChangePartySymbolScreen: Firebase Storage path: candidate_symbols/$fileName',
         );
 
@@ -231,7 +232,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
             .child('candidate_symbols')
             .child(fileName);
 
-        debugPrint(
+        AppLogger.candidate(
           '📤 ChangePartySymbolScreen: Starting Firebase Storage upload',
         );
         final uploadTask = storageRef.putFile(File(image.path));
@@ -240,19 +241,19 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
           final progress =
               (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          debugPrint(
+          AppLogger.candidate(
             '📊 ChangePartySymbolScreen: Upload progress: ${progress.toStringAsFixed(1)}%',
           );
         });
 
         final snapshot = await uploadTask.whenComplete(() => null);
-        debugPrint('✅ ChangePartySymbolScreen: Upload completed successfully');
+        AppLogger.candidate('✅ ChangePartySymbolScreen: Upload completed successfully');
 
         final downloadUrl = await snapshot.ref.getDownloadURL();
-        debugPrint(
+        AppLogger.candidate(
           '🔗 ChangePartySymbolScreen: Download URL obtained: ${downloadUrl.substring(0, 50)}...',
         );
-        debugPrint(
+        AppLogger.candidate(
           '📍 ChangePartySymbolScreen: Firebase Console path: candidate_symbols/ → $fileName',
         );
 
@@ -261,7 +262,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           isUploadingImage = false;
         });
 
-        debugPrint(
+        AppLogger.candidate(
           '🎉 ChangePartySymbolScreen: Image upload process completed successfully',
         );
         Get.snackbar(
@@ -271,13 +272,13 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
           colorText: Colors.green.shade800,
         );
       } else {
-        debugPrint('❌ ChangePartySymbolScreen: No image selected by user');
+        AppLogger.candidate('❌ ChangePartySymbolScreen: No image selected by user');
         setState(() {
           isUploadingImage = false;
         });
       }
     } catch (e) {
-      debugPrint('💥 ChangePartySymbolScreen: Error during image upload: $e');
+      AppLogger.candidateError('💥 ChangePartySymbolScreen: Error during image upload: $e');
       setState(() {
         isUploadingImage = false;
       });
@@ -291,28 +292,28 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   Future<void> _updatePartyAndSymbol() async {
     final localizations = AppLocalizations.of(context)!;
 
-    debugPrint(
+    AppLogger.candidate(
       '📝 ChangePartySymbolScreen: Starting party and symbol update process',
     );
 
     if (!_formKey.currentState!.validate()) {
-      debugPrint('❌ ChangePartySymbolScreen: Form validation failed');
+      AppLogger.candidate('❌ ChangePartySymbolScreen: Form validation failed');
       return;
     }
 
     if (selectedParty == null) {
-      debugPrint('❌ ChangePartySymbolScreen: No party selected');
+      AppLogger.candidate('❌ ChangePartySymbolScreen: No party selected');
       Get.snackbar(localizations.error, localizations.selectPartyValidation);
       return;
     }
 
-    debugPrint('✅ ChangePartySymbolScreen: Form validation passed');
-    debugPrint('   Selected party: ${selectedParty!.name}');
-    debugPrint('   Is independent: $isIndependent');
-    debugPrint(
+    AppLogger.candidate('✅ ChangePartySymbolScreen: Form validation passed');
+    AppLogger.candidate('   Selected party: ${selectedParty!.name}');
+    AppLogger.candidate('   Is independent: $isIndependent');
+    AppLogger.candidate(
       '   Symbol name: ${isIndependent ? symbolNameController.text.trim() : 'N/A'}',
     );
-    debugPrint('   Symbol image URL: ${symbolImageUrl ?? 'none'}');
+    AppLogger.candidate('   Symbol image URL: ${symbolImageUrl ?? 'none'}');
 
     setState(() {
       isLoading = true;
@@ -321,19 +322,19 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ ChangePartySymbolScreen: User not authenticated');
+        AppLogger.candidate('❌ ChangePartySymbolScreen: User not authenticated');
         throw Exception('User not authenticated');
       }
 
       if (widget.currentCandidate == null) {
-        debugPrint('❌ ChangePartySymbolScreen: Candidate data not found');
+        AppLogger.candidate('❌ ChangePartySymbolScreen: Candidate data not found');
         throw Exception('Candidate data not found');
       }
 
-      debugPrint(
+      AppLogger.candidate(
         '👤 ChangePartySymbolScreen: Authenticated user: ${currentUser.uid}',
       );
-      debugPrint(
+      AppLogger.candidate(
         '👤 ChangePartySymbolScreen: Updating candidate: ${widget.currentCandidate!.candidateId}',
       );
 
@@ -376,16 +377,16 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         extraInfo: updatedExtraInfo,
       );
 
-      debugPrint('💾 ChangePartySymbolScreen: Data to be saved:');
-      debugPrint('   Party: ${updatedCandidate.party}');
-      debugPrint('   Symbol Name: ${updatedCandidate.symbolName}');
-      debugPrint('   Symbol URL: ${updatedCandidate.symbolUrl}');
-      debugPrint('   Symbol Image URL: ${updatedCandidate.extraInfo?.media}');
+      AppLogger.candidate('💾 ChangePartySymbolScreen: Data to be saved:');
+      AppLogger.candidate('   Party: ${updatedCandidate.party}');
+      AppLogger.candidate('   Symbol Name: ${updatedCandidate.symbolName}');
+      AppLogger.candidate('   Symbol URL: ${updatedCandidate.symbolUrl}');
+      AppLogger.candidate('   Symbol Image URL: ${updatedCandidate.extraInfo?.media}');
 
-      debugPrint('📤 ChangePartySymbolScreen: Sending update to database...');
+      AppLogger.candidate('📤 ChangePartySymbolScreen: Sending update to database...');
       // Update candidate in database
       await candidateRepository.updateCandidateExtraInfo(updatedCandidate);
-      debugPrint('✅ ChangePartySymbolScreen: Database update successful');
+      AppLogger.candidate('✅ ChangePartySymbolScreen: Database update successful');
 
       // Update the local candidate data to reflect changes immediately
       setState(() {
@@ -393,7 +394,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         // This will refresh the current party display
       });
 
-      debugPrint(
+      AppLogger.candidate(
         '🎉 ChangePartySymbolScreen: Party and symbol update completed successfully',
       );
 
@@ -413,14 +414,14 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Navigate back to previous screen (which should lead to home)
-      debugPrint(
+      AppLogger.candidate(
         '🔙 ChangePartySymbolScreen: Navigating back to previous screen',
       );
       if (mounted) {
         Get.back(result: updatedCandidate);
       }
     } catch (e) {
-      debugPrint(
+      AppLogger.candidateError(
         '💥 ChangePartySymbolScreen: Error updating party and symbol: $e',
       );
       setState(() {
@@ -432,7 +433,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
       );
     }
 
-    debugPrint('🏁 ChangePartySymbolScreen: Update process completed');
+    AppLogger.candidate('🏁 ChangePartySymbolScreen: Update process completed');
   }
 
   void _showPartySelectionModal(BuildContext context) {
@@ -500,20 +501,20 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
                     return InkWell(
                       onTap: () {
-                        debugPrint(
+                        AppLogger.candidate(
                           '🎯 ChangePartySymbolScreen: Party selected from modal',
                         );
-                        debugPrint('   Selected party: ${party.name}');
+                        AppLogger.candidate('   Selected party: ${party.name}');
                         setState(() {
                           selectedParty = party;
                           isIndependent = party.name.toLowerCase().contains(
                             'independent',
                           );
-                          debugPrint('   Is independent: $isIndependent');
+                          AppLogger.candidate('   Is independent: $isIndependent');
                           if (!isIndependent) {
                             symbolNameController.clear();
                             symbolImageUrl = null;
-                            debugPrint(
+                            AppLogger.candidate(
                               '   Cleared symbol data for non-independent party',
                             );
                           } else {
@@ -536,7 +537,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                               if (symbolImageItem.isNotEmpty) {
                                 symbolImageUrl =
                                     symbolImageItem['url'] as String?;
-                                debugPrint(
+                                AppLogger.candidate(
                                   '   Loaded existing symbol image URL for independent party',
                                 );
                               }
@@ -676,8 +677,8 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
   @override
   void dispose() {
-    debugPrint('🗑️ ChangePartySymbolScreen: Disposing screen');
-    debugPrint(
+    AppLogger.candidate('🗑️ ChangePartySymbolScreen: Disposing screen');
+    AppLogger.candidate(
       '   Final state - Party: ${selectedParty?.name ?? 'none'}, Symbol: ${symbolNameController.text}, Image: ${symbolImageUrl != null ? 'uploaded' : 'none'}',
     );
     symbolNameController.dispose();
@@ -695,7 +696,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
             onPressed: isLoading
                 ? null
                 : () {
-                    debugPrint(
+                    AppLogger.candidate(
                       '🔘 ChangePartySymbolScreen: Update button pressed',
                     );
                     _updatePartyAndSymbol();
@@ -1016,7 +1017,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                 onPressed: isUploadingImage
                                     ? null
                                     : () {
-                                        debugPrint(
+                                        AppLogger.candidate(
                                           '🔘 ChangePartySymbolScreen: Upload symbol image button pressed',
                                         );
                                         _pickSymbolImage();

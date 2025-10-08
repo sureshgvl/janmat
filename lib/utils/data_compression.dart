@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 /// Data compression manager for Firebase operations
 class DataCompressionManager {
@@ -187,7 +188,7 @@ class DataCompressionManager {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🗜️ COMPRESSION: $message');
+      AppLogger.common('🗜️ COMPRESSION: $message');
     }
   }
 }
@@ -362,7 +363,7 @@ class SelectiveFieldLoader {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🎯 SELECTIVE: $message');
+      AppLogger.common('🎯 SELECTIVE: $message');
     }
   }
 }
@@ -428,7 +429,7 @@ class SmartDataSerializer {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('📊 SERIALIZER: $message');
+      AppLogger.common('📊 SERIALIZER: $message');
     }
   }
 }
@@ -550,7 +551,7 @@ class FirebaseDataOptimizer {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🚀 OPTIMIZER: $message');
+      AppLogger.common('🚀 OPTIMIZER: $message');
     }
   }
 }
@@ -576,7 +577,7 @@ class PerformanceMonitor {
     if (startTime != null) {
       final duration = DateTime.now().difference(startTime);
       if (kDebugMode) {
-        debugPrint('⏱️ $operation took ${duration.inMilliseconds}ms');
+        AppLogger.common('⏱️ $operation took ${duration.inMilliseconds}ms');
       }
     }
   }

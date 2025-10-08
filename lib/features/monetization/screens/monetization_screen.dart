@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/premium_plans_tab.dart';
 import '../widgets/xp_plans_tab.dart';
@@ -54,43 +55,43 @@ class _MonetizationScreenState extends State<MonetizationScreen>
 
   Future<void> _loadUserData() async {
     try {
-      debugPrint('🔄 MONETIZATION SCREEN: Loading user data...');
+      AppLogger.monetization('🔄 MONETIZATION SCREEN: Loading user data...');
       final currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser != null) {
-        debugPrint('👤 User found: ${currentUser.uid}');
+        AppLogger.monetization('👤 User found: ${currentUser.uid}');
         await _controller.loadUserXPBalance(currentUser.uid);
         await _controller.loadUserStatusData();
 
         // Get user's election type for plan filtering
         final electionType = await _controller.getUserElectionType(currentUser.uid);
         _userElectionType.value = electionType;
-        debugPrint('🏛️ User election type: $electionType (reactive: ${_userElectionType.value})');
+        AppLogger.monetization('🏛️ User election type: $electionType (reactive: ${_userElectionType.value})');
 
         // Load plans with user data (force refresh to ensure latest data)
-        debugPrint('📋 Loading plans with force refresh...');
+        AppLogger.monetization('📋 Loading plans with force refresh...');
         await _controller.loadPlans(forceRefresh: true);
-        debugPrint('📋 Plans loaded. Total plans: ${_controller.plans.length}');
+        AppLogger.monetization('📋 Plans loaded. Total plans: ${_controller.plans.length}');
 
         // Log plan details for debugging
         for (var plan in _controller.plans) {
-          debugPrint('   📋 Plan: ${plan.name} (${plan.planId}) - Type: ${plan.type}');
+          AppLogger.monetization('   📋 Plan: ${plan.name} (${plan.planId}) - Type: ${plan.type}');
           if (plan.pricing.containsKey(_userElectionType)) {
-            debugPrint('      💰 Has pricing for $_userElectionType: ${plan.pricing[_userElectionType]!.keys.join(", ")}');
+            AppLogger.monetization('      💰 Has pricing for $_userElectionType: ${plan.pricing[_userElectionType]!.keys.join(", ")}');
           } else {
-            debugPrint('      ❌ No pricing for $_userElectionType');
+            AppLogger.monetization('      ❌ No pricing for $_userElectionType');
           }
         }
 
         // Initialize purchase handlers with user data
         _initializePurchaseHandlers();
 
-        debugPrint('✅ User data loaded successfully');
+        AppLogger.monetization('✅ User data loaded successfully');
       } else {
-        debugPrint('❌ No authenticated user found in monetization screen');
+        AppLogger.monetization('❌ No authenticated user found in monetization screen');
       }
     } catch (e) {
-      debugPrint('❌ Error loading user data: $e');
+      AppLogger.monetization('❌ Error loading user data: $e');
     }
   }
 
@@ -172,12 +173,12 @@ class _MonetizationScreenState extends State<MonetizationScreen>
 
   // Temporary method to initialize default plans (remove after first use)
   void _initializeDefaultPlans() async {
-    debugPrint('🔧 INITIALIZING DEFAULT PLANS FROM MONETIZATION SCREEN...');
-    debugPrint('   User clicked initialize button - starting plan creation process');
+    AppLogger.monetization('🔧 INITIALIZING DEFAULT PLANS FROM MONETIZATION SCREEN...');
+    AppLogger.monetization('   User clicked initialize button - starting plan creation process');
 
     try {
       await _controller.initializeDefaultPlans();
-      debugPrint('✅ INITIALIZATION COMPLETED SUCCESSFULLY');
+      AppLogger.monetization('✅ INITIALIZATION COMPLETED SUCCESSFULLY');
       Get.snackbar(
         'Success',
         'Default plans initialized successfully!',
@@ -185,7 +186,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         colorText: Colors.white,
       );
     } catch (e) {
-      debugPrint('❌ INITIALIZATION FAILED: $e');
+      AppLogger.monetization('❌ INITIALIZATION FAILED: $e');
       Get.snackbar(
         'Error',
         'Failed to initialize plans: $e',
@@ -197,12 +198,12 @@ class _MonetizationScreenState extends State<MonetizationScreen>
 
   // Method to refresh plans (useful for hot reload issues)
   void _refreshPlans() async {
-    debugPrint('🔄 REFRESHING PLANS FROM MONETIZATION SCREEN...');
-    debugPrint('   User clicked refresh button - forcing cache refresh');
+    AppLogger.monetization('🔄 REFRESHING PLANS FROM MONETIZATION SCREEN...');
+    AppLogger.monetization('   User clicked refresh button - forcing cache refresh');
 
     try {
       await _controller.refreshPlans();
-      debugPrint('✅ REFRESH COMPLETED SUCCESSFULLY');
+      AppLogger.monetization('✅ REFRESH COMPLETED SUCCESSFULLY');
       Get.snackbar(
         'Success',
         'Plans refreshed successfully!',
@@ -210,7 +211,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         colorText: Colors.white,
       );
     } catch (e) {
-      debugPrint('❌ REFRESH FAILED: $e');
+      AppLogger.monetization('❌ REFRESH FAILED: $e');
       Get.snackbar(
         'Error',
         'Failed to refresh plans: $e',
@@ -222,13 +223,13 @@ class _MonetizationScreenState extends State<MonetizationScreen>
 
   // Method to migrate candidates to new state-based structure
   void _migrateCandidates() async {
-    debugPrint('🔄 MIGRATING CANDIDATES TO STATE-BASED STRUCTURE...');
-    debugPrint('   User clicked migrate button - moving candidates from old structure');
+    AppLogger.monetization('🔄 MIGRATING CANDIDATES TO STATE-BASED STRUCTURE...');
+    AppLogger.monetization('   User clicked migrate button - moving candidates from old structure');
 
     try {
       await CandidateMigrationManager.migrateCandidatesToStates();
       await CandidateMigrationManager.verifyMigration();
-      debugPrint('✅ MIGRATION COMPLETED SUCCESSFULLY');
+      AppLogger.monetization('✅ MIGRATION COMPLETED SUCCESSFULLY');
       Get.snackbar(
         'Success',
         'Candidates migrated to new structure!',
@@ -236,7 +237,7 @@ class _MonetizationScreenState extends State<MonetizationScreen>
         colorText: Colors.white,
       );
     } catch (e) {
-      debugPrint('❌ MIGRATION FAILED: $e');
+      AppLogger.monetization('❌ MIGRATION FAILED: $e');
       Get.snackbar(
         'Error',
         'Failed to migrate candidates: $e',

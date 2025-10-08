@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
 import '../models/notification_model.dart';
 import '../repositories/notification_repository.dart';
@@ -28,9 +29,9 @@ class NotificationAnalyticsService {
         'platform': _getPlatform(),
       });
 
-      debugPrint('📊 Tracked notification delivery: $notificationId');
+      AppLogger.common('📊 Tracked notification delivery: $notificationId');
     } catch (e) {
-      debugPrint('❌ Failed to track notification delivery: $e');
+      AppLogger.commonError('❌ Failed to track notification delivery', error: e);
     }
   }
 
@@ -52,9 +53,9 @@ class NotificationAnalyticsService {
         'platform': _getPlatform(),
       });
 
-      debugPrint('📊 Tracked notification opened: $notificationId');
+      AppLogger.common('📊 Tracked notification opened: $notificationId');
     } catch (e) {
-      debugPrint('❌ Failed to track notification opened: $e');
+      AppLogger.commonError('❌ Failed to track notification opened', error: e);
     }
   }
 
@@ -74,9 +75,9 @@ class NotificationAnalyticsService {
         'platform': _getPlatform(),
       });
 
-      debugPrint('📊 Tracked notification dismissed: $notificationId');
+      AppLogger.common('📊 Tracked notification dismissed: $notificationId');
     } catch (e) {
-      debugPrint('❌ Failed to track notification dismissed: $e');
+      AppLogger.commonError('❌ Failed to track notification dismissed', error: e);
     }
   }
 
@@ -150,7 +151,7 @@ class NotificationAnalyticsService {
 
       return analytics;
     } catch (e) {
-      debugPrint('❌ Failed to get user notification analytics: $e');
+      AppLogger.commonError('❌ Failed to get user notification analytics', error: e);
       return {};
     }
   }
@@ -177,7 +178,7 @@ class NotificationAnalyticsService {
 
       return performance;
     } catch (e) {
-      debugPrint('❌ Failed to get notification performance by type: $e');
+      AppLogger.commonError('❌ Failed to get notification performance by type', error: e);
       return {};
     }
   }
@@ -274,7 +275,7 @@ class NotificationAnalyticsService {
 
       return stats;
     } catch (e) {
-      debugPrint('❌ Failed to get overall notification effectiveness: $e');
+      AppLogger.commonError('❌ Failed to get overall notification effectiveness', error: e);
       return {};
     }
   }
@@ -295,9 +296,9 @@ class NotificationAnalyticsService {
       }
 
       await batch.commit();
-      debugPrint('🧹 Cleaned up ${snapshot.docs.length} old analytics records');
+      AppLogger.common('🧹 Cleaned up ${snapshot.docs.length} old analytics records');
     } catch (e) {
-      debugPrint('❌ Failed to cleanup old analytics: $e');
+      AppLogger.commonError('❌ Failed to cleanup old analytics', error: e);
     }
   }
 

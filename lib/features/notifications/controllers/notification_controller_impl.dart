@@ -25,6 +25,24 @@ class NotificationControllerImpl implements NotificationController {
   @override
   Future<void> initialize() async {
     try {
+      // Listen to auth state changes to update current user
+      FirebaseAuth.instance.authStateChanges().listen((User? user) {
+        _currentUserId = user?.uid;
+
+        // Ensure user has default preferences when authenticated
+        if (_currentUserId != null) {
+          _repository.getUserPreferences(_currentUserId!).then((existingPrefs) {
+            if (existingPrefs == null) {
+              final defaultPrefs = NotificationPreferences.getDefault(_currentUserId!);
+              _repository.updateUserPreferences(defaultPrefs);
+            }
+          }).catchError((e) {
+            // Silently handle preference setup errors
+          });
+        }
+      });
+
+      // Also check current user immediately
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         _currentUserId = user.uid;

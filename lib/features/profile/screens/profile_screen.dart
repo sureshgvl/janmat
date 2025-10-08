@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
@@ -314,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: _isLoggingOut
                   ? null
                   : () async {
-                      debugPrint('🔘 Profile logout button pressed');
+                      AppLogger.common('🔘 Profile logout button pressed');
                       setState(() => _isLoggingOut = true);
 
                       try {
@@ -330,12 +331,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             loginController.isOTPScreen.value = false;
                             loginController.verificationId.value = '';
                           } else {
-                            debugPrint(
+                            AppLogger.common(
                               'ℹ️ Login controller not available - skipping state reset',
                             );
                           }
                         } catch (e) {
-                          debugPrint('⚠️ Could not reset login controller: $e');
+                          AppLogger.error('⚠️ Could not reset login controller: $e');
                         }
 
                         Get.offAllNamed('/login');

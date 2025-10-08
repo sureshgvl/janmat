@@ -5,11 +5,13 @@ import 'package:get/get.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../../../utils/app_logger.dart';
 import '../models/chat_message.dart';
 import '../models/user_quota.dart';
 import '../services/local_message_service.dart';
 import '../services/media_service.dart';
 import '../services/offline_message_queue.dart';
+import '../services/private_chat_service.dart';
 import '../repositories/chat_repository.dart';
 
 class MessageController extends GetxController {
@@ -17,6 +19,7 @@ class MessageController extends GetxController {
   final LocalMessageService _localMessageService = LocalMessageService();
   final MediaService _mediaService = MediaService();
   final OfflineMessageQueue _offlineQueue = OfflineMessageQueue();
+  final PrivateChatService _privateChatService = PrivateChatService();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
   // Voice recording state
@@ -68,7 +71,7 @@ class MessageController extends GetxController {
       metadata: metadata,
     );
 
-    debugPrint(
+    AppLogger.chat(
       '📤 MessageController: sendTextMessage called - Message ID: ${message.messageId}, Text: "${message.text}", Room: $roomId',
     );
 
@@ -88,28 +91,33 @@ class MessageController extends GetxController {
         // This function will be called by the offline queue
         await _repository.sendMessage(rId, msg);
         await _updateUserQuotaAfterMessage();
+
+        // Update private chat metadata if this is a private chat
+        if (rId.startsWith('private_')) {
+          await _updatePrivateChatMetadata(msg, rId);
+        }
       },
     );
 
-    debugPrint('MessageController: Message queued for sending: ${message.messageId}');
+    AppLogger.chat('MessageController: Message queued for sending: ${message.messageId}');
   }
 
   // Set up offline queue callbacks
   void _setupOfflineQueueCallbacks() {
     _offlineQueue.onMessageQueued = (queuedMessage) {
-      debugPrint('📋 MessageController: Message queued for offline sending: ${queuedMessage.message.messageId}');
+      AppLogger.chat('📋 MessageController: Message queued for offline sending: ${queuedMessage.message.messageId}');
       // Update UI to show queued status
       updateMessageStatus(queuedMessage.message.messageId, MessageStatus.sending);
     };
 
     _offlineQueue.onMessageSent = (queuedMessage) {
-      debugPrint('✅ MessageController: Queued message sent successfully: ${queuedMessage.message.messageId}');
+      AppLogger.chat('✅ MessageController: Queued message sent successfully: ${queuedMessage.message.messageId}');
       // Update UI to show sent status
       updateMessageStatus(queuedMessage.message.messageId, MessageStatus.sent);
     };
 
     _offlineQueue.onMessageFailed = (queuedMessage, error) {
-      debugPrint('❌ MessageController: Queued message failed: ${queuedMessage.message.messageId} - $error');
+      AppLogger.chat('❌ MessageController: Queued message failed: ${queuedMessage.message.messageId} - $error');
       // Update UI to show failed status
       updateMessageStatus(queuedMessage.message.messageId, MessageStatus.failed);
     };
@@ -119,7 +127,7 @@ class MessageController extends GetxController {
   Future<void> _loadUserQuota() async {
     // For now, just set a default quota since we don't have user auth in this controller
     // The quota will be managed by the main ChatController
-    debugPrint('MessageController: Quota loading deferred to ChatController');
+    AppLogger.chat('MessageController: Quota loading deferred to ChatController');
   }
 
   // Update user quota after sending a message
@@ -139,12 +147,39 @@ class MessageController extends GetxController {
         // Update in repository
         await _repository.updateUserQuota(updatedQuota);
 
-        debugPrint(
+        AppLogger.chat(
           'MessageController: Updated quota - sent: ${updatedQuota.messagesSent}, remaining: ${updatedQuota.remainingMessages}',
         );
       }
     } catch (e) {
-      debugPrint('MessageController: Failed to update quota: $e');
+      AppLogger.chat('MessageController: Failed to update quota: $e');
+    }
+  }
+
+  // Update private chat metadata when messages are sent
+  Future<void> _updatePrivateChatMetadata(Message message, String roomId) async {
+    try {
+      // Create message preview for chat list
+      String messagePreview = message.text;
+      if (message.type == 'image') {
+        messagePreview = '📷 Image';
+      } else if (message.type == 'audio') {
+        messagePreview = '🎵 Voice message';
+      } else if (message.type == 'poll') {
+        messagePreview = '📊 Poll';
+      }
+
+      // Update last message info in both users' private chat documents
+      await _privateChatService.updateChatLastMessage(
+        roomId,
+        messagePreview,
+        message.senderId,
+        message.createdAt,
+      );
+
+      AppLogger.chat('✅ Updated private chat metadata for room: $roomId');
+    } catch (e) {
+      AppLogger.chat('❌ Error updating private chat metadata: $e');
     }
   }
 
@@ -173,14 +208,14 @@ class MessageController extends GetxController {
         await _audioRecorder.start(config, path: currentRecordingPath!);
         isRecording.value = true;
 
-        debugPrint(
+        AppLogger.chat(
           'MessageController: Started voice recording: $currentRecordingPath',
         );
       } else {
         throw Exception('Microphone permission not granted');
       }
     } catch (e) {
-      debugPrint('MessageController: Failed to start voice recording: $e');
+      AppLogger.chat('MessageController: Failed to start voice recording: $e');
       isRecording.value = false;
       rethrow;
     }
@@ -192,16 +227,16 @@ class MessageController extends GetxController {
       isRecording.value = false;
 
       if (path != null) {
-        debugPrint('MessageController: Stopped voice recording: $path');
+        AppLogger.chat('MessageController: Stopped voice recording: $path');
         return path;
       } else {
-        debugPrint(
+        AppLogger.chat(
           'MessageController: Voice recording failed - no path returned',
         );
         return null;
       }
     } catch (e) {
-      debugPrint('MessageController: Failed to stop voice recording: $e');
+      AppLogger.chat('MessageController: Failed to stop voice recording: $e');
       isRecording.value = false;
       return null;
     }
@@ -231,15 +266,15 @@ class MessageController extends GetxController {
     // Save locally immediately and add to UI
     await _localMessageService.saveMessage(message, roomId);
     messages.add(message);
-    debugPrint(
+    AppLogger.chat(
       '📝 MessageController: Added voice message to UI, total messages: ${messages.length}',
     );
     update(); // Force UI update
-    debugPrint(
+    AppLogger.chat(
       '📝 MessageController: Added image message to UI, total messages: ${messages.length}',
     );
     update(); // Force UI update
-    debugPrint(
+    AppLogger.chat(
       '📝 MessageController: Added message to UI, total messages: ${messages.length}',
     );
     update(); // Force UI update
@@ -290,7 +325,7 @@ class MessageController extends GetxController {
       },
     );
 
-    debugPrint('MessageController: Image message queued for sending: ${message.messageId}');
+    AppLogger.chat('MessageController: Image message queued for sending: ${message.messageId}');
   }
 
   Future<void> sendPollMessage(String roomId, Message message) async {
@@ -299,7 +334,7 @@ class MessageController extends GetxController {
     final metadata = isWardRoom ? {'broadcast': false} : null;
     final pollMessage = message.copyWith(metadata: metadata);
 
-    debugPrint('📊 MessageController: Sending poll message: ${message.messageId} to room: $roomId');
+    AppLogger.chat('📊 MessageController: Sending poll message: ${message.messageId} to room: $roomId');
 
     // Send to server asynchronously (don't block UI)
     _sendMessageToServer(pollMessage, roomId);
@@ -376,7 +411,7 @@ class MessageController extends GetxController {
       },
     );
 
-    debugPrint('MessageController: Voice message queued for sending: ${message.messageId}');
+    AppLogger.chat('MessageController: Voice message queued for sending: ${message.messageId}');
   }
 
   // Message reactions
@@ -410,6 +445,12 @@ class MessageController extends GetxController {
     String userId,
   ) async {
     await _repository.markMessageAsRead(roomId, messageId, userId);
+
+    // Mark private chat as read if this is a private chat
+    if (roomId.startsWith('private_')) {
+      await _privateChatService.markChatAsRead(roomId, userId);
+    }
+
     // Update local message
     final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
@@ -473,7 +514,7 @@ class MessageController extends GetxController {
 
   // Add message to UI immediately (for local storage)
   Future<void> addMessageToUI(Message message, String roomId) async {
-    debugPrint(
+    AppLogger.chat(
       '📝 MessageController: addMessageToUI called - Message ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}',
     );
 
@@ -482,20 +523,20 @@ class MessageController extends GetxController {
     // Check if message already exists before adding
     final existingIndex = messages.indexWhere((m) => m.messageId == message.messageId);
     if (existingIndex != -1) {
-      debugPrint(
+      AppLogger.chat(
         '⚠️ MessageController: Message ${message.messageId} already exists at index $existingIndex, skipping duplicate add',
       );
       return;
     }
 
     messages.add(message);
-    debugPrint(
+    AppLogger.chat(
       '✅ MessageController: Added message ${message.messageId} to UI, total messages: ${messages.length}',
     );
 
     // Log all current messages for debugging
     for (int i = 0; i < messages.length; i++) {
-      debugPrint('   Message $i: ID=${messages[i].messageId}, Text="${messages[i].text}"');
+      AppLogger.chat('   Message $i: ID=${messages[i].messageId}, Text="${messages[i].text}"');
     }
 
     update(); // Force UI update
@@ -510,7 +551,7 @@ class MessageController extends GetxController {
     final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
       messages[messageIndex] = messages[messageIndex].copyWith(status: status);
-      debugPrint(
+      AppLogger.chat(
         '📝 MessageController: Updated message $messageId status to $status',
       );
       update(); // Force UI update
@@ -549,7 +590,7 @@ class MessageController extends GetxController {
     isLoadingMore.value = true;
 
     try {
-      debugPrint('📄 Loading more messages for room: $roomId');
+      AppLogger.chat('📄 Loading more messages for room: $roomId');
 
       // Load older messages using pagination
       final olderMessages = await _repository.getMessagesForRoomPaginated(
@@ -561,7 +602,7 @@ class MessageController extends GetxController {
       if (olderMessages.isEmpty) {
         // No more messages to load
         hasMoreMessages.value = false;
-        debugPrint('📄 No more messages to load');
+        AppLogger.chat('📄 No more messages to load');
       } else {
         // Add older messages to the beginning
         messages.insertAll(0, olderMessages);
@@ -569,10 +610,10 @@ class MessageController extends GetxController {
         // Update oldest timestamp for next pagination
         oldestMessageTimestamp.value = olderMessages.last.createdAt;
 
-        debugPrint('📄 Loaded ${olderMessages.length} more messages, total: ${messages.length}');
+        AppLogger.chat('📄 Loaded ${olderMessages.length} more messages, total: ${messages.length}');
       }
     } catch (e) {
-      debugPrint('❌ Error loading more messages: $e');
+      AppLogger.chat('❌ Error loading more messages: $e');
     } finally {
       isLoadingMore.value = false;
     }
@@ -582,9 +623,9 @@ class MessageController extends GetxController {
     List<Message> localMessages,
     List<Message> serverMessages,
   ) {
-    debugPrint('🔄 MessageController: Starting merge process...');
-    debugPrint('   Local messages: ${localMessages.length}');
-    debugPrint('   Server messages: ${serverMessages.length}');
+    AppLogger.chat('🔄 MessageController: Starting merge process...');
+    AppLogger.chat('   Local messages: ${localMessages.length}');
+    AppLogger.chat('   Server messages: ${serverMessages.length}');
 
     final merged = <String, Message>{};
     final contentKeyMap = <String, String>{}; // Map content key to message ID
@@ -605,7 +646,7 @@ class MessageController extends GetxController {
 
       merged[message.messageId] = serverMessage;
       contentKeyMap[contentKey] = message.messageId;
-      debugPrint('   Added server message: ${message.messageId} - "${message.text}" (status: ${serverMessage.status}, key: $contentKey)');
+      AppLogger.chat('   Added server message: ${message.messageId} - "${message.text}" (status: ${serverMessage.status}, key: $contentKey)');
     }
 
     // Add local messages only if they don't exist in server messages
@@ -616,7 +657,7 @@ class MessageController extends GetxController {
       if (!merged.containsKey(message.messageId) && !contentKeyMap.containsKey(contentKey)) {
         merged[message.messageId] = message;
         contentKeyMap[contentKey] = message.messageId;
-        debugPrint('   Added local message: ${message.messageId} - "${message.text}" (key: $contentKey)');
+        AppLogger.chat('   Added local message: ${message.messageId} - "${message.text}" (key: $contentKey)');
       } else {
         // If server message exists (either by ID or content), check if we need to update status
         final existingId = merged.containsKey(message.messageId)
@@ -625,8 +666,8 @@ class MessageController extends GetxController {
 
         if (existingId != null) {
           final serverMessage = merged[existingId]!;
-          debugPrint('   Local message ${message.messageId} matches server message $existingId, checking status...');
-          debugPrint('   Local status: ${message.status}, Server status: ${serverMessage.status}');
+          AppLogger.chat('   Local message ${message.messageId} matches server message $existingId, checking status...');
+          AppLogger.chat('   Local status: ${message.status}, Server status: ${serverMessage.status}');
 
           // Status resolution logic:
           // 1. If server is sent/failed, always use server (most authoritative)
@@ -635,16 +676,16 @@ class MessageController extends GetxController {
           if (serverMessage.status == MessageStatus.sent || serverMessage.status == MessageStatus.failed) {
             // Server has final status, use it
             merged[existingId] = serverMessage;
-            debugPrint('   Using server status (final) for message ${existingId}');
+            AppLogger.chat('   Using server status (final) for message ${existingId}');
           } else if ((message.status == MessageStatus.sent || message.status == MessageStatus.failed) &&
                      serverMessage.status == MessageStatus.sending) {
             // Local has final status but server doesn't, use local
             merged[existingId] = message;
-            debugPrint('   Using local status (final) for message ${existingId}');
+            AppLogger.chat('   Using local status (final) for message ${existingId}');
           } else {
             // Both are sending or other cases, prefer server for consistency
             merged[existingId] = serverMessage;
-            debugPrint('   Using server status (default) for message ${existingId}');
+            AppLogger.chat('   Using server status (default) for message ${existingId}');
           }
         }
       }
@@ -654,11 +695,11 @@ class MessageController extends GetxController {
     final sortedMessages = merged.values.toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-    debugPrint('📝 MessageController: Merged ${localMessages.length} local + ${serverMessages.length} server = ${sortedMessages.length} unique messages');
+    AppLogger.chat('📝 MessageController: Merged ${localMessages.length} local + ${serverMessages.length} server = ${sortedMessages.length} unique messages');
 
     // Log final merged messages
     for (int i = 0; i < sortedMessages.length; i++) {
-      debugPrint('   Final message $i: ${sortedMessages[i].messageId} - "${sortedMessages[i].text}" (status: ${sortedMessages[i].status})');
+      AppLogger.chat('   Final message $i: ${sortedMessages[i].messageId} - "${sortedMessages[i].text}" (status: ${sortedMessages[i].status})');
     }
 
     return sortedMessages;

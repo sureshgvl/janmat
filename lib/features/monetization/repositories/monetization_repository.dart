@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../models/plan_model.dart';
+import '../../../utils/app_logger.dart';
 
 class MonetizationRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -9,30 +10,30 @@ class MonetizationRepository {
 
   Future<List<SubscriptionPlan>> getAllPlans() async {
     try {
-      debugPrint('🔥 FIRESTORE: Fetching all plans from database...');
+      AppLogger.monetization('🔥 FIRESTORE: Fetching all plans from database...');
       final snapshot = await _firestore.collection('plans').get();
 
-      debugPrint('✅ FIRESTORE: Found ${snapshot.docs.length} plan documents');
+      AppLogger.monetization('✅ FIRESTORE: Found ${snapshot.docs.length} plan documents');
 
       // Debug log each document before processing
       for (var doc in snapshot.docs) {
-        debugPrint('📄 PLAN DOCUMENT: ${doc.id}');
-        debugPrint('   Raw Data: ${doc.data()}');
+        AppLogger.monetization('📄 PLAN DOCUMENT: ${doc.id}');
+        AppLogger.monetization('   Raw Data: ${doc.data()}');
       }
 
       final plans = snapshot.docs.map((doc) {
         final data = doc.data();
         data['planId'] = doc.id;
-        debugPrint('🔄 PROCESSING PLAN: ${doc.id} with data: $data');
+        AppLogger.monetization('🔄 PROCESSING PLAN: ${doc.id} with data: $data');
         return SubscriptionPlan.fromJson(data);
       }).toList();
 
-      debugPrint('✅ FIRESTORE: Successfully processed ${plans.length} plans');
+      AppLogger.monetization('✅ FIRESTORE: Successfully processed ${plans.length} plans');
       return plans;
     } catch (e) {
-      debugPrint('❌ FIRESTORE ERROR: Failed to fetch plans: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ FIRESTORE ERROR: Failed to fetch plans: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to fetch plans: $e');
     }
   }
@@ -73,22 +74,22 @@ class MonetizationRepository {
 
   Future<String> createSubscription(UserSubscription subscription) async {
     try {
-      debugPrint('🔥 FIRESTORE: Creating subscription for user ${subscription.userId}');
-      debugPrint('   Plan ID: ${subscription.planId}');
-      debugPrint('   Plan Type: ${subscription.planType}');
-      debugPrint('   Amount Paid: ${subscription.amountPaid}');
-      debugPrint('   Is Active: ${subscription.isActive}');
+      AppLogger.monetization('🔥 FIRESTORE: Creating subscription for user ${subscription.userId}');
+      AppLogger.monetization('   Plan ID: ${subscription.planId}');
+      AppLogger.monetization('   Plan Type: ${subscription.planType}');
+      AppLogger.monetization('   Amount Paid: ${subscription.amountPaid}');
+      AppLogger.monetization('   Is Active: ${subscription.isActive}');
 
       final docRef = await _firestore
           .collection('subscriptions')
           .add(subscription.toJson());
 
-      debugPrint('✅ FIRESTORE: Subscription created successfully with ID: ${docRef.id}');
+      AppLogger.monetization('✅ FIRESTORE: Subscription created successfully with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      debugPrint('❌ FIRESTORE ERROR: Failed to create subscription: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ FIRESTORE ERROR: Failed to create subscription: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to create subscription: $e');
     }
   }
@@ -153,21 +154,21 @@ class MonetizationRepository {
 
   Future<String> createXPTransaction(XPTransaction transaction) async {
     try {
-      debugPrint('🔥 FIRESTORE: Creating XP transaction for user ${transaction.userId}');
-      debugPrint('   Amount: ${transaction.amount}');
-      debugPrint('   Type: ${transaction.type}');
-      debugPrint('   Description: ${transaction.description}');
+      AppLogger.monetization('🔥 FIRESTORE: Creating XP transaction for user ${transaction.userId}');
+      AppLogger.monetization('   Amount: ${transaction.amount}');
+      AppLogger.monetization('   Type: ${transaction.type}');
+      AppLogger.monetization('   Description: ${transaction.description}');
 
       final docRef = await _firestore
           .collection('xp_transactions')
           .add(transaction.toJson());
 
-      debugPrint('✅ FIRESTORE: XP transaction created successfully with ID: ${docRef.id}');
+      AppLogger.monetization('✅ FIRESTORE: XP transaction created successfully with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      debugPrint('❌ FIRESTORE ERROR: Failed to create XP transaction: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ FIRESTORE ERROR: Failed to create XP transaction: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to create XP transaction: $e');
     }
   }
@@ -215,7 +216,7 @@ class MonetizationRepository {
 
   Future<void> updateUserXPBalance(String userId, int xpAmount) async {
     try {
-      debugPrint('💰 Updating XP balance for user $userId: $xpAmount');
+      AppLogger.monetization('💰 Updating XP balance for user $userId: $xpAmount');
 
       // Create transaction record
       final transaction = XPTransaction(
@@ -228,15 +229,15 @@ class MonetizationRepository {
       );
 
       final transactionId = await createXPTransaction(transaction);
-      debugPrint('✅ Created XP transaction: $transactionId');
+      AppLogger.monetization('✅ Created XP transaction: $transactionId');
 
       // Update user XP balance
       final userRef = _firestore.collection('users').doc(userId);
       await userRef.update({'xpPoints': FieldValue.increment(xpAmount)});
 
-      debugPrint('✅ Updated user XP balance: +$xpAmount');
+      AppLogger.monetization('✅ Updated user XP balance: +$xpAmount');
     } catch (e) {
-      debugPrint('❌ Failed to update XP balance: $e');
+      AppLogger.monetization('❌ Failed to update XP balance: $e');
       throw Exception('Failed to update XP balance: $e');
     }
   }
@@ -317,8 +318,8 @@ class MonetizationRepository {
   // Initialize default plans (run once during app setup)
   Future<void> initializeDefaultPlans() async {
     try {
-      debugPrint('🔧 INITIALIZING DEFAULT PLANS...');
-      debugPrint('   This will create/update all 4 candidate plans in Firestore');
+      AppLogger.monetization('🔧 INITIALIZING DEFAULT PLANS...');
+      AppLogger.monetization('   This will create/update all 4 candidate plans in Firestore');
       final batch = _firestore.batch();
 
       // Candidate plans - Free, Basic, Gold, Platinum
@@ -603,13 +604,13 @@ class MonetizationRepository {
 
 
       await batch.commit();
-      debugPrint('✅ DEFAULT PLANS INITIALIZED SUCCESSFULLY');
-      debugPrint('   Created/Updated: Free, Basic, Gold, Platinum plans');
-      debugPrint('   All plans are now ready for use');
+      AppLogger.monetization('✅ DEFAULT PLANS INITIALIZED SUCCESSFULLY');
+      AppLogger.monetization('   Created/Updated: Free, Basic, Gold, Platinum plans');
+      AppLogger.monetization('   All plans are now ready for use');
     } catch (e) {
-      debugPrint('❌ FAILED TO INITIALIZE DEFAULT PLANS: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ FAILED TO INITIALIZE DEFAULT PLANS: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       throw Exception('Failed to initialize default plans: $e');
     }
   }

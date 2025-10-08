@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/app_logger.dart';
 import '../utils/connection_optimizer.dart';
 import 'manifesto_cache_service.dart';
 
@@ -31,28 +32,28 @@ class ManifestoSyncService {
       }
     });
 
-    debugPrint('🔄 ManifestoSyncService initialized');
+    AppLogger.common('🔄 ManifestoSyncService initialized');
   }
 
   void _onConnectivityChanged(ConnectionQuality quality) {
     if (quality != ConnectionQuality.offline) {
       // Came back online, trigger sync
-      debugPrint('🌐 Connection restored, starting manifesto sync...');
+      AppLogger.common('🌐 Connection restored, starting manifesto sync...');
       _performSync();
     } else {
-      debugPrint('📴 Connection lost, manifesto sync paused');
+      AppLogger.common('📴 Connection lost, manifesto sync paused');
     }
   }
 
   Future<void> _performSync() async {
     if (_syncInProgress) {
-      debugPrint('🔄 Sync already in progress, skipping');
+      AppLogger.common('🔄 Sync already in progress, skipping');
       return;
     }
 
     _syncInProgress = true;
     try {
-      debugPrint('🔄 Starting manifesto sync...');
+      AppLogger.common('🔄 Starting manifesto sync...');
 
       final pendingItems = await _cacheService.getPendingSyncItems();
       int syncedCount = 0;
@@ -63,7 +64,7 @@ class ManifestoSyncService {
           await _syncComment(comment);
           syncedCount++;
         } catch (e) {
-          debugPrint('❌ Failed to sync comment ${comment.id}: $e');
+          AppLogger.commonError('❌ Failed to sync comment ${comment.id}', error: e);
         }
       }
 
@@ -73,7 +74,7 @@ class ManifestoSyncService {
           await _syncLike(like);
           syncedCount++;
         } catch (e) {
-          debugPrint('❌ Failed to sync like ${like.id}: $e');
+          AppLogger.commonError('❌ Failed to sync like ${like.id}', error: e);
         }
       }
 
@@ -83,17 +84,17 @@ class ManifestoSyncService {
           await _syncPollVote(poll);
           syncedCount++;
         } catch (e) {
-          debugPrint('❌ Failed to sync poll vote: $e');
+          AppLogger.commonError('❌ Failed to sync poll vote', error: e);
         }
       }
 
       if (syncedCount > 0) {
-        debugPrint('✅ Manifesto sync completed: $syncedCount items synced');
+        AppLogger.common('✅ Manifesto sync completed: $syncedCount items synced');
       } else {
-        debugPrint('ℹ️ No pending manifesto items to sync');
+        AppLogger.common('ℹ️ No pending manifesto items to sync');
       }
     } catch (e) {
-      debugPrint('❌ Manifesto sync failed: $e');
+      AppLogger.commonError('❌ Manifesto sync failed', error: e);
     } finally {
       _syncInProgress = false;
     }
@@ -243,7 +244,6 @@ class ManifestoSyncService {
   void dispose() {
     _connectivitySubscription?.cancel();
     _syncTimer?.cancel();
-    debugPrint('🧹 ManifestoSyncService disposed');
+    AppLogger.common('🧹 ManifestoSyncService disposed');
   }
 }
-

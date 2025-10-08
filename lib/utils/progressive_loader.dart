@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:janmat/utils/app_logger.dart';
 import 'performance_monitor.dart';
 
 /// Progressive loading states
@@ -117,7 +118,7 @@ class ProgressiveLoader<T> {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('📄 PROGRESSIVE: $message');
+      AppLogger.common('📄 PROGRESSIVE: $message');
     }
   }
 }
@@ -240,7 +241,7 @@ class VirtualScrollManager {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('📜 VIRTUAL: $message');
+      AppLogger.common('📜 VIRTUAL: $message');
     }
   }
 }
@@ -322,7 +323,7 @@ class _SmartListViewState<T> extends State<SmartListView<T>> {
     _scrollEventSubscription = _scrollManager.scrollEventStream.listen((event) {
       // Optional: Handle scroll events for analytics
       if (kDebugMode) {
-        debugPrint(
+        AppLogger.common(
           '📊 Scroll progress: ${(event.progress * 100).toStringAsFixed(1)}%',
         );
       }
@@ -486,7 +487,7 @@ class InfiniteScrollHook {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🪝 HOOK: $message');
+      AppLogger.common('🪝 HOOK: $message');
     }
   }
 }

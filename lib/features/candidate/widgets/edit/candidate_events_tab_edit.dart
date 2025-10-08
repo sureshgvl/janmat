@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_data_controller.dart';
 import '../event_creation_dialog.dart';
@@ -326,7 +327,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
   // Method to upload pending files (required by dashboard pattern)
   Future<void> uploadPendingFiles() async {
     // Events don't have file uploads, so this is a no-op
-    debugPrint('📤 [Events] No pending files to upload');
+    AppLogger.candidate('📤 [Events] No pending files to upload');
   }
 }
 

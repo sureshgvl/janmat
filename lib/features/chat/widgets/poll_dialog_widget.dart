@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/chat_model.dart';
+import '../../../utils/app_logger.dart';
 import '../repositories/chat_repository.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -45,14 +46,14 @@ class PollVotingDialogState extends State<PollVotingDialog> {
 
   Future<void> _loadPollData() async {
     try {
-      debugPrint('🔍 Loading poll data for pollId: ${widget.pollId}');
+      AppLogger.chat('🔍 Loading poll data for pollId: ${widget.pollId}');
 
       // Use cached poll data if available and recent (within 30 seconds)
       if (widget.cachedPoll != null) {
         final poll = widget.cachedPoll!;
         final cacheAge = DateTime.now().difference(poll.createdAt);
         if (cacheAge.inSeconds < 30) {
-          debugPrint('⚡ Using cached poll data (age: ${cacheAge.inSeconds}s)');
+          AppLogger.chat('⚡ Using cached poll data (age: ${cacheAge.inSeconds}s)');
           setState(() {
             _poll = poll;
             _hasVoted = poll.userVotes.containsKey(widget.currentUserId);
@@ -61,7 +62,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
           });
           return;
         } else {
-          debugPrint('📅 Cached poll data too old (${cacheAge.inSeconds}s), fetching fresh data');
+          AppLogger.chat('📅 Cached poll data too old (${cacheAge.inSeconds}s), fetching fresh data');
         }
       }
 
@@ -70,7 +71,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
       final poll = await chatRepository.getPollById(widget.pollId);
 
       if (poll != null) {
-        debugPrint('✅ Poll found: ${poll.question}');
+        AppLogger.chat('✅ Poll found: ${poll.question}');
 
         setState(() {
           _poll = poll;
@@ -79,11 +80,11 @@ class PollVotingDialogState extends State<PollVotingDialog> {
           _isLoading = false;
         });
 
-        debugPrint(
+        AppLogger.chat(
           '📊 Poll loaded - Has voted: $_hasVoted, Selected: $_selectedOption',
         );
       } else {
-        debugPrint('❌ Poll not found with ID: ${widget.pollId}');
+        AppLogger.chat('❌ Poll not found with ID: ${widget.pollId}');
         setState(() {
           _isLoading = false;
         });
@@ -95,7 +96,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         );
       }
     } catch (e) {
-      debugPrint('❌ Error loading poll data: $e');
+      AppLogger.chat('❌ Error loading poll data: $e');
       setState(() {
         _isLoading = false;
       });

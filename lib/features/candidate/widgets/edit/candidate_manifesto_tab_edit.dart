@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/video_processing_service.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -52,7 +53,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   @override
   void initState() {
     super.initState();
-    debugPrint('ManifestoTabEdit initState called');
+    AppLogger.candidate('ManifestoTabEdit initState called');
     final data = widget.editedData ?? widget.candidateData;
     _originalText = data.extraInfo?.manifesto?.title ?? '';
     _manifestoController = TextEditingController(text: _originalText);
@@ -65,7 +66,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     // Initialize manifesto promises list with structured format from model
     final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
-    debugPrint('Raw promises from data: $rawPromises');
+    AppLogger.candidate('Raw promises from data: $rawPromises');
     final manifestoPromises = rawPromises
         .map((promise) {
           // Already structured format
@@ -92,25 +93,25 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     // If no promises exist, create one empty promise
     if (manifestoPromises.isEmpty) {
-      debugPrint('No promises found, creating empty promise');
+      AppLogger.candidate('No promises found, creating empty promise');
       _promiseControllers.add(<String, dynamic>{
         'title': TextEditingController(),
         'points': <TextEditingController>[TextEditingController()],
       });
     }
-    debugPrint('Initialized with ${manifestoPromises.length} promises');
+    AppLogger.candidate('Initialized with ${manifestoPromises.length} promises');
   }
 
   @override
   void didUpdateWidget(ManifestoTabEdit oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint(
+    AppLogger.candidate(
       'ManifestoTabEdit didUpdateWidget called, isEditing: ${widget.isEditing}',
     );
     final data = widget.editedData ?? widget.candidateData;
     final newText = data.extraInfo?.manifesto?.title ?? '';
     if (_originalText != newText) {
-      debugPrint('Updating original text from $_originalText to $newText');
+      AppLogger.candidate('Updating original text from $_originalText to $newText');
       _originalText = newText;
       _manifestoController.text = newText;
     }
@@ -122,7 +123,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     // Only update promises if we're not in editing mode or if the data has actually changed
     if (!widget.isEditing) {
       final rawPromises = data.extraInfo?.manifesto?.promises ?? [];
-      debugPrint('Raw promises in didUpdateWidget: $rawPromises');
+      AppLogger.candidate('Raw promises in didUpdateWidget: $rawPromises');
       final newManifestoPromises = rawPromises
           .map((promise) {
             // Already structured format
@@ -149,7 +150,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
       // If no promises exist, create one empty promise
       if (newManifestoPromises.isEmpty) {
-        debugPrint(
+        AppLogger.candidate(
           'No promises found in didUpdateWidget, creating empty promise',
         );
         _promiseControllers.add(<String, dynamic>{
@@ -158,7 +159,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         });
       }
     } else {
-      debugPrint('In editing mode, skipping promise updates');
+      AppLogger.candidate('In editing mode, skipping promise updates');
     }
   }
 
@@ -404,22 +405,22 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   // Clean up local file after upload
   Future<void> _cleanupLocalFile(String localPath) async {
     try {
-      debugPrint('🧹 [Local Storage] Cleaning up local file: $localPath');
+      AppLogger.candidate('🧹 [Local Storage] Cleaning up local file: $localPath');
       final file = File(localPath);
       if (await file.exists()) {
         await file.delete();
-        debugPrint('🧹 [Local Storage] Local file deleted successfully');
+        AppLogger.candidate('🧹 [Local Storage] Local file deleted successfully');
       } else {
-        debugPrint('🧹 [Local Storage] Local file not found, nothing to clean');
+        AppLogger.candidate('🧹 [Local Storage] Local file not found, nothing to clean');
       }
     } catch (e) {
-      debugPrint('🧹 [Local Storage] Error cleaning up local file: $e');
+      AppLogger.candidateError('🧹 [Local Storage] Error cleaning up local file: $e');
     }
   }
 
   // Enhanced upload method with Cloudinary integration for videos
   Future<void> _uploadLocalFilesToFirebase() async {
-    debugPrint(
+    AppLogger.candidate(
       '☁️ [Enhanced Upload] Starting upload for ${_localFiles.length} local files...',
     );
 
@@ -430,7 +431,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         final fileName = localFile['fileName'] as String;
         final isPremiumVideo = localFile['isPremium'] as bool? ?? false;
 
-        debugPrint(
+        AppLogger.candidate(
           '☁️ [Enhanced Upload] Processing $type file: $fileName (Premium: $isPremiumVideo)',
         );
 
@@ -438,7 +439,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
         // Handle video uploads with Cloudinary for premium users
         if (type == 'video' && isPremiumVideo) {
-          debugPrint(
+          AppLogger.candidate(
             '🎥 [Cloudinary Upload] Processing premium video with Cloudinary...',
           );
 
@@ -462,13 +463,13 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
               file,
               widget.candidateData.userId ?? 'unknown_user',
               onProgress: (progress) {
-                debugPrint(
+                AppLogger.candidate(
                   '🎥 [Cloudinary Progress] ${progress.toStringAsFixed(1)}%',
                 );
               },
             );
 
-            debugPrint(
+            AppLogger.candidate(
               '🎥 [Cloudinary Success] Video processed successfully: ${processedVideo.id}',
             );
 
@@ -488,10 +489,10 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
               ),
             );
           } catch (cloudinaryError) {
-            debugPrint('🎥 [Cloudinary Error] $cloudinaryError');
+            AppLogger.candidateError('🎥 [Cloudinary Error] $cloudinaryError');
 
             // Fallback to Firebase Storage for videos if Cloudinary fails
-            debugPrint('🎥 [Fallback] Using Firebase Storage as fallback...');
+            AppLogger.candidate('🎥 [Fallback] Using Firebase Storage as fallback...');
             await _uploadVideoToFirebase(file, localPath, fileName);
 
             ScaffoldMessenger.of(context).showSnackBar(
@@ -506,7 +507,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
           await _uploadRegularFileToFirebase(file, localPath, fileName, type);
         }
       } catch (e) {
-        debugPrint(
+        AppLogger.candidateError(
           '☁️ [Enhanced Upload] Error processing ${localFile['type']}: $e',
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -525,7 +526,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       _localFiles.clear();
     });
 
-    debugPrint('☁️ [Enhanced Upload] All local files processed');
+    AppLogger.candidate('☁️ [Enhanced Upload] All local files processed');
   }
 
   // Upload regular files (PDF, Image, non-premium video) to Firebase
@@ -535,7 +536,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     String fileName,
     String type,
   ) async {
-    debugPrint('📄 [Firebase Upload] Uploading regular $type file: $fileName');
+    AppLogger.candidate('📄 [Firebase Upload] Uploading regular $type file: $fileName');
 
     final fileSize = await file.length();
     final fileSizeMB = fileSize / (1024 * 1024);
@@ -559,7 +560,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         storagePath = 'manifesto_videos/$firebaseFileName';
         break;
       default:
-        debugPrint('📄 [Firebase Upload] Unknown file type: $type');
+        AppLogger.candidate('📄 [Firebase Upload] Unknown file type: $type');
         return;
     }
 
@@ -574,7 +575,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     // Monitor upload progress
     uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
       final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      debugPrint(
+      AppLogger.candidate(
         '📄 [Firebase Upload] $type upload progress: ${progress.toStringAsFixed(1)}%',
       );
     });
@@ -582,7 +583,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     final snapshot = await uploadTask.whenComplete(() {});
     final downloadUrl = await snapshot.ref.getDownloadURL();
 
-    debugPrint(
+    AppLogger.candidate(
       '📄 [Firebase Upload] $type uploaded successfully. URL: $downloadUrl',
     );
 
@@ -614,7 +615,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     String localPath,
     String fileName,
   ) async {
-    debugPrint('🎥 [Firebase Fallback] Uploading video to Firebase Storage...');
+    AppLogger.candidate('🎥 [Firebase Fallback] Uploading video to Firebase Storage...');
 
     final fileSize = await file.length();
     final fileSizeMB = fileSize / (1024 * 1024);
@@ -633,7 +634,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
     uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
       final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      debugPrint(
+      AppLogger.candidate(
         '🎥 [Firebase Fallback] Upload progress: ${progress.toStringAsFixed(1)}%',
       );
     });
@@ -641,7 +642,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     final snapshot = await uploadTask.whenComplete(() {});
     final downloadUrl = await snapshot.ref.getDownloadURL();
 
-    debugPrint(
+    AppLogger.candidate(
       '🎥 [Firebase Fallback] Video uploaded successfully. URL: $downloadUrl',
     );
 
@@ -683,12 +684,12 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   Future<void> uploadPendingFiles() async {
     // First, upload any pending local files
     if (_localFiles.isNotEmpty) {
-      debugPrint(
+      AppLogger.candidate(
         '💾 [Save] Uploading ${_localFiles.length} pending local files to Firebase...',
       );
       await _uploadLocalFilesToFirebase();
     } else {
-      debugPrint('💾 [Save] No pending local files to upload');
+      AppLogger.candidate('💾 [Save] No pending local files to upload');
     }
 
     // Then, delete any files marked for deletion
@@ -730,14 +731,14 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   // Helper method to delete a file from Firebase Storage
   Future<void> _deleteFileFromStorage(String fileUrl, String fileType) async {
     try {
-      debugPrint(
+      AppLogger.candidate(
         '🗑️ [Storage Delete] Deleting $fileType from Firebase Storage: $fileUrl',
       );
 
       final storageRef = FirebaseStorage.instance.refFromURL(fileUrl);
       await storageRef.delete();
 
-      debugPrint(
+      AppLogger.candidate(
         '🗑️ [Storage Delete] Successfully deleted $fileType from Firebase Storage',
       );
 
@@ -750,7 +751,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         );
       }
     } catch (e) {
-      debugPrint('❌ [Storage Delete] Failed to delete $fileType: $e');
+      AppLogger.candidateError('❌ [Storage Delete] Failed to delete $fileType: $e');
 
       // Show warning but don't fail the entire save operation
       if (mounted) {

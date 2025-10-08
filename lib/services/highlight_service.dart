@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/app_logger.dart';
 
 class Highlight {
   final String id;
@@ -163,7 +164,7 @@ class HighlightService {
     try {
       // Create composite location key for precise targeting
       final locationKey = '${districtId}_${bodyId}_$wardId';
-      debugPrint('🎠 HighlightService: Fetching highlights for locationKey: $locationKey');
+      AppLogger.common('🎠 HighlightService: Fetching highlights for locationKey: $locationKey');
 
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')
@@ -174,18 +175,18 @@ class HighlightService {
           .limit(10)
           .get();
 
-      debugPrint('🎠 HighlightService: Found ${snapshot.docs.length} highlights for $locationKey');
+      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} highlights for $locationKey');
       final highlights = snapshot.docs
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
 
       if (highlights.isNotEmpty) {
-        debugPrint('🎠 HighlightService: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
+        AppLogger.common('🎠 HighlightService: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
       }
 
       return highlights;
     } catch (e) {
-      debugPrint('❌ HighlightService: Error fetching highlights: $e');
+      AppLogger.commonError('❌ HighlightService: Error fetching highlights', error: e);
       return [];
     }
   }
@@ -199,7 +200,7 @@ class HighlightService {
     try {
       // Create composite location key for precise targeting
       final locationKey = '${districtId}_${bodyId}_$wardId';
-      debugPrint('🏷️ HighlightService: Fetching platinum banner for locationKey: $locationKey');
+      AppLogger.common('🏷️ HighlightService: Fetching platinum banner for locationKey: $locationKey');
 
       final snapshot = await FirebaseFirestore.instance
           .collection('highlights')
@@ -210,18 +211,18 @@ class HighlightService {
           .limit(1)
           .get();
 
-      debugPrint('🏷️ HighlightService: Found ${snapshot.docs.length} platinum banners for $locationKey');
+      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} platinum banners for $locationKey');
 
       if (snapshot.docs.isNotEmpty) {
         final banner = Highlight.fromJson(snapshot.docs.first.data());
-        debugPrint('🏷️ HighlightService: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
+        AppLogger.common('🏷️ HighlightService: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
         return banner;
       }
 
-      debugPrint('🏷️ HighlightService: No platinum banner found for $locationKey');
+      AppLogger.common('🏷️ HighlightService: No platinum banner found for $locationKey');
       return null;
     } catch (e) {
-      debugPrint('❌ HighlightService: Error fetching platinum banner: $e');
+      AppLogger.commonError('❌ HighlightService: Error fetching platinum banner', error: e);
       return null;
     }
   }
@@ -237,7 +238,7 @@ class HighlightService {
             'lastShown': FieldValue.serverTimestamp(),
           });
     } catch (e) {
-      debugPrint('Error tracking impression: $e');
+      AppLogger.commonError('Error tracking impression', error: e);
     }
   }
 
@@ -249,7 +250,7 @@ class HighlightService {
           .doc(highlightId)
           .update({'clicks': FieldValue.increment(1)});
     } catch (e) {
-      debugPrint('Error tracking click: $e');
+      AppLogger.commonError('Error tracking click', error: e);
     }
   }
 
@@ -306,7 +307,7 @@ class HighlightService {
 
       return highlightId;
     } catch (e) {
-      debugPrint('Error creating highlight: $e');
+      AppLogger.commonError('Error creating highlight', error: e);
       return null;
     }
   }
@@ -328,7 +329,7 @@ class HighlightService {
           .map((doc) => PushFeedItem.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching push feed: $e');
+      AppLogger.commonError('Error fetching push feed', error: e);
       return [];
     }
   }
@@ -363,7 +364,7 @@ class HighlightService {
 
       return feedId;
     } catch (e) {
-      debugPrint('Error creating push feed item: $e');
+      AppLogger.commonError('Error creating push feed item', error: e);
       return null;
     }
   }
@@ -379,7 +380,7 @@ class HighlightService {
           .doc(highlightId)
           .update({'active': active});
     } catch (e) {
-      debugPrint('Error updating highlight status: $e');
+      AppLogger.commonError('Error updating highlight status', error: e);
     }
   }
 
@@ -398,7 +399,7 @@ class HighlightService {
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching candidate highlights: $e');
+      AppLogger.commonError('Error fetching candidate highlights', error: e);
       return [];
     }
   }
@@ -419,7 +420,7 @@ class HighlightService {
     String? customMessage,
   }) async {
     try {
-      debugPrint('🏆 HighlightService: Creating Platinum highlight for $candidateName');
+      AppLogger.common('🏆 HighlightService: Creating Platinum highlight for $candidateName');
 
       final highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey = '${districtId}_${bodyId}_$wardId';
@@ -462,11 +463,11 @@ class HighlightService {
           .doc(highlightId)
           .set(enhancedData);
 
-      debugPrint('✅ HighlightService: Created Platinum highlight $highlightId for $candidateName');
-      debugPrint('   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
+      AppLogger.common('✅ HighlightService: Created Platinum highlight $highlightId for $candidateName');
+      AppLogger.common('   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
       return highlightId;
     } catch (e) {
-      debugPrint('❌ HighlightService: Error creating Platinum highlight: $e');
+      AppLogger.commonError('❌ HighlightService: Error creating Platinum highlight', error: e);
       return null;
     }
   }
@@ -481,7 +482,7 @@ class HighlightService {
     bool? showAnalytics,
   }) async {
     try {
-      debugPrint('🔄 HighlightService: Updating highlight config for $highlightId');
+      AppLogger.common('🔄 HighlightService: Updating highlight config for $highlightId');
 
       final updates = <String, dynamic>{};
       if (bannerStyle != null) updates['bannerStyle'] = bannerStyle;
@@ -501,13 +502,13 @@ class HighlightService {
             .doc(highlightId)
             .update(updates);
 
-        debugPrint('✅ HighlightService: Updated highlight $highlightId with ${updates.length} changes');
+        AppLogger.common('✅ HighlightService: Updated highlight $highlightId with ${updates.length} changes');
         return true;
       }
 
       return false;
     } catch (e) {
-      debugPrint('❌ HighlightService: Error updating highlight config: $e');
+      AppLogger.commonError('❌ HighlightService: Error updating highlight config', error: e);
       return false;
     }
   }
@@ -525,7 +526,7 @@ class HighlightService {
       }
       return null;
     } catch (e) {
-      debugPrint('❌ HighlightService: Error getting highlight config: $e');
+      AppLogger.commonError('❌ HighlightService: Error getting highlight config', error: e);
       return null;
     }
   }
@@ -544,4 +545,3 @@ class HighlightService {
     }
   }
 }
-

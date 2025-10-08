@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'app_logger.dart';
 
 class PerformanceMonitor {
   static final PerformanceMonitor _instance = PerformanceMonitor._internal();
@@ -18,9 +19,7 @@ class PerformanceMonitor {
   void startTimer(String operationName) {
     _timers[operationName] = Stopwatch()..start();
 
-    if (kDebugMode) {
-      debugPrint('⏱️ Started timing: $operationName');
-    }
+    AppLogger.performance('Started timing: $operationName');
   }
 
   // Stop timing and log the result
@@ -44,9 +43,7 @@ class PerformanceMonitor {
             _performanceMetrics[operationName]!.reduce((a, b) => a + b) /
             _performanceMetrics[operationName]!.length;
 
-        debugPrint(
-          '⏱️ $operationName completed in ${duration}ms (avg: ${avgDuration.toStringAsFixed(1)}ms)',
-        );
+        AppLogger.performance('$operationName completed in ${duration}ms (avg: ${avgDuration.toStringAsFixed(1)}ms)');
       }
 
       _timers.remove(operationName);
@@ -66,9 +63,7 @@ class PerformanceMonitor {
     final avgTime = getAverageTime(operationName);
     if (avgTime > thresholdMs) {
       if (kDebugMode) {
-        debugPrint(
-          '🐌 SLOW OPERATION: $operationName averaging ${avgTime.toStringAsFixed(1)}ms (threshold: ${thresholdMs}ms)',
-        );
+        AppLogger.performanceWarning('SLOW OPERATION: $operationName averaging ${avgTime.toStringAsFixed(1)}ms (threshold: ${thresholdMs}ms)');
       }
     }
   }
@@ -101,9 +96,7 @@ class PerformanceMonitor {
         (_firebaseReadCount[collection] ?? 0) + count;
 
     if (kDebugMode) {
-      debugPrint(
-        '📖 Firebase Read: $collection (+$count) - Total: ${_firebaseReadCount[collection]}',
-      );
+      AppLogger.performance('Firebase Read: $collection (+$count) - Total: ${_firebaseReadCount[collection]}');
     }
   }
 
@@ -113,9 +106,7 @@ class PerformanceMonitor {
         (_firebaseWriteCount[collection] ?? 0) + count;
 
     if (kDebugMode) {
-      debugPrint(
-        '✏️ Firebase Write: $collection (+$count) - Total: ${_firebaseWriteCount[collection]}',
-      );
+      AppLogger.performance('Firebase Write: $collection (+$count) - Total: ${_firebaseWriteCount[collection]}');
     }
   }
 
@@ -124,9 +115,7 @@ class PerformanceMonitor {
     _cacheHitCount[cacheType] = (_cacheHitCount[cacheType] ?? 0) + 1;
 
     if (kDebugMode) {
-      debugPrint(
-        '⚡ Cache Hit: $cacheType - Total: ${_cacheHitCount[cacheType]}',
-      );
+      AppLogger.performance('Cache Hit: $cacheType - Total: ${_cacheHitCount[cacheType]}');
     }
   }
 
@@ -135,9 +124,7 @@ class PerformanceMonitor {
     _cacheMissCount[cacheType] = (_cacheMissCount[cacheType] ?? 0) + 1;
 
     if (kDebugMode) {
-      debugPrint(
-        '🔄 Cache Miss: $cacheType - Total: ${_cacheMissCount[cacheType]}',
-      );
+      AppLogger.performance('Cache Miss: $cacheType - Total: ${_cacheMissCount[cacheType]}');
     }
   }
 
@@ -227,42 +214,34 @@ void stopPerformanceTimer(String operationName) {
 }
 
 void logPerformanceReport() {
-  if (kDebugMode) {
-    final report = PerformanceMonitor().getEnhancedPerformanceReport();
-    debugPrint('📊 Enhanced Performance Report:');
+  final report = PerformanceMonitor().getEnhancedPerformanceReport();
+  AppLogger.performance('Enhanced Performance Report:');
 
-    // Performance metrics
-    final perfMetrics = report['performance_metrics'] as Map<String, dynamic>;
-    if (perfMetrics.isNotEmpty) {
-      debugPrint('⏱️ Operation Timings:');
-      perfMetrics.forEach((operation, metrics) {
-        debugPrint(
-          '  $operation: ${metrics['average'].toStringAsFixed(1)}ms avg (${metrics['samples']} samples)',
-        );
-      });
-    }
+  // Performance metrics
+  final perfMetrics = report['performance_metrics'] as Map<String, dynamic>;
+  if (perfMetrics.isNotEmpty) {
+    AppLogger.performance('Operation Timings:');
+    perfMetrics.forEach((operation, metrics) {
+      AppLogger.performance('  $operation: ${metrics['average'].toStringAsFixed(1)}ms avg (${metrics['samples']} samples)');
+    });
+  }
 
-    // Firebase operations
-    final firebaseOps = report['firebase_operations'] as Map<String, dynamic>;
-    debugPrint('🔥 Firebase Operations:');
-    debugPrint(
-      '  Reads: ${firebaseOps['total_reads']}, Writes: ${firebaseOps['total_writes']}',
-    );
-    debugPrint('  Cache Hit Rate: ${firebaseOps['cache_hit_rate']}');
+  // Firebase operations
+  final firebaseOps = report['firebase_operations'] as Map<String, dynamic>;
+  AppLogger.performance('Firebase Operations:');
+  AppLogger.performance('  Reads: ${firebaseOps['total_reads']}, Writes: ${firebaseOps['total_writes']}');
+  AppLogger.performance('  Cache Hit Rate: ${firebaseOps['cache_hit_rate']}');
 
-    // Optimization score
-    final score = report['optimization_score'] as double;
-    debugPrint('🎯 Optimization Score: ${score.toStringAsFixed(1)}/100');
+  // Optimization score
+  final score = report['optimization_score'] as double;
+  AppLogger.performance('Optimization Score: ${score.toStringAsFixed(1)}/100');
 
-    if (score >= 80) {
-      debugPrint('✅ Excellent optimization! Keep up the great work.');
-    } else if (score >= 60) {
-      debugPrint('👍 Good optimization. Consider further improvements.');
-    } else {
-      debugPrint(
-        '⚠️ Room for optimization. Focus on caching and batch operations.',
-      );
-    }
+  if (score >= 80) {
+    AppLogger.performance('Excellent optimization! Keep up the great work.');
+  } else if (score >= 60) {
+    AppLogger.performance('Good optimization. Consider further improvements.');
+  } else {
+    AppLogger.performance('Room for optimization. Focus on caching and batch operations.');
   }
 }
 

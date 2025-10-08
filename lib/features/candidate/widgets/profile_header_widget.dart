@@ -4,6 +4,7 @@ import '../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/maharashtra_utils.dart';
 import '../../common/whatsapp_image_viewer.dart';
+import '../../../utils/app_logger.dart';
 
 class ProfileHeaderWidget extends StatelessWidget {
   final Candidate candidate;
@@ -222,12 +223,12 @@ class ProfileHeaderWidget extends StatelessWidget {
                           displayWard = candidate.wardId;
                         }
 
-                        debugPrint('🏛️ [ProfileHeader] Ward name resolution:');
-                        debugPrint('   wardId: ${candidate.wardId}');
-                        debugPrint('   locale: $locale');
-                        debugPrint('   translatedWard: $translatedWard');
-                        debugPrint('   wardName param: $wardName');
-                        debugPrint('   displayWard: $displayWard');
+                        AppLogger.candidate('🏛️ [ProfileHeader] Ward name resolution:');
+                        AppLogger.candidate('   wardId: ${candidate.wardId}');
+                        AppLogger.candidate('   locale: $locale');
+                        AppLogger.candidate('   translatedWard: $translatedWard');
+                        AppLogger.candidate('   wardName param: $wardName');
+                        AppLogger.candidate('   displayWard: $displayWard');
 
                         // Use MaharashtraUtils for district name translation
                         final translatedDistrict = MaharashtraUtils.getDistrictDisplayNameWithLocale(
@@ -243,11 +244,11 @@ class ProfileHeaderWidget extends StatelessWidget {
                         final finalText = '$displayWard • $displayDistrict';
 
                         // Debug logs
-                        debugPrint('🔍 [ProfileHeader] Location Display Debug:');
-                        debugPrint('   Locale: $locale');
-                        debugPrint('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
-                        debugPrint('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
-                        debugPrint('   Final Text: "$finalText"');
+                        AppLogger.candidate('🔍 [ProfileHeader] Location Display Debug:');
+                        AppLogger.candidate('   Locale: $locale');
+                        AppLogger.candidate('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
+                        AppLogger.candidate('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
+                        AppLogger.candidate('   Final Text: "$finalText"');
 
                         return Text(
                           finalText,

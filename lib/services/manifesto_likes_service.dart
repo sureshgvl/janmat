@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/like_model.dart';
 import '../utils/performance_monitor.dart';
 import '../utils/connection_optimizer.dart';
+import '../utils/app_logger.dart';
 import 'manifesto_cache_service.dart';
 
 class ManifestoLikesService {
@@ -40,7 +41,7 @@ class ManifestoLikesService {
               _monitor.trackFirebaseWrite('likes', 1);
             }
           } catch (e) {
-            debugPrint('Failed to sync unlike to Firestore, will retry later: $e');
+            AppLogger.commonError('Failed to sync unlike to Firestore, will retry later', error: e);
           }
         }
       } else {
@@ -65,7 +66,7 @@ class ManifestoLikesService {
             // Mark as synced
             await _cacheService.markLikeSynced(like.id);
           } catch (e) {
-            debugPrint('Failed to sync like to Firestore, will retry later: $e');
+            AppLogger.commonError('Failed to sync like to Firestore, will retry later', error: e);
           }
         }
       }
@@ -74,7 +75,7 @@ class ManifestoLikesService {
       return isLiked;
     } catch (e) {
       _monitor.stopTimer('toggle_like');
-      debugPrint('Error toggling like: $e');
+      AppLogger.commonError('Error toggling like', error: e);
       throw Exception('Failed to toggle like: $e');
     }
   }
@@ -124,7 +125,7 @@ class ManifestoLikesService {
       return existingLike.docs.isNotEmpty;
     } catch (e) {
       _monitor.stopTimer('check_user_like');
-      debugPrint('Error checking user like: $e');
+      AppLogger.commonError('Error checking user like', error: e);
       // Fall back to cache
       return await _cacheService.hasUserLiked(userId, manifestoId);
     }
@@ -135,4 +136,3 @@ class ManifestoLikesService {
     return _monitor.getFirebaseSummary();
   }
 }
-

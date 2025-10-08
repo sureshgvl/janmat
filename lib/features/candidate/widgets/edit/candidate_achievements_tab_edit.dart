@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import '../../models/candidate_achievement_model.dart';
 import '../../../../services/file_upload_service.dart';
@@ -237,10 +238,10 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
   Future<void> _cleanupDanglingPhotos() async {
     try {
       await _fileUploadService.cleanupTempPhotos();
-      debugPrint('🗑️ Cleaned up all temporary local photos');
+      AppLogger.candidate('🗑️ Cleaned up all temporary local photos');
       _uploadedPhotoUrls.clear();
     } catch (e) {
-      debugPrint('❌ Error during photo cleanup: $e');
+      AppLogger.candidateError('❌ Error during photo cleanup: $e');
     }
   }
 
@@ -351,7 +352,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
   }
 
   Future<void> uploadPendingFiles() async {
-    debugPrint('📤 [Achievements] Starting upload of pending files...');
+    AppLogger.candidate('📤 [Achievements] Starting upload of pending files...');
 
     for (int i = 0; i < _achievements.length; i++) {
       final achievement = _achievements[i];
@@ -359,7 +360,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
           _fileUploadService.isLocalPath(achievement.photoUrl!) &&
           !_uploadedPhotoUrls.contains(achievement.photoUrl!)) {
         try {
-          debugPrint(
+          AppLogger.candidate(
             '📤 [Achievements] Uploading photo for achievement: ${achievement.title}',
           );
 
@@ -375,19 +376,19 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
 
           if (downloadUrl != null) {
             _updateAchievement(i, achievement.copyWith(photoUrl: downloadUrl));
-            debugPrint(
+            AppLogger.candidate(
               '📤 [Achievements] Successfully uploaded photo for: ${achievement.title}',
             );
           }
         } catch (e) {
-          debugPrint(
+          AppLogger.candidateError(
             '📤 [Achievements] Failed to upload photo for ${achievement.title}: $e',
           );
         }
       }
     }
 
-    debugPrint('📤 [Achievements] Finished uploading pending files');
+    AppLogger.candidate('📤 [Achievements] Finished uploading pending files');
   }
 
   void _showDemoDataModal() {
@@ -565,12 +566,12 @@ class _AchievementsSectionState extends State<AchievementsSection> {
     try {
       // Clean up all temporary local photos since editing was cancelled
       await _fileUploadService.cleanupTempPhotos();
-      debugPrint('🗑️ Cleaned up all temporary local photos');
+      AppLogger.candidate('🗑️ Cleaned up all temporary local photos');
 
       // Clear the tracking set
       _uploadedPhotoUrls.clear();
     } catch (e) {
-      debugPrint('❌ Error during photo cleanup: $e');
+      AppLogger.candidateError('❌ Error during photo cleanup: $e');
     }
   }
 

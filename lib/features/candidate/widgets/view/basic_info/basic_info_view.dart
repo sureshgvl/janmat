@@ -5,6 +5,7 @@ import '../../../../../../utils/maharashtra_utils.dart';
 import '../../../../../../utils/number_localization_utils.dart';
 import '../../../../../../features/common/whatsapp_image_viewer.dart';
 import '../../../../../../l10n/features/candidate/candidate_localizations.dart';
+import '../../../../../../utils/app_logger.dart';
 
 /// BasicInfoView - Displays candidate basic information in read-only mode
 /// Follows Single Responsibility Principle: Only responsible for displaying data
@@ -46,14 +47,14 @@ class BasicInfoView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Debug log the candidate data being displayed
-    debugPrint('📄 BasicInfoView - Displaying candidate: ${candidate.name}');
-    debugPrint('   extraInfo exists: ${candidate.extraInfo != null}');
-    debugPrint('   basicInfo exists: ${candidate.extraInfo?.basicInfo != null}');
-    debugPrint('   profession: ${candidate.extraInfo?.basicInfo?.profession}');
-    debugPrint('   languages: ${candidate.extraInfo?.basicInfo?.languages}');
-    debugPrint('   experienceYears: ${candidate.extraInfo?.basicInfo?.experienceYears}');
-    debugPrint('   previousPositions: ${candidate.extraInfo?.basicInfo?.previousPositions}');
-    debugPrint('   address: ${candidate.extraInfo?.contact?.address}');
+    AppLogger.candidate('📄 BasicInfoView - Displaying candidate: ${candidate.name}');
+    AppLogger.candidate('   extraInfo exists: ${candidate.extraInfo != null}');
+    AppLogger.candidate('   basicInfo exists: ${candidate.extraInfo?.basicInfo != null}');
+    AppLogger.candidate('   profession: ${candidate.extraInfo?.basicInfo?.profession}');
+    AppLogger.candidate('   languages: ${candidate.extraInfo?.basicInfo?.languages}');
+    AppLogger.candidate('   experienceYears: ${candidate.extraInfo?.basicInfo?.experienceYears}');
+    AppLogger.candidate('   previousPositions: ${candidate.extraInfo?.basicInfo?.previousPositions}');
+    AppLogger.candidate('   address: ${candidate.extraInfo?.contact?.address}');
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -371,11 +372,11 @@ class BasicInfoView extends StatelessWidget {
                             candidate.districtId,
                             locale,
                           );
-                          debugPrint('🗺️ BasicInfoView - District translation:');
-                          debugPrint('   districtId: ${candidate.districtId}');
-                          debugPrint('   locale: $locale');
-                          debugPrint('   districtName from SQLite: $districtName');
-                          debugPrint('   translatedDistrict: $translatedDistrict');
+                          AppLogger.candidate('🗺️ BasicInfoView - District translation:');
+                          AppLogger.candidate('   districtId: ${candidate.districtId}');
+                          AppLogger.candidate('   locale: $locale');
+                          AppLogger.candidate('   districtName from SQLite: $districtName');
+                          AppLogger.candidate('   translatedDistrict: $translatedDistrict');
 
                           // Use translated district, fallback to SQLite cache, then raw ID
                           final displayDistrict = translatedDistrict != candidate.districtId
@@ -409,11 +410,11 @@ class BasicInfoView extends StatelessWidget {
                             candidate.wardId,
                             locale,
                           );
-                          debugPrint('🏛️ BasicInfoView - Ward translation:');
-                          debugPrint('   wardId: ${candidate.wardId}');
-                          debugPrint('   locale: $locale');
-                          debugPrint('   wardName from SQLite: $wardName');
-                          debugPrint('   translatedWard: $translatedWard');
+                          AppLogger.candidate('🏛️ BasicInfoView - Ward translation:');
+                          AppLogger.candidate('   wardId: ${candidate.wardId}');
+                          AppLogger.candidate('   locale: $locale');
+                          AppLogger.candidate('   wardName from SQLite: $wardName');
+                          AppLogger.candidate('   translatedWard: $translatedWard');
 
                           // Use translated ward, fallback to SQLite cache, then raw ID
                           final displayWard = translatedWard != candidate.wardId

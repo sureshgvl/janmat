@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import 'highlight_config.dart';
 import 'highlight_sections/enable_section.dart';
@@ -43,58 +44,58 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
   @override
   void didUpdateWidget(HighlightTabEdit oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint('didUpdateWidget called - old editedData: ${oldWidget.editedData}, new editedData: ${widget.editedData}, _isUpdatingConfig: $_isUpdatingConfig');
+    AppLogger.candidate('didUpdateWidget called - old editedData: ${oldWidget.editedData}, new editedData: ${widget.editedData}, _isUpdatingConfig: $_isUpdatingConfig');
     if (!_isUpdatingConfig && (oldWidget.editedData != widget.editedData ||
         oldWidget.candidateData != widget.candidateData)) {
-      debugPrint('didUpdateWidget - data changed, calling _loadHighlight');
+      AppLogger.candidate('didUpdateWidget - data changed, calling _loadHighlight');
       _loadHighlight();
     } else {
-      debugPrint('didUpdateWidget - skipping _loadHighlight (config update in progress)');
+      AppLogger.candidate('didUpdateWidget - skipping _loadHighlight (config update in progress)');
     }
   }
 
   void _loadHighlight() {
-    debugPrint('_loadHighlight called');
+    AppLogger.candidate('_loadHighlight called');
     final data = widget.editedData ?? widget.candidateData;
     final highlightData = data.extraInfo?.highlight;
     final oldConfig = _config?.bannerStyle ?? 'uninitialized';
 
-    debugPrint('_loadHighlight - oldConfig: $oldConfig, highlightData: $highlightData');
+    AppLogger.candidate('_loadHighlight - oldConfig: $oldConfig, highlightData: $highlightData');
 
     // If we have local config changes, preserve them instead of resetting
     if (_config != null && !_isUpdatingConfig) {
-      debugPrint('_loadHighlight - preserving local config changes');
+      AppLogger.candidate('_loadHighlight - preserving local config changes');
       // Only update config if it's truly different data (not our own updates)
       final newConfig = HighlightConfig.fromJson(highlightData?.toJson());
-      debugPrint('_loadHighlight - newConfig.bannerStyle: ${newConfig.bannerStyle}, oldConfig: $oldConfig');
+      AppLogger.candidate('_loadHighlight - newConfig.bannerStyle: ${newConfig.bannerStyle}, oldConfig: $oldConfig');
       if (newConfig.bannerStyle != oldConfig) {
-        debugPrint('_loadHighlight - external data change detected, updating config');
+        AppLogger.candidate('_loadHighlight - external data change detected, updating config');
         _config = newConfig;
       } else {
-        debugPrint('_loadHighlight - no external changes, keeping current config');
+        AppLogger.candidate('_loadHighlight - no external changes, keeping current config');
       }
     } else {
       // First time loading or during our own updates
       _config = HighlightConfig.fromJson(highlightData?.toJson());
-      debugPrint('_loadHighlight - initial load or during update, config: ${_config!.bannerStyle}');
+      AppLogger.candidate('_loadHighlight - initial load or during update, config: ${_config!.bannerStyle}');
     }
   }
 
   void _updateHighlight() {
     assert(_config != null, 'Config should be initialized before updating');
-    debugPrint('_updateHighlight called with bannerStyle: ${_config!.bannerStyle}');
+    AppLogger.candidate('_updateHighlight called with bannerStyle: ${_config!.bannerStyle}');
     widget.onHighlightChange(_config!.toJson());
-    debugPrint('_updateHighlight completed');
+    AppLogger.candidate('_updateHighlight completed');
   }
 
   // Method to upload pending files and sync config (required by dashboard pattern)
   Future<void> uploadPendingFiles() async {
     // Sync local config changes to controller
-    debugPrint('📤 [Highlight] Syncing config changes to controller');
+    AppLogger.candidate('📤 [Highlight] Syncing config changes to controller');
     _isUpdatingConfig = true;
     _updateHighlight();
     _isUpdatingConfig = false;
-    debugPrint('📤 [Highlight] Config sync completed');
+    AppLogger.candidate('📤 [Highlight] Config sync completed');
   }
 
   @override
@@ -104,7 +105,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    debugPrint('HighlightTabEdit - Build called with _config.bannerStyle: ${_config!.bannerStyle}');
+    AppLogger.candidate('HighlightTabEdit - Build called with _config.bannerStyle: ${_config!.bannerStyle}');
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -148,18 +149,18 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
             // Banner Style Customization
             Builder(
               builder: (context) {
-                debugPrint('Main widget - Building BannerStyleSection with config.bannerStyle: ${_config!.bannerStyle}');
+                AppLogger.candidate('Main widget - Building BannerStyleSection with config.bannerStyle: ${_config!.bannerStyle}');
                 return BannerStyleSection(
                   key: ValueKey('banner_style_section_${_config!.bannerStyle}_${DateTime.now().millisecondsSinceEpoch}'),
                   config: _config!,
                   isEditing: widget.isEditing,
                   onStyleChanged: (style) {
-                    debugPrint('Main widget - Banner style callback: $style, current config: ${_config!.bannerStyle}');
+                    AppLogger.candidate('Main widget - Banner style callback: $style, current config: ${_config!.bannerStyle}');
                     setState(() {
                       _config = _config!.copyWith(bannerStyle: style);
-                      debugPrint('Main widget - Inside setState, _config.bannerStyle: ${_config!.bannerStyle}');
+                      AppLogger.candidate('Main widget - Inside setState, _config.bannerStyle: ${_config!.bannerStyle}');
                     });
-                    debugPrint('Main widget - After setState, _config.bannerStyle: ${_config!.bannerStyle}');
+                    AppLogger.candidate('Main widget - After setState, _config.bannerStyle: ${_config!.bannerStyle}');
                     // Don't update controller for individual changes - only on save
                     // This prevents the broken controller update from interfering with UI
                   },
@@ -188,7 +189,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
               config: _config!,
               isEditing: widget.isEditing,
               onPriorityChanged: (priority) {
-                debugPrint('Priority level selected: $priority');
+                AppLogger.candidate('Priority level selected: $priority');
                 setState(() => _config = _config!.copyWith(priorityLevel: priority));
                 // Local state only - sync on save
               },
@@ -215,7 +216,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
               config: _config!,
               isEditing: widget.isEditing,
               onAnalyticsChanged: (enabled) {
-                debugPrint('Analytics toggle changed: $enabled');
+                AppLogger.candidate('Analytics toggle changed: $enabled');
                 setState(() => _config = _config!.copyWith(showAnalytics: enabled));
                 // Local state only - sync on save
               },

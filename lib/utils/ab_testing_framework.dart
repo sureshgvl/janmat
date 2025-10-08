@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 /// A/B Testing Framework for Firebase optimization experiments
 class ABTestingFramework {
@@ -244,7 +245,7 @@ class ABTestingFramework {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🧪 AB_TEST: $message');
+      AppLogger.common('🧪 AB_TEST: $message');
     }
   }
 }

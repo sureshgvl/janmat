@@ -11,6 +11,7 @@ import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../../utils/performance_monitor.dart' as perf_monitor;
 import '../../../models/body_model.dart';
+import '../../../utils/app_logger.dart';
 
 import 'candidate_cache_manager.dart';
 import 'candidate_state_manager.dart';
@@ -58,7 +59,7 @@ class CandidateRepository {
   Future<List<Ward>> getWardsByDistrictAndBody(String districtId, String bodyId, [String? stateId]) async {
     // If stateId is provided, use it directly
     if (stateId != null && stateId.isNotEmpty) {
-      debugPrint('🎯 [CandidateRepository] Using provided stateId: $stateId');
+      AppLogger.candidate('Using provided stateId: $stateId', tag: 'CANDIDATE_REPO');
       return _stateManager.getWardsByDistrictAndBody(stateId, districtId, bodyId);
     }
 
@@ -69,12 +70,12 @@ class CandidateRepository {
       final states = await getAllStates();
       if (states.isNotEmpty) {
         final defaultStateId = states.first['stateId'] as String;
-        debugPrint('⚠️ [CandidateRepository] No stateId provided, using first state: $defaultStateId');
+        AppLogger.candidate('No stateId provided, using first state: $defaultStateId', tag: 'CANDIDATE_REPO');
         return _stateManager.getWardsByDistrictAndBody(defaultStateId, districtId, bodyId);
       }
       throw Exception('No states available');
     } catch (e) {
-      debugPrint('⚠️ Failed to get wards, using empty list: $e');
+      AppLogger.candidate('Failed to get wards, using empty list: $e', tag: 'CANDIDATE_REPO');
       return [];
     }
   }
@@ -91,7 +92,7 @@ class CandidateRepository {
       }
       throw Exception('No states available');
     } catch (e) {
-      debugPrint('⚠️ Failed to get districts, using empty list: $e');
+      AppLogger.candidate('Failed to get districts, using empty list: $e', tag: 'CANDIDATE_REPO');
       return [];
     }
   }

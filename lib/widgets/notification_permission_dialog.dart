@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../features/notifications/services/fcm_permission_service.dart';
 
 /// Dialog to request notification permissions from users
@@ -92,7 +93,7 @@ class _NotificationPermissionDialogState extends State<NotificationPermissionDia
 
       Get.back(result: granted);
     } catch (e) {
-      debugPrint('Error requesting notification permission: $e');
+      AppLogger.error('Error requesting notification permission: $e');
       Get.snackbar(
         'Error',
         'Failed to request notification permission. Please try again.',
@@ -134,7 +135,7 @@ class NotificationPermissionPromptService {
       return await _permissionService.isNotificationNotDetermined() ||
              await _permissionService.hasProvisionalPermission();
     } catch (e) {
-      debugPrint('Error checking if should show permission prompt: $e');
+      AppLogger.error('Error checking if should show permission prompt: $e');
       return false;
     }
   }

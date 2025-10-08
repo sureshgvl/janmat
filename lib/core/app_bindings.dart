@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../features/auth/controllers/auth_controller.dart';
 import '../features/chat/controllers/chat_controller.dart';
 import '../features/candidate/controllers/candidate_controller.dart';
 import '../features/candidate/controllers/candidate_data_controller.dart';
+import '../controllers/highlight_controller.dart';
 import '../features/notifications/services/notification_manager.dart';
 import '../services/admob_service.dart';
 import '../services/razorpay_service.dart';
@@ -20,6 +22,7 @@ class AppBindings extends Bindings {
     Get.put<ChatController>(ChatController());
     Get.put<CandidateController>(CandidateController());
     Get.put<CandidateDataController>(CandidateDataController());
+    Get.put<HighlightController>(HighlightController());
 
     // Put services
     Get.put<AdMobService>(AdMobService());
@@ -36,9 +39,9 @@ class AppBindings extends Bindings {
     try {
       final notificationManager = NotificationManager();
       await notificationManager.initialize();
-      debugPrint('✅ NotificationManager initialized successfully');
+      AppLogger.common('✅ NotificationManager initialized successfully');
     } catch (e) {
-      debugPrint('⚠️ Failed to initialize NotificationManager: $e');
+      AppLogger.common('⚠️ Failed to initialize NotificationManager: $e');
     }
   }
 }

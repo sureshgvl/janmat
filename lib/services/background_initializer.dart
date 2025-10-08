@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
+import '../utils/app_logger.dart';
 
 /// Background Initializer Service for Zero Frame Skipping
 /// Uses Flutter isolates and compute functions to eliminate all frame drops
@@ -23,7 +24,7 @@ class BackgroundInitializer {
   Future<void> initializeAllServices() async {
     if (_isInitialized) return;
 
-    debugPrint('🚀 Starting zero-frame background initialization');
+    AppLogger.common('🚀 Starting zero-frame background initialization');
 
     // Start isolate for heavy operations
     await _startIsolate();
@@ -41,9 +42,9 @@ class BackgroundInitializer {
     try {
       _isolate = await Isolate.spawn(_isolateEntry, _receivePort.sendPort);
       _sendPort = await _receivePort.first as SendPort;
-      debugPrint('✅ Background isolate started successfully');
+      AppLogger.common('✅ Background isolate started successfully');
     } catch (e) {
-      debugPrint('❌ Failed to start background isolate: $e');
+      AppLogger.commonError('❌ Failed to start background isolate', error: e);
     }
   }
 
@@ -93,15 +94,15 @@ class BackgroundInitializer {
     try {
       // Use SchedulerBinding to defer Firebase initialization to after first frame
       SchedulerBinding.instance.addPostFrameCallback((_) async {
-        debugPrint('🔄 Initializing Firebase in background isolate');
+        AppLogger.common('🔄 Initializing Firebase in background isolate');
         // Firebase must be initialized on main thread due to platform channels
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
-        debugPrint('✅ Firebase initialized with zero frames');
+        AppLogger.common('✅ Firebase initialized with zero frames');
       });
     } catch (e) {
-      debugPrint('❌ Firebase initialization failed: $e');
+      AppLogger.commonError('❌ Firebase initialization failed', error: e);
       // Fallback to immediate initialization
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -120,9 +121,9 @@ class BackgroundInitializer {
           serviceName.contains('Chat') ||
           serviceName.contains('AdMob')) {
         SchedulerBinding.instance.addPostFrameCallback((_) async {
-          debugPrint('🔄 Initializing $serviceName with zero frames');
+          AppLogger.common('🔄 Initializing $serviceName with zero frames');
           await initializer();
-          debugPrint('✅ $serviceName initialized with zero frames');
+          AppLogger.common('✅ $serviceName initialized with zero frames');
         });
       } else {
         // Use compute for other services
@@ -130,10 +131,10 @@ class BackgroundInitializer {
           'service': serviceName,
           'initializer': initializer,
         });
-        debugPrint('✅ $serviceName initialized with zero frames');
+        AppLogger.common('✅ $serviceName initialized with zero frames');
       }
     } catch (e) {
-      debugPrint('❌ $serviceName initialization failed: $e');
+      AppLogger.commonError('❌ $serviceName initialization failed', error: e);
       // Fallback to main thread
       await initializer();
     }
@@ -146,7 +147,7 @@ class BackgroundInitializer {
     final serviceName = params['service'] as String;
     final initializer = params['initializer'] as Future<void> Function();
 
-    debugPrint('🔄 Initializing $serviceName in background isolate');
+    AppLogger.common('🔄 Initializing $serviceName in background isolate');
     await initializer();
   }
 
@@ -214,7 +215,7 @@ class BackgroundInitializer {
   void dispose() {
     _isolate?.kill();
     _receivePort.close();
-    debugPrint('🧹 Background initializer disposed');
+    AppLogger.common('🧹 Background initializer disposed');
   }
 
   /// Check if all services are ready
@@ -243,4 +244,3 @@ Future<void> _runFutureInCompute(Future<void> future) async {
 
 /// Global background initializer instance
 final backgroundInitializer = BackgroundInitializer();
-

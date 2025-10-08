@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_logger.dart';
 
 /// Comprehensive utility for Maharashtra administrative divisions
 /// Provides centralized access to districts, wards, and local body types with multilingual support
@@ -879,7 +880,7 @@ class MaharashtraUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      debugPrint('Error finding district by key $key: $e');
+      AppLogger.common('Error finding district by key $key: $e');
       return null;
     }
   }
@@ -925,7 +926,7 @@ class MaharashtraUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      debugPrint('Error finding ward by key $key: $e');
+      AppLogger.common('Error finding ward by key $key: $e');
       return null;
     }
   }
@@ -960,7 +961,7 @@ class MaharashtraUtils {
       }
       return null;
     } catch (e) {
-      debugPrint('Error parsing ward number from key $key: $e');
+      AppLogger.common('Error parsing ward number from key $key: $e');
       return null;
     }
   }
@@ -980,7 +981,7 @@ class MaharashtraUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      debugPrint('Error finding local body type by key $key: $e');
+      AppLogger.common('Error finding local body type by key $key: $e');
       return null;
     }
   }
@@ -1097,4 +1098,3 @@ class MaharashtraUtils {
     }).toList();
   }
 }
-

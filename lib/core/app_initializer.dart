@@ -9,6 +9,7 @@ import '../services/background_initializer.dart';
 import '../services/background_sync_manager.dart';
 import '../services/fcm_service.dart';
 import '../utils/performance_monitor.dart';
+import '../utils/app_logger.dart';
 
 class AppInitializer {
   Future<void> initialize() async {
@@ -36,20 +37,20 @@ class AppInitializer {
         host: null,
         sslEnabled: true,
       );
-      debugPrint('✅ Firestore configured with optimizations');
+      AppLogger.core('Firestore configured with optimizations');
 
-      debugPrint('✅ Firebase initialized');
+      AppLogger.core('Firebase initialized');
 
       // Initialize FCM for push notifications
       try {
         final fcmService = FCMService();
         await fcmService.initialize();
-        debugPrint('✅ FCM service initialized');
+        AppLogger.core('FCM service initialized');
       } catch (e) {
-        debugPrint('⚠️ FCM initialization failed: $e');
+        AppLogger.coreError('FCM initialization failed', error: e);
       }
     } catch (e) {
-      debugPrint('❌ Firebase initialization failed: $e');
+      AppLogger.coreError('Firebase initialization failed', error: e);
     }
     stopPerformanceTimer('firebase_init');
 
@@ -61,32 +62,32 @@ class AppInitializer {
       // Initialize optimization systems in parallel
       futures.add(Future(() async {
         // Error recovery system initialized
-        debugPrint('✅ Error recovery system initialized');
+        AppLogger.core('Error recovery system initialized');
       }));
 
       futures.add(Future(() async {
         // Advanced analytics system initialized
-        debugPrint('✅ Advanced analytics system initialized');
+        AppLogger.core('Advanced analytics system initialized');
       }));
 
       futures.add(Future(() async {
         // Memory management system initialized
-        debugPrint('✅ Memory management system initialized');
+        AppLogger.core('Memory management system initialized');
       }));
 
       futures.add(Future(() async {
         // Multi-level cache system initialized
-        debugPrint('✅ Multi-level cache system initialized');
+        AppLogger.core('Multi-level cache system initialized');
       }));
 
       futures.add(Future(() async {
         // A/B testing framework initialized
-        debugPrint('✅ A/B testing framework initialized');
+        AppLogger.core('A/B testing framework initialized');
       }));
 
       futures.add(Future(() async {
         // Data compression system initialized
-        debugPrint('✅ Data compression system initialized');
+        AppLogger.core('Data compression system initialized');
       }));
 
       // Wait for background init to complete
@@ -97,9 +98,9 @@ class AppInitializer {
         try {
           final syncManager = BackgroundSyncManager();
           syncManager.initialize();
-          debugPrint('✅ Background sync manager initialized');
+          AppLogger.core('Background sync manager initialized');
         } catch (e) {
-          debugPrint('⚠️ Background sync manager initialization failed: $e');
+          AppLogger.common('⚠️ Background sync manager initialization failed: $e');
         }
       });
 
@@ -111,12 +112,12 @@ class AppInitializer {
       if (currentUser != null) {
         Future(() async {
           // User session tracking started
-          debugPrint('✅ User session tracking started for: ${currentUser.uid}');
+          AppLogger.core('User session tracking started for: ${currentUser.uid}');
         });
       }
 
     } catch (e) {
-      debugPrint('⚠️ Services initialization failed: $e');
+      AppLogger.coreError('Services initialization failed', error: e);
     }
     stopPerformanceTimer('services_init');
 
@@ -125,7 +126,7 @@ class AppInitializer {
       try {
         await checkForUpdate();
       } catch (e) {
-        debugPrint('Update check failed: $e');
+        AppLogger.coreError('Update check failed', error: e);
       }
     });
 
@@ -142,7 +143,7 @@ class AppInitializer {
         await InAppUpdate.performImmediateUpdate();
       }
     } catch (e) {
-      debugPrint('Update check failed: $e');
+      AppLogger.coreError('Update check failed', error: e);
     }
   }
 }

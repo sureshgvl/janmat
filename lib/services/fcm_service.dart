@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import 'local_notification_service.dart';
 
 class FCMService {
@@ -17,7 +18,7 @@ class FCMService {
     try {
       // Initialize local notification service first
       await _localNotificationService.initialize();
-      debugPrint('✅ Local notification service initialized');
+      AppLogger.fcm('✅ Local notification service initialized');
 
       // Configure FCM to NOT show notifications automatically
       // We'll handle all notifications manually through local notifications
@@ -26,7 +27,7 @@ class FCMService {
         badge: true,  // Update badge
         sound: false, // Don't play sound
       );
-      debugPrint('✅ FCM configured to not show automatic notifications');
+      AppLogger.fcm('✅ FCM configured to not show automatic notifications');
 
       // Request permission for notifications
       NotificationSettings settings = await _firebaseMessaging.requestPermission(
@@ -36,25 +37,25 @@ class FCMService {
         provisional: false,
       );
 
-      debugPrint('🔐 FCM Permission status: ${settings.authorizationStatus}');
+      AppLogger.fcm('🔐 FCM Permission status: ${settings.authorizationStatus}');
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('✅ FCM permissions granted');
+        AppLogger.fcm('✅ FCM permissions granted');
       } else {
-        debugPrint('❌ FCM permissions denied');
+        AppLogger.fcm('❌ FCM permissions denied');
       }
 
       // Get FCM token and store it
       _currentToken = await _firebaseMessaging.getToken();
       if (_currentToken != null) {
-        debugPrint('🎫 FCM Token: $_currentToken');
+        AppLogger.fcm('🎫 FCM Token obtained successfully');
       } else {
-        debugPrint('❌ Failed to get FCM token');
+        AppLogger.fcm('❌ Failed to get FCM token');
       }
 
       // Listen for token refresh with improved handling
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        debugPrint('🔄 FCM token refreshed: $newToken');
+        AppLogger.fcm('🔄 FCM token refreshed');
         _handleTokenRefresh(newToken);
       });
 
@@ -63,18 +64,18 @@ class FCMService {
 
       // Handle foreground messages with local notifications
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('📱 Received foreground message: ${message.notification?.title}');
+        AppLogger.fcm('📱 Received foreground message: ${message.notification?.title}');
         _handleForegroundMessage(message);
       });
 
       // Handle when app is opened from notification
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint('🚀 App opened from notification: ${message.notification?.title}');
+        AppLogger.fcm('🚀 App opened from notification: ${message.notification?.title}');
         _handleMessageOpenedApp(message);
       });
 
     } catch (e) {
-      debugPrint('❌ Error initializing FCM: $e');
+      AppLogger.fcmError('❌ Error initializing FCM', error: e);
     }
   }
 
@@ -85,9 +86,9 @@ class FCMService {
         'fcmToken': token,
         'lastTokenUpdate': FieldValue.serverTimestamp(),
       });
-      debugPrint('💾 Updated FCM token for user: $userId');
+      AppLogger.fcm('💾 Updated FCM token for user: $userId');
     } catch (e) {
-      debugPrint('❌ Error updating FCM token: $e');
+      AppLogger.fcmError('❌ Error updating FCM token', error: e);
     }
   }
 
@@ -103,7 +104,7 @@ class FCMService {
       _currentToken = await _firebaseMessaging.getToken();
       return _currentToken;
     } catch (e) {
-      debugPrint('❌ Error getting current FCM token: $e');
+      AppLogger.fcmError('❌ Error getting current FCM token', error: e);
       return null;
     }
   }
@@ -115,7 +116,7 @@ class FCMService {
       final oldToken = _currentToken;
       _currentToken = newToken;
 
-      debugPrint('🔄 Token refresh: $oldToken -> $newToken');
+      AppLogger.fcm('🔄 Token refresh completed');
 
       // If we have an old token, find and update all users with that token
       if (oldToken != null && oldToken != newToken) {
@@ -125,7 +126,7 @@ class FCMService {
             .get();
 
         if (usersSnapshot.docs.isNotEmpty) {
-          debugPrint('📝 Updating ${usersSnapshot.docs.length} user documents with new token');
+          AppLogger.fcm('📝 Updating ${usersSnapshot.docs.length} user documents with new token');
 
           // Update each user document with the new token
           for (final doc in usersSnapshot.docs) {
@@ -135,15 +136,15 @@ class FCMService {
             });
           }
 
-          debugPrint('✅ Token updated for ${usersSnapshot.docs.length} users');
+          AppLogger.fcm('✅ Token updated for ${usersSnapshot.docs.length} users');
         } else {
-          debugPrint('ℹ️ No users found with old token - token may not be stored yet');
+          AppLogger.fcm('ℹ️ No users found with old token - token may not be stored yet');
         }
       } else {
-        debugPrint('ℹ️ First token or same token - no database update needed');
+        AppLogger.fcm('ℹ️ First token or same token - no database update needed');
       }
     } catch (e) {
-      debugPrint('❌ Error handling token refresh: $e');
+      AppLogger.fcmError('❌ Error handling token refresh', error: e);
       // Don't throw - token refresh should not break the app
     }
   }
@@ -151,8 +152,8 @@ class FCMService {
   // Handle background messages
   static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp();
-    debugPrint('🛌 Handling background message: ${message.messageId}');
-    debugPrint('📊 Background message data: ${message.data}');
+    AppLogger.fcm('🛌 Handling background message: ${message.messageId}');
+    AppLogger.fcm('📊 Background message data: ${message.data}');
 
     // Extract notification details from data payload
     final title = message.data['title'] ?? 'JanMat';
@@ -171,14 +172,14 @@ class FCMService {
       payload: message.data.toString(),
     );
 
-    debugPrint('🔔 Background local notification shown: $title');
+    AppLogger.fcm('🔔 Background local notification shown: $title');
   }
 
   // Handle foreground messages with local notifications
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint('📱 Foreground message received');
-    debugPrint('📊 Message data: ${message.data}');
-    debugPrint('📱 Message notification: ${message.notification}');
+    AppLogger.fcm('📱 Foreground message received');
+    AppLogger.fcm('📊 Message data: ${message.data}');
+    AppLogger.fcm('📱 Message notification: ${message.notification}');
 
     // Extract notification details from data payload
     final title = message.data['title'] ?? 'JanMat';
@@ -194,15 +195,15 @@ class FCMService {
       payload: message.data.toString(),
     );
 
-    debugPrint('🔔 Local notification shown for foreground message: $title');
+    AppLogger.fcm('🔔 Local notification shown for foreground message: $title');
 
     // If FCM still shows a system notification despite data-only payload,
     // immediately cancel it to prevent duplicate notifications
     if (message.notification != null) {
-      debugPrint('⚠️ FCM showed system notification despite data-only payload, canceling...');
+      AppLogger.fcm('⚠️ FCM showed system notification despite data-only payload, canceling...');
       Future.delayed(const Duration(milliseconds: 100), () {
         _localNotificationService.cancelNotification(notificationId);
-        debugPrint('✅ Canceled duplicate system notification');
+        AppLogger.fcm('✅ Canceled duplicate system notification');
       });
     }
 
@@ -213,7 +214,7 @@ class FCMService {
   // Handle when app is opened from notification
   void _handleMessageOpenedApp(RemoteMessage message) {
     // Navigate to appropriate screen based on notification data
-    debugPrint('🚀 Message opened app: ${message.data}');
+    AppLogger.fcm('🚀 Message opened app: ${message.data}');
 
     // Extract notification type and navigate accordingly
     final type = message.data['type'];
@@ -225,23 +226,23 @@ class FCMService {
   // Navigate based on notification type
   void _navigateBasedOnNotificationType(String type, Map<String, dynamic> data) {
     // This would integrate with your app's navigation system
-    debugPrint('🎯 Navigating based on notification type: $type');
+    AppLogger.fcm('🎯 Navigating based on notification type: $type');
 
     switch (type) {
       case 'new_follower':
         // Navigate to candidate profile
-        debugPrint('👤 Navigate to candidate profile: ${data['candidateId']}');
+        AppLogger.fcm('👤 Navigate to candidate profile: ${data['candidateId']}');
         break;
       case 'event_rsvp':
         // Navigate to event details
-        debugPrint('📅 Navigate to event: ${data['eventId']}');
+        AppLogger.fcm('📅 Navigate to event: ${data['eventId']}');
         break;
       case 'new_message':
         // Navigate to chat
-        debugPrint('💬 Navigate to chat');
+        AppLogger.fcm('💬 Navigate to chat');
         break;
       default:
-        debugPrint('❓ Unknown notification type: $type');
+        AppLogger.fcm('❓ Unknown notification type: $type');
     }
   }
 
@@ -249,9 +250,9 @@ class FCMService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      debugPrint('📢 Subscribed to topic: $topic');
+      AppLogger.fcm('📢 Subscribed to topic: $topic');
     } catch (e) {
-      debugPrint('❌ Error subscribing to topic: $e');
+      AppLogger.fcmError('❌ Error subscribing to topic', error: e);
     }
   }
 
@@ -259,9 +260,9 @@ class FCMService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      debugPrint('🔕 Unsubscribed from topic: $topic');
+      AppLogger.fcm('🔕 Unsubscribed from topic: $topic');
     } catch (e) {
-      debugPrint('❌ Error unsubscribing from topic: $e');
+      AppLogger.fcmError('❌ Error unsubscribing from topic', error: e);
     }
   }
 
@@ -271,7 +272,7 @@ class FCMService {
       NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
       return settings.authorizationStatus == AuthorizationStatus.authorized;
     } catch (e) {
-      debugPrint('❌ Error checking notification permission: $e');
+      AppLogger.fcmError('❌ Error checking notification permission', error: e);
       return false;
     }
   }
@@ -287,9 +288,8 @@ class FCMService {
 
       return settings.authorizationStatus == AuthorizationStatus.authorized;
     } catch (e) {
-      debugPrint('❌ Error requesting notification permission: $e');
+      AppLogger.fcmError('❌ Error requesting notification permission', error: e);
       return false;
     }
   }
 }
-

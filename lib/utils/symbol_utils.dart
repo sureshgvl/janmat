@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/models/candidate_party_model.dart';
+import './app_logger.dart';
 
 /// Centralized utility for party symbol path resolution
 /// Optimized to avoid redundant function calls and computations
@@ -210,7 +211,7 @@ class SymbolUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      debugPrint('Error finding party by key $key: $e');
+      AppLogger.symbolError('Error finding party by key $key', error: e);
       return null;
     }
   }
@@ -227,7 +228,7 @@ class SymbolUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      debugPrint('Error finding party by name $name: $e');
+      AppLogger.symbolError('Error finding party by name $name', error: e);
       return null;
     }
   }
@@ -339,11 +340,11 @@ class SymbolUtils {
   /// Get party symbol path with support for independent candidate symbol images
   /// Optimized: Only caches for independent candidates, direct lookup for parties
   static String getPartySymbolPath(String party, {Candidate? candidate}) {
-    debugPrint('🔍 [SymbolUtils] Getting symbol for party: $party');
+    AppLogger.common('🔍 [SymbolUtils] Getting symbol for party: $party');
 
     // Handle independent candidates with potential caching
     if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
-      debugPrint('🎯 [SymbolUtils] Independent candidate detected');
+      AppLogger.common('🎯 [SymbolUtils] Independent candidate detected');
 
       // Only cache if we have candidate data
       if (candidate != null) {
@@ -358,7 +359,7 @@ class SymbolUtils {
         if (candidate.symbolUrl != null &&
             candidate.symbolUrl!.isNotEmpty &&
             candidate.symbolUrl!.startsWith('http')) {
-          debugPrint('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
+          AppLogger.common('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
           _symbolCache[cacheKey] = candidate.symbolUrl!;
           return candidate.symbolUrl!;
         }
@@ -375,7 +376,7 @@ class SymbolUtils {
             if (symbolImageUrl != null &&
                 symbolImageUrl.isNotEmpty &&
                 symbolImageUrl.startsWith('http')) {
-              debugPrint('🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl');
+              AppLogger.common('🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl');
               _symbolCache[cacheKey] = symbolImageUrl;
               return symbolImageUrl;
             }
@@ -384,12 +385,12 @@ class SymbolUtils {
       }
 
       // Fallback for independent candidates (no caching needed for static asset)
-      debugPrint('🎨 [SymbolUtils] Using default independent asset');
+      AppLogger.common('🎨 [SymbolUtils] Using default independent asset');
       return 'assets/symbols/independent.png';
     }
 
     // For regular parties - Direct lookup, no caching needed
-    debugPrint('🏛️ [SymbolUtils] Party-affiliated candidate detected');
+    AppLogger.common('🏛️ [SymbolUtils] Party-affiliated candidate detected');
 
     // First check if the party string is already a key
     Map<String, String>? partyData = getPartyByKey(party);
@@ -423,11 +424,11 @@ class SymbolUtils {
     // Return symbol path from party data
     if (partyData != null && partyData['image'] != null) {
       final result = 'assets/symbols/${partyData['image']!}';
-      debugPrint('🏛️ [SymbolUtils] Using party asset: $result');
+      AppLogger.common('🏛️ [SymbolUtils] Using party asset: $result');
       return result;
     }
 
-    debugPrint('🏛️ [SymbolUtils] Using default asset');
+    AppLogger.common('🏛️ [SymbolUtils] Using default asset');
     return 'assets/symbols/default.png';
   }
 
@@ -445,7 +446,7 @@ class SymbolUtils {
       return _symbolCache[cacheKey]!;
     }
 
-    debugPrint(
+    AppLogger.common(
       '🔍 [SymbolUtils] For party: ${party.name}, Candidate: ${candidate?.name ?? 'null'}',
     );
 
@@ -453,13 +454,13 @@ class SymbolUtils {
     if (candidate != null &&
         (party.id == 'independent' ||
             party.name.toLowerCase().contains('independent'))) {
-      debugPrint('🎯 [SymbolUtils] Independent candidate detected');
+      AppLogger.common('🎯 [SymbolUtils] Independent candidate detected');
 
       // Check for symbolUrl in candidate data (primary source)
       if (candidate.symbolUrl != null &&
           candidate.symbolUrl!.isNotEmpty &&
           candidate.symbolUrl!.startsWith('http')) {
-        debugPrint('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
+        AppLogger.common('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
         _symbolCache[cacheKey] = candidate.symbolUrl!;
         return candidate.symbolUrl!;
       }
@@ -476,7 +477,7 @@ class SymbolUtils {
           if (symbolImageUrl != null &&
               symbolImageUrl.isNotEmpty &&
               symbolImageUrl.startsWith('http')) {
-            debugPrint(
+            AppLogger.common(
               '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',
             );
             _symbolCache[cacheKey] = symbolImageUrl;
@@ -493,7 +494,7 @@ class SymbolUtils {
 
     // Use symbolPath from Party model if available
     if (party.symbolPath != null && party.symbolPath!.isNotEmpty) {
-      debugPrint(
+      AppLogger.common(
         '🏛️ [SymbolUtils] Using party model symbolPath: ${party.symbolPath}',
       );
       _symbolCache[cacheKey] = party.symbolPath!;
@@ -501,7 +502,7 @@ class SymbolUtils {
     }
 
     // Fallback to the existing mapping logic
-    debugPrint(
+    AppLogger.common(
       '🏛️ [SymbolUtils] Falling back to legacy mapping for party: ${party.name}',
     );
     return getPartySymbolPath(party.name, candidate: candidate);
@@ -520,7 +521,7 @@ class SymbolUtils {
   /// Clear the symbol cache (useful when candidate data changes)
   static void clearCache() {
     _symbolCache.clear();
-    debugPrint('🧹 [SymbolUtils] Symbol cache cleared');
+    AppLogger.common('🧹 [SymbolUtils] Symbol cache cleared');
   }
 
   /// Get cache size for debugging
@@ -536,4 +537,3 @@ class SymbolUtils {
     };
   }
 }
-

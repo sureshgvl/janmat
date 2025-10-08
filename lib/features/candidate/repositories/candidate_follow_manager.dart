@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../../../models/user_model.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
@@ -42,7 +43,7 @@ class CandidateFollowManager {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('⚠️ Failed to update candidate index: $e');
+      AppLogger.candidate('⚠️ Failed to update candidate index: $e');
       // Don't throw - this is not critical
     }
   }
@@ -82,12 +83,12 @@ class CandidateFollowManager {
           candidateBodyId ??= indexData['bodyId'];
           candidateWardId ??= indexData['wardId'];
 
-          debugPrint(
+          AppLogger.candidate(
             '🎯 Using indexed location for follow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
           );
         } else {
           // Fallback: Search across all states to find the candidate
-          debugPrint(
+          AppLogger.candidate(
             '🔄 Index not found, searching across all states for candidate',
           );
           final statesSnapshot = await _firestore.collection('states').get();
@@ -183,8 +184,8 @@ class CandidateFollowManager {
             'followersCount': FieldValue.increment(1),
           });
         } catch (e) {
-          debugPrint('⚠️ Failed to update candidate in new structure: $e');
-          debugPrint('🔄 Falling back to legacy candidate structure');
+          AppLogger.candidate('⚠️ Failed to update candidate in new structure: $e');
+          AppLogger.candidate('🔄 Falling back to legacy candidate structure');
         }
       }
 
@@ -213,7 +214,7 @@ class CandidateFollowManager {
       try {
         await _sendNewFollowerNotification(userId, candidateId);
       } catch (e) {
-        debugPrint('⚠️ Failed to send follow notification: $e');
+        AppLogger.candidate('⚠️ Failed to send follow notification: $e');
         // Don't fail the follow operation if notification fails
       }
 
@@ -253,12 +254,12 @@ class CandidateFollowManager {
         candidateDistrictId = indexData['districtId'];
         candidateBodyId = indexData['bodyId'];
         candidateWardId = indexData['wardId'];
-        debugPrint(
+        AppLogger.candidate(
           '🎯 Using indexed location for unfollow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
         );
       } else {
         // Fallback: Search across all states to find the candidate
-        debugPrint(
+        AppLogger.candidate(
           '🔄 Index not found, searching across all states for candidate',
         );
         final statesSnapshot = await _firestore.collection('states').get();
@@ -350,8 +351,8 @@ class CandidateFollowManager {
             'followersCount': FieldValue.increment(-1),
           });
         } catch (e) {
-          debugPrint('⚠️ Failed to update candidate in new structure: $e');
-          debugPrint('🔄 Falling back to legacy candidate structure');
+          AppLogger.candidate('⚠️ Failed to update candidate in new structure: $e');
+          AppLogger.candidate('🔄 Falling back to legacy candidate structure');
         }
       }
 
@@ -453,7 +454,7 @@ class CandidateFollowManager {
       }
 
       if (candidateStateId == null) {
-        debugPrint(
+        AppLogger.candidate(
           '⚠️ Candidate not found in any state - followers not available',
         );
         return [];
@@ -523,7 +524,7 @@ class CandidateFollowManager {
       }
 
       // Candidate not in new structure - followers functionality may not be available
-      debugPrint(
+      AppLogger.candidate(
         '⚠️ Candidate not found in new structure - followers not available',
       );
       return [];
@@ -539,13 +540,13 @@ class CandidateFollowManager {
     // Check cache first
     final cachedFollowing = _getCachedFollowing(cacheKey);
     if (cachedFollowing != null) {
-      debugPrint(
+      AppLogger.candidate(
         '⚡ CACHE HIT: Returning ${cachedFollowing.length} cached following for user $userId',
       );
       return cachedFollowing;
     }
 
-    debugPrint(
+    AppLogger.candidate(
       '🔍 CACHE MISS: Fetching following list for user $userId from Firebase',
     );
     try {
@@ -559,7 +560,7 @@ class CandidateFollowManager {
 
       // Cache the results
       _cacheData(cacheKey, following);
-      debugPrint('💾 Cached ${following.length} following for user $userId');
+      AppLogger.candidate('💾 Cached ${following.length} following for user $userId');
 
       return following;
     } catch (e) {
@@ -578,7 +579,7 @@ class CandidateFollowManager {
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching user data for $userId: $e');
+      AppLogger.candidateError('Error fetching user data for $userId: $e');
       return null;
     }
   }
@@ -762,11 +763,11 @@ class CandidateFollowManager {
             },
           );
 
-          debugPrint('✅ Sent new follower notification to candidate: $candidateUserId');
+          AppLogger.candidate('✅ Sent new follower notification to candidate: $candidateUserId');
         }
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to send new follower notification: $e');
+      AppLogger.candidate('⚠️ Failed to send new follower notification: $e');
       // Don't throw - this shouldn't break the follow operation
     }
   }

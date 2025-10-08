@@ -9,6 +9,7 @@ import '../../candidate/repositories/candidate_repository.dart';
 import '../../notifications/services/poll_notification_service.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
+import '../../../utils/app_logger.dart';
 
 // WhatsApp-style Chat Metadata for efficient caching
 class ChatMetadata {
@@ -220,7 +221,7 @@ class ChatRepository {
           rooms.add(room);
         }
       } catch (e) {
-        debugPrint('⚠️ Failed to convert metadata to room for ${meta.roomId}: $e');
+        AppLogger.database('Failed to convert metadata to room for ${meta.roomId}: $e', tag: 'CHAT');
       }
     }
 
@@ -265,8 +266,9 @@ class ChatRepository {
       _metadataCache.remove(key);
       _metadataTimestamps.remove(key);
     }
-    debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for user: $userId',
+    AppLogger.database(
+      'Invalidated ${keysToRemove.length} metadata cache entries for user: $userId',
+      tag: 'CHAT',
     );
   }
 
@@ -279,8 +281,9 @@ class ChatRepository {
       _metadataCache.remove(key);
       _metadataTimestamps.remove(key);
     }
-    debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for role: $userRole',
+    AppLogger.database(
+      'Invalidated ${keysToRemove.length} metadata cache entries for role: $userRole',
+      tag: 'CHAT',
     );
   }
 
@@ -294,8 +297,9 @@ class ChatRepository {
       _metadataCache.remove(key);
       _metadataTimestamps.remove(key);
     }
-    debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for location: $locationPattern',
+    AppLogger.database(
+      'Invalidated ${keysToRemove.length} metadata cache entries for location: $locationPattern',
+      tag: 'CHAT',
     );
   }
 
@@ -308,8 +312,9 @@ class ChatRepository {
       _metadataCache.remove(key);
       _metadataTimestamps.remove(key);
     }
-    debugPrint(
-      '🗑️ Invalidated ${keysToRemove.length} metadata cache entries for user follow changes: $userId',
+    AppLogger.database(
+      'Invalidated ${keysToRemove.length} metadata cache entries for user follow changes: $userId',
+      tag: 'CHAT',
     );
   }
 
@@ -322,8 +327,9 @@ class ChatRepository {
       _metadataCache.remove(key);
       _metadataTimestamps.remove(key);
     }
-    debugPrint(
-      '🔄 Force refreshed ${keysToRemove.length} metadata cache entries for user: $userId ($userRole)',
+    AppLogger.database(
+      'Force refreshed ${keysToRemove.length} metadata cache entries for user: $userId ($userRole)',
+      tag: 'CHAT',
     );
   }
 
@@ -355,7 +361,7 @@ class ChatRepository {
       if (_metadataCache.containsKey(key)) {
         _metadataCache.remove(key);
         _metadataTimestamps.remove(key);
-        debugPrint('🗑️ Cleared old metadata cache key: $key');
+        AppLogger.database('Cleared old metadata cache key: $key', tag: 'CHAT');
       }
     }
   }
@@ -377,7 +383,7 @@ class ChatRepository {
     }
 
     if (expiredKeys.isNotEmpty) {
-      debugPrint('🧹 Cleared ${expiredKeys.length} expired metadata cache entries');
+      AppLogger.database('Cleared ${expiredKeys.length} expired metadata cache entries', tag: 'CHAT');
     }
   }
 
@@ -387,7 +393,7 @@ class ChatRepository {
     _metadataCache.clear();
     _metadataTimestamps.clear();
     _localStorage.clear();
-    debugPrint('🗑️ Force cleared all $count metadata cache entries');
+    AppLogger.database('Force cleared all $count metadata cache entries', tag: 'CHAT');
   }
 
   // Get cache statistics
@@ -421,22 +427,24 @@ class ChatRepository {
     String? area,
   }) async {
     // BREAKPOINT REPO-1: Start of getChatRoomsForUser
-    debugPrint('🔍 BREAKPOINT REPO-1: getChatRoomsForUser called');
-    debugPrint(
-      '🔍 BREAKPOINT REPO-1: User ID: $userId, Role: $userRole, State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId',
+    AppLogger.database('getChatRoomsForUser called', tag: 'CHAT');
+    AppLogger.database(
+      'User ID: $userId, Role: $userRole, State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId',
+      tag: 'CHAT',
     );
 
     // Create cache key based on user and parameters
     final cacheKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
 
     // BREAKPOINT REPO-2: Cache check
-    debugPrint('🔍 BREAKPOINT REPO-2: Cache key: $cacheKey');
+    AppLogger.database('Cache key: $cacheKey', tag: 'CHAT');
 
     // WhatsApp-style caching: Check metadata cache first
     final cachedMetadata = _getCachedMetadata(cacheKey);
     if (cachedMetadata != null) {
-      debugPrint(
-        '⚡ REPOSITORY CACHE HIT: Returning ${cachedMetadata.length} cached metadata for $userRole',
+      AppLogger.database(
+        'REPOSITORY CACHE HIT: Returning ${cachedMetadata.length} cached metadata for $userRole',
+        tag: 'CHAT',
       );
       // Convert metadata back to ChatRoom objects for compatibility
       final rooms = await _convertMetadataToRooms(cachedMetadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
@@ -446,8 +454,9 @@ class ChatRepository {
     // Check local storage for offline access
     final localMetadata = _getLocalMetadata(cacheKey);
     if (localMetadata != null && cachedMetadata == null) {
-      debugPrint(
-        '💾 LOCAL STORAGE HIT: Returning ${localMetadata.length} local metadata for $userRole',
+      AppLogger.database(
+        'LOCAL STORAGE HIT: Returning ${localMetadata.length} local metadata for $userRole',
+        tag: 'CHAT',
       );
       final rooms = await _convertMetadataToRooms(localMetadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
       return rooms;
@@ -456,76 +465,85 @@ class ChatRepository {
     // Clear old cache entries with different keys (for migration)
     _clearOldCacheKeys(userId, userRole, stateId, districtId, bodyId, wardId, area);
 
-    debugPrint(
-      '🔄 REPOSITORY CACHE MISS: Fetching rooms from Firebase for $userRole',
+    AppLogger.database(
+      'REPOSITORY CACHE MISS: Fetching rooms from Firebase for $userRole',
+      tag: 'CHAT',
     );
 
     try {
       // BREAKPOINT REPO-3: Location data check
-      debugPrint(
-        '🔍 BREAKPOINT REPO-3: Initial location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+      AppLogger.database(
+        'Initial location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+        tag: 'CHAT',
       );
 
       // If location data is not provided, try to get it from user profile
       if (stateId == null || districtId == null || bodyId == null || wardId == null) {
-        debugPrint(
-          '🔍 BREAKPOINT REPO-4: Fetching location data from user profile',
+        AppLogger.database(
+          'Fetching location data from user profile',
+          tag: 'CHAT',
         );
         final userDoc = await _firestore.collection('users').doc(userId).get();
         if (userDoc.exists) {
           final userData = userDoc.data()!;
-          stateId = userData['stateId'];
-          districtId =
-              userData['districtId'] ??
-              userData['cityId']; // Backward compatibility
-          bodyId = userData['bodyId'];
-          wardId = userData['wardId'];
-          area = userData['area'];
-          debugPrint(
-            '🔍 BREAKPOINT REPO-4: Updated location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+          final userModel = UserModel.fromJson(userData);
+          stateId = userModel.stateId;
+          districtId = userModel.districtId;
+          bodyId = userModel.bodyId;
+          wardId = userModel.wardId;
+          area = userModel.area;
+
+          AppLogger.database(
+            'Updated location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+            tag: 'CHAT',
           );
         } else {
-          debugPrint('🔍 BREAKPOINT REPO-4: User document not found');
+          AppLogger.database('User document not found', tag: 'CHAT');
         }
       }
 
       // BREAKPOINT REPO-5: Before Firebase query
-      debugPrint(
-        '🔍 BREAKPOINT REPO-5: Querying Firebase for rooms - Role: $userRole',
+      AppLogger.database(
+        'Querying Firebase for rooms - Role: $userRole',
+        tag: 'CHAT',
       );
 
       List<ChatRoom> allRooms = [];
 
       if (userRole == 'admin') {
         // BREAKPOINT REPO-6: Admin query - use collection group to get all rooms
-        debugPrint('🔍 BREAKPOINT REPO-6: Admin user - fetching all rooms from hierarchical structure');
+        AppLogger.database('Admin user - fetching all rooms from hierarchical structure', tag: 'CHAT');
         final snapshot = await _firestore.collectionGroup('chats').get();
         allRooms = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return ChatRoom.fromJson(data);
         }).toList();
-        debugPrint(
-          '🔍 BREAKPOINT REPO-6: Admin fetched ${allRooms.length} rooms',
+        AppLogger.database(
+          'Admin fetched ${allRooms.length} rooms',
+          tag: 'CHAT',
         );
       } else {
         // BREAKPOINT REPO-7: Non-admin query - use targeted queries for better performance
-        debugPrint(
-          '🔍 BREAKPOINT REPO-7: Non-admin user - using targeted queries for better performance',
+        AppLogger.database(
+          'Non-admin user - using targeted queries for better performance',
+          tag: 'CHAT',
         );
 
         // For non-admin users, query specific rooms directly instead of fetching everything
         final targetedRooms = await _getTargetedRoomsForUser(userId, userRole, stateId, districtId, bodyId, wardId, area);
         allRooms = targetedRooms;
-        debugPrint(
-          '🔍 BREAKPOINT REPO-7: Fetched ${allRooms.length} targeted rooms for $userRole',
+        AppLogger.database(
+          'Fetched ${allRooms.length} targeted rooms for $userRole',
+          tag: 'CHAT',
         );
 
         // Filter based on user role and location
         if (userRole == 'candidate') {
           // BREAKPOINT REPO-8: Candidate filtering
-          debugPrint('🔍 BREAKPOINT REPO-8: Filtering rooms for candidate');
-          debugPrint(
-            '🔍 BREAKPOINT REPO-8: User location - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+          AppLogger.database('Filtering rooms for candidate', tag: 'CHAT');
+          AppLogger.database(
+            'User location - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+            tag: 'CHAT',
           );
 
           allRooms = allRooms.where((room) {
@@ -554,29 +572,31 @@ class ChatRepository {
                 isOwnRoom || isWardRoom || isAreaRoom || isCandidateRoom || isPrivateChat;
 
             if (shouldInclude) {
-              debugPrint(
-                '🔍 BREAKPOINT REPO-8: Including room: ${room.roomId} (own: $isOwnRoom, ward: $isWardRoom, area: $isAreaRoom, candidate: $isCandidateRoom, private: $isPrivateChat)',
+              AppLogger.database(
+                'Including room: ${room.roomId} (own: $isOwnRoom, ward: $isWardRoom, area: $isAreaRoom, candidate: $isCandidateRoom, private: $isPrivateChat)',
+                tag: 'CHAT',
               );
             }
 
             return shouldInclude;
           }).toList();
-          debugPrint(
-            '🔍 BREAKPOINT REPO-8: Candidate filtered to ${allRooms.length} rooms',
+          AppLogger.database(
+            'Candidate filtered to ${allRooms.length} rooms',
+            tag: 'CHAT',
           );
         } else {
           // BREAKPOINT REPO-9: Voter filtering
-          debugPrint('🔍 BREAKPOINT REPO-9: Filtering rooms for voter');
+          AppLogger.chat('🔍 BREAKPOINT REPO-9: Filtering rooms for voter');
           if (stateId != null && districtId != null && bodyId != null && wardId != null) {
             final wardRoomId = 'ward_${stateId}_${districtId}_${bodyId}_$wardId';
             final areaRoomId = area != null
                 ? 'area_${stateId}_${districtId}_${bodyId}_${wardId}_$area'
                 : null;
-            debugPrint(
+            AppLogger.chat(
               '🔍 BREAKPOINT REPO-9: Looking for ward room: $wardRoomId',
             );
             if (areaRoomId != null) {
-              debugPrint(
+              AppLogger.chat(
                 '🔍 BREAKPOINT REPO-9: Looking for area room: $areaRoomId',
               );
             }
@@ -584,7 +604,7 @@ class ChatRepository {
             // Get list of candidates the voter is following
             final followedCandidateIds = await _candidateRepository
                 .getUserFollowing(userId);
-            debugPrint(
+            AppLogger.chat(
               '🔍 BREAKPOINT REPO-9: Voter follows ${followedCandidateIds.length} candidates',
             );
 
@@ -594,7 +614,7 @@ class ChatRepository {
               bodyId,
               wardId,
             );
-            debugPrint(
+            AppLogger.chat(
               '🔍 BREAKPOINT REPO-9: Found ${wardCandidateIds.length} candidates in ward',
             );
 
@@ -602,14 +622,14 @@ class ChatRepository {
             final relevantCandidateIds = followedCandidateIds
                 .where((candidateId) => wardCandidateIds.contains(candidateId))
                 .toList();
-            debugPrint(
+            AppLogger.chat(
               '🔍 BREAKPOINT REPO-9: Found ${relevantCandidateIds.length} followed candidates in ward',
             );
 
             allRooms = allRooms.where((room) {
               // Include ward room
               if (room.roomId == wardRoomId) {
-                debugPrint(
+                AppLogger.chat(
                   '🔍 BREAKPOINT REPO-9: Including ward room: ${room.roomId}',
                 );
                 return true;
@@ -617,7 +637,7 @@ class ChatRepository {
 
               // Include area room if user has area
               if (areaRoomId != null && room.roomId == areaRoomId) {
-                debugPrint(
+                AppLogger.chat(
                   '🔍 BREAKPOINT REPO-9: Including area room: ${room.roomId}',
                 );
                 return true;
@@ -625,7 +645,7 @@ class ChatRepository {
 
               // Include rooms created by followed candidates in the same ward
               if (relevantCandidateIds.contains(room.createdBy)) {
-                debugPrint(
+                AppLogger.chat(
                   '🔍 BREAKPOINT REPO-9: Including followed candidate room: ${room.roomId} by ${room.createdBy}',
                 );
                 return true;
@@ -633,7 +653,7 @@ class ChatRepository {
 
               // Include private chats where user is a member
               if (room.type == 'private' && room.members != null && room.members!.contains(userId)) {
-                debugPrint(
+                AppLogger.chat(
                   '🔍 BREAKPOINT REPO-9: Including private chat: ${room.roomId}',
                 );
                 return true;
@@ -641,12 +661,12 @@ class ChatRepository {
 
               return false;
             }).toList();
-            debugPrint(
+            AppLogger.chat(
               '🔍 BREAKPOINT REPO-9: Voter filtered to ${allRooms.length} rooms',
             );
           } else {
             // BREAKPOINT REPO-10: No location data
-            debugPrint(
+            AppLogger.chat(
               '🔍 BREAKPOINT REPO-10: No location data - showing only general public rooms',
             );
             // Only show general public rooms, not location-specific ones
@@ -674,23 +694,26 @@ class ChatRepository {
       allRooms.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       // BREAKPOINT REPO-11: Final result before caching
-      debugPrint(
-        '🔍 BREAKPOINT REPO-11: Final rooms list - ${allRooms.length} unique rooms',
+      AppLogger.database(
+        'Final rooms list - ${allRooms.length} unique rooms',
+        tag: 'CHAT',
       );
       for (var room in allRooms) {
-        debugPrint(
-          '   Final room: ${room.roomId} - ${room.title} (${room.type})',
+        AppLogger.database(
+          'Final room: ${room.roomId} - ${room.title} (${room.type})',
+          tag: 'CHAT',
         );
       }
 
       // Cache the metadata results (WhatsApp style)
       final metadata = allRooms.map((room) => ChatMetadata.fromChatRoom(room)).toList();
       _cacheMetadata(cacheKey, metadata);
-      debugPrint('💾 Cached ${metadata.length} metadata entries for cache key: $cacheKey');
+      AppLogger.database('Cached ${metadata.length} metadata entries for cache key: $cacheKey', tag: 'CHAT');
 
       // BREAKPOINT REPO-12: Returning result
-      debugPrint(
-        '🔍 BREAKPOINT REPO-12: Returning ${allRooms.length} rooms to controller',
+      AppLogger.database(
+        'Returning ${allRooms.length} rooms to controller',
+        tag: 'CHAT',
       );
       return allRooms;
     } catch (e) {
@@ -701,40 +724,44 @@ class ChatRepository {
   // Create a new chat room in hierarchical structure
   Future<ChatRoom> createChatRoom(ChatRoom chatRoom) async {
     // BREAKPOINT CREATE-1: Start of createChatRoom
-    debugPrint('🔍 BREAKPOINT CREATE-1: createChatRoom called');
-    debugPrint(
-      '🔍 BREAKPOINT CREATE-1: Room ID: ${chatRoom.roomId}, Title: ${chatRoom.title}, Type: ${chatRoom.type}',
+    AppLogger.database('createChatRoom called', tag: 'CHAT');
+    AppLogger.database(
+      'Room ID: ${chatRoom.roomId}, Title: ${chatRoom.title}, Type: ${chatRoom.type}',
+      tag: 'CHAT',
     );
-    debugPrint('🔍 BREAKPOINT CREATE-1: Created by: ${chatRoom.createdBy}');
+    AppLogger.database('Created by: ${chatRoom.createdBy}', tag: 'CHAT');
 
     try {
       // BREAKPOINT CREATE-2: Before Firestore operation
-      debugPrint('🔍 BREAKPOINT CREATE-2: Setting room data in hierarchical structure');
+      AppLogger.database('Setting room data in hierarchical structure', tag: 'CHAT');
       final roomPath = _getRoomPathFromId(chatRoom.roomId);
       final docRef = _firestore.doc(roomPath);
       await docRef.set(chatRoom.toJson());
 
       // BREAKPOINT CREATE-3: After successful creation
-      debugPrint(
-        '🔍 BREAKPOINT CREATE-3: Room successfully created in hierarchical structure',
+      AppLogger.database(
+        'Room successfully created in hierarchical structure',
+        tag: 'CHAT',
       );
 
       // Invalidate cache for the creator and related users
       invalidateUserCache(chatRoom.createdBy);
       // Force refresh cache for the creator to see the new room immediately
       forceRefreshUserCache(chatRoom.createdBy, 'candidate'); // Assume candidate for now
-      debugPrint(
-        '🗑️ Invalidated and force refreshed cache for user ${chatRoom.createdBy} after room creation',
+      AppLogger.database(
+        'Invalidated and force refreshed cache for user ${chatRoom.createdBy} after room creation',
+        tag: 'CHAT',
       );
 
       // BREAKPOINT CREATE-4: Returning result
-      debugPrint(
-        '🔍 BREAKPOINT CREATE-4: Returning created room: ${chatRoom.roomId}',
+      AppLogger.database(
+        'Returning created room: ${chatRoom.roomId}',
+        tag: 'CHAT',
       );
       return chatRoom;
     } catch (e) {
       // BREAKPOINT CREATE-5: Error occurred
-      debugPrint('❌ BREAKPOINT CREATE-5: Failed to create chat room: $e');
+      AppLogger.database('Failed to create chat room: $e', tag: 'CHAT');
       throw Exception('Failed to create chat room: $e');
     }
   }
@@ -745,8 +772,9 @@ class ChatRepository {
     List<String> memberIds,
   ) async {
     try {
-      debugPrint(
-        '📦 BATCH: Creating room with ${memberIds.length} initial members',
+      AppLogger.database(
+        'Creating room with ${memberIds.length} initial members',
+        tag: 'CHAT',
       );
 
       await _firestore.runTransaction((transaction) async {
@@ -767,15 +795,15 @@ class ChatRepository {
         for (final memberId in memberIds) {
           if (memberId != chatRoom.createdBy) {
             invalidateUserCache(memberId);
-            debugPrint('🗑️ Invalidated cache for member: $memberId');
+            AppLogger.database('Invalidated cache for member: $memberId', tag: 'CHAT');
           }
         }
       }
 
-      debugPrint('✅ BATCH: Room created with initial members');
+      AppLogger.database('Room created with initial members', tag: 'CHAT');
       return chatRoom;
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to create room with members: $e');
+      AppLogger.database('Failed to create room with members: $e', tag: 'CHAT');
       throw Exception('Failed to create room with members: $e');
     }
   }
@@ -791,7 +819,7 @@ class ChatRepository {
     String? area,
   }) async {
     try {
-      debugPrint('📦 BATCH: Initializing app data for user');
+      AppLogger.database('Initializing app data for user', tag: 'CHAT');
 
       // Parallel fetch of all required data
       final results = await Future.wait([
@@ -819,8 +847,9 @@ class ChatRepository {
       final rooms = results[1] as List<ChatRoom>;
       final unreadCount = results[2] as int;
 
-      debugPrint(
-        '✅ BATCH: App data initialized - ${rooms.length} rooms, $unreadCount unread messages',
+      AppLogger.database(
+        'App data initialized - ${rooms.length} rooms, $unreadCount unread messages',
+        tag: 'CHAT',
       );
 
       return {
@@ -830,7 +859,7 @@ class ChatRepository {
         'unreadCount': unreadCount,
       };
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to initialize app data: $e');
+      AppLogger.database('Failed to initialize app data: $e', tag: 'CHAT');
       throw Exception('Failed to initialize app data: $e');
     }
   }
@@ -852,7 +881,7 @@ class ChatRepository {
             // Ensure status field exists, default to sent if missing
             if (!data.containsKey('status') || data['status'] == null) {
               data['status'] = 1; // MessageStatus.sent.index
-              debugPrint('⚠️ Message ${doc.id} missing status field, defaulting to sent');
+              AppLogger.chat('⚠️ Message ${doc.id} missing status field, defaulting to sent');
             }
 
             return Message.fromJson(data);
@@ -889,13 +918,13 @@ class ChatRepository {
         // Ensure status field exists, default to sent if missing
         if (!data.containsKey('status') || data['status'] == null) {
           data['status'] = 1; // MessageStatus.sent.index
-          debugPrint('⚠️ Message ${doc.id} missing status field, defaulting to sent');
+          AppLogger.database('Message ${doc.id} missing status field, defaulting to sent', tag: 'CHAT');
         }
 
         return Message.fromJson(data);
       }).where((message) => message != null).cast<Message>().toList();
     } catch (e) {
-      debugPrint('❌ Error loading paginated messages: $e');
+      AppLogger.chat('❌ Error loading paginated messages: $e');
       return [];
     }
   }
@@ -920,7 +949,7 @@ class ChatRepository {
       }
       return null;
     } catch (e) {
-      debugPrint('❌ Error getting oldest message timestamp: $e');
+      AppLogger.chat('❌ Error getting oldest message timestamp: $e');
       return null;
     }
   }
@@ -930,8 +959,9 @@ class ChatRepository {
     try {
       // Only log in debug mode
       assert(() {
-        debugPrint(
-          '💾 Repository: Sending message "${message.text}" to room $roomId',
+        AppLogger.database(
+          'Sending message "${message.text}" to room $roomId',
+          tag: 'CHAT',
         );
         return true;
       }());
@@ -946,7 +976,7 @@ class ChatRepository {
 
       // Only log in debug mode
       assert(() {
-        debugPrint('✅ Repository: Message saved to Firestore successfully');
+        AppLogger.chat('✅ Repository: Message saved to Firestore successfully');
         return true;
       }());
 
@@ -954,7 +984,7 @@ class ChatRepository {
       try {
         await _sendMessageNotification(roomId, message);
       } catch (e) {
-        debugPrint('⚠️ Failed to send message notification: $e');
+        AppLogger.chat('⚠️ Failed to send message notification: $e');
         // Don't fail the message send if notification fails
       }
 
@@ -964,7 +994,7 @@ class ChatRepository {
     } catch (e) {
       // Only log in debug mode
       assert(() {
-        debugPrint('❌ Repository: Failed to send message: $e');
+        AppLogger.chat('❌ Repository: Failed to send message: $e');
         return true;
       }());
       throw Exception('Failed to send message: $e');
@@ -980,7 +1010,7 @@ class ChatRepository {
     bool useXP,
   ) async {
     try {
-      debugPrint('📦 BATCH: Sending message with quota/XP update');
+      AppLogger.chat('📦 BATCH: Sending message with quota/XP update');
 
       // Perform the transaction with all reads first, then all writes
       final result = await _firestore.runTransaction((transaction) async {
@@ -991,11 +1021,11 @@ class ChatRepository {
           final quotaSnapshot = await transaction.get(quotaRef);
           if (quotaSnapshot.exists) {
             currentQuota = UserQuota.fromJson(quotaSnapshot.data()!);
-            debugPrint(
+            AppLogger.chat(
               '📊 Current quota before update: ${currentQuota.remainingMessages} messages',
             );
           } else {
-            debugPrint('📊 No quota found, will create default quota');
+            AppLogger.chat('📊 No quota found, will create default quota');
           }
         }
 
@@ -1020,12 +1050,12 @@ class ChatRepository {
               messagesSent: currentQuota.messagesSent + 1,
             );
             transaction.set(quotaRef, updatedQuota.toJson());
-            debugPrint(
+            AppLogger.chat(
               '📊 Updated quota: ${updatedQuota.remainingMessages} messages remaining',
             );
           } else {
             // No quota exists - create default with 1 message already sent
-            debugPrint('📊 Creating default quota with 1 message sent');
+            AppLogger.chat('📊 Creating default quota with 1 message sent');
             updatedQuota = UserQuota(
               userId: userId,
               dailyLimit: 20,
@@ -1035,7 +1065,7 @@ class ChatRepository {
               createdAt: DateTime.now(),
             );
             transaction.set(quotaRef, updatedQuota.toJson());
-            debugPrint(
+            AppLogger.chat(
               '📊 Created new quota: ${updatedQuota.remainingMessages} messages remaining',
             );
           }
@@ -1045,18 +1075,18 @@ class ChatRepository {
         if (useXP) {
           final userRef = _firestore.collection('users').doc(userId);
           transaction.update(userRef, {'xpPoints': FieldValue.increment(-1)});
-          debugPrint('⭐ XP decremented by 1');
+          AppLogger.chat('⭐ XP decremented by 1');
         }
 
         return {'message': message, 'quota': updatedQuota};
       });
 
-      debugPrint(
+      AppLogger.chat(
         '✅ BATCH: Message sent with quota/XP update in single transaction',
       );
       return result;
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to send message with quota update: $e');
+      AppLogger.chat('❌ BATCH: Failed to send message with quota update: $e');
       throw Exception('Failed to send message with quota update: $e');
     }
   }
@@ -1130,7 +1160,7 @@ class ChatRepository {
   // Batch: Get user data and quota together
   Future<Map<String, dynamic>> getUserDataAndQuota(String userId) async {
     try {
-      debugPrint('📦 BATCH: Fetching user data and quota together');
+      AppLogger.chat('📦 BATCH: Fetching user data and quota together');
 
       final results = await Future.wait([
         _firestore.collection('users').doc(userId).get(),
@@ -1169,10 +1199,10 @@ class ChatRepository {
         quota = UserQuota.fromJson(data);
       }
 
-      debugPrint('✅ BATCH: Retrieved user data and quota in single operation');
+      AppLogger.chat('✅ BATCH: Retrieved user data and quota in single operation');
       return {'user': user, 'quota': quota};
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to get user data and quota: $e');
+      AppLogger.chat('❌ BATCH: Failed to get user data and quota: $e');
       throw Exception('Failed to get user data and quota: $e');
     }
   }
@@ -1231,7 +1261,7 @@ class ChatRepository {
       // Update poll index for faster lookups
       await _updatePollIndex(poll.pollId, roomId);
 
-      debugPrint('✅ Poll created and indexed: ${poll.pollId} in room $roomId');
+      AppLogger.chat('✅ Poll created and indexed: ${poll.pollId} in room $roomId');
       return poll;
     } catch (e) {
       throw Exception('Failed to create poll: $e');
@@ -1268,7 +1298,7 @@ class ChatRepository {
         final indexData = indexDoc.data()!;
         final roomId = indexData['roomId'];
 
-        debugPrint('🎯 Found poll in indexed room: $roomId');
+        AppLogger.chat('🎯 Found poll in indexed room: $roomId');
 
         // Direct query using room ID from index
         final pollDoc = await _firestore
@@ -1286,7 +1316,7 @@ class ChatRepository {
       }
 
       // Fallback: Optimized search with early termination
-      debugPrint('🔄 Poll index not found, using optimized search');
+      AppLogger.chat('🔄 Poll index not found, using optimized search');
       final roomsSnapshot = await _firestore.collection('chats').get();
 
       for (final roomDoc in roomsSnapshot.docs) {
@@ -1319,7 +1349,7 @@ class ChatRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('⚠️ Failed to update poll index: $e');
+      AppLogger.chat('⚠️ Failed to update poll index: $e');
       // Don't throw - this is not critical
     }
   }
@@ -1337,10 +1367,10 @@ class ChatRepository {
       if (indexDoc.exists) {
         final indexData = indexDoc.data()!;
         roomId = indexData['roomId'];
-        debugPrint('🎯 Found poll room from index: $roomId');
+        AppLogger.chat('🎯 Found poll room from index: $roomId');
       } else {
         // Fallback: Optimized search
-        debugPrint('🔄 Poll index not found, using optimized search');
+        AppLogger.chat('🔄 Poll index not found, using optimized search');
         final roomsSnapshot = await _firestore.collection('chats').get();
 
         for (final roomDoc in roomsSnapshot.docs) {
@@ -1393,7 +1423,7 @@ class ChatRepository {
         });
       });
 
-      debugPrint('✅ Vote recorded for poll $pollId by user $userId');
+      AppLogger.chat('✅ Vote recorded for poll $pollId by user $userId');
 
       // Send voting reminder notifications to non-voters (if poll is still active)
       try {
@@ -1406,10 +1436,10 @@ class ChatRepository {
             pollId: pollId,
             pollQuestion: poll.question,
           );
-          debugPrint('🔔 Voting reminders sent for poll $pollId');
+          AppLogger.chat('🔔 Voting reminders sent for poll $pollId');
         }
       } catch (e) {
-        debugPrint('⚠️ Failed to send voting reminders: $e');
+        AppLogger.chat('⚠️ Failed to send voting reminders: $e');
         // Don't fail the vote if notifications fail
       }
     } catch (e) {
@@ -1498,7 +1528,7 @@ class ChatRepository {
 
   // Helper method to get hierarchical path from roomId
   String _getRoomPathFromId(String roomId) {
-    debugPrint('🔧 Parsing roomId: $roomId');
+    AppLogger.database('Parsing roomId: $roomId', tag: 'CHAT');
     // Parse roomId like "ward_maharashtra_pune_pune_m_cop_ward_17" or "area_maharashtra_pune_pune_m_cop_ward_17_माळवाडी"
 
     if (roomId.startsWith('ward_')) {
@@ -1516,7 +1546,7 @@ class ChatRepository {
       final stateId = parts[0];
       final bodyId = parts.sublist(1, parts.length - 2).join('_'); // Everything between state and district
 
-      debugPrint('🔧 Ward parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId');
+      AppLogger.database('Ward parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId', tag: 'CHAT');
       // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/chats/ward_discussion
       return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
 
@@ -1552,12 +1582,12 @@ class ChatRepository {
       // Everything after wardId is areaId
       final areaId = parts.sublist(wardIndex + 1).join('_');
 
-      debugPrint('🔧 Area parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId, area: $areaId');
+      AppLogger.database('Area parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId, area: $areaId', tag: 'CHAT');
       // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId}/chats/area_discussion
       return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$areaId/chats/area_discussion';
     }
 
-    debugPrint('🔧 Unknown room type, using fallback');
+    AppLogger.database('Unknown room type, using fallback', tag: 'CHAT');
     return 'chats/$roomId'; // Fallback
   }
 
@@ -1634,34 +1664,34 @@ class ChatRepository {
     String? wardId,
     String? area,
   ) async {
-    debugPrint('🎯 _getTargetedRoomsForUser called for $userRole: $userId');
+    AppLogger.chat('🎯 _getTargetedRoomsForUser called for $userRole: $userId');
     final rooms = <ChatRoom>[];
 
     try {
       if (userRole == 'candidate') {
-        debugPrint('👤 Processing candidate rooms for user: $userId');
+        AppLogger.chat('👤 Processing candidate rooms for user: $userId');
 
         // For candidates: query hierarchical structure for ward and area rooms
         if (stateId != null && districtId != null && bodyId != null && wardId != null) {
           try {
             // Get ward room from hierarchical structure
             final wardPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
-            debugPrint('🔍 Looking for ward room at: $wardPath');
+            AppLogger.chat('🔍 Looking for ward room at: $wardPath');
 
             final wardDoc = await _firestore.doc(wardPath).get();
             if (wardDoc.exists) {
               final data = wardDoc.data() as Map<String, dynamic>;
               final room = ChatRoom.fromJson(data);
               rooms.add(room);
-              debugPrint('✅ Added ward room: ${room.title} (ID: ${room.roomId})');
+              AppLogger.chat('✅ Added ward room: ${room.title} (ID: ${room.roomId})');
             } else {
-              debugPrint('⚠️ Ward room not found at: $wardPath');
+              AppLogger.chat('⚠️ Ward room not found at: $wardPath');
             }
 
             // Get area rooms from hierarchical structure
             // First, get areas from ward document to know which area rooms to look for
             try {
-              debugPrint('👤 Getting areas from ward document: $wardId');
+              AppLogger.chat('👤 Getting areas from ward document: $wardId');
               final wardDoc = await _firestore
                   .collection('states')
                   .doc(stateId)
@@ -1677,39 +1707,39 @@ class ChatRepository {
                 final wardData = wardDoc.data() as Map<String, dynamic>;
                 final areas = wardData['areas'] as List<dynamic>? ?? [];
 
-                debugPrint('👤 Found ${areas.length} areas in ward document: $areas');
+                AppLogger.chat('👤 Found ${areas.length} areas in ward document: $areas');
 
                 // Query for area rooms in hierarchical structure
                 for (final area in areas) {
                   if (area is String && area.isNotEmpty) {
                     final areaPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
-                    debugPrint('🔍 Looking for area room at: $areaPath');
+                    AppLogger.chat('🔍 Looking for area room at: $areaPath');
 
                     final areaDoc = await _firestore.doc(areaPath).get();
                     if (areaDoc.exists) {
                       final data = areaDoc.data() as Map<String, dynamic>;
                       final room = ChatRoom.fromJson(data);
                       rooms.add(room);
-                      debugPrint('✅ Added area room: ${room.title} (ID: ${room.roomId})');
+                      AppLogger.chat('✅ Added area room: ${room.title} (ID: ${room.roomId})');
                     } else {
-                      debugPrint('ℹ️ Area room not created yet: $areaPath');
+                      AppLogger.chat('ℹ️ Area room not created yet: $areaPath');
                     }
                   }
                 }
               } else {
-                debugPrint('⚠️ Ward document not found');
+                AppLogger.chat('⚠️ Ward document not found');
               }
             } catch (e) {
-              debugPrint('⚠️ Failed to get areas from ward document: $e');
+              AppLogger.chat('⚠️ Failed to get areas from ward document: $e');
             }
           } catch (e) {
-            debugPrint('⚠️ Failed to query hierarchical structure: $e');
+            AppLogger.chat('⚠️ Failed to query hierarchical structure: $e');
           }
         }
 
         // Add private chats for candidates
         try {
-          debugPrint('👤 Getting private chats for candidate: $userId');
+          AppLogger.chat('👤 Getting private chats for candidate: $userId');
           final privateRooms = await _firestore
               .collection('chats')
               .where('type', isEqualTo: 'private')
@@ -1720,15 +1750,15 @@ class ChatRepository {
             final data = doc.data();
             final room = ChatRoom.fromJson(data);
             rooms.add(room);
-            debugPrint('✅ Added private room for candidate: ${room.title} (ID: ${room.roomId})');
+            AppLogger.chat('✅ Added private room for candidate: ${room.title} (ID: ${room.roomId})');
           }
-          debugPrint('👤 Found ${privateRooms.docs.length} private rooms for candidate');
+          AppLogger.chat('👤 Found ${privateRooms.docs.length} private rooms for candidate');
         } catch (e) {
-          debugPrint('⚠️ Failed to get private rooms for candidate: $e');
+          AppLogger.chat('⚠️ Failed to get private rooms for candidate: $e');
         }
 
       } else if (userRole == 'voter') {
-        debugPrint('🗳️ Processing voter rooms for user: $userId');
+        AppLogger.chat('🗳️ Processing voter rooms for user: $userId');
         // For voters: get ward room + area room + followed candidate rooms
         final roomIds = <String>[];
 
@@ -1753,24 +1783,24 @@ class ChatRepository {
           }
         }
 
-        debugPrint('🗳️ Voter roomIds to query: $roomIds');
+        AppLogger.chat('🗳️ Voter roomIds to query: $roomIds');
 
         // Query specific rooms from hierarchical structure
         for (final roomId in roomIds.toSet()) { // Remove duplicates
           try {
-            debugPrint('🔍 Checking room: $roomId');
+            AppLogger.chat('🔍 Checking room: $roomId');
             ChatRoom? room;
 
             // Use location data to construct the correct hierarchical path
             String roomPath;
             if (roomId.startsWith('ward_') && stateId != null && districtId != null && bodyId != null && wardId != null) {
               roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
-              debugPrint('🔍 Constructed ward path: $roomPath');
+              AppLogger.chat('🔍 Constructed ward path: $roomPath');
             } else if (roomId.startsWith('area_') && stateId != null && districtId != null && bodyId != null && wardId != null && area != null) {
               roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
-              debugPrint('🔍 Constructed area path: $roomPath');
+              AppLogger.chat('🔍 Constructed area path: $roomPath');
             } else {
-              debugPrint('⚠️ Cannot construct path for roomId: $roomId');
+              AppLogger.chat('⚠️ Cannot construct path for roomId: $roomId');
               continue;
             }
 
@@ -1778,23 +1808,23 @@ class ChatRepository {
             if (hierarchicalDoc.exists) {
               final data = hierarchicalDoc.data() as Map<String, dynamic>;
               room = ChatRoom.fromJson(data);
-              debugPrint('✅ Found room at hierarchical path: ${room?.title}');
+              AppLogger.chat('✅ Found room at hierarchical path: ${room?.title}');
             } else {
-              debugPrint('⚠️ Room not found at hierarchical path: $roomPath');
+              AppLogger.chat('⚠️ Room not found at hierarchical path: $roomPath');
             }
 
             if (room != null) {
               rooms.add(room);
-              debugPrint('✅ Added room: ${room.title}');
+              AppLogger.chat('✅ Added room: ${room.title}');
             }
           } catch (e) {
-            debugPrint('⚠️ Failed to fetch room $roomId: $e');
+            AppLogger.chat('⚠️ Failed to fetch room $roomId: $e');
           }
         }
 
         // Add private chats for voters
         try {
-          debugPrint('🗳️ Getting private chats for voter: $userId');
+          AppLogger.chat('🗳️ Getting private chats for voter: $userId');
           final privateRooms = await _firestore
               .collection('chats')
               .where('type', isEqualTo: 'private')
@@ -1805,29 +1835,29 @@ class ChatRepository {
             final data = doc.data();
             final room = ChatRoom.fromJson(data);
             rooms.add(room);
-            debugPrint('✅ Added private room for voter: ${room.title} (ID: ${room.roomId})');
+            AppLogger.chat('✅ Added private room for voter: ${room.title} (ID: ${room.roomId})');
           }
-          debugPrint('🗳️ Found ${privateRooms.docs.length} private rooms for voter');
+          AppLogger.chat('🗳️ Found ${privateRooms.docs.length} private rooms for voter');
         } catch (e) {
-          debugPrint('⚠️ Failed to get private rooms for voter: $e');
+          AppLogger.chat('⚠️ Failed to get private rooms for voter: $e');
         }
       }
 
       // If no rooms found through targeted query, fall back to collection group query
       if (rooms.isEmpty) {
-        debugPrint('⚠️ No rooms found through targeted query, falling back to collection group query');
+        AppLogger.chat('⚠️ No rooms found through targeted query, falling back to collection group query');
         final fallbackRooms = await _fallbackCollectionGroupQuery(userId, userRole);
         rooms.addAll(fallbackRooms);
-        debugPrint('✅ Added ${fallbackRooms.length} rooms from fallback query');
+        AppLogger.chat('✅ Added ${fallbackRooms.length} rooms from fallback query');
       }
 
-      debugPrint('✅ Targeted query returned ${rooms.length} rooms');
+      AppLogger.chat('✅ Targeted query returned ${rooms.length} rooms');
       return rooms;
 
     } catch (e) {
-      debugPrint('❌ Error in targeted room query: $e');
+      AppLogger.chat('❌ Error in targeted room query: $e');
       // Fallback to old method if targeted query fails
-      debugPrint('🔄 Falling back to collection group query');
+      AppLogger.chat('🔄 Falling back to collection group query');
       return await _fallbackCollectionGroupQuery(userId, userRole);
     }
   }
@@ -1844,7 +1874,7 @@ class ChatRepository {
 
       return snapshot.docs.map((doc) => doc.id).toList();
     } catch (e) {
-      debugPrint('⚠️ Failed to get candidate rooms for $candidateId: $e');
+      AppLogger.chat('⚠️ Failed to get candidate rooms for $candidateId: $e');
       return [];
     }
   }
@@ -1866,7 +1896,7 @@ class ChatRepository {
 
       return [...publicRooms, ...privateRooms];
     } catch (e) {
-      debugPrint('❌ Fallback query also failed: $e');
+      AppLogger.chat('❌ Fallback query also failed: $e');
       return [];
     }
   }
@@ -1878,13 +1908,13 @@ class ChatRepository {
     String wardId,
   ) async {
     // BREAKPOINT CANDIDATE-1: Start of _getCandidateIdsInWard
-    debugPrint(
+    AppLogger.chat(
       '🔍 BREAKPOINT CANDIDATE-1: Getting candidates for ward $wardId in body $bodyId, district $districtId',
     );
 
     try {
       // BREAKPOINT CANDIDATE-2: Before Firestore query
-      debugPrint(
+      AppLogger.chat(
         '🔍 BREAKPOINT CANDIDATE-2: Querying Firestore for candidates',
       );
       final query = _firestore
@@ -1897,19 +1927,19 @@ class ChatRepository {
       final snapshot = await query.get();
 
       // BREAKPOINT CANDIDATE-3: After query results
-      debugPrint(
+      AppLogger.chat(
         '🔍 BREAKPOINT CANDIDATE-3: Found ${snapshot.docs.length} candidate documents',
       );
       final candidateIds = snapshot.docs.map((doc) => doc.id).toList();
-      debugPrint('🔍 BREAKPOINT CANDIDATE-3: Candidate IDs: $candidateIds');
+      AppLogger.chat('🔍 BREAKPOINT CANDIDATE-3: Candidate IDs: $candidateIds');
 
       // BREAKPOINT CANDIDATE-4: Returning result
-      debugPrint(
+      AppLogger.chat(
         '🔍 BREAKPOINT CANDIDATE-4: Returning ${candidateIds.length} candidate IDs',
       );
       return candidateIds;
     } catch (e) {
-      debugPrint(
+      AppLogger.chat(
         '❌ BREAKPOINT CANDIDATE-5: Error getting candidate IDs in ward: $e',
       );
       return [];
@@ -1927,7 +1957,7 @@ class ChatRepository {
       final doc = await _firestore.collection('chats').doc(wardRoomId).get();
       return doc.exists;
     } catch (e) {
-      debugPrint('Error checking ward room existence: $e');
+      AppLogger.chat('Error checking ward room existence: $e');
       return false;
     }
   }
@@ -1944,7 +1974,7 @@ class ChatRepository {
       final doc = await _firestore.collection('chats').doc(areaRoomId).get();
       return doc.exists;
     } catch (e) {
-      debugPrint('Error checking area room existence: $e');
+      AppLogger.chat('Error checking area room existence: $e');
       return false;
     }
   }
@@ -1963,7 +1993,7 @@ class ChatRepository {
 
       // Check if room already exists
       if (await areaRoomExists(districtId, bodyId, wardId, areaId)) {
-        debugPrint('Area room already exists: $areaRoomId');
+        AppLogger.chat('Area room already exists: $areaRoomId');
         return true;
       }
 
@@ -1986,14 +2016,14 @@ class ChatRepository {
       );
 
       await createChatRoom(chatRoom);
-      debugPrint('✅ Area room created: $areaRoomId');
+      AppLogger.chat('✅ Area room created: $areaRoomId');
 
       // Invalidate cache
       invalidateLocationCache(districtId, wardId);
 
       return true;
     } catch (e) {
-      debugPrint('❌ Failed to create area room: $e');
+      AppLogger.chat('❌ Failed to create area room: $e');
       return false;
     }
   }
@@ -2011,7 +2041,7 @@ class ChatRepository {
 
       // Check if room already exists
       if (await wardRoomExists(districtId, bodyId, wardId)) {
-        debugPrint('Ward room already exists: $wardRoomId');
+        AppLogger.chat('Ward room already exists: $wardRoomId');
         return true;
       }
 
@@ -2035,14 +2065,14 @@ class ChatRepository {
       );
 
       await createChatRoom(chatRoom);
-      debugPrint('✅ Ward room created: $wardRoomId');
+      AppLogger.chat('✅ Ward room created: $wardRoomId');
 
       // Invalidate cache
       invalidateLocationCache(districtId, wardId);
 
       return true;
     } catch (e) {
-      debugPrint('❌ Failed to create ward room: $e');
+      AppLogger.chat('❌ Failed to create ward room: $e');
       return false;
     }
   }
@@ -2059,7 +2089,7 @@ class ChatRepository {
         return data?['name'] ?? districtId.toUpperCase();
       }
     } catch (e) {
-      debugPrint('Error fetching district name: $e');
+      AppLogger.chat('Error fetching district name: $e');
     }
     return districtId.toUpperCase();
   }
@@ -2077,7 +2107,7 @@ class ChatRepository {
         return data?['name'] ?? bodyId;
       }
     } catch (e) {
-      debugPrint('Error fetching body name: $e');
+      AppLogger.chat('Error fetching body name: $e');
     }
     return bodyId;
   }
@@ -2117,7 +2147,7 @@ class ChatRepository {
         return data?['name'] ?? 'Ward $wardId';
       }
     } catch (e) {
-      debugPrint('Error fetching ward name: $e');
+      AppLogger.chat('Error fetching ward name: $e');
     }
     return 'Ward $wardId';
   }
@@ -2147,7 +2177,7 @@ class ChatRepository {
         return data?['name'] ?? 'Area $areaId';
       }
     } catch (e) {
-      debugPrint('Error fetching area name: $e');
+      AppLogger.chat('Error fetching area name: $e');
     }
     return 'Area $areaId';
   }
@@ -2168,7 +2198,7 @@ class ChatRepository {
         await typingRef.delete();
       }
     } catch (e) {
-      debugPrint('Error updating typing status: $e');
+      AppLogger.chat('Error updating typing status: $e');
     }
   }
 
@@ -2207,10 +2237,10 @@ class ChatRepository {
 
       if (expiredDocs.docs.isNotEmpty) {
         await batch.commit();
-        debugPrint('Cleaned up ${expiredDocs.docs.length} expired typing statuses');
+        AppLogger.chat('Cleaned up ${expiredDocs.docs.length} expired typing statuses');
       }
     } catch (e) {
-      debugPrint('Error cleaning up typing statuses: $e');
+      AppLogger.chat('Error cleaning up typing statuses: $e');
     }
   }
 
@@ -2219,9 +2249,9 @@ class ChatRepository {
     try {
       final typingRef = _firestore.collection('typing_status').doc('${roomId}_$userId');
       await typingRef.delete();
-      debugPrint('🧹 Cleared typing status for user $userId in room $roomId');
+      AppLogger.chat('🧹 Cleared typing status for user $userId in room $roomId');
     } catch (e) {
-      debugPrint('Error clearing typing status: $e');
+      AppLogger.chat('Error clearing typing status: $e');
     }
   }
 
@@ -2327,14 +2357,14 @@ class ChatRepository {
               },
             );
           } catch (e) {
-            debugPrint('⚠️ Failed to send message notification to user $memberId: $e');
+            AppLogger.chat('⚠️ Failed to send message notification to user $memberId: $e');
           }
         }
       }
 
-      debugPrint('✅ Sent message notifications to ${members.length - 1} room members');
+      AppLogger.chat('✅ Sent message notifications to ${members.length - 1} room members');
     } catch (e) {
-      debugPrint('⚠️ Failed to send message notifications: $e');
+      AppLogger.chat('⚠️ Failed to send message notifications: $e');
       // Don't throw - this shouldn't break message sending
     }
   }

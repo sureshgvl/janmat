@@ -251,23 +251,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // Private chat button
-          FloatingActionButton(
-            heroTag: 'private_chat_fab',
-            onPressed: () => _showPrivateChatOptions(),
-            backgroundColor: Colors.green,
-            tooltip: 'Start Private Chat',
-            child: const Icon(Icons.person_add),
-          ),
-          const SizedBox(height: 16),
-          if (ChatHelpers.canCreateRooms(controller.currentUser?.role))
-            _buildCreateRoomButton(),
-          const SizedBox(height: 16),
-          _buildQuotaWarningButtonExtended(),
-        ].whereType<Widget>().toList(),
+      floatingActionButton: GetBuilder<ChatController>(
+        builder: (controller) => Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // Private chat button
+            FloatingActionButton(
+              heroTag: 'private_chat_fab',
+              onPressed: () => _showPrivateChatOptions(),
+              backgroundColor: Colors.green,
+              tooltip: 'Start Private Chat',
+              child: const Icon(Icons.person_add),
+            ),
+            const SizedBox(height: 16),
+            if (ChatHelpers.canCreateRooms(controller.currentUser?.role))
+              _buildCreateRoomButton(),
+            const SizedBox(height: 16),
+            _buildQuotaWarningButtonExtended(),
+          ].whereType<Widget>().toList(),
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import '../../models/district_model.dart';
 import '../../models/body_model.dart';
 import '../../l10n/features/profile/profile_localizations.dart';
 import '../../utils/maharashtra_utils.dart';
+import '../../utils/app_logger.dart';
 
 class DistrictSelectionModal extends StatefulWidget {
   final List<District> districts;
@@ -32,9 +33,9 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
     filteredDistricts = List.from(widget.districts);
 
     // Log districts being displayed
-    debugPrint('🏙️ District Selection Modal - Displaying ${widget.districts.length} districts:');
+    AppLogger.ui('District Selection Modal - Displaying ${widget.districts.length} districts:');
     for (final district in widget.districts) {
-      debugPrint('  - ID: ${district.id}, Name: ${district.name}');
+      AppLogger.ui('  - ID: ${district.id}, Name: ${district.name}');
     }
   }
 
@@ -233,7 +234,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                         district.id,
                         Localizations.localeOf(context),
                       );
-                      debugPrint('📍 Displaying district: ID=${district.id}, Name=${district.name}, DisplayName=$displayName, Selected=$isSelected, Disabled=$isDisabled');
+                      AppLogger.ui('Displaying district: ID=${district.id}, Name=${district.name}, DisplayName=$displayName, Selected=$isSelected, Disabled=$isDisabled');
 
                       return InkWell(
                         onTap: isDisabled

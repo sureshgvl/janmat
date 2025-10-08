@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'performance_monitor.dart';
+import 'app_logger.dart';
 
 /// Optimized real-time listener manager
 class RealtimeOptimizer {
@@ -41,11 +42,9 @@ class RealtimeOptimizer {
             _subscriptionStartTimes[subscriptionId]!,
           );
           if (elapsed >= lifespan) {
-            if (kDebugMode) {
-              debugPrint(
-                '⏰ Cancelling subscription $subscriptionId due to lifespan expiration',
-              );
-            }
+            AppLogger.realtimeOptimizer(
+              '⏰ Cancelling subscription $subscriptionId due to lifespan expiration',
+            );
             cancelSubscription(subscriptionId);
           }
         }
@@ -59,9 +58,7 @@ class RealtimeOptimizer {
     _subscriptionStartTimes[subscriptionId] = DateTime.now();
     _subscriptionLifespans[subscriptionId] = lifespan;
 
-    if (kDebugMode) {
-      debugPrint('📡 Registered real-time subscription: $subscriptionId');
-    }
+    AppLogger.realtimeOptimizer('📡 Registered real-time subscription: $subscriptionId');
 
     return subscription;
   }
@@ -78,11 +75,9 @@ class RealtimeOptimizer {
       final eventCount = _subscriptionEventCounts[subscriptionId] ?? 0;
       _subscriptionEventCounts.remove(subscriptionId);
 
-      if (kDebugMode) {
-        debugPrint(
-          '🛑 Cancelled subscription $subscriptionId (processed $eventCount events)',
-        );
-      }
+      AppLogger.realtimeOptimizer(
+        '🛑 Cancelled subscription $subscriptionId (processed $eventCount events)',
+      );
     }
   }
 
@@ -92,11 +87,9 @@ class RealtimeOptimizer {
       cancelSubscription(subscriptionId);
     }
 
-    if (kDebugMode) {
-      debugPrint(
-        '🧹 Cancelled all ${_activeSubscriptions.length} subscriptions',
-      );
-    }
+    AppLogger.realtimeOptimizer(
+      '🧹 Cancelled all ${_activeSubscriptions.length} subscriptions',
+    );
   }
 
   /// Cancel subscriptions by pattern
@@ -109,8 +102,8 @@ class RealtimeOptimizer {
       cancelSubscription(id);
     }
 
-    if (kDebugMode && matchingIds.isNotEmpty) {
-      debugPrint(
+    if (matchingIds.isNotEmpty) {
+      AppLogger.realtimeOptimizer(
         '🎯 Cancelled ${matchingIds.length} subscriptions matching pattern: $pattern',
       );
     }
@@ -163,11 +156,9 @@ class RealtimeOptimizer {
 
       // Cancel low-activity subscriptions
       if (eventsPerMinute < 0.1 && eventCount < 5) {
-        if (kDebugMode) {
-          debugPrint(
-            '⚡ Optimizing: Cancelling low-activity subscription $subscriptionId',
-          );
-        }
+        AppLogger.realtimeOptimizer(
+          '⚡ Optimizing: Cancelling low-activity subscription $subscriptionId',
+        );
         cancelSubscription(subscriptionId);
       }
     }
@@ -193,8 +184,8 @@ class RealtimeOptimizer {
       cancelSubscription(id);
     }
 
-    if (kDebugMode && expiredIds.isNotEmpty) {
-      debugPrint('🧽 Cleaned up ${expiredIds.length} expired subscriptions');
+    if (expiredIds.isNotEmpty) {
+      AppLogger.realtimeOptimizer('🧽 Cleaned up ${expiredIds.length} expired subscriptions');
     }
   }
 }
@@ -288,11 +279,9 @@ class OptimizedFirestoreQuery {
       monitor.trackFirebaseRead(collection, snapshot.docs.length);
       monitor.stopTimer('firestore_query_$collection');
 
-      if (kDebugMode) {
-        debugPrint(
-          '🔍 Optimized query on $collection returned ${snapshot.docs.length} documents',
-        );
-      }
+      AppLogger.realtimeOptimizer(
+        '🔍 Optimized query on $collection returned ${snapshot.docs.length} documents',
+      );
 
       return snapshot;
     } catch (e) {
@@ -339,4 +328,3 @@ class OptimizedFirestoreQuery {
     return stream;
   }
 }
-

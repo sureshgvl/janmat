@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../utils/app_logger.dart';
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/repositories/candidate_repository.dart';
 
@@ -54,7 +55,7 @@ class EventNotificationService {
         'candidateName': candidate.name,
       });
     } catch (e) {
-      debugPrint('Error sending RSVP notification: $e');
+      AppLogger.common('Error sending RSVP notification: $e');
     }
   }
 
@@ -100,7 +101,7 @@ class EventNotificationService {
         'candidateName': candidate.name,
       });
     } catch (e) {
-      debugPrint('Error sending event reminder: $e');
+      AppLogger.common('Error sending event reminder: $e');
     }
   }
 
@@ -152,7 +153,7 @@ class EventNotificationService {
         'userName': userName,
       });
     } catch (e) {
-      debugPrint('Error sending candidate RSVP notification: $e');
+      AppLogger.common('Error sending candidate RSVP notification: $e');
     }
   }
 
@@ -199,7 +200,7 @@ class EventNotificationService {
 
       return null;
     } catch (e) {
-      debugPrint('Error getting event details: $e');
+      AppLogger.common('Error getting event details: $e');
       return null;
     }
   }
@@ -232,7 +233,7 @@ class EventNotificationService {
 
       return null;
     } catch (e) {
-      debugPrint('Error finding candidate location: $e');
+      AppLogger.common('Error finding candidate location: $e');
       return null;
     }
   }
@@ -247,7 +248,7 @@ class EventNotificationService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting FCM token: $e');
+      AppLogger.common('Error getting FCM token: $e');
       return null;
     }
   }
@@ -263,11 +264,7 @@ class EventNotificationService {
       // Note: In a real implementation, you would send this to your backend
       // which would then use FCM to send the notification
       // For now, we'll just log it
-      debugPrint('Sending push notification:');
-      debugPrint('Token: $token');
-      debugPrint('Title: $title');
-      debugPrint('Body: $body');
-      debugPrint('Data: $data');
+      AppLogger.common('Sending push notification - Token: $token, Title: $title, Body: $body, Data: $data');
 
       // You could implement a cloud function or backend API call here
       // For example:
@@ -278,7 +275,7 @@ class EventNotificationService {
       //   'data': jsonEncode(data),
       // });
     } catch (e) {
-      debugPrint('Error sending push notification: $e');
+      AppLogger.common('Error sending push notification: $e');
     }
   }
 
@@ -302,7 +299,7 @@ class EventNotificationService {
             'createdAt': FieldValue.serverTimestamp(),
           });
     } catch (e) {
-      debugPrint('Error storing notification: $e');
+      AppLogger.common('Error storing notification: $e');
     }
   }
 
@@ -323,7 +320,7 @@ class EventNotificationService {
         return data;
       }).toList();
     } catch (e) {
-      debugPrint('Error getting notifications: $e');
+      AppLogger.common('Error getting notifications: $e');
       return [];
     }
   }
@@ -341,7 +338,7 @@ class EventNotificationService {
           .doc(notificationId)
           .update({'read': true});
     } catch (e) {
-      debugPrint('Error marking notification as read: $e');
+      AppLogger.common('Error marking notification as read: $e');
     }
   }
 
@@ -415,8 +412,7 @@ class EventNotificationService {
         }
       }
     } catch (e) {
-      debugPrint('Error scheduling event reminders: $e');
+      AppLogger.common('Error scheduling event reminders: $e');
     }
   }
 }
-

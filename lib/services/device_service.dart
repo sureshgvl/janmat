@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../utils/app_logger.dart';
 
 class DeviceInfo {
   final String deviceId;
@@ -142,7 +143,7 @@ class DeviceService {
       // Send sign-out notifications to other devices
       await _notifyOtherDevicesSignOut(userId, deviceId);
     } catch (e) {
-      debugPrint('Error registering device: $e');
+      AppLogger.commonError('Error registering device', error: e);
       throw Exception('Failed to register device');
     }
   }
@@ -172,7 +173,7 @@ class DeviceService {
 
       await batch.commit();
     } catch (e) {
-      debugPrint('Error deactivating other devices: $e');
+      AppLogger.common('Error deactivating other devices: $e');
     }
   }
 
@@ -202,7 +203,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-      debugPrint('Error sending sign-out notifications: $e');
+      AppLogger.common('Error sending sign-out notifications: $e');
     }
   }
 
@@ -211,7 +212,7 @@ class DeviceService {
     try {
       // Note: In a real implementation, you'd send this via your backend
       // For now, we'll just print the token for demonstration
-      debugPrint('Would send sign-out notification to device: $deviceToken');
+      AppLogger.common('Would send sign-out notification to device: $deviceToken');
 
       // You can implement FCM message sending here or via cloud functions
       // Example:
@@ -224,7 +225,7 @@ class DeviceService {
           });
       */
     } catch (e) {
-      debugPrint('Error sending FCM notification: $e');
+      AppLogger.common('Error sending FCM notification: $e');
     }
   }
 
@@ -246,7 +247,7 @@ class DeviceService {
 
       return false;
     } catch (e) {
-      debugPrint('Error checking device status: $e');
+      AppLogger.common('Error checking device status: $e');
       return false;
     }
   }
@@ -265,7 +266,7 @@ class DeviceService {
           .map((doc) => DeviceInfo.fromMap(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint('Error getting user devices: $e');
+      AppLogger.common('Error getting user devices: $e');
       return [];
     }
   }
@@ -295,7 +296,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-      debugPrint('Error signing out device: $e');
+      AppLogger.common('Error signing out device: $e');
       throw Exception('Failed to sign out device');
     }
   }
@@ -303,7 +304,7 @@ class DeviceService {
   // Monitor device status changes (call this when user logs in)
   void monitorDeviceStatus(String userId, Function onSignOutRequired) {
     getDeviceId().then((currentDeviceId) {
-      debugPrint('📱 Starting device monitoring for device: $currentDeviceId');
+      AppLogger.common('📱 Starting device monitoring for device: $currentDeviceId');
 
       // Add a delay to ensure device registration is complete
       Future.delayed(const Duration(seconds: 2), () {
@@ -314,10 +315,10 @@ class DeviceService {
             .doc(currentDeviceId)
             .snapshots()
             .listen((snapshot) {
-              debugPrint('📱 Device status update received');
+              AppLogger.common('📱 Device status update received');
 
               if (!snapshot.exists) {
-                debugPrint('⚠️ Device document does not exist - checking network connectivity before sign out');
+                AppLogger.common('⚠️ Device document does not exist - checking network connectivity before sign out');
                 // Check if this is due to network issues before forcing sign out
                 _checkNetworkBeforeSignOut(onSignOutRequired);
                 return;
@@ -326,21 +327,21 @@ class DeviceService {
               final deviceData = snapshot.data();
               final isActive = deviceData?['isActive'] ?? false;
 
-              debugPrint('📱 Device active status: $isActive');
+              AppLogger.common('📱 Device active status: $isActive');
 
               if (!isActive) {
-                debugPrint('🚪 Device marked as inactive - checking network before sign out');
+                AppLogger.common('🚪 Device marked as inactive - checking network before sign out');
                 // Add network check before forcing sign out to avoid false positives
                 _checkNetworkBeforeSignOut(onSignOutRequired);
               }
             }, onError: (error) {
-              debugPrint('❌ Error monitoring device status: $error');
+              AppLogger.common('❌ Error monitoring device status: $error');
               // Don't force sign out on monitoring errors to avoid false positives
               // Network issues can cause temporary monitoring failures
             });
       });
     }).catchError((error) {
-      debugPrint('❌ Failed to get device ID for monitoring: $error');
+      AppLogger.common('❌ Failed to get device ID for monitoring: $error');
       // Don't force sign out if we can't get device ID
     });
   }
@@ -354,7 +355,7 @@ class DeviceService {
       // Simple connectivity check - try to read the device document again
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('⚠️ No current user - forcing sign out');
+        AppLogger.common('⚠️ No current user - forcing sign out');
         onSignOutRequired();
         return;
       }
@@ -369,7 +370,7 @@ class DeviceService {
           .timeout(const Duration(seconds: 10));
 
       if (!deviceDoc.exists) {
-        debugPrint('⚠️ Device document still does not exist after network check - forcing sign out');
+        AppLogger.common('⚠️ Device document still does not exist after network check - forcing sign out');
         onSignOutRequired();
         return;
       }
@@ -378,13 +379,13 @@ class DeviceService {
       final isActive = deviceData?['isActive'] ?? false;
 
       if (!isActive) {
-        debugPrint('🚪 Device still inactive after network check - forcing sign out');
+        AppLogger.common('🚪 Device still inactive after network check - forcing sign out');
         onSignOutRequired();
       } else {
-        debugPrint('✅ Device is active after network check - not signing out');
+        AppLogger.common('✅ Device is active after network check - not signing out');
       }
     } catch (error) {
-      debugPrint('⚠️ Network check failed: $error - not forcing sign out to avoid false positives');
+      AppLogger.common('⚠️ Network check failed: $error - not forcing sign out to avoid false positives');
       // If network check fails, don't force sign out to avoid false positives
     }
   }
@@ -413,8 +414,7 @@ class DeviceService {
 
       await batch.commit();
     } catch (e) {
-      debugPrint('Error cleaning up inactive devices: $e');
+      AppLogger.common('Error cleaning up inactive devices: $e');
     }
   }
 }
-

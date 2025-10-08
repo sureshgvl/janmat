@@ -8,6 +8,7 @@ import '../../controllers/candidate_data_controller.dart';
 import '../../repositories/candidate_event_repository.dart';
 import '../../../../services/event_notification_service.dart';
 import '../../../../services/gamification_service.dart';
+import '../../../../utils/app_logger.dart';
 
 class VoterEventsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -93,7 +94,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         });
       }
     } catch (e) {
-      debugPrint('❌ VoterEventsSection: Failed to load RSVP data: $e');
+      AppLogger.candidateError('❌ VoterEventsSection: Failed to load RSVP data: $e');
     }
   }
 
@@ -145,7 +146,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           );
         } catch (notificationError) {
           // Don't fail the RSVP if notification fails
-          debugPrint('Notification error: $notificationError');
+          AppLogger.candidateError('Notification error: $notificationError');
         }
 
         // Award gamification points
@@ -158,7 +159,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           );
         } catch (gamificationError) {
           // Don't fail the RSVP if gamification fails
-          debugPrint('Gamification error: $gamificationError');
+          AppLogger.candidateError('Gamification error: $gamificationError');
         }
 
         Get.snackbar(
@@ -204,7 +205,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           );
         } catch (gamificationError) {
           // Don't fail the RSVP removal if gamification fails
-          debugPrint('Gamification error: $gamificationError');
+          AppLogger.candidateError('Gamification error: $gamificationError');
         }
       }
     } catch (e) {

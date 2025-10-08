@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/plan_card.dart';
 import '../widgets/xp_balance_section.dart';
@@ -143,6 +144,6 @@ class XpPlansTab extends StatelessWidget {
 
   void _handlePurchase(BuildContext context, dynamic plan) {
     // This will be handled by the parent screen
-    debugPrint('XpPlansTab: Purchase XP plan - ${plan.name}');
+    AppLogger.monetization('XpPlansTab: Purchase XP plan - ${plan.name}');
   }
 }

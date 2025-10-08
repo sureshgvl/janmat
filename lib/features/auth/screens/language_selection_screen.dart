@@ -209,8 +209,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
     final locale = Locale(_selectedLanguage);
     Get.updateLocale(locale);
 
-    // Navigate to login screen
-    Get.offAllNamed('/login');
+    // Navigate to onboarding screen
+    Get.offAllNamed('/onboarding');
   }
 }
 

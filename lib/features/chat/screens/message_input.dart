@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/chat_controller.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
 
@@ -165,13 +166,13 @@ class _MessageInputState extends State<MessageInput> {
         await _previewPlayer!.play();
       }
     } catch (e) {
-      debugPrint('Error playing preview: $e');
+      AppLogger.chat('Error playing preview: $e');
     }
   }
 
   Future<void> _sendRecording() async {
     if (_recordedFilePath != null) {
-      debugPrint(
+      AppLogger.chat(
         '📤 UI DEBUG: Sending recorded voice message: $_recordedFilePath',
       );
 
@@ -187,16 +188,16 @@ class _MessageInputState extends State<MessageInput> {
         // Close the preview interface
         _closeRecordingPreview();
 
-        debugPrint('✅ UI DEBUG: Voice message sent successfully');
+        AppLogger.chat('✅ UI DEBUG: Voice message sent successfully');
       } catch (e) {
-        debugPrint('❌ UI DEBUG: Failed to send voice message: $e');
+        AppLogger.chat('❌ UI DEBUG: Failed to send voice message: $e');
         // Don't close preview on error so user can try again
       }
     }
   }
 
   void _cancelRecording() {
-    debugPrint('🗑️ UI DEBUG: Cancelling voice recording');
+    AppLogger.chat('🗑️ UI DEBUG: Cancelling voice recording');
 
     // Stop preview playback
     _previewPlayer?.stop();
@@ -209,12 +210,12 @@ class _MessageInputState extends State<MessageInput> {
         final file = File(_recordedFilePath!);
         if (file.existsSync()) {
           file.deleteSync();
-          debugPrint(
+          AppLogger.chat(
             '🗑️ UI DEBUG: Deleted temporary recording file: $_recordedFilePath',
           );
         }
       } catch (e) {
-        debugPrint('⚠️ UI DEBUG: Error deleting temp file: $e');
+        AppLogger.chat('⚠️ UI DEBUG: Error deleting temp file: $e');
       }
     }
 
@@ -560,7 +561,7 @@ class _MessageInputState extends State<MessageInput> {
 
                     // Only log when state actually changes to avoid spam
                     if (_lastIsSending != isSending || _lastCanSend != canSend || _lastShouldShowAds != shouldShowAds) {
-                      debugPrint('🔄 MessageInput: State changed - isSendingMessage: $isSending, canSend: $canSend, shouldShowAds: $shouldShowAds');
+                      AppLogger.chat('🔄 MessageInput: State changed - isSendingMessage: $isSending, canSend: $canSend, shouldShowAds: $shouldShowAds');
                       _lastIsSending = isSending;
                       _lastCanSend = canSend;
                       _lastShouldShowAds = shouldShowAds;
@@ -589,11 +590,11 @@ class _MessageInputState extends State<MessageInput> {
                               : const Icon(Icons.send, color: Colors.white),
                           onPressed: isSending
                               ? () {
-                                  debugPrint('🚫 MessageInput: Send button pressed but disabled (sending in progress)');
+                                  AppLogger.chat('🚫 MessageInput: Send button pressed but disabled (sending in progress)');
                                   null;
                                 }
                               : () {
-                                  debugPrint('📤 MessageInput: Send button pressed - calling onSendMessage');
+                                  AppLogger.chat('📤 MessageInput: Send button pressed - calling onSendMessage');
                                   widget.onSendMessage();
                                 },
                         ),
@@ -651,13 +652,13 @@ class _MessageInputState extends State<MessageInput> {
     }
 
     if (widget.controller.isRecording) {
-      debugPrint('🎙️ UI DEBUG: Stopping voice recording for preview...');
+      AppLogger.chat('🎙️ UI DEBUG: Stopping voice recording for preview...');
       _stopRecordingTimer();
 
       try {
         // Stop recording but don't send yet - show preview instead
         final recordingPath = await widget.controller.stopVoiceRecordingOnly();
-        debugPrint('✅ UI DEBUG: Voice recording stopped, path: $recordingPath');
+        AppLogger.chat('✅ UI DEBUG: Voice recording stopped, path: $recordingPath');
 
         if (recordingPath != null) {
           // Show preview interface
@@ -672,7 +673,7 @@ class _MessageInputState extends State<MessageInput> {
           );
         }
       } catch (e) {
-        debugPrint('❌ UI DEBUG: Failed to stop voice recording: $e');
+        AppLogger.chat('❌ UI DEBUG: Failed to stop voice recording: $e');
         Get.snackbar(
           ChatTranslations.recordingError,
           ChatTranslations.failedToStopRecording,
@@ -682,10 +683,10 @@ class _MessageInputState extends State<MessageInput> {
         );
       }
     } else {
-      debugPrint('🎙️ UI DEBUG: Starting voice recording...');
+      AppLogger.chat('🎙️ UI DEBUG: Starting voice recording...');
       _startRecordingTimer();
       await widget.controller.startVoiceRecording();
-      debugPrint('✅ UI DEBUG: Voice recording started successfully');
+      AppLogger.chat('✅ UI DEBUG: Voice recording started successfully');
     }
   }
 
@@ -694,7 +695,7 @@ class _MessageInputState extends State<MessageInput> {
     final recordedPath =
         recordingPath ?? widget.controller.currentRecordingPath;
     if (recordedPath != null) {
-      debugPrint('🎵 UI DEBUG: Showing recording preview for: $recordedPath');
+      AppLogger.chat('🎵 UI DEBUG: Showing recording preview for: $recordedPath');
       setState(() {
         _recordedFilePath = recordedPath;
         _showRecordingPreview = true;
@@ -702,7 +703,7 @@ class _MessageInputState extends State<MessageInput> {
       });
       _initializePreviewPlayer();
     } else {
-      debugPrint('⚠️ UI DEBUG: No recording path available for preview');
+      AppLogger.chat('⚠️ UI DEBUG: No recording path available for preview');
     }
   }
 }

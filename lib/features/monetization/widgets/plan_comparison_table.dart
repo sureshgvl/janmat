@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 import '../screens/plan_selection_screen.dart';
 
@@ -593,7 +594,7 @@ class PlanComparisonTable extends StatelessWidget {
     }
 
     // For new pricing system, navigate to plan selection with validity options
-    debugPrint('🔄 Navigating to plan selection for: ${plan.planId}');
+    AppLogger.monetization('🔄 Navigating to plan selection for: ${plan.planId}');
 
     // Get user's election type
     final electionType = await controller.getUserElectionType(currentUser.uid) ?? 'municipal_corporation';

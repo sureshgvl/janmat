@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
 import '../controllers/auth_controller.dart';
@@ -133,8 +134,8 @@ class LoginScreen extends StatelessWidget {
         Obx(
           () => ElevatedButton(
             onPressed: controller.isLoading.value ? null : () async {
-              debugPrint('🔘 Send OTP button pressed');
-              debugPrint('📱 Phone number: ${controller.phoneController.text}');
+              AppLogger.auth('🔘 Send OTP button pressed');
+              AppLogger.auth('📱 Phone number: ${controller.phoneController.text}');
 
               // Show loading dialog using GetX
               Get.dialog(
@@ -161,15 +162,15 @@ class LoginScreen extends StatelessWidget {
               );
 
               try {
-                debugPrint('📤 LoadingDialog shown, calling controller.sendOTP()');
+                AppLogger.auth('📤 LoadingDialog shown, calling controller.sendOTP()');
                 await controller.sendOTP();
-                debugPrint('✅ controller.sendOTP() completed');
+                AppLogger.auth('✅ controller.sendOTP() completed');
               } catch (e) {
-                debugPrint('❌ Error in sendOTP: $e');
+                AppLogger.auth('❌ Error in sendOTP: $e');
                 // Close loading dialog on error
                 if (Get.isDialogOpen ?? false) {
                   Get.back();
-                  debugPrint('📤 LoadingDialog dismissed due to error');
+                  AppLogger.auth('📤 LoadingDialog dismissed due to error');
                 }
               }
               // Note: Loading dialog will be closed by the controller when OTP screen is shown
@@ -267,7 +268,7 @@ class LoginScreen extends StatelessWidget {
                           try {
                             await controller.verifyOTP();
                           } catch (e) {
-                            debugPrint('❌ Error in verifyOTP: $e');
+                            AppLogger.auth('❌ Error in verifyOTP: $e');
                           } finally {
                             // Always close the loading dialog
                             if (Get.isDialogOpen ?? false) {

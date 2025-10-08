@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/message_controller.dart';
 import '../../../models/chat_model.dart';
@@ -215,7 +216,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: GetBuilder<MessageController>(
               builder: (messageController) {
                 return Obx(() {
-                  debugPrint(
+                  AppLogger.chat(
                     '🔄 ChatRoomScreen: Rebuilding with ${messageController.messages.length} messages',
                   );
                   final messages = messageController.messages;
@@ -311,7 +312,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             children: messagesGroup.map((message) {
                               final isCurrentUser = message.senderId == controller.currentUser?.uid;
 
-                              debugPrint(
+                              AppLogger.chat(
                                 '🔄 ChatRoomScreen: Rendering message - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}, Status: ${message.status}',
                               );
 
@@ -513,29 +514,29 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _sendMessage() async {
     final text = messageController.text.trim();
-    debugPrint('🚀 ChatRoomScreen: _sendMessage called with text: "$text"');
+    AppLogger.chat('🚀 ChatRoomScreen: _sendMessage called with text: "$text"');
 
     if (text.isNotEmpty &&
         controller.currentChatRoom.value != null &&
         controller.currentUser != null) {
-      debugPrint('📤 ChatRoomScreen: All conditions met, proceeding to send...');
+      AppLogger.chat('📤 ChatRoomScreen: All conditions met, proceeding to send...');
 
       // Stop typing before sending
       controller.updateTypingStatus(false);
 
-      debugPrint('📤 ChatRoomScreen: Calling controller.sendTextMessage...');
+      AppLogger.chat('📤 ChatRoomScreen: Calling controller.sendTextMessage...');
       // Use ChatController's send method which handles quota/XP
       await controller.sendTextMessage(text);
-      debugPrint('✅ ChatRoomScreen: controller.sendTextMessage completed');
+      AppLogger.chat('✅ ChatRoomScreen: controller.sendTextMessage completed');
 
       messageController.clear(); // Clear the text controller
       // Use smart scroll for new messages - only scroll if user is near bottom
       _smartScrollToBottom();
     } else {
-      debugPrint('⚠️ ChatRoomScreen: Cannot send message - conditions not met');
-      debugPrint('   Text: "$text" (length: ${text.length})');
-      debugPrint('   Chat room: ${controller.currentChatRoom.value?.roomId}');
-      debugPrint('   Current user: ${controller.currentUser?.uid}');
+      AppLogger.chat('⚠️ ChatRoomScreen: Cannot send message - conditions not met');
+      AppLogger.chat('   Text: "$text" (length: ${text.length})');
+      AppLogger.chat('   Chat room: ${controller.currentChatRoom.value?.roomId}');
+      AppLogger.chat('   Current user: ${controller.currentUser?.uid}');
     }
   }
 
@@ -574,7 +575,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       context: context,
       builder: (context) => CreatePollDialog(
         onPollCreated: (question, options, {DateTime? expiresAt}) {
-          debugPrint(
+          AppLogger.chat(
             '📊 Creating poll: "$question" with ${options.length} options${expiresAt != null ? ', expires at: $expiresAt' : ', no expiration'}',
           );
           controller.createPoll(question, options, expiresAt: expiresAt);
@@ -676,7 +677,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _scrollToBottom(force: true);
     } else {
       // User is scrolled up, don't auto-scroll to avoid interrupting reading
-      debugPrint('User is scrolled up, skipping auto-scroll to preserve reading position');
+      AppLogger.chat('User is scrolled up, skipping auto-scroll to preserve reading position');
     }
   }
 
@@ -711,7 +712,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             );
           });
 
-          debugPrint('Scrolling to poll message at list index: $listViewIndex');
+          AppLogger.chat('Scrolling to poll message at list index: $listViewIndex');
           break;
         }
       }
@@ -726,7 +727,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         userId,
       );
     } catch (e) {
-      debugPrint('Error marking message as read: $e');
+      AppLogger.chat('Error marking message as read: $e');
     }
   }
 

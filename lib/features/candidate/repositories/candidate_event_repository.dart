@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/candidate_model.dart';
 
 class EventRepository {
@@ -52,7 +53,7 @@ class EventRepository {
       // Candidate not found in any state
       throw Exception('Candidate $candidateId not found in any state');
     } catch (e) {
-      debugPrint('❌ Failed to get candidate state ID: $e');
+      AppLogger.candidateError('❌ Failed to get candidate state ID: $e');
       throw Exception('Unable to determine candidate state: $e');
     }
   }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/post_model.dart';
 
 class CommunityFeedService {
@@ -15,7 +16,7 @@ class CommunityFeedService {
     // Check if user is authenticated before fetching data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      debugPrint('ℹ️ User not authenticated, skipping community feed fetch');
+      AppLogger.common('User not authenticated, skipping community feed fetch', tag: 'FEED');
       return [];
     }
 
@@ -33,7 +34,7 @@ class CommunityFeedService {
           .map((doc) => CommunityPost.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching community feed: $e');
+      AppLogger.common('Error fetching community feed: $e', tag: 'FEED');
       return [];
     }
   }
@@ -66,7 +67,7 @@ class CommunityFeedService {
           .add(postData);
       return docRef.id;
     } catch (e) {
-      debugPrint('Error creating community post: $e');
+      AppLogger.common('Error creating community post: $e', tag: 'FEED');
       return null;
     }
   }
@@ -99,7 +100,7 @@ class CommunityFeedService {
 
       return !isLiked;
     } catch (e) {
-      debugPrint('Error toggling like: $e');
+      AppLogger.common('Error toggling like: $e', tag: 'FEED');
       return false;
     }
   }
@@ -117,9 +118,8 @@ class CommunityFeedService {
           .map((doc) => CommunityPost.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching user posts: $e');
+      AppLogger.common('Error fetching user posts: $e', tag: 'FEED');
       return [];
     }
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import '../../../utils/app_logger.dart';
 import '../utils/message_formatter.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
@@ -85,7 +86,7 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         await _audioPlayer!.play();
       }
     } catch (e) {
-      debugPrint('Error playing audio: $e');
+      AppLogger.ui('Error playing audio: $e', tag: 'CHAT');
       setState(() {
         _isLoadingAudio = false;
       });
@@ -166,4 +167,3 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     );
   }
 }
-

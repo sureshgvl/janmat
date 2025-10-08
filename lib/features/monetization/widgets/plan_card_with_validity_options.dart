@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/plan_model.dart';
+import '../../../utils/app_logger.dart';
 
 class PlanCardWithValidityOptions extends StatefulWidget {
   final SubscriptionPlan plan;
@@ -90,7 +91,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
             final isSelected = selectedValidityDays == days;
             final displayText = '$days Days - ₹$price';
 
-            debugPrint('📅 [PlanCardWithValidityOptions] Compact validity option: "$displayText"');
+            AppLogger.common('📅 [PlanCardWithValidityOptions] Compact validity option: "$displayText"');
 
             return GestureDetector(
               onTap: () => setState(() => selectedValidityDays = days),
@@ -243,7 +244,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                   final validityText = '$days Days';
                   final expiryText = 'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}';
 
-                  debugPrint('📅 [PlanCardWithValidityOptions] Full validity option: "$validityText" - "$expiryText" - ₹$price');
+                  AppLogger.common('📅 [PlanCardWithValidityOptions] Full validity option: "$validityText" - "$expiryText" - ₹$price');
 
                   return GestureDetector(
                     onTap: () => setState(() => selectedValidityDays = days),

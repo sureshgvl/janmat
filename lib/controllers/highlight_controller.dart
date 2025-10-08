@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/highlight_model.dart';
 import '../repositories/highlight_repository.dart';
+import '../utils/app_logger.dart';
 
 class HighlightController extends GetxController {
   final HighlightRepository _repository = HighlightRepository();
@@ -18,7 +19,7 @@ class HighlightController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    debugPrint('🎠 HighlightController: Initialized');
+    AppLogger.highlight('HighlightController: Initialized');
   }
 
   // Load active highlights for a specific location
@@ -31,7 +32,7 @@ class HighlightController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      debugPrint('🎠 HighlightController: Loading highlights for $districtId/$bodyId/$wardId');
+      AppLogger.highlight('Loading highlights for $districtId/$bodyId/$wardId');
 
       final loadedHighlights = await _repository.getActiveHighlights(
         districtId,
@@ -40,10 +41,10 @@ class HighlightController extends GetxController {
       );
 
       highlights.value = loadedHighlights;
-      debugPrint('✅ HighlightController: Loaded ${loadedHighlights.length} highlights');
+      AppLogger.highlight('Loaded ${loadedHighlights.length} highlights');
 
     } catch (e) {
-      debugPrint('❌ HighlightController: Error loading highlights: $e');
+      AppLogger.highlightError('Error loading highlights', error: e);
       errorMessage.value = 'Failed to load highlights: $e';
       highlights.value = [];
     } finally {
@@ -58,7 +59,7 @@ class HighlightController extends GetxController {
     required String wardId,
   }) async {
     try {
-      debugPrint('🏷️ HighlightController: Loading platinum banner for $districtId/$bodyId/$wardId');
+      AppLogger.highlight('Loading platinum banner for $districtId/$bodyId/$wardId');
 
       _platinumBanner = await _repository.getPlatinumBanner(
         districtId,
@@ -66,11 +67,11 @@ class HighlightController extends GetxController {
         wardId,
       );
 
-      debugPrint('✅ HighlightController: Platinum banner loaded: ${_platinumBanner?.id ?? 'None'}');
+      AppLogger.highlight('Platinum banner loaded: ${_platinumBanner?.id ?? 'None'}');
       update(); // Notify listeners
 
     } catch (e) {
-      debugPrint('❌ HighlightController: Error loading platinum banner: $e');
+      AppLogger.highlightError('Error loading platinum banner', error: e);
       _platinumBanner = null;
       update();
     }
@@ -93,7 +94,7 @@ class HighlightController extends GetxController {
     int priority = 1,
   }) async {
     try {
-      debugPrint('🏗️ HighlightController: Creating highlight for candidate: $candidateId');
+      AppLogger.highlight('Creating highlight for candidate: $candidateId');
 
       final highlightId = 'hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey = '${districtId}_${bodyId}_$wardId';
@@ -124,14 +125,14 @@ class HighlightController extends GetxController {
       final result = await _repository.createHighlight(highlight);
 
       if (result != null) {
-        debugPrint('✅ HighlightController: Highlight created successfully: $highlightId');
+        AppLogger.highlight('Highlight created successfully: $highlightId');
         // Optionally refresh highlights if we're in the same location
         // await loadHighlights(districtId: districtId, bodyId: bodyId, wardId: wardId);
       }
 
       return result;
     } catch (e) {
-      debugPrint('❌ HighlightController: Error creating highlight: $e');
+      AppLogger.highlightError('Error creating highlight', error: e);
       errorMessage.value = 'Failed to create highlight: $e';
       return null;
     }
@@ -152,7 +153,7 @@ class HighlightController extends GetxController {
     String? customMessage,
   }) async {
     try {
-      debugPrint('🏆 HighlightController: Creating Platinum highlight for $candidateName');
+      AppLogger.highlight('Creating Platinum highlight for $candidateName');
 
       final highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey = '${districtId}_${bodyId}_$wardId';
@@ -194,8 +195,8 @@ class HighlightController extends GetxController {
       final result = await _repository.createHighlight(highlight);
 
       if (result != null) {
-        debugPrint('✅ HighlightController: Created Platinum highlight $highlightId for $candidateName');
-        debugPrint('   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
+        AppLogger.highlight('Created Platinum highlight $highlightId for $candidateName');
+        AppLogger.highlight('Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
 
         // Create welcome sponsored post
         await _createWelcomePushFeedItem(
@@ -208,7 +209,7 @@ class HighlightController extends GetxController {
 
       return result;
     } catch (e) {
-      debugPrint('❌ HighlightController: Error creating Platinum highlight: $e');
+      AppLogger.highlightError('Error creating Platinum highlight', error: e);
       errorMessage.value = 'Failed to create Platinum highlight: $e';
       return null;
     }
@@ -218,9 +219,9 @@ class HighlightController extends GetxController {
   Future<void> trackImpression(String highlightId) async {
     try {
       await _repository.trackImpression(highlightId);
-      debugPrint('👁️ HighlightController: Tracked impression for highlight: $highlightId');
+      AppLogger.highlight('Tracked impression for highlight: $highlightId');
     } catch (e) {
-      debugPrint('❌ HighlightController: Error tracking impression: $e');
+      AppLogger.highlightError('Error tracking impression', error: e);
     }
   }
 
@@ -228,9 +229,9 @@ class HighlightController extends GetxController {
   Future<void> trackClick(String highlightId) async {
     try {
       await _repository.trackClick(highlightId);
-      debugPrint('👆 HighlightController: Tracked click for highlight: $highlightId');
+      AppLogger.highlight('Tracked click for highlight: $highlightId');
     } catch (e) {
-      debugPrint('❌ HighlightController: Error tracking click: $e');
+      AppLogger.highlightError('Error tracking click', error: e);
     }
   }
 
@@ -247,9 +248,9 @@ class HighlightController extends GetxController {
         userId: userId,
         candidateId: candidateId,
       );
-      debugPrint('📊 HighlightController: Tracked carousel view for: $contentId');
+      AppLogger.highlight('Tracked carousel view for: $contentId');
     } catch (e) {
-      debugPrint('❌ HighlightController: Error tracking carousel view: $e');
+      AppLogger.highlightError('Error tracking carousel view', error: e);
     }
   }
 
@@ -257,9 +258,9 @@ class HighlightController extends GetxController {
   Future<void> updateHighlightStatus(String highlightId, bool active) async {
     try {
       await _repository.updateHighlightStatus(highlightId, active);
-      debugPrint('🔄 HighlightController: Updated highlight $highlightId status to: $active');
+      AppLogger.highlight('Updated highlight $highlightId status to: $active');
     } catch (e) {
-      debugPrint('❌ HighlightController: Error updating highlight status: $e');
+      AppLogger.highlightError('Error updating highlight status', error: e);
       errorMessage.value = 'Failed to update highlight status: $e';
     }
   }
@@ -284,12 +285,12 @@ class HighlightController extends GetxController {
       );
 
       if (result) {
-        debugPrint('✅ HighlightController: Updated highlight config for: $highlightId');
+        AppLogger.highlight('Updated highlight config for: $highlightId');
       }
 
       return result;
     } catch (e) {
-      debugPrint('❌ HighlightController: Error updating highlight config: $e');
+      AppLogger.highlightError('Error updating highlight config', error: e);
       errorMessage.value = 'Failed to update highlight configuration: $e';
       return false;
     }
@@ -298,10 +299,10 @@ class HighlightController extends GetxController {
   // Get highlights by candidate
   Future<List<Highlight>> getHighlightsByCandidate(String candidateId) async {
     try {
-      debugPrint('👤 HighlightController: Getting highlights for candidate: $candidateId');
+      AppLogger.highlight('Getting highlights for candidate: $candidateId');
       return await _repository.getHighlightsByCandidate(candidateId);
     } catch (e) {
-      debugPrint('❌ HighlightController: Error getting candidate highlights: $e');
+      AppLogger.highlightError('Error getting candidate highlights', error: e);
       return [];
     }
   }
@@ -309,10 +310,10 @@ class HighlightController extends GetxController {
   // Get push feed items for ward
   Future<List<PushFeedItem>> getPushFeed(String wardId, {int limit = 20}) async {
     try {
-      debugPrint('📱 HighlightController: Getting push feed for ward: $wardId');
+      AppLogger.highlight('Getting push feed for ward: $wardId');
       return await _repository.getPushFeed(wardId, limit: limit);
     } catch (e) {
-      debugPrint('❌ HighlightController: Error getting push feed: $e');
+      AppLogger.highlightError('Error getting push feed', error: e);
       return [];
     }
   }
@@ -327,7 +328,7 @@ class HighlightController extends GetxController {
     String? highlightId,
   }) async {
     try {
-      debugPrint('📝 HighlightController: Creating push feed item for candidate: $candidateId');
+      AppLogger.highlight('Creating push feed item for candidate: $candidateId');
 
       final feedId = 'feed_${DateTime.now().millisecondsSinceEpoch}';
       final feedItem = PushFeedItem(
@@ -344,7 +345,7 @@ class HighlightController extends GetxController {
 
       return await _repository.createPushFeedItem(feedItem);
     } catch (e) {
-      debugPrint('❌ HighlightController: Error creating push feed item: $e');
+      AppLogger.highlightError('Error creating push feed item', error: e);
       return null;
     }
   }
@@ -369,9 +370,9 @@ class HighlightController extends GetxController {
         message: '$candidateName is now a Platinum member with maximum visibility!',
         highlightId: highlightId,
       );
-      debugPrint('✅ HighlightController: Created welcome push feed item');
+      AppLogger.highlight('Created welcome push feed item');
     } catch (e) {
-      debugPrint('❌ HighlightController: Error creating welcome push feed item: $e');
+      AppLogger.highlightError('Error creating welcome push feed item', error: e);
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
 import 'notification_manager.dart';
 
@@ -10,12 +11,12 @@ class NotificationTester {
   /// Test New Follower notification with real user data
   Future<void> testNewFollowerNotification() async {
     try {
-      debugPrint('🧪 Testing New Follower Notification...');
+      AppLogger.common('🧪 Testing New Follower Notification...');
 
       // Get current user (who will receive the notification)
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No user logged in');
+        AppLogger.commonError('❌ No user logged in');
         return;
       }
 
@@ -52,21 +53,21 @@ class NotificationTester {
         deliveryMethod: 'both',
       );
 
-      debugPrint('✅ New Follower notification test completed for user: ${currentUser.uid}');
+      AppLogger.common('✅ New Follower notification test completed for user: ${currentUser.uid}');
     } catch (e) {
-      debugPrint('❌ New Follower notification test failed: $e');
+      AppLogger.commonError('❌ New Follower notification test failed', error: e);
     }
   }
 
   /// Test Level Up notification with real user data
   Future<void> testLevelUpNotification() async {
     try {
-      debugPrint('🧪 Testing Level Up Notification...');
+      AppLogger.common('🧪 Testing Level Up Notification...');
 
       // Get current user
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No user logged in');
+        AppLogger.commonError('❌ No user logged in');
         return;
       }
 
@@ -92,16 +93,16 @@ class NotificationTester {
         deliveryMethod: 'both',
       );
 
-      debugPrint('✅ Level Up notification test completed for user: ${currentUser.uid}');
+      AppLogger.common('✅ Level Up notification test completed for user: ${currentUser.uid}');
     } catch (e) {
-      debugPrint('❌ Level Up notification test failed: $e');
+      AppLogger.commonError('❌ Level Up notification test failed', error: e);
     }
   }
 
   /// Test Badge Earned notification
   Future<void> testBadgeEarnedNotification() async {
     try {
-      debugPrint('🧪 Testing Badge Earned Notification...');
+      AppLogger.common('🧪 Testing Badge Earned Notification...');
 
       await _notificationManager.sendNotification(
         type: NotificationType.badgeEarned,
@@ -116,16 +117,16 @@ class NotificationTester {
         },
       );
 
-      debugPrint('✅ Badge Earned notification test completed');
+      AppLogger.common('✅ Badge Earned notification test completed');
     } catch (e) {
-      debugPrint('❌ Badge Earned notification test failed: $e');
+      AppLogger.commonError('❌ Badge Earned notification test failed', error: e);
     }
   }
 
   /// Test Event Reminder notification
   Future<void> testEventReminderNotification() async {
     try {
-      debugPrint('🧪 Testing Event Reminder Notification...');
+      AppLogger.common('🧪 Testing Event Reminder Notification...');
 
       await _notificationManager.sendNotification(
         type: NotificationType.eventReminder,
@@ -139,21 +140,21 @@ class NotificationTester {
         },
       );
 
-      debugPrint('✅ Event Reminder notification test completed');
+      AppLogger.common('✅ Event Reminder notification test completed');
     } catch (e) {
-      debugPrint('❌ Event Reminder notification test failed: $e');
+      AppLogger.commonError('❌ Event Reminder notification test failed', error: e);
     }
   }
 
   /// Test Chat Message notification with real user data
   Future<void> testChatMessageNotification() async {
     try {
-      debugPrint('🧪 Testing Chat Message Notification...');
+      AppLogger.common('🧪 Testing Chat Message Notification...');
 
       // Get current user
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No user logged in');
+        AppLogger.commonError('❌ No user logged in');
         return;
       }
 
@@ -177,21 +178,21 @@ class NotificationTester {
         deliveryMethod: 'both',
       );
 
-      debugPrint('✅ Chat Message notification test completed for user: ${currentUser.uid}');
+      AppLogger.common('✅ Chat Message notification test completed for user: ${currentUser.uid}');
     } catch (e) {
-      debugPrint('❌ Chat Message notification test failed: $e');
+      AppLogger.commonError('❌ Chat Message notification test failed', error: e);
     }
   }
 
   /// Test Poll notification with real user data
   Future<void> testPollNotification() async {
     try {
-      debugPrint('🧪 Testing Poll Notification...');
+      AppLogger.common('🧪 Testing Poll Notification...');
 
       // Get current user
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No user logged in');
+        AppLogger.commonError('❌ No user logged in');
         return;
       }
 
@@ -214,15 +215,15 @@ class NotificationTester {
         deliveryMethod: 'both',
       );
 
-      debugPrint('✅ Poll notification test completed for user: ${currentUser.uid}');
+      AppLogger.common('✅ Poll notification test completed for user: ${currentUser.uid}');
     } catch (e) {
-      debugPrint('❌ Poll notification test failed: $e');
+      AppLogger.commonError('❌ Poll notification test failed', error: e);
     }
   }
 
   /// Test all notification types
   Future<void> testAllNotifications() async {
-    debugPrint('🧪 Starting comprehensive notification test...');
+    AppLogger.common('🧪 Starting comprehensive notification test...');
 
     await testNewFollowerNotification();
     await Future.delayed(const Duration(seconds: 2));
@@ -241,18 +242,18 @@ class NotificationTester {
 
     await testPollNotification();
 
-    debugPrint('✅ All notification tests completed');
+    AppLogger.common('✅ All notification tests completed');
   }
 
   /// Clear all test notifications
   Future<void> clearTestNotifications() async {
     try {
-      debugPrint('🧪 Clearing test notifications...');
+      AppLogger.common('🧪 Clearing test notifications...');
       await _notificationManager.deleteAllNotifications();
       await _notificationManager.clearBadge();
-      debugPrint('✅ Test notifications cleared');
+      AppLogger.common('✅ Test notifications cleared');
     } catch (e) {
-      debugPrint('❌ Failed to clear test notifications: $e');
+      AppLogger.commonError('❌ Failed to clear test notifications', error: e);
     }
   }
 
@@ -262,13 +263,13 @@ class NotificationTester {
       final unreadCount = await _notificationManager.getUnreadCount();
       final analytics = await _notificationManager.getNotificationAnalytics();
 
-      debugPrint('📊 Notification Statistics:');
-      debugPrint('   Unread Count: $unreadCount');
-      debugPrint('   Total Delivered: ${analytics['totalDelivered']}');
-      debugPrint('   Total Opened: ${analytics['totalOpened']}');
-      debugPrint('   Open Rate: ${analytics['openRate']}');
+      AppLogger.common('📊 Notification Statistics:');
+      AppLogger.common('   Unread Count: $unreadCount');
+      AppLogger.common('   Total Delivered: ${analytics['totalDelivered']}');
+      AppLogger.common('   Total Opened: ${analytics['totalOpened']}');
+      AppLogger.common('   Open Rate: ${analytics['openRate']}');
     } catch (e) {
-      debugPrint('❌ Failed to get notification stats: $e');
+      AppLogger.commonError('❌ Failed to get notification stats', error: e);
     }
   }
 }

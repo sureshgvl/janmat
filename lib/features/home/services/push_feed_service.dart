@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/post_model.dart';
 
 class PushFeedService {
@@ -15,7 +16,7 @@ class PushFeedService {
     // Check if user is authenticated before fetching data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      debugPrint('ℹ️ User not authenticated, skipping push feed fetch');
+      AppLogger.common('User not authenticated, skipping push feed fetch', tag: 'FEED');
       return [];
     }
 
@@ -34,7 +35,7 @@ class PushFeedService {
           .map((doc) => SponsoredUpdate.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching push feed: $e');
+      AppLogger.common('Error fetching push feed: $e', tag: 'FEED');
       return [];
     }
   }
@@ -69,7 +70,7 @@ class PushFeedService {
           .add(updateData);
       return docRef.id;
     } catch (e) {
-      debugPrint('Error creating sponsored update: $e');
+      AppLogger.common('Error creating sponsored update: $e', tag: 'FEED');
       return null;
     }
   }
@@ -82,7 +83,7 @@ class PushFeedService {
       });
       return true;
     } catch (e) {
-      debugPrint('Error deactivating update: $e');
+      AppLogger.common('Error deactivating update: $e', tag: 'FEED');
       return false;
     }
   }
@@ -100,7 +101,7 @@ class PushFeedService {
           .map((doc) => SponsoredUpdate.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching author updates: $e');
+      AppLogger.common('Error fetching author updates: $e', tag: 'FEED');
       return [];
     }
   }
@@ -121,9 +122,8 @@ class PushFeedService {
           .map((doc) => SponsoredUpdate.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching district updates: $e');
+      AppLogger.common('Error fetching district updates: $e', tag: 'FEED');
       return [];
     }
   }
 }
-

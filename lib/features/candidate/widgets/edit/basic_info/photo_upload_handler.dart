@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import '../../../../../utils/app_logger.dart';
 import '../../../../../services/file_upload_service.dart';
 
 /// PhotoUploadHandler - Handles photo upload functionality
@@ -49,7 +50,7 @@ class PhotoUploadHandler {
           ],
         );
       } catch (cropError) {
-        debugPrint('Cropping failed, using original image: $cropError');
+        AppLogger.candidate('Cropping failed, using original image: $cropError');
       }
 
       // Use cropped file if available, otherwise use original

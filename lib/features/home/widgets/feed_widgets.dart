@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../services/community_feed_service.dart';
@@ -409,7 +410,7 @@ class FeedWidgets {
           )
           .toList();
     } catch (e) {
-      debugPrint('Error loading push feed data: $e');
+      AppLogger.common('Error loading push feed data: $e');
       return [];
     }
   }
@@ -439,7 +440,7 @@ class FeedWidgets {
           )
           .toList();
     } catch (e) {
-      debugPrint('Error loading normal feed data: $e');
+      AppLogger.common('Error loading normal feed data: $e');
       return [];
     }
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:janmat/utils/app_logger.dart';
 import 'connection_optimizer.dart';
 
 /// Circuit breaker states
@@ -100,7 +101,7 @@ class CircuitBreaker {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🔌 CIRCUIT: $message');
+      AppLogger.common('🔌 CIRCUIT: $message');
     }
   }
 
@@ -241,7 +242,7 @@ class ErrorRecoveryManager {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🛡️ RECOVERY: $message');
+      AppLogger.common('🛡️ RECOVERY: $message');
     }
   }
 }

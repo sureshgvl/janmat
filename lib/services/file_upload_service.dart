@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import '../utils/app_logger.dart';
 
 class FileUploadService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -36,7 +37,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading profile photo: $e');
+      AppLogger.commonError('Error uploading profile photo', error: e);
       throw Exception('Failed to upload profile photo: $e');
     }
   }
@@ -77,7 +78,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading manifesto PDF: $e');
+      AppLogger.commonError('Error uploading manifesto PDF', error: e);
       throw Exception('Failed to upload manifesto PDF: $e');
     }
   }
@@ -108,7 +109,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading candidate photo: $e');
+      AppLogger.commonError('Error uploading candidate photo', error: e);
       throw Exception('Failed to upload candidate photo: $e');
     }
   }
@@ -132,9 +133,7 @@ class FileUploadService {
       final fileSizeMB = fileSize / (1024 * 1024);
 
       if (fileSizeMB > 15.0) {
-        debugPrint(
-          '⚠️ Very large file detected: ${fileSizeMB.toStringAsFixed(2)} MB',
-        );
+        AppLogger.common('⚠️ Very large file detected: ${fileSizeMB.toStringAsFixed(2)} MB');
         // Could show a warning dialog here, but for now just log it
       }
 
@@ -161,13 +160,13 @@ class FileUploadService {
         try {
           await File(optimizedImage.path).delete();
         } catch (e) {
-          debugPrint('Warning: Could not delete temporary optimized file: $e');
+          AppLogger.common('Warning: Could not delete temporary optimized file: $e');
         }
       }
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading achievement photo: $e');
+      AppLogger.commonError('Error uploading achievement photo', error: e);
       throw Exception('Failed to upload achievement photo: $e');
     }
   }
@@ -198,7 +197,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading manifesto image: $e');
+      AppLogger.commonError('Error uploading manifesto image', error: e);
       throw Exception('Failed to upload manifesto image: $e');
     }
   }
@@ -238,7 +237,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading manifesto video: $e');
+      AppLogger.commonError('Error uploading manifesto video', error: e);
       throw Exception('Failed to upload manifesto video: $e');
     }
   }
@@ -263,7 +262,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading file: $e');
+      AppLogger.commonError('Error uploading file', error: e);
       throw Exception('Failed to upload file: $e');
     }
   }
@@ -274,7 +273,7 @@ class FileUploadService {
       final ref = _storage.refFromURL(fileUrl);
       await ref.delete();
     } catch (e) {
-      debugPrint('Error deleting file: $e');
+      AppLogger.commonError('Error deleting file', error: e);
       // Don't throw error for delete failures as file might not exist
     }
   }
@@ -285,7 +284,7 @@ class FileUploadService {
       final ref = _storage.ref().child(storagePath);
       return await ref.getDownloadURL();
     } catch (e) {
-      debugPrint('Error getting download URL: $e');
+      AppLogger.commonError('Error getting download URL', error: e);
       return null;
     }
   }
@@ -335,14 +334,14 @@ class FileUploadService {
         try {
           await File(optimizedImage.path).delete();
         } catch (e) {
-          debugPrint('Warning: Could not delete temporary optimized file: $e');
+          AppLogger.common('Warning: Could not delete temporary optimized file: $e');
         }
       }
 
       // Return the local file path (prefixed with 'local:' to distinguish from Firebase URLs)
       return 'local:${localFile.path}';
     } catch (e) {
-      debugPrint('Error saving photo locally: $e');
+      AppLogger.commonError('Error saving photo locally', error: e);
       throw Exception('Failed to save photo locally: $e');
     }
   }
@@ -356,7 +355,7 @@ class FileUploadService {
       // Convert bytes to MB for easier comparison
       final fileSizeMB = fileSize / (1024 * 1024);
 
-      debugPrint('📸 Original image size: ${fileSizeMB.toStringAsFixed(2)} MB');
+      AppLogger.common('📸 Original image size: ${fileSizeMB.toStringAsFixed(2)} MB');
 
       // If file is already reasonable size, return as-is
       if (fileSizeMB <= 2.0) {
@@ -373,7 +372,7 @@ class FileUploadService {
         quality = 60;
         maxWidth = 1200;
         maxHeight = 1200;
-        debugPrint(
+        AppLogger.common(
           '📸 Large file detected (>10MB), applying aggressive optimization',
         );
       } else if (fileSizeMB > 5.0) {
@@ -381,7 +380,7 @@ class FileUploadService {
         quality = 70;
         maxWidth = 1600;
         maxHeight = 1600;
-        debugPrint(
+        AppLogger.common(
           '📸 Large file detected (5-10MB), applying moderate optimization',
         );
       } else {
@@ -389,7 +388,7 @@ class FileUploadService {
         quality = 75;
         maxWidth = 2000;
         maxHeight = 2000;
-        debugPrint(
+        AppLogger.common(
           '📸 Medium file detected (2-5MB), applying light optimization',
         );
       }
@@ -407,7 +406,7 @@ class FileUploadService {
         final optimizedSize = await optimizedFile.length();
         final optimizedSizeMB = optimizedSize / (1024 * 1024);
 
-        debugPrint(
+        AppLogger.common(
           '📸 Optimized image size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)',
         );
         return optimizedImage;
@@ -416,7 +415,7 @@ class FileUploadService {
       // If optimization failed, return original
       return image;
     } catch (e) {
-      debugPrint('Warning: Image optimization failed, using original: $e');
+      AppLogger.common('Warning: Image optimization failed, using original: $e');
       return image;
     }
   }
@@ -449,7 +448,7 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      debugPrint('Error uploading local photo to Firebase: $e');
+      AppLogger.commonError('Error uploading local photo to Firebase', error: e);
       throw Exception('Failed to upload local photo to Firebase: $e');
     }
   }
@@ -467,7 +466,7 @@ class FileUploadService {
         }
       }
     } catch (e) {
-      debugPrint('Error cleaning up temp photos: $e');
+      AppLogger.commonError('Error cleaning up temp photos', error: e);
     }
   }
 
@@ -598,15 +597,16 @@ class FileUploadService {
     String fileName,
   ) async {
     try {
-      debugPrint('💾 [Local Storage] Saving existing file locally...');
+      AppLogger.common('Saving existing file locally...', tag: 'LOCAL_STORAGE');
 
       // Get application documents directory
       final directory = await getApplicationDocumentsDirectory();
       final localDir = Directory('${directory.path}/media_temp');
       if (!await localDir.exists()) {
         await localDir.create(recursive: true);
-        debugPrint(
-          '💾 [Local Storage] Created media temp directory: ${localDir.path}',
+        AppLogger.common(
+          'Created media temp directory: ${localDir.path}',
+          tag: 'LOCAL_STORAGE',
         );
       }
 
@@ -618,10 +618,10 @@ class FileUploadService {
       // Copy the source file to local storage
       await File(sourceFilePath).copy(localPath);
 
-      debugPrint('💾 [Local Storage] File saved successfully at: $localPath');
+      AppLogger.common('File saved successfully at: $localPath', tag: 'LOCAL_STORAGE');
       return 'local:$localPath';
     } catch (e) {
-      debugPrint('💾 [Local Storage] Error saving existing file locally: $e');
+      AppLogger.common('Error saving existing file locally: $e', tag: 'LOCAL_STORAGE_ERROR');
       return null;
     }
   }
@@ -643,4 +643,3 @@ class FileSizeValidation {
     this.warning = false,
   });
 }
-

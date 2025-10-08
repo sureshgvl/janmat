@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/app_logger.dart';
 import '../models/highlight_model.dart';
 
 class HighlightRepository {
@@ -14,7 +15,7 @@ class HighlightRepository {
     try {
       // Create composite location key for precise targeting
       final locationKey = '${districtId}_${bodyId}_$wardId';
-      debugPrint('🎠 HighlightRepository: Fetching highlights for locationKey: $locationKey');
+      AppLogger.common('🎠 HighlightRepository: Fetching highlights for locationKey: $locationKey');
 
       final snapshot = await _firestore
           .collection('highlights')
@@ -25,18 +26,18 @@ class HighlightRepository {
           .limit(10)
           .get();
 
-      debugPrint('🎠 HighlightRepository: Found ${snapshot.docs.length} highlights for $locationKey');
+      AppLogger.common('🎠 HighlightRepository: Found ${snapshot.docs.length} highlights for $locationKey');
       final highlights = snapshot.docs
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
 
       if (highlights.isNotEmpty) {
-        debugPrint('🎠 HighlightRepository: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
+        AppLogger.common('🎠 HighlightRepository: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
       }
 
       return highlights;
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error fetching highlights: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error fetching highlights', error: e);
       return [];
     }
   }
@@ -50,7 +51,7 @@ class HighlightRepository {
     try {
       // Create composite location key for precise targeting
       final locationKey = '${districtId}_${bodyId}_$wardId';
-      debugPrint('🏷️ HighlightRepository: Fetching platinum banner for locationKey: $locationKey');
+      AppLogger.common('🏷️ HighlightRepository: Fetching platinum banner for locationKey: $locationKey');
 
       final snapshot = await _firestore
           .collection('highlights')
@@ -61,18 +62,18 @@ class HighlightRepository {
           .limit(1)
           .get();
 
-      debugPrint('🏷️ HighlightRepository: Found ${snapshot.docs.length} platinum banners for $locationKey');
+      AppLogger.common('🏷️ HighlightRepository: Found ${snapshot.docs.length} platinum banners for $locationKey');
 
       if (snapshot.docs.isNotEmpty) {
         final banner = Highlight.fromJson(snapshot.docs.first.data());
-        debugPrint('🏷️ HighlightRepository: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
+        AppLogger.common('🏷️ HighlightRepository: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
         return banner;
       }
 
-      debugPrint('🏷️ HighlightRepository: No platinum banner found for $locationKey');
+      AppLogger.common('🏷️ HighlightRepository: No platinum banner found for $locationKey');
       return null;
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error fetching platinum banner: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error fetching platinum banner', error: e);
       return null;
     }
   }
@@ -88,7 +89,7 @@ class HighlightRepository {
             'lastShown': FieldValue.serverTimestamp(),
           });
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error tracking impression: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error tracking impression', error: e);
     }
   }
 
@@ -100,7 +101,7 @@ class HighlightRepository {
           .doc(highlightId)
           .update({'clicks': FieldValue.increment(1)});
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error tracking click: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error tracking click', error: e);
     }
   }
 
@@ -114,7 +115,7 @@ class HighlightRepository {
 
       return highlight.id;
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error creating highlight: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error creating highlight', error: e);
       return null;
     }
   }
@@ -136,7 +137,7 @@ class HighlightRepository {
           .map((doc) => PushFeedItem.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error fetching push feed: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error fetching push feed', error: e);
       return [];
     }
   }
@@ -151,7 +152,7 @@ class HighlightRepository {
 
       return feedItem.id;
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error creating push feed item: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error creating push feed item', error: e);
       return null;
     }
   }
@@ -167,7 +168,7 @@ class HighlightRepository {
           .doc(highlightId)
           .update({'active': active});
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error updating highlight status: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error updating highlight status', error: e);
     }
   }
 
@@ -186,7 +187,7 @@ class HighlightRepository {
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error fetching candidate highlights: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error fetching candidate highlights', error: e);
       return [];
     }
   }
@@ -201,7 +202,7 @@ class HighlightRepository {
     bool? showAnalytics,
   }) async {
     try {
-      debugPrint('🔄 HighlightRepository: Updating highlight config for $highlightId');
+      AppLogger.common('🔄 HighlightRepository: Updating highlight config for $highlightId');
 
       final updates = <String, dynamic>{};
       if (bannerStyle != null) updates['bannerStyle'] = bannerStyle;
@@ -221,13 +222,13 @@ class HighlightRepository {
             .doc(highlightId)
             .update(updates);
 
-        debugPrint('✅ HighlightRepository: Updated highlight $highlightId with ${updates.length} changes');
+        AppLogger.common('✅ HighlightRepository: Updated highlight $highlightId with ${updates.length} changes');
         return true;
       }
 
       return false;
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error updating highlight config: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error updating highlight config', error: e);
       return false;
     }
   }
@@ -245,7 +246,7 @@ class HighlightRepository {
       }
       return null;
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error getting highlight config: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error getting highlight config', error: e);
       return null;
     }
   }
@@ -267,7 +268,7 @@ class HighlightRepository {
         'deviceInfo': {'platform': 'mobile', 'appVersion': '1.0.0'},
       });
     } catch (e) {
-      debugPrint('❌ HighlightRepository: Error tracking carousel view: $e');
+      AppLogger.commonError('❌ HighlightRepository: Error tracking carousel view', error: e);
     }
   }
 

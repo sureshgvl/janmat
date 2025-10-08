@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 
 /// Service for sending notifications to users in the same constituency
 /// Follows Single Responsibility Principle - handles only constituency-based notifications
@@ -17,29 +18,29 @@ class ConstituencyNotifications {
     String? manifestoDescription,
   }) async {
     try {
-      debugPrint('📜 [ManifestoUpdate] Starting manifesto update notification...');
-      debugPrint('   - Candidate ID: $candidateId');
-      debugPrint('   - Update type: $updateType');
-      debugPrint('   - Manifesto title: $manifestoTitle');
+      AppLogger.notifications('📜 [ManifestoUpdate] Starting manifesto update notification...');
+      AppLogger.notifications('   - Candidate ID: $candidateId');
+      AppLogger.notifications('   - Update type: $updateType');
+      AppLogger.notifications('   - Manifesto title: $manifestoTitle');
 
       // Get candidate details and location
       final candidateData = await _getCandidateData(candidateId);
       if (candidateData == null) {
-        debugPrint('❌ [ManifestoUpdate] Candidate data not found');
+        AppLogger.notifications('❌ [ManifestoUpdate] Candidate data not found');
         return;
       }
 
       final candidateName = candidateData['name'] as String? ?? 'Candidate';
-      debugPrint('   - Candidate name: $candidateName');
+      AppLogger.notifications('   - Candidate name: $candidateName');
 
       // Get candidate's constituency location
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
-        debugPrint('❌ [ManifestoUpdate] Could not determine candidate location');
+        AppLogger.notifications('❌ [ManifestoUpdate] Could not determine candidate location');
         return;
       }
 
-      debugPrint('📍 [ManifestoUpdate] Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}');
+      AppLogger.notifications('📍 [ManifestoUpdate] Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}');
 
       // Get all users in the same constituency (voters and candidates)
       final constituencyUsers = await _getConstituencyUsers(
@@ -49,13 +50,13 @@ class ConstituencyNotifications {
         candidateLocation['wardId']!,
       );
 
-      debugPrint('👥 [ManifestoUpdate] Found ${constituencyUsers.length} users in constituency');
+      AppLogger.notifications('👥 [ManifestoUpdate] Found ${constituencyUsers.length} users in constituency');
 
       if (constituencyUsers.isEmpty) return;
 
       // Get candidate followers (primary audience)
       final followers = await _getCandidateFollowers(candidateId);
-      debugPrint('👥 [ManifestoUpdate] Found ${followers.length} direct followers');
+      AppLogger.notifications('👥 [ManifestoUpdate] Found ${followers.length} direct followers');
 
       // Combine followers and constituency users, removing duplicates
       final allTargetUsers = <Map<String, dynamic>>[];
@@ -77,7 +78,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('👥 [ManifestoUpdate] Total target users: ${allTargetUsers.length}');
+      AppLogger.notifications('👥 [ManifestoUpdate] Total target users: ${allTargetUsers.length}');
 
       if (allTargetUsers.isEmpty) return;
 
@@ -87,7 +88,7 @@ class ConstituencyNotifications {
       for (final user in allTargetUsers) {
         // Skip if this is the candidate updating their own manifesto
         if (user['userId'] == candidateData['userId']) {
-          debugPrint('⏭️ [ManifestoUpdate] Skipping candidate themselves: ${user['userId']}');
+          AppLogger.notifications('⏭️ [ManifestoUpdate] Skipping candidate themselves: ${user['userId']}');
           continue;
         }
 
@@ -97,7 +98,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('✅ [ManifestoUpdate] ${eligibleUsers.length} users have manifesto update notifications enabled');
+      AppLogger.notifications('✅ [ManifestoUpdate] ${eligibleUsers.length} users have manifesto update notifications enabled');
 
       if (eligibleUsers.isEmpty) return;
 
@@ -113,7 +114,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('📱 [ManifestoUpdate] ${tokens.length} valid FCM tokens found');
+      AppLogger.notifications('📱 [ManifestoUpdate] ${tokens.length} valid FCM tokens found');
 
       if (tokens.isEmpty) return;
 
@@ -153,13 +154,13 @@ class ConstituencyNotifications {
       };
 
       // Send push notifications to eligible users
-      debugPrint('📤 [ManifestoUpdate] Sending notifications to ${tokens.length} users...');
+      AppLogger.notifications('📤 [ManifestoUpdate] Sending notifications to ${tokens.length} users...');
       for (final token in tokens) {
         await _sendPushNotification(token, title, body, notificationData);
       }
 
       // Store notifications in database for each user
-      debugPrint('💾 [ManifestoUpdate] Storing notifications in database...');
+      AppLogger.notifications('💾 [ManifestoUpdate] Storing notifications in database...');
       final dbNotificationData = {
         ...notificationData,
         'constituency': candidateLocation, // Keep full map for database storage
@@ -169,9 +170,9 @@ class ConstituencyNotifications {
         await _storeNotification(user['userId'], title, body, dbNotificationData);
       }
 
-      debugPrint('🎉 [ManifestoUpdate] Manifesto update notifications sent successfully to ${validUsers.length} users');
+      AppLogger.notifications('🎉 [ManifestoUpdate] Manifesto update notifications sent successfully to ${validUsers.length} users');
     } catch (e) {
-      debugPrint('❌ [ManifestoUpdate] Error sending manifesto update notification: $e');
+      AppLogger.common('❌ [ManifestoUpdate] Error sending manifesto update notification: $e', tag: 'NOTIFICATION_ERROR');
     }
   }
 
@@ -183,29 +184,29 @@ class ConstituencyNotifications {
     String? sharePlatform, // 'whatsapp', 'facebook', 'twitter', etc.
   }) async {
     try {
-      debugPrint('📤 [ManifestoShared] Starting manifesto sharing notification...');
-      debugPrint('   - Candidate ID: $candidateId');
-      debugPrint('   - Manifesto title: $manifestoTitle');
-      debugPrint('   - Share platform: $sharePlatform');
+      AppLogger.notifications('Starting manifesto sharing notification...', tag: 'MANIFESTO_SHARED');
+      AppLogger.notifications('   - Candidate ID: $candidateId', tag: 'MANIFESTO_SHARED');
+      AppLogger.notifications('   - Manifesto title: $manifestoTitle', tag: 'MANIFESTO_SHARED');
+      AppLogger.notifications('   - Share platform: $sharePlatform', tag: 'MANIFESTO_SHARED');
 
       // Get candidate details and location
       final candidateData = await _getCandidateData(candidateId);
       if (candidateData == null) {
-        debugPrint('❌ [ManifestoShared] Candidate data not found');
+        AppLogger.notifications('Candidate data not found', tag: 'MANIFESTO_SHARED');
         return;
       }
 
       final candidateName = candidateData['name'] as String? ?? 'Candidate';
-      debugPrint('   - Candidate name: $candidateName');
+      AppLogger.notifications('   - Candidate name: $candidateName', tag: 'MANIFESTO_SHARED');
 
       // Get candidate's constituency location
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
-        debugPrint('❌ [ManifestoShared] Could not determine candidate location');
+        AppLogger.notifications('Could not determine candidate location', tag: 'MANIFESTO_SHARED');
         return;
       }
 
-      debugPrint('📍 [ManifestoShared] Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}');
+      AppLogger.notifications('Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}', tag: 'MANIFESTO_SHARED');
 
       // Get all users in the same constituency (voters and candidates)
       final constituencyUsers = await _getConstituencyUsers(
@@ -215,13 +216,13 @@ class ConstituencyNotifications {
         candidateLocation['wardId']!,
       );
 
-      debugPrint('👥 [ManifestoShared] Found ${constituencyUsers.length} users in constituency');
+      AppLogger.notifications('Found ${constituencyUsers.length} users in constituency', tag: 'MANIFESTO_SHARED');
 
       if (constituencyUsers.isEmpty) return;
 
       // Get candidate followers (primary audience)
       final followers = await _getCandidateFollowers(candidateId);
-      debugPrint('👥 [ManifestoShared] Found ${followers.length} direct followers');
+      AppLogger.notifications('Found ${followers.length} direct followers', tag: 'MANIFESTO_SHARED');
 
       // Combine followers and constituency users, removing duplicates
       final allTargetUsers = <Map<String, dynamic>>[];
@@ -243,7 +244,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('👥 [ManifestoShared] Total target users: ${allTargetUsers.length}');
+      AppLogger.notifications('Total target users: ${allTargetUsers.length}', tag: 'MANIFESTO_SHARED');
 
       if (allTargetUsers.isEmpty) return;
 
@@ -253,7 +254,7 @@ class ConstituencyNotifications {
       for (final user in allTargetUsers) {
         // Skip if this is the candidate sharing their own manifesto
         if (user['userId'] == candidateData['userId']) {
-          debugPrint('⏭️ [ManifestoShared] Skipping candidate themselves: ${user['userId']}');
+          AppLogger.notifications('Skipping candidate themselves: ${user['userId']}', tag: 'MANIFESTO_SHARED');
           continue;
         }
 
@@ -263,7 +264,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('✅ [ManifestoShared] ${eligibleUsers.length} users have content sharing notifications enabled');
+      AppLogger.notifications('${eligibleUsers.length} users have content sharing notifications enabled', tag: 'MANIFESTO_SHARED');
 
       if (eligibleUsers.isEmpty) return;
 
@@ -279,7 +280,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('📱 [ManifestoShared] ${tokens.length} valid FCM tokens found');
+      AppLogger.notifications('${tokens.length} valid FCM tokens found', tag: 'MANIFESTO_SHARED');
 
       if (tokens.isEmpty) return;
 
@@ -307,13 +308,13 @@ class ConstituencyNotifications {
       };
 
       // Send push notifications to eligible users
-      debugPrint('📤 [ManifestoShared] Sending notifications to ${tokens.length} users...');
+      AppLogger.notifications('Sending notifications to ${tokens.length} users...', tag: 'MANIFESTO_SHARED');
       for (final token in tokens) {
         await _sendPushNotification(token, title, body, notificationData);
       }
 
       // Store notifications in database for each user
-      debugPrint('💾 [ManifestoShared] Storing notifications in database...');
+      AppLogger.notifications('Storing notifications in database...', tag: 'MANIFESTO_SHARED');
       final dbNotificationData = {
         ...notificationData,
         'constituency': candidateLocation, // Keep full map for database storage
@@ -323,9 +324,9 @@ class ConstituencyNotifications {
         await _storeNotification(user['userId'], title, body, dbNotificationData);
       }
 
-      debugPrint('🎉 [ManifestoShared] Manifesto sharing notifications sent successfully to ${validUsers.length} users');
+      AppLogger.notifications('Manifesto sharing notifications sent successfully to ${validUsers.length} users', tag: 'MANIFESTO_SHARED');
     } catch (e) {
-      debugPrint('❌ [ManifestoShared] Error sending manifesto sharing notification: $e');
+      AppLogger.common('Error sending manifesto sharing notification: $e', tag: 'MANIFESTO_SHARED_ERROR');
     }
   }
 
@@ -334,27 +335,27 @@ class ConstituencyNotifications {
     required String candidateId,
   }) async {
     try {
-      debugPrint('🆕 [CandidateProfileCreated] Starting candidate profile created notification...');
-      debugPrint('   - Candidate ID: $candidateId');
+      AppLogger.notifications('Starting candidate profile created notification...', tag: 'CANDIDATE_PROFILE_CREATED');
+      AppLogger.notifications('   - Candidate ID: $candidateId', tag: 'CANDIDATE_PROFILE_CREATED');
 
       // Get candidate details and location
       final candidateData = await _getCandidateData(candidateId);
       if (candidateData == null) {
-        debugPrint('❌ [CandidateProfileCreated] Candidate data not found');
+        AppLogger.notifications('Candidate data not found', tag: 'CANDIDATE_PROFILE_CREATED');
         return;
       }
 
       final candidateName = candidateData['name'] as String? ?? 'New Candidate';
-      debugPrint('   - Candidate name: $candidateName');
+      AppLogger.notifications('   - Candidate name: $candidateName', tag: 'CANDIDATE_PROFILE_CREATED');
 
       // Get candidate's constituency location
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
-        debugPrint('❌ [CandidateProfileCreated] Could not determine candidate location');
+        AppLogger.notifications('Could not determine candidate location', tag: 'CANDIDATE_PROFILE_CREATED');
         return;
       }
 
-      debugPrint('📍 [CandidateProfileCreated] Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}');
+      AppLogger.notifications('Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}', tag: 'CANDIDATE_PROFILE_CREATED');
 
       // Get all users in the same constituency (voters and candidates)
       final constituencyUsers = await _getConstituencyUsers(
@@ -364,7 +365,7 @@ class ConstituencyNotifications {
         candidateLocation['wardId']!,
       );
 
-      debugPrint('👥 [CandidateProfileCreated] Found ${constituencyUsers.length} users in constituency');
+      AppLogger.notifications('Found ${constituencyUsers.length} users in constituency', tag: 'CANDIDATE_PROFILE_CREATED');
 
       if (constituencyUsers.isEmpty) return;
 
@@ -374,7 +375,7 @@ class ConstituencyNotifications {
       for (final user in constituencyUsers) {
         // Skip if this is the candidate creating their own profile
         if (user['userId'] == candidateData['userId']) {
-          debugPrint('⏭️ [CandidateProfileCreated] Skipping candidate themselves: ${user['userId']}');
+          AppLogger.notifications('Skipping candidate themselves: ${user['userId']}', tag: 'CANDIDATE_PROFILE_CREATED');
           continue;
         }
 
@@ -384,7 +385,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('✅ [CandidateProfileCreated] ${eligibleUsers.length} users have new candidate notifications enabled');
+      AppLogger.notifications('${eligibleUsers.length} users have new candidate notifications enabled', tag: 'CANDIDATE_PROFILE_CREATED');
 
       if (eligibleUsers.isEmpty) return;
 
@@ -400,7 +401,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('📱 [CandidateProfileCreated] ${tokens.length} valid FCM tokens found');
+      AppLogger.notifications('${tokens.length} valid FCM tokens found', tag: 'CANDIDATE_PROFILE_CREATED');
 
       if (tokens.isEmpty) return;
 
@@ -419,13 +420,13 @@ class ConstituencyNotifications {
       };
 
       // Send push notifications to constituency users
-      debugPrint('📤 [CandidateProfileCreated] Sending notifications to ${tokens.length} users...');
+      AppLogger.notifications('Sending notifications to ${tokens.length} users...', tag: 'CANDIDATE_PROFILE_CREATED');
       for (final token in tokens) {
         await _sendPushNotification(token, title, body, notificationData);
       }
 
       // Store notifications in database for each user (include full constituency data for local storage)
-      debugPrint('💾 [CandidateProfileCreated] Storing notifications in database...');
+      AppLogger.notifications('Storing notifications in database...', tag: 'CANDIDATE_PROFILE_CREATED');
       final dbNotificationData = {
         ...notificationData,
         'constituency': candidateLocation, // Keep full map for database storage
@@ -435,9 +436,9 @@ class ConstituencyNotifications {
         await _storeNotification(user['userId'], title, body, dbNotificationData);
       }
 
-      debugPrint('🎉 [CandidateProfileCreated] New candidate notifications sent successfully to ${validUsers.length} constituency users');
+      AppLogger.notifications('New candidate notifications sent successfully to ${validUsers.length} constituency users', tag: 'CANDIDATE_PROFILE_CREATED');
     } catch (e) {
-      debugPrint('❌ [CandidateProfileCreated] Error sending candidate profile created notification: $e');
+      AppLogger.common('Error sending candidate profile created notification: $e', tag: 'CANDIDATE_PROFILE_CREATED_ERROR');
     }
   }
 
@@ -448,29 +449,29 @@ class ConstituencyNotifications {
     required String updateDescription,
   }) async {
     try {
-      debugPrint('🏠 [ConstituencyProfileUpdate] Starting constituency-aware profile update notification...');
-      debugPrint('   - Candidate ID: $candidateId');
-      debugPrint('   - Update type: $updateType');
-      debugPrint('   - Update description: $updateDescription');
+      AppLogger.notifications('Starting constituency-aware profile update notification...', tag: 'PROFILE_UPDATE');
+      AppLogger.notifications('   - Candidate ID: $candidateId', tag: 'PROFILE_UPDATE');
+      AppLogger.notifications('   - Update type: $updateType', tag: 'PROFILE_UPDATE');
+      AppLogger.notifications('   - Update description: $updateDescription', tag: 'PROFILE_UPDATE');
 
       // Get candidate details and location
       final candidateData = await _getCandidateData(candidateId);
       if (candidateData == null) {
-        debugPrint('❌ [ConstituencyProfileUpdate] Candidate data not found');
+        AppLogger.notifications('Candidate data not found', tag: 'PROFILE_UPDATE');
         return;
       }
 
       final candidateName = candidateData['name'] as String? ?? 'Candidate';
-      debugPrint('   - Candidate name: $candidateName');
+      AppLogger.notifications('   - Candidate name: $candidateName', tag: 'PROFILE_UPDATE');
 
       // Get candidate's constituency location
       final candidateLocation = await _findCandidateLocation(candidateId);
       if (candidateLocation == null) {
-        debugPrint('❌ [ConstituencyProfileUpdate] Could not determine candidate location');
+        AppLogger.notifications('Could not determine candidate location', tag: 'PROFILE_UPDATE');
         return;
       }
 
-      debugPrint('📍 [ConstituencyProfileUpdate] Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}');
+      AppLogger.notifications('Candidate location: ${candidateLocation['stateId']}/${candidateLocation['districtId']}/${candidateLocation['bodyId']}/${candidateLocation['wardId']}', tag: 'PROFILE_UPDATE');
 
       // Get all users in the same constituency (voters and candidates)
       final constituencyUsers = await _getConstituencyUsers(
@@ -480,7 +481,7 @@ class ConstituencyNotifications {
         candidateLocation['wardId']!,
       );
 
-      debugPrint('👥 [ConstituencyProfileUpdate] Found ${constituencyUsers.length} users in constituency');
+      AppLogger.notifications('Found ${constituencyUsers.length} users in constituency', tag: 'PROFILE_UPDATE');
 
       if (constituencyUsers.isEmpty) return;
 
@@ -490,7 +491,7 @@ class ConstituencyNotifications {
       for (final user in constituencyUsers) {
         // Skip if this is the candidate updating their own profile
         if (user['userId'] == candidateData['userId']) {
-          debugPrint('⏭️ [ConstituencyProfileUpdate] Skipping candidate themselves: ${user['userId']}');
+          AppLogger.notifications('Skipping candidate themselves: ${user['userId']}', tag: 'PROFILE_UPDATE');
           continue;
         }
 
@@ -500,7 +501,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('✅ [ConstituencyProfileUpdate] ${eligibleUsers.length} users have profile update notifications enabled');
+      AppLogger.notifications('${eligibleUsers.length} users have profile update notifications enabled', tag: 'PROFILE_UPDATE');
 
       if (eligibleUsers.isEmpty) return;
 
@@ -516,7 +517,7 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('📱 [ConstituencyProfileUpdate] ${tokens.length} valid FCM tokens found');
+      AppLogger.notifications('${tokens.length} valid FCM tokens found', tag: 'PROFILE_UPDATE');
 
       if (tokens.isEmpty) return;
 
@@ -537,13 +538,13 @@ class ConstituencyNotifications {
       };
 
       // Send push notifications to constituency users
-      debugPrint('📤 [ConstituencyProfileUpdate] Sending notifications to ${tokens.length} users...');
+      AppLogger.notifications('Sending notifications to ${tokens.length} users...', tag: 'PROFILE_UPDATE');
       for (final token in tokens) {
         await _sendPushNotification(token, title, body, notificationData);
       }
 
       // Store notifications in database for each user (include full constituency data for local storage)
-      debugPrint('💾 [ConstituencyProfileUpdate] Storing notifications in database...');
+      AppLogger.notifications('Storing notifications in database...', tag: 'PROFILE_UPDATE');
       final dbNotificationData = {
         ...notificationData,
         'constituency': candidateLocation, // Keep full map for database storage
@@ -553,9 +554,9 @@ class ConstituencyNotifications {
         await _storeNotification(user['userId'], title, body, dbNotificationData);
       }
 
-      debugPrint('🎉 [ConstituencyProfileUpdate] Profile update notifications sent successfully to ${validUsers.length} constituency users');
+      AppLogger.notifications('Profile update notifications sent successfully to ${validUsers.length} constituency users', tag: 'PROFILE_UPDATE');
     } catch (e) {
-      debugPrint('❌ [ConstituencyProfileUpdate] Error sending profile update notification: $e');
+      AppLogger.common('Error sending profile update notification: $e', tag: 'PROFILE_UPDATE_ERROR');
     }
   }
 
@@ -594,10 +595,10 @@ class ConstituencyNotifications {
         }
       }
 
-      debugPrint('❌ Candidate not found in any location: $candidateId');
+      AppLogger.common('Candidate not found in any location: $candidateId', tag: 'CANDIDATE_NOT_FOUND');
       return null;
     } catch (e) {
-      debugPrint('Error getting candidate data: $e');
+      AppLogger.common('Error getting candidate data: $e', tag: 'CANDIDATE_DATA_ERROR');
       return null;
     }
   }
@@ -637,7 +638,7 @@ class ConstituencyNotifications {
 
       return null;
     } catch (e) {
-      debugPrint('Error finding candidate location: $e');
+      AppLogger.common('Error finding candidate location: $e', tag: 'LOCATION_ERROR');
       return null;
     }
   }
@@ -651,10 +652,10 @@ class ConstituencyNotifications {
   ) async {
     try {
       final users = <Map<String, dynamic>>[];
-      debugPrint('🔍 [ConstituencyUsers] Finding users in constituency: $stateId/$districtId/$bodyId/$wardId');
+      AppLogger.common('Finding users in constituency: $stateId/$districtId/$bodyId/$wardId', tag: 'CONSTITUENCY_USERS');
 
       // Query users collection for voters - filter by basic location fields first
-      debugPrint('👥 [ConstituencyUsers] Querying users collection for voters...');
+      AppLogger.common('Querying users collection for voters...', tag: 'CONSTITUENCY_USERS');
       final votersQuery = await _firestore
           .collection('users')
           .where('role', isEqualTo: 'voter')
@@ -662,7 +663,7 @@ class ConstituencyNotifications {
           .where('districtId', isEqualTo: districtId)
           .get();
 
-      debugPrint('👥 [ConstituencyUsers] Found ${votersQuery.docs.length} potential voters, filtering by electionAreas...');
+      AppLogger.common('Found ${votersQuery.docs.length} potential voters, filtering by electionAreas...', tag: 'CONSTITUENCY_USERS');
 
       // Filter voters by their electionAreas to find those in the specific constituency
       for (var voterDoc in votersQuery.docs) {
@@ -686,12 +687,12 @@ class ConstituencyNotifications {
               'type': 'voter',
               'name': voterData['name'] ?? 'Voter',
             });
-            debugPrint('   ✅ Added voter: ${voterDoc.id} (${voterData['name'] ?? 'Voter'})');
+            AppLogger.common('Added voter: ${voterDoc.id} (${voterData['name'] ?? 'Voter'})', tag: 'CONSTITUENCY_USERS');
           }
         }
       }
 
-      debugPrint('👥 [ConstituencyUsers] After filtering: ${users.where((u) => u['type'] == 'voter').length} voters in constituency');
+      AppLogger.common('After filtering: ${users.where((u) => u['type'] == 'voter').length} voters in constituency', tag: 'CONSTITUENCY_USERS');
 
       // Also get candidates directly from the candidates subcollection
       final candidatesSnapshot = await _firestore
@@ -706,7 +707,7 @@ class ConstituencyNotifications {
           .collection('candidates')
           .get();
 
-      debugPrint('🏛️ [ConstituencyUsers] Found ${candidatesSnapshot.docs.length} candidates in subcollection');
+      AppLogger.common('Found ${candidatesSnapshot.docs.length} candidates in subcollection', tag: 'CONSTITUENCY_USERS');
       for (var candidateDoc in candidatesSnapshot.docs) {
         final candidateData = candidateDoc.data();
         if (candidateData['userId'] != null) {
@@ -718,22 +719,22 @@ class ConstituencyNotifications {
               'type': 'candidate',
               'name': candidateData['name'] ?? 'Candidate',
             });
-            debugPrint('   ✅ Added candidate: ${candidateData['userId']} (${candidateData['name'] ?? 'Candidate'})');
+            AppLogger.common('Added candidate: ${candidateData['userId']} (${candidateData['name'] ?? 'Candidate'})', tag: 'CONSTITUENCY_USERS');
           } else {
-            debugPrint('   ⏭️ Skipped duplicate candidate: ${candidateData['userId']}');
+            AppLogger.common('Skipped duplicate candidate: ${candidateData['userId']}', tag: 'CONSTITUENCY_USERS');
           }
         }
       }
 
-      debugPrint('📊 [ConstituencyUsers] Total users found: ${users.length}');
+      AppLogger.common('Total users found: ${users.length}', tag: 'CONSTITUENCY_USERS');
       for (final user in users) {
-        debugPrint('   - ${user['type']}: ${user['userId']} (${user['name']})');
+        AppLogger.common('- ${user['type']}: ${user['userId']} (${user['name']})', tag: 'CONSTITUENCY_USERS');
       }
 
       return users;
     } catch (e) {
-      debugPrint('❌ [ConstituencyUsers] Error getting constituency users: $e');
-      debugPrint('   Error details: $e');
+      AppLogger.common('Error getting constituency users: $e', tag: 'CONSTITUENCY_USERS_ERROR');
+      AppLogger.common('Error details: $e', tag: 'CONSTITUENCY_USERS_ERROR');
       return [];
     }
   }
@@ -744,11 +745,11 @@ class ConstituencyNotifications {
       // Query users who follow this candidate
       // This would need to be implemented based on your following system
       // For now, return empty list - constituency users will still get notifications
-      debugPrint('👥 [Followers] Getting followers for candidate: $candidateId');
+      AppLogger.common('Getting followers for candidate: $candidateId', tag: 'FOLLOWERS');
       // TODO: Implement based on your following data structure
       return [];
     } catch (e) {
-      debugPrint('Error getting candidate followers: $e');
+      AppLogger.common('Error getting candidate followers: $e', tag: 'FOLLOWERS_ERROR');
       return [];
     }
   }
@@ -770,7 +771,7 @@ class ConstituencyNotifications {
         'achievements': true,
       };
     } catch (e) {
-      debugPrint('Error getting user notification preferences: $e');
+      AppLogger.common('Error getting user notification preferences: $e', tag: 'PREFERENCES_ERROR');
       return {};
     }
   }
@@ -785,7 +786,7 @@ class ConstituencyNotifications {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting FCM token: $e');
+      AppLogger.common('Error getting FCM token: $e', tag: 'FCM_TOKEN_ERROR');
       return null;
     }
   }
@@ -798,11 +799,11 @@ class ConstituencyNotifications {
     Map<String, dynamic> data,
   ) async {
     try {
-      debugPrint('🚀 Sending constituency push notification:');
-      debugPrint('Token: $token');
-      debugPrint('Title: $title');
-      debugPrint('Body: $body');
-      debugPrint('Data: $data');
+      AppLogger.common('Sending constituency push notification...', tag: 'PUSH_NOTIFICATION');
+      AppLogger.common('Token: $token', tag: 'PUSH_NOTIFICATION');
+      AppLogger.common('Title: $title', tag: 'PUSH_NOTIFICATION');
+      AppLogger.common('Body: $body', tag: 'PUSH_NOTIFICATION');
+      AppLogger.common('Data: $data', tag: 'PUSH_NOTIFICATION');
 
       // Call Firebase Cloud Function to send push notification
       final callable = _functions.httpsCallable('sendPushNotification');
@@ -813,9 +814,9 @@ class ConstituencyNotifications {
         'notificationData': data,
       });
 
-      debugPrint('✅ Constituency push notification sent successfully');
+      AppLogger.common('Constituency push notification sent successfully', tag: 'PUSH_NOTIFICATION');
     } catch (e) {
-      debugPrint('❌ Error sending constituency push notification: $e');
+      AppLogger.common('Error sending constituency push notification: $e', tag: 'PUSH_NOTIFICATION_ERROR');
     }
   }
 
@@ -827,9 +828,9 @@ class ConstituencyNotifications {
     Map<String, dynamic> data,
   ) async {
     try {
-      debugPrint('💾 [ConstituencyStore] Storing notification in database...');
-      debugPrint('   - User ID: $userId');
-      debugPrint('   - Title: $title');
+      AppLogger.common('Storing notification in database...', tag: 'STORE_NOTIFICATION');
+      AppLogger.common('- User ID: $userId', tag: 'STORE_NOTIFICATION');
+      AppLogger.common('- Title: $title', tag: 'STORE_NOTIFICATION');
 
       await _firestore
           .collection('users')
@@ -843,9 +844,9 @@ class ConstituencyNotifications {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-      debugPrint('✅ [ConstituencyStore] Notification stored successfully');
+      AppLogger.common('Notification stored successfully', tag: 'STORE_NOTIFICATION');
     } catch (e) {
-      debugPrint('❌ [ConstituencyStore] Error storing notification: $e');
+      AppLogger.common('Error storing notification: $e', tag: 'STORE_NOTIFICATION_ERROR');
     }
   }
 }

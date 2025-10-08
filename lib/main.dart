@@ -9,11 +9,31 @@ import 'core/initial_app_data_service.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
+import 'l10n/features/onboarding/onboarding_localizations.dart';
 import 'l10n/features/profile/profile_localizations.dart';
+import 'utils/app_logger.dart';
 
 void main() async {
   final initializer = AppInitializer();
   await initializer.initialize();
+
+  // Configure app logger for filtered logging
+  // Change this configuration to control which logs are shown
+  AppLogger.configure(
+    chat: true,        // Show chat-related logs
+    auth: true,        // Show authentication logs
+    network: true,     // Show network request logs
+    cache: true,       // Show cache operation logs
+    database: true,    // Show database operation logs
+    ui: false,         // Hide UI interaction logs (can be noisy)
+    performance: true, // Show performance monitoring logs
+  );
+
+  // Quick setup options (uncomment one):
+  // AppLogger.enableAllLogs();      // Show all logs
+  // AppLogger.enableChatOnly();     // Show only chat logs
+  // AppLogger.enableCoreOnly();     // Show core functionality logs
+  // AppLogger.disableAllLogs();     // Disable all app logs
 
   runApp(const MyApp());
 }
@@ -45,6 +65,7 @@ class MyApp extends StatelessWidget {
             ...AppLocalizations.localizationsDelegates,
             CandidateLocalizations.delegate,
             AuthLocalizations.delegate,
+            OnboardingLocalizations.delegate,
             ProfileLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,

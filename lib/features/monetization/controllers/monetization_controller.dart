@@ -11,6 +11,7 @@ import '../../../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../../controllers/highlight_controller.dart';
 import '../repositories/monetization_repository.dart';
+import '../../../utils/app_logger.dart';
 
 class MonetizationController extends GetxController {
   final MonetizationRepository _repository = MonetizationRepository();
@@ -45,7 +46,7 @@ class MonetizationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    debugPrint('🎮 MONETIZATION CONTROLLER: Initializing...');
+    AppLogger.monetization('Initializing...', tag: 'MONETIZATION_CONTROLLER');
     // Don't load data on init - let the screen control when to load
     _setupRealtimeSubscriptionMonitoring();
   }
@@ -61,7 +62,7 @@ class MonetizationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      debugPrint('🎮 MONETIZATION CONTROLLER: Starting initial data load...');
+      AppLogger.monetization('Starting initial data load...', tag: 'MONETIZATION_CONTROLLER');
 
       // Load plans with retry mechanism
       await loadPlans();
@@ -69,9 +70,9 @@ class MonetizationController extends GetxController {
       // Load analytics data
       await loadAnalyticsData();
 
-      debugPrint('✅ MONETIZATION CONTROLLER: Initial data load completed');
+      AppLogger.monetization('Initial data load completed', tag: 'MONETIZATION_CONTROLLER');
     } catch (e) {
-      debugPrint('❌ MONETIZATION CONTROLLER: Failed to load initial data: $e');
+      AppLogger.monetizationError('Failed to load initial data', tag: 'MONETIZATION_CONTROLLER', error: e);
       errorMessage.value = 'Failed to load data: $e';
     } finally {
       isLoading.value = false;
@@ -87,19 +88,17 @@ class MonetizationController extends GetxController {
         final timeSinceLastLoad = DateTime.now().difference(_lastPlansLoadTime!);
         // Cache for 30 minutes during session
         if (timeSinceLastLoad.inMinutes < 30) {
-          debugPrint('📋 Using cached plans (loaded ${_lastPlansLoadTime!.toIso8601String()})');
+          AppLogger.monetization('📋 Using cached plans (loaded ${_lastPlansLoadTime!.toIso8601String()})');
           return;
         }
       }
 
-      debugPrint(
-        '🔄 MONETIZATION CONTROLLER: Loading plans based on user role and election type...',
-      );
+      AppLogger.monetization('Loading plans based on user role and election type...', tag: 'MONETIZATION_CONTROLLER');
 
       // Get current user to check role
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No authenticated user found');
+        AppLogger.monetizationError('No authenticated user found', tag: 'MONETIZATION_CONTROLLER');
         return;
       }
 
@@ -110,14 +109,14 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!userDoc.exists) {
-        debugPrint('❌ User document not found');
+        AppLogger.monetizationError('User document not found', tag: 'MONETIZATION_CONTROLLER');
         return;
       }
 
       final userData = userDoc.data()!;
       final userRole = userData['role'] as String? ?? 'voter';
 
-      debugPrint('👤 User Role: $userRole');
+      AppLogger.monetization('User Role: $userRole', tag: 'MONETIZATION_CONTROLLER');
 
       // Load all plans first
       final allPlans = await _repository.getAllPlans();
@@ -127,7 +126,7 @@ class MonetizationController extends GetxController {
       if (userRole == 'candidate') {
         // For candidates, get their election type and filter plans
         final userElectionType = await getUserElectionType(currentUser.uid);
-        debugPrint('🏛️ CANDIDATE USER: Election type: $userElectionType');
+        AppLogger.monetization('🏛️ CANDIDATE USER: Election type: $userElectionType');
 
         if (userElectionType != null) {
           // Show plans that have pricing for this election type + voter plans + free plans + highlight plans
@@ -146,20 +145,20 @@ class MonetizationController extends GetxController {
                 plan.pricing[userElectionType]!.isNotEmpty;
           }).toList();
 
-          debugPrint(
+          AppLogger.monetization(
             '🏛️ CANDIDATE USER: Showing ${filteredPlans.length} plans for election type: $userElectionType',
           );
         } else {
           // If election type cannot be determined, show all plans
           filteredPlans = allPlans;
-          debugPrint(
+          AppLogger.monetization(
             '🏛️ CANDIDATE USER: Could not determine election type, showing all ${allPlans.length} plans',
           );
         }
       } else {
         // Voters see only XP plans
         filteredPlans = allPlans.where((plan) => plan.type == 'voter').toList();
-        debugPrint(
+        AppLogger.monetization(
           '🗳️ VOTER USER: Showing only ${filteredPlans.length} XP plans',
         );
       }
@@ -170,115 +169,115 @@ class MonetizationController extends GetxController {
       _plansLoaded = true;
       _lastPlansLoadTime = DateTime.now();
 
-      debugPrint(
+      AppLogger.monetization(
         '✅ MONETIZATION CONTROLLER: Successfully loaded ${filteredPlans.length} plans for $userRole (cached: $_plansLoaded)',
       );
 
       // Debug log each plan with all its features
       for (var plan in allPlans) {
-        debugPrint('📋 PLAN DETAILS: ${plan.name} (${plan.planId})');
-        debugPrint('   💰 Type: ${plan.type} (pricing structure updated)');
-        debugPrint('   🏷️  Type: ${plan.type}');
-        debugPrint('   ✅ Active: ${plan.isActive}');
+        AppLogger.monetization('📋 PLAN DETAILS: ${plan.name} (${plan.planId})');
+        AppLogger.monetization('   💰 Type: ${plan.type} (pricing structure updated)');
+        AppLogger.monetization('   🏷️  Type: ${plan.type}');
+        AppLogger.monetization('   ✅ Active: ${plan.isActive}');
 
         // Dashboard Tabs Debug (only for candidate plans)
         if (plan.dashboardTabs != null) {
-          debugPrint('   📊 DASHBOARD TABS:');
-          debugPrint(
+          AppLogger.monetization('   📊 DASHBOARD TABS:');
+          AppLogger.monetization(
             '      🏠 Basic Info: ${plan.dashboardTabs!.basicInfo.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.basicInfo.permissions}',
           );
 
-          debugPrint(
+          AppLogger.monetization(
             '      📄 Manifesto: ${plan.dashboardTabs!.manifesto.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.manifesto.permissions}',
           );
-          debugPrint(
+          AppLogger.monetization(
             '         Features: TextOnly=${plan.dashboardTabs!.manifesto.features.textOnly}, PDF=${plan.dashboardTabs!.manifesto.features.pdfUpload}, Video=${plan.dashboardTabs!.manifesto.features.videoUpload}',
           );
-          debugPrint(
+          AppLogger.monetization(
             '         Promises: ${plan.dashboardTabs!.manifesto.features.promises ? '✅' : '❌'} (Max: ${plan.dashboardTabs!.manifesto.features.maxPromises})',
           );
 
-          debugPrint(
+          AppLogger.monetization(
             '      🏆 Achievements: ${plan.dashboardTabs!.achievements.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.achievements.permissions} (Max: ${plan.dashboardTabs!.achievements.maxAchievements})',
           );
 
-          debugPrint(
+          AppLogger.monetization(
             '      📸 Media: ${plan.dashboardTabs!.media.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.media.permissions}',
           );
-          debugPrint(
+          AppLogger.monetization(
             '         Limits: ${plan.dashboardTabs!.media.maxMediaItems} items, ${plan.dashboardTabs!.media.maxImagesPerItem} img, ${plan.dashboardTabs!.media.maxVideosPerItem} vid, ${plan.dashboardTabs!.media.maxYouTubeLinksPerItem} links',
           );
 
-          debugPrint(
+          AppLogger.monetization(
             '      📞 Contact: ${plan.dashboardTabs!.contact.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.contact.permissions}',
           );
-          debugPrint(
+          AppLogger.monetization(
             '         Features: Basic=${plan.dashboardTabs!.contact.features.basic}, Extended=${plan.dashboardTabs!.contact.features.extended}, Social=${plan.dashboardTabs!.contact.features.socialLinks}, Priority=${plan.dashboardTabs!.contact.features.prioritySupport}',
           );
 
-          debugPrint(
+          AppLogger.monetization(
             '      🎪 Events: ${plan.dashboardTabs!.events.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.events.permissions} (Max: ${plan.dashboardTabs!.events.maxEvents})',
           );
 
-          debugPrint(
+          AppLogger.monetization(
             '      📈 Analytics: ${plan.dashboardTabs!.analytics.enabled ? '✅' : '❌'} - Permissions: ${plan.dashboardTabs!.analytics.permissions}',
           );
           if (plan.dashboardTabs!.analytics.features != null) {
-            debugPrint(
+            AppLogger.monetization(
               '         Features: Basic=${plan.dashboardTabs!.analytics.features!.basic}, Advanced=${plan.dashboardTabs!.analytics.features!.advanced}, Full=${plan.dashboardTabs!.analytics.features!.fullDashboard}, RealTime=${plan.dashboardTabs!.analytics.features!.realTime}',
             );
           }
         } else {
-          debugPrint('   📊 DASHBOARD TABS: None (Highlight Plan)');
+          AppLogger.monetization('   📊 DASHBOARD TABS: None (Highlight Plan)');
         }
 
         // Profile Features Debug
-        debugPrint('   👤 PROFILE FEATURES:');
-        debugPrint(
+        AppLogger.monetization('   👤 PROFILE FEATURES:');
+        AppLogger.monetization(
           '      🏷️  Premium Badge: ${plan.profileFeatures.premiumBadge}',
         );
-        debugPrint(
+        AppLogger.monetization(
           '      📢 Sponsored Banner: ${plan.profileFeatures.sponsoredBanner}',
         );
-        debugPrint(
+        AppLogger.monetization(
           '      🎠 Highlight Carousel: ${plan.profileFeatures.highlightCarousel}',
         );
-        debugPrint(
+        AppLogger.monetization(
           '      📱 Push Notifications: ${plan.profileFeatures.pushNotifications}',
         );
-        debugPrint(
+        AppLogger.monetization(
           '      🎯 Multiple Highlights: ${plan.profileFeatures.multipleHighlights}',
         );
-        debugPrint(
+        AppLogger.monetization(
           '      👨‍💼 Admin Support: ${plan.profileFeatures.adminSupport}',
         );
-        debugPrint(
+        AppLogger.monetization(
           '      🎨 Custom Branding: ${plan.profileFeatures.customBranding}',
         );
 
         // Log pricing structure
-        debugPrint('   💰 PRICING STRUCTURE:');
+        AppLogger.monetization('   💰 PRICING STRUCTURE:');
         if (plan.pricing.isEmpty) {
-          debugPrint('      ❌ No pricing data available');
+          AppLogger.monetization('      ❌ No pricing data available');
         } else {
           plan.pricing.forEach((electionType, validityPricing) {
-            debugPrint('      🗳️  Election Type: $electionType');
+            AppLogger.monetization('      🗳️  Election Type: $electionType');
             if (validityPricing.isEmpty) {
-              debugPrint('         ❌ No validity periods');
+              AppLogger.monetization('         ❌ No validity periods');
             } else {
               validityPricing.forEach((days, price) {
-                debugPrint('         ⏰ $days days: ₹$price');
+                AppLogger.monetization('         ⏰ $days days: ₹$price');
               });
             }
           });
         }
 
-        debugPrint(
+        AppLogger.monetization(
           '   ──────────────────────────────────────────────────────────',
         );
       }
     } catch (e) {
-      debugPrint('❌ MONETIZATION CONTROLLER: Failed to load plans: $e');
+      AppLogger.monetization('❌ MONETIZATION CONTROLLER: Failed to load plans: $e');
       errorMessage.value = 'Failed to load plans: $e';
     }
   }
@@ -299,7 +298,7 @@ class MonetizationController extends GetxController {
   // Election Type Derivation using SQLite cache
   Future<String?> getUserElectionType(String userId) async {
     try {
-      debugPrint('🔍 Getting election type for user: $userId');
+      AppLogger.monetization('🔍 Getting election type for user: $userId');
 
       // Get user document to access electionAreas
       final userDoc = await FirebaseFirestore.instance
@@ -308,7 +307,7 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!userDoc.exists) {
-        debugPrint('❌ User document not found');
+        AppLogger.monetization('❌ User document not found');
         return null;
       }
 
@@ -316,7 +315,7 @@ class MonetizationController extends GetxController {
       final electionAreas = userData['electionAreas'] as List<dynamic>?;
 
       if (electionAreas == null || electionAreas.isEmpty) {
-        debugPrint('⚠️ No election areas found for user');
+        AppLogger.monetization('⚠️ No election areas found for user');
         return null;
       }
 
@@ -328,12 +327,12 @@ class MonetizationController extends GetxController {
       final districtId = userData['districtId'];
 
       if (stateId == null || districtId == null) {
-        debugPrint('⚠️ Missing stateId or districtId');
+        AppLogger.monetization('⚠️ Missing stateId or districtId');
         return null;
       }
 
       // Try SQLite cache first for better performance
-      debugPrint('🔍 Checking SQLite cache for body: $bodyId');
+      AppLogger.monetization('🔍 Checking SQLite cache for body: $bodyId');
       final localDb = LocalDatabaseService();
       final cachedBodies = await localDb.getBodiesForDistrict(districtId);
       final cachedBody = cachedBodies.firstWhereOrNull(
@@ -341,12 +340,12 @@ class MonetizationController extends GetxController {
       );
 
       if (cachedBody != null) {
-        debugPrint('✅ Found body in SQLite cache: ${cachedBody.type}');
+        AppLogger.monetization('✅ Found body in SQLite cache: ${cachedBody.type}');
         return _mapBodyTypeToElectionType(cachedBody.type);
       }
 
       // Fallback to Firebase if not in cache
-      debugPrint('⚠️ Body not in cache, querying Firebase...');
+      AppLogger.monetization('⚠️ Body not in cache, querying Firebase...');
       final bodyDoc = await FirebaseFirestore.instance
           .collection('states')
           .doc(stateId)
@@ -357,12 +356,12 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!bodyDoc.exists) {
-        debugPrint('❌ Body document not found in Firebase');
+        AppLogger.monetization('❌ Body document not found in Firebase');
         return null;
       }
 
       final bodyTypeString = bodyDoc.data()?['type'] as String?;
-      debugPrint('✅ Retrieved body type from Firebase: $bodyTypeString');
+      AppLogger.monetization('✅ Retrieved body type from Firebase: $bodyTypeString');
 
       // Convert string to BodyType enum
       BodyType? bodyType;
@@ -388,7 +387,7 @@ class MonetizationController extends GetxController {
 
       return _mapBodyTypeToElectionType(bodyType);
     } catch (e) {
-      debugPrint('❌ Error getting user election type: $e');
+      AppLogger.monetization('❌ Error getting user election type: $e');
       return null;
     }
   }
@@ -408,7 +407,7 @@ class MonetizationController extends GetxController {
       case BodyType.panchayat_samiti:
         return 'panchayat_samiti';
       default:
-        debugPrint('⚠️ Unknown body type: $bodyType');
+        AppLogger.monetization('⚠️ Unknown body type: $bodyType');
         return null;
     }
   }
@@ -578,50 +577,50 @@ class MonetizationController extends GetxController {
     String electionType,
     int validityDays,
   ) async {
-    debugPrint('💰 STARTING PAYMENT PROCESS WITH ELECTION DATA');
-    debugPrint('   Plan ID: $planId');
-    debugPrint('   Election Type: $electionType');
-    debugPrint('   Validity Days: $validityDays');
+    AppLogger.monetization('STARTING PAYMENT PROCESS WITH ELECTION DATA', tag: 'PAYMENT');
+    AppLogger.monetization('Plan ID: $planId', tag: 'PAYMENT');
+    AppLogger.monetization('Election Type: $electionType', tag: 'PAYMENT');
+    AppLogger.monetization('Validity Days: $validityDays', tag: 'PAYMENT');
 
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
       // Get current user
-      debugPrint('👤 Checking user authentication...');
+      AppLogger.monetization('👤 Checking user authentication...');
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ User not authenticated');
+        AppLogger.monetization('❌ User not authenticated');
         errorMessage.value = 'User not authenticated';
         return false;
       }
-      debugPrint('✅ User authenticated: ${currentUser.uid}');
+      AppLogger.monetization('✅ User authenticated: ${currentUser.uid}');
 
       // Get plan details
-      debugPrint('📋 Fetching plan details...');
+      AppLogger.monetization('📋 Fetching plan details...');
       final plan = getPlanById(planId);
       if (plan == null) {
-        debugPrint('❌ Plan not found: $planId');
+        AppLogger.monetization('❌ Plan not found: $planId');
         errorMessage.value = 'Plan not found';
         return false;
       }
-      debugPrint('✅ Plan found: ${plan.name}');
+      AppLogger.monetization('✅ Plan found: ${plan.name}');
 
       // Calculate amount from pricing structure
       final amount = plan.pricing[electionType]?[validityDays];
       if (amount == null) {
-        debugPrint(
+        AppLogger.monetization(
           '❌ Invalid pricing for election type $electionType and validity $validityDays',
         );
         errorMessage.value =
             'Invalid plan configuration for your election type';
         return false;
       }
-      debugPrint('✅ Calculated amount: ₹$amount');
+      AppLogger.monetization('✅ Calculated amount: ₹$amount');
 
       // Check if using mock payment or real Razorpay
       if (useMockPayment.value) {
-        debugPrint('🎯 USING MOCK PAYMENT MODE');
+        AppLogger.monetization('🎯 USING MOCK PAYMENT MODE');
 
         // Show payment processing message
         Get.snackbar(
@@ -636,7 +635,7 @@ class MonetizationController extends GetxController {
         // Simulate payment processing time
         await Future.delayed(const Duration(seconds: 3));
 
-        debugPrint('✅ Mock payment processing completed');
+        AppLogger.monetization('✅ Mock payment processing completed');
 
         // Simulate payment success directly
         final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -645,9 +644,9 @@ class MonetizationController extends GetxController {
             'order_${planId}_${electionType}_${validityDays}_$timestamp';
         final signature = 'test_signature_$timestamp';
 
-        debugPrint('✅ Mock payment successful');
-        debugPrint('   Payment ID: $paymentId');
-        debugPrint('   Order ID: $orderId');
+        AppLogger.monetization('✅ Mock payment successful');
+        AppLogger.monetization('   Payment ID: $paymentId');
+        AppLogger.monetization('   Order ID: $orderId');
 
         // Handle payment success directly with election data
         _handleMockPaymentSuccessWithElection(
@@ -659,15 +658,15 @@ class MonetizationController extends GetxController {
           validityDays,
         );
       } else {
-        debugPrint('💳 USING REAL RAZORPAY PAYMENT MODE');
+        AppLogger.monetization('💳 USING REAL RAZORPAY PAYMENT MODE');
 
         // Get Razorpay service
-        debugPrint('🔧 Getting Razorpay service...');
+        AppLogger.monetization('🔧 Getting Razorpay service...');
         final razorpayService = Get.find<RazorpayService>();
-        debugPrint('✅ Razorpay service obtained');
+        AppLogger.monetization('✅ Razorpay service obtained');
 
         // Create order (in production, this should be done on backend)
-        debugPrint('📝 Creating payment order...');
+        AppLogger.monetization('📝 Creating payment order...');
         final orderId = await razorpayService.createOrder(
           amount: amount,
           currency: 'INR',
@@ -682,17 +681,17 @@ class MonetizationController extends GetxController {
         );
 
         if (orderId == null) {
-          debugPrint(
+          AppLogger.monetization(
             '⚠️ Order ID is null (test mode) - proceeding without order',
           );
           // In test mode, we can proceed without order ID
           // Razorpay will handle the payment directly
         } else {
-          debugPrint('✅ Order created: $orderId');
+          AppLogger.monetization('✅ Order created: $orderId');
         }
 
         // Start Razorpay payment with enhanced options for test mode
-        debugPrint('🚀 Starting Razorpay payment with full options...');
+        AppLogger.monetization('🚀 Starting Razorpay payment with full options...');
         razorpayService.startPayment(
           orderId:
               orderId ??
@@ -710,55 +709,55 @@ class MonetizationController extends GetxController {
           },
         );
 
-        debugPrint('✅ Razorpay payment initiated with all payment options');
+        AppLogger.monetization('✅ Razorpay payment initiated with all payment options');
         // Payment result will be handled by callbacks
       }
 
       return true;
     } catch (e) {
-      debugPrint('❌ PAYMENT PROCESS ERROR: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetizationError('PAYMENT PROCESS ERROR', tag: 'PAYMENT', error: e);
+      AppLogger.monetization('Error Type: ${e.runtimeType}', tag: 'PAYMENT');
+      AppLogger.monetization('Stack Trace: ${StackTrace.current}', tag: 'PAYMENT');
       errorMessage.value = 'Payment failed: $e';
       return false;
     } finally {
       isLoading.value = false;
-      debugPrint('🔄 Payment process loading state reset');
+      AppLogger.monetization('Payment process loading state reset', tag: 'PAYMENT');
     }
   }
 
   Future<bool> processPayment(String planId, int amount) async {
-    debugPrint('💰 STARTING PAYMENT PROCESS');
-    debugPrint('   Plan ID: $planId');
-    debugPrint('   Amount: ₹${amount}');
+    AppLogger.monetization('💰 STARTING PAYMENT PROCESS');
+    AppLogger.monetization('   Plan ID: $planId');
+    AppLogger.monetization('   Amount: ₹${amount}');
 
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
       // Get current user
-      debugPrint('👤 Checking user authentication...');
+      AppLogger.monetization('Checking user authentication...', tag: 'PAYMENT');
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ User not authenticated');
+        AppLogger.monetizationError('User not authenticated', tag: 'PAYMENT');
         errorMessage.value = 'User not authenticated';
         return false;
       }
-      debugPrint('✅ User authenticated: ${currentUser.uid}');
+      AppLogger.monetization('User authenticated: ${currentUser.uid}', tag: 'PAYMENT');
 
       // Get plan details
-      debugPrint('📋 Fetching plan details...');
+      AppLogger.monetization('Fetching plan details...', tag: 'PAYMENT');
       final plan = getPlanById(planId);
       if (plan == null) {
-        debugPrint('❌ Plan not found: $planId');
+        AppLogger.monetizationError('Plan not found: $planId', tag: 'PAYMENT');
         errorMessage.value = 'Plan not found';
         return false;
       }
-      debugPrint('✅ Plan found: ${plan.name}');
+      AppLogger.monetization('Plan found: ${plan.name}', tag: 'PAYMENT');
 
       // Check if using mock payment or real Razorpay
       if (useMockPayment.value) {
-        debugPrint('🎯 USING MOCK PAYMENT MODE');
+        AppLogger.monetization('USING MOCK PAYMENT MODE', tag: 'PAYMENT');
 
         // Show payment processing message
         Get.snackbar(
@@ -773,7 +772,7 @@ class MonetizationController extends GetxController {
         // Simulate payment processing time
         await Future.delayed(const Duration(seconds: 3));
 
-        debugPrint('✅ Mock payment processing completed');
+        AppLogger.monetization('Mock payment processing completed', tag: 'PAYMENT');
 
         // Simulate payment success directly
         final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -781,22 +780,22 @@ class MonetizationController extends GetxController {
         final orderId = 'order_${planId}_$timestamp';
         final signature = 'test_signature_$timestamp';
 
-        debugPrint('✅ Mock payment successful');
-        debugPrint('   Payment ID: $paymentId');
-        debugPrint('   Order ID: $orderId');
+        AppLogger.monetization('Mock payment successful', tag: 'PAYMENT');
+        AppLogger.monetization('Payment ID: $paymentId', tag: 'PAYMENT');
+        AppLogger.monetization('Order ID: $orderId', tag: 'PAYMENT');
 
         // Handle payment success directly
         _handleMockPaymentSuccess(paymentId, orderId, signature, planId);
       } else {
-        debugPrint('💳 USING REAL RAZORPAY PAYMENT MODE');
+        AppLogger.monetization('USING REAL RAZORPAY PAYMENT MODE', tag: 'PAYMENT');
 
         // Get Razorpay service
-        debugPrint('🔧 Getting Razorpay service...');
+        AppLogger.monetization('Getting Razorpay service...', tag: 'PAYMENT');
         final razorpayService = Get.find<RazorpayService>();
-        debugPrint('✅ Razorpay service obtained');
+        AppLogger.monetization('Razorpay service obtained', tag: 'PAYMENT');
 
         // Create order (in production, this should be done on backend)
-        debugPrint('📝 Creating payment order...');
+        AppLogger.monetization('📝 Creating payment order...');
         final orderId = await razorpayService.createOrder(
           amount: amount,
           currency: 'INR',
@@ -809,17 +808,17 @@ class MonetizationController extends GetxController {
         );
 
         if (orderId == null) {
-          debugPrint(
+          AppLogger.monetization(
             '⚠️ Order ID is null (test mode) - proceeding without order',
           );
           // In test mode, we can proceed without order ID
           // Razorpay will handle the payment directly
         } else {
-          debugPrint('✅ Order created: $orderId');
+          AppLogger.monetization('✅ Order created: $orderId');
         }
 
         // Start Razorpay payment with enhanced options for test mode
-        debugPrint('🚀 Starting Razorpay payment with full options...');
+        AppLogger.monetization('🚀 Starting Razorpay payment with full options...');
         razorpayService.startPayment(
           orderId:
               orderId ?? 'test_order_${DateTime.now().millisecondsSinceEpoch}',
@@ -831,53 +830,53 @@ class MonetizationController extends GetxController {
           notes: {'planId': planId, 'userId': currentUser.uid},
         );
 
-        debugPrint('✅ Razorpay payment initiated with all payment options');
+        AppLogger.monetization('✅ Razorpay payment initiated with all payment options');
         // Payment result will be handled by callbacks
       }
 
       return true;
     } catch (e) {
-      debugPrint('❌ PAYMENT PROCESS ERROR: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ PAYMENT PROCESS ERROR: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       errorMessage.value = 'Payment failed: $e';
       return false;
     } finally {
       isLoading.value = false;
-      debugPrint('🔄 Payment process loading state reset');
+      AppLogger.monetization('🔄 Payment process loading state reset');
     }
   }
 
   // Handle successful payment
   void handlePaymentSuccess(PaymentSuccessResponse response) {
-    debugPrint('🎉 PAYMENT SUCCESS HANDLER CALLED');
-    debugPrint('   Payment ID: ${response.paymentId}');
-    debugPrint('   Order ID: ${response.orderId}');
-    debugPrint('   Signature: ${response.signature}');
+    AppLogger.monetization('🎉 PAYMENT SUCCESS HANDLER CALLED');
+    AppLogger.monetization('   Payment ID: ${response.paymentId}');
+    AppLogger.monetization('   Order ID: ${response.orderId}');
+    AppLogger.monetization('   Signature: ${response.signature}');
 
     // Extract notes from response if available
     final orderParts = response.orderId?.split('_') ?? [];
-    debugPrint('   Order parts: $orderParts');
+    AppLogger.monetization('   Order parts: $orderParts');
 
     if (orderParts.length >= 2) {
       final planId = orderParts[1]; // Extract planId from orderId
-      debugPrint('   Extracted Plan ID: $planId');
+      AppLogger.monetization('   Extracted Plan ID: $planId');
 
       final currentUser = FirebaseAuth.instance.currentUser;
-      debugPrint('   Current User: ${currentUser?.uid ?? 'null'}');
+      AppLogger.monetization('   Current User: ${currentUser?.uid ?? 'null'}');
 
       if (currentUser != null) {
-        debugPrint('🔄 Completing purchase after payment...');
+        AppLogger.monetization('🔄 Completing purchase after payment...');
         // Complete the purchase
         _completePurchaseAfterPayment(currentUser.uid, planId);
       } else {
-        debugPrint('❌ No authenticated user found for completing purchase');
+        AppLogger.monetization('❌ No authenticated user found for completing purchase');
       }
     } else {
-      debugPrint('❌ Could not extract plan ID from order ID');
+      AppLogger.monetization('❌ Could not extract plan ID from order ID');
     }
 
-    debugPrint('🔔 Showing success snackbar');
+    AppLogger.monetization('🔔 Showing success snackbar');
     Get.snackbar(
       'Success',
       'Payment completed successfully!',
@@ -888,14 +887,14 @@ class MonetizationController extends GetxController {
 
   // Handle payment error
   void handlePaymentError(PaymentFailureResponse response) {
-    debugPrint('❌ PAYMENT ERROR HANDLER CALLED');
-    debugPrint('   Error Code: ${response.code}');
-    debugPrint('   Error Message: ${response.message}');
+    AppLogger.monetization('❌ PAYMENT ERROR HANDLER CALLED');
+    AppLogger.monetization('   Error Code: ${response.code}');
+    AppLogger.monetization('   Error Message: ${response.message}');
 
     errorMessage.value = response.message ?? 'Payment failed';
-    debugPrint('   Set error message: ${errorMessage.value}');
+    AppLogger.monetization('   Set error message: ${errorMessage.value}');
 
-    debugPrint('🔔 Showing error snackbar');
+    AppLogger.monetization('🔔 Showing error snackbar');
     Get.snackbar(
       'Payment Failed',
       response.message ?? 'Unknown error occurred',
@@ -911,24 +910,24 @@ class MonetizationController extends GetxController {
     String signature,
     String planId,
   ) {
-    debugPrint('🎉 MOCK PAYMENT SUCCESS HANDLER CALLED');
-    debugPrint('   Payment ID: $paymentId');
-    debugPrint('   Order ID: $orderId');
-    debugPrint('   Signature: $signature');
-    debugPrint('   Plan ID: $planId');
+    AppLogger.monetization('🎉 MOCK PAYMENT SUCCESS HANDLER CALLED');
+    AppLogger.monetization('   Payment ID: $paymentId');
+    AppLogger.monetization('   Order ID: $orderId');
+    AppLogger.monetization('   Signature: $signature');
+    AppLogger.monetization('   Plan ID: $planId');
 
     final currentUser = FirebaseAuth.instance.currentUser;
-    debugPrint('   Current User: ${currentUser?.uid ?? 'null'}');
+    AppLogger.monetization('   Current User: ${currentUser?.uid ?? 'null'}');
 
     if (currentUser != null) {
-      debugPrint('🔄 Completing purchase after mock payment...');
+      AppLogger.monetization('🔄 Completing purchase after mock payment...');
       // Complete the purchase
       _completePurchaseAfterPayment(currentUser.uid, planId);
     } else {
-      debugPrint('❌ No authenticated user found for completing purchase');
+      AppLogger.monetization('❌ No authenticated user found for completing purchase');
     }
 
-    debugPrint('🔔 Showing success snackbar');
+    AppLogger.monetization('🔔 Showing success snackbar');
     Get.snackbar(
       'Payment Successful!',
       'Your payment has been processed successfully.',
@@ -947,19 +946,19 @@ class MonetizationController extends GetxController {
     String electionType,
     int validityDays,
   ) {
-    debugPrint('🎉 MOCK PAYMENT SUCCESS HANDLER WITH ELECTION CALLED');
-    debugPrint('   Payment ID: $paymentId');
-    debugPrint('   Order ID: $orderId');
-    debugPrint('   Signature: $signature');
-    debugPrint('   Plan ID: $planId');
-    debugPrint('   Election Type: $electionType');
-    debugPrint('   Validity Days: $validityDays');
+    AppLogger.monetization('🎉 MOCK PAYMENT SUCCESS HANDLER WITH ELECTION CALLED');
+    AppLogger.monetization('   Payment ID: $paymentId');
+    AppLogger.monetization('   Order ID: $orderId');
+    AppLogger.monetization('   Signature: $signature');
+    AppLogger.monetization('   Plan ID: $planId');
+    AppLogger.monetization('   Election Type: $electionType');
+    AppLogger.monetization('   Validity Days: $validityDays');
 
     final currentUser = FirebaseAuth.instance.currentUser;
-    debugPrint('   Current User: ${currentUser?.uid ?? 'null'}');
+    AppLogger.monetization('   Current User: ${currentUser?.uid ?? 'null'}');
 
     if (currentUser != null) {
-      debugPrint(
+      AppLogger.monetization(
         '🔄 Completing purchase after mock payment with election data...',
       );
       // Complete the purchase with election data
@@ -970,10 +969,10 @@ class MonetizationController extends GetxController {
         validityDays,
       );
     } else {
-      debugPrint('❌ No authenticated user found for completing purchase');
+      AppLogger.monetization('❌ No authenticated user found for completing purchase');
     }
 
-    debugPrint('🔔 Showing success snackbar');
+    AppLogger.monetization('🔔 Showing success snackbar');
     Get.snackbar(
       'Payment Successful!',
       'Your payment has been processed successfully.',
@@ -988,21 +987,21 @@ class MonetizationController extends GetxController {
     String userId,
     String planId,
   ) async {
-    debugPrint('🔄 COMPLETING PURCHASE AFTER PAYMENT');
-    debugPrint('   User ID: $userId');
-    debugPrint('   Plan ID: $planId');
+    AppLogger.monetization('🔄 COMPLETING PURCHASE AFTER PAYMENT');
+    AppLogger.monetization('   User ID: $userId');
+    AppLogger.monetization('   Plan ID: $planId');
 
     try {
-      debugPrint('📋 Getting plan details...');
+      AppLogger.monetization('📋 Getting plan details...');
       final plan = getPlanById(planId);
       if (plan == null) {
-        debugPrint('❌ Plan not found, aborting purchase completion');
+        AppLogger.monetization('❌ Plan not found, aborting purchase completion');
         return;
       }
-      debugPrint('✅ Plan details: ${plan.name} (${plan.type})');
+      AppLogger.monetization('✅ Plan details: ${plan.name} (${plan.type})');
 
       // Create subscription record
-      debugPrint('📝 Creating subscription record...');
+      AppLogger.monetization('📝 Creating subscription record...');
       // For legacy method, use default amount (this method is deprecated)
       final amountPaid = plan.type == 'voter' ? 0 : 0;
 
@@ -1016,34 +1015,34 @@ class MonetizationController extends GetxController {
         isActive: true,
       );
 
-      debugPrint('✅ Subscription created');
+      AppLogger.monetization('✅ Subscription created');
 
       // Update user based on plan type
       if (plan.type == 'candidate') {
-        debugPrint('👤 Upgrading user to premium candidate...');
+        AppLogger.monetization('👤 Upgrading user to premium candidate...');
         await _repository.upgradeUserToPremiumCandidate(userId);
         await _repository.updateUserSubscription(
           userId,
           planId,
           null, // One-time subscription
         );
-        debugPrint('✅ User upgraded to premium candidate');
+        AppLogger.monetization('✅ User upgraded to premium candidate');
       }
 
       // Reload data
-      debugPrint('🔄 Reloading user data...');
+      AppLogger.monetization('🔄 Reloading user data...');
       await loadUserSubscriptions(userId);
       await loadAnalyticsData();
-      debugPrint('✅ User data reloaded');
+      AppLogger.monetization('✅ User data reloaded');
 
-      debugPrint('🎉 PURCHASE COMPLETED SUCCESSFULLY');
-      debugPrint('   Plan: $planId');
-      debugPrint('   User: $userId');
-      debugPrint('   Type: ${plan.type}');
+      AppLogger.monetization('🎉 PURCHASE COMPLETED SUCCESSFULLY');
+      AppLogger.monetization('   Plan: $planId');
+      AppLogger.monetization('   User: $userId');
+      AppLogger.monetization('   Type: ${plan.type}');
     } catch (e) {
-      debugPrint('❌ ERROR COMPLETING PURCHASE: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ ERROR COMPLETING PURCHASE: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       errorMessage.value = 'Failed to complete purchase: $e';
     }
   }
@@ -1055,25 +1054,25 @@ class MonetizationController extends GetxController {
     String electionType,
     int validityDays,
   ) async {
-    debugPrint('🔄 COMPLETING PURCHASE AFTER PAYMENT WITH ELECTION DATA');
-    debugPrint('   User ID: $userId');
-    debugPrint('   Plan ID: $planId');
-    debugPrint('   Election Type: $electionType');
-    debugPrint('   Validity Days: $validityDays');
+    AppLogger.monetization('🔄 COMPLETING PURCHASE AFTER PAYMENT WITH ELECTION DATA');
+    AppLogger.monetization('   User ID: $userId');
+    AppLogger.monetization('   Plan ID: $planId');
+    AppLogger.monetization('   Election Type: $electionType');
+    AppLogger.monetization('   Validity Days: $validityDays');
 
     try {
-      debugPrint('📋 Getting plan details...');
+      AppLogger.monetization('📋 Getting plan details...');
       final plan = getPlanById(planId);
       if (plan == null) {
-        debugPrint('❌ Plan not found, aborting purchase completion');
+        AppLogger.monetization('❌ Plan not found, aborting purchase completion');
         return;
       }
-      debugPrint('✅ Plan details: ${plan.name} (${plan.type})');
+      AppLogger.monetization('✅ Plan details: ${plan.name} (${plan.type})');
 
       // Calculate amount from pricing structure
       final amountPaid = plan.pricing[electionType]?[validityDays];
       if (amountPaid == null) {
-        debugPrint('❌ Invalid pricing, aborting purchase completion');
+        AppLogger.monetization('❌ Invalid pricing, aborting purchase completion');
         return;
       }
 
@@ -1082,7 +1081,7 @@ class MonetizationController extends GetxController {
       final expiresAt = purchasedAt.add(Duration(days: validityDays));
 
       // Create subscription record with election data
-      debugPrint('📝 Creating subscription record with election data...');
+      AppLogger.monetization('📝 Creating subscription record with election data...');
       final subscription = UserSubscription(
         subscriptionId: '',
         userId: userId,
@@ -1097,18 +1096,18 @@ class MonetizationController extends GetxController {
       );
 
       await _repository.createSubscription(subscription);
-      debugPrint('✅ Subscription created');
+      AppLogger.monetization('✅ Subscription created');
 
       // Update user based on plan type
       if (plan.type == 'candidate') {
-        debugPrint('👤 Upgrading user to premium candidate...');
+        AppLogger.monetization('👤 Upgrading user to premium candidate...');
         await _repository.upgradeUserToPremiumCandidate(userId);
         await _repository.updateUserSubscription(
           userId,
           planId,
           expiresAt, // Now we have an expiration date
         );
-        debugPrint('✅ User upgraded to premium candidate with expiration');
+        AppLogger.monetization('✅ User upgraded to premium candidate with expiration');
 
         // For Platinum plan, create welcome content
         if (planId == 'platinum_plan') {
@@ -1117,21 +1116,21 @@ class MonetizationController extends GetxController {
       }
 
       // Reload data
-      debugPrint('🔄 Reloading user data...');
+      AppLogger.monetization('🔄 Reloading user data...');
       await loadUserSubscriptions(userId);
       await loadAnalyticsData();
-      debugPrint('✅ User data reloaded');
+      AppLogger.monetization('✅ User data reloaded');
 
-      debugPrint('🎉 PURCHASE COMPLETED SUCCESSFULLY WITH ELECTION DATA');
-      debugPrint('   Plan: $planId');
-      debugPrint('   User: $userId');
-      debugPrint('   Election Type: $electionType');
-      debugPrint('   Validity Days: $validityDays');
-      debugPrint('   Expires: $expiresAt');
+      AppLogger.monetization('🎉 PURCHASE COMPLETED SUCCESSFULLY WITH ELECTION DATA');
+      AppLogger.monetization('   Plan: $planId');
+      AppLogger.monetization('   User: $userId');
+      AppLogger.monetization('   Election Type: $electionType');
+      AppLogger.monetization('   Validity Days: $validityDays');
+      AppLogger.monetization('   Expires: $expiresAt');
     } catch (e) {
-      debugPrint('❌ ERROR COMPLETING PURCHASE WITH ELECTION DATA: $e');
-      debugPrint('   Error Type: ${e.runtimeType}');
-      debugPrint('   Stack Trace: ${StackTrace.current}');
+      AppLogger.monetization('❌ ERROR COMPLETING PURCHASE WITH ELECTION DATA: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       errorMessage.value = 'Failed to complete purchase: $e';
     }
   }
@@ -1139,12 +1138,12 @@ class MonetizationController extends GetxController {
   // Create welcome content for Platinum users
   Future<void> _createPlatinumWelcomeContent(String userId) async {
     try {
-      debugPrint('🏆 Creating Platinum welcome content for user: $userId');
+      AppLogger.monetization('🏆 Creating Platinum welcome content for user: $userId');
 
       // Get candidate data
       final candidateData = await _getCandidateDataForUser(userId);
       if (candidateData == null) {
-        debugPrint('⚠️ No candidate data found for Platinum welcome content');
+        AppLogger.monetization('⚠️ No candidate data found for Platinum welcome content');
         return;
       }
 
@@ -1172,16 +1171,16 @@ class MonetizationController extends GetxController {
         imageUrl: candidateData['photo'],
       );
 
-      debugPrint('✅ Platinum welcome content created');
+      AppLogger.monetization('✅ Platinum welcome content created');
     } catch (e) {
-      debugPrint('❌ Error creating Platinum welcome content: $e');
+      AppLogger.monetization('❌ Error creating Platinum welcome content: $e');
     }
   }
 
   // Get candidate data for a user
   Future<Map<String, dynamic>?> _getCandidateDataForUser(String userId) async {
     try {
-      debugPrint('🔍 Looking for candidate data for user: $userId');
+      AppLogger.monetization('🔍 Looking for candidate data for user: $userId');
 
       // Get user document to find candidate location
       final userDoc = await FirebaseFirestore.instance
@@ -1190,7 +1189,7 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!userDoc.exists) {
-        debugPrint('❌ User document not found');
+        AppLogger.monetization('❌ User document not found');
         return null;
       }
 
@@ -1198,7 +1197,7 @@ class MonetizationController extends GetxController {
       final electionAreas = userData['electionAreas'] as List<dynamic>?;
 
       if (electionAreas == null || electionAreas.isEmpty) {
-        debugPrint('⚠️ No election areas found for user');
+        AppLogger.monetization('⚠️ No election areas found for user');
         return null;
       }
 
@@ -1223,17 +1222,17 @@ class MonetizationController extends GetxController {
           .get();
 
       if (candidateQuery.docs.isEmpty) {
-        debugPrint('❌ No candidate found for user');
+        AppLogger.monetization('❌ No candidate found for user');
         return null;
       }
 
       final candidateData = candidateQuery.docs.first.data();
       candidateData['candidateId'] = candidateQuery.docs.first.id;
 
-      debugPrint('✅ Found candidate: ${candidateData['name']}');
+      AppLogger.monetization('✅ Found candidate: ${candidateData['name']}');
       return candidateData;
     } catch (e) {
-      debugPrint('❌ Error getting candidate data: $e');
+      AppLogger.monetization('❌ Error getting candidate data: $e');
       return null;
     }
   }
@@ -1256,12 +1255,12 @@ class MonetizationController extends GetxController {
   // Initialize default plans (call this once during app setup)
   Future<void> initializeDefaultPlans() async {
     try {
-      debugPrint('🔧 INITIALIZING DEFAULT PLANS...');
+      AppLogger.monetization('🔧 INITIALIZING DEFAULT PLANS...');
       await _repository.initializeDefaultPlans();
       await loadPlans();
-      debugPrint('✅ DEFAULT PLANS INITIALIZED SUCCESSFULLY');
+      AppLogger.monetization('✅ DEFAULT PLANS INITIALIZED SUCCESSFULLY');
     } catch (e) {
-      debugPrint('❌ FAILED TO INITIALIZE PLANS: $e');
+      AppLogger.monetization('❌ FAILED TO INITIALIZE PLANS: $e');
       errorMessage.value = 'Failed to initialize plans: $e';
     }
   }
@@ -1269,7 +1268,7 @@ class MonetizationController extends GetxController {
   // Force refresh plans (useful for hot reload issues)
   Future<void> refreshPlans() async {
     try {
-      debugPrint('🔄 FORCE REFRESH: Reloading plans after hot reload...');
+      AppLogger.monetization('🔄 FORCE REFRESH: Reloading plans after hot reload...');
       isLoading.value = true;
       errorMessage.value = '';
 
@@ -1284,9 +1283,9 @@ class MonetizationController extends GetxController {
       // Reload everything with force refresh
       await loadInitialData();
 
-      debugPrint('✅ FORCE REFRESH: Plans reloaded successfully');
+      AppLogger.monetization('✅ FORCE REFRESH: Plans reloaded successfully');
     } catch (e) {
-      debugPrint('❌ FORCE REFRESH FAILED: $e');
+      AppLogger.monetization('❌ FORCE REFRESH FAILED: $e');
       errorMessage.value = 'Failed to refresh: $e';
     } finally {
       isLoading.value = false;
@@ -1376,7 +1375,7 @@ class MonetizationController extends GetxController {
       _addLog('🎉 User status data loaded successfully');
     } catch (e) {
       _addLog('❌ Error loading user status: $e');
-      debugPrint('Error loading user status: $e');
+      AppLogger.monetization('Error loading user status: $e');
     }
   }
 
@@ -1384,7 +1383,7 @@ class MonetizationController extends GetxController {
     final timestamp = DateTime.now().toIso8601String().substring(11, 19);
     final logMessage = '[$timestamp] $message';
     userStatusLogs.add(logMessage);
-    debugPrint(logMessage);
+    AppLogger.monetization(logMessage);
   }
 
   // Get user status summary for display
@@ -1459,7 +1458,7 @@ class MonetizationController extends GetxController {
 
   // Real-time subscription monitoring
   void _setupRealtimeSubscriptionMonitoring() {
-    debugPrint('🔄 Setting up real-time subscription monitoring...');
+    AppLogger.monetization('🔄 Setting up real-time subscription monitoring...');
 
     ever(currentFirebaseUser, (User? user) {
       if (user != null) {
@@ -1476,7 +1475,7 @@ class MonetizationController extends GetxController {
   }
 
   void _startUserSubscriptionListener(String userId) {
-    debugPrint('👂 Starting user subscription listener for: $userId');
+    AppLogger.monetization('👂 Starting user subscription listener for: $userId');
 
     _subscriptionListener?.cancel(); // Cancel any existing listener
 
@@ -1497,7 +1496,7 @@ class MonetizationController extends GetxController {
             final currentPremium = userModel.premium ?? false;
 
             if (previousPremium && !currentPremium) {
-              debugPrint('⚠️ Subscription expired - user downgraded to free plan');
+              AppLogger.monetization('⚠️ Subscription expired - user downgraded to free plan');
               // Trigger UI refresh
               update();
 
@@ -1512,12 +1511,12 @@ class MonetizationController extends GetxController {
             }
           }
         }, onError: (error) {
-          debugPrint('❌ Error in user subscription listener: $error');
+          AppLogger.monetization('❌ Error in user subscription listener: $error');
         });
   }
 
   void _stopUserSubscriptionListener() {
-    debugPrint('🔇 Stopping user subscription listener');
+    AppLogger.monetization('🔇 Stopping user subscription listener');
     _subscriptionListener?.cancel();
     _subscriptionListener = null;
   }

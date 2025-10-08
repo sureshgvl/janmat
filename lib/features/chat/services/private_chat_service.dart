@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
 
@@ -17,7 +18,14 @@ class PrivateChatService {
   Future<ChatRoom?> getExistingPrivateChat(String userId1, String userId2) async {
     try {
       final roomId = _generatePrivateChatId(userId1, userId2);
-      final doc = await _firestore.collection('chats').doc(roomId).get();
+
+      // Check if chat exists in user1's subcollection
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId1)
+          .collection('privateChats')
+          .doc(roomId)
+          .get();
 
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
@@ -26,7 +34,7 @@ class PrivateChatService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error checking existing private chat: $e');
+      AppLogger.chat('Error checking existing private chat: $e');
       return null;
     }
   }
@@ -39,12 +47,12 @@ class PrivateChatService {
     String otherUserName,
   ) async {
     try {
-      debugPrint('🔐 Creating private chat between $currentUserId ($currentUserName) and $otherUserId ($otherUserName)');
+      AppLogger.chat('🔐 Creating private chat between $currentUserId ($currentUserName) and $otherUserId ($otherUserName)');
 
       // Check if private chat already exists
       final existingChat = await getExistingPrivateChat(currentUserId, otherUserId);
       if (existingChat != null) {
-        debugPrint('✅ Private chat already exists: ${existingChat.roomId} with title: ${existingChat.title}');
+        AppLogger.chat('✅ Private chat already exists: ${existingChat.roomId} with title: ${existingChat.title}');
         return existingChat;
       }
 
@@ -60,11 +68,45 @@ class PrivateChatService {
         members: [currentUserId, otherUserId],
       );
 
-      debugPrint('📝 Created private chat room: $roomId with title: "${chatRoom.title}"');
+      AppLogger.chat('📝 Created private chat room: $roomId with title: "${chatRoom.title}"');
 
-      return await _repository.createRoomWithMembers(chatRoom, [currentUserId, otherUserId]);
+      // Create chat in both users' subcollections using batch write
+      final batch = _firestore.batch();
+      final chatData = chatRoom.toJson();
+
+      // Add to current user's private chats
+      batch.set(
+        _firestore.collection('users').doc(currentUserId).collection('privateChats').doc(roomId),
+        {
+          ...chatData,
+          'otherUserId': otherUserId,
+          'otherUserName': otherUserName,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'unreadCount': 0,
+        }
+      );
+
+      // Add to other user's private chats
+      batch.set(
+        _firestore.collection('users').doc(otherUserId).collection('privateChats').doc(roomId),
+        {
+          ...chatData,
+          'otherUserId': currentUserId,
+          'otherUserName': currentUserName,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'unreadCount': 0,
+        }
+      );
+
+      await batch.commit();
+
+      // Also create the main chat room for messages (keep existing structure for messages)
+      await _repository.createRoomWithMembers(chatRoom, [currentUserId, otherUserId]);
+
+      AppLogger.chat('✅ Private chat created in both users\' subcollections');
+      return chatRoom;
     } catch (e) {
-      debugPrint('❌ Error creating private chat: $e');
+      AppLogger.chat('❌ Error creating private chat: $e');
       return null;
     }
   }
@@ -73,9 +115,10 @@ class PrivateChatService {
   Future<List<ChatRoom>> getUserPrivateChats(String userId) async {
     try {
       final query = _firestore
-          .collection('chats')
-          .where('type', isEqualTo: 'private')
-          .where('members', arrayContains: userId);
+          .collection('users')
+          .doc(userId)
+          .collection('privateChats')
+          .orderBy('lastMessageAt', descending: true);
 
       final snapshot = await query.get();
       return snapshot.docs.map((doc) {
@@ -84,7 +127,7 @@ class PrivateChatService {
         return ChatRoom.fromJson(data);
       }).toList();
     } catch (e) {
-      debugPrint('Error getting private chats: $e');
+      AppLogger.chat('Error getting private chats: $e');
       return [];
     }
   }
@@ -92,35 +135,109 @@ class PrivateChatService {
   /// Get user info for private chat display
   Future<Map<String, dynamic>?> getPrivateChatUserInfo(String roomId, String currentUserId) async {
     try {
-      final roomDoc = await _firestore.collection('chats').doc(roomId).get();
-      if (!roomDoc.exists) return null;
+      // Get chat info from user's private chats subcollection
+      final chatDoc = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('privateChats')
+          .doc(roomId)
+          .get();
 
-      final roomData = roomDoc.data() as Map<String, dynamic>;
-      final members = List<String>.from(roomData['members'] ?? []);
+      if (!chatDoc.exists) return null;
 
-      // Find the other user
-      final otherUserId = members.firstWhere(
-        (id) => id != currentUserId,
-        orElse: () => '',
-      );
+      final chatData = chatDoc.data() as Map<String, dynamic>;
 
-      if (otherUserId.isEmpty) return null;
-
-      // Get other user's info
-      final userDoc = await _firestore.collection('users').doc(otherUserId).get();
-      if (!userDoc.exists) return null;
-
-      final userData = userDoc.data() as Map<String, dynamic>;
+      // Return the cached user info from the subcollection
       return {
-        'userId': otherUserId,
-        'name': userData['name'] ?? 'Unknown User',
-        'phone': userData['phone'] ?? '',
-        'photoURL': userData['photoURL'],
-        'role': userData['role'] ?? 'voter',
+        'userId': chatData['otherUserId'] ?? '',
+        'name': chatData['otherUserName'] ?? 'Unknown User',
+        'phone': '', // Not stored in subcollection for privacy
+        'photoURL': null, // Not stored in subcollection for privacy
+        'role': 'user', // Generic role for privacy
       };
     } catch (e) {
-      debugPrint('Error getting private chat user info: $e');
+      AppLogger.chat('Error getting private chat user info: $e');
       return null;
+    }
+  }
+
+  /// Update last message info in both users' private chat documents
+  Future<void> updateChatLastMessage(String roomId, String messagePreview, String senderId, DateTime messageTime) async {
+    try {
+      // Extract user IDs from room ID
+      final roomIdParts = roomId.replaceFirst('private_', '').split('_');
+      if (roomIdParts.length != 2) return;
+
+      final userId1 = roomIdParts[0];
+      final userId2 = roomIdParts[1];
+
+      final batch = _firestore.batch();
+
+      // Update for user 1
+      batch.update(
+        _firestore.collection('users').doc(userId1).collection('privateChats').doc(roomId),
+        {
+          'lastMessagePreview': messagePreview,
+          'lastMessageSender': senderId,
+          'lastMessageAt': Timestamp.fromDate(messageTime),
+          // Increment unread count for the recipient (not sender)
+          'unreadCount': senderId == userId1 ? 0 : FieldValue.increment(1),
+        }
+      );
+
+      // Update for user 2
+      batch.update(
+        _firestore.collection('users').doc(userId2).collection('privateChats').doc(roomId),
+        {
+          'lastMessagePreview': messagePreview,
+          'lastMessageSender': senderId,
+          'lastMessageAt': Timestamp.fromDate(messageTime),
+          // Increment unread count for the recipient (not sender)
+          'unreadCount': senderId == userId2 ? 0 : FieldValue.increment(1),
+        }
+      );
+
+      await batch.commit();
+      AppLogger.chat('✅ Updated last message info for private chat: $roomId');
+    } catch (e) {
+      AppLogger.chat('❌ Error updating chat last message: $e');
+    }
+  }
+
+  /// Mark messages as read for a user in a private chat
+  Future<void> markChatAsRead(String roomId, String userId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('privateChats')
+          .doc(roomId)
+          .update({'unreadCount': 0});
+
+      AppLogger.chat('✅ Marked chat as read: $roomId for user: $userId');
+    } catch (e) {
+      AppLogger.chat('❌ Error marking chat as read: $e');
+    }
+  }
+
+  /// Get unread count for a specific private chat
+  Future<int> getChatUnreadCount(String roomId, String userId) async {
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('privateChats')
+          .doc(roomId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['unreadCount'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      AppLogger.chat('❌ Error getting chat unread count: $e');
+      return 0;
     }
   }
 }

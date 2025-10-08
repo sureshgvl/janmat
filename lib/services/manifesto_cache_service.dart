@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/comment_model.dart';
 import '../models/like_model.dart';
+import '../utils/app_logger.dart';
 import 'local_database_service.dart';
 
 class ManifestoCacheService {
@@ -28,7 +29,7 @@ class ManifestoCacheService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    debugPrint('💾 [ManifestoCache] Cached comment: ${comment.id}');
+    AppLogger.common('💾 [ManifestoCache] Cached comment: ${comment.id}');
   }
 
   Future<List<CommentModel>> getCachedComments(String manifestoId) async {
@@ -58,7 +59,7 @@ class ManifestoCacheService {
       where: 'id = ?',
       whereArgs: [commentId],
     );
-    debugPrint('✅ [ManifestoCache] Marked comment synced: $commentId');
+    AppLogger.common('✅ [ManifestoCache] Marked comment synced: $commentId');
   }
 
   Future<List<CommentModel>> getUnsyncedComments() async {
@@ -94,7 +95,7 @@ class ManifestoCacheService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    debugPrint('💾 [ManifestoCache] Cached like: ${like.id}');
+    AppLogger.common('💾 [ManifestoCache] Cached like: ${like.id}');
   }
 
   Future<void> removeCachedLike(String likeId) async {
@@ -105,7 +106,7 @@ class ManifestoCacheService {
       where: 'id = ?',
       whereArgs: [likeId],
     );
-    debugPrint('🗑️ [ManifestoCache] Marked like for deletion: $likeId');
+    AppLogger.common('🗑️ [ManifestoCache] Marked like for deletion: $likeId');
   }
 
   Future<bool> hasUserLiked(String userId, String manifestoId) async {
@@ -152,7 +153,7 @@ class ManifestoCacheService {
       where: 'id = ?',
       whereArgs: [likeId],
     );
-    debugPrint('✅ [ManifestoCache] Marked like synced: $likeId');
+    AppLogger.common('✅ [ManifestoCache] Marked like synced: $likeId');
   }
 
   // Poll operations
@@ -170,7 +171,7 @@ class ManifestoCacheService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    debugPrint('💾 [ManifestoCache] Cached poll vote: $manifestoId - $userId');
+    AppLogger.common('💾 [ManifestoCache] Cached poll vote: $manifestoId - $userId');
   }
 
   Future<String?> getCachedUserVote(String manifestoId, String userId) async {
@@ -227,7 +228,7 @@ class ManifestoCacheService {
       where: 'manifestoId = ? AND userId = ?',
       whereArgs: [manifestoId, userId],
     );
-    debugPrint('✅ [ManifestoCache] Marked poll vote synced: $manifestoId - $userId');
+    AppLogger.common('✅ [ManifestoCache] Marked poll vote synced: $manifestoId - $userId');
   }
 
   // Sync operations
@@ -267,7 +268,7 @@ class ManifestoCacheService {
       whereArgs: [1],
     );
 
-    debugPrint('🧹 [ManifestoCache] Cleared synced items from cache');
+    AppLogger.common('🧹 [ManifestoCache] Cleared synced items from cache');
   }
 
   // Cache management
@@ -331,11 +332,10 @@ class ManifestoCacheService {
 
     await batch.commit();
     await _dbService.updateCacheMetadata('manifesto_$manifestoId');
-    debugPrint('💾 [ManifestoCache] Updated cache for manifesto: $manifestoId');
+    AppLogger.common('💾 [ManifestoCache] Updated cache for manifesto: $manifestoId');
   }
 
   Future<DateTime?> getLastManifestoUpdate(String manifestoId) async {
     return await _dbService.getLastUpdateTime('manifesto_$manifestoId');
   }
 }
-

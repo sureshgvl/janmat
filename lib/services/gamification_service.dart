@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../utils/app_logger.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
 
 class GamificationService {
@@ -51,9 +52,9 @@ class GamificationService {
       // Check for level up
       await _notificationService.checkAndNotifyLevelUp(userId);
 
-      debugPrint('Awarded $totalPoints points to user $userId for RSVP');
+      AppLogger.common('Awarded $totalPoints points to user $userId for RSVP');
     } catch (e) {
-      debugPrint('Error awarding RSVP points: $e');
+      AppLogger.commonError('Error awarding RSVP points', error: e);
     }
   }
 
@@ -86,10 +87,10 @@ class GamificationService {
         // Check if achievements need to be revoked
         await _checkAndRevokeAchievements(userId);
 
-        debugPrint('Removed $points points from user $userId for cancelled RSVP');
+        AppLogger.common('Removed $points points from user $userId for cancelled RSVP');
       }
     } catch (e) {
-      debugPrint('Error removing RSVP points: $e');
+      AppLogger.commonError('Error removing RSVP points', error: e);
     }
   }
 
@@ -119,7 +120,7 @@ class GamificationService {
         'nextLevelPoints': _getNextLevelPoints(level),
       };
     } catch (e) {
-      debugPrint('Error getting user gamification data: $e');
+      AppLogger.commonError('Error getting user gamification data', error: e);
       return {
         'points': 0,
         'level': 1,
@@ -151,7 +152,7 @@ class GamificationService {
 
       return leaderboard;
     } catch (e) {
-      debugPrint('Error getting leaderboard: $e');
+      AppLogger.commonError('Error getting leaderboard', error: e);
       return [];
     }
   }
@@ -170,7 +171,7 @@ class GamificationService {
 
       return activitiesSnapshot.docs.isEmpty;
     } catch (e) {
-      debugPrint('Error checking first RSVP: $e');
+      AppLogger.commonError('Error checking first RSVP', error: e);
       return false;
     }
   }
@@ -187,7 +188,7 @@ class GamificationService {
           'gamification_points': points,
         }, SetOptions(merge: true));
       } catch (setError) {
-        debugPrint('Error setting user points: $setError');
+        AppLogger.commonError('Error setting user points', error: setError);
       }
     }
   }
@@ -213,7 +214,7 @@ class GamificationService {
             'timestamp': FieldValue.serverTimestamp(),
           });
     } catch (e) {
-      debugPrint('Error recording RSVP activity: $e');
+      AppLogger.commonError('Error recording RSVP activity', error: e);
     }
   }
 
@@ -255,14 +256,14 @@ class GamificationService {
               points: points,
             );
           } catch (e) {
-            debugPrint('Failed to send achievement notification: $e');
+            AppLogger.commonError('Failed to send achievement notification', error: e);
           }
         }
 
-        debugPrint('User $userId earned achievements: $newAchievements');
+        AppLogger.common('User $userId earned achievements: $newAchievements');
       }
     } catch (e) {
-      debugPrint('Error checking achievements: $e');
+      AppLogger.commonError('Error checking achievements', error: e);
     }
   }
 
@@ -298,10 +299,10 @@ class GamificationService {
           'achievements': updatedAchievements,
         });
 
-        debugPrint('User $userId lost achievements: $achievementsToRemove');
+        AppLogger.common('User $userId lost achievements: $achievementsToRemove');
       }
     } catch (e) {
-      debugPrint('Error revoking achievements: $e');
+      AppLogger.commonError('Error revoking achievements', error: e);
     }
   }
 
@@ -361,4 +362,3 @@ class GamificationService {
     }
   }
 }
-

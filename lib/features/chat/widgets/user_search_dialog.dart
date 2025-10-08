@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
+import '../../../utils/app_logger.dart';
 import '../services/private_chat_service.dart';
 import '../controllers/chat_controller.dart';
 
@@ -115,7 +116,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
         _isSearching = false;
       });
     } catch (e) {
-      debugPrint('Error searching users: $e');
+      AppLogger.ui('Error searching users: $e', tag: 'CHAT');
       setState(() => _isSearching = false);
     }
   }
@@ -159,7 +160,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
       }
     } catch (e) {
       Get.back(); // Close loading
-      debugPrint('Error starting private chat: $e');
+      AppLogger.ui('Error starting private chat: $e', tag: 'CHAT');
       Get.snackbar(
         'Error',
         'Failed to start private chat',
@@ -309,4 +310,3 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
     );
   }
 }
-

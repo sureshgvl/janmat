@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../utils/app_logger.dart';
 import 'whatsapp_image_viewer.dart';
 
 /// A reusable widget for displaying images with proper aspect ratio handling and WhatsApp-style full-screen viewer
@@ -94,7 +95,7 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
         });
       }
     } catch (e) {
-      debugPrint('Error loading image dimensions: $e');
+      AppLogger.ui('Error loading image dimensions: $e', tag: 'IMAGE');
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -179,4 +180,3 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
     );
   }
 }
-

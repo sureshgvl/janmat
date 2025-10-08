@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../../features/notifications/models/notification_type.dart';
 import '../../features/notifications/services/notification_manager.dart';
 
@@ -15,7 +16,7 @@ class CampaignMilestonesNotifications {
     required Map<String, dynamic> profileData,
   }) async {
     try {
-      debugPrint('🏆 [CampaignMilestones] Checking profile completion milestones...');
+      AppLogger.notifications('🏆 [CampaignMilestones] Checking profile completion milestones...');
 
       // Calculate profile completion percentage
       final completionPercentage = _calculateProfileCompletion(profileData);
@@ -43,7 +44,7 @@ class CampaignMilestonesNotifications {
         }
       }
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error checking profile completion: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error checking profile completion', error: e);
     }
   }
 
@@ -53,7 +54,7 @@ class CampaignMilestonesNotifications {
     required Map<String, dynamic> manifestoData,
   }) async {
     try {
-      debugPrint('📜 [CampaignMilestones] Checking manifesto completion milestones...');
+      AppLogger.notifications('📜 [CampaignMilestones] Checking manifesto completion milestones...');
 
       // Calculate manifesto completion score
       final completionScore = _calculateManifestoCompletion(manifestoData);
@@ -77,7 +78,7 @@ class CampaignMilestonesNotifications {
         }
       }
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error checking manifesto completion: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error checking manifesto completion', error: e);
     }
   }
 
@@ -87,7 +88,7 @@ class CampaignMilestonesNotifications {
     required int eventCount,
   }) async {
     try {
-      debugPrint('📅 [CampaignMilestones] Checking event creation milestones...');
+      AppLogger.notifications('📅 [CampaignMilestones] Checking event creation milestones...');
 
       // Define milestone thresholds
       final milestones = [1, 5, 10, 25, 50, 100];
@@ -109,7 +110,7 @@ class CampaignMilestonesNotifications {
         }
       }
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error checking event creation: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error checking event creation', error: e);
     }
   }
 
@@ -119,7 +120,7 @@ class CampaignMilestonesNotifications {
     required Map<String, int> engagementMetrics,
   }) async {
     try {
-      debugPrint('💬 [CampaignMilestones] Checking social engagement milestones...');
+      AppLogger.notifications('💬 [CampaignMilestones] Checking social engagement milestones...');
 
       // Check different engagement types
       final followerCount = engagementMetrics['followers'] ?? 0;
@@ -186,7 +187,7 @@ class CampaignMilestonesNotifications {
         }
       }
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error checking social engagement: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error checking social engagement', error: e);
     }
   }
 
@@ -243,9 +244,9 @@ class CampaignMilestonesNotifications {
         },
       );
 
-      debugPrint('✅ [CampaignMilestones] Profile completion milestone sent: $milestone%');
+      AppLogger.notifications('✅ [CampaignMilestones] Profile completion milestone sent: $milestone%');
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error sending profile completion milestone: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error sending profile completion milestone', error: e);
     }
   }
 
@@ -298,9 +299,9 @@ class CampaignMilestonesNotifications {
         },
       );
 
-      debugPrint('✅ [CampaignMilestones] Manifesto completion milestone sent: $milestone%');
+      AppLogger.notifications('✅ [CampaignMilestones] Manifesto completion milestone sent: $milestone%');
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error sending manifesto completion milestone: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error sending manifesto completion milestone', error: e);
     }
   }
 
@@ -361,9 +362,9 @@ class CampaignMilestonesNotifications {
         },
       );
 
-      debugPrint('✅ [CampaignMilestones] Event creation milestone sent: $milestone events');
+      AppLogger.notifications('✅ [CampaignMilestones] Event creation milestone sent: $milestone events');
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error sending event creation milestone: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error sending event creation milestone', error: e);
     }
   }
 
@@ -419,9 +420,9 @@ class CampaignMilestonesNotifications {
         },
       );
 
-      debugPrint('✅ [CampaignMilestones] Social engagement milestone sent: $milestoneType - $milestone');
+      AppLogger.notifications('✅ [CampaignMilestones] Social engagement milestone sent: $milestoneType - $milestone');
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error sending social engagement milestone: $e');
+      AppLogger.notificationsError('❌ [CampaignMilestones] Error sending social engagement milestone', error: e);
     }
   }
 
@@ -499,7 +500,7 @@ class CampaignMilestonesNotifications {
 
       return doc.exists;
     } catch (e) {
-      debugPrint('❌ Error checking milestone status: $e');
+      AppLogger.notificationsError('❌ Error checking milestone status', error: e);
       return false;
     }
   }
@@ -517,7 +518,7 @@ class CampaignMilestonesNotifications {
             'milestoneKey': milestoneKey,
           });
     } catch (e) {
-      debugPrint('❌ Error marking milestone as sent: $e');
+      AppLogger.notificationsError('❌ Error marking milestone as sent', error: e);
     }
   }
 
@@ -532,7 +533,7 @@ class CampaignMilestonesNotifications {
       }
       return null;
     } catch (e) {
-      debugPrint('❌ Error getting candidate data: $e');
+      AppLogger.notificationsError('❌ Error getting candidate data', error: e);
       return null;
     }
   }

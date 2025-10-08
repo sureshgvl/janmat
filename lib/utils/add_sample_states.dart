@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import './app_logger.dart';
 
 class SampleStatesManager {
   static Future<void> addSampleStates() async {
@@ -51,12 +52,12 @@ class SampleStatesManager {
       for (final stateData in sampleStates) {
         final stateId = stateData['stateId'] as String;
         await statesCollection.doc(stateId).set(stateData);
-        debugPrint('✅ Added state: $stateId');
+        AppLogger.core('✅ Added state: $stateId');
       }
 
-      debugPrint('🎉 Successfully added ${sampleStates.length} sample states to Firestore');
+      AppLogger.core('🎉 Successfully added ${sampleStates.length} sample states to Firestore');
     } catch (e) {
-      debugPrint('❌ Error adding sample states: $e');
+      AppLogger.coreError('❌ Error adding sample states', error: e);
       rethrow;
     }
   }
@@ -106,7 +107,7 @@ class SampleStatesManager {
     };
 
     try {
-      debugPrint('🔄 Updating existing states with Marathi names...');
+      AppLogger.core('🔄 Updating existing states with Marathi names...');
 
       // Get all existing states
       final statesSnapshot = await statesCollection.get();
@@ -121,13 +122,13 @@ class SampleStatesManager {
             'marathiName': marathiNames[stateId],
             'updatedAt': FieldValue.serverTimestamp(),
           });
-          debugPrint('✅ Updated state: $stateId with Marathi name: ${marathiNames[stateId]}');
+          AppLogger.core('✅ Updated state: $stateId with Marathi name: ${marathiNames[stateId]}');
         }
       }
 
-      debugPrint('🎉 Successfully updated existing states with Marathi names');
+      AppLogger.core('🎉 Successfully updated existing states with Marathi names');
     } catch (e) {
-      debugPrint('❌ Error updating existing states: $e');
+      AppLogger.coreError('❌ Error updating existing states', error: e);
       rethrow;
     }
   }
@@ -147,12 +148,12 @@ class SampleStatesManager {
               'createdAt': FieldValue.serverTimestamp(),
               'updatedAt': FieldValue.serverTimestamp(),
             });
-        debugPrint('✅ Added district: ${district['districtId']} to state: $stateId');
+        AppLogger.core('✅ Added district: ${district['districtId']} to state: $stateId');
       }
 
-      debugPrint('🎉 Successfully added ${districts.length} districts to state: $stateId');
+      AppLogger.core('🎉 Successfully added ${districts.length} districts to state: $stateId');
     } catch (e) {
-      debugPrint('❌ Error adding sample districts: $e');
+      AppLogger.coreError('❌ Error adding sample districts', error: e);
       rethrow;
     }
   }
@@ -170,4 +171,3 @@ class SampleStatesManager {
     await addSampleDistrictsForState('maharashtra', sampleDistricts);
   }
 }
-

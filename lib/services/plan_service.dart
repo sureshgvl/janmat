@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/plan_model.dart'; // Import SubscriptionPlan
+import '../utils/app_logger.dart';
 
 // Use SubscriptionPlan instead of the old Plan class
 
@@ -18,7 +19,7 @@ class PlanService {
         return SubscriptionPlan.fromJson(data);
       }).toList();
     } catch (e) {
-      debugPrint('Error fetching plans: $e');
+      AppLogger.monetizationError('Error fetching plans: $e');
       return [];
     }
   }
@@ -37,7 +38,7 @@ class PlanService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching plan: $e');
+      AppLogger.monetizationError('Error fetching plan: $e');
       return null;
     }
   }
@@ -56,7 +57,7 @@ class PlanService {
         return SubscriptionPlan.fromJson(data);
       }).toList();
     } catch (e) {
-      debugPrint('Error fetching candidate plans: $e');
+      AppLogger.monetizationError('Error fetching candidate plans: $e');
       return [];
     }
   }
@@ -75,7 +76,7 @@ class PlanService {
         return SubscriptionPlan.fromJson(data);
       }).toList();
     } catch (e) {
-      debugPrint('Error fetching voter plans: $e');
+      AppLogger.monetizationError('Error fetching voter plans: $e');
       return [];
     }
   }
@@ -142,7 +143,7 @@ class PlanService {
 
       return await getPlanById(subscriptionPlanId);
     } catch (e) {
-      debugPrint('Error getting user plan: $e');
+      AppLogger.monetizationError('Error getting user plan: $e');
       return null;
     }
   }
@@ -164,11 +165,11 @@ class PlanService {
   // Specific feature checks for convenience
 
   static Future<bool> canEditManifesto(String userId) async {
-    debugPrint('🔍 PLAN SERVICE: Checking manifesto edit permissions for user: $userId');
+    AppLogger.monetization('Checking manifesto edit permissions for user: $userId');
 
     final plan = await getUserPlan(userId);
     if (plan == null || plan.dashboardTabs == null) {
-      debugPrint('🔍 PLAN SERVICE: No plan found or highlight plan - returning false');
+      AppLogger.monetization('No plan found or highlight plan - returning false');
       return false;
     }
 
@@ -176,7 +177,7 @@ class PlanService {
     final hasEditPermission = plan.dashboardTabs!.manifesto.permissions.contains('edit') ||
                              plan.dashboardTabs!.manifesto.permissions.contains('priority');
 
-    debugPrint('🔍 PLAN SERVICE: Manifesto enabled: $enabled, has edit permission: $hasEditPermission');
+    AppLogger.monetization('Manifesto enabled: $enabled, has edit permission: $hasEditPermission');
     return enabled && hasEditPermission;
   }
 

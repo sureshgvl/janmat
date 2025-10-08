@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:flutter/foundation.dart';
+import 'app_logger.dart';
 
 /// Memory management and cleanup system
 class MemoryManager {
@@ -355,9 +355,7 @@ class MemoryManager {
   }
 
   void _log(String message) {
-    if (kDebugMode) {
-      debugPrint('🧠 MEMORY: $message');
-    }
+    AppLogger.memoryManager(message);
   }
 }
 
@@ -486,11 +484,9 @@ class MemoryPressureMonitor {
       _currentLevel = newLevel;
       _pressureController.add(newLevel);
 
-      if (kDebugMode) {
-        debugPrint(
-          '⚠️ Memory pressure changed to: $newLevel (${(utilization * 100).toStringAsFixed(1)}% utilization)',
-        );
-      }
+      AppLogger.memoryManager(
+        '⚠️ Memory pressure changed to: $newLevel (${(utilization * 100).toStringAsFixed(1)}% utilization)',
+      );
     }
   }
 
@@ -578,4 +574,3 @@ class ResourcePool<T> {
     _inUse.clear();
   }
 }
-

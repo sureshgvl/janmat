@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 
 // Enhanced Highlight Configuration Model
@@ -119,7 +120,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
   // Method to upload pending files (required by dashboard pattern)
   Future<void> uploadPendingFiles() async {
     // Highlights don't have file uploads, so this is a no-op
-    debugPrint('📤 [Highlight] No pending files to upload');
+    AppLogger.candidate('📤 [Highlight] No pending files to upload');
   }
 
   @override
@@ -326,7 +327,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                     label: Text(_getStyleDisplayName(style)),
                     selected: isSelected,
                     onSelected: (selected) {
-                      debugPrint('Banner style selected: $style, selected: $selected');
+                      AppLogger.candidate('Banner style selected: $style, selected: $selected');
                       setState(() => _config.bannerStyle = style);
                       _updateHighlight();
                     },
@@ -471,7 +472,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                     label: Text(_getPriorityDisplayName(level)),
                     selected: isSelected,
                     onSelected: (selected) {
-                      debugPrint('Priority level selected: $level, selected: $selected');
+                      AppLogger.candidate('Priority level selected: $level, selected: $selected');
                       setState(() => _config.priorityLevel = level);
                       _updateHighlight();
                     },
@@ -619,7 +620,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                 subtitle: const Text('View impressions, clicks, and engagement metrics'),
                 value: _config.showAnalytics,
                 onChanged: (value) {
-                  debugPrint('Analytics toggle changed: $value');
+                  AppLogger.candidate('Analytics toggle changed: $value');
                   setState(() => _config.showAnalytics = value);
                   _updateHighlight();
                 },

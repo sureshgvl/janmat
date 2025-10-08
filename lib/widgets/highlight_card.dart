@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import '../models/highlight_model.dart';
 import '../controllers/highlight_controller.dart';
+import '../utils/app_logger.dart';
 
 class HighlightCard extends StatefulWidget {
   final Highlight highlight;
@@ -29,8 +30,8 @@ class _HighlightCardState extends State<HighlightCard> {
   }
 
   Future<void> _loadCandidateProfileImage() async {
-    debugPrint('🔍 [HighlightCard] Loading candidate data for highlight: ${widget.highlight.id}, candidateId: ${widget.highlight.candidateId}');
-    debugPrint('   Highlight data - name: "${widget.highlight.candidateName}", party: "${widget.highlight.party}", imageUrl: "${widget.highlight.imageUrl}"');
+    AppLogger.common('🔍 [HighlightCard] Loading candidate data for highlight: ${widget.highlight.id}, candidateId: ${widget.highlight.candidateId}');
+    AppLogger.common('   Highlight data - name: "${widget.highlight.candidateName}", party: "${widget.highlight.party}", imageUrl: "${widget.highlight.imageUrl}"');
 
     // First, try to use the imageUrl from the highlight itself
     if (widget.highlight.imageUrl != null && widget.highlight.imageUrl!.isNotEmpty) {
@@ -40,7 +41,7 @@ class _HighlightCardState extends State<HighlightCard> {
         candidateParty = widget.highlight.party ?? 'Party';
         isLoadingProfile = false;
       });
-      debugPrint('✅ [HighlightCard] Using highlight data: name="$candidateName", party="$candidateParty", imageUrl="$candidateProfileImageUrl"');
+      AppLogger.common('✅ [HighlightCard] Using highlight data: name="$candidateName", party="$candidateParty", imageUrl="$candidateProfileImageUrl"');
       return;
     }
 
@@ -88,18 +89,18 @@ class _HighlightCardState extends State<HighlightCard> {
 
           if (candidateDoc.exists && mounted) {
             final candidateData = candidateDoc.data();
-            debugPrint('📋 [HighlightCard] Found candidate document: ${candidateDoc.id}');
-            debugPrint('   Candidate data - name: "${candidateData?['name']}", party: "${candidateData?['party']}", photo: "${candidateData?['photo']}"');
+            AppLogger.common('📋 [HighlightCard] Found candidate document: ${candidateDoc.id}');
+            AppLogger.common('   Candidate data - name: "${candidateData?['name']}", party: "${candidateData?['party']}", photo: "${candidateData?['photo']}"');
             setState(() {
               candidateProfileImageUrl = candidateData?['photo'];
               candidateName = candidateData?['name'] ?? widget.highlight.candidateName ?? 'Candidate';
               candidateParty = candidateData?['party'] ?? widget.highlight.party ?? 'Party';
               isLoadingProfile = false;
             });
-            debugPrint('✅ [HighlightCard] Using fresh candidate data: name="$candidateName", party="$candidateParty", imageUrl="$candidateProfileImageUrl"');
+            AppLogger.common('✅ [HighlightCard] Using fresh candidate data: name="$candidateName", party="$candidateParty", imageUrl="$candidateProfileImageUrl"');
             return;
           } else {
-            debugPrint('❌ [HighlightCard] Candidate document not found at path: states/maharashtra/districts/$districtId/bodies/$bodyId/wards/$wardId/candidates/${widget.highlight.candidateId}');
+            AppLogger.common('❌ [HighlightCard] Candidate document not found at path: states/maharashtra/districts/$districtId/bodies/$bodyId/wards/$wardId/candidates/${widget.highlight.candidateId}');
           }
         }
       }
@@ -111,10 +112,10 @@ class _HighlightCardState extends State<HighlightCard> {
           candidateParty = widget.highlight.party ?? 'Party';
           isLoadingProfile = false;
         });
-        debugPrint('✅ [HighlightCard] Using highlight data (final fallback): name="$candidateName", party="$candidateParty"');
+        AppLogger.common('✅ [HighlightCard] Using highlight data (final fallback): name="$candidateName", party="$candidateParty"');
       }
     } catch (e) {
-      debugPrint('❌ [HighlightCard] Error fetching candidate data: $e');
+      AppLogger.common('❌ [HighlightCard] Error fetching candidate data: $e');
       if (mounted) {
         setState(() {
           candidateName = widget.highlight.candidateName ?? 'Candidate';
@@ -137,7 +138,7 @@ class _HighlightCardState extends State<HighlightCard> {
         candidateId: widget.highlight.candidateId,
       );
     } catch (e) {
-      debugPrint('Error tracking carousel view: $e');
+      AppLogger.common('Error tracking carousel view: $e');
     }
   }
 
@@ -195,7 +196,7 @@ class _HighlightCardState extends State<HighlightCard> {
                     Builder(
                       builder: (context) {
                         final displayName = candidateName ?? widget.highlight.candidateName ?? 'Candidate';
-                        debugPrint('📋 [HighlightCard] Displaying name: "$displayName" for highlight: ${widget.highlight.id}');
+                        AppLogger.common('📋 [HighlightCard] Displaying name: "$displayName" for highlight: ${widget.highlight.id}');
                         return Text(
                           displayName,
                           style: const TextStyle(
@@ -260,7 +261,7 @@ class _HighlightCardState extends State<HighlightCard> {
     controller.trackClick(widget.highlight.id);
 
     // Default navigation - you'll need to implement this based on your routing
-    debugPrint('Navigate to candidate profile: ${widget.highlight.candidateId}');
+    AppLogger.common('Navigate to candidate profile: ${widget.highlight.candidateId}');
 
     // Example navigation (adjust based on your app's routing):
     // Navigator.pushNamed(
@@ -270,4 +271,3 @@ class _HighlightCardState extends State<HighlightCard> {
     // );
   }
 }
-

@@ -16,6 +16,7 @@ import '../../../services/user_cache_service.dart';
 import '../../../services/background_sync_manager.dart';
 import '../../../services/fcm_service.dart';
 import '../../../utils/performance_monitor.dart';
+import '../../../utils/app_logger.dart';
 
 class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -34,32 +35,32 @@ class AuthRepository {
     String phoneNumber,
     Function(String) onCodeSent,
   ) async {
-    debugPrint('📞 Initiating phone verification for: +91$phoneNumber');
+    AppLogger.auth('Initiating phone verification for: +91$phoneNumber', tag: 'PHONE_VERIFY');
 
     try {
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: '+91$phoneNumber',
         verificationCompleted: (PhoneAuthCredential credential) async {
-          debugPrint('✅ Phone verification completed automatically');
+          AppLogger.auth('Phone verification completed automatically', tag: 'PHONE_VERIFY');
           // Auto-verification successful, sign in immediately
           try {
             await _firebaseAuth.signInWithCredential(credential);
-            debugPrint('✅ Auto-signed in with phone credential');
+            AppLogger.auth('Auto-signed in with phone credential', tag: 'PHONE_VERIFY');
           } catch (e) {
-            debugPrint('❌ Auto-sign in failed: $e');
+            AppLogger.authError('Auto-sign in failed', tag: 'PHONE_VERIFY', error: e);
             rethrow;
           }
         },
         verificationFailed: (FirebaseAuthException e) {
-          debugPrint('❌ Phone verification failed: ${e.message}');
+          AppLogger.authError('Phone verification failed: ${e.message}', tag: 'PHONE_VERIFY', error: e);
           throw e;
         },
         codeSent: (String verificationId, int? resendToken) {
-          debugPrint('📱 OTP sent successfully, verification ID: $verificationId');
+          AppLogger.auth('OTP sent successfully, verification ID: $verificationId', tag: 'PHONE_VERIFY');
           onCodeSent(verificationId);
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          debugPrint('⏰ Auto-retrieval timeout, manual OTP entry required');
+          AppLogger.auth('Auto-retrieval timeout, manual OTP entry required', tag: 'PHONE_VERIFY');
           // This is called when auto-retrieval times out
           // The verificationId is still valid for manual OTP entry
           onCodeSent(verificationId);
@@ -71,14 +72,14 @@ class AuthRepository {
       ).timeout(
         const Duration(seconds: 60), // Overall timeout for the entire operation
         onTimeout: () {
-          debugPrint('⏰ Phone verification timed out after 60 seconds');
+          AppLogger.auth('Phone verification timed out after 60 seconds', tag: 'PHONE_VERIFY');
           throw Exception('Phone verification timed out. Please check your internet connection and try again.');
         },
       );
 
-      debugPrint('📞 Phone verification setup completed');
+      AppLogger.auth('Phone verification setup completed', tag: 'PHONE_VERIFY');
     } catch (e) {
-      debugPrint('❌ Phone verification setup failed: $e');
+      AppLogger.authError('Phone verification setup failed', tag: 'PHONE_VERIFY', error: e);
       rethrow;
     }
   }
@@ -99,10 +100,10 @@ class AuthRepository {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       final hasConnection = !connectivityResult.contains(ConnectivityResult.none);
-      debugPrint('🌐 Network connectivity check: ${hasConnection ? 'Connected' : 'No connection'}');
+      AppLogger.network('Network connectivity check: ${hasConnection ? 'Connected' : 'No connection'}', tag: 'CONNECTIVITY');
       return hasConnection;
     } catch (e) {
-      debugPrint('⚠️ Could not check connectivity: $e');
+      AppLogger.network('Could not check connectivity: $e', tag: 'CONNECTIVITY');
       return true; // Assume connected if check fails
     }
   }
@@ -112,24 +113,24 @@ class AuthRepository {
     final startTime = DateTime.now();
     startPerformanceTimer('google_signin_optimized');
 
-    debugPrint('🚀 [GOOGLE_SIGNIN] Starting optimized Google Sign-In with parallel processing at ${startTime.toIso8601String()}');
+    AppLogger.auth('Starting optimized Google Sign-In with parallel processing at ${startTime.toIso8601String()}');
 
     try {
       // Step 0: Check network connectivity
-      debugPrint('🌐 [GOOGLE_SIGNIN] Checking network connectivity...');
+      AppLogger.auth('Checking network connectivity...');
       final connectivityStart = DateTime.now();
       final hasConnectivity = await _checkConnectivity();
       final connectivityDuration = DateTime.now().difference(connectivityStart);
 
-      debugPrint('🌐 [GOOGLE_SIGNIN] Network connectivity check completed in ${connectivityDuration.inMilliseconds}ms - Connected: $hasConnectivity');
-
-      if (!hasConnectivity) {
-        debugPrint('❌ [GOOGLE_SIGNIN] No internet connection detected');
-        throw Exception('No internet connection detected. Please check your network and try again.');
-      }
-
-      // Step 1: Smart Google Sign-In with account switching support
-      debugPrint('📱 [GOOGLE_SIGNIN] Starting Google Sign-In (${forceAccountPicker ? 'forced account picker' : 'smart mode'})...');
+      AppLogger.auth('Network connectivity check completed in ${connectivityDuration.inMilliseconds}ms - Connected: $hasConnectivity');
+  
+        if (!hasConnectivity) {
+          AppLogger.auth('No internet connection detected');
+          throw Exception('No internet connection detected. Please check your network and try again.');
+        }
+  
+        // Step 1: Smart Google Sign-In with account switching support
+        AppLogger.auth('Starting Google Sign-In (${forceAccountPicker ? 'forced account picker' : 'smart mode'})...');
 
       GoogleSignInAccount? googleUser;
       int retryCount = 0;
@@ -138,20 +139,22 @@ class AuthRepository {
 
       while (retryCount <= maxRetries) {
         final attemptStart = DateTime.now();
-        debugPrint('🎯 [GOOGLE_SIGNIN] Attempt ${retryCount + 1}/${maxRetries + 1} - ${forceAccountPicker ? 'Forced account picker' : 'Smart sign-in'}');
+        AppLogger.auth('🎯 [GOOGLE_SIGNIN] Attempt ${retryCount + 1}/${maxRetries + 1} - ${forceAccountPicker ? 'Forced account picker' : 'Smart sign-in'}');
 
         try {
           // Always force account picker when requested, otherwise try silent first
           if (!forceAccountPicker) {
-            // For "Continue as", we expect a specific account - get the stored account info first
+            // Check if there's a stored account for "Continue as" mode
             final storedAccount = await getLastGoogleAccount();
             final expectedEmail = storedAccount?['email'];
 
-            debugPrint('🔍 [GOOGLE_SIGNIN] "Continue as" mode - expecting account: ${storedAccount?['displayName']} ($expectedEmail)');
+            if (storedAccount != null && expectedEmail != null) {
+              // We have a stored account - try "Continue as" mode
+              AppLogger.auth('🔍 [GOOGLE_SIGNIN] "Continue as" mode - expecting account: ${storedAccount['displayName']} ($expectedEmail)');
 
-            // For "Continue as", we need to ensure we get the expected account
-            // If silent sign-in returns a different account, we should force account picker
-            debugPrint('🔍 [GOOGLE_SIGNIN] Checking for existing silent session...');
+              // For "Continue as", we need to ensure we get the expected account
+              // If silent sign-in returns a different account, we should force account picker
+              AppLogger.auth('🔍 [GOOGLE_SIGNIN] Checking for existing silent session...');
             try {
               final silentStart = DateTime.now();
               final silentUser = await _googleSignIn.signInSilently()
@@ -160,34 +163,34 @@ class AuthRepository {
               final silentDuration = DateTime.now().difference(silentStart);
 
               if (silentUser != null) {
-                debugPrint('✅ [GOOGLE_SIGNIN] Silent sign-in successful: ${silentUser.displayName} (${silentUser.email}) in ${silentDuration.inMilliseconds}ms');
+                AppLogger.auth('✅ [GOOGLE_SIGNIN] Silent sign-in successful: ${silentUser.displayName} (${silentUser.email}) in ${silentDuration.inMilliseconds}ms');
 
                 // Validate that silent sign-in returned the expected account
                 if (expectedEmail != null && silentUser.email == expectedEmail) {
-                  debugPrint('✅ [GOOGLE_SIGNIN] Silent sign-in returned expected account - using it');
+                  AppLogger.auth('✅ [GOOGLE_SIGNIN] Silent sign-in returned expected account - using it');
                   googleUser = silentUser;
                   break; // Success - use silent sign-in result
                 } else if (expectedEmail == null) {
                   // No stored account expected (user was deleted), but silent sign-in succeeded
                   // This means the user has a cached Google account but no Firebase user
                   // Use the silent sign-in result and clear any stale stored account data
-                  debugPrint('ℹ️ [GOOGLE_SIGNIN] No stored account expected, but silent sign-in succeeded - using cached account');
-                  debugPrint('   Using account: ${silentUser.email}');
+                  AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] No stored account expected, but silent sign-in succeeded - using cached account');
+                  AppLogger.auth('   Using account: ${silentUser.email}');
                   googleUser = silentUser;
                   // Clear any stale stored account data since we're using a different account
                   await clearLastGoogleAccount();
                   break; // Success - use silent sign-in result
                 } else {
-                  debugPrint('⚠️ [GOOGLE_SIGNIN] Silent sign-in returned different account than expected');
-                  debugPrint('   Expected: $expectedEmail, Got: ${silentUser.email}');
-                  debugPrint('🔄 [GOOGLE_SIGNIN] Forcing account picker to get correct account');
+                  AppLogger.auth('⚠️ [GOOGLE_SIGNIN] Silent sign-in returned different account than expected');
+                  AppLogger.auth('   Expected: $expectedEmail, Got: ${silentUser.email}');
+                  AppLogger.auth('🔄 [GOOGLE_SIGNIN] Forcing account picker to get correct account');
 
                   // Force account picker by disconnecting and using fresh instance
                   try {
                     await _googleSignIn.disconnect();
-                    debugPrint('✅ [GOOGLE_SIGNIN] Disconnected current session for account switch');
+                    AppLogger.auth('✅ [GOOGLE_SIGNIN] Disconnected current session for account switch');
                   } catch (e) {
-                    debugPrint('ℹ️ [GOOGLE_SIGNIN] Disconnect failed: ${e.toString()}');
+                    AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] Disconnect failed: ${e.toString()}');
                   }
 
                   // Use fresh instance to force account picker
@@ -196,20 +199,20 @@ class AuthRepository {
                     scopes: ['email', 'profile'],
                   );
 
-                  debugPrint('📱 [GOOGLE_SIGNIN] Using fresh instance for account picker...');
+                  AppLogger.auth('📱 [GOOGLE_SIGNIN] Using fresh instance for account picker...');
                   final pickerStart = DateTime.now();
 
                   googleUser = await freshGoogleSignIn.signIn().timeout(
                     const Duration(seconds: 60),
                     onTimeout: () {
                       final timeoutDuration = DateTime.now().difference(pickerStart);
-                      debugPrint('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
+                      AppLogger.auth('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
                       throw Exception('Sign-in timed out. Please try again.');
                     },
                   );
 
                   final pickerDuration = DateTime.now().difference(pickerStart);
-                  debugPrint('✅ [GOOGLE_SIGNIN] Account picker completed in ${pickerDuration.inSeconds}s');
+                  AppLogger.auth('✅ [GOOGLE_SIGNIN] Account picker completed in ${pickerDuration.inSeconds}s');
 
                   if (googleUser != null) {
                     await _storeLastGoogleAccount(googleUser);
@@ -217,41 +220,46 @@ class AuthRepository {
                   }
                 }
               } else {
-                debugPrint('ℹ️ [GOOGLE_SIGNIN] Silent sign-in returned null in ${silentDuration.inMilliseconds}ms');
+                AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] Silent sign-in returned null in ${silentDuration.inMilliseconds}ms');
                 // Fall through to normal sign-in
               }
             } catch (e) {
-              debugPrint('ℹ️ [GOOGLE_SIGNIN] Silent sign-in failed or timed out: ${e.toString()}');
+              AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] Silent sign-in failed or timed out: ${e.toString()}');
               // Fall through to normal sign-in
             }
 
             // Try normal sign-in for "Continue as" (allows user to select the expected account)
-            debugPrint('🔄 [GOOGLE_SIGNIN] Attempting normal sign-in for "Continue as"...');
+            AppLogger.auth('🔄 [GOOGLE_SIGNIN] Attempting normal sign-in for "Continue as"...');
             final normalSignInStart = DateTime.now();
 
             googleUser = await _googleSignIn.signIn().timeout(
               const Duration(seconds: 60), // Longer timeout for user interaction
               onTimeout: () {
-                debugPrint('⏰ [GOOGLE_SIGNIN] Normal sign-in timeout for "Continue as"');
+                AppLogger.auth('⏰ [GOOGLE_SIGNIN] Normal sign-in timeout for "Continue as"');
                 throw Exception('Sign-in timed out. Please try again or use "Sign in with different account".');
               },
             );
 
             final normalSignInDuration = DateTime.now().difference(normalSignInStart);
-            debugPrint('✅ [GOOGLE_SIGNIN] Normal sign-in completed in ${normalSignInDuration.inSeconds}s');
+            AppLogger.auth('✅ [GOOGLE_SIGNIN] Normal sign-in completed in ${normalSignInDuration.inSeconds}s');
 
             if (googleUser != null) {
               await _storeLastGoogleAccount(googleUser);
               break; // Success
             }
           }
+        } else {
+          // No stored account - this is a fresh device, force account picker immediately
+          AppLogger.auth('🔍 [GOOGLE_SIGNIN] No stored account found - fresh device detected, forcing account picker');
+          forceAccountPicker = true; // Force account picker for this attempt
+        }
 
           // Force account picker (either requested or silent failed)
-          debugPrint('🔄 [GOOGLE_SIGNIN] Preparing account picker...');
+          AppLogger.auth('🔄 [GOOGLE_SIGNIN] Preparing account picker...');
 
           // For forced account picker, we need to ensure complete cleanup
           if (forceAccountPicker) {
-            debugPrint('🔄 [GOOGLE_SIGNIN] Forced account picker requested - ensuring clean state...');
+            AppLogger.auth('🔄 [GOOGLE_SIGNIN] Forced account picker requested - ensuring clean state...');
 
             // Create a fresh GoogleSignIn instance to force account picker
             final freshGoogleSignIn = GoogleSignIn(
@@ -262,35 +270,35 @@ class AuthRepository {
             // Try to disconnect with the fresh instance
             try {
               await freshGoogleSignIn.disconnect();
-              debugPrint('✅ [GOOGLE_SIGNIN] Fresh instance disconnect successful');
+              AppLogger.auth('✅ [GOOGLE_SIGNIN] Fresh instance disconnect successful');
             } catch (e) {
-              debugPrint('ℹ️ [GOOGLE_SIGNIN] Fresh instance disconnect failed: ${e.toString()}');
+              AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] Fresh instance disconnect failed: ${e.toString()}');
             }
 
             // Clear any cached account data
             try {
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove('last_google_account');
-              debugPrint('✅ [GOOGLE_SIGNIN] Cleared cached account data');
+              AppLogger.auth('✅ [GOOGLE_SIGNIN] Cleared cached account data');
             } catch (e) {
-              debugPrint('⚠️ [GOOGLE_SIGNIN] Failed to clear cached account data: $e');
+              AppLogger.auth('⚠️ [GOOGLE_SIGNIN] Failed to clear cached account data: $e');
             }
 
             // Use the fresh instance for sign-in to force account picker
-            debugPrint('📱 [GOOGLE_SIGNIN] Using fresh GoogleSignIn instance for account picker...');
+            AppLogger.auth('📱 [GOOGLE_SIGNIN] Using fresh GoogleSignIn instance for account picker...');
             final signInStart = DateTime.now();
 
             googleUser = await freshGoogleSignIn.signIn().timeout(
               const Duration(seconds: 90),
               onTimeout: () {
                 final timeoutDuration = DateTime.now().difference(signInStart);
-                debugPrint('⏰ [GOOGLE_SIGNIN] Fresh instance account picker timeout after ${timeoutDuration.inSeconds} seconds');
+                AppLogger.auth('⏰ [GOOGLE_SIGNIN] Fresh instance account picker timeout after ${timeoutDuration.inSeconds} seconds');
                 throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
               },
             );
 
             signInDuration = DateTime.now().difference(signInStart);
-            debugPrint('✅ [GOOGLE_SIGNIN] Fresh instance account picker completed in ${signInDuration!.inSeconds}s');
+            AppLogger.auth('✅ [GOOGLE_SIGNIN] Fresh instance account picker completed in ${signInDuration!.inSeconds}s');
 
             if (googleUser != null) {
               await _storeLastGoogleAccount(googleUser);
@@ -300,46 +308,46 @@ class AuthRepository {
             // Normal disconnect for regular account picker
             try {
               await _googleSignIn.disconnect();
-              debugPrint('✅ [GOOGLE_SIGNIN] Disconnected previous session');
+              AppLogger.auth('✅ [GOOGLE_SIGNIN] Disconnected previous session');
             } catch (e) {
-              debugPrint('ℹ️ [GOOGLE_SIGNIN] No active session to disconnect: ${e.toString()}');
+              AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] No active session to disconnect: ${e.toString()}');
             }
 
             await Future.delayed(const Duration(milliseconds: 500)); // Brief delay
 
-            debugPrint('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
+            AppLogger.auth('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
             final signInStart = DateTime.now();
 
             googleUser = await _googleSignIn.signIn().timeout(
               const Duration(seconds: 90),
               onTimeout: () {
                 final timeoutDuration = DateTime.now().difference(signInStart);
-                debugPrint('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
+                AppLogger.auth('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
                 throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
               },
             );
 
             signInDuration = DateTime.now().difference(signInStart);
-            debugPrint('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration!.inSeconds}s');
+            AppLogger.auth('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration!.inSeconds}s');
           }
 
-          debugPrint('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
+          AppLogger.auth('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
           final signInStart = DateTime.now();
 
           googleUser = await _googleSignIn.signIn().timeout(
             const Duration(seconds: 90),
             onTimeout: () {
               final timeoutDuration = DateTime.now().difference(signInStart);
-              debugPrint('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
+              AppLogger.auth('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
               throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 90 seconds.');
             },
           );
 
           signInDuration = DateTime.now().difference(signInStart);
-          debugPrint('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration!.inSeconds}s');
+          AppLogger.auth('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration!.inSeconds}s');
 
           if (googleUser != null) {
-            debugPrint('✅ [GOOGLE_SIGNIN] User selected: ${googleUser.displayName} (${googleUser.email})');
+            AppLogger.auth('✅ [GOOGLE_SIGNIN] User selected: ${googleUser.displayName} (${googleUser.email})');
 
             // Store account info for future logins
             await _storeLastGoogleAccount(googleUser);
@@ -352,11 +360,11 @@ class AuthRepository {
           retryCount++;
 
           if (retryCount <= maxRetries && _isRetryableError(e)) {
-            debugPrint('🔄 [GOOGLE_SIGNIN] Sign-in error, retrying... (attempt $retryCount/$maxRetries)');
+            AppLogger.auth('🔄 [GOOGLE_SIGNIN] Sign-in error, retrying... (attempt $retryCount/$maxRetries)');
             await Future.delayed(Duration(seconds: retryCount * 2));
             continue;
           } else {
-            debugPrint('❌ [GOOGLE_SIGNIN] Sign-in failed: ${e.toString()}');
+            AppLogger.auth('[GOOGLE_SIGNIN] Sign-in failed: ${e.toString()}');
             rethrow;
           }
         }
@@ -365,116 +373,116 @@ class AuthRepository {
       if (googleUser == null) {
         final totalDuration = DateTime.now().difference(startTime);
         stopPerformanceTimer('google_signin_optimized');
-        debugPrint('❌ [GOOGLE_SIGNIN] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
+        AppLogger.auth('[GOOGLE_SIGNIN] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
         return null; // User cancelled
       }
 
-      debugPrint('✅ [GOOGLE_SIGNIN] Google account selected: ${googleUser.displayName} (ID: ${googleUser.id})');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] Google account selected: ${googleUser.displayName} (ID: ${googleUser.id})');
 
       // Step 2: Parallel processing - Get tokens and prepare user data simultaneously
-      debugPrint('🔄 [GOOGLE_SIGNIN] Starting parallel authentication and data preparation...');
+      AppLogger.auth('🔄 [GOOGLE_SIGNIN] Starting parallel authentication and data preparation...');
       final parallelStart = DateTime.now();
 
       final tokenFuture = googleUser.authentication;
       final userDataPrepFuture = _prepareUserDataLocally(googleUser);
 
-      debugPrint('⏳ [GOOGLE_SIGNIN] Awaiting parallel operations: token retrieval + user data preparation');
+      AppLogger.auth('⏳ [GOOGLE_SIGNIN] Awaiting parallel operations: token retrieval + user data preparation');
 
       final parallelResults = await Future.wait([tokenFuture, userDataPrepFuture]);
       final parallelDuration = DateTime.now().difference(parallelStart);
 
-      debugPrint('✅ [GOOGLE_SIGNIN] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
 
       final GoogleSignInAuthentication googleAuth = parallelResults[0] as GoogleSignInAuthentication;
-      debugPrint('🔑 [GOOGLE_SIGNIN] Authentication tokens retrieved - AccessToken: ${googleAuth.accessToken != null ? 'Present' : 'Missing'}, IdToken: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
+      AppLogger.auth('🔑 [GOOGLE_SIGNIN] Authentication tokens retrieved - AccessToken: ${googleAuth.accessToken != null ? 'Present' : 'Missing'}, IdToken: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
 
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        debugPrint('❌ [GOOGLE_SIGNIN] Failed to retrieve authentication tokens from Google');
+        AppLogger.auth('[GOOGLE_SIGNIN] Failed to retrieve authentication tokens from Google');
         throw 'Failed to retrieve authentication tokens from Google';
       }
 
       // Step 3: Create Firebase credential
-      debugPrint('🔧 [GOOGLE_SIGNIN] Creating Firebase credential...');
+      AppLogger.auth('🔧 [GOOGLE_SIGNIN] Creating Firebase credential...');
       final credentialStart = DateTime.now();
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       final credentialDuration = DateTime.now().difference(credentialStart);
-      debugPrint('✅ [GOOGLE_SIGNIN] Firebase credential created in ${credentialDuration.inMilliseconds}ms');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] Firebase credential created in ${credentialDuration.inMilliseconds}ms');
 
       // Step 4: Firebase authentication with optimized timeout
-      debugPrint('🔐 [GOOGLE_SIGNIN] Authenticating with Firebase...');
+      AppLogger.auth('🔐 [GOOGLE_SIGNIN] Authenticating with Firebase...');
       final firebaseStart = DateTime.now();
       final UserCredential userCredential = await _signInWithRetry(credential);
       final firebaseDuration = DateTime.now().difference(firebaseStart);
 
-      debugPrint('✅ [GOOGLE_SIGNIN] Firebase authentication successful in ${firebaseDuration.inMilliseconds}ms for user: ${userCredential.user?.displayName} (UID: ${userCredential.user?.uid})');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] Firebase authentication successful in ${firebaseDuration.inMilliseconds}ms for user: ${userCredential.user?.displayName} (UID: ${userCredential.user?.uid})');
 
       // Step 5: Minimal user data creation (fast)
-      debugPrint('👤 [GOOGLE_SIGNIN] Creating minimal user record...');
+      AppLogger.auth('👤 [GOOGLE_SIGNIN] Creating minimal user record...');
       final userCreationStart = DateTime.now();
       await _createOrUpdateUserMinimal(userCredential.user!);
       final userCreationDuration = DateTime.now().difference(userCreationStart);
-      debugPrint('✅ [GOOGLE_SIGNIN] Minimal user record created in ${userCreationDuration.inMilliseconds}ms');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] Minimal user record created in ${userCreationDuration.inMilliseconds}ms');
 
       // Step 5.5: Update FCM token for push notifications
-      debugPrint('📱 [GOOGLE_SIGNIN] Updating FCM token...');
+      AppLogger.auth('📱 [GOOGLE_SIGNIN] Updating FCM token...');
       final fcmUpdateStart = DateTime.now();
       await _updateUserFCMToken(userCredential.user!);
       final fcmUpdateDuration = DateTime.now().difference(fcmUpdateStart);
-      debugPrint('✅ [GOOGLE_SIGNIN] FCM token updated in ${fcmUpdateDuration.inMilliseconds}ms');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] FCM token updated in ${fcmUpdateDuration.inMilliseconds}ms');
 
       // Step 6: Start background sync for heavy operations
-      debugPrint('🔄 [GOOGLE_SIGNIN] Starting background synchronization...');
+      AppLogger.auth('🔄 [GOOGLE_SIGNIN] Starting background synchronization...');
       final backgroundStart = DateTime.now();
       _performBackgroundSetup(userCredential.user!);
       final backgroundSetupDuration = DateTime.now().difference(backgroundStart);
-      debugPrint('✅ [GOOGLE_SIGNIN] Background setup initiated in ${backgroundSetupDuration.inMilliseconds}ms');
+      AppLogger.auth('✅ [GOOGLE_SIGNIN] Background setup initiated in ${backgroundSetupDuration.inMilliseconds}ms');
 
       final totalDuration = DateTime.now().difference(startTime);
       stopPerformanceTimer('google_signin_optimized');
-      debugPrint('🎉 [GOOGLE_SIGNIN] Optimized Google Sign-In completed successfully in ${totalDuration.inSeconds}s');
-      debugPrint('📊 [GOOGLE_SIGNIN] Performance breakdown:');
-      debugPrint('   - Connectivity check: ${connectivityDuration.inMilliseconds}ms');
-      debugPrint('   - Account selection: ${signInDuration?.inSeconds ?? 0}s');
-      debugPrint('   - Parallel operations: ${parallelDuration.inMilliseconds}ms');
-      debugPrint('   - Firebase auth: ${firebaseDuration.inMilliseconds}ms');
-      debugPrint('   - User creation: ${userCreationDuration.inMilliseconds}ms');
-      debugPrint('   - Background setup: ${backgroundSetupDuration.inMilliseconds}ms');
+      AppLogger.auth('🎉 [GOOGLE_SIGNIN] Optimized Google Sign-In completed successfully in ${totalDuration.inSeconds}s');
+      AppLogger.auth('📊 [GOOGLE_SIGNIN] Performance breakdown:');
+      AppLogger.auth('   - Connectivity check: ${connectivityDuration.inMilliseconds}ms');
+      AppLogger.auth('   - Account selection: ${signInDuration?.inSeconds ?? 0}s');
+      AppLogger.auth('   - Parallel operations: ${parallelDuration.inMilliseconds}ms');
+      AppLogger.auth('   - Firebase auth: ${firebaseDuration.inMilliseconds}ms');
+      AppLogger.auth('   - User creation: ${userCreationDuration.inMilliseconds}ms');
+      AppLogger.auth('   - Background setup: ${backgroundSetupDuration.inMilliseconds}ms');
 
       return userCredential;
     } catch (e) {
       final totalDuration = DateTime.now().difference(startTime);
       stopPerformanceTimer('google_signin_optimized');
 
-      debugPrint('❌ [GOOGLE_SIGNIN] Google Sign-In failed after ${totalDuration.inSeconds}s');
-      debugPrint('❌ [GOOGLE_SIGNIN] Error details: ${e.toString()}');
-      debugPrint('❌ [GOOGLE_SIGNIN] Error type: ${e.runtimeType}');
+      AppLogger.auth('[GOOGLE_SIGNIN] Google Sign-In failed after ${totalDuration.inSeconds}s');
 
+      AppLogger.auth('[GOOGLE_SIGNIN] Error details: ${e.toString()}');
+      AppLogger.auth('[GOOGLE_SIGNIN] Error type: ${e.runtimeType}');
       // Handle the special case where auth succeeded but timed out
       if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
-        debugPrint('✅ [GOOGLE_SIGNIN] Handling successful authentication that timed out');
+        AppLogger.auth('✅ [GOOGLE_SIGNIN] Handling successful authentication that timed out');
 
         final currentUser = _firebaseAuth.currentUser;
         if (currentUser != null) {
-          debugPrint('✅ [GOOGLE_SIGNIN] Proceeding with authenticated user: ${currentUser.displayName} (UID: ${currentUser.uid})');
+          AppLogger.auth('✅ [GOOGLE_SIGNIN] Proceeding with authenticated user: ${currentUser.displayName} (UID: ${currentUser.uid})');
 
           // Minimal user data for successful auth
-          debugPrint('👤 [GOOGLE_SIGNIN] Creating minimal user record for timeout recovery...');
+          AppLogger.auth('👤 [GOOGLE_SIGNIN] Creating minimal user record for timeout recovery...');
           final recoveryStart = DateTime.now();
           await _createOrUpdateUserMinimal(currentUser);
           final recoveryDuration = DateTime.now().difference(recoveryStart);
-          debugPrint('✅ [GOOGLE_SIGNIN] Recovery user record created in ${recoveryDuration.inMilliseconds}ms');
+          AppLogger.auth('✅ [GOOGLE_SIGNIN] Recovery user record created in ${recoveryDuration.inMilliseconds}ms');
 
           // Background setup
           _performBackgroundSetup(currentUser);
-          debugPrint('✅ [GOOGLE_SIGNIN] Background setup initiated for timeout recovery');
+          AppLogger.auth('✅ [GOOGLE_SIGNIN] Background setup initiated for timeout recovery');
 
-          debugPrint('🎉 [GOOGLE_SIGNIN] Google Sign-In completed successfully despite timeout');
+          AppLogger.auth('🎉 [GOOGLE_SIGNIN] Google Sign-In completed successfully despite timeout');
           return null; // Return null to indicate success but no UserCredential
         } else {
-          debugPrint('❌ [GOOGLE_SIGNIN] Timeout recovery failed - no current user found');
+          AppLogger.auth('[GOOGLE_SIGNIN] Timeout recovery failed - no current user found');
         }
       }
 
@@ -485,29 +493,29 @@ class AuthRepository {
       if (e.toString().contains('network') || e.toString().contains('timeout')) {
         errorCategory = 'network';
         userMessage = 'Network error during sign-in. Please check your internet connection and try again.';
-        debugPrint('🌐 [GOOGLE_SIGNIN] Network-related error detected');
+        AppLogger.auth('🌐 [GOOGLE_SIGNIN] Network-related error detected');
       } else if (e.toString().contains('cancelled') || e.toString().contains('CANCELLED')) {
         errorCategory = 'user_cancelled';
         userMessage = 'Sign-in was cancelled.';
-        debugPrint('🚫 [GOOGLE_SIGNIN] User cancelled the sign-in process');
+        AppLogger.auth('🚫 [GOOGLE_SIGNIN] User cancelled the sign-in process');
       } else if (e.toString().contains('sign_in_failed') || e.toString().contains('SIGN_IN_FAILED')) {
         errorCategory = 'auth_failed';
         userMessage = 'Authentication failed. Please try again.';
-        debugPrint('🔐 [GOOGLE_SIGNIN] Authentication failure detected');
+        AppLogger.auth('🔐 [GOOGLE_SIGNIN] Authentication failure detected');
       } else if (e.toString().contains('account') || e.toString().contains('ACCOUNT')) {
         errorCategory = 'account_issue';
         userMessage = 'Account selection failed. Please try selecting a different account.';
-        debugPrint('👤 [GOOGLE_SIGNIN] Account-related error detected');
+        AppLogger.auth('👤 [GOOGLE_SIGNIN] Account-related error detected');
       } else {
         errorCategory = 'unknown';
         userMessage = 'Sign-in failed: ${e.toString()}';
-        debugPrint('❓ [GOOGLE_SIGNIN] Unknown error category');
+        AppLogger.auth('❓ [GOOGLE_SIGNIN] Unknown error category');
       }
 
-      debugPrint('📊 [GOOGLE_SIGNIN] Error summary:');
-      debugPrint('   - Category: $errorCategory');
-      debugPrint('   - Duration: ${totalDuration.inSeconds}s');
-      debugPrint('   - User message: $userMessage');
+      AppLogger.auth('📊 [GOOGLE_SIGNIN] Error summary:');
+      AppLogger.auth('   - Category: $errorCategory');
+      AppLogger.auth('   - Duration: ${totalDuration.inSeconds}s');
+      AppLogger.auth('   - User message: $userMessage');
 
       throw userMessage;
     }
@@ -526,7 +534,7 @@ class AuthRepository {
       final userSnapshot = await userDoc.get();
 
       if (!userSnapshot.exists) {
-        debugPrint('👤 Creating new user record...');
+        AppLogger.auth('👤 Creating new user record...');
         // Create new user with optimized data structure
         final userModel = UserModel(
           uid: firebaseUser.uid,
@@ -549,9 +557,9 @@ class AuthRepository {
         // Create default quota for new user (optimized)
         await _createDefaultUserQuotaOptimized(firebaseUser.uid);
 
-        debugPrint('✅ New user created successfully');
+        AppLogger.auth('✅ New user created successfully');
       } else {
-        debugPrint('🔄 Updating existing user record...');
+        AppLogger.auth('🔄 Updating existing user record...');
         // Update existing user with minimal data transfer
         final updatedData = {
           'phone': firebaseUser.phoneNumber,
@@ -567,16 +575,16 @@ class AuthRepository {
 
         if (filteredData.isNotEmpty) {
           await userDoc.update(filteredData);
-          debugPrint('✅ User data updated successfully');
+          AppLogger.auth('✅ User data updated successfully');
         } else {
-          debugPrint('ℹ️ No user data changes needed');
+          AppLogger.auth('ℹ️ No user data changes needed');
         }
       }
 
       stopPerformanceTimer('user_data_setup');
     } catch (e) {
       stopPerformanceTimer('user_data_setup');
-      debugPrint('❌ Error in createOrUpdateUser: $e');
+      AppLogger.auth('Error in createOrUpdateUser: $e');
       rethrow;
     }
   }
@@ -587,32 +595,32 @@ class AuthRepository {
   // Sign out - Enhanced to properly clear Google Sign-In cache and temporary data
   Future<void> signOut() async {
     try {
-      debugPrint('🚪 Starting enhanced sign-out process...');
+      AppLogger.auth('🚪 Starting enhanced sign-out process...');
 
       // Step 1: Sign out from Firebase Auth
       await _firebaseAuth.signOut();
-      debugPrint('✅ Firebase Auth sign-out completed');
+      AppLogger.auth('✅ Firebase Auth sign-out completed');
 
       // Step 2: Sign out from Google (not disconnect - this preserves account selection)
       // Using signOut() instead of disconnect() to avoid token retrieval issues
       await _googleSignIn.signOut();
-      debugPrint('✅ Google account signed out');
+      AppLogger.auth('✅ Google account signed out');
 
       // Note: We keep the stored Google account info for smart login UX convenience
       // This allows users to quickly sign back in with the same account
-      debugPrint('ℹ️ Stored Google account info preserved for quick re-login');
+      AppLogger.auth('ℹ️ Stored Google account info preserved for quick re-login');
 
       // Step 3: Clear session-specific cache and temporary files (but keep user preferences)
       await _clearLogoutCache();
-      debugPrint('✅ Session cache cleared');
+      AppLogger.auth('✅ Session cache cleared');
 
       // Step 4: Clear GetX controllers to reset app state
       await _clearAllControllers();
-      debugPrint('✅ App controllers reset');
+      AppLogger.auth('✅ App controllers reset');
 
-      debugPrint('🚪 Enhanced sign-out completed successfully');
+      AppLogger.auth('🚪 Enhanced sign-out completed successfully');
     } catch (e) {
-      debugPrint('⚠️ Error during enhanced sign-out: $e');
+      AppLogger.auth('⚠️ Error during enhanced sign-out: $e');
       // Fallback to basic sign-out if enhanced fails
       try {
         await _firebaseAuth.signOut();
@@ -620,14 +628,14 @@ class AuthRepository {
         // Keep stored account info in fallback for UX convenience
         await _clearLogoutCache();
         await _clearAllControllers();
-        debugPrint('⚠️ Fallback sign-out completed');
+        AppLogger.auth('⚠️ Fallback sign-out completed');
       } catch (fallbackError) {
-        debugPrint('❌ Fallback sign-out also failed: $fallbackError');
+        AppLogger.auth('Fallback sign-out also failed: $fallbackError');
         // At minimum, try basic cleanup
         try {
           await _clearAllControllers();
         } catch (controllerError) {
-          debugPrint('❌ Controller cleanup also failed: $controllerError');
+          AppLogger.auth('Controller cleanup also failed: $controllerError');
         }
       }
     }
@@ -723,7 +731,7 @@ class AuthRepository {
 
       return info;
     } catch (e) {
-      debugPrint('❌ Could not get storage info: $e');
+      AppLogger.auth('Could not get storage info: $e');
       return <String, dynamic>{
         'error': e.toString(),
         'cache': <String, dynamic>{'files': 0, 'size': 0},
@@ -737,7 +745,7 @@ class AuthRepository {
   // Manually trigger storage cleanup (for user-initiated cleanup)
   Future<Map<String, dynamic>> manualStorageCleanup() async {
     try {
-      debugPrint('🧹 Manual storage cleanup initiated...');
+      AppLogger.auth('🧹 Manual storage cleanup initiated...');
 
       final result = <String, dynamic>{
         'initialSize': 0,
@@ -785,9 +793,9 @@ class AuthRepository {
       // Clear Firebase cache
       try {
         await _firestore.clearPersistence();
-        debugPrint('✅ Firebase cache cleared during manual cleanup');
+        AppLogger.auth('✅ Firebase cache cleared during manual cleanup');
       } catch (e) {
-        debugPrint('Warning: Could not clear Firebase cache: $e');
+        AppLogger.auth('Warning: Could not clear Firebase cache: $e');
       }
 
       // Get final size
@@ -822,20 +830,20 @@ class AuthRepository {
       result['cleanedSize'] =
           (result['initialSize'] as int) - (result['finalSize'] as int);
 
-      debugPrint('✅ Manual cleanup completed:');
-      debugPrint(
+      AppLogger.auth('✅ Manual cleanup completed:');
+      AppLogger.auth(
         '   Initial size: ${(result['initialSize'] as int) / 1024 / 1024} MB',
       );
-      debugPrint(
+      AppLogger.auth(
         '   Final size: ${(result['finalSize'] as int) / 1024 / 1024} MB',
       );
-      debugPrint(
+      AppLogger.auth(
         '   Cleaned: ${(result['cleanedSize'] as int) / 1024 / 1024} MB',
       );
 
       return result;
     } catch (e) {
-      debugPrint('❌ Manual storage cleanup failed: $e');
+      AppLogger.auth('Manual storage cleanup failed: $e');
       return <String, dynamic>{
         'error': e.toString(),
         'initialSize': 0,
@@ -850,7 +858,7 @@ class AuthRepository {
   // Analyze and clean up storage on app startup
   Future<void> analyzeAndCleanupStorage() async {
     try {
-      debugPrint('🔍 Analyzing app storage on startup...');
+      AppLogger.auth('🔍 Analyzing app storage on startup...');
 
       // Log current storage state
       await _logStorageState('APP_STARTUP');
@@ -891,24 +899,24 @@ class AuthRepository {
 
       // If storage is excessive (>50MB), clean it up
       if (totalSize > 50 * 1024 * 1024) {
-        debugPrint(
+        AppLogger.auth(
           '⚠️ Excessive storage detected (${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB), cleaning up...',
         );
         await _cleanupExcessiveStorage();
       } else {
-        debugPrint(
+        AppLogger.auth(
           '✅ Storage usage normal (${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB)',
         );
       }
     } catch (e) {
-      debugPrint('ℹ️ Could not analyze storage: $e');
+      AppLogger.auth('ℹ️ Could not analyze storage: $e');
     }
   }
 
   // Clean up excessive storage
   Future<void> _cleanupExcessiveStorage() async {
     try {
-      debugPrint('🧹 Cleaning up excessive storage...');
+      AppLogger.auth('🧹 Cleaning up excessive storage...');
 
       final cacheDir = await getTemporaryDirectory();
       final appSupportDir = await getApplicationSupportDirectory();
@@ -930,12 +938,12 @@ class AuthRepository {
                 await file.delete();
                 cleanedSize += size;
                 deletedFiles++;
-                debugPrint(
+                AppLogger.auth(
                   '🗑️ Deleted old cache file: ${file.path} (${(size / 1024).round()} KB)',
                 );
               }
             } catch (e) {
-              debugPrint(
+              AppLogger.auth(
                 'Warning: Could not delete cache file ${file.path}: $e',
               );
             }
@@ -961,28 +969,28 @@ class AuthRepository {
 
         // If Firebase cache is >20MB, clear it
         if (firebaseSize > 20 * 1024 * 1024) {
-          debugPrint(
+          AppLogger.auth(
             '🔥 Firebase cache too large (${(firebaseSize / 1024 / 1024).toStringAsFixed(2)} MB), clearing...',
           );
           try {
             await _firestore.clearPersistence();
             cleanedSize += firebaseSize;
-            debugPrint('✅ Firebase cache cleared');
+            AppLogger.auth('✅ Firebase cache cleared');
           } catch (e) {
-            debugPrint('Warning: Could not clear Firebase cache: $e');
+            AppLogger.auth('Warning: Could not clear Firebase cache: $e');
           }
         }
       }
 
       if (cleanedSize > 0) {
-        debugPrint(
+        AppLogger.auth(
           '✅ Cleaned up ${(cleanedSize / 1024 / 1024).toStringAsFixed(2)} MB, deleted $deletedFiles files',
         );
       } else {
-        debugPrint('ℹ️ No excessive storage found to clean');
+        AppLogger.auth('ℹ️ No excessive storage found to clean');
       }
     } catch (e) {
-      debugPrint('Warning: Could not cleanup excessive storage: $e');
+      AppLogger.auth('Warning: Could not cleanup excessive storage: $e');
     }
   }
 
@@ -999,9 +1007,9 @@ class AuthRepository {
         'createdAt': DateTime.now().toIso8601String(),
       };
       await quotaRef.set(quotaData);
-      debugPrint('✅ Created default quota for new user: $userId');
+      AppLogger.auth('✅ Created default quota for new user: $userId');
     } catch (e) {
-      debugPrint('❌ Failed to create default quota for user $userId: $e');
+      AppLogger.auth('Failed to create default quota for user $userId: $e');
       // Don't throw here as user creation should succeed even if quota creation fails
     }
   }
@@ -1025,9 +1033,9 @@ class AuthRepository {
 
       // Use set with merge for atomic operation
       await quotaRef.set(quotaData, SetOptions(merge: true));
-      debugPrint('✅ Created optimized default quota for new user: $userId');
+      AppLogger.auth('✅ Created optimized default quota for new user: $userId');
     } catch (e) {
-      debugPrint(
+      AppLogger.auth(
         '❌ Failed to create optimized default quota for user $userId: $e',
       );
       // Fallback to original method
@@ -1046,7 +1054,7 @@ class AuthRepository {
     }
 
     final userId = user.uid;
-    debugPrint('🗑️ Starting account deletion for user: $userId');
+    AppLogger.auth('🗑️ Starting account deletion for user: $userId');
 
     try {
       // Get user document to check if they're a candidate
@@ -1061,9 +1069,9 @@ class AuthRepository {
       await _deleteUserMediaFiles(userId);
 
       // Delete from Firebase Auth BEFORE clearing cache
-      debugPrint('🔐 Deleting Firebase Auth account...');
+      AppLogger.auth('🔐 Deleting Firebase Auth account...');
       await user.delete();
-      debugPrint('✅ Firebase Auth account deleted');
+      AppLogger.auth('✅ Firebase Auth account deleted');
 
       // Force sign out from Google (if applicable)
       await _googleSignIn.signOut();
@@ -1074,9 +1082,9 @@ class AuthRepository {
       // Clear all GetX controllers
       await _clearAllControllers();
 
-      debugPrint('✅ Account deletion completed successfully');
+      AppLogger.auth('✅ Account deletion completed successfully');
     } catch (e) {
-      debugPrint('❌ Account deletion failed: $e');
+      AppLogger.auth('Account deletion failed: $e');
 
       // If Firestore deletion fails, still try to delete from Auth
       try {
@@ -1084,7 +1092,7 @@ class AuthRepository {
         await _googleSignIn.signOut();
         await _clearAppCache();
         await _clearAllControllers();
-        debugPrint('⚠️ Partial deletion completed - some data may remain');
+        AppLogger.auth('⚠️ Partial deletion completed - some data may remain');
       } catch (authError) {
         // If auth deletion also fails, still clear cache and controllers
         try {
@@ -1127,17 +1135,17 @@ class AuthRepository {
       if (batches.length > currentBatchIndex + 1) {
         await batches[currentBatchIndex].commit();
         currentBatchIndex++;
-        debugPrint('📦 Committed batch $currentBatchIndex');
+        AppLogger.auth('📦 Committed batch $currentBatchIndex');
       }
     }
 
     try {
       // 1. Delete user document and subcollections
-      debugPrint('📄 Deleting user document and subcollections...');
+      AppLogger.auth('📄 Deleting user document and subcollections...');
       await _deleteUserDocumentChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // 2. Delete conversations and messages (this can be large)
-      debugPrint('💬 Deleting conversations and messages...');
+      AppLogger.auth('💬 Deleting conversations and messages...');
       await _deleteConversationsChunked(
         userId,
         getCurrentBatch,
@@ -1145,11 +1153,11 @@ class AuthRepository {
       );
 
       // 3. Delete rewards
-      debugPrint('🏆 Deleting rewards...');
+      AppLogger.auth('🏆 Deleting rewards...');
       await _deleteRewardsChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // 4. Delete XP transactions
-      debugPrint('⭐ Deleting XP transactions...');
+      AppLogger.auth('⭐ Deleting XP transactions...');
       await _deleteXpTransactionsChunked(
         userId,
         getCurrentBatch,
@@ -1158,7 +1166,7 @@ class AuthRepository {
 
       // 5. If user is a candidate, delete candidate data
       if (isCandidate) {
-        debugPrint('👥 Deleting candidate data...');
+        AppLogger.auth('👥 Deleting candidate data...');
         await _deleteCandidateDataChunked(
           userId,
           getCurrentBatch,
@@ -1167,7 +1175,7 @@ class AuthRepository {
       }
 
       // 6. Delete chat rooms created by the user
-      debugPrint('🏠 Deleting user chat rooms...');
+      AppLogger.auth('🏠 Deleting user chat rooms...');
       await _deleteUserChatRoomsChunked(
         userId,
         getCurrentBatch,
@@ -1175,11 +1183,11 @@ class AuthRepository {
       );
 
       // 7. Delete user quota data
-      debugPrint('📊 Deleting user quota...');
+      AppLogger.auth('📊 Deleting user quota...');
       await _deleteUserQuota(userId, getCurrentBatch());
 
       // 8. Delete reported messages by the user
-      debugPrint('🚨 Deleting reported messages...');
+      AppLogger.auth('🚨 Deleting reported messages...');
       await _deleteUserReportedMessagesChunked(
         userId,
         getCurrentBatch,
@@ -1187,7 +1195,7 @@ class AuthRepository {
       );
 
       // 9. Delete user subscriptions
-      debugPrint('💳 Deleting user subscriptions...');
+      AppLogger.auth('💳 Deleting user subscriptions...');
       await _deleteUserSubscriptionsChunked(
         userId,
         getCurrentBatch,
@@ -1195,24 +1203,24 @@ class AuthRepository {
       );
 
       // 10. Delete user devices
-      debugPrint('📱 Deleting user devices...');
+      AppLogger.auth('📱 Deleting user devices...');
       await _deleteUserDevicesChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // Commit all remaining batches
       for (int i = currentBatchIndex; i < batches.length; i++) {
         await batches[i].commit();
-        debugPrint('📦 Committed final batch ${i + 1}');
+        AppLogger.auth('📦 Committed final batch ${i + 1}');
       }
 
-      debugPrint('✅ All user data deleted successfully');
+      AppLogger.auth('✅ All user data deleted successfully');
     } catch (e) {
-      debugPrint('❌ Error during chunked deletion: $e');
+      AppLogger.auth('Error during chunked deletion: $e');
       // Try to commit any pending batches
       for (int i = currentBatchIndex; i < batches.length; i++) {
         try {
           await batches[i].commit();
         } catch (batchError) {
-          debugPrint('❌ Failed to commit batch ${i + 1}: $batchError');
+          AppLogger.auth('Failed to commit batch ${i + 1}: $batchError');
         }
       }
       rethrow;
@@ -1222,34 +1230,34 @@ class AuthRepository {
   // Clear all app cache and local storage
   Future<void> _clearAppCache() async {
     try {
-      debugPrint('🧹 Starting comprehensive cache cleanup...');
+      AppLogger.auth('🧹 Starting comprehensive cache cleanup...');
 
       // Clear SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      debugPrint('✅ SharedPreferences cleared');
+      AppLogger.auth('✅ SharedPreferences cleared');
 
       // Clear Firebase local cache (handle errors gracefully)
       try {
         await _firestore.clearPersistence();
-        debugPrint('✅ Firebase local cache cleared');
+        AppLogger.auth('✅ Firebase local cache cleared');
       } catch (cacheError) {
         // Handle specific cache clearing errors gracefully
         final errorMessage = cacheError.toString();
         if (errorMessage.contains('failed-precondition') ||
             errorMessage.contains('not in a state') ||
             errorMessage.contains('Operation was rejected')) {
-          debugPrint(
+          AppLogger.auth(
             'ℹ️ Firebase cache clearing skipped (normal after account deletion)',
           );
         } else {
-          debugPrint('Warning: Firebase cache clearing failed: $cacheError');
+          AppLogger.auth('Warning: Firebase cache clearing failed: $cacheError');
         }
       }
 
       // Clear any cached data in Firebase Auth
       await _firebaseAuth.signOut();
-      debugPrint('✅ Firebase Auth cache cleared');
+      AppLogger.auth('✅ Firebase Auth cache cleared');
 
       // Clear image cache (if using cached_network_image or similar)
       await _clearImageCache();
@@ -1266,9 +1274,9 @@ class AuthRepository {
       // Clear all app directories and cache
       await _clearAllAppDirectories();
 
-      debugPrint('✅ Comprehensive cache cleanup completed');
+      AppLogger.auth('✅ Comprehensive cache cleanup completed');
     } catch (e) {
-      debugPrint('Warning: Failed to clear some cache: $e');
+      AppLogger.auth('Warning: Failed to clear some cache: $e');
       // Don't throw here as cache clearing failure shouldn't stop account deletion
     }
   }
@@ -1288,18 +1296,18 @@ class AuthRepository {
         Get.delete<AdMobService>(force: true);
       }
 
-      debugPrint(
+      AppLogger.auth(
         '✅ Controllers cleared (LoginController preserved for login screen)',
       );
     } catch (e) {
-      debugPrint('Warning: Failed to clear some controllers: $e');
+      AppLogger.auth('Warning: Failed to clear some controllers: $e');
     }
   }
 
   // Clear cache for logout (lighter version that preserves user preferences)
   Future<void> _clearLogoutCache() async {
     try {
-      debugPrint('🧹 Starting logout cache cleanup...');
+      AppLogger.auth('🧹 Starting logout cache cleanup...');
 
       // Log initial storage state
       await _logStorageState('BEFORE logout');
@@ -1307,18 +1315,18 @@ class AuthRepository {
       // Clear Firebase local cache (but keep user data)
       try {
         await _firestore.clearPersistence();
-        debugPrint('✅ Firebase local cache cleared');
+        AppLogger.auth('✅ Firebase local cache cleared');
       } catch (cacheError) {
         // Handle specific cache clearing errors gracefully
         final errorMessage = cacheError.toString();
         if (errorMessage.contains('failed-precondition') ||
             errorMessage.contains('not in a state') ||
             errorMessage.contains('Operation was rejected')) {
-          debugPrint(
+          AppLogger.auth(
             'ℹ️ Firebase cache clearing skipped (normal after sign-out)',
           );
         } else {
-          debugPrint('Warning: Firebase cache clearing failed: $cacheError');
+          AppLogger.auth('Warning: Firebase cache clearing failed: $cacheError');
         }
       }
 
@@ -1334,10 +1342,10 @@ class AuthRepository {
       // Clear cache directory (but preserve user preferences in SharedPreferences)
       try {
         final cacheDir = await getTemporaryDirectory();
-        debugPrint('📁 Checking cache directory: ${cacheDir.path}');
+        AppLogger.auth('📁 Checking cache directory: ${cacheDir.path}');
         if (await cacheDir.exists()) {
           final files = cacheDir.listSync(recursive: true);
-          debugPrint('📊 Found ${files.length} items in cache directory');
+          AppLogger.auth('📊 Found ${files.length} items in cache directory');
 
           int deletedFiles = 0;
           int deletedDirs = 0;
@@ -1348,11 +1356,11 @@ class AuthRepository {
                 final size = await file.length();
                 await file.delete();
                 deletedFiles++;
-                debugPrint(
+                AppLogger.auth(
                   '🗑️ Deleted cache file: ${file.path} ($size bytes)',
                 );
               } catch (e) {
-                debugPrint(
+                AppLogger.auth(
                   'Warning: Failed to delete cache file ${file.path}: $e',
                 );
               }
@@ -1360,22 +1368,22 @@ class AuthRepository {
               try {
                 await file.delete(recursive: true);
                 deletedDirs++;
-                debugPrint('🗑️ Deleted cache directory: ${file.path}');
+                AppLogger.auth('🗑️ Deleted cache directory: ${file.path}');
               } catch (e) {
-                debugPrint(
+                AppLogger.auth(
                   'Warning: Failed to delete cache directory ${file.path}: $e',
                 );
               }
             }
           }
-          debugPrint(
+          AppLogger.auth(
             '✅ Cache directory cleared - deleted $deletedFiles files and $deletedDirs directories',
           );
         } else {
-          debugPrint('ℹ️ Cache directory does not exist');
+          AppLogger.auth('ℹ️ Cache directory does not exist');
         }
       } catch (e) {
-        debugPrint('Warning: Failed to clear cache directory: $e');
+        AppLogger.auth('Warning: Failed to clear cache directory: $e');
       }
 
       // Clear application documents temp directories
@@ -1388,17 +1396,17 @@ class AuthRepository {
             final tempDir = Directory('${appDir.path}/$dirName');
             if (await tempDir.exists()) {
               await tempDir.delete(recursive: true);
-              debugPrint('✅ Cleared temp directory: $dirName');
+              AppLogger.auth('✅ Cleared temp directory: $dirName');
             }
           } catch (e) {
-            debugPrint('Warning: Failed to clear $dirName: $e');
+            AppLogger.auth('Warning: Failed to clear $dirName: $e');
           }
         }
       } catch (e) {
-        debugPrint('Warning: Failed to clear app temp directories: $e');
+        AppLogger.auth('Warning: Failed to clear app temp directories: $e');
       }
 
-      debugPrint('✅ Logout cache cleanup completed');
+      AppLogger.auth('✅ Logout cache cleanup completed');
 
       // Log final storage state
       await _logStorageState('AFTER logout');
@@ -1424,15 +1432,15 @@ class AuthRepository {
           }
         }
 
-        debugPrint('📊 Storage cleanup summary:');
-        debugPrint('   Cache directory: $cacheItems items remaining');
-        debugPrint('   App temp dirs: $appTempItems items remaining');
-        debugPrint('   ✅ Session data cleared successfully');
+        AppLogger.auth('📊 Storage cleanup summary:');
+        AppLogger.auth('   Cache directory: $cacheItems items remaining');
+        AppLogger.auth('   App temp dirs: $appTempItems items remaining');
+        AppLogger.auth('   ✅ Session data cleared successfully');
       } catch (e) {
-        debugPrint('ℹ️ Could not generate cleanup summary: $e');
+        AppLogger.auth('ℹ️ Could not generate cleanup summary: $e');
       }
     } catch (e) {
-      debugPrint('Warning: Failed to clear some logout cache: $e');
+      AppLogger.auth('Warning: Failed to clear some logout cache: $e');
     }
   }
 
@@ -1490,15 +1498,15 @@ class AuthRepository {
 
       final totalSize = cacheSize + appSupportSize;
 
-      debugPrint('📊 Storage state $context:');
-      debugPrint(
+      AppLogger.auth('📊 Storage state $context:');
+      AppLogger.auth(
         '   Cache directory: $cacheFiles files (${(cacheSize / 1024).round()} KB)',
       );
-      debugPrint('   App temp files: $appTempFiles items');
-      debugPrint(
+      AppLogger.auth('   App temp files: $appTempFiles items');
+      AppLogger.auth(
         '   App support: $appSupportFiles files (${(appSupportSize / 1024).round()} KB)',
       );
-      debugPrint(
+      AppLogger.auth(
         '   📈 Total estimated: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB',
       );
 
@@ -1508,7 +1516,7 @@ class AuthRepository {
         await _analyzeLargeStorage(cacheDir, appDir, appSupportDir);
       }
     } catch (e) {
-      debugPrint('ℹ️ Could not log storage state: $e');
+      AppLogger.auth('ℹ️ Could not log storage state: $e');
     }
   }
 
@@ -1519,7 +1527,7 @@ class AuthRepository {
     Directory appSupportDir,
   ) async {
     try {
-      debugPrint('🔍 Analyzing large storage usage...');
+      AppLogger.auth('🔍 Analyzing large storage usage...');
 
       // Check cache directory breakdown
       if (await cacheDir.exists()) {
@@ -1539,7 +1547,7 @@ class AuthRepository {
             }
             if (dirSize > 1024 * 1024) {
               // > 1MB
-              debugPrint(
+              AppLogger.auth(
                 '   📁 Large cache dir: ${item.path} (${(dirSize / 1024 / 1024).toStringAsFixed(2)} MB, ${files.length} files)',
               );
             }
@@ -1548,7 +1556,7 @@ class AuthRepository {
               final size = await item.length();
               if (size > 1024 * 1024) {
                 // > 1MB
-                debugPrint(
+                AppLogger.auth(
                   '   📄 Large cache file: ${item.path} (${(size / 1024 / 1024).toStringAsFixed(2)} MB)',
                 );
               }
@@ -1577,7 +1585,7 @@ class AuthRepository {
             }
             if (dirSize > 1024 * 1024) {
               // > 1MB
-              debugPrint(
+              AppLogger.auth(
                 '   📁 Large support dir: ${item.path} (${(dirSize / 1024 / 1024).toStringAsFixed(2)} MB, ${files.length} files)',
               );
             }
@@ -1586,7 +1594,7 @@ class AuthRepository {
               final size = await item.length();
               if (size > 1024 * 1024) {
                 // > 1MB
-                debugPrint(
+                AppLogger.auth(
                   '   📄 Large support file: ${item.path} (${(size / 1024 / 1024).toStringAsFixed(2)} MB)',
                 );
               }
@@ -1611,12 +1619,12 @@ class AuthRepository {
             }
           }
         }
-        debugPrint(
+        AppLogger.auth(
           '   🔥 Firebase cache: ${firebaseFiles.length} files (${(firebaseSize / 1024 / 1024).toStringAsFixed(2)} MB)',
         );
       }
     } catch (e) {
-      debugPrint('ℹ️ Could not analyze large storage: $e');
+      AppLogger.auth('ℹ️ Could not analyze large storage: $e');
     }
   }
 
@@ -1626,12 +1634,12 @@ class AuthRepository {
       // Clear Flutter's image cache
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
-      debugPrint('✅ Flutter image cache cleared');
+      AppLogger.auth('✅ Flutter image cache cleared');
 
       // Note: If using cached_network_image package, you would also clear its cache:
       // await DefaultCacheManager().emptyCache();
     } catch (e) {
-      debugPrint('Warning: Failed to clear image cache: $e');
+      AppLogger.auth('Warning: Failed to clear image cache: $e');
     }
   }
 
@@ -1640,11 +1648,11 @@ class AuthRepository {
     try {
       // Note: Flutter doesn't have a built-in HTTP cache, but if you're using
       // packages like dio with cache interceptors, you would clear them here
-      debugPrint(
+      AppLogger.auth(
         'ℹ️ HTTP cache clearing not implemented (no HTTP caching detected)',
       );
     } catch (e) {
-      debugPrint('Warning: Failed to clear HTTP cache: $e');
+      AppLogger.auth('Warning: Failed to clear HTTP cache: $e');
     }
   }
 
@@ -1681,18 +1689,18 @@ class AuthRepository {
               }
             }
           } catch (e) {
-            debugPrint('Warning: Failed to delete temp item ${file.path}: $e');
+            AppLogger.auth('Warning: Failed to delete temp item ${file.path}: $e');
           }
         }
 
         if (deletedCount > 0) {
-          debugPrint('✅ Cleared $deletedCount temp files/directories');
+          AppLogger.auth('✅ Cleared $deletedCount temp files/directories');
         } else {
-          debugPrint('ℹ️ No old temp files to clear');
+          AppLogger.auth('ℹ️ No old temp files to clear');
         }
       }
     } catch (e) {
-      debugPrint('Warning: Failed to clear temp files: $e');
+      AppLogger.auth('Warning: Failed to clear temp files: $e');
     }
   }
 
@@ -1708,10 +1716,10 @@ class AuthRepository {
         final tempDir = Directory('${directory.path}/temp_photos');
         if (await tempDir.exists()) {
           await tempDir.delete(recursive: true);
-          debugPrint('✅ File upload temp photos cleared');
+          AppLogger.auth('✅ File upload temp photos cleared');
         }
       } catch (e) {
-        debugPrint('Warning: Failed to clear temp photos: $e');
+        AppLogger.auth('Warning: Failed to clear temp photos: $e');
       }
 
       // Clear media temp directory
@@ -1720,13 +1728,13 @@ class AuthRepository {
         final mediaTempDir = Directory('${directory.path}/media_temp');
         if (await mediaTempDir.exists()) {
           await mediaTempDir.delete(recursive: true);
-          debugPrint('✅ File upload media temp files cleared');
+          AppLogger.auth('✅ File upload media temp files cleared');
         }
       } catch (e) {
-        debugPrint('Warning: Failed to clear media temp files: $e');
+        AppLogger.auth('Warning: Failed to clear media temp files: $e');
       }
     } catch (e) {
-      debugPrint('Warning: Failed to clear file upload temp files: $e');
+      AppLogger.auth('Warning: Failed to clear file upload temp files: $e');
     }
   }
 
@@ -1735,7 +1743,7 @@ class AuthRepository {
     try {
       // Get application documents directory
       final appDir = await getApplicationDocumentsDirectory();
-      debugPrint('📁 Clearing app directory: ${appDir.path}');
+      AppLogger.auth('📁 Clearing app directory: ${appDir.path}');
 
       // Clear all subdirectories except those we want to keep
       final subDirs = ['temp_photos', 'media_temp', 'cache', 'temp'];
@@ -1744,10 +1752,10 @@ class AuthRepository {
           final subDir = Directory('${appDir.path}/$subDirName');
           if (await subDir.exists()) {
             await subDir.delete(recursive: true);
-            debugPrint('✅ Cleared directory: $subDirName');
+            AppLogger.auth('✅ Cleared directory: $subDirName');
           }
         } catch (e) {
-          debugPrint('Warning: Failed to clear $subDirName: $e');
+          AppLogger.auth('Warning: Failed to clear $subDirName: $e');
         }
       }
 
@@ -1762,22 +1770,22 @@ class AuthRepository {
               try {
                 await file.delete();
               } catch (e) {
-                debugPrint(
+                AppLogger.auth(
                   'Warning: Failed to delete cache file ${file.path}: $e',
                 );
               }
             }
           }
-          debugPrint('✅ Cache directory cleared');
+          AppLogger.auth('✅ Cache directory cleared');
         }
       } catch (e) {
-        debugPrint('Warning: Failed to clear cache directory: $e');
+        AppLogger.auth('Warning: Failed to clear cache directory: $e');
       }
 
       // Note: External storage cache clearing removed to avoid import complexity
       // In production, you might want to add this back with proper platform-specific imports
     } catch (e) {
-      debugPrint('Warning: Failed to clear app directories: $e');
+      AppLogger.auth('Warning: Failed to clear app directories: $e');
     }
   }
 
@@ -1897,7 +1905,7 @@ class AuthRepository {
               getBatch().delete(candidateDoc.reference);
               await commitIfNeeded();
 
-              debugPrint(
+              AppLogger.auth(
                 '✅ Deleted candidate data from: /districts/${districtDoc.id}/bodies/${bodyDoc.id}/wards/${wardDoc.id}/candidates/${candidateDoc.id}',
               );
               return; // Found and deleted, no need to continue searching
@@ -1906,9 +1914,9 @@ class AuthRepository {
         }
       }
 
-      debugPrint('⚠️ No candidate data found for user: $userId');
+      AppLogger.auth('⚠️ No candidate data found for user: $userId');
     } catch (e) {
-      debugPrint('❌ Error deleting candidate data: $e');
+      AppLogger.auth('Error deleting candidate data: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -1948,16 +1956,16 @@ class AuthRepository {
         getBatch().delete(roomDoc.reference);
         await commitIfNeeded();
 
-        debugPrint(
+        AppLogger.auth(
           '✅ Deleted chat room: $roomId with ${messagesSnapshot.docs.length} messages and ${pollsSnapshot.docs.length} polls',
         );
       }
 
-      debugPrint(
+      AppLogger.auth(
         '✅ Deleted ${chatRoomsSnapshot.docs.length} chat rooms created by user: $userId',
       );
     } catch (e) {
-      debugPrint('❌ Error deleting user chat rooms: $e');
+      AppLogger.auth('Error deleting user chat rooms: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -1966,9 +1974,9 @@ class AuthRepository {
     try {
       final quotaRef = _firestore.collection('user_quotas').doc(userId);
       batch.delete(quotaRef);
-      debugPrint('✅ Deleted user quota for: $userId');
+      AppLogger.auth('✅ Deleted user quota for: $userId');
     } catch (e) {
-      debugPrint('❌ Error deleting user quota: $e');
+      AppLogger.auth('Error deleting user quota: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -1990,11 +1998,11 @@ class AuthRepository {
         await commitIfNeeded();
       }
 
-      debugPrint(
+      AppLogger.auth(
         '✅ Deleted ${reportsSnapshot.docs.length} reported messages by user: $userId',
       );
     } catch (e) {
-      debugPrint('❌ Error deleting user reported messages: $e');
+      AppLogger.auth('Error deleting user reported messages: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -2016,11 +2024,11 @@ class AuthRepository {
         await commitIfNeeded();
       }
 
-      debugPrint(
+      AppLogger.auth(
         '✅ Deleted ${subscriptionsSnapshot.docs.length} subscriptions for user: $userId',
       );
     } catch (e) {
-      debugPrint('❌ Error deleting user subscriptions: $e');
+      AppLogger.auth('Error deleting user subscriptions: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -2040,11 +2048,11 @@ class AuthRepository {
         await commitIfNeeded();
       }
 
-      debugPrint(
+      AppLogger.auth(
         '✅ Deleted ${devicesSnapshot.docs.length} devices for user: $userId',
       );
     } catch (e) {
-      debugPrint('❌ Error deleting user devices: $e');
+      AppLogger.auth('Error deleting user devices: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -2054,17 +2062,17 @@ class AuthRepository {
       // Note: Firebase Storage deletion is more complex and might require
       // listing all files in the user's media folder and deleting them individually
       // For now, we'll log this as a reminder that media files should be cleaned up
-      debugPrint(
+      AppLogger.auth(
         '📝 Reminder: Media files in Firebase Storage for user $userId should be manually cleaned up',
       );
-      debugPrint('   Location: chat_media/ and other user-uploaded files');
+      AppLogger.auth('   Location: chat_media/ and other user-uploaded files');
 
       // In a production app, you would:
       // 1. List all files in user's media folders
       // 2. Delete each file individually
       // 3. This can be expensive, so consider doing it asynchronously
     } catch (e) {
-      debugPrint('❌ Error deleting user media files: $e');
+      AppLogger.auth('Error deleting user media files: $e');
       // Don't throw here as media cleanup is not critical
     }
   }
@@ -2094,7 +2102,7 @@ class AuthRepository {
                 // Check if authentication actually succeeded despite the timeout
                 final currentUser = _firebaseAuth.currentUser;
                 if (currentUser != null) {
-                  debugPrint('✅ Authentication succeeded despite timeout');
+                  AppLogger.auth('✅ Authentication succeeded despite timeout');
                   throw 'AUTH_SUCCESS_BUT_TIMEOUT';
                 } else {
                   throw Exception('Firebase authentication timed out');
@@ -2110,7 +2118,7 @@ class AuthRepository {
 
         retryCount++;
         if (retryCount < maxRetries && _isRetryableError(e)) {
-          debugPrint('🔄 Firebase auth retry $retryCount/$maxRetries');
+          AppLogger.auth('🔄 Firebase auth retry $retryCount/$maxRetries');
           final delay = Duration(seconds: retryCount * 2); // Exponential backoff
           await Future.delayed(delay);
           continue;
@@ -2125,7 +2133,7 @@ class AuthRepository {
 
   // Prepare user data locally (fast operation)
   Future<Map<String, dynamic>> _prepareUserDataLocally(GoogleSignInAccount googleUser) async {
-    debugPrint('📋 Preparing user data locally...');
+    AppLogger.auth('📋 Preparing user data locally...');
 
     final userData = {
       'name': googleUser.displayName ?? 'User',
@@ -2137,7 +2145,7 @@ class AuthRepository {
     // Cache locally for immediate access
     await _cacheService.cacheTempUserData(userData);
 
-    debugPrint('✅ User data prepared and cached locally');
+    AppLogger.auth('✅ User data prepared and cached locally');
     return userData;
   }
 
@@ -2146,7 +2154,7 @@ class AuthRepository {
     startPerformanceTimer('minimal_user_creation');
 
     try {
-      debugPrint('👤 Creating minimal user record...');
+      AppLogger.auth('👤 Creating minimal user record...');
 
       final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
 
@@ -2162,9 +2170,9 @@ class AuthRepository {
       // Use set with merge for atomic operation
       await userDoc.set(minimalData, SetOptions(merge: true));
 
-      debugPrint('✅ Minimal user record created');
+      AppLogger.auth('✅ Minimal user record created');
     } catch (e) {
-      debugPrint('❌ Error creating minimal user record: $e');
+      AppLogger.auth('Error creating minimal user record: $e');
       rethrow;
     } finally {
       stopPerformanceTimer('minimal_user_creation');
@@ -2173,7 +2181,7 @@ class AuthRepository {
 
   // Perform background setup operations (non-blocking)
   void _performBackgroundSetup(User user) {
-    debugPrint('🔄 Starting background setup...');
+    AppLogger.auth('🔄 Starting background setup...');
 
     // Use the background sync manager for comprehensive sync
     _syncManager.performFullBackgroundSync(user);
@@ -2182,7 +2190,7 @@ class AuthRepository {
   // Update user's FCM token for push notifications
   Future<void> _updateUserFCMToken(User user) async {
     try {
-      debugPrint('📱 Updating FCM token for user: ${user.uid}');
+      AppLogger.auth('📱 Updating FCM token for user: ${user.uid}');
 
       // Get current FCM token
       final fcmToken = await _fcmService.getCurrentToken();
@@ -2190,12 +2198,12 @@ class AuthRepository {
       if (fcmToken != null) {
         // Update token in user's document
         await _fcmService.updateUserFCMToken(user.uid, fcmToken);
-        debugPrint('✅ FCM token updated for user: ${user.uid}');
+        AppLogger.auth('✅ FCM token updated for user: ${user.uid}');
       } else {
-        debugPrint('⚠️ No FCM token available for user: ${user.uid}');
+        AppLogger.auth('⚠️ No FCM token available for user: ${user.uid}');
       }
     } catch (e) {
-      debugPrint('❌ Error updating FCM token: $e');
+      AppLogger.auth('Error updating FCM token: $e');
       // Don't throw - FCM token update failure shouldn't break authentication
     }
   }
@@ -2217,9 +2225,9 @@ class AuthRepository {
       // Properly encode as JSON string
       final accountJson = jsonEncode(accountData);
       await prefs.setString('last_google_account', accountJson);
-      debugPrint('✅ Stored last Google account: ${account.email}');
+      AppLogger.auth('✅ Stored last Google account: ${account.email}');
     } catch (e) {
-      debugPrint('⚠️ Error storing last Google account: $e');
+      AppLogger.auth('⚠️ Error storing last Google account: $e');
     }
   }
 
@@ -2230,27 +2238,27 @@ class AuthRepository {
       final accountData = prefs.getString('last_google_account');
 
       if (accountData == null) {
-        debugPrint('ℹ️ No stored Google account found');
+        AppLogger.auth('ℹ️ No stored Google account found');
         return null;
       }
 
-      debugPrint('📋 Found stored Google account data');
+      AppLogger.auth('📋 Found stored Google account data');
 
       // Parse the stored JSON string
       final accountMap = jsonDecode(accountData) as Map<String, dynamic>;
 
-      debugPrint('✅ Successfully parsed stored account: ${accountMap['displayName']} (${accountMap['email']})');
+      AppLogger.auth('✅ Successfully parsed stored account: ${accountMap['displayName']} (${accountMap['email']})');
 
       return accountMap;
     } catch (e) {
-      debugPrint('⚠️ Error retrieving last Google account: $e');
+      AppLogger.auth('⚠️ Error retrieving last Google account: $e');
       // Clear corrupted data
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('last_google_account');
-        debugPrint('🧹 Cleared corrupted account data');
+        AppLogger.auth('🧹 Cleared corrupted account data');
       } catch (clearError) {
-        debugPrint('⚠️ Error clearing corrupted data: $clearError');
+        AppLogger.auth('⚠️ Error clearing corrupted data: $clearError');
       }
       return null;
     }
@@ -2261,9 +2269,9 @@ class AuthRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('last_google_account');
-      debugPrint('✅ Cleared last Google account info');
+      AppLogger.auth('✅ Cleared last Google account info');
     } catch (e) {
-      debugPrint('⚠️ Error clearing last Google account: $e');
+      AppLogger.auth('⚠️ Error clearing last Google account: $e');
     }
   }
 }

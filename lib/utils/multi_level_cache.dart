@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:janmat/utils/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -211,7 +212,7 @@ class MultiLevelCache {
 
   void _log(String message) {
     if (kDebugMode) {
-      debugPrint('🏗️ MULTI_CACHE: $message');
+      AppLogger.common('🏗️ MULTI_CACHE: $message');
     }
   }
 
@@ -354,7 +355,7 @@ class DiskCache {
           );
         });
       } catch (e) {
-        debugPrint('Error loading disk cache metadata: $e');
+        AppLogger.error('Error loading disk cache metadata: $e');
       }
     }
   }
@@ -741,7 +742,7 @@ class PerformanceMonitor {
     if (startTime != null) {
       final duration = DateTime.now().difference(startTime);
       if (kDebugMode) {
-        debugPrint('⏱️ $operation took ${duration.inMilliseconds}ms');
+        AppLogger.common('⏱️ $operation took ${duration.inMilliseconds}ms');
       }
     }
   }

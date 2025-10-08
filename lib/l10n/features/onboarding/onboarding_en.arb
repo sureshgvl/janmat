@@ -1,0 +1,17 @@
+{
+  "welcomeTitle": "Welcome to JanMat",
+  "welcomeSubtitle": "Connect with your ward's future leaders through transparent, direct communication",
+  "candidatesTitle": "Know Your Candidates",
+  "candidatesSubtitle": "Browse comprehensive candidate profiles, read manifestos, and access contact information for ward-specific election insights",
+  "chatTitle": "Real-Time Dialogue",
+  "chatSubtitle": "Direct messaging with ward candidates, group discussions, and gamified communication with XP rewards",
+  "pollsTitle": "Participate in Democracy",
+  "pollsSubtitle": "Vote in election-related polls, view real-time results, and engage in community discussions",
+  "locationTitle": "Ward-Specific Content",
+  "locationSubtitle": "Location-based candidate discovery, ward discussions, and localized election information",
+  "premiumTitle": "Enhanced Engagement",
+  "premiumSubtitle": "XP rewards, premium messaging, advanced analytics, and achievement badges for active participation",
+  "skip": "Skip",
+  "next": "Next",
+  "getStarted": "Get Started"
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/plan_card_with_validity_options.dart';
 
@@ -123,12 +124,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     if (confirmed == true) {
       // Start the payment process with election type and validity days
-      debugPrint('💳 Starting payment process for plan: ${plan.planId}, election: ${widget.electionType}, validity: $validityDays');
+      AppLogger.monetization('💳 Starting payment process for plan: ${plan.planId}, election: ${widget.electionType}, validity: $validityDays');
       final success = await _controller.processPaymentWithElection(plan.planId, widget.electionType, validityDays);
 
       if (success) {
         // Payment initiated successfully - result will be handled by callbacks
-        debugPrint('✅ Payment process initiated successfully');
+        AppLogger.monetization('✅ Payment process initiated successfully');
         // Close this screen
         Navigator.of(context).pop();
       } else {

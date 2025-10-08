@@ -12,6 +12,7 @@ import '../repositories/candidate_repository.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../../models/ward_model.dart';
+import '../../../utils/app_logger.dart';
 
 class CandidateDashboardInfo extends StatefulWidget {
   const CandidateDashboardInfo({super.key});
@@ -46,8 +47,8 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
     final candidate = controller.candidateData.value;
     if (candidate == null) return;
 
-    debugPrint('🔍 [Dashboard Info] Loading location data for candidate ${candidate.candidateId}');
-    debugPrint('📍 [Dashboard Info] IDs: district=${candidate.districtId}, body=${candidate.bodyId}, ward=${candidate.wardId}');
+    AppLogger.candidate('Loading location data for candidate ${candidate.candidateId}', tag: 'DASHBOARD_INFO');
+    AppLogger.candidate('IDs: district=${candidate.districtId}, body=${candidate.bodyId}, ward=${candidate.wardId}', tag: 'DASHBOARD_INFO');
 
     try {
       // Load location data from SQLite cache
@@ -60,7 +61,7 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
 
       // Check if ward data is missing (most likely to be missing)
       if (locationData['wardName'] == null) {
-        debugPrint('⚠️ [Dashboard Info] Ward data not found in cache, triggering sync...');
+        AppLogger.candidate('Ward data not found in cache, triggering sync...', tag: 'DASHBOARD_INFO');
 
         // Trigger background sync for missing location data
         await _syncMissingLocationData();
@@ -81,10 +82,10 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
           });
         }
 
-        debugPrint('✅ [Dashboard Info] Location data loaded after sync:');
-        debugPrint('   📍 District: $_districtName');
-        debugPrint('   🏛️ Body: $_bodyName');
-        debugPrint('   🏛️ Ward: $_wardName');
+        AppLogger.candidate('Location data loaded after sync:', tag: 'DASHBOARD_INFO');
+        AppLogger.candidate('  District: $_districtName', tag: 'DASHBOARD_INFO');
+        AppLogger.candidate('  Body: $_bodyName', tag: 'DASHBOARD_INFO');
+        AppLogger.candidate('  Ward: $_wardName', tag: 'DASHBOARD_INFO');
       } else {
         if (mounted) {
           setState(() {
@@ -94,13 +95,13 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
           });
         }
 
-        debugPrint('✅ [Dashboard Info] Location data loaded successfully from SQLite:');
-        debugPrint('   📍 District: $_districtName');
-        debugPrint('   🏛️ Body: $_bodyName');
-        debugPrint('   🏛️ Ward: $_wardName');
+        AppLogger.candidate('Location data loaded successfully from SQLite:', tag: 'DASHBOARD_INFO');
+        AppLogger.candidate('  District: $_districtName', tag: 'DASHBOARD_INFO');
+        AppLogger.candidate('  Body: $_bodyName', tag: 'DASHBOARD_INFO');
+        AppLogger.candidate('  Ward: $_wardName', tag: 'DASHBOARD_INFO');
       }
     } catch (e) {
-      debugPrint('❌ [Dashboard Info] Error loading location data: $e');
+      AppLogger.candidateError('Error loading location data', tag: 'DASHBOARD_INFO', error: e);
 
       // Fallback to ID-based display if sync fails
       if (mounted) {
@@ -119,11 +120,11 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
     if (candidate == null) return;
 
     try {
-      debugPrint('🔄 [Dashboard Info] Syncing missing location data from Firebase...');
+      AppLogger.candidate('Syncing missing location data from Firebase...', tag: 'DASHBOARD_INFO');
 
       // Sync district data if missing
       if (_districtName == null) {
-        debugPrint('🏙️ [Sync] Fetching district data for ${candidate.districtId}');
+        AppLogger.candidate('Fetching district data for ${candidate.districtId}', tag: 'DASHBOARD_INFO');
         final districts = await candidateRepository.getAllDistricts();
         final district = districts.firstWhere(
           (d) => d.id == candidate.districtId,
@@ -134,12 +135,12 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
           ),
         );
         await _locationDatabase.insertDistricts([district]);
-        debugPrint('✅ [Sync] District data synced');
+        AppLogger.candidate('District data synced', tag: 'DASHBOARD_INFO');
       }
 
       // Sync body data if missing
       if (_bodyName == null) {
-        debugPrint('🏛️ [Sync] Fetching body data for ${candidate.bodyId}');
+        AppLogger.candidate('Fetching body data for ${candidate.bodyId}', tag: 'DASHBOARD_INFO');
         final bodies = await candidateRepository.getWardsByDistrictAndBody(
           candidate.districtId,
           candidate.bodyId,
@@ -153,13 +154,13 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
             stateId: candidate.stateId ?? 'maharashtra',
           );
           await _locationDatabase.insertBodies([body]);
-          debugPrint('✅ [Sync] Body data synced');
+          AppLogger.candidate('Body data synced', tag: 'DASHBOARD_INFO');
         }
       }
 
       // Sync ward data (most critical)
       if (_wardName == null) {
-        debugPrint('🏛️ [Sync] Fetching ward data for ${candidate.wardId}');
+        AppLogger.candidate('Fetching ward data for ${candidate.wardId}', tag: 'DASHBOARD_INFO');
         final wards = await candidateRepository.getWardsByDistrictAndBody(
           candidate.districtId,
           candidate.bodyId,
@@ -175,12 +176,12 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
           ),
         );
         await _locationDatabase.insertWards([ward]);
-        debugPrint('✅ [Sync] Ward data synced');
+        AppLogger.candidate('Ward data synced', tag: 'DASHBOARD_INFO');
       }
 
-      debugPrint('✅ [Dashboard Info] Location data sync completed');
+      AppLogger.candidate('Location data sync completed', tag: 'DASHBOARD_INFO');
     } catch (e) {
-      debugPrint('❌ [Dashboard Info] Error syncing location data: $e');
+      AppLogger.candidateError('Error syncing location data', tag: 'DASHBOARD_INFO', error: e);
     }
   }
 
@@ -218,12 +219,12 @@ class _CandidateDashboardInfoState extends State<CandidateDashboardInfo> {
                 )
               : Builder(
                   builder: (context) {
-                    debugPrint('🔄 Dashboard building BasicInfoView');
-                    debugPrint('   candidateData exists: ${controller.candidateData.value != null}');
-                    debugPrint('   candidate name: ${controller.candidateData.value?.name}');
-                    debugPrint('   profession: ${controller.candidateData.value?.extraInfo?.basicInfo?.profession}');
-                    debugPrint('   wardName passed to BasicInfoView: $_wardName');
-                    debugPrint('   districtName passed to BasicInfoView: $_districtName');
+                    AppLogger.ui('Dashboard building BasicInfoView', tag: 'DASHBOARD_INFO');
+                    AppLogger.ui('  candidateData exists: ${controller.candidateData.value != null}', tag: 'DASHBOARD_INFO');
+                    AppLogger.ui('  candidate name: ${controller.candidateData.value?.name}', tag: 'DASHBOARD_INFO');
+                    AppLogger.ui('  profession: ${controller.candidateData.value?.extraInfo?.basicInfo?.profession}', tag: 'DASHBOARD_INFO');
+                    AppLogger.ui('  wardName passed to BasicInfoView: $_wardName', tag: 'DASHBOARD_INFO');
+                    AppLogger.ui('  districtName passed to BasicInfoView: $_districtName', tag: 'DASHBOARD_INFO');
                     return BasicInfoView(
                       candidate: controller.candidateData.value!,
                       getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(

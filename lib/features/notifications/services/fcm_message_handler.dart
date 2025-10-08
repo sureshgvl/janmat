@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../../../services/local_notification_service.dart';
+import '../../../utils/app_logger.dart';
 
 /// Service responsible for handling FCM messages
 class FCMMessageHandler {
@@ -29,13 +30,13 @@ class FCMMessageHandler {
   /// Handle background messages
   static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp();
-    print('Handling background message: ${message.messageId}');
+    AppLogger.common('Handling background message: ${message.messageId}');
   }
 
   /// Handle foreground messages with local notifications
   void _handleForegroundMessage(RemoteMessage message) {
-    print('Received foreground message: ${message.notification?.title}');
-    print('Message data: ${message.data}');
+    AppLogger.common('Received foreground message: ${message.notification?.title}');
+    AppLogger.common('Message data: ${message.data}');
 
     // Show local notification for foreground messages
     if (message.notification != null) {
@@ -52,7 +53,7 @@ class FCMMessageHandler {
         payload: message.data.toString(),
       );
 
-      print('Local notification shown for foreground message');
+      AppLogger.common('Local notification shown for foreground message');
     }
 
     // You can also update app state or trigger other actions here
@@ -61,7 +62,7 @@ class FCMMessageHandler {
 
   /// Handle when app is opened from notification
   void _handleMessageOpenedApp(RemoteMessage message) {
-    print('App opened from notification: ${message.data}');
+    AppLogger.common('App opened from notification: ${message.data}');
 
     // Extract notification type and navigate accordingly
     final type = message.data['type'];
@@ -72,31 +73,31 @@ class FCMMessageHandler {
 
   /// Navigate based on notification type
   void _navigateBasedOnNotificationType(String type, Map<String, dynamic> data) {
-    print('Navigating based on notification type: $type');
+    AppLogger.common('Navigating based on notification type: $type');
 
     switch (type) {
       case 'new_follower':
         // Navigate to candidate profile
-        print('Navigate to candidate profile: ${data['candidateId']}');
+        AppLogger.common('Navigate to candidate profile: ${data['candidateId']}');
         break;
       case 'event_rsvp':
         // Navigate to event details
-        print('Navigate to event: ${data['eventId']}');
+        AppLogger.common('Navigate to event: ${data['eventId']}');
         break;
       case 'new_message':
         // Navigate to chat
-        print('Navigate to chat');
+        AppLogger.common('Navigate to chat');
         break;
       case 'poll_result':
         // Navigate to poll results
-        print('Navigate to poll: ${data['pollId']}');
+        AppLogger.common('Navigate to poll: ${data['pollId']}');
         break;
       case 'achievement':
         // Navigate to achievements
-        print('Navigate to achievements');
+        AppLogger.common('Navigate to achievements');
         break;
       default:
-        print('Unknown notification type: $type');
+        AppLogger.common('Unknown notification type: $type');
     }
   }
 

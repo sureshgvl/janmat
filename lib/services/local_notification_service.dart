@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 class LocalNotificationService {
   static final LocalNotificationService _instance = LocalNotificationService._internal();
@@ -86,7 +87,7 @@ class LocalNotificationService {
 
   void _onDidReceiveNotificationResponse(NotificationResponse notificationResponse) {
     // Handle notification tap
-    debugPrint('🔔 Local notification tapped: ${notificationResponse.payload}');
+    AppLogger.common('🔔 Local notification tapped: ${notificationResponse.payload}');
     // You can add navigation logic here if needed
   }
 

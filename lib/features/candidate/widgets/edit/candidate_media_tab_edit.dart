@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/file_upload_service.dart';
 import '../../../../services/plan_service.dart';
@@ -284,10 +285,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
   Future<void> _cleanupDanglingFiles() async {
     try {
       await _fileUploadService.cleanupTempPhotos();
-      debugPrint('🗑️ Cleaned up all temporary local files');
+      AppLogger.candidate('🗑️ Cleaned up all temporary local files');
       _uploadedMediaUrls.clear();
     } catch (e) {
-      debugPrint('❌ Error during file cleanup: $e');
+      AppLogger.candidateError('Error during file cleanup: $e');
     }
   }
 
@@ -393,17 +394,17 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
   Future<void> _saveImageLocally(int itemIndex, String imagePath) async {
     try {
-      debugPrint('💾 [Media Image] Starting local save process...');
+      AppLogger.candidate('💾 [Media Image] Starting local save process...');
 
       // Step 1: Validate file size
-      debugPrint('💾 [Media Image] Step 1: Validating file size...');
+      AppLogger.candidate('💾 [Media Image] Step 1: Validating file size...');
       final validation = await _fileUploadService.validateMediaFileSize(
         imagePath,
         'image',
       );
 
       if (!validation.isValid) {
-        debugPrint('💾 [Media Image] File too large');
+        AppLogger.candidate('💾 [Media Image] File too large');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(validation.message),
@@ -414,10 +415,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
         return;
       }
 
-      debugPrint('💾 [Media Image] File size validation passed');
+      AppLogger.candidate('💾 [Media Image] File size validation passed');
 
       // Step 2: Save to local storage
-      debugPrint('💾 [Media Image] Step 2: Saving to local storage...');
+      AppLogger.candidate('💾 [Media Image] Step 2: Saving to local storage...');
       final candidateId = widget.candidateData.candidateId;
       final localPath = await _fileUploadService.saveExistingFileLocally(
         imagePath,
@@ -426,16 +427,16 @@ class MediaTabEditState extends State<MediaTabEdit> {
       );
 
       if (localPath == null) {
-        debugPrint('💾 [Media Image] Failed to save locally');
+        AppLogger.candidate('💾 [Media Image] Failed to save locally');
         throw Exception('Failed to save image locally');
       }
 
-      debugPrint('💾 [Media Image] Saved locally at: $localPath');
+      AppLogger.candidate('💾 [Media Image] Saved locally at: $localPath');
 
       // Step 3: Add to media item
       _addImageToItem(itemIndex, localPath);
 
-      debugPrint('💾 [Media Image] Image added to media item');
+      AppLogger.candidate('💾 [Media Image] Image added to media item');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -446,7 +447,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
         ),
       );
     } catch (e) {
-      debugPrint('💾 [Media Image] Error: $e');
+      AppLogger.candidateError('💾 [Media Image] Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save image: ${e.toString()}'),
@@ -554,7 +555,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
   }
 
   Future<void> uploadPendingFiles() async {
-    debugPrint('📤 [Media] Starting upload of pending files...');
+    AppLogger.candidate('📤 [Media] Starting upload of pending files...');
 
     for (int itemIndex = 0; itemIndex < _mediaItems.length; itemIndex++) {
       final item = _mediaItems[itemIndex];
@@ -564,7 +565,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
         final imageUrl = item.images[i];
         if (_fileUploadService.isLocalPath(imageUrl)) {
           try {
-            debugPrint('📤 [Media] Uploading image: $imageUrl');
+            AppLogger.candidate('📤 [Media] Uploading image: $imageUrl');
 
             final fileName =
                 'media_image_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -583,10 +584,10 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 _mediaItems[itemIndex].images[i] = downloadUrl;
               });
               _uploadedMediaUrls.add(downloadUrl); // Track successfully uploaded URLs
-              debugPrint('📤 [Media] Successfully uploaded image');
+              AppLogger.candidate('📤 [Media] Successfully uploaded image');
             }
           } catch (e) {
-            debugPrint('📤 [Media] Failed to upload image: $e');
+            AppLogger.candidateError('📤 [Media] Failed to upload image: $e');
           }
         }
       }
@@ -596,7 +597,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
         final videoUrl = item.videos[i];
         if (_fileUploadService.isLocalPath(videoUrl)) {
           try {
-            debugPrint('📤 [Media] Uploading video: $videoUrl');
+            AppLogger.candidate('📤 [Media] Uploading video: $videoUrl');
 
             final fileName =
                 'media_video_${widget.candidateData.candidateId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
@@ -615,17 +616,17 @@ class MediaTabEditState extends State<MediaTabEdit> {
                 _mediaItems[itemIndex].videos[i] = downloadUrl;
               });
               _uploadedMediaUrls.add(downloadUrl); // Track successfully uploaded URLs
-              debugPrint('📤 [Media] Successfully uploaded video');
+              AppLogger.candidate('📤 [Media] Successfully uploaded video');
             }
           } catch (e) {
-            debugPrint('📤 [Media] Failed to upload video: $e');
+            AppLogger.candidateError('📤 [Media] Failed to upload video: $e');
           }
         }
       }
     }
 
     _updateMedia();
-    debugPrint('📤 [Media] Finished uploading pending files');
+    AppLogger.candidate('📤 [Media] Finished uploading pending files');
   }
 
   void _showYoutubeLinkDialog(int itemIndex) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../l10n/app_localizations.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/candidate/screens/candidate_list_screen.dart';
@@ -53,19 +54,25 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
 
   void _setupNotificationListener() {
     try {
-      _notificationStream = _notificationManager.getNotificationsStream(limit: 1);
-      _notificationStream?.listen((notifications) {
-        if (notifications.isNotEmpty) {
-          final latestNotification = notifications.first;
-          // Only show in-app notification if it's unread and recent (within last minute)
-          final oneMinuteAgo = DateTime.now().subtract(const Duration(minutes: 1));
-          if (latestNotification.isUnread && latestNotification.createdAt.isAfter(oneMinuteAgo)) {
-            _showInAppNotification(latestNotification);
+      // Initialize notification manager first
+      _notificationManager.initialize().then((_) {
+        // Only setup stream after initialization is complete
+        _notificationStream = _notificationManager.getNotificationsStream(limit: 1);
+        _notificationStream?.listen((notifications) {
+          if (notifications.isNotEmpty) {
+            final latestNotification = notifications.first;
+            // Only show in-app notification if it's unread and recent (within last minute)
+            final oneMinuteAgo = DateTime.now().subtract(const Duration(minutes: 1));
+            if (latestNotification.isUnread && latestNotification.createdAt.isAfter(oneMinuteAgo)) {
+              _showInAppNotification(latestNotification);
+            }
           }
-        }
+        });
+      }).catchError((e) {
+        AppLogger.error('Failed to initialize notification manager: $e');
       });
     } catch (e) {
-      debugPrint('Failed to setup notification listener: $e');
+      AppLogger.error('Failed to setup notification listener: $e');
     }
   }
 
@@ -76,10 +83,10 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
       // For now, we'll initialize it when the notification manager is ready
       _notificationManager.initialize().then((_) {
         // Badge will be updated automatically when notifications change
-        debugPrint('Badge service ready for updates');
+        AppLogger.common('Badge service ready for updates');
       });
     } catch (e) {
-      debugPrint('Failed to initialize badge service: $e');
+      AppLogger.error('Failed to initialize badge service: $e');
     }
   }
 

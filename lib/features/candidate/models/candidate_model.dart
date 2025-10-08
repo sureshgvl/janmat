@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import 'candidate_achievement_model.dart';
 
 class Contact {
@@ -518,9 +519,9 @@ class ExtraInfo {
   });
 
   factory ExtraInfo.fromJson(Map<String, dynamic> json) {
-    debugPrint('🔍 ExtraInfo.fromJson - Raw JSON keys: ${json.keys.toList()}');
-    debugPrint('   education field: ${json['education']}');
-    debugPrint('   basic_info exists: ${json['basic_info'] != null}');
+    AppLogger.candidate('🔍 ExtraInfo.fromJson - Raw JSON keys: ${json.keys.toList()}');
+    AppLogger.candidate('   education field: ${json['education']}');
+    AppLogger.candidate('   basic_info exists: ${json['basic_info'] != null}');
 
     // Handle backward compatibility for raw fields
     BasicInfoData? basicInfo = json['basic_info'] != null
@@ -532,7 +533,7 @@ class ExtraInfo {
 
     // If basicInfo exists, merge raw fields into it
     if (basicInfo != null) {
-      debugPrint('   Merging raw fields into existing basicInfo');
+      AppLogger.candidate('   Merging raw fields into existing basicInfo');
       basicInfo = BasicInfoData(
         fullName: basicInfo.fullName,
         dateOfBirth: basicInfo.dateOfBirth,
@@ -558,7 +559,7 @@ class ExtraInfo {
     }
     // If basicInfo doesn't exist but we have raw education field, create basicInfo
     else if (json['education'] != null) {
-      debugPrint('   Creating basicInfo from raw education field');
+      AppLogger.candidate('   Creating basicInfo from raw education field');
       basicInfo = BasicInfoData(
         education: json['education'],
         age: json['age'] != null ? int.tryParse(json['age'].toString()) : null,
@@ -578,7 +579,7 @@ class ExtraInfo {
 
     // If contact doesn't exist but we have raw address field, create contact
     if (contact == null && json['address'] != null) {
-      debugPrint('   Creating contact from raw address field');
+      AppLogger.candidate('   Creating contact from raw address field');
       contact = ExtendedContact(
         address: json['address'],
         phone: json['phone'],
@@ -591,7 +592,7 @@ class ExtraInfo {
       );
     }
 
-    debugPrint('   Final basicInfo.education: ${basicInfo?.education}');
+    AppLogger.candidate('   Final basicInfo.education: ${basicInfo?.education}');
 
     return ExtraInfo(
       bio: json['bio'],

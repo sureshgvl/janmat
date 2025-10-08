@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../../features/candidate/repositories/candidate_repository.dart';
 import '../event_notification_service.dart';
 
@@ -18,62 +19,44 @@ class CandidateFollowingNotifications {
     String? candidateUserId,
   }) async {
     final startTime = DateTime.now();
-    debugPrint('🚀 [FollowerNotification] Starting new follower notification process...');
-    debugPrint('   - Candidate ID: $candidateId');
-    debugPrint('   - Follower ID: $followerId');
-    debugPrint('   - Provided candidate name: $candidateName');
-    debugPrint('   - Provided candidate userId: $candidateUserId');
+    AppLogger.notifications('🚀 [FollowerNotification] Starting new follower notification process...');
 
     try {
       // Get follower details
-      debugPrint('👤 [FollowerNotification] Getting follower details...');
       final followerData = await _candidateRepository.getUserData(followerId);
       final followerName = followerData?['name'] ?? 'Someone';
-      debugPrint('   - Follower name: $followerName');
 
       // Use provided candidate info or try to get it
       String? finalCandidateName = candidateName;
       String? finalCandidateUserId = candidateUserId;
-      debugPrint('🔍 [FollowerNotification] Resolving candidate information...');
 
       if (finalCandidateUserId == null) {
-        debugPrint('   - No candidate userId provided, fetching from database...');
         // Try to get candidate data with fallback method
         final candidateData = await _getCandidateDataWithFallback(candidateId);
         if (candidateData != null) {
           finalCandidateName = candidateData['name'] as String?;
           finalCandidateUserId = candidateData['userId'] as String?;
-          debugPrint('   - Found candidate: $finalCandidateName ($finalCandidateUserId)');
-        } else {
-          debugPrint('   - Candidate data not found in database');
         }
       }
 
       if (finalCandidateUserId == null) {
-        debugPrint('❌ [FollowerNotification] No candidate userId available for notification: $candidateId');
+        AppLogger.notifications('❌ [FollowerNotification] No candidate userId available for notification: $candidateId');
         return;
       }
 
       // Get candidate's FCM token
-      debugPrint('🔑 [FollowerNotification] Getting FCM token for candidate: $finalCandidateUserId');
       final candidateToken = await _getUserFCMToken(finalCandidateUserId);
       if (candidateToken == null) {
-        debugPrint('❌ [FollowerNotification] No FCM token found for candidate: $finalCandidateUserId');
+        AppLogger.notifications('❌ [FollowerNotification] No FCM token found for candidate: $finalCandidateUserId');
         return;
       }
-      debugPrint('   - FCM token found: ${candidateToken.substring(0, 20)}...');
 
       // Get current follower count
-      debugPrint('📊 [FollowerNotification] Getting current follower count...');
       final followerCount = await _getCandidateFollowerCount(candidateId);
-      debugPrint('   - Current follower count: $followerCount');
 
       // Create notification message
       final title = 'New Follower!';
       final body = '$followerName started following you. You now have ${followerCount + 1} followers!';
-      debugPrint('📝 [FollowerNotification] Created notification:');
-      debugPrint('   - Title: $title');
-      debugPrint('   - Body: $body');
 
       final notificationData = {
         'type': 'new_follower',
@@ -84,25 +67,19 @@ class CandidateFollowingNotifications {
       };
 
       // Send push notification
-      debugPrint('📤 [FollowerNotification] Sending push notification...');
       await _sendPushNotification(candidateToken, title, body, notificationData);
-      debugPrint('✅ [FollowerNotification] Push notification sent');
 
       // Store notification in database
-      debugPrint('💾 [FollowerNotification] Storing notification in database...');
       await _storeNotification(finalCandidateUserId, title, body, notificationData);
-      debugPrint('✅ [FollowerNotification] Notification stored in database');
 
       // Check for follower milestones
-      debugPrint('🏆 [FollowerNotification] Checking for follower milestones...');
       await _checkAndSendFollowerMilestoneNotification(candidateId, followerCount + 1);
 
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('🎉 [FollowerNotification] New follower notification completed successfully (${totalTime}ms)');
+      AppLogger.notifications('🎉 [FollowerNotification] New follower notification completed successfully (${totalTime}ms)');
     } catch (e) {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('❌ [FollowerNotification] Error sending new follower notification (${totalTime}ms): $e');
-      debugPrint('   - Stack trace: ${StackTrace.current}');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error sending new follower notification', error: e);
     }
   }
 
@@ -146,7 +123,7 @@ class CandidateFollowingNotifications {
         'milestone': followerCount.toString(),
       });
     } catch (e) {
-      debugPrint('Error sending follower milestone notification: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error sending follower milestone notification', error: e);
     }
   }
 
@@ -200,7 +177,7 @@ class CandidateFollowingNotifications {
         'followerCount': followerCount.toString(),
       });
     } catch (e) {
-      debugPrint('Error sending unfollow notification: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error sending unfollow notification', error: e);
     }
   }
 
@@ -264,7 +241,7 @@ class CandidateFollowingNotifications {
         }
       }
     } catch (e) {
-      debugPrint('Error sending new post notification: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error sending new post notification', error: e);
     }
   }
 
@@ -311,7 +288,7 @@ class CandidateFollowingNotifications {
         'percentage': percentage,
       });
     } catch (e) {
-      debugPrint('Error sending profile view spike notification: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error sending profile view spike notification', error: e);
     }
   }
 
@@ -347,7 +324,7 @@ class CandidateFollowingNotifications {
         'metrics': metrics,
       });
     } catch (e) {
-      debugPrint('Error sending weekly performance notification: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error sending weekly performance notification', error: e);
     }
   }
 
@@ -366,10 +343,10 @@ class CandidateFollowingNotifications {
       }
 
       // Fallback: Search manually across all locations
-      debugPrint('🔄 Using fallback method to find candidate: $candidateId');
+      AppLogger.notifications('🔄 Using fallback method to find candidate: $candidateId');
       return await _findCandidateManually(candidateId);
     } catch (e) {
-      debugPrint('Error getting candidate data with fallback: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting candidate data with fallback', error: e);
       return null;
     }
   }
@@ -408,10 +385,10 @@ class CandidateFollowingNotifications {
         }
       }
 
-      debugPrint('❌ Candidate not found in any location: $candidateId');
+      AppLogger.notifications('❌ Candidate not found in any location: $candidateId');
       return null;
     } catch (e) {
-      debugPrint('Error in manual candidate search: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error in manual candidate search', error: e);
       return null;
     }
   }
@@ -428,7 +405,7 @@ class CandidateFollowingNotifications {
       // Fallback: Query followers collection directly
       return await _getFollowerCountFromCollection(candidateId);
     } catch (e) {
-      debugPrint('Error getting follower count: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting follower count', error: e);
       return 0;
     }
   }
@@ -442,10 +419,10 @@ class CandidateFollowingNotifications {
 
       // This is a simplified approach - in reality you'd need to find the candidate location
       // For now, return 0 as we can't easily query across all possible locations
-      debugPrint('⚠️ Cannot determine follower count without candidate location');
+      AppLogger.notifications('⚠️ Cannot determine follower count without candidate location for candidate: $candidateId');
       return 0;
     } catch (e) {
-      debugPrint('Error getting follower count from collection: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting follower count from collection', error: e);
       return 0;
     }
   }
@@ -457,7 +434,7 @@ class CandidateFollowingNotifications {
       // For now, return empty list
       return [];
     } catch (e) {
-      debugPrint('Error getting followers: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting followers', error: e);
       return [];
     }
   }
@@ -475,7 +452,7 @@ class CandidateFollowingNotifications {
         'performanceReports': true,
       };
     } catch (e) {
-      debugPrint('Error getting notification preferences: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting notification preferences', error: e);
       return {};
     }
   }
@@ -492,7 +469,7 @@ class CandidateFollowingNotifications {
         'interactions': 0,
       };
     } catch (e) {
-      debugPrint('Error getting performance metrics: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting performance metrics', error: e);
       return {};
     }
   }
@@ -507,7 +484,7 @@ class CandidateFollowingNotifications {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting FCM token: $e');
+      AppLogger.notificationsError('❌ [FollowerNotification] Error getting FCM token', error: e);
       return null;
     }
   }
@@ -520,18 +497,9 @@ class CandidateFollowingNotifications {
     Map<String, dynamic> data,
   ) async {
     try {
-      debugPrint('🚀 Sending push notification:');
-      debugPrint('Token: $token');
-      debugPrint('Title: $title');
-      debugPrint('Body: $body');
-      debugPrint('Data: $data');
-      debugPrint('Data types: ${data.map((k, v) => MapEntry(k, v.runtimeType))}');
-
       // Call Firebase Cloud Function to send push notification
       try {
-        debugPrint('📞 Calling Firebase Function: sendPushNotification');
         final callable = _functions.httpsCallable('sendPushNotification');
-        debugPrint('📦 Function data: token=${token.substring(0, 20)}..., title=$title, body=$body');
 
         final result = await callable.call({
           'token': token,
@@ -540,44 +508,22 @@ class CandidateFollowingNotifications {
           'notificationData': data,
         });
 
-        debugPrint('✅ Push notification sent successfully: ${result.data}');
+        AppLogger.notifications('✅ Push notification sent successfully via Firebase Function');
       } catch (functionError) {
-        debugPrint('❌ Firebase Function error: $functionError');
-        debugPrint('❌ Function error details: ${functionError.toString()}');
-
-        // Try to get more specific error information
         if (functionError is FirebaseFunctionsException) {
-          debugPrint('❌ Function code: ${functionError.code}');
-          debugPrint('❌ Function message: ${functionError.message}');
-          debugPrint('❌ Function details: ${functionError.details}');
+          AppLogger.notificationsError(
+            '❌ Firebase Function push notification failed',
+            error: 'Code: ${functionError.code}, Message: ${functionError.message}'
+          );
+        } else {
+          AppLogger.notificationsError('❌ Firebase Function push notification failed', error: functionError);
         }
 
         // Note: Direct FCM fallback removed - now only using Firebase Functions
-        debugPrint('⚠️ Firebase Function failed - no fallback available');
-
-        // Fallback: Try HTTP request to Firebase Functions URL
-        // Uncomment and configure if you prefer direct HTTP calls
-        /*
-        final response = await http.post(
-          Uri.parse('YOUR_FIREBASE_FUNCTIONS_URL/sendPushNotification'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'token': token,
-            'title': title,
-            'body': body,
-            'notificationData': data,
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          debugPrint('✅ Push notification sent via HTTP');
-        } else {
-          debugPrint('❌ HTTP push notification failed: ${response.statusCode}');
-        }
-        */
+        AppLogger.notifications('⚠️ Firebase Function failed - no fallback available');
       }
     } catch (e) {
-      debugPrint('❌ Error sending push notification: $e');
+      AppLogger.notificationsError('❌ Error sending push notification', error: e);
       // Don't throw - allow the app to continue even if push notifications fail
     }
   }
@@ -591,12 +537,6 @@ class CandidateFollowingNotifications {
     Map<String, dynamic> data,
   ) async {
     try {
-      debugPrint('💾 [StoreNotification] Storing notification in database...');
-      debugPrint('   - User ID: $userId');
-      debugPrint('   - Title: $title');
-      debugPrint('   - Body: $body');
-      debugPrint('   - Data keys: ${data.keys.join(', ')}');
-
       final docRef = await _firestore
           .collection('users')
           .doc(userId)
@@ -609,13 +549,9 @@ class CandidateFollowingNotifications {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-      debugPrint('✅ [StoreNotification] Notification stored successfully');
-      debugPrint('   - Document ID: ${docRef.id}');
-      debugPrint('   - Path: users/$userId/notifications/${docRef.id}');
+      AppLogger.notifications('✅ Notification stored successfully in database for user: $userId');
     } catch (e) {
-      debugPrint('❌ [StoreNotification] Error storing notification: $e');
-      debugPrint('   - Error type: ${e.runtimeType}');
+      AppLogger.notificationsError('❌ [StoreNotification] Error storing notification', error: e);
     }
   }
 }
-

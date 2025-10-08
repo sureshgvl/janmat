@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../repositories/candidate_event_repository.dart';
+import '../../../../utils/app_logger.dart';
 
 class EventsAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -65,7 +66,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
       setState(() {
         _isLoading = false;
       });
-      debugPrint('Error loading events analytics: $e');
+      AppLogger.candidateError('Error loading events analytics: $e');
     }
   }
 

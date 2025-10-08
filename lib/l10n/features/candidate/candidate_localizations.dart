@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 class CandidateLocalizations {
   final Locale locale;
@@ -30,11 +31,11 @@ class CandidateLocalizations {
           _localizedStrings = jsonMap.map((key, value) => MapEntry(key, value.toString()));
           return true;
         } catch (e) {
-          debugPrint('Failed to load candidate localizations: $e');
+          AppLogger.candidate('Failed to load candidate localizations: $e');
           return false;
         }
       }
-      debugPrint('Failed to load candidate localizations: $e');
+      AppLogger.candidate('Failed to load candidate localizations: $e');
       return false;
     }
   }

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/language_selection_screen.dart';
 import '../features/auth/screens/role_selection_screen.dart';
+import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/profile_completion_screen.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
@@ -21,6 +22,10 @@ class AppRoutes {
     GetPage(
       name: '/language-selection',
       page: () => const LanguageSelectionScreen(),
+    ),
+    GetPage(
+      name: '/onboarding',
+      page: () => const OnboardingScreen(),
     ),
     GetPage(name: '/login', page: () => const LoginScreen()),
     GetPage(

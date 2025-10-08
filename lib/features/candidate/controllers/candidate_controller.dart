@@ -12,6 +12,7 @@ import '../../../utils/advanced_analytics.dart';
 import '../../../utils/memory_manager.dart';
 import '../../../services/notifications/candidate_following_notifications.dart';
 import '../../../services/local_database_service.dart';
+import '../../../utils/app_logger.dart';
 
 class CandidateController extends GetxController {
   final CandidateRepository _repository = CandidateRepository();
@@ -39,8 +40,8 @@ class CandidateController extends GetxController {
 
   // Fetch candidates for a user based on their election areas (NEW METHOD)
   Future<void> fetchCandidatesForUser(UserModel user) async {
-    debugPrint('🔄 [Controller] Fetching candidates for user: ${user.uid}');
-    debugPrint('📊 User has ${user.electionAreas.length} election areas');
+    AppLogger.database('Fetching candidates for user: ${user.uid}', tag: 'CANDIDATE_CONTROLLER');
+    AppLogger.database('User has ${user.electionAreas.length} election areas', tag: 'CANDIDATE_CONTROLLER');
 
     // Track user interaction
     _analytics.trackUserInteraction(
@@ -64,7 +65,7 @@ class CandidateController extends GetxController {
 
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
 
-      debugPrint('✅ [Controller] Found ${candidates.length} candidates for user: ${user.uid}');
+      AppLogger.database('Found ${candidates.length} candidates for user: ${user.uid}', tag: 'CANDIDATE_CONTROLLER');
 
       // Track successful operation
       _analytics.trackPerformanceMetric(
@@ -90,7 +91,7 @@ class CandidateController extends GetxController {
       // Populate follow status for current user
       await _populateFollowStatusForCandidates();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to fetch candidates for user: $e');
+      AppLogger.candidateError('Failed to fetch candidates for user: $e');
 
       // Track failed operation
       _analytics.trackFirebaseOperation(
@@ -116,8 +117,8 @@ class CandidateController extends GetxController {
     String wardId,
   ) async {
     final overallStartTime = DateTime.now();
-    debugPrint('🚀 [Controller:Candidates] Starting candidate fetch operation');
-    debugPrint('📍 [Controller:Candidates] Location: $districtId → $bodyId → $wardId');
+    AppLogger.database('Starting candidate fetch operation', tag: 'CANDIDATE_CONTROLLER');
+    AppLogger.database('Location: $districtId → $bodyId → $wardId', tag: 'CANDIDATE_CONTROLLER');
 
     // Track user interaction
     _analytics.trackUserInteraction(
@@ -132,29 +133,29 @@ class CandidateController extends GetxController {
 
     try {
       // Phase 1: Try to load from SQLite cache first
-      debugPrint('📊 [Controller:Candidates] Phase 1: Checking SQLite cache...');
+      AppLogger.candidate('📊 [Controller:Candidates] Phase 1: Checking SQLite cache...');
       final cacheCheckStart = DateTime.now();
       final cachedCandidates = await _loadCandidatesFromSQLite(wardId);
       final cacheCheckTime = DateTime.now().difference(cacheCheckStart).inMilliseconds;
 
       if (cachedCandidates != null) {
         candidates = cachedCandidates;
-        debugPrint('🎯 [Controller:Candidates] CACHE HIT - Using SQLite cached data');
-        debugPrint('   - Candidates loaded: ${candidates.length}');
-        debugPrint('   - Cache check time: ${cacheCheckTime}ms');
+        AppLogger.candidate('CACHE HIT - Using SQLite cached data');
+        AppLogger.candidate('Candidates loaded: ${candidates.length}');
+        AppLogger.candidate('Cache check time: ${cacheCheckTime}ms');
 
         // Phase 2: Populate follow status
-        debugPrint('📊 [Controller:Candidates] Phase 2: Populating follow status...');
+        AppLogger.candidate('Phase 2: Populating follow status...');
         final followStartTime = DateTime.now();
         await _populateFollowStatusForCandidates();
         final followTime = DateTime.now().difference(followStartTime).inMilliseconds;
 
         final totalTime = DateTime.now().difference(overallStartTime).inMilliseconds;
-        debugPrint('✅ [Controller:Candidates] Operation completed successfully');
-        debugPrint('   - Total time: ${totalTime}ms');
-        debugPrint('   - Cache hit: Yes');
-        debugPrint('   - Firebase calls: 0');
-        debugPrint('   - Follow status time: ${followTime}ms');
+        AppLogger.candidate('Operation completed successfully');
+        AppLogger.candidate('Total time: ${totalTime}ms');
+        AppLogger.candidate('Cache hit: Yes');
+        AppLogger.candidate('Firebase calls: 0');
+        AppLogger.candidate('Follow status time: ${followTime}ms');
 
         isLoading = false;
         update();
@@ -162,7 +163,7 @@ class CandidateController extends GetxController {
       }
 
       // Phase 1: Cache miss - fetch from Firebase
-      debugPrint('🎯 [Controller:Candidates] CACHE MISS - Fetching from Firebase');
+      AppLogger.candidate('CACHE MISS - Fetching from Firebase');
       final firebaseStartTime = DateTime.now();
       candidates = await _repository.getCandidatesByWard(
         districtId,
@@ -171,18 +172,18 @@ class CandidateController extends GetxController {
       );
       final firebaseTime = DateTime.now().difference(firebaseStartTime).inMilliseconds;
 
-      debugPrint('✅ [Controller:Candidates] Firebase fetch completed');
-      debugPrint('   - Candidates fetched: ${candidates.length}');
-      debugPrint('   - Firebase time: ${firebaseTime}ms');
+      AppLogger.candidate('Firebase fetch completed');
+      AppLogger.candidate('Candidates fetched: ${candidates.length}');
+      AppLogger.candidate('Firebase time: ${firebaseTime}ms');
 
       // Phase 2: Cache candidates in SQLite for future use
-      debugPrint('📊 [Controller:Candidates] Phase 2: Caching to SQLite...');
+      AppLogger.candidate('Phase 2: Caching to SQLite...');
       final cacheStartTime = DateTime.now();
       await _cacheCandidatesInSQLite(candidates, wardId);
       final cacheTime = DateTime.now().difference(cacheStartTime).inMilliseconds;
 
       // Phase 3: Populate follow status
-      debugPrint('📊 [Controller:Candidates] Phase 3: Populating follow status...');
+      AppLogger.candidate('Phase 3: Populating follow status...');
       final followStartTime = DateTime.now();
       await _populateFollowStatusForCandidates();
       final followTime = DateTime.now().difference(followStartTime).inMilliseconds;
@@ -209,16 +210,16 @@ class CandidateController extends GetxController {
       );
 
       final totalTime = DateTime.now().difference(overallStartTime).inMilliseconds;
-      debugPrint('✅ [Controller:Candidates] Operation completed successfully');
-      debugPrint('   - Total time: ${totalTime}ms');
-      debugPrint('   - Cache hit: No');
-      debugPrint('   - Firebase calls: 1');
-      debugPrint('   - SQLite cache time: ${cacheTime}ms');
-      debugPrint('   - Follow status time: ${followTime}ms');
+      AppLogger.candidate('Operation completed successfully');
+      AppLogger.candidate('Total time: ${totalTime}ms');
+      AppLogger.candidate('Cache hit: No');
+      AppLogger.candidate('Firebase calls: 1');
+      AppLogger.candidate('SQLite cache time: ${cacheTime}ms');
+      AppLogger.candidate('Follow status time: ${followTime}ms');
 
     } catch (e) {
       final totalTime = DateTime.now().difference(overallStartTime).inMilliseconds;
-      debugPrint('❌ [Controller:Candidates] Operation failed (${totalTime}ms): $e');
+      AppLogger.candidateError('Operation failed (${totalTime}ms): $e');
 
       // Track failed operation
       _analytics.trackFirebaseOperation(
@@ -262,15 +263,15 @@ class CandidateController extends GetxController {
     String districtId,
     String bodyId,
   ) async {
-    debugPrint('🔄 [Controller] Fetching wards for district: $districtId, body: $bodyId');
+    AppLogger.candidate('Fetching wards for district: $districtId, body: $bodyId');
     try {
       wards = await _repository.getWardsByDistrictAndBody(districtId, bodyId);
-      debugPrint(
-        '✅ [Controller] Loaded ${wards.length} wards for district: $districtId, body: $bodyId',
+      AppLogger.candidate(
+        'Loaded ${wards.length} wards for district: $districtId, body: $bodyId',
       );
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to load wards for district $districtId, body $bodyId: $e');
+      AppLogger.candidateError('Failed to load wards for district $districtId, body $bodyId: $e');
       errorMessage = 'Failed to load wards: $e';
       wards = [];
       update();
@@ -279,13 +280,13 @@ class CandidateController extends GetxController {
 
   // Fetch all districts
   Future<void> fetchAllDistricts() async {
-    debugPrint('🔄 [Controller] Fetching all districts...');
+    AppLogger.candidate('Fetching all districts...');
     try {
       districts = await _repository.getAllDistricts();
-      debugPrint('✅ [Controller] Loaded ${districts.length} districts');
+      AppLogger.candidate('Loaded ${districts.length} districts');
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to load districts: $e');
+      AppLogger.candidateError('Failed to load districts: $e');
       errorMessage = 'Failed to load districts: $e';
       districts = [];
       update();
@@ -341,7 +342,7 @@ class CandidateController extends GetxController {
       followStatus[candidateId] = isFollowing;
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to check follow status: $e');
+      AppLogger.candidateError('Failed to check follow status: $e');
     }
   }
 
@@ -386,39 +387,39 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-      debugPrint(
-        '✅ [Controller] Successfully followed candidate: $candidateId',
+      AppLogger.candidate(
+        'Successfully followed candidate: $candidateId',
       );
 
       // Send new follower notification to candidate
       try {
-        debugPrint('🔔 [Controller] Sending new follower notification...');
-        debugPrint('   - Follower ID: $userId');
-        debugPrint('   - Candidate ID: $candidateId');
+        AppLogger.candidate('Sending new follower notification...');
+        AppLogger.candidate('Follower ID: $userId');
+        AppLogger.candidate('Candidate ID: $candidateId');
 
         // Get candidate info for notification
         final candidate = await _repository.getCandidateDataById(candidateId);
         if (candidate != null) {
-          debugPrint('   - Candidate found: ${candidate.name} (${candidate.userId})');
+          AppLogger.candidate('Candidate found: ${candidate.name} (${candidate.userId})');
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
             candidateName: candidate.name,
             candidateUserId: candidate.userId,
           );
-          debugPrint('✅ [Controller] New follower notification sent successfully');
+          AppLogger.candidate('New follower notification sent successfully');
         } else {
-          debugPrint('⚠️ [Controller] Candidate data not found, sending basic notification');
+          AppLogger.candidate('Candidate data not found, sending basic notification');
           // Fallback without candidate info
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
           );
-          debugPrint('✅ [Controller] Basic new follower notification sent');
+          AppLogger.candidate('Basic new follower notification sent');
         }
       } catch (e) {
-        debugPrint('❌ [Controller] Failed to send new follower notification: $e');
-        debugPrint('   - Error details: ${e.toString()}');
+        AppLogger.candidateError('Failed to send new follower notification: $e');
+        AppLogger.candidate('Error details: ${e.toString()}');
       }
 
       // Notify chat controller to refresh cache since followed candidates changed
@@ -426,10 +427,10 @@ class CandidateController extends GetxController {
         final chatController = Get.find<ChatController>();
         chatController.invalidateUserCache(userId);
       } catch (e) {
-        debugPrint('⚠️ Could not notify chat controller: $e');
+        AppLogger.candidate('Could not notify chat controller: $e');
       }
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to follow candidate: $e');
+      AppLogger.candidateError('Failed to follow candidate: $e');
       errorMessage = 'Failed to follow candidate: $e';
     }
 
@@ -462,8 +463,8 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-      debugPrint(
-        '✅ [Controller] Successfully unfollowed candidate: $candidateId',
+      AppLogger.candidate(
+        'Successfully unfollowed candidate: $candidateId',
       );
 
       // Send unfollow notification to candidate
@@ -483,7 +484,7 @@ class CandidateController extends GetxController {
           );
         }
       } catch (e) {
-        debugPrint('⚠️ Could not send unfollow notification: $e');
+        AppLogger.candidate('Could not send unfollow notification: $e');
       }
 
       // Notify chat controller to refresh cache since followed candidates changed
@@ -491,10 +492,10 @@ class CandidateController extends GetxController {
         final chatController = Get.find<ChatController>();
         chatController.invalidateUserCache(userId);
       } catch (e) {
-        debugPrint('⚠️ Could not notify chat controller: $e');
+        AppLogger.candidate('Could not notify chat controller: $e');
       }
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to unfollow candidate: $e');
+      AppLogger.candidateError('Failed to unfollow candidate: $e');
       errorMessage = 'Failed to unfollow candidate: $e';
     }
 
@@ -539,14 +540,14 @@ class CandidateController extends GetxController {
         final chatController = Get.find<ChatController>();
         chatController.invalidateUserCache(userId);
       } catch (e) {
-        debugPrint('⚠️ Could not notify chat controller: $e');
+        AppLogger.candidate('Could not notify chat controller: $e');
       }
 
-      debugPrint(
-        '✅ [Controller] Updated notification settings for candidate: $candidateId',
+      AppLogger.candidate(
+        'Updated notification settings for candidate: $candidateId',
       );
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to update notification settings: $e');
+      AppLogger.candidateError('Failed to update notification settings: $e');
       errorMessage = 'Failed to update notification settings: $e';
       update();
     }
@@ -559,7 +560,7 @@ class CandidateController extends GetxController {
     try {
       return await _followRepository.getCandidateFollowers(candidateId);
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to get followers: $e');
+      AppLogger.candidateError('Failed to get followers: $e');
       errorMessage = 'Failed to get followers: $e';
       update();
       return [];
@@ -571,7 +572,7 @@ class CandidateController extends GetxController {
     try {
       return await _followRepository.getUserFollowing(userId);
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to get following list: $e');
+      AppLogger.candidateError('Failed to get following list: $e');
       errorMessage = 'Failed to get following list: $e';
       update();
       return [];
@@ -589,14 +590,14 @@ class CandidateController extends GetxController {
   void _invalidateFollowStatusCache() {
     _cachedFollowingIds = null;
     _followStatusLastFetched = null;
-    debugPrint('🗑️ [Controller] Invalidated follow status session cache');
+    AppLogger.candidate('Invalidated follow status session cache');
   }
 
   // Load candidates from SQLite cache
   Future<List<Candidate>?> _loadCandidatesFromSQLite(String wardId) async {
     final startTime = DateTime.now();
     try {
-      debugPrint('🔍 [Controller:SQLite] Checking candidates cache for ward: $wardId');
+      AppLogger.candidate('Checking candidates cache for ward: $wardId');
 
       final localDb = LocalDatabaseService();
 
@@ -606,13 +607,13 @@ class CandidateController extends GetxController {
       final isCacheValid = lastUpdate != null &&
           DateTime.now().difference(lastUpdate) < const Duration(hours: 24);
 
-      debugPrint('📊 [Controller:SQLite] Candidates cache status for ward $wardId:');
-      debugPrint('   - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
-      debugPrint('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
-      debugPrint('   - Is valid: $isCacheValid');
+      AppLogger.candidate('Candidates cache status for ward $wardId:');
+      AppLogger.candidate('Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
+      AppLogger.candidate('Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
+      AppLogger.candidate('Is valid: $isCacheValid');
 
       if (!isCacheValid) {
-        debugPrint('🔄 [Controller:SQLite] Candidates cache expired for ward: $wardId');
+        AppLogger.candidate('Candidates cache expired for ward: $wardId');
         return null;
       }
 
@@ -620,19 +621,19 @@ class CandidateController extends GetxController {
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
 
       if (candidates == null || candidates.isEmpty) {
-        debugPrint('🔄 [Controller:SQLite] No candidates found in cache for ward: $wardId (${loadTime}ms)');
+        AppLogger.candidate('No candidates found in cache for ward: $wardId (${loadTime}ms)');
         return null;
       }
 
-      debugPrint('✅ [Controller:SQLite] CACHE HIT - Loaded ${candidates.length} candidates from SQLite');
-      debugPrint('   - Ward: $wardId');
-      debugPrint('   - Load time: ${loadTime}ms');
-      debugPrint('   - Sample candidates: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
+      AppLogger.candidate('CACHE HIT - Loaded ${candidates.length} candidates from SQLite');
+      AppLogger.candidate('Ward: $wardId');
+      AppLogger.candidate('Load time: ${loadTime}ms');
+      AppLogger.candidate('Sample candidates: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
 
       return candidates;
     } catch (e) {
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('❌ [Controller:SQLite] Error loading candidates from SQLite (${loadTime}ms): $e');
+      AppLogger.candidateError('Error loading candidates from SQLite (${loadTime}ms): $e');
       return null;
     }
   }
@@ -641,19 +642,19 @@ class CandidateController extends GetxController {
   Future<void> _cacheCandidatesInSQLite(List<Candidate> candidates, String wardId) async {
     final startTime = DateTime.now();
     try {
-      debugPrint('💾 [Controller:SQLite] Caching ${candidates.length} candidates for ward: $wardId');
+      AppLogger.candidate('Caching ${candidates.length} candidates for ward: $wardId');
 
       final localDb = LocalDatabaseService();
       await localDb.insertCandidates(candidates, wardId);
 
       final cacheTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('✅ [Controller:SQLite] Successfully cached ${candidates.length} candidates');
-      debugPrint('   - Ward: $wardId');
-      debugPrint('   - Cache time: ${cacheTime}ms');
-      debugPrint('   - Cache key: candidates_$wardId');
+      AppLogger.candidate('Successfully cached ${candidates.length} candidates');
+      AppLogger.candidate('Ward: $wardId');
+      AppLogger.candidate('Cache time: ${cacheTime}ms');
+      AppLogger.candidate('Cache key: candidates_$wardId');
     } catch (e) {
       final cacheTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('❌ [Controller:SQLite] Error caching candidates (${cacheTime}ms): $e');
+      AppLogger.candidateError('Error caching candidates (${cacheTime}ms): $e');
     }
   }
 
@@ -663,11 +664,11 @@ class CandidateController extends GetxController {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('⚠️ [Controller:Follow] No current user - skipping follow status population');
+        AppLogger.candidate('No current user - skipping follow status population');
         return;
       }
 
-      debugPrint('🔍 [Controller:Follow] Populating follow status for ${candidates.length} candidates');
+      AppLogger.candidate('Populating follow status for ${candidates.length} candidates');
 
       // Check if we have valid cached following IDs (cache for 30 minutes during session)
       const sessionCacheDuration = Duration(minutes: 30);
@@ -677,18 +678,18 @@ class CandidateController extends GetxController {
           _followStatusLastFetched != null &&
           now.difference(_followStatusLastFetched!) < sessionCacheDuration;
 
-      debugPrint('📊 [Controller:Follow] Session cache status:');
-      debugPrint('   - Has cached data: ${_cachedFollowingIds != null}');
-      debugPrint('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
-      debugPrint('   - Is valid: $hasValidCache');
+      AppLogger.candidate('Session cache status:');
+      AppLogger.candidate('Has cached data: ${_cachedFollowingIds != null}');
+      AppLogger.candidate('Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
+      AppLogger.candidate('Is valid: $hasValidCache');
 
       List<String> followingIds;
       if (hasValidCache) {
         followingIds = _cachedFollowingIds!;
-        debugPrint('⚡ [Controller:Follow] CACHE HIT - Using session cached following IDs (${followingIds.length} follows)');
+        AppLogger.candidate('CACHE HIT - Using session cached following IDs (${followingIds.length} follows)');
       } else {
         // Fetch from Firebase and cache for session
-        debugPrint('🔄 [Controller:Follow] CACHE MISS - Fetching following IDs from Firebase');
+        AppLogger.candidate('CACHE MISS - Fetching following IDs from Firebase');
         final fetchStartTime = DateTime.now();
         followingIds = await getUserFollowing(currentUser.uid);
         final fetchTime = DateTime.now().difference(fetchStartTime).inMilliseconds;
@@ -696,7 +697,7 @@ class CandidateController extends GetxController {
         _cachedFollowingIds = followingIds;
         _followStatusLastFetched = now;
 
-        debugPrint('✅ [Controller:Follow] Fetched and cached following IDs (${followingIds.length} follows, ${fetchTime}ms)');
+        AppLogger.candidate('Fetched and cached following IDs (${followingIds.length} follows, ${fetchTime}ms)');
       }
 
       // Set follow status for all candidates
@@ -708,15 +709,15 @@ class CandidateController extends GetxController {
       }
 
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('✅ [Controller:Follow] Follow status populated successfully');
-      debugPrint('   - Total candidates: ${candidates.length}');
-      debugPrint('   - Already following: $followedCount');
-      debugPrint('   - Not following: ${candidates.length - followedCount}');
-      debugPrint('   - Total time: ${totalTime}ms');
+      AppLogger.candidate('Follow status populated successfully');
+      AppLogger.candidate('Total candidates: ${candidates.length}');
+      AppLogger.candidate('Already following: $followedCount');
+      AppLogger.candidate('Not following: ${candidates.length - followedCount}');
+      AppLogger.candidate('Total time: ${totalTime}ms');
 
     } catch (e) {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('❌ [Controller:Follow] Failed to populate follow status (${totalTime}ms): $e');
+      AppLogger.candidateError('Failed to populate follow status (${totalTime}ms): $e');
     }
   }
 
@@ -726,10 +727,10 @@ class CandidateController extends GetxController {
   Future<String?> createCandidate(Candidate candidate, {String? stateId}) async {
     try {
       final candidateId = await _repository.createCandidate(candidate, stateId: stateId);
-      debugPrint('✅ [Controller] Successfully created candidate: $candidateId');
+      AppLogger.candidate('Successfully created candidate: $candidateId');
       return candidateId;
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to create candidate: $e');
+      AppLogger.candidateError('Failed to create candidate: $e');
       errorMessage = 'Failed to create candidate: $e';
       update();
       return null;
@@ -754,14 +755,14 @@ class CandidateController extends GetxController {
         wardId,
         status,
       );
-      debugPrint(
-        '✅ [Controller] Found ${candidates.length} candidates with status: $status',
+      AppLogger.candidate(
+        'Found ${candidates.length} candidates with status: $status',
       );
 
       // Populate follow status for current user
       await _populateFollowStatusForCandidates();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to fetch candidates by status: $e');
+      AppLogger.candidateError('Failed to fetch candidates by status: $e');
       errorMessage = e.toString();
       candidates = [];
     }
@@ -799,12 +800,12 @@ class CandidateController extends GetxController {
         candidates[candidateIndex] = updatedCandidate;
       }
 
-      debugPrint(
-        '✅ [Controller] Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId',
+      AppLogger.candidate(
+        'Successfully ${approved ? 'approved' : 'rejected'} candidate: $candidateId',
       );
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to update candidate approval: $e');
+      AppLogger.candidateError('Failed to update candidate approval: $e');
       errorMessage = 'Failed to update candidate approval: $e';
       update();
     }
@@ -839,12 +840,12 @@ class CandidateController extends GetxController {
         }
       }
 
-      debugPrint(
-        '✅ [Controller] Successfully finalized ${candidateIds.length} candidates',
+      AppLogger.candidate(
+        'Successfully finalized ${candidateIds.length} candidates',
       );
       update();
     } catch (e) {
-      debugPrint('❌ [Controller] Failed to finalize candidates: $e');
+      AppLogger.candidateError('Failed to finalize candidates: $e');
       errorMessage = 'Failed to finalize candidates: $e';
       update();
     }
@@ -855,8 +856,8 @@ class CandidateController extends GetxController {
     try {
       return await _repository.getPendingApprovalCandidates();
     } catch (e) {
-      debugPrint(
-        '❌ [Controller] Failed to get pending approval candidates: $e',
+      AppLogger.candidateError(
+        'Failed to get pending approval candidates: $e',
       );
       errorMessage = 'Failed to get pending approval candidates: $e';
       update();
@@ -869,8 +870,8 @@ class CandidateController extends GetxController {
     try {
       return await _repository.hasUserRegisteredAsCandidate(userId);
     } catch (e) {
-      debugPrint(
-        '❌ [Controller] Failed to check user candidate registration: $e',
+      AppLogger.candidateError(
+        'Failed to check user candidate registration: $e',
       );
       return false;
     }

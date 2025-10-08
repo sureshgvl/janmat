@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 import 'candidate_plans_section.dart';
 
@@ -16,7 +17,7 @@ class PremiumPlansTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🏗️ PremiumPlansTab: Building with electionType: $userElectionType');
+    AppLogger.monetization('🏗️ PremiumPlansTab: Building with electionType: $userElectionType');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -140,7 +141,7 @@ class PremiumPlansTab extends StatelessWidget {
   }
 
   void _handlePurchaseWithValidity(BuildContext context, dynamic plan, int validityDays) {
-    debugPrint('PremiumPlansTab: Purchase with validity - ${plan.name}, $validityDays days');
+    AppLogger.monetization('PremiumPlansTab: Purchase with validity - ${plan.name}, $validityDays days');
 
     // Show purchase confirmation directly (skip PlanSelectionScreen since validity is already selected)
     _showPurchaseConfirmation(context, plan, validityDays);
@@ -198,12 +199,12 @@ class PremiumPlansTab extends StatelessWidget {
 
     if (confirmed == true) {
       // Start the payment process with election type and validity days
-      debugPrint('💳 Starting payment process for plan: ${plan.planId}, election: ${userElectionType}, validity: $validityDays');
+      AppLogger.monetization('💳 Starting payment process for plan: ${plan.planId}, election: ${userElectionType}, validity: $validityDays');
       final success = await controller.processPaymentWithElection(plan.planId, userElectionType ?? 'municipal_corporation', validityDays);
 
       if (success) {
         // Payment initiated successfully - result will be handled by callbacks
-        debugPrint('✅ Payment process initiated successfully');
+        AppLogger.monetization('✅ Payment process initiated successfully');
       } else {
         Get.snackbar(
           'Payment Error',
@@ -219,6 +220,6 @@ class PremiumPlansTab extends StatelessWidget {
 
   void _handlePurchase(BuildContext context, dynamic plan) {
     // This will be handled by the parent screen
-    debugPrint('PremiumPlansTab: Purchase - ${plan.name}');
+    AppLogger.monetization('PremiumPlansTab: Purchase - ${plan.name}');
   }
 }

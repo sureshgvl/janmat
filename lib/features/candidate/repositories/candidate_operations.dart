@@ -10,6 +10,7 @@ import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
 import 'candidate_cache_manager.dart';
 import 'candidate_state_manager.dart';
+import '../../../utils/app_logger.dart';
 
 class CandidateOperations {
   final FirebaseFirestore _firestore;
@@ -37,16 +38,16 @@ class CandidateOperations {
   // Create a new candidate (self-registration) - Updated with proper state handling
   Future<String> createCandidate(Candidate candidate, {String? stateId}) async {
     try {
-      debugPrint('🏗️ Creating candidate: ${candidate.name}');
-      debugPrint('   District: ${candidate.districtId}');
-      debugPrint('   Body: ${candidate.bodyId}');
-      debugPrint('   Ward: ${candidate.wardId}');
-      debugPrint('   UserId: ${candidate.userId}');
+      AppLogger.candidate('🏗️ Creating candidate: ${candidate.name}');
+      AppLogger.candidate('   District: ${candidate.districtId}');
+      AppLogger.candidate('   Body: ${candidate.bodyId}');
+      AppLogger.candidate('   Ward: ${candidate.wardId}');
+      AppLogger.candidate('   UserId: ${candidate.userId}');
 
       // Determine state ID - use provided parameter or try to detect from location
       String finalStateId = stateId ?? await _determineStateId(candidate.districtId, candidate.bodyId, candidate.wardId) ?? 'maharashtra';
 
-      debugPrint('🎯 Using state ID: $finalStateId');
+      AppLogger.candidate('🎯 Using state ID: $finalStateId');
 
       final candidateData = candidate.toJson();
       candidateData['approved'] = false; // Default to not approved
@@ -83,10 +84,10 @@ class CandidateOperations {
                 .collection('candidates')
                 .doc();
 
-      debugPrint('📝 Creating candidate at path: states/$finalStateId/districts/${candidate.districtId}/bodies/${candidate.bodyId}/wards/${candidate.wardId}/candidates/${docRef.id}');
+      AppLogger.candidate('📝 Creating candidate at path: states/$finalStateId/districts/${candidate.districtId}/bodies/${candidate.bodyId}/wards/${candidate.wardId}/candidates/${docRef.id}');
 
       await docRef.set(optimizedData);
-      debugPrint('✅ Candidate document created successfully with ID: ${docRef.id}');
+      AppLogger.candidate('✅ Candidate document created successfully with ID: ${docRef.id}');
 
       // Update candidate index for faster lookups with correct state ID
       await _updateCandidateIndex(
@@ -105,7 +106,7 @@ class CandidateOperations {
       // Return the actual document ID (in case it was auto-generated)
       return docRef.id;
     } catch (e) {
-      debugPrint('❌ Failed to create candidate: $e');
+      AppLogger.candidateError('❌ Failed to create candidate: $e');
       throw Exception('Failed to create candidate: $e');
     }
   }
@@ -133,7 +134,7 @@ class CandidateOperations {
 
                 for (var wardDoc in wardsSnapshot.docs) {
                   if (wardDoc.id == wardId) {
-                    debugPrint('🎯 Found state ID: ${stateDoc.id} for location $districtId/$bodyId/$wardId');
+                    AppLogger.candidate('🎯 Found state ID: ${stateDoc.id} for location $districtId/$bodyId/$wardId');
                     return stateDoc.id;
                   }
                 }
@@ -143,10 +144,10 @@ class CandidateOperations {
         }
       }
 
-      debugPrint('⚠️ Could not determine state ID for location $districtId/$bodyId/$wardId, using default');
+      AppLogger.candidate('⚠️ Could not determine state ID for location $districtId/$bodyId/$wardId, using default');
       return null; // Will fall back to 'maharashtra' in calling method
     } catch (e) {
-      debugPrint('❌ Error determining state ID: $e');
+      AppLogger.candidateError('❌ Error determining state ID: $e');
       return null;
     }
   }
@@ -154,14 +155,14 @@ class CandidateOperations {
   // Get candidate data by user ID (optimized)
   Future<Candidate?> getCandidateData(String userId) async {
     try {
-      debugPrint(
+      AppLogger.candidate(
         '🔍 Candidate Repository: Searching for candidate data for userId: $userId',
       );
 
       // Check if user is still authenticated before proceeding
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null || currentUser.uid != userId) {
-        debugPrint('🚫 User authentication lost during candidate data fetch, aborting');
+        AppLogger.candidate('🚫 User authentication lost during candidate data fetch, aborting');
         return null;
       }
 
@@ -169,8 +170,8 @@ class CandidateOperations {
       final userDoc = await _firestore.collection('users').doc(userId).get();
 
       if (!userDoc.exists) {
-        debugPrint('❌ User document not found for userId: $userId');
-        debugPrint(
+        AppLogger.candidate('❌ User document not found for userId: $userId');
+        AppLogger.candidate(
           '🔄 Falling back to brute force search due to missing user document',
         );
         // Fallback to brute force search if user document doesn't exist
@@ -178,45 +179,23 @@ class CandidateOperations {
       }
 
       final userData = userDoc.data()!;
-      String? districtId;
-      String? bodyId;
-      String? wardId;
-
-      // First try to get from direct fields (legacy)
-      districtId = userData['districtId'] ?? userData['cityId']; // Backward compatibility
-      bodyId = userData['bodyId'];
-      wardId = userData['wardId'];
-
-      // If not found, extract from electionAreas (new structure)
-      if ((districtId == null || wardId == null) && userData['electionAreas'] != null) {
-        final electionAreas = userData['electionAreas'] as List;
-        if (electionAreas.isNotEmpty) {
-          // Use the first regular election area, or any area if no regular found
-          final regularArea = electionAreas.firstWhere(
-            (area) => area['type'] == 'regular',
-            orElse: () => electionAreas.first,
-          );
-
-          if (regularArea != null) {
-            districtId ??= userData['districtId'] ?? userData['cityId']; // Still need district from user
-            bodyId ??= regularArea['bodyId'];
-            wardId ??= regularArea['wardId'];
-          }
-        }
-      }
+      final userModel = UserModel.fromJson(userData);
+      String? districtId = userModel.districtId;
+      String? bodyId = userModel.bodyId;
+      String? wardId = userModel.wardId;
 
       if (districtId == null ||
           wardId == null ||
           districtId.isEmpty ||
           wardId.isEmpty) {
-        debugPrint(
+        AppLogger.candidate(
           '⚠️ User has no districtId or wardId, falling back to brute force search',
         );
         // Fallback to the old method if location info is missing
         return await _getCandidateDataBruteForce(userId);
       }
 
-      debugPrint(
+      AppLogger.candidate(
         '🎯 Direct search: District: $districtId, Body: $bodyId, Ward: $wardId',
       );
 
@@ -237,7 +216,7 @@ class CandidateOperations {
           .limit(1)
           .get();
 
-      debugPrint(
+      AppLogger.candidate(
         '👤 Found ${candidatesSnapshot.docs.length} candidates in $districtId/$bodyId/$wardId',
       );
 
@@ -247,26 +226,26 @@ class CandidateOperations {
         final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = doc.id;
 
-        debugPrint('📄 Raw candidate data from DB:');
+        AppLogger.candidate('📄 Raw candidate data from DB:');
         final extraInfo = data['extra_info'] as Map<String, dynamic>?;
-        debugPrint('   extra_info keys: ${extraInfo?.keys.toList() ?? 'null'}');
-        debugPrint('   education in extra_info: ${extraInfo?.containsKey('education') ?? false}');
-        debugPrint(
+        AppLogger.candidate('   extra_info keys: ${extraInfo?.keys.toList() ?? 'null'}');
+        AppLogger.candidate('   education in extra_info: ${extraInfo?.containsKey('education') ?? false}');
+        AppLogger.candidate(
           '   education value: ${extraInfo != null && extraInfo.containsKey('education') ? extraInfo['education'] : 'not found'}',
         );
 
-        debugPrint(
+        AppLogger.candidate(
           '✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})',
         );
         return Candidate.fromJson(candidateData);
       }
 
-      debugPrint(
+      AppLogger.candidate(
         '❌ No candidate found in user\'s district/body/ward: $districtId/$bodyId/$wardId',
       );
 
       // Fallback: Check legacy /candidates collection
-      debugPrint('🔄 Checking legacy /candidates collection for userId: $userId');
+      AppLogger.candidate('🔄 Checking legacy /candidates collection for userId: $userId');
 
       // First try exact match
       final legacyCandidateDoc = await _firestore
@@ -281,10 +260,10 @@ class CandidateOperations {
         final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = doc.id;
 
-        debugPrint(
+        AppLogger.candidate(
           '✅ Found candidate in legacy collection: ${candidateData['name']} (ID: ${doc.id})',
         );
-        debugPrint('   userId in doc: ${candidateData['userId']}');
+        AppLogger.candidate('   userId in doc: ${candidateData['userId']}');
 
         // Update user document with location info for future use
         await ensureUserDocumentExists(
@@ -298,26 +277,26 @@ class CandidateOperations {
       }
 
       // If no exact match, try to find any candidate documents to debug
-      debugPrint('🔍 No exact match, checking all candidates in legacy collection...');
+      AppLogger.candidate('🔍 No exact match, checking all candidates in legacy collection...');
       final allCandidates = await _firestore.collection('candidates').limit(10).get();
-      debugPrint('📊 Found ${allCandidates.docs.length} total candidates in legacy collection');
+      AppLogger.candidate('📊 Found ${allCandidates.docs.length} total candidates in legacy collection');
 
       for (var doc in allCandidates.docs) {
         final data = doc.data();
-        debugPrint('   Candidate ${doc.id}: userId=${data['userId']}, name=${data['name']}');
+        AppLogger.candidate('   Candidate ${doc.id}: userId=${data['userId']}, name=${data['name']}');
       }
 
-      debugPrint('❌ No candidate found in legacy collection either');
+      AppLogger.candidate('❌ No candidate found in legacy collection either');
       return null;
     } catch (e) {
-      debugPrint('❌ Error fetching candidate data: $e');
+      AppLogger.candidateError('❌ Error fetching candidate data: $e');
       throw Exception('Failed to fetch candidate data: $e');
     }
   }
 
   // Optimized brute force search (limited to user's selected district)
   Future<Candidate?> _getCandidateDataBruteForce(String userId) async {
-    debugPrint('🔍 Falling back to targeted brute force search for userId: $userId');
+    AppLogger.candidate('🔍 Falling back to targeted brute force search for userId: $userId');
 
     try {
       // First try to get user's selected location from their profile
@@ -328,40 +307,24 @@ class CandidateOperations {
 
       if (userDoc.exists) {
         final userData = userDoc.data()!;
-        userStateId = userData['stateId'] as String?;
-        userDistrictId = userData['districtId'] as String?;
+        final userModel = UserModel.fromJson(userData);
+        userStateId = userModel.stateId;
+        userDistrictId = userModel.districtId;
+        userBodyId = userModel.bodyId;
+        final userWardId = userModel.wardId;
 
-        // Extract location data from electionAreas (new structure)
-        String? userWardId;
-        if (userData['electionAreas'] != null && (userData['electionAreas'] as List).isNotEmpty) {
-          final electionAreas = userData['electionAreas'] as List;
-          final regularArea = electionAreas.firstWhere(
-            (area) => area['type'] == 'regular',
-            orElse: () => electionAreas.first,
-          );
-          if (regularArea != null) {
-            userBodyId = regularArea['bodyId'] as String?;
-            userWardId = regularArea['wardId'] as String?;
-          }
-        }
-
-        // Fallback to direct fields if electionAreas didn't provide data
-        userDistrictId ??= userData['districtId'] ?? userData['cityId'];
-        userBodyId ??= userData['bodyId'];
-        userWardId ??= userData['wardId'];
-
-        debugPrint('🎯 Found user location: State: $userStateId, District: $userDistrictId, Body: $userBodyId, Ward: $userWardId');
+        AppLogger.candidate('🎯 Found user location: State: $userStateId, District: $userDistrictId, Body: $userBodyId, Ward: $userWardId');
       }
 
       // If user has selected a district, search only in that district
       if (userDistrictId != null && userDistrictId.isNotEmpty) {
-        debugPrint('🎯 Searching only in user\'s selected district: $userDistrictId');
+        AppLogger.candidate('🎯 Searching only in user\'s selected district: $userDistrictId');
         return await _searchInSpecificDistrict(userId, userDistrictId, userBodyId);
       }
 
       // Fallback: Search in user's state (limited scope)
       final searchStateId = userStateId ?? 'maharashtra'; // Temporary default
-      debugPrint('🔍 Searching in user\'s state: $searchStateId');
+      AppLogger.candidate('🔍 Searching in user\'s state: $searchStateId');
 
       final districtsSnapshot = await _firestore
           .collection('states')
@@ -369,20 +332,20 @@ class CandidateOperations {
           .collection('districts')
           .limit(5) // Limit to first 5 districts for performance
           .get();
-      debugPrint('📊 Found ${districtsSnapshot.docs.length} districts to search in $searchStateId (limited to 5)');
+      AppLogger.candidate('📊 Found ${districtsSnapshot.docs.length} districts to search in $searchStateId (limited to 5)');
 
       for (var districtDoc in districtsSnapshot.docs) {
-        debugPrint('🔍 Searching district: ${districtDoc.id}');
+        AppLogger.candidate('🔍 Searching district: ${districtDoc.id}');
         final bodiesSnapshot = await districtDoc.reference.collection('bodies').limit(3).get();
-        debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${districtDoc.id} (limited to 3)');
+        AppLogger.candidate('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${districtDoc.id} (limited to 3)');
 
         for (var bodyDoc in bodiesSnapshot.docs) {
-          debugPrint('🔍 Searching body: ${bodyDoc.id} in district ${districtDoc.id}');
+          AppLogger.candidate('🔍 Searching body: ${bodyDoc.id} in district ${districtDoc.id}');
           final wardsSnapshot = await bodyDoc.reference.collection('wards').limit(5).get();
-          debugPrint('📊 Found ${wardsSnapshot.docs.length} wards in ${districtDoc.id}/${bodyDoc.id} (limited to 5)');
+          AppLogger.candidate('📊 Found ${wardsSnapshot.docs.length} wards in ${districtDoc.id}/${bodyDoc.id} (limited to 5)');
 
           for (var wardDoc in wardsSnapshot.docs) {
-            debugPrint('🔍 Searching ward: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id}');
+            AppLogger.candidate('🔍 Searching ward: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id}');
             final candidatesSnapshot = await wardDoc.reference
                 .collection('candidates')
                 .where('userId', isEqualTo: userId)
@@ -403,17 +366,17 @@ class CandidateOperations {
                 wardId: wardDoc.id,
               );
 
-              debugPrint('✅ Found candidate via targeted search: ${candidateData['name']} (ID: ${doc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+              AppLogger.candidate('✅ Found candidate via targeted search: ${candidateData['name']} (ID: ${doc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
               return Candidate.fromJson(candidateData);
             }
           }
         }
       }
 
-      debugPrint('❌ No candidate found via targeted brute force search');
+      AppLogger.candidate('❌ No candidate found via targeted brute force search');
       return null;
     } catch (e) {
-      debugPrint('❌ Error in targeted brute force search: $e');
+      AppLogger.candidateError('❌ Error in targeted brute force search: $e');
       return null;
     }
   }
@@ -421,7 +384,7 @@ class CandidateOperations {
   // Helper method to search in a specific district
   Future<Candidate?> _searchInSpecificDistrict(String userId, String districtId, String? bodyId) async {
     try {
-      debugPrint('🎯 Searching in specific district: $districtId');
+      AppLogger.candidate('🎯 Searching in specific district: $districtId');
 
       // First get user's ward from their electionAreas
       final userDoc = await _firestore.collection('users').doc(userId).get();
@@ -429,30 +392,22 @@ class CandidateOperations {
 
       if (userDoc.exists) {
         final userData = userDoc.data()!;
-        if (userData['electionAreas'] != null && (userData['electionAreas'] as List).isNotEmpty) {
-          final electionAreas = userData['electionAreas'] as List;
-          final regularArea = electionAreas.firstWhere(
-            (area) => area['type'] == 'regular',
-            orElse: () => electionAreas.first,
-          );
-          if (regularArea != null) {
-            userWardId = regularArea['wardId'] as String?;
-          }
-        }
+        final userModel = UserModel.fromJson(userData);
+        userWardId = userModel.wardId;
       }
 
       if (userWardId == null) {
-        debugPrint('⚠️ User has no ward information, falling back to full search');
+        AppLogger.candidate('⚠️ User has no ward information, falling back to full search');
         // Fallback to old method if no ward info
         return await _searchInSpecificDistrictFull(userId, districtId, bodyId);
       }
 
-      debugPrint('🎯 User ward: $userWardId, searching only in this ward');
+      AppLogger.candidate('🎯 User ward: $userWardId, searching only in this ward');
 
       // If user has selected a specific body, only search in that body
       final bodyToSearch = bodyId ?? 'pune_m_cop'; // Default fallback
 
-      debugPrint('🔍 Searching in ward: $userWardId in $districtId/$bodyToSearch');
+      AppLogger.candidate('🔍 Searching in ward: $userWardId in $districtId/$bodyToSearch');
       final candidatesSnapshot = await _firestore
           .collection('states')
           .doc('maharashtra') // Temporary default - should be dynamic
@@ -473,14 +428,14 @@ class CandidateOperations {
         final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = doc.id;
 
-        debugPrint('✅ Found candidate in user\'s ward: ${candidateData['name']} (ID: ${doc.id}) in $districtId/$bodyToSearch/$userWardId');
+        AppLogger.candidate('✅ Found candidate in user\'s ward: ${candidateData['name']} (ID: ${doc.id}) in $districtId/$bodyToSearch/$userWardId');
         return Candidate.fromJson(candidateData);
       }
 
-      debugPrint('❌ No candidate found in user\'s ward: $districtId/$bodyToSearch/$userWardId');
+      AppLogger.candidate('❌ No candidate found in user\'s ward: $districtId/$bodyToSearch/$userWardId');
       return null;
     } catch (e) {
-      debugPrint('❌ Error searching in specific district: $e');
+      AppLogger.candidate('❌ Error searching in specific district: $e');
       return null;
     }
   }
@@ -488,7 +443,7 @@ class CandidateOperations {
   // Fallback method for full district search (old behavior)
   Future<Candidate?> _searchInSpecificDistrictFull(String userId, String districtId, String? bodyId) async {
     try {
-      debugPrint('🔍 Falling back to full district search: $districtId');
+      AppLogger.candidate('🔍 Falling back to full district search: $districtId');
 
       final bodiesSnapshot = await _firestore
           .collection('states')
@@ -498,7 +453,7 @@ class CandidateOperations {
           .collection('bodies')
           .get();
 
-      debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
+      AppLogger.candidate('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
 
       for (var bodyDoc in bodiesSnapshot.docs) {
         // If user has selected a specific body, only search in that body
@@ -506,12 +461,12 @@ class CandidateOperations {
           continue;
         }
 
-        debugPrint('🔍 Searching body: ${bodyDoc.id} in district $districtId');
+        AppLogger.candidate('🔍 Searching body: ${bodyDoc.id} in district $districtId');
         final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
-        debugPrint('📊 Found ${wardsSnapshot.docs.length} wards in $districtId/${bodyDoc.id}');
+        AppLogger.candidate('📊 Found ${wardsSnapshot.docs.length} wards in $districtId/${bodyDoc.id}');
 
         for (var wardDoc in wardsSnapshot.docs) {
-          debugPrint('🔍 Searching ward: ${wardDoc.id} in $districtId/${bodyDoc.id}');
+          AppLogger.candidate('🔍 Searching ward: ${wardDoc.id} in $districtId/${bodyDoc.id}');
           final candidatesSnapshot = await wardDoc.reference
               .collection('candidates')
               .where('userId', isEqualTo: userId)
@@ -532,27 +487,27 @@ class CandidateOperations {
               wardId: wardDoc.id,
             );
 
-            debugPrint('✅ Found candidate in specific district: ${candidateData['name']} (ID: ${doc.id}) in $districtId/${bodyDoc.id}/${wardDoc.id}');
+            AppLogger.candidate('✅ Found candidate in specific district: ${candidateData['name']} (ID: ${doc.id}) in $districtId/${bodyDoc.id}/${wardDoc.id}');
             return Candidate.fromJson(candidateData);
           }
         }
       }
 
-      debugPrint('❌ No candidate found in specific district: $districtId');
+      AppLogger.candidate('❌ No candidate found in specific district: $districtId');
       return null;
     } catch (e) {
-      debugPrint('❌ Error searching in specific district: $e');
+      AppLogger.candidate('❌ Error searching in specific district: $e');
       return null;
     }
 
-    debugPrint('❌ No candidate found via targeted brute force search');
+    AppLogger.candidate('❌ No candidate found via targeted brute force search');
     return null;
   }
 
   // Get candidate data by candidateId (not userId) - Optimized version
   Future<Candidate?> getCandidateDataById(String candidateId) async {
     try {
-      debugPrint(
+      AppLogger.candidate(
         '🔍 Candidate Repository: Searching for candidate data by candidateId: $candidateId',
       );
 
@@ -572,7 +527,7 @@ class CandidateOperations {
         final bodyId = indexData['bodyId'];
         final wardId = indexData['wardId'];
 
-        debugPrint('🎯 Found location metadata: $stateId/$districtId/$bodyId/$wardId');
+        AppLogger.candidate('🎯 Found location metadata: $stateId/$districtId/$bodyId/$wardId');
 
         // Direct query using location metadata
         final candidateDoc = await _firestore
@@ -593,7 +548,7 @@ class CandidateOperations {
           final candidateData = Map<String, dynamic>.from(data);
           candidateData['candidateId'] = candidateDoc.id;
 
-          debugPrint(
+          AppLogger.candidate(
             '✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id})',
           );
           return Candidate.fromJson(candidateData);
@@ -601,7 +556,7 @@ class CandidateOperations {
       }
 
       // Fallback: Search across all states to find the candidate
-      debugPrint('🔄 Index not found, searching across all states for candidate');
+      AppLogger.candidate('🔄 Index not found, searching across all states for candidate');
       final statesSnapshot = await _firestore.collection('states').get();
 
       for (var stateDoc in statesSnapshot.docs) {
@@ -637,7 +592,7 @@ class CandidateOperations {
                   wardDoc.id,
                 );
 
-                debugPrint(
+                AppLogger.candidate(
                   '✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}',
                 );
                 return Candidate.fromJson(candidateData);
@@ -647,10 +602,10 @@ class CandidateOperations {
         }
       }
 
-      debugPrint('❌ No candidate found with candidateId: $candidateId');
+      AppLogger.candidate('❌ No candidate found with candidateId: $candidateId');
       return null;
     } catch (e) {
-      debugPrint('❌ Error fetching candidate data by ID: $e');
+      AppLogger.candidateError('❌ Error fetching candidate data by ID: $e');
       throw Exception('Failed to fetch candidate data: $e');
     }
   }
@@ -701,7 +656,7 @@ class CandidateOperations {
       // Candidate not found in any state
       throw Exception('Candidate $candidateId not found in any state');
     } catch (e) {
-      debugPrint('❌ Failed to get candidate state ID: $e');
+      AppLogger.candidate('❌ Failed to get candidate state ID: $e');
       throw Exception('Unable to determine candidate state: $e');
     }
   }
@@ -723,7 +678,7 @@ class CandidateOperations {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('⚠️ Failed to update candidate index: $e');
+      AppLogger.candidate('⚠️ Failed to update candidate index: $e');
       // Don't throw - this is not critical
     }
   }
@@ -741,7 +696,7 @@ class CandidateOperations {
       final userDoc = await userRef.get();
 
       if (!userDoc.exists) {
-        debugPrint('📝 Creating user document for $userId');
+        AppLogger.candidate('📝 Creating user document for $userId');
         await userRef.set({
           'districtId': districtId ?? '',
           'bodyId': bodyId ?? '',
@@ -761,7 +716,7 @@ class CandidateOperations {
             (cityId != null && userData['cityId'] != cityId);
 
         if (needsUpdate) {
-          debugPrint(
+          AppLogger.candidate(
             '🔄 Updating user document for $userId with location info',
           );
           await userRef.update({
@@ -776,7 +731,7 @@ class CandidateOperations {
         }
       }
     } catch (e) {
-      debugPrint('❌ Error ensuring user document exists: $e');
+      AppLogger.candidate('❌ Error ensuring user document exists: $e');
       // Don't throw here as this is a non-critical operation
     }
   }
@@ -832,7 +787,7 @@ class CandidateOperations {
 
       // If not found in new structure, try legacy collection
       if (!foundInNewStructure) {
-        debugPrint('🔄 Candidate not found in new structure, trying legacy collection');
+        AppLogger.candidate('🔄 Candidate not found in new structure, trying legacy collection');
         final legacyDocRef = _firestore.collection('candidates').doc(candidate.candidateId);
         final legacyDoc = await legacyDocRef.get();
 
@@ -847,7 +802,7 @@ class CandidateOperations {
             'manifesto': candidate.manifesto,
             'contact': candidate.contact.toJson(),
           });
-          debugPrint('✅ Successfully updated candidate in legacy collection');
+          AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
           return true;
         }
       }
@@ -876,7 +831,7 @@ class CandidateOperations {
         final bodyId = indexData['bodyId'];
         final wardId = indexData['wardId'];
 
-        debugPrint(
+        AppLogger.candidate(
           '🎯 Using indexed location for update: $districtId/$bodyId/$wardId',
         );
 
@@ -904,7 +859,7 @@ class CandidateOperations {
       }
 
       // Fallback: Optimized brute force search
-      debugPrint(
+      AppLogger.candidate(
         '🔄 Index not found, using optimized brute force search for update',
       );
       final districtsSnapshot = await _firestore
@@ -955,13 +910,13 @@ class CandidateOperations {
       }
 
       // If not found in new structure, try legacy collection
-      debugPrint('🔄 Candidate not found in new structure, trying legacy collection');
+      AppLogger.candidate('🔄 Candidate not found in new structure, trying legacy collection');
       final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
       final legacyDoc = await legacyDocRef.get();
 
       if (legacyDoc.exists) {
         await legacyDocRef.update(fieldUpdates);
-        debugPrint('✅ Successfully updated candidate in legacy collection');
+        AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
         return true;
       }
 
@@ -977,7 +932,7 @@ class CandidateOperations {
     Map<String, dynamic> extraInfoUpdates,
   ) async {
     try {
-      debugPrint(
+      AppLogger.candidate(
         '🔄 updateCandidateExtraInfoFields - Input: $extraInfoUpdates',
       );
 
@@ -988,25 +943,25 @@ class CandidateOperations {
         // Handle nested basic_info fields
         if (['profession', 'languages', 'experienceYears', 'previousPositions', 'age', 'gender', 'education', 'dateOfBirth'].contains(key)) {
           fieldUpdates['extra_info.basic_info.$key'] = value;
-          debugPrint('   Converting $key -> extra_info.basic_info.$key = $value');
+          AppLogger.candidate('   Converting $key -> extra_info.basic_info.$key = $value');
         } else {
           fieldUpdates['extra_info.$key'] = value;
-          debugPrint('   Converting $key -> extra_info.$key = $value');
+          AppLogger.candidate('   Converting $key -> extra_info.$key = $value');
         }
       });
 
-      debugPrint('   Final field updates: $fieldUpdates');
+      AppLogger.candidate('   Final field updates: $fieldUpdates');
 
       // Try to update in new structure first
       try {
         final success = await updateCandidateFields(candidateId, fieldUpdates);
         if (success) return true;
       } catch (e) {
-        debugPrint('⚠️ Failed to update in new structure: $e');
+        AppLogger.candidate('⚠️ Failed to update in new structure: $e');
       }
 
       // Fallback: Update in legacy collection
-      debugPrint('🔄 Falling back to legacy collection update');
+      AppLogger.candidate('🔄 Falling back to legacy collection update');
       final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
 
       // Check if candidate exists in legacy collection
@@ -1016,7 +971,7 @@ class CandidateOperations {
       }
 
       await legacyDocRef.update(fieldUpdates);
-      debugPrint('✅ Successfully updated candidate in legacy collection');
+      AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
 
       return true;
     } catch (e) {
@@ -1092,14 +1047,14 @@ class CandidateOperations {
       }
 
       // Fallback: Try legacy collection
-      debugPrint('🔄 Candidate not found in new structure, trying legacy collection');
+      AppLogger.candidate('🔄 Candidate not found in new structure, trying legacy collection');
       final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
       final legacyDoc = await legacyDocRef.get();
 
       if (legacyDoc.exists) {
         batch.update(legacyDocRef, updates);
         await batch.commit();
-        debugPrint('✅ Successfully updated candidate in legacy collection');
+        AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
         return true;
       }
 
@@ -1283,9 +1238,10 @@ class CandidateOperations {
 
       if (userDoc.exists) {
         final userData = userDoc.data()!;
-        final districtId = userData['districtId'];
-        final bodyId = userData['bodyId'];
-        final wardId = userData['wardId'];
+        final userModel = UserModel.fromJson(userData);
+        String? districtId = userModel.districtId;
+        String? bodyId = userModel.bodyId;
+        String? wardId = userModel.wardId;
 
         // If user has location info, check directly in that ward
         if (districtId != null &&

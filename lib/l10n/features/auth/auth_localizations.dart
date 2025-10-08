@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 // Embedded translations for synchronous access
 const Map<String, Map<String, String>> _embeddedTranslations = {
@@ -100,7 +101,7 @@ class AuthLocalizations {
 
   AuthLocalizations(this.locale) {
     _localizedStrings = _embeddedTranslations[locale.languageCode] ?? _embeddedTranslations['en'] ?? {};
-    debugPrint('✅ AuthLocalizations: Initialized ${locale.languageCode} with ${_localizedStrings.length} embedded strings');
+    AppLogger.auth('✅ AuthLocalizations: Initialized ${locale.languageCode} with ${_localizedStrings.length} embedded strings');
   }
 
   static AuthLocalizations? of(BuildContext context) {

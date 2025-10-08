@@ -4,6 +4,7 @@ import '../../models/candidate_model.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../../utils/symbol_utils.dart';
 import '../../../../utils/maharashtra_utils.dart';
+import '../../../../utils/app_logger.dart';
 
 class InfoTab extends StatelessWidget {
   final Candidate candidate;
@@ -169,11 +170,11 @@ class InfoTab extends StatelessWidget {
                           final finalText = '$displayWard, $displayDistrict';
 
                           // Debug logs
-                          debugPrint('🔍 [InfoTab] Location Display Debug:');
-                          debugPrint('   Locale: $locale');
-                          debugPrint('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
-                          debugPrint('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
-                          debugPrint('   Final Text: "$finalText"');
+                          AppLogger.candidate('🔍 [InfoTab] Location Display Debug:');
+                          AppLogger.candidate('   Locale: $locale');
+                          AppLogger.candidate('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
+                          AppLogger.candidate('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
+                          AppLogger.candidate('   Final Text: "$finalText"');
 
                           return Text(
                             finalText,

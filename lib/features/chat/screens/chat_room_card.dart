@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
 import '../controllers/chat_controller.dart';
 import '../../../models/chat_model.dart';
+import '../../../utils/app_logger.dart';
 import 'chat_room_screen.dart';
 import 'chat_helpers.dart';
 
@@ -19,8 +20,9 @@ class ChatRoomCard extends StatelessWidget {
     final chatRoom = displayInfo.room;
 
     // Debug: Print unread count for this room
-    debugPrint(
-      '🎯 ChatRoomCard for ${chatRoom.roomId}: unreadCount=${displayInfo.unreadCount}, hasUnread=${displayInfo.hasUnreadMessages}',
+    AppLogger.ui(
+      'ChatRoomCard for ${chatRoom.roomId}: unreadCount=${displayInfo.unreadCount}, hasUnread=${displayInfo.hasUnreadMessages}',
+      tag: 'CHAT',
     );
 
     return Card(
@@ -175,4 +177,3 @@ class ChatRoomCard extends StatelessWidget {
     );
   }
 }
-

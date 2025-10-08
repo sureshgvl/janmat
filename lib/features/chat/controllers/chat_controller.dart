@@ -20,6 +20,7 @@ import '../../auth/repositories/auth_repository.dart';
 import '../../../services/admob_service.dart';
 import '../../monetization/repositories/monetization_repository.dart';
 import '../../notifications/services/poll_notification_service.dart';
+import '../../../utils/app_logger.dart';
 
 class ChatController extends GetxController {
   // New controllers
@@ -63,7 +64,7 @@ class ChatController extends GetxController {
   void clearExpiredRepositoryCache() {
     // This method is called from the old ChatRepository
     // For now, we'll just log that it's called
-    debugPrint('🧹 Repository cache cleanup requested');
+    AppLogger.database('Repository cache cleanup requested', tag: 'CHAT');
   }
 
   // User data - get from auth repository
@@ -138,14 +139,15 @@ class ChatController extends GetxController {
           final data = userDoc.data()!;
           // Use UserModel.fromJson() to properly handle Timestamp conversions
           _cachedUser = UserModel.fromJson(data);
-          debugPrint(
-            '✅ Loaded complete user data: ${_cachedUser!.name} (${_cachedUser!.role})',
+          AppLogger.database(
+            'Loaded complete user data: ${_cachedUser!.name} (${_cachedUser!.role})',
+            tag: 'CHAT',
           );
           update(); // Trigger UI update
         }
       }
     } catch (e) {
-      debugPrint('❌ Error loading complete user data: $e');
+      AppLogger.database('Error loading complete user data: $e', tag: 'CHAT');
     }
   }
 
@@ -179,8 +181,9 @@ class ChatController extends GetxController {
         final quota = await _repository.getUserQuota(user.uid);
         if (quota != null) {
           userQuota.value = quota;
-          debugPrint(
-            '📊 Loaded user quota: ${quota.remainingMessages} messages remaining',
+          AppLogger.database(
+            'Loaded user quota: ${quota.remainingMessages} messages remaining',
+            tag: 'CHAT',
           );
         } else {
           // Create default quota
@@ -191,13 +194,13 @@ class ChatController extends GetxController {
           );
           userQuota.value = defaultQuota;
           await _repository.updateUserQuota(defaultQuota);
-          debugPrint('📊 Created default quota');
+          AppLogger.database('Created default quota', tag: 'CHAT');
         }
       } catch (e) {
-        debugPrint('❌ Failed to load quota: $e');
+        AppLogger.database('Failed to load quota: $e', tag: 'CHAT');
       }
     } else {
-      debugPrint('⚠️ No user data available for chat initialization');
+      AppLogger.database('No user data available for chat initialization', tag: 'CHAT');
     }
   }
 
@@ -222,7 +225,7 @@ class ChatController extends GetxController {
         area: regularArea?.area,
       );
     } else {
-      debugPrint('⚠️ No user data available for fetching chat rooms');
+      AppLogger.database('No user data available for fetching chat rooms', tag: 'CHAT');
     }
   }
 
@@ -243,7 +246,7 @@ class ChatController extends GetxController {
         update(); // Trigger UI update
       },
       onError: (error) {
-        debugPrint('Error listening to typing status: $error');
+        AppLogger.database('Error listening to typing status: $error', tag: 'CHAT');
       },
     );
   }
@@ -266,7 +269,7 @@ class ChatController extends GetxController {
     try {
       await _repository.markMessageAsRead(roomId, messageId, userId);
     } catch (e) {
-      debugPrint('Error marking message as read: $e');
+      AppLogger.database('Error marking message as read: $e', tag: 'CHAT');
     }
   }
 
@@ -315,16 +318,16 @@ class ChatController extends GetxController {
   Future<void> watchRewardedAdForXP() async {
     final adMobService = Get.find<AdMobService>();
 
-    debugPrint('🎬 Checking ad availability...');
-    debugPrint('🎬 Ad status: ${adMobService.getAdStatus()}');
-    debugPrint('🎬 Ad debug info: ${adMobService.getAdDebugInfo()}');
+    AppLogger.ui('Checking ad availability...', tag: 'CHAT');
+    AppLogger.ui('Ad status: ${adMobService.getAdStatus()}', tag: 'CHAT');
+    AppLogger.ui('Ad debug info: ${adMobService.getAdDebugInfo()}', tag: 'CHAT');
 
     // Force initialize if not done yet
     await adMobService.initializeIfNeeded();
 
     // Wait a bit for ad to load if not ready
     if (!adMobService.isAdAvailable) {
-      debugPrint('🎬 Ad not ready, waiting for load...');
+      AppLogger.ui('Ad not ready, waiting for load...', tag: 'CHAT');
 
       // Show loading dialog while waiting
       Get.dialog(
@@ -367,8 +370,9 @@ class ChatController extends GetxController {
       while (!adMobService.isAdAvailable &&
           DateTime.now().difference(startTime) < maxWaitTime) {
         await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint(
-          '🎬 Still waiting for ad... (${DateTime.now().difference(startTime).inSeconds}s)',
+        AppLogger.ui(
+          'Still waiting for ad... (${DateTime.now().difference(startTime).inSeconds}s)',
+          tag: 'CHAT',
         );
       }
 
@@ -378,7 +382,7 @@ class ChatController extends GetxController {
       }
 
       if (!adMobService.isAdAvailable) {
-        debugPrint('🎬 Ad still not ready after waiting');
+        AppLogger.ui('Ad still not ready after waiting', tag: 'CHAT');
         Get.snackbar(
           'Ad Not Ready',
           'Ad failed to load. Please check your internet connection and try again.',
@@ -391,7 +395,7 @@ class ChatController extends GetxController {
     }
 
     try {
-      debugPrint('🎬 Starting rewarded ad display...');
+      AppLogger.ui('Starting rewarded ad display...', tag: 'CHAT');
 
       // Show loading dialog while displaying ad
       Get.dialog(
@@ -413,7 +417,7 @@ class ChatController extends GetxController {
         barrierDismissible: false,
       );
 
-      debugPrint('🎬 Displaying rewarded ad...');
+      AppLogger.ui('Displaying rewarded ad...', tag: 'CHAT');
       int? rewardXP = await adMobService.showRewardedAd();
 
       // Close loading dialog
@@ -426,12 +430,13 @@ class ChatController extends GetxController {
         Get.back();
       }
 
-      debugPrint('🎯 Ad result: rewardXP = $rewardXP');
+      AppLogger.ui('Ad result: rewardXP = $rewardXP', tag: 'CHAT');
 
       // For testing: if ad fails, offer simulation
       if (rewardXP == null || rewardXP == 0) {
-        debugPrint(
-          '🎯 Ad failed or returned no reward, offering simulation for testing',
+        AppLogger.ui(
+          'Ad failed or returned no reward, offering simulation for testing',
+          tag: 'CHAT',
         );
 
         // Show dialog asking if user wants to simulate reward for testing
@@ -455,14 +460,14 @@ class ChatController extends GetxController {
         );
 
         if (shouldSimulate == true) {
-          debugPrint('🧪 User chose to simulate reward');
+          AppLogger.ui('User chose to simulate reward', tag: 'CHAT');
           rewardXP = await adMobService.simulateRewardForTesting();
-          debugPrint('🧪 Simulated reward: $rewardXP XP');
+          AppLogger.ui('Simulated reward: $rewardXP XP', tag: 'CHAT');
         }
       }
 
       if (rewardXP != null && rewardXP > 0) {
-        debugPrint('🎯 Ad completed, attempting to award $rewardXP XP');
+        AppLogger.ui('Ad completed, attempting to award $rewardXP XP', tag: 'CHAT');
 
         // Award XP to user
         final awardSuccess = await _awardXPFromAd(rewardXP);
@@ -488,13 +493,14 @@ class ChatController extends GetxController {
           );
         }
       } else {
-        debugPrint(
-          '⚠️ Ad was shown but no reward was earned - this might be normal for test ads',
+        AppLogger.ui(
+          'Ad was shown but no reward was earned - this might be normal for test ads',
+          tag: 'CHAT',
         );
 
         // For test ads, still award some XP as fallback
         if (adMobService.isTestAdUnit()) {
-          debugPrint('🧪 Test ad detected, awarding fallback XP');
+          AppLogger.ui('Test ad detected, awarding fallback XP', tag: 'CHAT');
           final fallbackXP = 2;
           final awardSuccess = await _awardXPFromAd(fallbackXP);
 
@@ -519,7 +525,7 @@ class ChatController extends GetxController {
         }
       }
     } catch (e) {
-      debugPrint('❌ Error in rewarded ad flow: $e');
+      AppLogger.ui('Error in rewarded ad flow: $e', tag: 'CHAT');
 
       // Close loading dialog if open
       if (Get.isDialogOpen ?? false) {
@@ -578,7 +584,7 @@ class ChatController extends GetxController {
         area: regularArea?.area,
       );
     } else {
-      debugPrint('⚠️ No user data available for refreshing chat rooms');
+      AppLogger.ui('No user data available for refreshing chat rooms', tag: 'CHAT');
     }
   }
 
@@ -604,7 +610,7 @@ class ChatController extends GetxController {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting sender info: $e');
+      AppLogger.database('Error getting sender info: $e', tag: 'CHAT');
       return null;
     }
   }
@@ -613,7 +619,7 @@ class ChatController extends GetxController {
   Future<ChatRoom?> startPrivateChat(String otherUserId, String otherUserName) async {
     final currentUser = _cachedUser;
     if (currentUser == null) {
-      debugPrint('❌ Cannot start private chat: current user is null');
+      AppLogger.ui('Cannot start private chat: current user is null', tag: 'CHAT');
       return null;
     }
 
@@ -635,12 +641,12 @@ class ChatController extends GetxController {
 
         // Refresh chat rooms to include the new private chat
         await fetchChatRooms();
-        debugPrint('✅ Private chat created: ${chatRoom.roomId}');
+        AppLogger.ui('Private chat created: ${chatRoom.roomId}', tag: 'CHAT');
       }
 
       return chatRoom;
     } catch (e) {
-      debugPrint('❌ Error starting private chat: $e');
+      AppLogger.ui('Error starting private chat: $e', tag: 'CHAT');
       return null;
     }
   }
@@ -683,7 +689,7 @@ class ChatController extends GetxController {
 
     // Firebase is now available synchronously, so we can initialize immediately
     // but we'll still defer heavy operations to when chat is actually accessed
-    debugPrint('📱 ChatController initialized - Firebase ready');
+    AppLogger.ui('ChatController initialized - Firebase ready', tag: 'CHAT');
   }
 
   // Set up message stream connection
@@ -710,7 +716,12 @@ class ChatController extends GetxController {
   }
 
   void invalidateUserCache(String userId) {
-    // This method needs to be implemented
+    // Refresh cached user data if it matches the invalidated user
+    if (_cachedUser?.uid == userId) {
+      AppLogger.ui('Invalidating user cache for user: $userId', tag: 'CHAT');
+      _cachedUser = null; // Clear cache to force reload
+      getCompleteUserData(); // Reload user data
+    }
   }
 
   Future<void> initializeSampleData() async {
@@ -721,12 +732,13 @@ class ChatController extends GetxController {
   Future<void> sendTextMessage(String text) async {
     final user = _cachedUser;
     if (user == null || currentChatRoom.value == null) {
-      debugPrint('❌ Cannot send message: user or chat room is null');
+      AppLogger.ui('Cannot send message: user or chat room is null', tag: 'CHAT');
       return;
     }
 
-    debugPrint(
-      '🚀 ChatController: sendTextMessage called - Text: "$text", Room: ${currentChatRoom.value!.roomId}',
+    AppLogger.ui(
+      'sendTextMessage called - Text: "$text", Room: ${currentChatRoom.value!.roomId}',
+      tag: 'CHAT',
     );
 
     // Check if user can send message (basic check - TODO: implement full quota/XP logic)
@@ -743,7 +755,7 @@ class ChatController extends GetxController {
 
     // Set sending state to true
     _reactiveIsSendingMessage.value = true;
-    debugPrint('📤 ChatController: Set isSendingMessage to true (current value: ${_reactiveIsSendingMessage.value})');
+    AppLogger.ui('Set isSendingMessage to true (current value: ${_reactiveIsSendingMessage.value})', tag: 'CHAT');
 
     // Create message
     final message = Message(
@@ -755,8 +767,9 @@ class ChatController extends GetxController {
       readBy: [user.uid],
     );
 
-    debugPrint(
-      '📝 ChatController: Created message - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}',
+    AppLogger.ui(
+      'Created message - ID: ${message.messageId}, Text: "${message.text}", Sender: ${message.senderId}',
+      tag: 'CHAT',
     );
 
     try {
@@ -766,7 +779,7 @@ class ChatController extends GetxController {
       final useXP = !useQuota && user.xpPoints > 0;
 
       // Add message to UI immediately (will be updated by stream)
-      debugPrint('📤 ChatController: Calling addMessageToUI...');
+      AppLogger.ui('Calling addMessageToUI...', tag: 'CHAT');
       await _messageController.addMessageToUI(
         message,
         currentChatRoom.value!.roomId,
@@ -778,22 +791,23 @@ class ChatController extends GetxController {
           messagesSent: userQuota.value!.messagesSent + 1,
         );
         userQuota.value = updatedQuota;
-        debugPrint(
-          '📊 Local quota updated: ${updatedQuota.remainingMessages} remaining',
+        AppLogger.ui(
+          'Local quota updated: ${updatedQuota.remainingMessages} remaining',
+          tag: 'CHAT',
         );
       } else if (useXP) {
         // XP deduction will be handled by the repository method
-        debugPrint('⭐ Will deduct 1 XP for message');
+        AppLogger.ui('Will deduct 1 XP for message', tag: 'CHAT');
       }
 
       // Send to server with quota/XP handling
-      debugPrint('📡 ChatController: Sending message to server...');
+      AppLogger.ui('Sending message to server...', tag: 'CHAT');
       await sendMessage(currentChatRoom.value!.roomId, message);
 
       // Update server-side quota/XP
       if (useQuota && userQuota.value != null) {
         await _repository.updateUserQuota(userQuota.value!);
-        debugPrint('📊 Server quota updated');
+        AppLogger.ui('Server quota updated', tag: 'CHAT');
       } else if (useXP) {
         // Update XP via Firestore transaction
         await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -804,11 +818,11 @@ class ChatController extends GetxController {
         });
         // Refresh user data to reflect XP change
         await getCompleteUserData();
-        debugPrint('⭐ XP deducted from server');
+        AppLogger.ui('XP deducted from server', tag: 'CHAT');
       }
 
       // Update message status to sent
-      debugPrint('📝 ChatController: Updating message status to sent...');
+      AppLogger.ui('Updating message status to sent...', tag: 'CHAT');
       await _messageController.updateMessageStatus(
         message.messageId,
         MessageStatus.sent,
@@ -816,14 +830,14 @@ class ChatController extends GetxController {
 
       // Set sending state to false
       _reactiveIsSendingMessage.value = false;
-      debugPrint('✅ ChatController: Set isSendingMessage to false - message sent successfully (current value: ${_reactiveIsSendingMessage.value})');
-      debugPrint('✅ Text message sent successfully');
+      AppLogger.ui('Set isSendingMessage to false - message sent successfully (current value: ${_reactiveIsSendingMessage.value})', tag: 'CHAT');
+      AppLogger.ui('Text message sent successfully', tag: 'CHAT');
     } catch (e) {
-      debugPrint('❌ Failed to send text message: $e');
+      AppLogger.ui('Failed to send text message: $e', tag: 'CHAT');
 
       // Set sending state to false on error
       _reactiveIsSendingMessage.value = false;
-      debugPrint('❌ ChatController: Set isSendingMessage to false - message failed (current value: ${_reactiveIsSendingMessage.value})');
+      AppLogger.ui('Set isSendingMessage to false - message failed (current value: ${_reactiveIsSendingMessage.value})', tag: 'CHAT');
 
       // Update message status to failed
       await _messageController.updateMessageStatus(
@@ -845,12 +859,12 @@ class ChatController extends GetxController {
   Future<bool> _awardXPFromAd(int xpAmount) async {
     final user = _cachedUser;
     if (user == null) {
-      debugPrint('❌ Cannot award XP: user is null');
+      AppLogger.ui('Cannot award XP: user is null', tag: 'CHAT');
       return false;
     }
 
     try {
-      debugPrint('🏆 Attempting to award $xpAmount XP to user: ${user.uid}');
+      AppLogger.ui('Attempting to award $xpAmount XP to user: ${user.uid}', tag: 'CHAT');
 
       // Use MonetizationRepository to handle XP transaction
       final monetizationRepo = MonetizationRepository();
@@ -864,12 +878,12 @@ class ChatController extends GetxController {
       // Force UI update for all listeners (including profile screen)
       update();
 
-      debugPrint('✅ Successfully awarded $xpAmount XP to user: ${user.uid}');
-      debugPrint('   Updated cached XP: ${_cachedUser?.xpPoints ?? 0}');
+      AppLogger.ui('Successfully awarded $xpAmount XP to user: ${user.uid}', tag: 'CHAT');
+      AppLogger.ui('Updated cached XP: ${_cachedUser?.xpPoints ?? 0}', tag: 'CHAT');
       return true;
     } catch (e) {
-      debugPrint('❌ Error awarding XP from ad: $e');
-      debugPrint('   Error details: ${e.toString()}');
+      AppLogger.ui('Error awarding XP from ad: $e', tag: 'CHAT');
+      AppLogger.ui('Error details: ${e.toString()}', tag: 'CHAT');
       return false;
     }
   }
@@ -899,7 +913,7 @@ class ChatController extends GetxController {
     final room = currentChatRoom.value;
 
     if (user == null || room == null) {
-      debugPrint('❌ Cannot create poll: user or room is null');
+      AppLogger.ui('Cannot create poll: user or room is null', tag: 'CHAT');
       Get.snackbar(
         'Cannot Create Poll',
         'Please select a chat room first.',
@@ -911,7 +925,7 @@ class ChatController extends GetxController {
     }
 
     if (question.trim().isEmpty || options.length < 2) {
-      debugPrint('❌ Cannot create poll: invalid question or options');
+      AppLogger.ui('Cannot create poll: invalid question or options', tag: 'CHAT');
       Get.snackbar(
         'Invalid Poll',
         'Please provide a question and at least 2 options.',
@@ -923,7 +937,7 @@ class ChatController extends GetxController {
     }
 
     try {
-      debugPrint('📊 Creating poll: "$question" with ${options.length} options, expires at: $expiresAt');
+      AppLogger.ui('Creating poll: "$question" with ${options.length} options, expires at: $expiresAt', tag: 'CHAT');
 
       // Create poll object
       final pollId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -940,7 +954,7 @@ class ChatController extends GetxController {
 
       // Save poll to repository
       await _repository.createPoll(room.roomId, poll);
-      debugPrint('✅ Poll created in repository: $pollId');
+      AppLogger.ui('Poll created in repository: $pollId', tag: 'CHAT');
 
       // Create poll message
       final message = Message(
@@ -959,7 +973,7 @@ class ChatController extends GetxController {
       // Send message to server
       await sendMessage(room.roomId, message);
 
-      debugPrint('✅ Poll message sent successfully');
+      AppLogger.ui('Poll message sent successfully', tag: 'CHAT');
 
       // Send notifications to room members about the new poll
       try {
@@ -970,9 +984,9 @@ class ChatController extends GetxController {
           creatorId: user.uid,
           pollQuestion: question,
         );
-        debugPrint('🔔 Poll creation notifications sent');
+        AppLogger.ui('Poll creation notifications sent', tag: 'CHAT');
       } catch (e) {
-        debugPrint('⚠️ Failed to send poll creation notifications: $e');
+        AppLogger.ui('Failed to send poll creation notifications: $e', tag: 'CHAT');
         // Don't fail the poll creation if notifications fail
       }
 
@@ -984,7 +998,7 @@ class ChatController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
-      debugPrint('❌ Failed to create poll: $e');
+      AppLogger.ui('Failed to create poll: $e', tag: 'CHAT');
       Get.snackbar(
         'Poll Creation Failed',
         'Failed to create poll. Please try again.',
@@ -1011,7 +1025,7 @@ class ChatController extends GetxController {
     // Clear current room
     _roomController.clearCurrentRoom();
 
-    debugPrint('clearCurrentChat called - typing status cleared from Firestore');
+    AppLogger.ui('clearCurrentChat called - typing status cleared from Firestore', tag: 'CHAT');
   }
 
   @override
@@ -1030,7 +1044,7 @@ class ChatController extends GetxController {
   Future<void> retryMessage(String messageId) async {
     final room = currentChatRoom.value;
     if (room == null) {
-      debugPrint('❌ Cannot retry message: no current room');
+      AppLogger.ui('Cannot retry message: no current room', tag: 'CHAT');
       return;
     }
 
@@ -1042,7 +1056,7 @@ class ChatController extends GetxController {
     final room = currentChatRoom.value;
 
     if (user == null || room == null) {
-      debugPrint('❌ Cannot add reaction: user or room is null');
+      AppLogger.ui('Cannot add reaction: user or room is null', tag: 'CHAT');
       return;
     }
 
@@ -1053,9 +1067,9 @@ class ChatController extends GetxController {
         user.uid,
         emoji,
       );
-      debugPrint('✅ Reaction added: $emoji to message $messageId in room ${room.roomId}');
+      AppLogger.ui('Reaction added: $emoji to message $messageId in room ${room.roomId}', tag: 'CHAT');
     } catch (e) {
-      debugPrint('❌ Failed to add reaction: $e');
+      AppLogger.ui('Failed to add reaction: $e', tag: 'CHAT');
       Get.snackbar(
         'Reaction Failed',
         'Failed to add reaction. Please try again.',
@@ -1069,19 +1083,19 @@ class ChatController extends GetxController {
   Future<void> refreshCurrentChatMessages() async {
     final room = currentChatRoom.value;
     if (room == null) {
-      debugPrint('❌ Cannot refresh messages: no current room');
+      AppLogger.ui('Cannot refresh messages: no current room', tag: 'CHAT');
       return;
     }
 
     // Reload messages for the current room
     _messageController.loadMessagesForRoom(room.roomId);
-    debugPrint('🔄 Refreshed messages for room: ${room.roomId}');
+    AppLogger.ui('Refreshed messages for room: ${room.roomId}', tag: 'CHAT');
   }
 
   Future<void> reportMessage(String messageId, String reason) async {
     final room = currentChatRoom.value;
     if (room == null) {
-      debugPrint('❌ Cannot report message: no current room');
+      AppLogger.ui('Cannot report message: no current room', tag: 'CHAT');
       return;
     }
 
@@ -1095,7 +1109,7 @@ class ChatController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
-      debugPrint('❌ Failed to report message: $e');
+      AppLogger.ui('Failed to report message: $e', tag: 'CHAT');
       Get.snackbar(
         'Report Failed',
         'Failed to report message. Please try again.',
@@ -1109,7 +1123,7 @@ class ChatController extends GetxController {
   Future<void> deleteMessage(String messageId) async {
     final room = currentChatRoom.value;
     if (room == null) {
-      debugPrint('❌ Cannot delete message: no current room');
+      AppLogger.ui('Cannot delete message: no current room', tag: 'CHAT');
       return;
     }
 
@@ -1123,7 +1137,7 @@ class ChatController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
-      debugPrint('❌ Failed to delete message: $e');
+      AppLogger.ui('Failed to delete message: $e', tag: 'CHAT');
       Get.snackbar(
         'Delete Failed',
         'Failed to delete message. Please try again.',
@@ -1149,4 +1163,3 @@ class ChatController extends GetxController {
     );
   }
 }
-

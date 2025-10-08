@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import '../../../../utils/symbol_utils.dart';
 import '../../../../services/file_upload_service.dart';
@@ -130,7 +131,7 @@ class _BasicInfoTabEditState extends State<BasicInfoTabEdit> {
           ],
         );
       } catch (cropError) {
-        debugPrint('Cropping failed, using original image: $cropError');
+        AppLogger.candidate('Cropping failed, using original image: $cropError');
       }
 
       final String imagePath = croppedFile?.path ?? pickedFile.path;

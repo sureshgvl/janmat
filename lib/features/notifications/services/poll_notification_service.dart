@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../../../models/chat_model.dart';
 import '../../../features/chat/models/poll.dart';
 import '../../../features/chat/repositories/chat_repository.dart';
@@ -44,9 +45,9 @@ class PollNotificationService {
         );
       }
 
-      debugPrint('🔔 New poll notifications sent to ${targetUserIds.length} users in room $roomId');
+      AppLogger.common('🔔 New poll notifications sent to ${targetUserIds.length} users in room $roomId');
     } catch (e) {
-      debugPrint('❌ Error sending new poll notifications: $e');
+      AppLogger.commonError('❌ Error sending new poll notifications', error: e);
     }
   }
 
@@ -96,9 +97,9 @@ class PollNotificationService {
         );
       }
 
-      debugPrint('🔔 Poll results notifications sent to ${participantIds.length} participants');
+      AppLogger.common('🔔 Poll results notifications sent to ${participantIds.length} participants');
     } catch (e) {
-      debugPrint('❌ Error sending poll results notifications: $e');
+      AppLogger.commonError('❌ Error sending poll results notifications', error: e);
     }
   }
 
@@ -150,9 +151,9 @@ class PollNotificationService {
         );
       }
 
-      debugPrint('🔔 Poll deadline reminders sent to ${nonVoters.length} users (${hoursRemaining}h remaining)');
+      AppLogger.common('🔔 Poll deadline reminders sent to ${nonVoters.length} users (${hoursRemaining}h remaining)');
     } catch (e) {
-      debugPrint('❌ Error sending poll deadline reminders: $e');
+      AppLogger.commonError('❌ Error sending poll deadline reminders', error: e);
     }
   }
 
@@ -194,9 +195,9 @@ class PollNotificationService {
         );
       }
 
-      debugPrint('🔔 Voting reminders sent to ${nonVoters.length} users in room $roomId');
+      AppLogger.common('🔔 Voting reminders sent to ${nonVoters.length} users in room $roomId');
     } catch (e) {
-      debugPrint('❌ Error sending voting reminders: $e');
+      AppLogger.commonError('❌ Error sending voting reminders', error: e);
     }
   }
 
@@ -230,9 +231,9 @@ class PollNotificationService {
         );
       }
 
-      debugPrint('🔔 Manifesto poll results notifications sent to ${targetUserIds.length} users');
+      AppLogger.common('🔔 Manifesto poll results notifications sent to ${targetUserIds.length} users');
     } catch (e) {
-      debugPrint('❌ Error sending manifesto poll results notifications: $e');
+      AppLogger.commonError('❌ Error sending manifesto poll results notifications', error: e);
     }
   }
 
@@ -251,7 +252,7 @@ class PollNotificationService {
         members: [],
       );
     } catch (e) {
-      debugPrint('❌ Error getting room info: $e');
+      AppLogger.commonError('❌ Error getting room info', error: e);
       return null;
     }
   }
@@ -263,7 +264,7 @@ class PollNotificationService {
       // For now, return empty list - this should be implemented properly
       return [];
     } catch (e) {
-      debugPrint('❌ Error getting room member IDs: $e');
+      AppLogger.commonError('❌ Error getting room member IDs', error: e);
       return [];
     }
   }
@@ -275,7 +276,7 @@ class PollNotificationService {
       // For now, return empty list - this should be implemented properly
       return [];
     } catch (e) {
-      debugPrint('❌ Error getting manifesto interested users: $e');
+      AppLogger.commonError('❌ Error getting manifesto interested users', error: e);
       return [];
     }
   }

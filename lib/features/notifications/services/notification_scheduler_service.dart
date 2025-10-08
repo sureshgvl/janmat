@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
+import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
 import '../models/notification_status.dart';
 import '../models/notification_model.dart';
@@ -75,9 +76,9 @@ class NotificationSchedulerService {
 
       await _notificationRepository.createNotification(scheduledNotification);
 
-      debugPrint('⏰ Scheduled notification for ${scheduledTime.toString()}');
+      AppLogger.common('⏰ Scheduled notification for ${scheduledTime.toString()}');
     } catch (e) {
-      debugPrint('❌ Failed to schedule notification: $e');
+      AppLogger.commonError('❌ Failed to schedule notification', error: e);
     }
   }
 
@@ -93,7 +94,7 @@ class NotificationSchedulerService {
 
     // Don't schedule if reminder time is in the past
     if (reminderTime.isBefore(DateTime.now())) {
-      debugPrint('⚠️ Reminder time is in the past, skipping');
+      AppLogger.common('⚠️ Reminder time is in the past, skipping');
       return;
     }
 
@@ -217,9 +218,9 @@ class NotificationSchedulerService {
   Future<void> cancelScheduledNotification(int notificationId) async {
     try {
       await _localNotifications.cancel(notificationId);
-      debugPrint('❌ Cancelled scheduled notification: $notificationId');
+      AppLogger.common('❌ Cancelled scheduled notification: $notificationId');
     } catch (e) {
-      debugPrint('❌ Failed to cancel scheduled notification: $e');
+      AppLogger.commonError('❌ Failed to cancel scheduled notification', error: e);
     }
   }
 
@@ -240,9 +241,9 @@ class NotificationSchedulerService {
         }
       }
 
-      debugPrint('❌ Cancelled all scheduled notifications for user: $userId');
+      AppLogger.common('❌ Cancelled all scheduled notifications for user: $userId');
     } catch (e) {
-      debugPrint('❌ Failed to cancel all scheduled notifications: $e');
+      AppLogger.commonError('❌ Failed to cancel all scheduled notifications', error: e);
     }
   }
 
@@ -251,7 +252,7 @@ class NotificationSchedulerService {
     try {
       return await _localNotifications.pendingNotificationRequests();
     } catch (e) {
-      debugPrint('❌ Failed to get pending notifications: $e');
+      AppLogger.commonError('❌ Failed to get pending notifications', error: e);
       return [];
     }
   }
@@ -272,9 +273,9 @@ class NotificationSchedulerService {
       );
 
       await _localNotifications.initialize(initSettings);
-      debugPrint('✅ Notification scheduler initialized');
+      AppLogger.common('✅ Notification scheduler initialized');
     } catch (e) {
-      debugPrint('❌ Failed to initialize notification scheduler: $e');
+      AppLogger.commonError('❌ Failed to initialize notification scheduler', error: e);
     }
   }
 

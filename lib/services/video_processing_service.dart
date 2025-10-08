@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/video_metadata_model.dart';
+import '../utils/app_logger.dart';
 
 /// Service for processing videos through Cloudinary and managing video metadata
 class VideoProcessingService {
@@ -83,7 +84,7 @@ class VideoProcessingService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting processed video: $e');
+      AppLogger.videoError('Error getting processed video: $e');
       return null;
     }
   }
@@ -101,7 +102,7 @@ class VideoProcessingService {
           .map((doc) => ProcessedVideo.fromFirestore(doc))
           .toList();
     } catch (e) {
-      debugPrint('Error getting candidate videos: $e');
+      AppLogger.videoError('Error getting candidate videos: $e');
       return [];
     }
   }
@@ -128,7 +129,7 @@ class VideoProcessingService {
         await videoRef.update({'analytics': updatedAnalytics.toMap()});
       }
     } catch (e) {
-      debugPrint('Error recording video view: $e');
+      AppLogger.videoError('Error recording video view: $e');
     }
   }
 
@@ -148,9 +149,9 @@ class VideoProcessingService {
       // Update candidate's manifesto
       await _removeVideoFromCandidateManifesto(candidateId, videoId);
 
-      debugPrint('Video $videoId deleted successfully');
+      AppLogger.video('Video $videoId deleted successfully');
     } catch (e) {
-      debugPrint('Error deleting video: $e');
+      AppLogger.videoError('Error deleting video: $e');
       rethrow;
     }
   }
@@ -161,10 +162,10 @@ class VideoProcessingService {
       // This would use video_compress package
       // For now, return original file
       // TODO: Implement local video compression
-      debugPrint('Video compression not yet implemented, returning original file');
+      AppLogger.video('Video compression not yet implemented, returning original file');
       return videoFile;
     } catch (e) {
-      debugPrint('Error compressing video: $e');
+      AppLogger.videoError('Error compressing video: $e');
       return videoFile; // Return original on error
     }
   }
@@ -278,7 +279,7 @@ class VideoProcessingService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        debugPrint('Cloudinary upload successful for video: $videoId');
+        AppLogger.video('Cloudinary upload successful for video: $videoId');
         return responseData;
       } else {
         throw Exception(
@@ -286,7 +287,7 @@ class VideoProcessingService {
         );
       }
     } catch (e) {
-      debugPrint('Error uploading to Cloudinary: $e');
+      AppLogger.videoError('Error uploading to Cloudinary: $e');
       throw Exception('Failed to upload video to Cloudinary: $e');
     }
   }
@@ -300,9 +301,9 @@ class VideoProcessingService {
         ...video.toFirestore(),
         'candidateId': candidateId,
       });
-      debugPrint('Video metadata saved for video: ${video.id}');
+      AppLogger.video('Video metadata saved for video: ${video.id}');
     } catch (e) {
-      debugPrint('Error saving video metadata: $e');
+      AppLogger.videoError('Error saving video metadata: $e');
       rethrow;
     }
   }
@@ -321,7 +322,7 @@ class VideoProcessingService {
         'processedAt': Timestamp.now(),
       });
     } catch (e) {
-      debugPrint('Error saving video error: $e');
+      AppLogger.videoError('Error saving video error: $e');
     }
   }
 
@@ -349,10 +350,10 @@ class VideoProcessingService {
           'updatedAt': Timestamp.now(),
         });
 
-        debugPrint('Candidate manifesto updated with video: ${video.id}');
+        AppLogger.video('Candidate manifesto updated with video: ${video.id}');
       }
     } catch (e) {
-      debugPrint('Error updating candidate manifesto: $e');
+      AppLogger.videoError('Error updating candidate manifesto: $e');
       rethrow;
     }
   }
@@ -382,7 +383,7 @@ class VideoProcessingService {
         });
       }
     } catch (e) {
-      debugPrint('Error removing video from candidate manifesto: $e');
+      AppLogger.videoError('Error removing video from candidate manifesto: $e');
     }
   }
 
@@ -410,13 +411,13 @@ class VideoProcessingService {
         );
 
         if (response.statusCode == 200) {
-          debugPrint('Video deleted from Cloudinary: $publicId');
+          AppLogger.video('Video deleted from Cloudinary: $publicId');
         } else {
-          debugPrint('Failed to delete from Cloudinary: ${response.statusCode}');
+          AppLogger.videoError('Failed to delete from Cloudinary: ${response.statusCode}');
         }
       }
     } catch (e) {
-      debugPrint('Error deleting from Cloudinary: $e');
+      AppLogger.videoError('Error deleting from Cloudinary: $e');
     }
   }
 
@@ -456,7 +457,7 @@ class VideoProcessingService {
         ),
       };
     } catch (e) {
-      debugPrint('Error getting processing stats: $e');
+      AppLogger.videoError('Error getting processing stats: $e');
       return {};
     }
   }
@@ -475,7 +476,7 @@ class VideoProcessingService {
         processedVideos.add(video);
         onBatchProgress?.call(i + 1, videoFiles.length);
       } catch (e) {
-        debugPrint('Error processing video ${i + 1}: $e');
+        AppLogger.videoError('Error processing video ${i + 1}: $e');
         // Continue with next video
       }
     }

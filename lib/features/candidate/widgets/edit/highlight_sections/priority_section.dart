@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../utils/app_logger.dart';
 import '../highlight_config.dart';
 import '../highlight_helpers.dart';
 
@@ -57,7 +58,7 @@ class PrioritySection extends StatelessWidget {
                     label: Text(HighlightHelpers.getPriorityDisplayName(level)),
                     selected: isSelected,
                     onSelected: (selected) {
-                      debugPrint('Priority level selected: $level, selected: $selected');
+                      AppLogger.candidate('Priority level selected: $level, selected: $selected');
                       if (selected) {
                         onPriorityChanged(level);
                       }

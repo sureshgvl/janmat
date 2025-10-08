@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../../../utils/app_logger.dart';
 import '../models/chat_message.dart';
 
 class OfflineMessageQueue {
@@ -21,7 +22,7 @@ class OfflineMessageQueue {
   Function(QueuedMessage, String)? onMessageFailed;
 
   Future<void> initialize() async {
-    debugPrint('🔄 OfflineMessageQueue: Initializing...');
+    AppLogger.chat('🔄 OfflineMessageQueue: Initializing...');
 
     // Load existing queue from storage
     await _loadQueueFromStorage();
@@ -35,7 +36,7 @@ class OfflineMessageQueue {
     final results = await _connectivity.checkConnectivity();
     _isOnline = _isOnlineStatus(results);
 
-    debugPrint('✅ OfflineMessageQueue: Initialized with ${_messageQueue.length} queued messages');
+    AppLogger.chat('✅ OfflineMessageQueue: Initialized with ${_messageQueue.length} queued messages');
   }
 
   void dispose() {
@@ -61,7 +62,7 @@ class OfflineMessageQueue {
 
     onMessageQueued?.call(queuedMessage);
 
-    debugPrint('📋 OfflineMessageQueue: Queued message ${message.messageId} for room $roomId');
+    AppLogger.chat('📋 OfflineMessageQueue: Queued message ${message.messageId} for room $roomId');
 
     // Try to send immediately if online
     if (_isOnline) {
@@ -73,7 +74,7 @@ class OfflineMessageQueue {
   Future<void> _processQueue() async {
     if (!_isOnline || _messageQueue.isEmpty) return;
 
-    debugPrint('🔄 OfflineMessageQueue: Processing queue (${_messageQueue.length} messages)...');
+    AppLogger.chat('🔄 OfflineMessageQueue: Processing queue (${_messageQueue.length} messages)...');
 
     final messagesToRemove = <QueuedMessage>[];
 
@@ -84,7 +85,7 @@ class OfflineMessageQueue {
         messagesToRemove.add(queuedMessage);
         onMessageSent?.call(queuedMessage);
 
-        debugPrint('✅ OfflineMessageQueue: Successfully sent queued message ${queuedMessage.message.messageId}');
+        AppLogger.chat('✅ OfflineMessageQueue: Successfully sent queued message ${queuedMessage.message.messageId}');
 
         // Small delay between sends to avoid overwhelming the server
         await Future.delayed(const Duration(milliseconds: 500));
@@ -97,9 +98,9 @@ class OfflineMessageQueue {
         if (queuedMessage.retryCount >= 3) {
           messagesToRemove.add(queuedMessage);
           onMessageFailed?.call(queuedMessage, e.toString());
-          debugPrint('❌ OfflineMessageQueue: Failed to send message ${queuedMessage.message.messageId} after ${queuedMessage.retryCount} retries: $e');
+          AppLogger.chat('❌ OfflineMessageQueue: Failed to send message ${queuedMessage.message.messageId} after ${queuedMessage.retryCount} retries: $e');
         } else {
-          debugPrint('⚠️ OfflineMessageQueue: Failed to send message ${queuedMessage.message.messageId}, will retry (attempt ${queuedMessage.retryCount}/3): $e');
+          AppLogger.chat('⚠️ OfflineMessageQueue: Failed to send message ${queuedMessage.message.messageId}, will retry (attempt ${queuedMessage.retryCount}/3): $e');
         }
       }
     }
@@ -108,7 +109,7 @@ class OfflineMessageQueue {
     _messageQueue.removeWhere((msg) => messagesToRemove.contains(msg));
     await _saveQueueToStorage();
 
-    debugPrint('📋 OfflineMessageQueue: Queue processing complete. Remaining: ${_messageQueue.length}');
+    AppLogger.chat('📋 OfflineMessageQueue: Queue processing complete. Remaining: ${_messageQueue.length}');
   }
 
   // Handle connectivity changes
@@ -116,11 +117,11 @@ class OfflineMessageQueue {
     final wasOnline = _isOnline;
     _isOnline = _isOnlineStatus(results);
 
-    debugPrint('🌐 OfflineMessageQueue: Connectivity changed - ${wasOnline ? 'online' : 'offline'} → ${_isOnline ? 'online' : 'offline'}');
+    AppLogger.chat('🌐 OfflineMessageQueue: Connectivity changed - ${wasOnline ? 'online' : 'offline'} → ${_isOnline ? 'online' : 'offline'}');
 
     // If we just came back online, process the queue
     if (!wasOnline && _isOnline && _messageQueue.isNotEmpty) {
-      debugPrint('🔄 OfflineMessageQueue: Back online, processing ${_messageQueue.length} queued messages...');
+      AppLogger.chat('🔄 OfflineMessageQueue: Back online, processing ${_messageQueue.length} queued messages...');
       Future.delayed(const Duration(seconds: 2), _processQueue); // Small delay to ensure connection is stable
     }
   }
@@ -156,24 +157,24 @@ class OfflineMessageQueue {
 
     if (_messageQueue.length != initialCount) {
       await _saveQueueToStorage();
-      debugPrint('🧹 OfflineMessageQueue: Cleared ${initialCount - _messageQueue.length} old messages');
+      AppLogger.chat('🧹 OfflineMessageQueue: Cleared ${initialCount - _messageQueue.length} old messages');
     }
   }
 
   // Force retry all failed messages
   Future<void> retryAllFailed() async {
     if (!_isOnline) {
-      debugPrint('⚠️ OfflineMessageQueue: Cannot retry - device is offline');
+      AppLogger.chat('⚠️ OfflineMessageQueue: Cannot retry - device is offline');
       return;
     }
 
     final failedMessages = _messageQueue.where((msg) => msg.retryCount > 0).toList();
     if (failedMessages.isEmpty) {
-      debugPrint('ℹ️ OfflineMessageQueue: No failed messages to retry');
+      AppLogger.chat('ℹ️ OfflineMessageQueue: No failed messages to retry');
       return;
     }
 
-    debugPrint('🔄 OfflineMessageQueue: Retrying ${failedMessages.length} failed messages...');
+    AppLogger.chat('🔄 OfflineMessageQueue: Retrying ${failedMessages.length} failed messages...');
     await _processQueue();
   }
 
@@ -188,10 +189,10 @@ class OfflineMessageQueue {
         final jsonList = json.decode(jsonString) as List;
 
         _messageQueue = jsonList.map((json) => QueuedMessage.fromJson(json)).toList();
-        debugPrint('📂 OfflineMessageQueue: Loaded ${_messageQueue.length} messages from storage');
+        AppLogger.chat('📂 OfflineMessageQueue: Loaded ${_messageQueue.length} messages from storage');
       }
     } catch (e) {
-      debugPrint('❌ OfflineMessageQueue: Failed to load queue from storage: $e');
+      AppLogger.chat('❌ OfflineMessageQueue: Failed to load queue from storage: $e');
       _messageQueue = [];
     }
   }
@@ -205,7 +206,7 @@ class OfflineMessageQueue {
       final jsonList = _messageQueue.map((msg) => msg.toJson()).toList();
       await queueFile.writeAsString(json.encode(jsonList));
     } catch (e) {
-      debugPrint('❌ OfflineMessageQueue: Failed to save queue to storage: $e');
+      AppLogger.chat('❌ OfflineMessageQueue: Failed to save queue to storage: $e');
     }
   }
 }

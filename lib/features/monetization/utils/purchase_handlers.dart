@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 
 class PurchaseHandlers {
@@ -56,13 +57,13 @@ class PurchaseHandlers {
 
     if (confirmed == true) {
       // Start the payment process with Razorpay
-      debugPrint('💳 Starting payment process for plan: ${plan.planId}');
+      AppLogger.monetization('💳 Starting payment process for plan: ${plan.planId}');
       // For XP plans, use the old single price method
       final success = await _controller.processPayment(plan.planId, 0); // Will be updated
 
       if (success) {
         // Payment initiated successfully - result will be handled by callbacks
-        debugPrint('✅ Payment process initiated successfully');
+        AppLogger.monetization('✅ Payment process initiated successfully');
       } else {
         Get.snackbar(
           'Payment Error',
@@ -129,12 +130,12 @@ class PurchaseHandlers {
 
     if (confirmed == true) {
       // Start the payment process with election type and validity days
-      debugPrint('💳 Starting payment process for plan: ${plan.planId}, election: $_userElectionType, validity: $validityDays');
+      AppLogger.monetization('💳 Starting payment process for plan: ${plan.planId}, election: $_userElectionType, validity: $validityDays');
       final success = await _controller.processPaymentWithElection(plan.planId, _userElectionType!, validityDays);
 
       if (success) {
         // Payment initiated successfully - result will be handled by callbacks
-        debugPrint('✅ Payment process initiated successfully');
+        AppLogger.monetization('✅ Payment process initiated successfully');
       } else {
         Get.snackbar(
           'Payment Error',

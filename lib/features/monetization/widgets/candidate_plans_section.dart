@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/monetization_controller.dart';
 import 'plan_card.dart';
 import 'plan_card_with_validity_options.dart';
@@ -22,11 +23,11 @@ class CandidatePlansSection extends StatelessWidget {
 
   Future<bool> _hasRequiredPlanForHighlights() async {
     try {
-      debugPrint('🔍 [CandidatePlansSection] Checking plan eligibility for highlights...');
+      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for highlights...');
 
       // Ensure user model is loaded
       if (controller.currentUserModel.value == null) {
-        debugPrint('⏳ [CandidatePlansSection] User model not loaded, loading now...');
+        AppLogger.monetization('⏳ [CandidatePlansSection] User model not loaded, loading now...');
         await controller.loadUserStatusData();
       }
 
@@ -36,13 +37,13 @@ class CandidatePlansSection extends StatelessWidget {
         final planId = userModel.subscriptionPlanId;
         // Highlight plans are available for Platinum users only
         final hasAccess = planId == 'platinum_plan';
-        debugPrint('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${planId}, hasHighlightAccess=$hasAccess');
+        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${planId}, hasHighlightAccess=$hasAccess');
 
         if (hasAccess) {
-          debugPrint('✅ [CandidatePlansSection] User has access to highlight plans');
+          AppLogger.monetization('✅ [CandidatePlansSection] User has access to highlight plans');
           return true;
         } else {
-          debugPrint('⚠️ [CandidatePlansSection] User has ${planId} but needs platinum_plan for highlights');
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User has ${planId} but needs platinum_plan for highlights');
           return false;
         }
       }
@@ -50,7 +51,7 @@ class CandidatePlansSection extends StatelessWidget {
       // Fallback: check active subscriptions
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ [CandidatePlansSection] No current user');
+        AppLogger.monetization('❌ [CandidatePlansSection] No current user');
         return false;
       }
 
@@ -59,10 +60,10 @@ class CandidatePlansSection extends StatelessWidget {
         'candidate',
       );
       final hasAccess = activeSubscription?.planId == 'platinum_plan' && (activeSubscription?.isActive ?? false);
-      debugPrint('✅ [CandidatePlansSection] Subscription check result: $hasAccess (plan: ${activeSubscription?.planId}, active: ${activeSubscription?.isActive})');
+      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (plan: ${activeSubscription?.planId}, active: ${activeSubscription?.isActive})');
       return hasAccess;
     } catch (e) {
-      debugPrint('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
+      AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
       return false;
     }
   }
@@ -150,27 +151,27 @@ class CandidatePlansSection extends StatelessWidget {
     return Obx(() {
       final allPlans = controller.plans.toList();
 
-      debugPrint('📋 [CandidatePlansSection] Total plans loaded: ${allPlans.length}');
-      debugPrint('📋 [CandidatePlansSection] User election type: $userElectionType');
+      AppLogger.monetization('📋 [CandidatePlansSection] Total plans loaded: ${allPlans.length}');
+      AppLogger.monetization('📋 [CandidatePlansSection] User election type: $userElectionType');
       for (var plan in allPlans) {
-        debugPrint('   Plan: ${plan.name} (${plan.planId}) - Type: ${plan.type}');
+        AppLogger.monetization('   Plan: ${plan.name} (${plan.planId}) - Type: ${plan.type}');
         if (plan.pricing.containsKey(userElectionType)) {
-          debugPrint('      ✅ Has pricing for $userElectionType: ${plan.pricing[userElectionType]!.length} options');
+          AppLogger.monetization('      ✅ Has pricing for $userElectionType: ${plan.pricing[userElectionType]!.length} options');
         } else {
-          debugPrint('      ❌ No pricing for $userElectionType');
+          AppLogger.monetization('      ❌ No pricing for $userElectionType');
         }
       }
 
       // Show loading if plans are still being loaded
       if (controller.isLoading.value && allPlans.isEmpty) {
-        debugPrint('⏳ [CandidatePlansSection] Plans still loading...');
+        AppLogger.monetization('⏳ [CandidatePlansSection] Plans still loading...');
         return const Center(
           child: CircularProgressIndicator(),
         );
       }
 
       if (allPlans.isEmpty) {
-        debugPrint('❌ [CandidatePlansSection] No plans available');
+        AppLogger.monetization('❌ [CandidatePlansSection] No plans available');
         return const Center(
           child: Text('No plans available'),
         );
@@ -188,12 +189,12 @@ class CandidatePlansSection extends StatelessWidget {
       // Separate highlight plans (available to all candidates)
       final highlightPlans = allPlans.where((plan) => plan.type == 'highlight').toList();
 
-      debugPrint('📊 [CandidatePlansSection] Plan breakdown:');
-      debugPrint('   Free plans: ${freePlans.length}');
-      debugPrint('   Basic plans: ${basicPlans.length}');
-      debugPrint('   Premium plans: ${premiumPlans.length}');
-      debugPrint('   Highlight plans: ${highlightPlans.length}');
-      debugPrint('   User election type: $userElectionType');
+      AppLogger.monetization('📊 [CandidatePlansSection] Plan breakdown:');
+      AppLogger.monetization('   Free plans: ${freePlans.length}');
+      AppLogger.monetization('   Basic plans: ${basicPlans.length}');
+      AppLogger.monetization('   Premium plans: ${premiumPlans.length}');
+      AppLogger.monetization('   Highlight plans: ${highlightPlans.length}');
+      AppLogger.monetization('   User election type: $userElectionType');
 
       final List<Widget> planWidgets = [];
 
@@ -219,20 +220,20 @@ class CandidatePlansSection extends StatelessWidget {
       // Add basic plans (with pricing if available)
       if (basicPlans.isNotEmpty) {
         for (final plan in basicPlans) {
-          debugPrint('🎯 Checking basic plan: ${plan.name} (${plan.planId})');
-          debugPrint('   User Election Type: "$userElectionType"');
-          debugPrint('   Plan pricing keys: ${plan.pricing.keys.toList()}');
-          debugPrint('   Has pricing for user election type: ${plan.pricing.containsKey(userElectionType)}');
+          AppLogger.monetization('🎯 Checking basic plan: ${plan.name} (${plan.planId})');
+          AppLogger.monetization('   User Election Type: "$userElectionType"');
+          AppLogger.monetization('   Plan pricing keys: ${plan.pricing.keys.toList()}');
+          AppLogger.monetization('   Has pricing for user election type: ${plan.pricing.containsKey(userElectionType)}');
 
           if (userElectionType != null) {
-            debugPrint('   ✅ User election type is not null');
+            AppLogger.monetization('   ✅ User election type is not null');
             final hasPricing = plan.pricing.containsKey(userElectionType);
-            debugPrint('   ✅ Plan has pricing for election type: $hasPricing');
+            AppLogger.monetization('   ✅ Plan has pricing for election type: $hasPricing');
             if (hasPricing) {
               final pricingCount = plan.pricing[userElectionType]!.length;
-              debugPrint('   ✅ Pricing count for election type: $pricingCount');
+              AppLogger.monetization('   ✅ Pricing count for election type: $pricingCount');
               if (pricingCount > 0) {
-                debugPrint('   ✅✅ Showing PlanCardWithValidityOptions for basic plan');
+                AppLogger.monetization('   ✅✅ Showing PlanCardWithValidityOptions for basic plan');
                 // Basic plan with new pricing structure
                 planWidgets.add(PlanCardWithValidityOptions(
                   plan: plan,
@@ -241,16 +242,16 @@ class CandidatePlansSection extends StatelessWidget {
                 ));
                 continue;
               } else {
-                debugPrint('   ❌ Pricing count is 0');
+                AppLogger.monetization('   ❌ Pricing count is 0');
               }
             } else {
-              debugPrint('   ❌ Plan does not have pricing for user election type');
+              AppLogger.monetization('   ❌ Plan does not have pricing for user election type');
             }
           } else {
-            debugPrint('   ❌ User election type is null');
+            AppLogger.monetization('   ❌ User election type is null');
           }
 
-          debugPrint('   ⚠️ Showing regular PlanCard for basic plan');
+          AppLogger.monetization('   ⚠️ Showing regular PlanCard for basic plan');
           // Basic plan without new pricing (legacy)
           planWidgets.add(PlanCard(
             plan: plan,
@@ -373,16 +374,16 @@ class CandidatePlansSection extends StatelessWidget {
         }
       }
 
-      debugPrint('📋 [CandidatePlansSection] Final plan widgets count: ${planWidgets.length}');
+      AppLogger.monetization('📋 [CandidatePlansSection] Final plan widgets count: ${planWidgets.length}');
 
       if (planWidgets.isEmpty) {
-        debugPrint('❌ [CandidatePlansSection] No plan widgets to display');
+        AppLogger.monetization('❌ [CandidatePlansSection] No plan widgets to display');
         return const Center(
           child: Text('No plans available'),
         );
       }
 
-      debugPrint('✅ [CandidatePlansSection] Displaying ${planWidgets.length} plan widgets');
+      AppLogger.monetization('✅ [CandidatePlansSection] Displaying ${planWidgets.length} plan widgets');
 
       // Add debug information at the bottom for development
       final debugWidgets = <Widget>[];

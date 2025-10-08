@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../demo_data_modal.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../utils/app_logger.dart';
 
 // Main ProfileTabEdit Widget
 class ProfileTabEdit extends StatefulWidget {
@@ -53,7 +54,7 @@ class ProfileTabEditState extends State<ProfileTabEdit> {
   // Method to upload pending files (required by dashboard pattern)
   Future<void> uploadPendingFiles() async {
     // Profile doesn't have file uploads, so this is a no-op
-    debugPrint('📤 [Profile] No pending files to upload');
+    AppLogger.candidate('📤 [Profile] No pending files to upload');
   }
 
   @override

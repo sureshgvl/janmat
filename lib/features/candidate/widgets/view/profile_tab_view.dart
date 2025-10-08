@@ -9,6 +9,7 @@ import '../../../../services/local_database_service.dart';
 import '../../../../services/share_service.dart';
 import '../../../../models/district_model.dart';
 import '../../../../models/ward_model.dart';
+import '../../../../utils/app_logger.dart';
 
 class ProfileTabView extends StatefulWidget {
   final Candidate candidate;
@@ -54,8 +55,8 @@ class _ProfileTabViewState extends State<ProfileTabView>
 
   // Load location data from cache or fallback to utils
   Future<void> _loadLocationData() async {
-    debugPrint('🔍 [Profile Tab] Loading location data for candidate ${widget.candidate.candidateId}');
-    debugPrint('📍 [Profile Tab] IDs: district=${widget.candidate.districtId}, body=${widget.candidate.bodyId}, ward=${widget.candidate.wardId}');
+    AppLogger.candidate('🔍 [Profile Tab] Loading location data for candidate ${widget.candidate.candidateId}');
+    AppLogger.candidate('📍 [Profile Tab] IDs: district=${widget.candidate.districtId}, body=${widget.candidate.bodyId}, ward=${widget.candidate.wardId}');
 
     try {
       // Load location data from SQLite cache
@@ -68,7 +69,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
 
       // Check if ward data is missing (most likely to be missing)
       if (locationData['wardName'] == null) {
-        debugPrint('⚠️ [Profile Tab] Ward data not found in cache, triggering sync...');
+        AppLogger.candidate('⚠️ [Profile Tab] Ward data not found in cache, triggering sync...');
 
         // Trigger background sync for missing location data
         await _syncMissingLocationData();
@@ -88,9 +89,9 @@ class _ProfileTabViewState extends State<ProfileTabView>
           });
         }
 
-        debugPrint('✅ [Profile Tab] Location data loaded after sync:');
-        debugPrint('   📍 District: $_districtName');
-        debugPrint('   🏛️ Ward: $_wardDisplayName');
+        AppLogger.candidate('✅ [Profile Tab] Location data loaded after sync:');
+        AppLogger.candidate('   📍 District: $_districtName');
+        AppLogger.candidate('   🏛️ Ward: $_wardDisplayName');
       } else {
         if (mounted) {
           setState(() {
@@ -99,12 +100,12 @@ class _ProfileTabViewState extends State<ProfileTabView>
           });
         }
 
-        debugPrint('✅ [Profile Tab] Location data loaded successfully from SQLite:');
-        debugPrint('   📍 District: $_districtName');
-        debugPrint('   🏛️ Ward: $_wardDisplayName');
+        AppLogger.candidate('✅ [Profile Tab] Location data loaded successfully from SQLite:');
+        AppLogger.candidate('   📍 District: $_districtName');
+        AppLogger.candidate('   🏛️ Ward: $_wardDisplayName');
       }
     } catch (e) {
-      debugPrint('❌ [Profile Tab] Error loading location data: $e');
+      AppLogger.candidateError('❌ [Profile Tab] Error loading location data: $e');
 
       // Fallback to ID-based display if sync fails
       if (mounted) {
@@ -149,14 +150,14 @@ class _ProfileTabViewState extends State<ProfileTabView>
   // Sync missing location data from Firebase to SQLite
   Future<void> _syncMissingLocationData() async {
     try {
-      debugPrint('🔄 [Profile Tab] Syncing missing location data...');
+      AppLogger.candidate('🔄 [Profile Tab] Syncing missing location data...');
 
       // Import candidate repository dynamically to avoid circular imports
       final candidateRepository = Get.find<CandidateController>().candidateRepository;
 
       // Sync district data if missing
       if (_districtName == null) {
-        debugPrint('🏙️ [Sync] Fetching district data for ${widget.candidate.districtId}');
+        AppLogger.candidate('🏙️ [Sync] Fetching district data for ${widget.candidate.districtId}');
         final districts = await candidateRepository.getAllDistricts();
         final district = districts.firstWhere(
           (d) => d.id == widget.candidate.districtId,
@@ -167,12 +168,12 @@ class _ProfileTabViewState extends State<ProfileTabView>
           ),
         );
         await _locationDatabase.insertDistricts([district]);
-        debugPrint('✅ [Sync] District data synced');
+        AppLogger.candidate('✅ [Sync] District data synced');
       }
 
       // Sync ward data (most critical)
       if (_wardDisplayName == null) {
-        debugPrint('🏛️ [Sync] Fetching ward data for ${widget.candidate.wardId}');
+        AppLogger.candidate('🏛️ [Sync] Fetching ward data for ${widget.candidate.wardId}');
         final wards = await candidateRepository.getWardsByDistrictAndBody(
           widget.candidate.districtId,
           widget.candidate.bodyId,
@@ -188,7 +189,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
           ),
         );
         await _locationDatabase.insertWards([ward]);
-        debugPrint('✅ [Sync] Ward data synced');
+        AppLogger.candidate('✅ [Sync] Ward data synced');
 
         // Reload location data after sync
         final updatedLocationData = await _locationDatabase.getCandidateLocationData(
@@ -206,9 +207,9 @@ class _ProfileTabViewState extends State<ProfileTabView>
         }
       }
 
-      debugPrint('✅ [Profile Tab] Location data sync completed');
+      AppLogger.candidate('✅ [Profile Tab] Location data sync completed');
     } catch (e) {
-      debugPrint('❌ [Profile Tab] Error syncing location data: $e');
+      AppLogger.candidateError('❌ [Profile Tab] Error syncing location data: $e');
       // Fallback to utils-based localization
       _loadLocationDataFromUtils();
     }

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/user_model.dart';
+import '../../../utils/app_logger.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/controllers/candidate_data_controller.dart';
 
@@ -12,13 +13,13 @@ class HomeServices {
     // Check if user is authenticated before attempting to fetch data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null || uid == null) {
-      debugPrint('ℹ️ User not authenticated, skipping data fetch');
+      AppLogger.common('ℹ️ User not authenticated, skipping data fetch');
       return {'user': null, 'candidate': null};
     }
 
     // Verify the requested uid matches the authenticated user
     if (currentUser.uid != uid) {
-      debugPrint('⚠️ UID mismatch - requested: $uid, authenticated: ${currentUser.uid}');
+      AppLogger.common('⚠️ UID mismatch - requested: $uid, authenticated: ${currentUser.uid}');
       return {'user': null, 'candidate': null};
     }
 
@@ -28,7 +29,7 @@ class HomeServices {
     // Double-check authentication right before Firestore call (in case user logged out during delay)
     final currentUserCheck = FirebaseAuth.instance.currentUser;
     if (currentUserCheck == null || currentUserCheck.uid != uid) {
-      debugPrint('🚫 User authentication lost during data fetch, aborting');
+      AppLogger.common('🚫 User authentication lost during data fetch, aborting');
       return {'user': null, 'candidate': null};
     }
 
@@ -50,22 +51,21 @@ class HomeServices {
           final candidateController = Get.find<CandidateDataController>();
           if (candidateController.candidateData.value != null) {
             candidateModel = candidateController.candidateData.value;
-            debugPrint(
+            AppLogger.common(
               '🏛️ Home Screen: Using cached candidate data for ${userModel.name}',
             );
           } else {
-            debugPrint('⏭️ Candidate data not yet loaded in controller, will be loaded separately');
+            AppLogger.common('⏭️ Candidate data not yet loaded in controller, will be loaded separately');
           }
         } catch (e) {
-          debugPrint('⚠️ Could not get candidate data from controller: $e');
+          AppLogger.commonError('⚠️ Could not get candidate data from controller', error: e);
           // Continue without candidate data if there's an error
         }
       } else {
-        debugPrint('⏭️ Skipping candidate data - profile not completed or user is not a candidate');
+        AppLogger.common('⏭️ Skipping candidate data - profile not completed or user is not a candidate');
       }
     }
 
     return {'user': userModel, 'candidate': candidateModel};
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../../utils/app_logger.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String videoUrl;
@@ -78,15 +79,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           ),
           onReady: () {
             // Video is ready to play
-            debugPrint('Video is ready to play');
+            AppLogger.ui('Video is ready to play', tag: 'VIDEO');
           },
           onEnded: (data) {
             // Video has ended
-            debugPrint('Video has ended');
+            AppLogger.ui('Video has ended', tag: 'VIDEO');
           },
         ),
       ),
     );
   }
 }
-

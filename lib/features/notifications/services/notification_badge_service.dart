@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../utils/app_logger.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/notification_repository_impl.dart';
 
@@ -17,9 +18,9 @@ class NotificationBadgeService {
       // Update platform-specific badge
       await _updatePlatformBadge(unreadCount);
 
-      debugPrint('🔔 Updated app badge count to: $unreadCount');
+      AppLogger.common('🔔 Updated app badge count to: $unreadCount');
     } catch (e) {
-      debugPrint('❌ Failed to update badge count: $e');
+      AppLogger.commonError('❌ Failed to update badge count', error: e);
     }
   }
 
@@ -27,9 +28,9 @@ class NotificationBadgeService {
   Future<void> clearBadge() async {
     try {
       await _updatePlatformBadge(0);
-      debugPrint('🔔 Cleared app badge');
+      AppLogger.common('🔔 Cleared app badge');
     } catch (e) {
-      debugPrint('❌ Failed to clear badge: $e');
+      AppLogger.commonError('❌ Failed to clear badge', error: e);
     }
   }
 
@@ -40,9 +41,9 @@ class NotificationBadgeService {
       final newCount = currentCount + 1;
 
       await _updatePlatformBadge(newCount);
-      debugPrint('🔔 Incremented badge count to: $newCount');
+      AppLogger.common('🔔 Incremented badge count to: $newCount');
     } catch (e) {
-      debugPrint('❌ Failed to increment badge: $e');
+      AppLogger.commonError('❌ Failed to increment badge', error: e);
     }
   }
 
@@ -53,9 +54,9 @@ class NotificationBadgeService {
       final newCount = (currentCount - 1).clamp(0, double.infinity).toInt();
 
       await _updatePlatformBadge(newCount);
-      debugPrint('🔔 Decremented badge count to: $newCount');
+      AppLogger.common('🔔 Decremented badge count to: $newCount');
     } catch (e) {
-      debugPrint('❌ Failed to decrement badge: $e');
+      AppLogger.commonError('❌ Failed to decrement badge', error: e);
     }
   }
 
@@ -65,7 +66,7 @@ class NotificationBadgeService {
       // For Android
       await _platformChannel.invokeMethod('updateBadge', {'count': count});
     } catch (e) {
-      debugPrint('⚠️ Platform badge update failed (may not be supported): $e');
+      AppLogger.common('⚠️ Platform badge update failed (may not be supported): $e');
       // This is expected on some platforms, so we don't throw
     }
   }
@@ -83,16 +84,16 @@ class NotificationBadgeService {
             await clearBadge();
             break;
           default:
-            debugPrint('⚠️ Unknown badge method: ${call.method}');
+            AppLogger.common('⚠️ Unknown badge method: ${call.method}');
         }
       });
 
       // Initial badge update
       await updateBadgeCount(userId);
 
-      debugPrint('✅ Notification badge service initialized');
+      AppLogger.common('✅ Notification badge service initialized');
     } catch (e) {
-      debugPrint('❌ Failed to initialize badge service: $e');
+      AppLogger.commonError('❌ Failed to initialize badge service', error: e);
     }
   }
 
@@ -100,9 +101,9 @@ class NotificationBadgeService {
   Future<void> refreshBadgeOnForeground(String userId) async {
     try {
       await updateBadgeCount(userId);
-      debugPrint('🔄 Refreshed badge on app foreground');
+      AppLogger.common('🔄 Refreshed badge on app foreground');
     } catch (e) {
-      debugPrint('❌ Failed to refresh badge on foreground: $e');
+      AppLogger.commonError('❌ Failed to refresh badge on foreground', error: e);
     }
   }
 
@@ -115,7 +116,7 @@ class NotificationBadgeService {
         await incrementBadge(userId);
       }
     } catch (e) {
-      debugPrint('❌ Failed to handle notification status change: $e');
+      AppLogger.commonError('❌ Failed to handle notification status change', error: e);
     }
   }
 
@@ -133,10 +134,10 @@ class NotificationBadgeService {
           await incrementBadge(userId);
           break;
         default:
-          debugPrint('⚠️ Unknown bulk operation: $operation');
+          AppLogger.common('⚠️ Unknown bulk operation: $operation');
       }
     } catch (e) {
-      debugPrint('❌ Failed to handle bulk notification operation: $e');
+      AppLogger.commonError('❌ Failed to handle bulk notification operation', error: e);
     }
   }
 }

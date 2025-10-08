@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import '../utils/app_logger.dart';
 import 'user_cache_service.dart';
 
 class BackgroundSyncManager {
@@ -25,20 +26,20 @@ class BackgroundSyncManager {
       _processSyncQueue();
     });
 
-    debugPrint('🔄 Background sync manager initialized');
+    AppLogger.common('🔄 Background sync manager initialized');
   }
 
   // Add operation to background sync queue
   void addToSyncQueue(Future<void> Function() operation) {
     _syncQueue.add(operation);
-    debugPrint('📋 [BACKGROUND_SYNC] Added operation to queue (total: ${_syncQueue.length})');
+    AppLogger.common('📋 [BACKGROUND_SYNC] Added operation to queue (total: ${_syncQueue.length})');
 
     // Process immediately if not already processing
     if (!_isProcessing) {
-      debugPrint('▶️ [BACKGROUND_SYNC] Starting queue processing');
+      AppLogger.common('▶️ [BACKGROUND_SYNC] Starting queue processing');
       _processSyncQueue();
     } else {
-      debugPrint('⏳ [BACKGROUND_SYNC] Queue processing already in progress, operation queued');
+      AppLogger.common('⏳ [BACKGROUND_SYNC] Queue processing already in progress, operation queued');
     }
   }
 
@@ -46,9 +47,9 @@ class BackgroundSyncManager {
   Future<void> _processSyncQueue() async {
     if (_isProcessing || _syncQueue.isEmpty) {
       if (_syncQueue.isEmpty) {
-        debugPrint('ℹ️ [BACKGROUND_SYNC] Queue is empty, nothing to process');
+        AppLogger.common('ℹ️ [BACKGROUND_SYNC] Queue is empty, nothing to process');
       } else {
-        debugPrint('⏳ [BACKGROUND_SYNC] Processing already in progress, skipping');
+        AppLogger.common('⏳ [BACKGROUND_SYNC] Processing already in progress, skipping');
       }
       return;
     }
@@ -56,7 +57,7 @@ class BackgroundSyncManager {
     _isProcessing = true;
     final startTime = DateTime.now();
 
-    debugPrint('🔄 [BACKGROUND_SYNC] Starting queue processing (${_syncQueue.length} operations) at ${startTime.toIso8601String()}');
+    AppLogger.common('🔄 [BACKGROUND_SYNC] Starting queue processing (${_syncQueue.length} operations) at ${startTime.toIso8601String()}');
 
     try {
       // Process operations in batches to avoid overwhelming the system
@@ -69,13 +70,13 @@ class BackgroundSyncManager {
         batches.add(_syncQueue.sublist(i, end));
       }
 
-      debugPrint('📦 [BACKGROUND_SYNC] Created ${batches.length} batches (batch size: $batchSize)');
+      AppLogger.common('📦 [BACKGROUND_SYNC] Created ${batches.length} batches (batch size: $batchSize)');
 
       for (int batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         final batch = batches[batchIndex];
         final batchStart = DateTime.now();
 
-        debugPrint('🔄 [BACKGROUND_SYNC] Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} operations)');
+        AppLogger.common('🔄 [BACKGROUND_SYNC] Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} operations)');
 
         try {
           await Future.wait(
@@ -85,23 +86,23 @@ class BackgroundSyncManager {
 
           final batchDuration = DateTime.now().difference(batchStart);
           totalProcessed += batch.length;
-          debugPrint('✅ [BACKGROUND_SYNC] Batch ${batchIndex + 1} completed in ${batchDuration.inMilliseconds}ms (total processed: $totalProcessed)');
+          AppLogger.common('✅ [BACKGROUND_SYNC] Batch ${batchIndex + 1} completed in ${batchDuration.inMilliseconds}ms (total processed: $totalProcessed)');
         } catch (batchError) {
           final batchDuration = DateTime.now().difference(batchStart);
-          debugPrint('⚠️ [BACKGROUND_SYNC] Batch ${batchIndex + 1} had errors after ${batchDuration.inMilliseconds}ms: $batchError');
+          AppLogger.common('⚠️ [BACKGROUND_SYNC] Batch ${batchIndex + 1} had errors after ${batchDuration.inMilliseconds}ms: $batchError');
           // Continue with next batch despite errors
         }
       }
 
       _syncQueue.clear();
       final totalDuration = DateTime.now().difference(startTime);
-      debugPrint('🎉 [BACKGROUND_SYNC] Queue processing completed successfully in $totalDuration.inSeconds s ($totalProcessed operations)');
+      AppLogger.common('🎉 [BACKGROUND_SYNC] Queue processing completed successfully in $totalDuration.inSeconds s ($totalProcessed operations)');
     } catch (e) {
       final totalDuration = DateTime.now().difference(startTime);
-      debugPrint('❌ [BACKGROUND_SYNC] Error processing background sync queue after ${totalDuration.inSeconds}s: $e');
+      AppLogger.commonError('❌ [BACKGROUND_SYNC] Error processing background sync queue', error: e);
     } finally {
       _isProcessing = false;
-      debugPrint('🔄 [BACKGROUND_SYNC] Processing flag reset, ready for new operations');
+      AppLogger.common('🔄 [BACKGROUND_SYNC] Processing flag reset, ready for new operations');
     }
   }
 
@@ -109,7 +110,7 @@ class BackgroundSyncManager {
   Future<void> syncUserProfileAfterLogin(User firebaseUser) async {
     addToSyncQueue(() async {
       try {
-        debugPrint('👤 Syncing user profile in background...');
+        AppLogger.common('👤 Syncing user profile in background...');
 
         final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
         final userSnapshot = await userDoc.get();
@@ -137,7 +138,7 @@ class BackgroundSyncManager {
           // Cache the user profile locally
           await _cacheService.cacheUserProfile(userModel);
 
-          debugPrint('✅ Full user profile created and cached');
+          AppLogger.common('✅ Full user profile created and cached');
         } else {
           // Update existing profile
           final existingData = userSnapshot.data()!;
@@ -154,10 +155,10 @@ class BackgroundSyncManager {
           final userModel = UserModel.fromJson({...existingData, ...updatedData});
           await _cacheService.cacheUserProfile(userModel);
 
-          debugPrint('✅ User profile updated and cache refreshed');
+          AppLogger.common('✅ User profile updated and cache refreshed');
         }
       } catch (e) {
-        debugPrint('⚠️ Error syncing user profile: $e');
+        AppLogger.common('⚠️ Error syncing user profile: $e');
       }
     });
   }
@@ -166,7 +167,7 @@ class BackgroundSyncManager {
   Future<void> syncUserPreferences(String userId) async {
     addToSyncQueue(() async {
       try {
-        debugPrint('🔄 Syncing user preferences...');
+        AppLogger.common('🔄 Syncing user preferences...');
 
         // Get local preferences and sync to Firestore
         final prefs = await _cacheService.getQuickUserData();
@@ -177,10 +178,10 @@ class BackgroundSyncManager {
             'preferences': prefs,
           }, SetOptions(merge: true));
 
-          debugPrint('✅ User preferences synced');
+          AppLogger.common('✅ User preferences synced');
         }
       } catch (e) {
-        debugPrint('⚠️ Error syncing user preferences: $e');
+        AppLogger.common('⚠️ Error syncing user preferences: $e');
       }
     });
   }
@@ -189,7 +190,7 @@ class BackgroundSyncManager {
   Future<void> syncUserQuota(String userId) async {
     addToSyncQueue(() async {
       try {
-        debugPrint('📊 Syncing user quota...');
+        AppLogger.common('📊 Syncing user quota...');
 
         final quotaRef = _firestore.collection('user_quotas').doc(userId);
         final quotaSnapshot = await quotaRef.get();
@@ -206,17 +207,17 @@ class BackgroundSyncManager {
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
-          debugPrint('✅ User quota created');
+          AppLogger.common('✅ User quota created');
         } else {
           // Update last activity
           await quotaRef.update({
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
-          debugPrint('✅ User quota updated');
+          AppLogger.common('✅ User quota updated');
         }
       } catch (e) {
-        debugPrint('⚠️ Error syncing user quota: $e');
+        AppLogger.common('⚠️ Error syncing user quota: $e');
       }
     });
   }
@@ -225,7 +226,7 @@ class BackgroundSyncManager {
   Future<void> cleanupExpiredData(String userId) async {
     addToSyncQueue(() async {
       try {
-        debugPrint('🧹 Cleaning up expired data...');
+        AppLogger.common('🧹 Cleaning up expired data...');
 
         // Clean up old cached data
         await _cacheService.clearUserCache();
@@ -233,9 +234,9 @@ class BackgroundSyncManager {
         // Clean up old Firestore data if needed
         // This could include cleaning up old messages, expired sessions, etc.
 
-        debugPrint('✅ Expired data cleaned up');
+        AppLogger.common('✅ Expired data cleaned up');
       } catch (e) {
-        debugPrint('⚠️ Error cleaning up expired data: $e');
+        AppLogger.common('⚠️ Error cleaning up expired data: $e');
       }
     });
   }
@@ -244,14 +245,14 @@ class BackgroundSyncManager {
   Future<void> registerDeviceBackground(String userId) async {
     addToSyncQueue(() async {
       try {
-        debugPrint('📱 Registering device in background...');
+        AppLogger.common('📱 Registering device in background...');
 
         // Device registration logic would go here
         // This would integrate with your DeviceService
 
-        debugPrint('✅ Device registered in background');
+        AppLogger.common('✅ Device registered in background');
       } catch (e) {
-        debugPrint('⚠️ Error registering device: $e');
+        AppLogger.common('⚠️ Error registering device: $e');
       }
     });
   }
@@ -259,10 +260,10 @@ class BackgroundSyncManager {
   // Perform comprehensive background sync
   Future<void> performFullBackgroundSync(User firebaseUser) async {
     final startTime = DateTime.now();
-    debugPrint('🔄 [BACKGROUND_SYNC] Starting comprehensive background sync for user ${firebaseUser.uid} at ${startTime.toIso8601String()}');
+    AppLogger.common('🔄 [BACKGROUND_SYNC] Starting comprehensive background sync for user ${firebaseUser.uid} at ${startTime.toIso8601String()}');
 
     try {
-      debugPrint('📋 [BACKGROUND_SYNC] Queuing 5 background operations: profile, preferences, quota, device, cleanup');
+      AppLogger.common('📋 [BACKGROUND_SYNC] Queuing 5 background operations: profile, preferences, quota, device, cleanup');
 
       await Future.wait([
         syncUserProfileAfterLogin(firebaseUser),
@@ -273,10 +274,10 @@ class BackgroundSyncManager {
       ]);
 
       final totalDuration = DateTime.now().difference(startTime);
-      debugPrint('✅ [BACKGROUND_SYNC] Comprehensive background sync completed successfully in ${totalDuration.inSeconds}s');
+      AppLogger.common('✅ [BACKGROUND_SYNC] Comprehensive background sync completed successfully in ${totalDuration.inSeconds}s');
     } catch (e) {
       final totalDuration = DateTime.now().difference(startTime);
-      debugPrint('⚠️ [BACKGROUND_SYNC] Comprehensive background sync completed with errors after ${totalDuration.inSeconds}s: $e');
+      AppLogger.common('⚠️ [BACKGROUND_SYNC] Comprehensive background sync completed with errors after ${totalDuration.inSeconds}s: $e');
     }
   }
 
@@ -289,7 +290,7 @@ class BackgroundSyncManager {
   void dispose() {
     _syncTimer?.cancel();
     _syncQueue.clear();
-    debugPrint('🧹 Background sync manager disposed');
+    AppLogger.common('🧹 Background sync manager disposed');
   }
 
   // Get sync queue status
@@ -301,4 +302,3 @@ class BackgroundSyncManager {
     };
   }
 }
-

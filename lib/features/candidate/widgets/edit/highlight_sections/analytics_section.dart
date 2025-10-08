@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../utils/app_logger.dart';
 import '../highlight_config.dart';
 
 // Analytics Section Widget
@@ -51,7 +52,7 @@ class AnalyticsSection extends StatelessWidget {
                 subtitle: const Text('View impressions, clicks, and engagement metrics'),
                 value: config.showAnalytics,
                 onChanged: (value) {
-                  debugPrint('Analytics toggle changed: $value');
+                  AppLogger.candidate('Analytics toggle changed: $value');
                   onAnalyticsChanged(value);
                 },
                 activeColor: Colors.indigo,

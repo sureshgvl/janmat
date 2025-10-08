@@ -21,6 +21,7 @@ import '../widgets/profile_tab_bar_widget.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../services/plan_service.dart';
 import '../../../services/local_database_service.dart';
+import '../../../utils/app_logger.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../../models/ward_model.dart';
@@ -136,7 +137,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
       // Only log in debug mode
       assert(() {
-        debugPrint('🔄 Tab switched to: $currentTab');
+        AppLogger.candidate('🔄 Tab switched to: $currentTab');
         return true;
       }());
     }
@@ -172,7 +173,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   // Sync with controller data for own profile
   void _syncWithControllerData() {
     if (_isOwnProfile && dataController.candidateData.value != null) {
-      debugPrint('🔄 Syncing profile screen with controller data');
+      AppLogger.candidate('🔄 Syncing profile screen with controller data');
       setState(() {
         candidate = dataController.candidateData.value;
       });
@@ -199,27 +200,27 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
   // Load location data
   Future<void> _loadLocationData() async {
-    debugPrint('🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}');
-    debugPrint('📍 [Candidate Profile] IDs: district=${candidate?.districtId}, body=${candidate?.bodyId}, ward=${candidate?.wardId}');
+    AppLogger.candidate('🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}');
+    AppLogger.candidate('📍 [Candidate Profile] IDs: district=${candidate?.districtId}, body=${candidate?.bodyId}, ward=${candidate?.wardId}');
 
     if (candidate == null) return;
 
     try {
       // DEBUG: Print all ward data to see what's stored
-      debugPrint('🔍 [DEBUG] Checking all ward data in SQLite...');
+      AppLogger.candidate('🔍 [DEBUG] Checking all ward data in SQLite...');
       final db = await _locationDatabase.database;
       final allWards = await db.query('wards');
-      debugPrint('📊 [DEBUG] Total wards in SQLite: ${allWards.length}');
+      AppLogger.candidate('📊 [DEBUG] Total wards in SQLite: ${allWards.length}');
       for (var ward in allWards) {
-        debugPrint('🏛️ [DEBUG] Ward: id=${ward['id']}, name="${ward['name']}", districtId=${ward['districtId']}, bodyId=${ward['bodyId']}, stateId=${ward['stateId']}');
+        AppLogger.candidate('🏛️ [DEBUG] Ward: id=${ward['id']}, name="${ward['name']}", districtId=${ward['districtId']}, bodyId=${ward['bodyId']}, stateId=${ward['stateId']}');
       }
 
       // Specifically check ward_17 data
       final ward17Data = allWards.where((w) => w['id'] == 'ward_17').toList();
       if (ward17Data.isNotEmpty) {
-        debugPrint('🎯 [DEBUG] ward_17 data: ${ward17Data.first}');
+        AppLogger.candidate('🎯 [DEBUG] ward_17 data: ${ward17Data.first}');
       } else {
-        debugPrint('❌ [DEBUG] ward_17 not found in SQLite');
+        AppLogger.candidate('❌ [DEBUG] ward_17 not found in SQLite');
       }
 
       // Load location data from SQLite cache
@@ -237,7 +238,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
            (rawWardName.startsWith('Ward ') && RegExp(r'^ward_\d+$').hasMatch(rawWardName.substring(5))));
 
       if (locationData['wardName'] == null || isWardDataCorrupted) {
-        debugPrint('⚠️ [Candidate Profile] Ward data missing or corrupted (raw: "$rawWardName"), triggering sync...');
+        AppLogger.candidate('⚠️ [Candidate Profile] Ward data missing or corrupted (raw: "$rawWardName"), triggering sync...');
 
         // Trigger background sync for missing/corrupted location data
         await _syncMissingLocationData();
@@ -258,10 +259,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           });
         }
 
-        debugPrint('✅ [Candidate Profile] Location data loaded after sync:');
-        debugPrint('   📍 District: $_districtName');
-        debugPrint('   🏛️ Body: $_bodyName');
-        debugPrint('   🏛️ Ward: $_wardName');
+        AppLogger.candidate('✅ [Candidate Profile] Location data loaded after sync:');
+        AppLogger.candidate('   📍 District: $_districtName');
+        AppLogger.candidate('   🏛️ Body: $_bodyName');
+        AppLogger.candidate('   🏛️ Ward: $_wardName');
       } else {
         if (mounted) {
           setState(() {
@@ -271,13 +272,13 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           });
         }
 
-        debugPrint('✅ [Candidate Profile] Location data loaded successfully from SQLite:');
-        debugPrint('   📍 District: $_districtName');
-        debugPrint('   🏛️ Body: $_bodyName');
-        debugPrint('   🏛️ Ward: $_wardName');
+        AppLogger.candidate('✅ [Candidate Profile] Location data loaded successfully from SQLite:');
+        AppLogger.candidate('   📍 District: $_districtName');
+        AppLogger.candidate('   🏛️ Body: $_bodyName');
+        AppLogger.candidate('   🏛️ Ward: $_wardName');
       }
     } catch (e) {
-      debugPrint('❌ [Candidate Profile] Error loading location data: $e');
+      AppLogger.candidateError('❌ [Candidate Profile] Error loading location data: $e');
 
       // Fallback to ID-based display if sync fails
       if (mounted) {
@@ -293,11 +294,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   // Sync missing location data from Firebase to SQLite
   Future<void> _syncMissingLocationData() async {
     try {
-      debugPrint('🔄 [Candidate Profile] Syncing missing location data from Firebase...');
+      AppLogger.candidate('🔄 [Candidate Profile] Syncing missing location data from Firebase...');
 
       // Sync district data if missing
       if (_districtName == null) {
-        debugPrint('🏙️ [Sync] Fetching district data for ${candidate?.districtId}');
+        AppLogger.candidate('🏙️ [Sync] Fetching district data for ${candidate?.districtId}');
         final districts = await candidateRepository.getAllDistricts();
         final district = districts.firstWhere(
           (d) => d.id == candidate?.districtId,
@@ -308,12 +309,12 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           ),
         );
         await _locationDatabase.insertDistricts([district]);
-        debugPrint('✅ [Sync] District data synced');
+        AppLogger.candidate('✅ [Sync] District data synced');
       }
 
       // Sync body data if missing
       if (_bodyName == null) {
-        debugPrint('🏛️ [Sync] Fetching body data for ${candidate?.bodyId}');
+        AppLogger.candidate('🏛️ [Sync] Fetching body data for ${candidate?.bodyId}');
         // Note: We need to get bodies for the district first
         final bodies = await candidateRepository.getWardsByDistrictAndBody(
           candidate!.districtId,
@@ -329,18 +330,18 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID
           );
           await _locationDatabase.insertBodies([body]);
-          debugPrint('✅ [Sync] Body data synced');
+          AppLogger.candidate('✅ [Sync] Body data synced');
         }
       }
 
       // Sync ward data (most critical)
       if (_wardName == null) {
-        debugPrint('🏛️ [Sync] Fetching ward data for ${candidate?.wardId}');
-        debugPrint('🏛️ [Sync] Candidate stateId: ${candidate!.stateId}');
+        AppLogger.candidate('🏛️ [Sync] Fetching ward data for ${candidate?.wardId}');
+        AppLogger.candidate('🏛️ [Sync] Candidate stateId: ${candidate!.stateId}');
 
         // Get the correct stateId for this candidate
         final stateId = candidate!.stateId ?? 'maharashtra'; // Default fallback
-        debugPrint('🏛️ [Sync] Using stateId: $stateId');
+        AppLogger.candidate('🏛️ [Sync] Using stateId: $stateId');
 
         final wards = await candidateRepository.getWardsByDistrictAndBody(
           candidate!.districtId,
@@ -348,9 +349,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           candidate!.stateId, // Pass the candidate's stateId
         );
 
-        debugPrint('🏛️ [Sync] Found ${wards.length} wards from Firebase');
+        AppLogger.candidate('🏛️ [Sync] Found ${wards.length} wards from Firebase');
         for (var w in wards) {
-          debugPrint('🏛️ [Sync] Ward: ${w.id} -> ${w.name}');
+          AppLogger.candidate('🏛️ [Sync] Ward: ${w.id} -> ${w.name}');
         }
 
         final ward = wards.firstWhere(
@@ -364,17 +365,17 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           ),
         );
 
-        debugPrint('🏛️ [Sync] Selected ward: ${ward.id} -> "${ward.name}"');
+        AppLogger.candidate('🏛️ [Sync] Selected ward: ${ward.id} -> "${ward.name}"');
 
         // Force update the ward data in SQLite to ensure we have the latest from Firebase
-        debugPrint('🔄 [Sync] Force updating ward data in SQLite: "${ward.name}"');
+        AppLogger.candidate('🔄 [Sync] Force updating ward data in SQLite: "${ward.name}"');
         await _locationDatabase.insertWards([ward]);
-        debugPrint('✅ [Sync] Ward data synced');
+        AppLogger.candidate('✅ [Sync] Ward data synced');
       }
 
-      debugPrint('✅ [Candidate Profile] Location data sync completed');
+      AppLogger.candidate('✅ [Candidate Profile] Location data sync completed');
     } catch (e) {
-      debugPrint('❌ [Candidate Profile] Error syncing location data: $e');
+      AppLogger.candidateError('❌ [Candidate Profile] Error syncing location data: $e');
       // Continue with fallback display
     }
   }
@@ -546,11 +547,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
                       children: [
                         Builder(
                           builder: (context) {
-                            debugPrint('🏛️ [Profile Screen] Building ProfileHeaderWidget:');
-                            debugPrint('   wardName passed: $_wardName');
-                            debugPrint('   districtName passed: $_districtName');
-                            debugPrint('   candidate wardId: ${candidate!.wardId}');
-                            debugPrint('   candidate districtId: ${candidate!.districtId}');
+                            AppLogger.candidate('🏛️ [Profile Screen] Building ProfileHeaderWidget:');
+                            AppLogger.candidate('   wardName passed: $_wardName');
+                            AppLogger.candidate('   districtName passed: $_districtName');
+                            AppLogger.candidate('   candidate wardId: ${candidate!.wardId}');
+                            AppLogger.candidate('   candidate districtId: ${candidate!.districtId}');
                             return ProfileHeaderWidget(
                               candidate: candidate!,
                               hasSponsoredBanner: _hasSponsoredBanner,

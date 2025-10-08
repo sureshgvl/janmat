@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../../utils/app_logger.dart';
 import '../../../models/candidate_model.dart';
 import 'photo_upload_handler.dart';
 import 'date_picker_handler.dart';
@@ -63,11 +64,11 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     final data = widget.editedData ?? widget.candidateData;
     final extraInfo = data.extraInfo;
 
-    debugPrint('🎯 BasicInfoEdit initState - Education debug:');
-    debugPrint('   extraInfo exists: ${extraInfo != null}');
-    debugPrint('   basicInfo exists: ${extraInfo?.basicInfo != null}');
-    debugPrint('   education from basicInfo: ${extraInfo?.basicInfo?.education}');
-    debugPrint('   address from contact: ${extraInfo?.contact?.address}');
+    AppLogger.candidate('🎯 BasicInfoEdit initState - Education debug:');
+    AppLogger.candidate('   extraInfo exists: ${extraInfo != null}');
+    AppLogger.candidate('   basicInfo exists: ${extraInfo?.basicInfo != null}');
+    AppLogger.candidate('   education from basicInfo: ${extraInfo?.basicInfo?.education}');
+    AppLogger.candidate('   address from contact: ${extraInfo?.contact?.address}');
 
     _nameController = TextEditingController(text: data.name);
     _cityController = TextEditingController(text: data.districtId);
@@ -101,19 +102,19 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     );
 
     // Debug log initial state of all input boxes
-    debugPrint('🎬 BasicInfoEdit initState - Initial controller values:');
-    debugPrint('   👤 Name: "${_nameController.text}"');
-    debugPrint('   🎂 Age: "${_ageController.text}"');
-    debugPrint('   👥 Gender: "${_genderController.text}"');
-    debugPrint('   🎓 Education: "${_educationController.text}"');
-    debugPrint('   💼 Profession: "${_professionController.text}"');
-    debugPrint('   🌐 Languages: "${_languagesController.text}"');
-    debugPrint('   📅 Experience Years: "${_experienceYearsController.text}"');
-    debugPrint('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
-    debugPrint('   📍 Address: "${_addressController.text}"');
-    debugPrint('   🏛️ City: "${_cityController.text}"');
-    debugPrint('   🏘️ Ward: "${_wardController.text}"');
-    debugPrint('   🎯 Symbol Name: "${_symbolNameController.text}"');
+    AppLogger.candidate('🎬 BasicInfoEdit initState - Initial controller values:');
+    AppLogger.candidate('   👤 Name: "${_nameController.text}"');
+    AppLogger.candidate('   🎂 Age: "${_ageController.text}"');
+    AppLogger.candidate('   👥 Gender: "${_genderController.text}"');
+    AppLogger.candidate('   🎓 Education: "${_educationController.text}"');
+    AppLogger.candidate('   💼 Profession: "${_professionController.text}"');
+    AppLogger.candidate('   🌐 Languages: "${_languagesController.text}"');
+    AppLogger.candidate('   📅 Experience Years: "${_experienceYearsController.text}"');
+    AppLogger.candidate('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
+    AppLogger.candidate('   📍 Address: "${_addressController.text}"');
+    AppLogger.candidate('   🏛️ City: "${_cityController.text}"');
+    AppLogger.candidate('   🏘️ Ward: "${_wardController.text}"');
+    AppLogger.candidate('   🎯 Symbol Name: "${_symbolNameController.text}"');
   }
 
   @override
@@ -122,25 +123,25 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     // Note: We don't update controller text in didUpdateWidget to preserve user input
     // The controllers are initialized in initState and should maintain their state
     // If external data changes are needed, they should come through the editedData parameter
-    debugPrint('🔄 BasicInfoEdit didUpdateWidget called');
+    AppLogger.candidate('🔄 BasicInfoEdit didUpdateWidget called');
   }
 
   @override
   void dispose() {
     // Debug log final state of all input boxes
-    debugPrint('🗂️ BasicInfoEdit dispose - Final controller values:');
-    debugPrint('   👤 Name: "${_nameController.text}"');
-    debugPrint('   🎂 Age: "${_ageController.text}"');
-    debugPrint('   👥 Gender: "${_genderController.text}"');
-    debugPrint('   🎓 Education: "${_educationController.text}"');
-    debugPrint('   💼 Profession: "${_professionController.text}"');
-    debugPrint('   🌐 Languages: "${_languagesController.text}"');
-    debugPrint('   📅 Experience Years: "${_experienceYearsController.text}"');
-    debugPrint('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
-    debugPrint('   📍 Address: "${_addressController.text}"');
-    debugPrint('   🏛️ City: "${_cityController.text}"');
-    debugPrint('   🏘️ Ward: "${_wardController.text}"');
-    debugPrint('   🎯 Symbol Name: "${_symbolNameController.text}"');
+    AppLogger.candidate('🗂️ BasicInfoEdit dispose - Final controller values:');
+    AppLogger.candidate('   👤 Name: "${_nameController.text}"');
+    AppLogger.candidate('   🎂 Age: "${_ageController.text}"');
+    AppLogger.candidate('   👥 Gender: "${_genderController.text}"');
+    AppLogger.candidate('   🎓 Education: "${_educationController.text}"');
+    AppLogger.candidate('   💼 Profession: "${_professionController.text}"');
+    AppLogger.candidate('   🌐 Languages: "${_languagesController.text}"');
+    AppLogger.candidate('   📅 Experience Years: "${_experienceYearsController.text}"');
+    AppLogger.candidate('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
+    AppLogger.candidate('   📍 Address: "${_addressController.text}"');
+    AppLogger.candidate('   🏛️ City: "${_cityController.text}"');
+    AppLogger.candidate('   🏘️ Ward: "${_wardController.text}"');
+    AppLogger.candidate('   🎯 Symbol Name: "${_symbolNameController.text}"');
 
     _nameController.dispose();
     _cityController.dispose();
@@ -428,8 +429,8 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                 border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
-                debugPrint('🎯 Profession changed: $value');
-                debugPrint('   📝 Profession controller text: "${_professionController.text}"');
+                AppLogger.candidate('🎯 Profession changed: $value');
+                AppLogger.candidate('   📝 Profession controller text: "${_professionController.text}"');
                 widget.onBasicInfoChange('profession', value);
               },
             ),
@@ -443,8 +444,8 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                 border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
-                debugPrint('🎯 Languages changed: $value');
-                debugPrint('   📝 Languages controller text: "${_languagesController.text}"');
+                AppLogger.candidate('🎯 Languages changed: $value');
+                AppLogger.candidate('   📝 Languages controller text: "${_languagesController.text}"');
                 widget.onBasicInfoChange('languages', value.split(',').map((e) => e.trim()).toList());
               },
             ),
@@ -459,8 +460,8 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                debugPrint('🎯 Experience Years changed: $value');
-                debugPrint('   📝 Experience Years controller text: "${_experienceYearsController.text}"');
+                AppLogger.candidate('🎯 Experience Years changed: $value');
+                AppLogger.candidate('   📝 Experience Years controller text: "${_experienceYearsController.text}"');
                 widget.onBasicInfoChange('experienceYears', int.tryParse(value) ?? 0);
               },
             ),
@@ -474,8 +475,8 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                 border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
-                debugPrint('🎯 Previous Positions changed: $value');
-                debugPrint('   📝 Previous Positions controller text: "${_previousPositionsController.text}"');
+                AppLogger.candidate('🎯 Previous Positions changed: $value');
+                AppLogger.candidate('   📝 Previous Positions controller text: "${_previousPositionsController.text}"');
                 widget.onBasicInfoChange('previousPositions', value.split(',').map((e) => e.trim()).toList());
               },
             ),
@@ -487,7 +488,7 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                 controller: _symbolNameController,
                 labelText: CandidateLocalizations.of(context)!.symbolNameForIndependent,
                 onChanged: (value) {
-                  debugPrint('🎯 Symbol Name changed: $value');
+                  AppLogger.candidate('🎯 Symbol Name changed: $value');
                   widget.onBasicInfoChange('symbolName', value);
                 },
               ),

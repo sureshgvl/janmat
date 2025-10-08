@@ -1,16 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import './app_logger.dart';
 
 class CandidateMigrationManager {
   static Future<void> migrateCandidatesToStates() async {
     final firestore = FirebaseFirestore.instance;
 
     try {
-      debugPrint('🔄 Starting candidate migration from old structure to new state-based structure...');
+      AppLogger.core('🔄 Starting candidate migration from old structure to new state-based structure...');
 
       // Step 1: Get all candidates from the old structure
       final oldCandidatesSnapshot = await firestore.collection('candidates').get();
-      debugPrint('📊 Found ${oldCandidatesSnapshot.docs.length} candidates in old structure');
+      AppLogger.core('📊 Found ${oldCandidatesSnapshot.docs.length} candidates in old structure');
 
       int migratedCount = 0;
       int skippedCount = 0;
@@ -26,8 +27,8 @@ class CandidateMigrationManager {
           final wardId = candidateData['wardId'] as String?;
 
           if (districtId == null || bodyId == null || wardId == null) {
-            debugPrint('⚠️ Skipping candidate $candidateId - missing location data');
-            debugPrint('   districtId: $districtId, bodyId: $bodyId, wardId: $wardId');
+            AppLogger.core('⚠️ Skipping candidate $candidateId - missing location data');
+            AppLogger.core('   districtId: $districtId, bodyId: $bodyId, wardId: $wardId');
             skippedCount++;
             continue;
           }
@@ -41,16 +42,16 @@ class CandidateMigrationManager {
           // Check if candidate already exists in new location
           final existingDoc = await firestore.doc(newPath).get();
           if (existingDoc.exists) {
-            debugPrint('⚠️ Candidate $candidateId already exists in new structure, skipping');
+            AppLogger.core('⚠️ Candidate $candidateId already exists in new structure, skipping');
             skippedCount++;
             continue;
           }
 
           // Copy candidate to new location
           await firestore.doc(newPath).set(candidateData);
-          debugPrint('✅ Migrated candidate: ${candidateData['name']} ($candidateId)');
-          debugPrint('   From: /candidates/$candidateId');
-          debugPrint('   To: $newPath');
+          AppLogger.core('✅ Migrated candidate: ${candidateData['name']} ($candidateId)');
+          AppLogger.core('   From: /candidates/$candidateId');
+          AppLogger.core('   To: $newPath');
 
           migratedCount++;
 
@@ -58,27 +59,27 @@ class CandidateMigrationManager {
           // await firestore.collection('candidates').doc(candidateId).delete();
 
         } catch (e) {
-          debugPrint('❌ Error migrating candidate ${candidateDoc.id}: $e');
+          AppLogger.coreError('❌ Error migrating candidate ${candidateDoc.id}', error: e);
           skippedCount++;
         }
       }
 
-      debugPrint('🎉 Migration completed!');
-      debugPrint('   ✅ Migrated: $migratedCount candidates');
-      debugPrint('   ⚠️ Skipped: $skippedCount candidates');
+      AppLogger.core('🎉 Migration completed!');
+      AppLogger.core('   ✅ Migrated: $migratedCount candidates');
+      AppLogger.core('   ⚠️ Skipped: $skippedCount candidates');
 
       // Step 2: Also check for candidates in the old district-based structure
       await _migrateFromDistrictStructure(firestore);
 
     } catch (e) {
-      debugPrint('❌ Migration failed: $e');
+      AppLogger.coreError('❌ Migration failed', error: e);
       rethrow;
     }
   }
 
   static Future<void> _migrateFromDistrictStructure(FirebaseFirestore firestore) async {
     try {
-      debugPrint('🔄 Checking for candidates in old district-based structure...');
+      AppLogger.core('🔄 Checking for candidates in old district-based structure...');
 
       // Get all districts
       final districtsSnapshot = await firestore.collection('districts').get();
@@ -102,7 +103,7 @@ class CandidateMigrationManager {
             final candidatesSnapshot = await wardDoc.reference.collection('candidates').get();
 
             if (candidatesSnapshot.docs.isNotEmpty) {
-              debugPrint('📊 Found ${candidatesSnapshot.docs.length} candidates in old structure: districts/$districtId/bodies/$bodyId/wards/$wardId');
+              AppLogger.core('📊 Found ${candidatesSnapshot.docs.length} candidates in old structure: districts/$districtId/bodies/$bodyId/wards/$wardId');
 
               final stateId = 'maharashtra';
 
@@ -117,7 +118,7 @@ class CandidateMigrationManager {
                 final existingDoc = await firestore.doc(newPath).get();
                 if (!existingDoc.exists) {
                   await firestore.doc(newPath).set(candidateData);
-                  debugPrint('✅ Migrated candidate from district structure: ${candidateData['name']} ($candidateId)');
+                  AppLogger.core('✅ Migrated candidate from district structure: ${candidateData['name']} ($candidateId)');
                 }
               }
             }
@@ -126,7 +127,7 @@ class CandidateMigrationManager {
       }
 
     } catch (e) {
-      debugPrint('❌ Error migrating from district structure: $e');
+      AppLogger.coreError('❌ Error migrating from district structure', error: e);
     }
   }
 
@@ -134,11 +135,11 @@ class CandidateMigrationManager {
     final firestore = FirebaseFirestore.instance;
 
     try {
-      debugPrint('🔍 Verifying migration...');
+      AppLogger.core('🔍 Verifying migration...');
 
       // Count candidates in old structure
       final oldCount = (await firestore.collection('candidates').get()).docs.length;
-      debugPrint('📊 Candidates in old structure (/candidates/): $oldCount');
+      AppLogger.core('📊 Candidates in old structure (/candidates/): $oldCount');
 
       // Count candidates in new structure
       final statesSnapshot = await firestore.collection('states').get();
@@ -161,17 +162,16 @@ class CandidateMigrationManager {
         }
       }
 
-      debugPrint('📊 Candidates in new structure (/states/.../candidates/): $newCount');
+      AppLogger.core('📊 Candidates in new structure (/states/.../candidates/): $newCount');
 
       if (newCount > 0) {
-        debugPrint('✅ Migration appears successful!');
+        AppLogger.core('✅ Migration appears successful!');
       } else {
-        debugPrint('⚠️ No candidates found in new structure. Migration may have failed.');
+        AppLogger.core('⚠️ No candidates found in new structure. Migration may have failed.');
       }
 
     } catch (e) {
-      debugPrint('❌ Error verifying migration: $e');
+      AppLogger.coreError('❌ Error verifying migration', error: e);
     }
   }
 }
-

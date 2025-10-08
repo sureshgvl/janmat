@@ -4,6 +4,7 @@ import '../models/comment_model.dart';
 import '../models/like_model.dart';
 import '../utils/performance_monitor.dart';
 import '../utils/connection_optimizer.dart';
+import '../utils/app_logger.dart';
 import 'manifesto_cache_service.dart';
 
 class ManifestoCommentsService {
@@ -40,7 +41,7 @@ class ManifestoCommentsService {
           await _cacheService.cacheComment(syncedComment, synced: true);
           await _cacheService.markCommentSynced(comment.id); // Mark old cache entry as synced
         } catch (e) {
-          debugPrint('Failed to sync comment to Firestore, will retry later: $e');
+          AppLogger.commonError('Failed to sync comment to Firestore, will retry later', error: e);
           // Comment remains in cache as unsynced
         }
       }
@@ -48,7 +49,7 @@ class ManifestoCommentsService {
       _monitor.stopTimer('add_comment');
     } catch (e) {
       _monitor.stopTimer('add_comment');
-      debugPrint('Error adding comment: $e');
+      AppLogger.commonError('Error adding comment', error: e);
       throw Exception('Failed to add comment: $e');
     }
   }
@@ -118,7 +119,7 @@ class ManifestoCommentsService {
               _monitor.trackFirebaseWrite('comment_likes', 1);
             }
           } catch (e) {
-            debugPrint('Failed to sync unlike to Firestore, will retry later: $e');
+            AppLogger.commonError('Failed to sync unlike to Firestore, will retry later', error: e);
           }
         }
       } else {
@@ -143,7 +144,7 @@ class ManifestoCommentsService {
             // Mark as synced
             await _cacheService.markLikeSynced(like.id);
           } catch (e) {
-            debugPrint('Failed to sync like to Firestore, will retry later: $e');
+            AppLogger.commonError('Failed to sync like to Firestore, will retry later', error: e);
           }
         }
       }
@@ -152,7 +153,7 @@ class ManifestoCommentsService {
       return isLiked;
     } catch (e) {
       _monitor.stopTimer('toggle_comment_like');
-      debugPrint('Error toggling comment like: $e');
+      AppLogger.commonError('Error toggling comment like', error: e);
       throw Exception('Failed to toggle comment like: $e');
     }
   }
@@ -162,4 +163,3 @@ class ManifestoCommentsService {
     return _monitor.getFirebaseSummary();
   }
 }
-

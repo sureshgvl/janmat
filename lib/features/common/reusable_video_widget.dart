@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import '../../utils/app_logger.dart';
 
 /// Reusable video player widget with WhatsApp-style UI
 class ReusableVideoWidget extends StatefulWidget {
@@ -39,8 +40,9 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
 
   Future<void> _initializePlayer() async {
     try {
-      debugPrint(
-        '🎥 [Video Player] Initializing video player for: ${widget.videoUrl}',
+      AppLogger.ui(
+        'Initializing video player for: ${widget.videoUrl}',
+        tag: 'VIDEO',
       );
 
       _videoPlayerController = VideoPlayerController.networkUrl(
@@ -99,9 +101,9 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
         });
       }
 
-      debugPrint('🎥 [Video Player] Video player initialized successfully');
+      AppLogger.ui('Video player initialized successfully', tag: 'VIDEO');
     } catch (e) {
-      debugPrint('🎥 [Video Player] Error initializing video: $e');
+      AppLogger.ui('Error initializing video: $e', tag: 'VIDEO');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -316,4 +318,3 @@ class VideoPreviewWidget extends StatelessWidget {
     );
   }
 }
-

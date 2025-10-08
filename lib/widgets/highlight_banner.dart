@@ -7,6 +7,7 @@ import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
 import '../features/candidate/repositories/candidate_repository.dart';
 import '../utils/symbol_utils.dart';
+import '../utils/app_logger.dart';
 
 class HighlightBanner extends StatefulWidget {
     final String districtId;
@@ -90,7 +91,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
 
   // Public method to refresh banner data when candidate profile is updated
   void refreshBannerData() {
-    debugPrint('🔄 [HighlightBanner] Refreshing banner data due to candidate profile update');
+    AppLogger.database('Refreshing banner data due to candidate profile update', tag: 'CANDIDATE');
     _loadPlatinumBanner();
   }
 
@@ -118,7 +119,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         try {
           // Use candidate repository to fetch candidate data (handles hierarchical structure)
           final candidateRepository = CandidateRepository();
-          debugPrint('🔍 [HighlightBanner] Fetching candidate data for ID: ${banner.candidateId}');
+          AppLogger.database('Fetching candidate data for ID: ${banner.candidateId}', tag: 'CANDIDATE');
           final candidate = await candidateRepository.getCandidateDataById(banner.candidateId);
 
           if (candidate != null) {
@@ -127,20 +128,20 @@ class _HighlightBannerState extends State<HighlightBanner> {
             candidateName = candidate.name;
 
             // Debug logging
-            debugPrint('🎯 [HighlightBanner] Candidate data loaded successfully:');
-            debugPrint('   candidateId: ${banner.candidateId}');
-            debugPrint('   name: ${candidate.name}');
-            debugPrint('   photo URL: $profileImageUrl');
-            debugPrint('   party: $candidateParty');
-            debugPrint('   candidate.party directly: ${candidate.party}');
-            debugPrint('   candidate.toJson()["party"]: ${candidate.toJson()["party"]}');
-            debugPrint('   Raw candidate object: ${candidate.toJson()}');
+            AppLogger.database('Candidate data loaded successfully:', tag: 'CANDIDATE');
+            AppLogger.database('  candidateId: ${banner.candidateId}', tag: 'CANDIDATE');
+            AppLogger.database('  name: ${candidate.name}', tag: 'CANDIDATE');
+            AppLogger.database('  photo URL: $profileImageUrl', tag: 'CANDIDATE');
+            AppLogger.database('  party: $candidateParty', tag: 'CANDIDATE');
+            AppLogger.database('  candidate.party directly: ${candidate.party}', tag: 'CANDIDATE');
+            AppLogger.database('  candidate.toJson()["party"]: ${candidate.toJson()["party"]}', tag: 'CANDIDATE');
+            AppLogger.database('  Raw candidate object: ${candidate.toJson()}', tag: 'CANDIDATE');
           } else {
-            debugPrint('❌ [HighlightBanner] Candidate not found for ID: ${banner.candidateId}');
-            debugPrint('   This means getCandidateDataById returned null');
+            AppLogger.databaseError('Candidate not found for ID: ${banner.candidateId}', tag: 'CANDIDATE');
+            AppLogger.database('  This means getCandidateDataById returned null', tag: 'CANDIDATE');
           }
         } catch (e) {
-          debugPrint('❌ [HighlightBanner] Error fetching candidate data: $e');
+          AppLogger.databaseError('Error fetching candidate data', tag: 'CANDIDATE', error: e);
         }
       }
 
@@ -186,7 +187,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         // Animation removed - no longer needed
       }
     } catch (e) {
-      debugPrint('Error loading platinum banner: $e');
+      AppLogger.databaseError('Error loading platinum banner', tag: 'CANDIDATE', error: e);
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -213,7 +214,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         // Navigate to candidate profile screen
         Get.to(() => const CandidateProfileScreen(), arguments: candidate);
       } else {
-        debugPrint('❌ [HighlightBanner] Candidate not found for navigation: ${platinumBanner!.candidateId}');
+        AppLogger.databaseError('Candidate not found for navigation: ${platinumBanner!.candidateId}', tag: 'CANDIDATE');
         // Fallback: show error message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -225,7 +226,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         }
       }
     } catch (e) {
-      debugPrint('❌ [HighlightBanner] Error navigating to candidate profile: $e');
+      AppLogger.databaseError('Error navigating to candidate profile', tag: 'CANDIDATE', error: e);
       // Fallback: show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -257,7 +258,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
         },
       });
     } catch (e) {
-      debugPrint('Error tracking banner view: $e');
+      AppLogger.databaseError('Error tracking banner view', tag: 'CANDIDATE', error: e);
     }
   }
 
@@ -436,23 +437,55 @@ class _HighlightBannerState extends State<HighlightBanner> {
         if (widget.showViewMoreButton) ...[
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            width: double.infinity,
+            width: 250, // Decreased width for narrower button
             child: ElevatedButton(
               onPressed: _onBannerTap,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1976d2),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'View More',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    SymbolUtils.getPartySymbolPath(candidateParty ?? 'independent'),
+                    width: 20,
+                    height: 20,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.star,
+                        size: 20,
+                        color: Colors.white,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'View More',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Image.asset(
+                    SymbolUtils.getPartySymbolPath(candidateParty ?? 'independent'),
+                    width: 20,
+                    height: 20,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.star,
+                        size: 20,
+                        color: Colors.white,
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ),

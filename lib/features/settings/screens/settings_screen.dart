@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../services/language_service.dart';
@@ -50,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error loading stored language: $e');
+      AppLogger.uiError('Error loading stored language: $e');
       // Fallback to current locale
       final locale = Localizations.localeOf(context);
       if (mounted) {
@@ -223,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error changing language: $e');
+      AppLogger.uiError('Error changing language: $e');
 
       // Revert to previous language on error
       if (mounted) {

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../utils/app_logger.dart';
 import '../models/district_model.dart';
 import '../models/body_model.dart';
 import '../models/ward_model.dart';
@@ -68,61 +69,61 @@ class LocalDatabaseService {
     // Handle database upgrades
     if (oldVersion < 4 && newVersion >= 4) {
       // Upgrade to version 4: Add candidates table
-      debugPrint('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding candidates table');
+      AppLogger.common('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding candidates table');
 
       // Check if candidates table exists, create if not
       final candidatesExists = await _tableExists(db, candidatesTable);
       if (!candidatesExists) {
         await _createCandidatesTable(db);
-        debugPrint('✅ [SQLite] Created candidates table');
+        AppLogger.common('✅ [SQLite] Created candidates table');
       } else {
-        debugPrint('ℹ️ [SQLite] Candidates table already exists, skipping creation');
+        AppLogger.common('ℹ️ [SQLite] Candidates table already exists, skipping creation');
       }
 
       // Check if cache_metadata table exists, create if not
       final metadataExists = await _tableExists(db, cacheMetadataTable);
       if (!metadataExists) {
         await _createCacheMetadataTable(db);
-        debugPrint('✅ [SQLite] Created cache_metadata table');
+        AppLogger.common('✅ [SQLite] Created cache_metadata table');
       } else {
-        debugPrint('ℹ️ [SQLite] Cache_metadata table already exists, skipping creation');
+        AppLogger.common('ℹ️ [SQLite] Cache_metadata table already exists, skipping creation');
       }
 
-      debugPrint('✅ [SQLite] Database upgrade to v4 completed');
+      AppLogger.common('✅ [SQLite] Database upgrade to v4 completed');
     }
 
     if (oldVersion < 5 && newVersion >= 5) {
       // Upgrade to version 5: Add manifesto interaction tables
-      debugPrint('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding manifesto interaction tables');
+      AppLogger.common('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding manifesto interaction tables');
 
       // Check if comments table exists, create if not
       final commentsExists = await _tableExists(db, commentsTable);
       if (!commentsExists) {
         await _createCommentsTable(db);
-        debugPrint('✅ [SQLite] Created comments table');
+        AppLogger.common('✅ [SQLite] Created comments table');
       } else {
-        debugPrint('ℹ️ [SQLite] Comments table already exists, skipping creation');
+        AppLogger.common('ℹ️ [SQLite] Comments table already exists, skipping creation');
       }
 
       // Check if likes table exists, create if not
       final likesExists = await _tableExists(db, likesTable);
       if (!likesExists) {
         await _createLikesTable(db);
-        debugPrint('✅ [SQLite] Created likes table');
+        AppLogger.common('✅ [SQLite] Created likes table');
       } else {
-        debugPrint('ℹ️ [SQLite] Likes table already exists, skipping creation');
+        AppLogger.common('ℹ️ [SQLite] Likes table already exists, skipping creation');
       }
 
       // Check if polls table exists, create if not
       final pollsExists = await _tableExists(db, pollsTable);
       if (!pollsExists) {
         await _createPollsTable(db);
-        debugPrint('✅ [SQLite] Created polls table');
+        AppLogger.common('✅ [SQLite] Created polls table');
       } else {
-        debugPrint('ℹ️ [SQLite] Polls table already exists, skipping creation');
+        AppLogger.common('ℹ️ [SQLite] Polls table already exists, skipping creation');
       }
 
-      debugPrint('✅ [SQLite] Database upgrade to v5 completed');
+      AppLogger.common('✅ [SQLite] Database upgrade to v5 completed');
     }
   }
 
@@ -284,7 +285,7 @@ class LocalDatabaseService {
 
   // District operations
   Future<void> insertDistricts(List<District> districts) async {
-    debugPrint('📍 [SQLite] Starting to insert ${districts.length} districts into local database');
+    AppLogger.common('📍 [SQLite] Starting to insert ${districts.length} districts into local database');
     final db = await database;
     final batch = db.batch();
     for (var district in districts) {
@@ -296,9 +297,9 @@ class LocalDatabaseService {
     }
     await batch.commit();
     await updateCacheMetadata('districts');
-    debugPrint('✅ [SQLite] Successfully inserted ${districts.length} districts into local database');
+    AppLogger.common('✅ [SQLite] Successfully inserted ${districts.length} districts into local database');
     if (districts.isNotEmpty) {
-      debugPrint('📍 [SQLite] Sample districts cached: ${districts.take(2).map((d) => '${d.id}:${d.name}').join(', ')}');
+      AppLogger.common('📍 [SQLite] Sample districts cached: ${districts.take(2).map((d) => '${d.id}:${d.name}').join(', ')}');
     }
   }
 
@@ -316,7 +317,7 @@ class LocalDatabaseService {
   }
 
   Future<void> insertBodies(List<Body> bodies) async {
-    debugPrint('🏛️ [SQLite] Starting to insert ${bodies.length} bodies into local database');
+    AppLogger.common('🏛️ [SQLite] Starting to insert ${bodies.length} bodies into local database');
     final db = await database;
     final batch = db.batch();
     for (var body in bodies) {
@@ -328,9 +329,9 @@ class LocalDatabaseService {
     }
     await batch.commit();
     await updateCacheMetadata('bodies');
-    debugPrint('✅ [SQLite] Successfully inserted ${bodies.length} bodies into local database');
+    AppLogger.common('✅ [SQLite] Successfully inserted ${bodies.length} bodies into local database');
     if (bodies.isNotEmpty) {
-      debugPrint('🏛️ [SQLite] Sample bodies cached: ${bodies.take(2).map((b) => '${b.id}:${b.name}').join(', ')}');
+      AppLogger.common('🏛️ [SQLite] Sample bodies cached: ${bodies.take(2).map((b) => '${b.id}:${b.name}').join(', ')}');
     }
   }
 
@@ -358,17 +359,17 @@ class LocalDatabaseService {
   }
 
   Future<void> insertWards(List<Ward> wards) async {
-    debugPrint('🏛️ [SQLite] Starting to insert ${wards.length} wards into local database');
+    AppLogger.common('🏛️ [SQLite] Starting to insert ${wards.length} wards into local database');
     final db = await database;
     final batch = db.batch();
     for (var ward in wards) {
       final wardData = ward.toJson();
-      debugPrint('🏛️ [SQLite] Ward data before conversion: id=${wardData['id']}, districtId=${wardData['districtId']}, bodyId=${wardData['bodyId']}, name=${wardData['name']}');
+      AppLogger.common('🏛️ [SQLite] Ward data before conversion: id=${wardData['id']}, districtId=${wardData['districtId']}, bodyId=${wardData['bodyId']}, name=${wardData['name']}');
       // Convert areas list to comma-separated string for SQLite storage
       if (wardData['areas'] != null && wardData['areas'] is List) {
         wardData['areas'] = (wardData['areas'] as List).join(',');
       }
-      debugPrint('🏛️ [SQLite] Ward data after conversion: $wardData');
+      AppLogger.common('🏛️ [SQLite] Ward data after conversion: $wardData');
       batch.insert(
         wardsTable,
         wardData,
@@ -377,9 +378,9 @@ class LocalDatabaseService {
     }
     await batch.commit();
     await updateCacheMetadata('wards');
-    debugPrint('✅ [SQLite] Successfully inserted ${wards.length} wards into local database');
+    AppLogger.common('✅ [SQLite] Successfully inserted ${wards.length} wards into local database');
     if (wards.isNotEmpty) {
-      debugPrint('🏛️ [SQLite] Sample wards cached: ${wards.take(2).map((w) => '${w.id}:${w.name}').join(', ')}');
+      AppLogger.common('🏛️ [SQLite] Sample wards cached: ${wards.take(2).map((w) => '${w.id}:${w.name}').join(', ')}');
     }
   }
 
@@ -404,9 +405,7 @@ class LocalDatabaseService {
   // Candidate operations
   Future<void> insertCandidates(List<Candidate> candidates, String wardId) async {
     final startTime = DateTime.now();
-    debugPrint('💾 [SQLite:Candidates] Starting batch insert operation');
-    debugPrint('   - Candidates to insert: ${candidates.length}');
-    debugPrint('   - Ward ID: $wardId');
+    AppLogger.common('💾 [SQLite:Candidates] Starting batch insert operation - Candidates to insert: ${candidates.length}, Ward ID: $wardId');
 
     final db = await database;
     final batch = db.batch();
@@ -443,17 +442,13 @@ class LocalDatabaseService {
 
     final totalTime = DateTime.now().difference(startTime).inMilliseconds;
 
-    debugPrint('✅ [SQLite:Candidates] Batch insert completed successfully');
-    debugPrint('   - Total time: ${totalTime}ms');
-    debugPrint('   - Batch commit time: ${batchTime}ms');
-    debugPrint('   - Metadata update time: ${metadataTime}ms');
-    debugPrint('   - Cache key: candidates_$wardId');
+    AppLogger.common('✅ [SQLite:Candidates] Batch insert completed successfully - Total time: ${totalTime}ms, Batch commit: ${batchTime}ms, Metadata update: ${metadataTime}ms, Cache key: candidates_$wardId');
   }
 
   Future<List<Candidate>?> getCandidatesForWard(String wardId) async {
     final startTime = DateTime.now();
     try {
-      debugPrint('🔍 [SQLite:Candidates] Querying candidates for ward: $wardId');
+      AppLogger.common('🔍 [SQLite:Candidates] Querying candidates for ward: $wardId');
 
       // Check if candidates cache is valid (24 hours)
       final cacheCheckStart = DateTime.now();
@@ -463,15 +458,10 @@ class LocalDatabaseService {
           DateTime.now().difference(lastUpdate) < const Duration(hours: 24);
       final cacheCheckTime = DateTime.now().difference(cacheCheckStart).inMilliseconds;
 
-      debugPrint('📊 [SQLite:Candidates] Cache validation:');
-      debugPrint('   - Cache key: candidates_$wardId');
-      debugPrint('   - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
-      debugPrint('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
-      debugPrint('   - Is valid: $isCacheValid');
-      debugPrint('   - Validation time: ${cacheCheckTime}ms');
+      AppLogger.common('📊 [SQLite:Candidates] Cache validation for ward: $wardId - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}, Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes, Is valid: $isCacheValid, Validation time: ${cacheCheckTime}ms');
 
       if (!isCacheValid) {
-        debugPrint('🔄 [SQLite:Candidates] Cache expired or missing for ward: $wardId');
+        AppLogger.common('🔄 [SQLite:Candidates] Cache expired or missing for ward: $wardId');
         return null;
       }
 
@@ -484,12 +474,8 @@ class LocalDatabaseService {
       );
       final queryTime = DateTime.now().difference(queryStartTime).inMilliseconds;
 
-      debugPrint('📊 [SQLite:Candidates] Database query completed:');
-      debugPrint('   - Rows returned: ${maps.length}');
-      debugPrint('   - Query time: ${queryTime}ms');
-
       if (maps.isEmpty) {
-        debugPrint('🔄 [SQLite:Candidates] No candidates found in database for ward: $wardId');
+        AppLogger.common('🔄 [SQLite:Candidates] No candidates found in database for ward: $wardId');
         return null;
       }
 
@@ -503,24 +489,19 @@ class LocalDatabaseService {
 
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
 
-      debugPrint('✅ [SQLite:Candidates] Successfully loaded candidates from cache');
-      debugPrint('   - Ward: $wardId');
-      debugPrint('   - Candidates: ${candidates.length}');
-      debugPrint('   - Parse time: ${parseTime}ms');
-      debugPrint('   - Total time: ${totalTime}ms');
-      debugPrint('   - Sample: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
+      AppLogger.common('✅ [SQLite:Candidates] Successfully loaded candidates from cache - Ward: $wardId, Candidates: ${candidates.length}, Parse time: ${parseTime}ms, Total time: ${totalTime}ms, Sample: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
 
       return candidates;
     } catch (e) {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('❌ [SQLite:Candidates] Error loading candidates (${totalTime}ms): $e');
+      AppLogger.common('❌ [SQLite:Candidates] Error loading candidates (${totalTime}ms): $e');
       return null;
     }
   }
 
   // Get ward name by IDs (optimized query for candidate profile)
   Future<String?> getWardName(String districtId, String bodyId, String wardId, [String? stateId]) async {
-    debugPrint('🔍 [SQLite] getWardName: Querying for stateId=$stateId, districtId=$districtId, bodyId=$bodyId, wardId=$wardId');
+    AppLogger.common('🔍 [SQLite] getWardName: Querying for stateId=$stateId, districtId=$districtId, bodyId=$bodyId, wardId=$wardId');
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       wardsTable,
@@ -528,13 +509,13 @@ class LocalDatabaseService {
       where: stateId != null ? 'districtId = ? AND bodyId = ? AND id = ? AND stateId = ?' : 'districtId = ? AND bodyId = ? AND id = ?',
       whereArgs: stateId != null ? [districtId, bodyId, wardId, stateId] : [districtId, bodyId, wardId],
     );
-    debugPrint('🔍 [SQLite] getWardName: Found ${maps.length} results');
+    AppLogger.common('🔍 [SQLite] getWardName: Found ${maps.length} results');
     if (maps.isNotEmpty) {
       final name = maps.first['name'] as String?;
-      debugPrint('🔍 [SQLite] getWardName: Returning ward name: "$name"');
+      AppLogger.common('🔍 [SQLite] getWardName: Returning ward name: "$name"');
       return name;
     }
-    debugPrint('🔍 [SQLite] getWardName: No ward found, returning null');
+    AppLogger.common('🔍 [SQLite] getWardName: No ward found, returning null');
     return null;
   }
 
@@ -653,7 +634,7 @@ class LocalDatabaseService {
     [String? stateId]
   ) async {
     final effectiveStateId = stateId ?? 'maharashtra'; // Default fallback
-    debugPrint('🔍 [SQLite] Fetching location data for candidate: state=$effectiveStateId, district=$districtId, body=$bodyId, ward=$wardId');
+    AppLogger.common('🔍 [SQLite] Fetching location data for candidate: state=$effectiveStateId, district=$districtId, body=$bodyId, ward=$wardId');
     try {
       final districtName = await getDistrictName(districtId, effectiveStateId);
       final bodyName = await getBodyName(bodyId, effectiveStateId);
@@ -665,16 +646,16 @@ class LocalDatabaseService {
         'wardName': wardName,
       };
 
-      debugPrint('✅ [SQLite] Location data retrieved: District="$districtName", Body="$bodyName", Ward="$wardName"');
+      AppLogger.common('✅ [SQLite] Location data retrieved: District="$districtName", Body="$bodyName", Ward="$wardName"');
       return result;
     } catch (e) {
-      debugPrint('❌ [LocalDatabaseService] Error getting candidate location data: $e');
+      AppLogger.common('❌ [LocalDatabaseService] Error getting candidate location data: $e');
       final fallbackResult = {
         'districtName': districtId,
         'bodyName': bodyId,
         'wardName': 'Ward $wardId',
       };
-      debugPrint('⚠️ [SQLite] Using fallback location data: $fallbackResult');
+      AppLogger.common('⚠️ [SQLite] Using fallback location data: $fallbackResult');
       return fallbackResult;
     }
   }
@@ -687,4 +668,3 @@ class LocalDatabaseService {
     }
   }
 }
-

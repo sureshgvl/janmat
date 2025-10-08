@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
 import '../../../services/trial_service.dart';
+import '../../../utils/app_logger.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
@@ -327,10 +328,9 @@ class HomeWidgets {
       // Return the appropriate ImageProvider
       return SymbolUtils.getSymbolImageProvider(symbolPath);
     } catch (e) {
-      debugPrint('Error loading party symbol: $e');
+      AppLogger.ui('Error loading party symbol: $e', tag: 'UI');
       // Fallback to default image
       return const AssetImage('assets/symbols/default.png');
     }
   }
 }
-

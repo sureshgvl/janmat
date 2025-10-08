@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/candidate_party_model.dart';
 
 class PartyRepository {
@@ -8,20 +9,20 @@ class PartyRepository {
   // Check Firebase connectivity
   Future<bool> checkFirebaseConnection() async {
     try {
-      debugPrint('🔗 PartyRepository: Checking Firebase connection...');
+      AppLogger.candidate('🔗 PartyRepository: Checking Firebase connection...');
       // Try to get a simple document to test connection
       await _firestore.collection('test').limit(1).get();
-      debugPrint('✅ PartyRepository: Firebase connection successful');
+      AppLogger.candidate('✅ PartyRepository: Firebase connection successful');
       return true;
     } catch (e) {
-      debugPrint('❌ PartyRepository: Firebase connection failed: $e');
+      AppLogger.candidateError('PartyRepository: Firebase connection failed: $e');
       return false;
     }
   }
 
   // Fetch all active parties - Using static Maharashtra parties data
   Future<List<Party>> getActiveParties() async {
-    debugPrint('📋 PartyRepository: Returning static Maharashtra parties data');
+    AppLogger.candidate('📋 PartyRepository: Returning static Maharashtra parties data');
 
     // Return the static Maharashtra parties data
     final parties = _getMaharashtraParties();
@@ -29,8 +30,8 @@ class PartyRepository {
     // Sort by name for consistent ordering
     parties.sort((a, b) => a.name.compareTo(b.name));
 
-    debugPrint('✅ PartyRepository: Loaded ${parties.length} Maharashtra parties');
-    debugPrint(
+    AppLogger.candidate('✅ PartyRepository: Loaded ${parties.length} Maharashtra parties');
+    AppLogger.candidate(
       '📝 PartyRepository: Party names: ${parties.map((p) => p.name).join(', ')}',
     );
 
@@ -48,7 +49,7 @@ class PartyRepository {
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching party: $e');
+      AppLogger.candidateError('Error fetching party: $e');
       return null;
     }
   }
@@ -58,7 +59,7 @@ class PartyRepository {
     try {
       await _firestore.collection('parties').doc(party.id).set(party.toJson());
     } catch (e) {
-      debugPrint('Error adding party: $e');
+      AppLogger.candidateError('Error adding party: $e');
       rethrow;
     }
   }
@@ -71,7 +72,7 @@ class PartyRepository {
           .doc(party.id)
           .update(party.toJson());
     } catch (e) {
-      debugPrint('Error updating party: $e');
+      AppLogger.candidateError('Error updating party: $e');
       rethrow;
     }
   }
@@ -81,14 +82,14 @@ class PartyRepository {
     try {
       await _firestore.collection('parties').doc(partyId).delete();
     } catch (e) {
-      debugPrint('Error deleting party: $e');
+      AppLogger.candidateError('Error deleting party: $e');
       rethrow;
     }
   }
 
   // Get static Maharashtra parties data
   List<Party> _getMaharashtraParties() {
-    debugPrint('📋 PartyRepository: Returning static Maharashtra parties data');
+    AppLogger.candidate('📋 PartyRepository: Returning static Maharashtra parties data');
     return [
       Party(
         id: 'bjp',

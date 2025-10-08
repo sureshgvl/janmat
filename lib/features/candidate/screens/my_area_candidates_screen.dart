@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../controllers/candidate_controller.dart';
 import '../../../models/user_model.dart';
 import '../widgets/candidate_card.dart';
+import '../../../utils/app_logger.dart';
 
 class MyAreaCandidatesScreen extends StatefulWidget {
   const MyAreaCandidatesScreen({super.key});
@@ -59,7 +60,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
           }
         }
       } catch (e) {
-        debugPrint('Error loading user data: $e');
+        AppLogger.candidateError('Error loading user data: $e');
       }
     }
   }
@@ -83,7 +84,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error adding current user to candidates list: $e');
+      AppLogger.candidateError('Error adding current user to candidates list: $e');
     }
   }
 

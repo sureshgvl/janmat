@@ -4,6 +4,7 @@ import '../../controllers/candidate_controller.dart';
 import '../../models/candidate_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../screens/followers_list_screen.dart';
+import '../../../../utils/app_logger.dart';
 
 class FollowersAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -53,7 +54,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
       setState(() {
         isLoadingFollowers = false;
       });
-      debugPrint('Error loading followers: $e');
+      AppLogger.candidateError('Error loading followers: $e');
     }
   }
 

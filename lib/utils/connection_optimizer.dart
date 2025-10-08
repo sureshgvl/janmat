@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 /// Connection quality levels
 enum ConnectionQuality { offline, poor, moderate, good, excellent }
@@ -60,11 +61,11 @@ class ConnectionOptimizer {
         _qualityController.add(newQuality);
 
         if (kDebugMode) {
-          debugPrint('🌐 Connection quality changed to: $newQuality');
+          AppLogger.common('🌐 Connection quality changed to: $newQuality');
         }
       }
     } catch (e) {
-      debugPrint('❌ Error determining connection quality: $e');
+      AppLogger.error('❌ Error determining connection quality: $e');
     }
   }
 
@@ -163,7 +164,7 @@ class SmartRetryManager {
         lastException = e as Exception;
 
         if (kDebugMode) {
-          debugPrint(
+          AppLogger.error(
             '🔄 Retry attempt $attempt/$maxRetries for $operationId failed: $e',
           );
         }

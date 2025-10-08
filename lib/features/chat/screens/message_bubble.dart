@@ -4,6 +4,7 @@ import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../models/chat_model.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/chat_controller.dart';
 import '../../common/reusable_image_widget.dart';
 import '../widgets/poll_dialog_widget.dart';
@@ -142,7 +143,7 @@ class MessageBubbleState extends State<MessageBubble> {
         await _audioPlayer!.play();
       }
     } catch (e) {
-      debugPrint('Error playing audio: $e');
+      AppLogger.ui('Error playing audio: $e', tag: 'CHAT');
       setState(() {
         _isLoadingAudio = false;
       });
@@ -909,4 +910,3 @@ class MessageBubbleState extends State<MessageBubble> {
     );
   }
 }
-

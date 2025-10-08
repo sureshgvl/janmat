@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:janmat/utils/app_logger.dart';
 import 'dart:convert';
 import '../utils/performance_monitor.dart';
 
@@ -312,7 +313,7 @@ class FirebaseFunctionsService {
       final response = await http.get(Uri.parse('$_baseUrl/ping'));
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Firebase Functions connectivity test failed: $e');
+      AppLogger.error('Firebase Functions connectivity test failed: $e');
       return false;
     }
   }

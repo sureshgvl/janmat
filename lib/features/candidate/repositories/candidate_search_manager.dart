@@ -7,6 +7,7 @@ import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
+import '../../../utils/app_logger.dart';
 import 'candidate_cache_manager.dart';
 import 'candidate_state_manager.dart';
 import 'candidate_operations.dart';
@@ -52,13 +53,13 @@ class CandidateSearchManager {
   // Get candidates for a user based on their election areas (NEW METHOD)
   Future<List<Candidate>> getCandidatesForUser(UserModel user) async {
     try {
-      debugPrint('🔍 Getting candidates for user: ${user.uid}');
-      debugPrint('📊 User has ${user.electionAreas.length} election areas');
+      AppLogger.candidate('🔍 Getting candidates for user: ${user.uid}');
+      AppLogger.candidate('📊 User has ${user.electionAreas.length} election areas');
 
       List<Candidate> allCandidates = [];
 
       for (ElectionArea area in user.electionAreas) {
-        debugPrint('🔍 Searching in area: ${area.type.name} - ${area.wardId}');
+        AppLogger.candidate('🔍 Searching in area: ${area.type.name} - ${area.wardId}');
 
         try {
           final candidates = await getCandidatesByWard(
@@ -67,17 +68,17 @@ class CandidateSearchManager {
             area.wardId,
           );
           allCandidates.addAll(candidates);
-          debugPrint('✅ Found ${candidates.length} candidates in ${area.wardId}');
+          AppLogger.candidate('✅ Found ${candidates.length} candidates in ${area.wardId}');
         } catch (e) {
-          debugPrint('⚠️ Error searching in ${area.wardId}: $e');
+          AppLogger.candidate('⚠️ Error searching in ${area.wardId}: $e');
           // Continue with other areas even if one fails
         }
       }
 
-      debugPrint('✅ Total candidates found: ${allCandidates.length}');
+      AppLogger.candidate('✅ Total candidates found: ${allCandidates.length}');
       return allCandidates;
     } catch (e) {
-      debugPrint('❌ Error getting candidates for user: $e');
+      AppLogger.candidateError('Error getting candidates for user: $e');
       throw Exception('Failed to get candidates for user: $e');
     }
   }
@@ -104,7 +105,7 @@ class CandidateSearchManager {
       );
       monitor.trackCacheHit('candidate_ward');
       monitor.stopTimer('getCandidatesByWard');
-      debugPrint(
+      AppLogger.candidate(
         '⚡ MULTI_CACHE HIT: Returning ${cachedData.length} cached candidates for ward $wardId',
       );
       return cachedData;
@@ -115,14 +116,14 @@ class CandidateSearchManager {
     if (cachedCandidates != null) {
       monitor.trackCacheHit('candidate_ward');
       monitor.stopTimer('getCandidatesByWard');
-      debugPrint(
+      AppLogger.candidate(
         '⚡ LEGACY CACHE HIT: Returning ${cachedCandidates.length} cached candidates for ward $wardId',
       );
       return cachedCandidates;
     }
 
     monitor.trackCacheMiss('candidate_ward');
-    debugPrint(
+    AppLogger.candidate(
       '🔍 CACHE MISS: Fetching candidates for $DEFAULT_STATE_ID/$districtId/$bodyId/$wardId from Firebase',
     );
 
@@ -153,7 +154,7 @@ class CandidateSearchManager {
         success: true,
       );
 
-      debugPrint(
+      AppLogger.candidate(
         '📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $DEFAULT_STATE_ID/$districtId/$bodyId/$wardId',
       );
 
@@ -165,12 +166,12 @@ class CandidateSearchManager {
         candidateData['candidateId'] = doc.id;
 
         // Log candidate details
-        debugPrint('👤 Candidate: ${candidateData['name']} (ID: ${doc.id})');
-        debugPrint('   Party: ${candidateData['party']}');
-        debugPrint('   UserId: ${candidateData['userId']}');
-        debugPrint('   State: $DEFAULT_STATE_ID, District: $districtId, Body: $bodyId, Ward: $wardId');
-        debugPrint('   Approved: ${candidateData['approved'] ?? false}');
-        debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
+        AppLogger.candidate('👤 Candidate: ${candidateData['name']} (ID: ${doc.id})');
+        AppLogger.candidate('   Party: ${candidateData['party']}');
+        AppLogger.candidate('   UserId: ${candidateData['userId']}');
+        AppLogger.candidate('   State: $DEFAULT_STATE_ID, District: $districtId, Body: $bodyId, Ward: $wardId');
+        AppLogger.candidate('   Approved: ${candidateData['approved'] ?? false}');
+        AppLogger.candidate('   Status: ${candidateData['status'] ?? 'unknown'}');
 
         return Candidate.fromJson(candidateData);
       }).toList();
@@ -178,12 +179,12 @@ class CandidateSearchManager {
       // Cache in both systems
       await _cache.set(cacheKey, candidates, ttl: Duration(minutes: 15));
       _cacheData(cacheKey, candidates); // Legacy cache
-      debugPrint(
+      AppLogger.candidate(
         '💾 Cached ${candidates.length} candidates for ward $wardId in both cache systems',
       );
 
       monitor.stopTimer('getCandidatesByWard');
-      debugPrint(
+      AppLogger.candidate(
         '✅ getCandidatesByWard: Successfully loaded ${candidates.length} candidates',
       );
       return candidates;
@@ -198,7 +199,7 @@ class CandidateSearchManager {
       );
 
       monitor.stopTimer('getCandidatesByWard');
-      debugPrint('❌ getCandidatesByWard: Failed to fetch candidates: $e');
+      AppLogger.candidateError('Failed to fetch candidates: $e');
       throw Exception('Failed to fetch candidates: $e');
     }
   }
@@ -215,7 +216,7 @@ class CandidateSearchManager {
     if (startAfter == null) {
       final cachedCandidates = _getCachedCandidates(cacheKey);
       if (cachedCandidates != null) {
-        debugPrint(
+        AppLogger.candidate(
           '⚡ CACHE HIT: Returning ${cachedCandidates.length} cached candidates for city $cityId',
         );
         return {
@@ -228,7 +229,7 @@ class CandidateSearchManager {
       }
     }
 
-    debugPrint(
+    AppLogger.candidate(
       '🔍 CACHE MISS: Fetching candidates for city $cityId from Firebase (limit: $limit)',
     );
     try {
@@ -242,17 +243,17 @@ class CandidateSearchManager {
           .collection('wards')
           .get();
 
-      debugPrint(
+      AppLogger.candidate(
         '📊 getCandidatesByCity: Found ${wardsSnapshot.docs.length} wards in city $cityId',
       );
       List<Candidate> allCandidates = [];
 
       for (var wardDoc in wardsSnapshot.docs) {
-        debugPrint('🔍 getCandidatesByCity: Checking ward: ${wardDoc.id}');
+        AppLogger.candidate('🔍 getCandidatesByCity: Checking ward: ${wardDoc.id}');
         final candidatesSnapshot = await wardDoc.reference
             .collection('candidates')
             .get();
-        debugPrint(
+        AppLogger.candidate(
           '📊 getCandidatesByCity: Found ${candidatesSnapshot.docs.length} candidates in ward ${wardDoc.id}',
         );
 
@@ -262,13 +263,13 @@ class CandidateSearchManager {
           candidateData['candidateId'] = doc.id;
 
           // Log candidate details
-          debugPrint(
+          AppLogger.candidate(
             '👤 Candidate in $cityId/${wardDoc.id}: ${candidateData['name']} (ID: ${doc.id})',
           );
-          debugPrint('   Party: ${candidateData['party']}');
-          debugPrint('   UserId: ${candidateData['userId']}');
-          debugPrint('   Approved: ${candidateData['approved'] ?? false}');
-          debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
+          AppLogger.candidate('   Party: ${candidateData['party']}');
+          AppLogger.candidate('   UserId: ${candidateData['userId']}');
+          AppLogger.candidate('   Approved: ${candidateData['approved'] ?? false}');
+          AppLogger.candidate('   Status: ${candidateData['status'] ?? 'unknown'}');
 
           return Candidate.fromJson(candidateData);
         }).toList();
@@ -278,7 +279,7 @@ class CandidateSearchManager {
       // Cache all candidates if no pagination was requested
       if (startAfter == null) {
         _cacheData(cacheKey, allCandidates);
-        debugPrint(
+        AppLogger.candidate(
           '💾 Cached ${allCandidates.length} candidates for city $cityId',
         );
       }
@@ -298,7 +299,7 @@ class CandidateSearchManager {
           : null;
       final hasMore = endIndex < allCandidates.length;
 
-      debugPrint(
+      AppLogger.candidate(
         '✅ getCandidatesByCity: Returning ${paginatedCandidates.length} candidates ($startIndex-${endIndex - 1} of ${allCandidates.length})',
       );
 
@@ -308,7 +309,7 @@ class CandidateSearchManager {
         'hasMore': hasMore,
       };
     } catch (e) {
-      debugPrint('❌ getCandidatesByCity: Failed to fetch candidates: $e');
+      AppLogger.candidateError('Failed to fetch candidates: $e');
       throw Exception('Failed to fetch candidates: $e');
     }
   }
@@ -331,7 +332,7 @@ class CandidateSearchManager {
     DocumentSnapshot? startAfter,
   }) async {
     try {
-      debugPrint('🔍 Searching candidates: "$query" (limit: $limit)');
+      AppLogger.candidate('🔍 Searching candidates: "$query" (limit: $limit)');
 
       List<Candidate> candidates = [];
       DocumentSnapshot? lastDoc;
@@ -411,7 +412,7 @@ class CandidateSearchManager {
             : null;
       } else {
         // Search across all cities and wards with pagination (limited scope for performance)
-        debugPrint(
+        AppLogger.candidate(
           '⚠️ Global search with pagination - limiting to first 100 candidates for performance',
         );
 
@@ -479,7 +480,7 @@ class CandidateSearchManager {
           )
           .toList();
 
-      debugPrint(
+      AppLogger.candidate(
         '✅ Found ${filteredCandidates.length} candidates matching "$query"',
       );
 
@@ -489,7 +490,7 @@ class CandidateSearchManager {
         'hasMore': filteredCandidates.length == limit,
       };
     } catch (e) {
-      debugPrint('❌ Failed to search candidates: $e');
+      AppLogger.candidateError('Failed to search candidates: $e');
       throw Exception('Failed to search candidates: $e');
     }
   }
@@ -512,7 +513,7 @@ class CandidateSearchManager {
   // Batch: Get multiple candidates by IDs
   Future<List<Candidate?>> getCandidatesByIds(List<String> candidateIds) async {
     try {
-      debugPrint('📦 BATCH: Fetching ${candidateIds.length} candidates by IDs');
+      AppLogger.candidate('📦 BATCH: Fetching ${candidateIds.length} candidates by IDs');
 
       final candidates = <Candidate?>[];
       final batchSize = 10; // Firestore limit for 'in' queries
@@ -585,12 +586,12 @@ class CandidateSearchManager {
         }
       }
 
-      debugPrint(
+      AppLogger.candidate(
         '✅ BATCH: Retrieved ${candidates.where((c) => c != null).length}/${candidateIds.length} candidates',
       );
       return candidates;
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to get candidates by IDs: $e');
+      AppLogger.candidateError('Failed to get candidates by IDs: $e');
       throw Exception('Failed to get candidates by IDs: $e');
     }
   }
@@ -601,7 +602,7 @@ class CandidateSearchManager {
     Map<String, dynamic> fieldUpdates,
   ) async {
     try {
-      debugPrint(
+      AppLogger.candidate(
         '📦 BATCH: Updating ${candidateIds.length} candidates with ${fieldUpdates.length} fields',
       );
 
@@ -642,12 +643,12 @@ class CandidateSearchManager {
 
       if (updateCount > 0) {
         await batch.commit();
-        debugPrint('✅ BATCH: Successfully updated $updateCount candidates');
+        AppLogger.candidate('✅ BATCH: Successfully updated $updateCount candidates');
       } else {
-        debugPrint('⚠️ BATCH: No candidates found to update');
+        AppLogger.candidate('⚠️ BATCH: No candidates found to update');
       }
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to batch update candidates: $e');
+      AppLogger.candidateError('Failed to batch update candidates: $e');
       throw Exception('Failed to batch update candidates: $e');
     }
   }
@@ -655,7 +656,7 @@ class CandidateSearchManager {
   // Batch: Get user data and following in single operation
   Future<Map<String, dynamic>> getUserDataAndFollowing(String userId) async {
     try {
-      debugPrint('📦 BATCH: Fetching user data and following together');
+      AppLogger.candidate('📦 BATCH: Fetching user data and following together');
 
       final results = await Future.wait([
         _firestore.collection('users').doc(userId).get(),
@@ -671,12 +672,12 @@ class CandidateSearchManager {
         userData['uid'] = userDoc.id;
       }
 
-      debugPrint(
+      AppLogger.candidate(
         '✅ BATCH: Retrieved user data and ${following.length} following',
       );
       return {'user': userData, 'following': following};
     } catch (e) {
-      debugPrint('❌ BATCH: Failed to get user data and following: $e');
+      AppLogger.candidateError('Failed to get user data and following: $e');
       throw Exception('Failed to get user data and following: $e');
     }
   }
@@ -684,100 +685,100 @@ class CandidateSearchManager {
   // Debug method: Log all candidates across the entire system
   Future<void> logAllCandidatesInSystem() async {
     try {
-      debugPrint('🔍 ===== SYSTEM CANDIDATE AUDIT =====');
-      debugPrint('🔍 Scanning all states, districts, bodies, wards, and candidates...');
+      AppLogger.candidate('🔍 ===== SYSTEM CANDIDATE AUDIT =====');
+      AppLogger.candidate('🔍 Scanning all states, districts, bodies, wards, and candidates...');
 
       final districtsSnapshot = await _firestore
           .collection('states')
           .doc(DEFAULT_STATE_ID)
           .collection('districts')
           .get();
-      debugPrint('📊 Total districts in system: ${districtsSnapshot.docs.length}');
+      AppLogger.candidate('📊 Total districts in system: ${districtsSnapshot.docs.length}');
 
       int totalCandidates = 0;
       int totalWards = 0;
       int totalBodies = 0;
 
       for (var districtDoc in districtsSnapshot.docs) {
-        debugPrint('🏙️ ===== DISTRICT: ${districtDoc.id} =====');
+        AppLogger.candidate('🏙️ ===== DISTRICT: ${districtDoc.id} =====');
         final districtData = districtDoc.data();
-        debugPrint('   Name: ${districtData['name'] ?? 'Unknown'}');
-        debugPrint('   State: ${districtData['state'] ?? 'Unknown'}');
+        AppLogger.candidate('   Name: ${districtData['name'] ?? 'Unknown'}');
+        AppLogger.candidate('   State: ${districtData['state'] ?? 'Unknown'}');
 
         final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
-        debugPrint('📊 Bodies in ${districtDoc.id}: ${bodiesSnapshot.docs.length}');
+        AppLogger.candidate('📊 Bodies in ${districtDoc.id}: ${bodiesSnapshot.docs.length}');
         totalBodies += bodiesSnapshot.docs.length;
 
         for (var bodyDoc in bodiesSnapshot.docs) {
-          debugPrint('🏛️ ===== BODY: ${bodyDoc.id} in ${districtDoc.id} =====');
+          AppLogger.candidate('🏛️ ===== BODY: ${bodyDoc.id} in ${districtDoc.id} =====');
           final bodyData = bodyDoc.data();
-          debugPrint('   Name: ${bodyData['name'] ?? 'Unknown'}');
+          AppLogger.candidate('   Name: ${bodyData['name'] ?? 'Unknown'}');
 
           final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
-          debugPrint('📊 Wards in ${districtDoc.id}/${bodyDoc.id}: ${wardsSnapshot.docs.length}');
+          AppLogger.candidate('📊 Wards in ${districtDoc.id}/${bodyDoc.id}: ${wardsSnapshot.docs.length}');
           totalWards += wardsSnapshot.docs.length;
 
           for (var wardDoc in wardsSnapshot.docs) {
-            debugPrint('🏛️ ===== WARD: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id} =====');
+            AppLogger.candidate('🏛️ ===== WARD: ${wardDoc.id} in ${districtDoc.id}/${bodyDoc.id} =====');
             final wardData = wardDoc.data();
-            debugPrint('   Name: ${wardData['name'] ?? 'Unknown'}');
-            debugPrint('   Population: ${wardData['population'] ?? 'Unknown'}');
+            AppLogger.candidate('   Name: ${wardData['name'] ?? 'Unknown'}');
+            AppLogger.candidate('   Population: ${wardData['population'] ?? 'Unknown'}');
 
             final candidatesSnapshot = await wardDoc.reference
                 .collection('candidates')
                 .get();
-            debugPrint(
+            AppLogger.candidate(
               '👥 Candidates in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}: ${candidatesSnapshot.docs.length}',
             );
             totalCandidates += candidatesSnapshot.docs.length;
 
             for (var candidateDoc in candidatesSnapshot.docs) {
               final candidateData = candidateDoc.data();
-              debugPrint('👤 ===== CANDIDATE =====');
-              debugPrint('   ID: ${candidateDoc.id}');
-              debugPrint('   Name: ${candidateData['name'] ?? 'Unknown'}');
-              debugPrint('   Party: ${candidateData['party'] ?? 'Unknown'}');
-              debugPrint('   UserId: ${candidateData['userId'] ?? 'Unknown'}');
-              debugPrint('   Approved: ${candidateData['approved'] ?? false}');
-              debugPrint('   Status: ${candidateData['status'] ?? 'unknown'}');
-              debugPrint('   Followers: ${candidateData['followersCount'] ?? 0}');
-              debugPrint('   Symbol: ${candidateData['symbol'] ?? 'Unknown'}');
+              AppLogger.candidate('👤 ===== CANDIDATE =====');
+              AppLogger.candidate('   ID: ${candidateDoc.id}');
+              AppLogger.candidate('   Name: ${candidateData['name'] ?? 'Unknown'}');
+              AppLogger.candidate('   Party: ${candidateData['party'] ?? 'Unknown'}');
+              AppLogger.candidate('   UserId: ${candidateData['userId'] ?? 'Unknown'}');
+              AppLogger.candidate('   Approved: ${candidateData['approved'] ?? false}');
+              AppLogger.candidate('   Status: ${candidateData['status'] ?? 'unknown'}');
+              AppLogger.candidate('   Followers: ${candidateData['followersCount'] ?? 0}');
+              AppLogger.candidate('   Symbol: ${candidateData['symbol'] ?? 'Unknown'}');
 
               // Log extra info if available
               final extraInfo =
                   candidateData['extra_info'] as Map<String, dynamic>?;
               if (extraInfo != null) {
-                debugPrint('   📋 Extra Info:');
-                debugPrint('      Bio: ${extraInfo['bio'] ?? 'Not set'}');
-                debugPrint(
+                AppLogger.candidate('   📋 Extra Info:');
+                AppLogger.candidate('      Bio: ${extraInfo['bio'] ?? 'Not set'}');
+                AppLogger.candidate(
                   '      Education: ${extraInfo['education'] ?? 'Not set'}',
                 );
-                debugPrint('      Age: ${extraInfo['age'] ?? 'Not set'}');
-                debugPrint('      Gender: ${extraInfo['gender'] ?? 'Not set'}');
+                AppLogger.candidate('      Age: ${extraInfo['age'] ?? 'Not set'}');
+                AppLogger.candidate('      Gender: ${extraInfo['gender'] ?? 'Not set'}');
               }
 
-              debugPrint('   ====================');
+              AppLogger.candidate('   ====================');
             }
 
             if (candidatesSnapshot.docs.isEmpty) {
-              debugPrint('⚠️ No candidates found in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+              AppLogger.candidate('⚠️ No candidates found in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
             }
           }
 
-          debugPrint('🏛️ ===== END BODY: ${bodyDoc.id} =====');
+          AppLogger.candidate('🏛️ ===== END BODY: ${bodyDoc.id} =====');
         }
 
-        debugPrint('🏙️ ===== END DISTRICT: ${districtDoc.id} =====');
+        AppLogger.candidate('🏙️ ===== END DISTRICT: ${districtDoc.id} =====');
       }
 
-      debugPrint('🔍 ===== SYSTEM AUDIT SUMMARY =====');
-      debugPrint('📊 Total Districts: ${districtsSnapshot.docs.length}');
-      debugPrint('📊 Total Bodies: $totalBodies');
-      debugPrint('📊 Total Wards: $totalWards');
-      debugPrint('👥 Total Candidates: $totalCandidates');
-      debugPrint('✅ Audit completed successfully');
+      AppLogger.candidate('🔍 ===== SYSTEM AUDIT SUMMARY =====');
+      AppLogger.candidate('📊 Total Districts: ${districtsSnapshot.docs.length}');
+      AppLogger.candidate('📊 Total Bodies: $totalBodies');
+      AppLogger.candidate('📊 Total Wards: $totalWards');
+      AppLogger.candidate('👥 Total Candidates: $totalCandidates');
+      AppLogger.candidate('✅ Audit completed successfully');
     } catch (e) {
-      debugPrint('❌ Error during system audit: $e');
+      AppLogger.candidateError('Error during system audit: $e');
     }
   }
 }

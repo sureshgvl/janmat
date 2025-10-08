@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'app_logger.dart';
 
 /// Background sync manager for offline data synchronization
 class BackgroundSyncManager {
@@ -62,9 +63,7 @@ class BackgroundSyncManager {
   void queueOperation(String operationId, Future<void> Function() operation) {
     _pendingOperations[operationId] = operation;
 
-    if (kDebugMode) {
-      debugPrint('📋 Queued background operation: $operationId');
-    }
+    AppLogger.backgroundSync('Queued background operation: $operationId');
 
     // If online, try to sync immediately
     if (_isOnline) {
@@ -89,9 +88,7 @@ class BackgroundSyncManager {
   void _triggerSync(String reason) {
     if (_pendingOperations.isEmpty) return;
 
-    if (kDebugMode) {
-      debugPrint('🔄 Triggering background sync (reason: $reason)');
-    }
+    AppLogger.backgroundSync('Triggering background sync (reason: $reason)');
 
     _syncStatusController.add(SyncStatus.syncing);
     _performBackgroundSync();
@@ -117,17 +114,13 @@ class BackgroundSyncManager {
         await operation();
         successCount++;
 
-        if (kDebugMode) {
-          debugPrint('✅ Background operation completed: $operationId');
-        }
+        AppLogger.backgroundSync('Background operation completed: $operationId');
       } catch (e) {
         failureCount++;
         // Re-queue failed operations
         _pendingOperations[operationId] = operation;
 
-        if (kDebugMode) {
-          debugPrint('❌ Background operation failed: $operationId - $e');
-        }
+        AppLogger.backgroundSyncError('Background operation failed: $operationId - $e');
       }
     }
 
@@ -150,11 +143,7 @@ class BackgroundSyncManager {
       _syncStatusController.add(SyncStatus.partialFailure);
     }
 
-    if (kDebugMode) {
-      debugPrint(
-        '📊 Background sync completed: $successCount successful, $failureCount failed',
-      );
-    }
+    AppLogger.backgroundSync('Background sync completed: $successCount successful, $failureCount failed');
   }
 
   /// Get sync statistics
@@ -171,9 +160,7 @@ class BackgroundSyncManager {
     _pendingOperations.clear();
     _syncStatusController.add(SyncStatus.idle);
 
-    if (kDebugMode) {
-      debugPrint('🧹 Cleared all pending background operations');
-    }
+    AppLogger.backgroundSync('Cleared all pending background operations');
   }
 
   void dispose() {
@@ -203,9 +190,7 @@ class OfflineQueue {
     _queue.add(operation);
     _queueStatusController.add(QueueStatus.updated);
 
-    if (kDebugMode) {
-      debugPrint('📋 Added operation to offline queue: ${operation.id}');
-    }
+    AppLogger.backgroundSync('Added operation to offline queue: ${operation.id}');
   }
 
   /// Process queued operations when back online
@@ -225,19 +210,13 @@ class OfflineQueue {
         await operation.execute();
         successCount++;
 
-        if (kDebugMode) {
-          debugPrint('✅ Processed queued operation: ${operation.id}');
-        }
+        AppLogger.backgroundSync('Processed queued operation: ${operation.id}');
       } catch (e) {
         failureCount++;
         // Re-queue failed operations
         _queue.add(operation);
 
-        if (kDebugMode) {
-          debugPrint(
-            '❌ Failed to process queued operation: ${operation.id} - $e',
-          );
-        }
+        AppLogger.backgroundSyncError('Failed to process queued operation: ${operation.id} - $e');
       }
     }
 
@@ -245,11 +224,7 @@ class OfflineQueue {
       failureCount == 0 ? QueueStatus.completed : QueueStatus.partialFailure,
     );
 
-    if (kDebugMode) {
-      debugPrint(
-        '📊 Queue processing completed: $successCount successful, $failureCount failed',
-      );
-    }
+    AppLogger.backgroundSync('Queue processing completed: $successCount successful, $failureCount failed');
   }
 
   /// Get queue statistics
@@ -362,13 +337,9 @@ class PredictiveCacheManager {
       try {
         await preloadFunction(resourceId);
 
-        if (kDebugMode) {
-          debugPrint('🔮 Preloaded recommended resource: $resourceId');
-        }
+        AppLogger.backgroundSync('Preloaded recommended resource: $resourceId');
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ Failed to preload resource: $resourceId - $e');
-        }
+        AppLogger.backgroundSyncError('Failed to preload resource: $resourceId - $e');
       }
     }
   }
@@ -394,8 +365,8 @@ class PredictiveCacheManager {
       });
     }
 
-    if (kDebugMode && toRemove.isNotEmpty) {
-      debugPrint('🧹 Cleaned up ${toRemove.length} old access patterns');
+    if (toRemove.isNotEmpty) {
+      AppLogger.backgroundSync('Cleaned up ${toRemove.length} old access patterns');
     }
   }
 }

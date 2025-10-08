@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'lib/utils/add_sample_states.dart';
+import 'lib/utils/app_logger.dart';
 
 void main() async {
-  debugPrint('🚀 Updating existing states with Marathi names...');
+  AppLogger.core('Updating existing states with Marathi names...');
   try {
     await SampleStatesManager.updateExistingStatesWithMarathiNames();
-    debugPrint('✅ States updated successfully!');
+    AppLogger.core('States updated successfully!');
   } catch (e) {
-    debugPrint('❌ Error updating states: $e');
+    AppLogger.coreError('Error updating states: $e');
   }
 }

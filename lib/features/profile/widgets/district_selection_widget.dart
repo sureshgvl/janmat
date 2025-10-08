@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../utils/maharashtra_utils.dart';
 import '../../../widgets/profile/district_selection_modal.dart';
@@ -79,10 +80,10 @@ class DistrictSelectionWidget extends StatelessWidget {
   }
 
   void _showDistrictSelectionModal(BuildContext context) {
-    debugPrint('🔍 Opening District Selection Modal');
-    debugPrint('📊 Available districts: ${controller.districts.length}');
-    debugPrint('🏢 District bodies: ${controller.districtBodies.length}');
-    debugPrint('🎯 Selected district: ${controller.selectedDistrictId}');
+    AppLogger.common('🔍 Opening District Selection Modal');
+    AppLogger.common('📊 Available districts: ${controller.districts.length}');
+    AppLogger.common('🏢 District bodies: ${controller.districtBodies.length}');
+    AppLogger.common('🎯 Selected district: ${controller.selectedDistrictId}');
 
     showModalBottomSheet(
       context: context,

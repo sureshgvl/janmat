@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import '../../../utils/app_logger.dart';
 
 class MediaService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -17,17 +18,17 @@ class MediaService {
     String contentType,
   ) async {
     try {
-      debugPrint('📤 MediaService: Starting upload for: $fileName');
+      AppLogger.chat('📤 MediaService: Starting upload for: $fileName');
 
       String finalFilePath = filePath;
 
       // Compress images before upload
       if (contentType.startsWith('image/')) {
-        debugPrint('🗜️ Compressing image before upload...');
+        AppLogger.chat('🗜️ Compressing image before upload...');
         final compressedPath = await compressImage(filePath);
         if (compressedPath != null && compressedPath != filePath) {
           finalFilePath = compressedPath;
-          debugPrint('✅ Using compressed image for upload');
+          AppLogger.chat('✅ Using compressed image for upload');
         }
       }
 
@@ -40,10 +41,10 @@ class MediaService {
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
-      debugPrint('✅ MediaService: Upload completed successfully');
+      AppLogger.chat('✅ MediaService: Upload completed successfully');
       return downloadUrl;
     } catch (e) {
-      debugPrint('❌ MediaService: Upload failed: $e');
+      AppLogger.chat('❌ MediaService: Upload failed: $e');
       throw Exception('Failed to upload media file: $e');
     }
   }
@@ -152,16 +153,16 @@ class MediaService {
     int maxHeight = 1080,
   }) async {
     try {
-      debugPrint('🗜️ MediaService: Starting image compression for: $filePath');
+      AppLogger.chat('🗜️ MediaService: Starting image compression for: $filePath');
 
       // Get original file size
       final originalFile = File(filePath);
       final originalSize = await originalFile.length();
-      debugPrint('📊 Original file size: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+      AppLogger.chat('📊 Original file size: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
 
       // Skip compression for very small files
       if (originalSize < 100 * 1024) { // Less than 100KB
-        debugPrint('⏭️ File too small for compression, skipping');
+        AppLogger.chat('⏭️ File too small for compression, skipping');
         return filePath;
       }
 
@@ -184,17 +185,17 @@ class MediaService {
       if (compressedFile != null) {
         final compressedSize = await compressedFile.length();
         final compressionRatio = ((originalSize - compressedSize) / originalSize * 100);
-        debugPrint('✅ Image compressed successfully');
-        debugPrint('📊 Compressed file size: ${(compressedSize / 1024 / 1024).toStringAsFixed(2)} MB');
-        debugPrint('📊 Compression ratio: ${compressionRatio.toStringAsFixed(1)}%');
+        AppLogger.chat('✅ Image compressed successfully');
+        AppLogger.chat('📊 Compressed file size: ${(compressedSize / 1024 / 1024).toStringAsFixed(2)} MB');
+        AppLogger.chat('📊 Compression ratio: ${compressionRatio.toStringAsFixed(1)}%');
 
         return compressedFile.path;
       } else {
-        debugPrint('⚠️ Image compression failed, using original file');
+        AppLogger.chat('⚠️ Image compression failed, using original file');
         return filePath;
       }
     } catch (e) {
-      debugPrint('❌ Error compressing image: $e');
+      AppLogger.chat('❌ Error compressing image: $e');
       // Return original file if compression fails
       return filePath;
     }

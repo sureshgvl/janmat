@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../utils/app_logger.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
 import '../../../models/user_model.dart';
@@ -41,7 +42,7 @@ class RoomController extends GetxController {
 
     if (cachedRooms != null && cachedRooms.isNotEmpty) {
       // Show cached data immediately
-      debugPrint('⚡ ROOM CONTROLLER: Showing ${cachedRooms.length} cached rooms immediately');
+      AppLogger.chat('⚡ ROOM CONTROLLER: Showing ${cachedRooms.length} cached rooms immediately');
       chatRooms.assignAll(cachedRooms);
       await _calculateUnreadCounts(userId, cachedRooms);
       _updateChatRoomDisplayInfos();
@@ -69,7 +70,7 @@ class RoomController extends GetxController {
 
         _updateChatRoomDisplayInfos();
       } catch (e) {
-        debugPrint('Error loading chat rooms: $e');
+        AppLogger.chat('Error loading chat rooms: $e');
       } finally {
         isLoading.value = false;
       }
@@ -88,7 +89,7 @@ class RoomController extends GetxController {
     String? area,
   }) async {
     try {
-      debugPrint('🔄 ROOM CONTROLLER: Loading fresh data in background...');
+      AppLogger.chat('🔄 ROOM CONTROLLER: Loading fresh data in background...');
       final freshRooms = await _repository.getChatRoomsForUser(
         userId,
         userRole,
@@ -102,15 +103,15 @@ class RoomController extends GetxController {
       // Only update if we got different data
       if (freshRooms.length != chatRooms.length ||
           !freshRooms.every((room) => chatRooms.any((cached) => cached.roomId == room.roomId))) {
-        debugPrint('🔄 ROOM CONTROLLER: Fresh data differs from cache, updating UI');
+        AppLogger.chat('🔄 ROOM CONTROLLER: Fresh data differs from cache, updating UI');
         chatRooms.assignAll(freshRooms);
         await _calculateUnreadCounts(userId, freshRooms);
         _updateChatRoomDisplayInfos();
       } else {
-        debugPrint('🔄 ROOM CONTROLLER: Fresh data matches cache, no UI update needed');
+        AppLogger.chat('🔄 ROOM CONTROLLER: Fresh data matches cache, no UI update needed');
       }
     } catch (e) {
-      debugPrint('Error loading fresh chat rooms in background: $e');
+      AppLogger.chat('Error loading fresh chat rooms in background: $e');
     }
   }
 
@@ -188,7 +189,7 @@ class RoomController extends GetxController {
           _lastMessageSenders[room.roomId] = messageData['senderId'] ?? '';
         }
       } catch (e) {
-        debugPrint('Error calculating unread count for room ${room.roomId}: $e');
+        AppLogger.chat('Error calculating unread count for room ${room.roomId}: $e');
         _unreadCounts[room.roomId] = 0;
       }
     }
@@ -207,7 +208,7 @@ class RoomController extends GetxController {
           final userInfo = await _getPrivateChatDisplayTitle(room.roomId);
           displayTitle = userInfo;
         } catch (e) {
-          debugPrint('Error getting private chat display title: $e');
+          AppLogger.chat('Error getting private chat display title: $e');
           displayTitle = 'Private Chat';
         }
       }
@@ -261,7 +262,7 @@ class RoomController extends GetxController {
       final userData = userDoc.data() as Map<String, dynamic>;
       return userData['name'] ?? 'Private Chat';
     } catch (e) {
-      debugPrint('Error getting private chat display title: $e');
+      AppLogger.chat('Error getting private chat display title: $e');
       return 'Private Chat';
     }
   }

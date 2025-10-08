@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../../../models/chat_model.dart';
 
 class ChatInitializer {
@@ -10,9 +11,9 @@ class ChatInitializer {
     try {
       await _createSampleWardRooms();
       await _createSampleCandidateRooms();
-      debugPrint('✅ Sample chat rooms initialized successfully');
+      AppLogger.chat('✅ Sample chat rooms initialized successfully');
     } catch (e) {
-      debugPrint('❌ Failed to initialize sample chat rooms: $e');
+      AppLogger.chat('❌ Failed to initialize sample chat rooms: $e');
     }
   }
 
@@ -107,12 +108,12 @@ class ChatInitializer {
 
       if (!doc.exists) {
         await docRef.set(chatRoom.toJson());
-        debugPrint('✅ Created chat room: ${chatRoom.roomId}');
+        AppLogger.chat('✅ Created chat room: ${chatRoom.roomId}');
       } else {
-        debugPrint('ℹ️ Chat room already exists: ${chatRoom.roomId}');
+        AppLogger.chat('ℹ️ Chat room already exists: ${chatRoom.roomId}');
       }
     } catch (e) {
-      debugPrint('❌ Failed to create room ${chatRoom.roomId}: $e');
+      AppLogger.chat('❌ Failed to create room ${chatRoom.roomId}: $e');
     }
   }
 
@@ -167,9 +168,9 @@ class ChatInitializer {
         );
       }
 
-      debugPrint('✅ Sample messages created successfully');
+      AppLogger.chat('✅ Sample messages created successfully');
     } catch (e) {
-      debugPrint('❌ Failed to create sample messages: $e');
+      AppLogger.chat('❌ Failed to create sample messages: $e');
     }
   }
 
@@ -185,10 +186,10 @@ class ChatInitializer {
 
       if (existingMessages.docs.isEmpty) {
         await messagesRef.doc(message.messageId).set(message.toJson());
-        debugPrint('✅ Created sample message in room: $roomId');
+        AppLogger.chat('✅ Created sample message in room: $roomId');
       }
     } catch (e) {
-      debugPrint('❌ Failed to create message in room $roomId: $e');
+      AppLogger.chat('❌ Failed to create message in room $roomId: $e');
     }
   }
 
@@ -196,7 +197,7 @@ class ChatInitializer {
   Future<void> initializeAll() async {
     await initializeSampleChatRooms();
     await createSampleMessages();
-    debugPrint('🎉 Chat system initialization complete!');
+    AppLogger.chat('🎉 Chat system initialization complete!');
   }
 }
 

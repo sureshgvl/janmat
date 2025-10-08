@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_data_controller.dart';
 import '../repositories/candidate_repository.dart';
+import '../../../utils/app_logger.dart';
 
 class EventCreationDialog extends StatefulWidget {
   final EventData? eventToEdit;
@@ -121,7 +122,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     });
 
     try {
-      debugPrint(
+      AppLogger.candidate(
         '🎪 Event Creation: Starting save process for candidateId: ${widget.candidateId}',
       );
 
@@ -148,23 +149,23 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
             {'interested': [], 'going': [], 'not_going': []},
       );
 
-      debugPrint(
+      AppLogger.candidate(
         '📝 Event Data Created: ${eventData.title} on ${eventData.date}',
       );
 
       // Ensure user document exists before proceeding
-      debugPrint('🔧 Ensuring user document exists for: ${widget.candidateId}');
+      AppLogger.candidate('🔧 Ensuring user document exists for: ${widget.candidateId}');
       await _candidateRepository.ensureUserDocumentExists(widget.candidateId);
 
       // Get current candidate data by candidateId
-      debugPrint(
+      AppLogger.candidate(
         '🔍 Getting candidate data for candidateId: ${widget.candidateId}',
       );
       final candidate = await _candidateRepository.getCandidateDataById(
         widget.candidateId,
       );
       if (candidate == null) {
-        debugPrint(
+        AppLogger.candidate(
           '❌ Candidate lookup failed for candidateId: ${widget.candidateId}',
         );
         throw Exception(
@@ -172,7 +173,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
         );
       }
 
-      debugPrint(
+      AppLogger.candidate(
         '✅ Found candidate: ${candidate.name} (ID: ${candidate.candidateId})',
       );
 

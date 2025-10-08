@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/app_logger.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -69,7 +70,7 @@ class ProfileCompletionController extends GetxController {
     super.onInit();
 
     // Location database service is ready to use (SQLite auto-initializes)
-    debugPrint('✅ Location database service ready in ProfileCompletionController');
+    AppLogger.common('✅ Location database service ready in ProfileCompletionController');
 
     // Get user data passed from main.dart
     final args = Get.arguments;
@@ -77,13 +78,13 @@ class ProfileCompletionController extends GetxController {
       passedUserData = args['userData'];
       profileCompleted = passedUserData?['profileCompleted'] ?? false;
 
-      debugPrint(
+      AppLogger.common(
         '📥 Received user data from main.dart: profileCompleted = $profileCompleted',
       );
 
       // If profile is already completed, navigate to home immediately
       if (profileCompleted) {
-        debugPrint(
+        AppLogger.common(
           '✅ Profile already completed (from passed data), navigating to home',
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -93,7 +94,7 @@ class ProfileCompletionController extends GetxController {
       }
     } else {
       // Fallback: fetch user data if not passed (for direct navigation)
-      debugPrint('⚠️ No user data passed, falling back to Firebase fetch');
+      AppLogger.common('⚠️ No user data passed, falling back to Firebase fetch');
       _checkProfileCompletion();
     }
 
@@ -132,18 +133,18 @@ class ProfileCompletionController extends GetxController {
         final userData = userDoc.data();
         final profileCompleted = userData?['profileCompleted'] ?? false;
 
-        if (profileCompleted) {
+      if (profileCompleted) {
           // Profile is already completed, navigate to home
-          debugPrint('✅ Profile already completed, navigating to home');
+          AppLogger.common('✅ Profile already completed, navigating to home');
           Get.offAllNamed('/home');
           return;
         }
       }
 
       // Profile not completed, continue with normal flow
-      debugPrint('📝 Profile not completed, showing completion screen');
+      AppLogger.common('📝 Profile not completed, showing completion screen');
     } catch (e) {
-      debugPrint('⚠️ Error checking profile completion: $e');
+      AppLogger.commonError('⚠️ Error checking profile completion', error: e);
       // Continue with normal flow if there's an error
     }
   }
@@ -182,15 +183,15 @@ class ProfileCompletionController extends GetxController {
       isPhonePreFilled = true;
     }
 
-    debugPrint('🔍 Pre-filled user data:');
-    debugPrint(
+    AppLogger.common('🔍 Pre-filled user data:');
+    AppLogger.common(
       '  Name: ${nameController.text} (${isNamePreFilled ? 'from auth' : 'manual'})',
     );
-    debugPrint(
+    AppLogger.common(
       '  Phone: ${phoneController.text} (${isPhonePreFilled ? 'from auth' : 'manual'})',
     );
-    debugPrint('  Email: ${currentUser.email}');
-    debugPrint('  Photo: ${currentUser.photoURL}');
+    AppLogger.common('  Email: ${currentUser.email}');
+    AppLogger.common('  Photo: ${currentUser.photoURL}');
 
     // Trigger rebuild to show helper text
     update();
@@ -198,20 +199,20 @@ class ProfileCompletionController extends GetxController {
 
   Future<void> loadStates() async {
     try {
-      debugPrint('🔍 Loading states from Firestore');
+      AppLogger.common('🔍 Loading states from Firestore');
 
       // Load states from Firestore
       final statesSnapshot = await FirebaseFirestore.instance
           .collection('states')
           .get();
 
-      debugPrint(
+      AppLogger.common(
         '📊 Found ${statesSnapshot.docs.length} states in Firestore',
       );
 
       // If no states found, add sample states
       if (statesSnapshot.docs.isEmpty) {
-        debugPrint('⚠️ No states found in database, adding sample states...');
+        AppLogger.commonError('⚠️ No states found in database, adding sample states');
         try {
           await SampleStatesManager.addSampleStates();
           await SampleStatesManager.addSampleDistrictsForMaharashtra();
@@ -223,34 +224,34 @@ class ProfileCompletionController extends GetxController {
 
           states = updatedSnapshot.docs.map((doc) {
             final data = doc.data();
-            debugPrint('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'}');
+            AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'}');
             return state_model.State.fromJson({'id': doc.id, ...data});
           }).toList();
 
-          debugPrint('✅ Sample states added and loaded successfully');
+          AppLogger.common('✅ Sample states added and loaded successfully');
         } catch (e) {
-          debugPrint('❌ Failed to add sample states: $e');
+          AppLogger.commonError('❌ Failed to add sample states', error: e);
           // Continue with empty states list
           states = [];
         }
       } else {
         states = statesSnapshot.docs.map((doc) {
           final data = doc.data();
-          debugPrint('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']}');
+          AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']}');
           return state_model.State.fromJson({'id': doc.id, ...data});
         }).toList();
 
         // 🚀 OPTIMIZED: Cache states directly from fetched data (no redundant Firebase call)
-        debugPrint('🌍 [Profile] Caching ${states.length} states in SQLite during profile completion');
+        AppLogger.common('🌍 [Profile] Caching ${states.length} states in SQLite during profile completion');
         try {
           await _locationDatabase.insertDistricts(states.map((state) => District(
             id: state.id,
             name: state.name,
             stateId: state.id, // States are stored as districts with stateId = id
           )).toList());
-          debugPrint('✅ [Profile] States cached successfully in SQLite');
+          AppLogger.common('✅ [Profile] States cached successfully in SQLite');
         } catch (e) {
-          debugPrint('❌ [Profile] Failed to cache states: $e');
+          AppLogger.commonError('❌ [Profile] Failed to cache states', error: e);
         }
       }
 
@@ -262,22 +263,22 @@ class ProfileCompletionController extends GetxController {
 
       if (defaultState.id.isNotEmpty) {
         selectedStateId = defaultState.id;
-        debugPrint('✅ Default state set to: ${defaultState.name} (ID: ${defaultState.id})');
+        AppLogger.common('✅ Default state set to: ${defaultState.name} (ID: ${defaultState.id})');
 
         // Automatically load districts for the default state
         WidgetsBinding.instance.addPostFrameCallback((_) {
           loadDistrictsForState(defaultState.id);
         });
       } else {
-        debugPrint('⚠️ No states available to set as default');
+        AppLogger.commonError('⚠️ No states available to set as default');
       }
 
       isLoadingStates = false;
       update();
 
-      debugPrint('✅ Successfully loaded ${states.length} states');
+      AppLogger.common('✅ Successfully loaded ${states.length} states');
     } catch (e) {
-      debugPrint('❌ Failed to load states: $e');
+      AppLogger.commonError('❌ Failed to load states', error: e);
       Get.snackbar('Error', 'Failed to load states: $e'); // TODO: Localize this
       isLoadingStates = false;
       update();
@@ -291,7 +292,7 @@ class ProfileCompletionController extends GetxController {
 
     while (retryCount < maxRetries) {
       try {
-        debugPrint('🔍 Loading districts for state: $stateId (attempt ${retryCount + 1})');
+        AppLogger.common('🔍 Loading districts for state: $stateId (attempt ${retryCount + 1})');
 
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('states')
@@ -299,7 +300,7 @@ class ProfileCompletionController extends GetxController {
             .collection('districts')
             .get();
 
-        debugPrint('📊 Found ${districtsSnapshot.docs.length} districts in state $stateId');
+        AppLogger.common('📊 Found ${districtsSnapshot.docs.length} districts in state $stateId');
 
         // Clear previous data
         districts.clear();
@@ -307,17 +308,17 @@ class ProfileCompletionController extends GetxController {
 
         districts = districtsSnapshot.docs.map((doc) {
           final data = doc.data();
-          debugPrint('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
+          AppLogger.common('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
           return District.fromJson({'id': doc.id, 'stateId': stateId, ...data});
         }).toList();
 
         // 🚀 OPTIMIZED: Cache districts directly from fetched data (no redundant Firebase call)
-        debugPrint('🏙️ [Profile] Caching ${districts.length} districts in SQLite for state: $stateId');
+        AppLogger.common('🏙️ [Profile] Caching ${districts.length} districts in SQLite for state: $stateId');
         try {
           await _locationDatabase.insertDistricts(districts);
-          debugPrint('✅ [Profile] Districts cached successfully in SQLite');
+          AppLogger.common('✅ [Profile] Districts cached successfully in SQLite');
         } catch (e) {
-          debugPrint('❌ [Profile] Failed to cache districts: $e');
+          AppLogger.commonError('❌ [Profile] Failed to cache districts', error: e);
         }
 
         // Load bodies only for the selected state
@@ -326,17 +327,17 @@ class ProfileCompletionController extends GetxController {
         isLoadingDistricts = false;
         update();
 
-        debugPrint('✅ Successfully loaded ${districts.length} districts for state $stateId');
+        AppLogger.common('✅ Successfully loaded ${districts.length} districts for state $stateId');
         return;
       } catch (e) {
         retryCount++;
-        debugPrint('❌ Failed to load districts for state $stateId (attempt $retryCount): $e');
+        AppLogger.commonError('❌ Failed to load districts for state $stateId (attempt $retryCount)', error: e);
 
         if (retryCount < maxRetries) {
-          debugPrint('🔄 Retrying in ${retryCount * 2} seconds...');
+          AppLogger.common('🔄 Retrying in ${retryCount * 2} seconds...');
           await Future.delayed(Duration(seconds: retryCount * 2));
         } else {
-          debugPrint('❌ All retry attempts failed for loading districts');
+          AppLogger.commonError('❌ All retry attempts failed for loading districts');
           Get.snackbar('Error', 'Failed to load districts after $maxRetries attempts: $e');
           isLoadingDistricts = false;
           update();
@@ -357,7 +358,7 @@ class ProfileCompletionController extends GetxController {
             .collection('bodies')
             .get();
 
-        debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.id}');
+        AppLogger.common('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.id}');
 
         districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
           final data = doc.data();
@@ -370,15 +371,15 @@ class ProfileCompletionController extends GetxController {
         }).toList();
 
         // 🚀 OPTIMIZED: Cache bodies directly from fetched data (no redundant Firebase call)
-        debugPrint('🏛️ [Profile] Caching ${districtBodies[district.id]!.length} bodies in SQLite for district: ${district.id}');
+        AppLogger.common('🏛️ [Profile] Caching ${districtBodies[district.id]!.length} bodies in SQLite for district: ${district.id}');
         try {
           await _locationDatabase.insertBodies(districtBodies[district.id]!);
-          debugPrint('✅ [Profile] Bodies cached successfully in SQLite');
+          AppLogger.common('✅ [Profile] Bodies cached successfully in SQLite');
         } catch (e) {
-          debugPrint('❌ [Profile] Failed to cache bodies for district ${district.id}: $e');
+          AppLogger.commonError('❌ [Profile] Failed to cache bodies for district ${district.id}', error: e);
         }
       } catch (e) {
-        debugPrint('❌ Failed to load bodies for district ${district.id}: $e');
+        AppLogger.commonError('❌ Failed to load bodies for district ${district.id}', error: e);
         districtBodies[district.id] = []; // Set empty list on error
       }
     }
@@ -387,7 +388,7 @@ class ProfileCompletionController extends GetxController {
   // Optimized: Load bodies only for selected district
   Future<void> loadBodiesForDistrict(String districtId) async {
     try {
-      debugPrint('🔍 Loading bodies for district: $districtId');
+      AppLogger.common('🔍 Loading bodies for district: $districtId');
 
       // Clear previous bodies and wards for this district
       districtBodies.remove(districtId);
@@ -401,11 +402,11 @@ class ProfileCompletionController extends GetxController {
           .collection('bodies')
           .get();
 
-      debugPrint('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
+      AppLogger.common('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
 
       districtBodies[districtId] = bodiesSnapshot.docs.map((doc) {
         final data = doc.data();
-        debugPrint('🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})');
+        AppLogger.common('🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})');
         return Body.fromJson({
           'id': doc.id,
           'districtId': districtId,
@@ -415,9 +416,9 @@ class ProfileCompletionController extends GetxController {
       }).toList();
 
       update();
-      debugPrint('✅ Successfully loaded ${districtBodies[districtId]!.length} bodies for district $districtId');
+      AppLogger.common('✅ Successfully loaded ${districtBodies[districtId]!.length} bodies for district $districtId');
     } catch (e) {
-      debugPrint('❌ Failed to load bodies for district $districtId: $e');
+      AppLogger.commonError('❌ Failed to load bodies for district $districtId', error: e);
       Get.snackbar('Error', 'Failed to load bodies: $e');
     }
   }
@@ -425,7 +426,7 @@ class ProfileCompletionController extends GetxController {
   // Optimized: Load wards only for selected body
   Future<void> loadWardsForBody(String districtId, String bodyId) async {
     try {
-      debugPrint('🔍 [PROFILE_CONTROLLER] Loading wards for body: $bodyId in district: $districtId');
+      AppLogger.common('🔍 [PROFILE_CONTROLLER] Loading wards for body: $bodyId in district: $districtId');
 
       // Clear previous wards for this body
       bodyWards.remove(bodyId);
@@ -440,11 +441,11 @@ class ProfileCompletionController extends GetxController {
           .collection('wards')
           .get();
 
-      debugPrint('📊 Found ${wardsSnapshot.docs.length} wards in body $bodyId');
+      AppLogger.common('📊 Found ${wardsSnapshot.docs.length} wards in body $bodyId');
 
       // Debug: Print ward IDs
       for (final doc in wardsSnapshot.docs) {
-        debugPrint('   Ward: ${doc.id} - ${doc.data()['name'] ?? 'No name'}');
+        AppLogger.common('   Ward: ${doc.id} - ${doc.data()['name'] ?? 'No name'}');
       }
 
       bodyWards[bodyId] = wardsSnapshot.docs.map((doc) {
@@ -459,18 +460,18 @@ class ProfileCompletionController extends GetxController {
       }).toList();
 
       // 🚀 OPTIMIZED: Cache wards directly from fetched data (no redundant Firebase call)
-      debugPrint('🏛️ [Profile] Caching ${bodyWards[bodyId]!.length} wards in SQLite for $districtId/$bodyId');
+      AppLogger.common('🏛️ [Profile] Caching ${bodyWards[bodyId]!.length} wards in SQLite for $districtId/$bodyId');
       try {
         await _locationDatabase.insertWards(bodyWards[bodyId]!);
-        debugPrint('✅ [Profile] Wards cached successfully in SQLite');
+        AppLogger.common('✅ [Profile] Wards cached successfully in SQLite');
       } catch (e) {
-        debugPrint('❌ [Profile] Failed to cache wards for $districtId/$bodyId: $e');
+        AppLogger.commonError('❌ [Profile] Failed to cache wards for $districtId/$bodyId', error: e);
       }
 
       update();
-      debugPrint('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');
+      AppLogger.common('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');
     } catch (e) {
-      debugPrint('❌ Failed to load wards for body $bodyId: $e');
+      AppLogger.commonError('❌ Failed to load wards for body $bodyId', error: e);
       Get.snackbar('Error', 'Failed to load wards: $e');
     }
   }
@@ -488,7 +489,7 @@ class ProfileCompletionController extends GetxController {
       currentUserRole = userDoc.data()?['role'] ?? 'voter';
       update();
     } catch (e) {
-      debugPrint('Error loading user role: $e');
+      AppLogger.commonError('Error loading user role', error: e);
       currentUserRole = 'voter';
       update();
     }
@@ -550,7 +551,7 @@ class ProfileCompletionController extends GetxController {
   }
 
   void onDistrictSelected(String districtId) {
-    debugPrint('🎯 District selected: $districtId');
+    AppLogger.common('🎯 District selected: $districtId');
     selectedDistrictId = districtId;
     selectedBodyId = null;
     selectedWard = null;
@@ -563,7 +564,7 @@ class ProfileCompletionController extends GetxController {
     selectedPSArea = null;
 
     bodyWards.clear();
-    debugPrint('🔄 Cleared body and ward selections');
+    AppLogger.common('🔄 Cleared body and ward selections');
 
     // Load bodies only for the selected district
     loadBodiesForDistrict(districtId);
@@ -571,7 +572,7 @@ class ProfileCompletionController extends GetxController {
   }
 
   void onBodySelected(String bodyId) {
-    debugPrint('🎯 [PROFILE_CONTROLLER] Body selected: $bodyId for district: $selectedDistrictId');
+    AppLogger.common('🎯 [PROFILE_CONTROLLER] Body selected: $bodyId for district: $selectedDistrictId');
     selectedBodyId = bodyId;
     selectedWard = null;
     bodyWards.clear();
@@ -995,11 +996,11 @@ class ProfileCompletionController extends GetxController {
       // Refresh chat controller with new user data (creates ward rooms only for candidates)
       try {
         await chatController.refreshUserDataAndChat();
-        debugPrint(
+        AppLogger.common(
           '✅ Chat data refreshed successfully for user: ${currentUser.uid}',
         );
       } catch (e) {
-        debugPrint('⚠️ Failed to refresh chat data, but profile saved: $e');
+        AppLogger.commonError('⚠️ Failed to refresh chat data, but profile saved', error: e);
         // Don't fail the entire process if chat refresh fails
       }
 
@@ -1051,13 +1052,13 @@ class ProfileCompletionController extends GetxController {
           );
 
           // Save basic candidate record to make them visible to voters
-          debugPrint(
+          AppLogger.common(
             '🏗️ Profile Completion: Creating candidate record for ${candidate.name}',
           );
-          debugPrint(
+          AppLogger.common(
             '   District: ${candidate.districtId}, Body: ${candidate.bodyId}, Ward: ${candidate.wardId}',
           );
-          debugPrint('   Temp ID: ${candidate.candidateId}');
+          AppLogger.common('   Temp ID: ${candidate.candidateId}');
           //create candidate and get actual ID
           final actualCandidateId = await candidateRepository.createCandidate(
             candidate,
@@ -1069,7 +1070,7 @@ class ProfileCompletionController extends GetxController {
             actualCandidateId,
             candidate.name,
           );
-          debugPrint(
+          AppLogger.common(
             '✅ Basic candidate record created with ID: $actualCandidateId',
           );
 
@@ -1078,24 +1079,24 @@ class ProfileCompletionController extends GetxController {
               .collection('users')
               .doc(currentUser.uid)
               .update({'candidateId': actualCandidateId});
-          debugPrint(
+          AppLogger.common(
             '✅ User document updated with candidateId: $actualCandidateId',
           );
 
           // Send notification to constituency voters about new candidate
           try {
-            debugPrint('📢 Sending new candidate notification to constituency voters...');
+            AppLogger.common('📢 Sending new candidate notification to constituency voters...');
             final constituencyNotifications = ConstituencyNotifications();
             await constituencyNotifications.sendCandidateProfileCreatedNotification(
               candidateId: actualCandidateId,
             );
-            debugPrint('✅ New candidate notification sent successfully');
+            AppLogger.common('✅ New candidate notification sent successfully');
           } catch (e) {
-            debugPrint('⚠️ Failed to send new candidate notification: $e');
+            AppLogger.commonError('⚠️ Failed to send new candidate notification', error: e);
             // Don't fail the entire profile completion if notification fails
           }
         } catch (e) {
-          debugPrint('⚠️ Failed to create basic candidate record: $e');
+          AppLogger.commonError('⚠️ Failed to create basic candidate record', error: e);
           // Continue with navigation even if candidate creation fails
         }
       }
@@ -1127,4 +1128,3 @@ class ProfileCompletionController extends GetxController {
     update();
   }
 }
-

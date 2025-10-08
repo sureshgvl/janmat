@@ -11,6 +11,8 @@ import '../../../services/file_upload_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 import '../../../services/notifications/campaign_milestones_notifications.dart';
 import '../../../utils/symbol_utils.dart';
+import '../../../utils/app_logger.dart';
+import '../../chat/controllers/chat_controller.dart';
 
 class CandidateDataController extends GetxController {
   final CandidateRepository _candidateRepository = CandidateRepository();
@@ -43,7 +45,7 @@ class CandidateDataController extends GetxController {
     // Refresh data when coming back to the dashboard
     ever(candidateData, (_) {
       // This will trigger when candidateData changes
-      debugPrint('Candidate data updated, refreshing UI');
+      AppLogger.database('Candidate data updated, refreshing UI', tag: 'CANDIDATE_CONTROLLER');
     });
   }
 
@@ -60,7 +62,7 @@ class CandidateDataController extends GetxController {
           .get();
 
       if (!userDoc.exists) {
-        debugPrint('⏭️ User document not found, skipping candidate data fetch');
+        AppLogger.database('User document not found, skipping candidate data fetch', tag: 'CANDIDATE_CONTROLLER');
         return;
       }
 
@@ -70,12 +72,12 @@ class CandidateDataController extends GetxController {
 
       // Only fetch candidate data for candidates, not voters
       if (userRole != 'candidate') {
-        debugPrint('⏭️ User is not a candidate (role: $userRole), skipping candidate data fetch');
+        AppLogger.database('User is not a candidate (role: $userRole), skipping candidate data fetch', tag: 'CANDIDATE_CONTROLLER');
         return;
       }
 
       if (!profileCompleted) {
-        debugPrint('⏭️ Profile not completed, skipping candidate data fetch');
+        AppLogger.database('Profile not completed, skipping candidate data fetch', tag: 'CANDIDATE_CONTROLLER');
         return;
       }
 
@@ -89,13 +91,13 @@ class CandidateDataController extends GetxController {
         final isInTrial = await _trialService.isTrialActive(user.uid);
         isPaid.value = isSponsored || isInTrial;
 
-        debugPrint('🎯 Candidate access check:');
-        debugPrint('   Sponsored: $isSponsored');
-        debugPrint('   In Trial: $isInTrial');
-        debugPrint('   Has Access: ${isPaid.value}');
+        AppLogger.database('Candidate access check:', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Sponsored: $isSponsored', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  In Trial: $isInTrial', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Has Access: ${isPaid.value}', tag: 'CANDIDATE_CONTROLLER');
       }
     } catch (e) {
-      debugPrint('Error fetching candidate data: $e');
+      AppLogger.databaseError('Error fetching candidate data', tag: 'CANDIDATE_CONTROLLER', error: e);
     } finally {
       isLoading.value = false;
     }
@@ -474,17 +476,17 @@ class CandidateDataController extends GetxController {
         editedData.value!,
       );
       if (!success) {
-        debugPrint('Warning: Failed to save photo URL to Firebase');
+        AppLogger.database('Warning: Failed to save photo URL to Firebase', tag: 'CANDIDATE_CONTROLLER');
       }
     } catch (e) {
-      debugPrint('Error saving photo URL: $e');
+      AppLogger.databaseError('Error saving photo URL', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 
   void updateBasicInfo(String field, dynamic value) {
     if (editedData.value == null) return;
 
-    debugPrint('🎯 updateBasicInfo called: field=$field, value=$value');
+    AppLogger.database('updateBasicInfo called: field=$field, value=$value', tag: 'CANDIDATE_CONTROLLER');
 
     switch (field) {
       case 'name':
@@ -517,7 +519,7 @@ class CandidateDataController extends GetxController {
       case 'address':
       case 'date_of_birth':
         // Track the change for field-level updates
-        debugPrint('   Tracking field change: $field = $value');
+        AppLogger.database('Tracking field change: $field = $value', tag: 'CANDIDATE_CONTROLLER');
         trackExtraInfoFieldChange(field, value);
         updateExtraInfo(field, value);
         break;
@@ -530,7 +532,7 @@ class CandidateDataController extends GetxController {
     try {
       bool success = false;
 
-      debugPrint('💾 saveExtraInfo - Changed fields: $_changedExtraInfoFields');
+      AppLogger.database('saveExtraInfo - Changed fields: $_changedExtraInfoFields', tag: 'CANDIDATE_CONTROLLER');
 
       // First, upload any local photos to Firebase
       onProgress?.call('Uploading photos to cloud...');
@@ -541,7 +543,7 @@ class CandidateDataController extends GetxController {
 
       // Use field-level updates for better performance
       if (_changedExtraInfoFields.isNotEmpty) {
-        debugPrint('   Using field-level updates');
+        AppLogger.database('Using field-level updates', tag: 'CANDIDATE_CONTROLLER');
         onProgress?.call('Saving data...');
         success = await _candidateRepository.updateCandidateExtraInfoFields(
           editedData.value!.candidateId,
@@ -551,7 +553,7 @@ class CandidateDataController extends GetxController {
 
       // Fallback to full update if no field-level changes tracked
       if (!success && _changedExtraInfoFields.isEmpty) {
-        debugPrint('   Using full update');
+        AppLogger.database('Using full update', tag: 'CANDIDATE_CONTROLLER');
         onProgress?.call('Saving data...');
         success = await _candidateRepository.updateCandidateExtraInfo(
           editedData.value!,
@@ -559,7 +561,7 @@ class CandidateDataController extends GetxController {
       }
 
       if (success) {
-        debugPrint('   Save successful, updating candidateData');
+        AppLogger.database('Save successful, updating candidateData', tag: 'CANDIDATE_CONTROLLER');
         onProgress?.call('Basic info saved successfully!');
         candidateData.value = editedData.value;
         clearChangeTracking(); // Clear tracking after successful save
@@ -581,7 +583,7 @@ class CandidateDataController extends GetxController {
 
       return success;
     } catch (e) {
-      debugPrint('Error saving extra info: $e');
+      AppLogger.databaseError('Error saving extra info', tag: 'CANDIDATE_CONTROLLER', error: e);
       return false;
     }
   }
@@ -598,13 +600,13 @@ class CandidateDataController extends GetxController {
       // Check if name was changed
       if (candidate.name != candidateData.value?.name) {
         userUpdates['name'] = candidate.name;
-        debugPrint('📝 Updating user name: ${candidate.name}');
+        AppLogger.database('Updating user name: ${candidate.name}', tag: 'CANDIDATE_CONTROLLER');
       }
 
       // Check if photo was changed
       if (candidate.photo != candidateData.value?.photo) {
         userUpdates['photo'] = candidate.photo;
-        debugPrint('📷 Updating user photo: ${candidate.photo}');
+        AppLogger.database('Updating user photo: ${candidate.photo}', tag: 'CANDIDATE_CONTROLLER');
       }
 
       // Update user document if there are changes
@@ -615,12 +617,22 @@ class CandidateDataController extends GetxController {
             .doc(user.uid)
             .update(userUpdates);
 
-        debugPrint('✅ User document updated with: ${userUpdates.keys.join(', ')}');
+        AppLogger.database('User document updated with: ${userUpdates.keys.join(', ')}', tag: 'CANDIDATE_CONTROLLER');
+
+        // Invalidate cached user data in ChatController and other controllers
+        try {
+          final chatController = Get.find<ChatController>();
+          chatController.invalidateUserCache(user.uid);
+          AppLogger.database('Invalidated user cache after profile update', tag: 'CANDIDATE_CONTROLLER');
+        } catch (e) {
+          AppLogger.database('Could not invalidate chat controller cache: $e', tag: 'CANDIDATE_CONTROLLER');
+        }
+
         return true; // Indicate that user document was updated
       }
       return false; // No updates made
     } catch (e) {
-      debugPrint('❌ Error updating user document: $e');
+      AppLogger.databaseError('Error updating user document', tag: 'CANDIDATE_CONTROLLER', error: e);
       // Don't throw - allow candidate data to still be saved
       return false;
     }
@@ -638,8 +650,9 @@ class CandidateDataController extends GetxController {
         final achievement = achievements[i];
         if (achievement.photoUrl != null &&
             fileUploadService.isLocalPath(achievement.photoUrl!)) {
-          debugPrint(
-            '📤 Uploading local photo for achievement: ${achievement.title}',
+          AppLogger.database(
+            'Uploading local photo for achievement: ${achievement.title}',
+            tag: 'CANDIDATE_CONTROLLER',
           );
 
           try {
@@ -661,12 +674,13 @@ class CandidateDataController extends GetxController {
                 }
               }
 
-              debugPrint(
-                '✅ Successfully uploaded photo for: ${achievement.title}',
+              AppLogger.database(
+                'Successfully uploaded photo for: ${achievement.title}',
+                tag: 'CANDIDATE_CONTROLLER',
               );
             }
           } catch (e) {
-            debugPrint('❌ Failed to upload photo for ${achievement.title}: $e');
+            AppLogger.databaseError('Failed to upload photo for ${achievement.title}', tag: 'CANDIDATE_CONTROLLER', error: e);
             // Continue with other photos even if one fails
           }
         }
@@ -681,7 +695,7 @@ class CandidateDataController extends GetxController {
         );
       }
     } catch (e) {
-      debugPrint('❌ Error uploading local photos: $e');
+      AppLogger.databaseError('Error uploading local photos', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 
@@ -710,12 +724,12 @@ class CandidateDataController extends GetxController {
       final isInTrial = await _trialService.isTrialActive(user.uid);
       isPaid.value = isSponsored || isInTrial;
 
-      debugPrint('🔄 Refreshed access status:');
-      debugPrint('   Sponsored: $isSponsored');
-      debugPrint('   In Trial: $isInTrial');
-      debugPrint('   Has Access: ${isPaid.value}');
+      AppLogger.database('Refreshed access status:', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Sponsored: $isSponsored', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  In Trial: $isInTrial', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Has Access: ${isPaid.value}', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
-      debugPrint('Error refreshing access status: $e');
+      AppLogger.databaseError('Error refreshing access status', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 
@@ -725,7 +739,7 @@ class CandidateDataController extends GetxController {
   Future<void> fetchEvents({bool forceRefresh = false}) async {
     final candidate = candidateData.value;
     if (candidate == null) {
-      debugPrint('🎪 No candidate data available, clearing events');
+      AppLogger.database('No candidate data available, clearing events', tag: 'CANDIDATE_CONTROLLER');
       events.clear();
       eventsLastFetched.value = null;
       isEventsLoading.value = false;
@@ -738,13 +752,13 @@ class CandidateDataController extends GetxController {
         events.isNotEmpty &&
         DateTime.now().difference(eventsLastFetched.value!) <
             const Duration(minutes: 5)) {
-      debugPrint('🎪 Using cached events data');
+      AppLogger.database('Using cached events data', tag: 'CANDIDATE_CONTROLLER');
       return;
     }
 
     isEventsLoading.value = true;
     try {
-      debugPrint('🎪 Fetching events for candidate: ${candidate.candidateId}');
+      AppLogger.database('Fetching events for candidate: ${candidate.candidateId}', tag: 'CANDIDATE_CONTROLLER');
       final fetchedEvents = await _eventRepository.getCandidateEvents(
         candidate.candidateId,
       );
@@ -752,9 +766,9 @@ class CandidateDataController extends GetxController {
       events.assignAll(fetchedEvents);
       eventsLastFetched.value = DateTime.now();
 
-      debugPrint('🎪 Successfully loaded ${fetchedEvents.length} events');
+      AppLogger.database('Successfully loaded ${fetchedEvents.length} events', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
-      debugPrint('❌ Error fetching events: $e');
+      AppLogger.databaseError('Error fetching events', tag: 'CANDIDATE_CONTROLLER', error: e);
       // Clear events on error to show empty state
       events.clear();
       eventsLastFetched.value = null;
@@ -803,7 +817,7 @@ class CandidateDataController extends GetxController {
       final bodyId = candidate.bodyId ?? 'unknown';
       final wardId = candidate.wardId ?? 'unknown';
 
-      debugPrint('🏷️ Syncing banner to highlights collection for ${candidate.name}');
+      AppLogger.database('Syncing banner to highlights collection for ${candidate.name}', tag: 'CANDIDATE_CONTROLLER');
 
       // Check if highlight already exists
       final existingHighlights = await FirebaseFirestore.instance
@@ -819,7 +833,7 @@ class CandidateDataController extends GetxController {
       if (existingHighlights.docs.isNotEmpty) {
         // Update existing highlight
         highlightId = existingHighlights.docs.first.id;
-        debugPrint('🔄 Updating existing highlight: $highlightId');
+        AppLogger.database('Updating existing highlight: $highlightId', tag: 'CANDIDATE_CONTROLLER');
 
         await FirebaseFirestore.instance
             .collection('highlights')
@@ -839,7 +853,7 @@ class CandidateDataController extends GetxController {
       } else if (highlightData.enabled) {
         // Create new highlight
         highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
-        debugPrint('➕ Creating new highlight: $highlightId');
+        AppLogger.database('Creating new highlight: $highlightId', tag: 'CANDIDATE_CONTROLLER');
 
         final highlight = {
           'highlightId': highlightId,
@@ -877,11 +891,11 @@ class CandidateDataController extends GetxController {
       }
 
       if (highlightId != null) {
-        debugPrint('✅ Banner synced to highlights collection: $highlightId');
-        debugPrint('   Style: ${config['bannerStyle']}, Priority: ${config['priorityLevel']}');
+        AppLogger.database('Banner synced to highlights collection: $highlightId', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Style: ${config['bannerStyle']}, Priority: ${config['priorityLevel']}', tag: 'CANDIDATE_CONTROLLER');
       }
     } catch (e) {
-      debugPrint('❌ Error syncing banner to highlights collection: $e');
+      AppLogger.databaseError('Error syncing banner to highlights collection', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 
@@ -902,7 +916,7 @@ class CandidateDataController extends GetxController {
   /// Refresh highlight banner when candidate profile is updated
   void _refreshHighlightBanner() {
     try {
-      debugPrint('🔄 [CandidateController] Triggering highlight banner refresh');
+      AppLogger.database('Triggering highlight banner refresh', tag: 'CANDIDATE_CONTROLLER');
 
       // Since we can't directly access the banner widget, we'll use a simple approach:
       // The banner will refresh itself on next location change or we can implement
@@ -914,9 +928,9 @@ class CandidateDataController extends GetxController {
       // 2. A global key to call refresh directly
       // 3. Provider/Bloc pattern for state management
 
-      debugPrint('✅ Highlight banner refresh requested - banner will reload on next location change');
+      AppLogger.database('Highlight banner refresh requested - banner will reload on next location change', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
-      debugPrint('❌ Error refreshing highlight banner: $e');
+      AppLogger.databaseError('Error refreshing highlight banner', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 
@@ -926,7 +940,7 @@ class CandidateDataController extends GetxController {
       if (candidateData.value == null) return;
 
       final candidate = candidateData.value!;
-      debugPrint('📢 [ProfileUpdate] Checking for profile update notifications...');
+      AppLogger.database('Checking for profile update notifications...', tag: 'CANDIDATE_CONTROLLER');
 
       // Determine what type of update occurred
       String updateType = 'profile';
@@ -953,7 +967,7 @@ class CandidateDataController extends GetxController {
         updateDescription = 'updated their achievements';
       }
 
-      debugPrint('📢 [ProfileUpdate] Sending notification: $updateType - $updateDescription');
+      AppLogger.database('Sending notification: $updateType - $updateDescription', tag: 'CANDIDATE_CONTROLLER');
 
       // Send constituency notification
       final constituencyNotifications = ConstituencyNotifications();
@@ -963,9 +977,9 @@ class CandidateDataController extends GetxController {
         updateDescription: updateDescription,
       );
 
-      debugPrint('✅ [ProfileUpdate] Profile update notification sent successfully');
+      AppLogger.database('Profile update notification sent successfully', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
-      debugPrint('❌ [ProfileUpdate] Error sending profile update notification: $e');
+      AppLogger.databaseError('Error sending profile update notification', tag: 'CANDIDATE_CONTROLLER', error: e);
       // Don't throw - profile save should succeed even if notification fails
     }
   }
@@ -1004,9 +1018,9 @@ class CandidateDataController extends GetxController {
         }
       }
 
-      debugPrint('✅ [CampaignMilestones] Milestone checks completed');
+      AppLogger.database('Milestone checks completed', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
-      debugPrint('❌ [CampaignMilestones] Error checking milestones: $e');
+      AppLogger.databaseError('Error checking milestones', tag: 'CANDIDATE_CONTROLLER', error: e);
       // Don't throw - milestone checks shouldn't block profile saves
     }
   }
@@ -1018,17 +1032,17 @@ class CandidateDataController extends GetxController {
 
       // Check if manifesto was actually changed
       if (!_changedExtraInfoFields.containsKey('manifesto')) {
-        debugPrint('📜 [ManifestoUpdate] No manifesto changes detected, skipping notification');
+        AppLogger.database('No manifesto changes detected, skipping notification', tag: 'CANDIDATE_CONTROLLER');
         return;
       }
 
       final candidate = candidateData.value!;
-      debugPrint('📜 [ManifestoUpdate] Manifesto changes detected, sending notification...');
+      AppLogger.database('Manifesto changes detected, sending notification...', tag: 'CANDIDATE_CONTROLLER');
 
       // Get manifesto details from the changed data
       final manifestoData = _changedExtraInfoFields['manifesto'];
       if (manifestoData is! Map<String, dynamic>) {
-        debugPrint('📜 [ManifestoUpdate] Invalid manifesto data format, skipping notification');
+        AppLogger.database('Invalid manifesto data format, skipping notification', tag: 'CANDIDATE_CONTROLLER');
         return;
       }
 
@@ -1041,10 +1055,10 @@ class CandidateDataController extends GetxController {
       final originalManifesto = candidateData.value?.extraInfo?.manifesto;
       if (originalManifesto == null || originalManifesto.title == null || originalManifesto.title!.isEmpty) {
         updateType = 'new';
-        debugPrint('📜 [ManifestoUpdate] Detected new manifesto creation');
+        AppLogger.database('Detected new manifesto creation', tag: 'CANDIDATE_CONTROLLER');
       } else {
         updateType = 'update';
-        debugPrint('📜 [ManifestoUpdate] Detected manifesto update');
+        AppLogger.database('Detected manifesto update', tag: 'CANDIDATE_CONTROLLER');
       }
 
       // Get description from promises if available
@@ -1053,10 +1067,10 @@ class CandidateDataController extends GetxController {
         manifestoDescription = '${promises.length} key promises';
       }
 
-      debugPrint('📜 [ManifestoUpdate] Sending manifesto notification:');
-      debugPrint('   - Type: $updateType');
-      debugPrint('   - Title: $manifestoTitle');
-      debugPrint('   - Description: $manifestoDescription');
+      AppLogger.database('Sending manifesto notification:', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  - Type: $updateType', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  - Title: $manifestoTitle', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  - Description: $manifestoDescription', tag: 'CANDIDATE_CONTROLLER');
 
       // Send manifesto update notification
       final constituencyNotifications = ConstituencyNotifications();
@@ -1067,9 +1081,9 @@ class CandidateDataController extends GetxController {
         manifestoDescription: manifestoDescription,
       );
 
-      debugPrint('✅ [ManifestoUpdate] Manifesto update notification sent successfully');
+      AppLogger.database('Manifesto update notification sent successfully', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
-      debugPrint('❌ [ManifestoUpdate] Error sending manifesto update notification: $e');
+      AppLogger.databaseError('Error sending manifesto update notification', tag: 'CANDIDATE_CONTROLLER', error: e);
       // Don't throw - manifesto save should succeed even if notification fails
     }
   }
@@ -1077,22 +1091,22 @@ class CandidateDataController extends GetxController {
   /// Debug method: Log all candidate data in the system
   Future<void> logAllCandidateData() async {
     try {
-      debugPrint('🔍 ===== CANDIDATE DATA CONTROLLER AUDIT =====');
-      debugPrint('🔍 Current user candidate data:');
-      debugPrint('   candidateData.value: ${candidateData.value}');
-      debugPrint('   isLoading.value: ${isLoading.value}');
-      debugPrint('   isPaid.value: ${isPaid.value}');
+      AppLogger.database('===== CANDIDATE DATA CONTROLLER AUDIT =====', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('Current user candidate data:', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  candidateData.value: ${candidateData.value}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  isLoading.value: ${isLoading.value}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  isPaid.value: ${isPaid.value}', tag: 'CANDIDATE_CONTROLLER');
 
       // Log events data
-      debugPrint('🎪 Events data:');
-      debugPrint('   events.length: ${events.length}');
-      debugPrint('   isEventsLoading.value: ${isEventsLoading.value}');
-      debugPrint('   eventsLastFetched.value: ${eventsLastFetched.value}');
+      AppLogger.database('Events data:', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  events.length: ${events.length}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  isEventsLoading.value: ${isEventsLoading.value}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  eventsLastFetched.value: ${eventsLastFetched.value}', tag: 'CANDIDATE_CONTROLLER');
 
       // Call the repository audit method
       await _candidateRepository.logAllCandidatesInSystem();
     } catch (e) {
-      debugPrint('❌ Error in candidate data audit: $e');
+      AppLogger.databaseError('Error in candidate data audit', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 }

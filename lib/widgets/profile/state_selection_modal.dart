@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/state_model.dart' as state_model;
 import '../../l10n/app_localizations.dart';
+import '../../utils/app_logger.dart';
 
 class StateSelectionModal extends StatefulWidget {
   final List<state_model.State> states;
@@ -61,9 +62,9 @@ class _StateSelectionModalState extends State<StateSelectionModal> {
   @override
   Widget build(BuildContext context) {
     // Debug: Print loaded states
-    debugPrint('🔍 StateSelectionModal - Building with ${widget.states.length} states');
+    AppLogger.ui('StateSelectionModal - Building with ${widget.states.length} states');
     for (final state in widget.states) {
-      debugPrint('   State: ${state.id} - Name: ${state.name} - Marathi: ${state.marathiName} - Code: ${state.code}');
+      AppLogger.ui('State: ${state.id} - Name: ${state.name} - Marathi: ${state.marathiName} - Code: ${state.code}');
     }
 
     return Container(

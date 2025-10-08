@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/app_logger.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/body_model.dart';
@@ -98,7 +99,7 @@ class CandidateCacheManager {
     _followingCache.remove(cacheKey);
     _queryResultCache.remove(cacheKey);
     _cacheTimestamps.remove(cacheKey);
-    debugPrint('🗑️ Invalidated cache for key: $cacheKey');
+    AppLogger.candidate('🗑️ Invalidated cache for key: $cacheKey');
   }
 
   // Invalidate all cache
@@ -110,7 +111,7 @@ class CandidateCacheManager {
     _followingCache.clear();
     _queryResultCache.clear();
     _cacheTimestamps.clear();
-    debugPrint('🗑️ Invalidated all cache');
+    AppLogger.candidate('🗑️ Invalidated all cache');
   }
 
   // Invalidate query cache by pattern
@@ -122,7 +123,7 @@ class CandidateCacheManager {
       _queryResultCache.remove(key);
       _cacheTimestamps.remove(key);
     }
-    debugPrint('🗑️ Invalidated ${keysToRemove.length} query cache entries matching: $pattern');
+    AppLogger.candidate('🗑️ Invalidated ${keysToRemove.length} query cache entries matching: $pattern');
   }
 
   // Clear expired cache entries
@@ -146,7 +147,7 @@ class CandidateCacheManager {
     }
 
     if (expiredKeys.isNotEmpty) {
-      debugPrint('🧹 Cleared ${expiredKeys.length} expired cache entries');
+      AppLogger.candidate('🧹 Cleared ${expiredKeys.length} expired cache entries');
     }
   }
 

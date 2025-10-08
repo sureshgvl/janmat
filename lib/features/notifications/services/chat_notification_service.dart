@@ -7,6 +7,7 @@ import '../../chat/repositories/chat_repository.dart';
 import '../models/notification_type.dart';
 import '../models/notification_status.dart';
 import '../models/notification_model.dart';
+import '../../../utils/app_logger.dart';
 import 'notification_manager.dart';
 
 class ChatNotificationService {
@@ -36,12 +37,12 @@ class ChatNotificationService {
     _currentUserRole = userRole;
     _userLocation = userLocation;
 
-    debugPrint('🔔 Initializing Chat Notification Service for user: $userId');
+    AppLogger.common('🔔 Initializing Chat Notification Service for user: $userId');
 
     // Start monitoring accessible chat rooms
     await _startMonitoringChatRooms();
 
-    debugPrint('✅ Chat Notification Service initialized');
+    AppLogger.common('✅ Chat Notification Service initialized');
   }
 
   /// Start monitoring chat rooms for new messages
@@ -60,7 +61,7 @@ class ChatNotificationService {
         area: _userLocation?['area'],
       );
 
-      debugPrint('👀 Monitoring ${rooms.length} chat rooms for notifications');
+      AppLogger.common('👀 Monitoring ${rooms.length} chat rooms for notifications');
 
       // Start monitoring each room for new messages
       for (final room in rooms) {
@@ -71,7 +72,7 @@ class ChatNotificationService {
       _startMonitoringNewRooms();
 
     } catch (e) {
-      debugPrint('❌ Error starting chat room monitoring: $e');
+      AppLogger.common('❌ Error starting chat room monitoring: $e');
     }
   }
 
@@ -91,12 +92,12 @@ class ChatNotificationService {
         _processNewMessages(room, messages);
       },
       onError: (error) {
-        debugPrint('❌ Error monitoring messages in room $roomId: $error');
+        AppLogger.common('❌ Error monitoring messages in room $roomId: $error');
       },
     );
 
     _messageSubscriptions[roomId] = subscription;
-    debugPrint('👂 Started monitoring messages in room: $roomId');
+    AppLogger.common('👂 Started monitoring messages in room: $roomId');
   }
 
   /// Monitor for newly created rooms
@@ -120,7 +121,7 @@ class ChatNotificationService {
               // Check if this user should have access to this room
               final hasAccess = await _userHasAccessToRoom(newRoom);
               if (hasAccess) {
-                debugPrint('🆕 New room detected, starting monitoring: ${newRoom.roomId}');
+                AppLogger.common('🆕 New room detected, starting monitoring: ${newRoom.roomId}');
                 await _startMonitoringRoom(newRoom);
               }
             }
@@ -128,7 +129,7 @@ class ChatNotificationService {
         }
       },
       onError: (error) {
-        debugPrint('❌ Error monitoring new rooms: $error');
+        AppLogger.common('❌ Error monitoring new rooms: $error');
       },
     );
 
@@ -196,7 +197,7 @@ class ChatNotificationService {
       }
 
     } catch (e) {
-      debugPrint('❌ Error processing message notification: $e');
+      AppLogger.commonError('❌ Error processing message notification', error: e);
     }
   }
 
@@ -217,7 +218,7 @@ class ChatNotificationService {
         'mentionType': 'direct',
       },
     );
-    debugPrint('🔔 Mention notification created for user $_currentUserId in room ${room.roomId}');
+    AppLogger.common('🔔 Mention notification created for user $_currentUserId in room ${room.roomId}');
   }
 
   /// Create notification for group chat messages
@@ -237,7 +238,7 @@ class ChatNotificationService {
         'roomType': 'group',
       },
     );
-    debugPrint('🔔 Group message notification created for user $_currentUserId in room ${room.roomId}');
+    AppLogger.common('🔔 Group message notification created for user $_currentUserId in room ${room.roomId}');
   }
 
   /// Create notification for private chat messages
@@ -257,7 +258,7 @@ class ChatNotificationService {
         'roomType': 'private',
       },
     );
-    debugPrint('🔔 Private message notification created for user $_currentUserId from ${message.senderId}');
+    AppLogger.common('🔔 Private message notification created for user $_currentUserId from ${message.senderId}');
   }
 
   /// Check if a message contains a mention of the current user
@@ -317,7 +318,7 @@ class ChatNotificationService {
 
       return userRooms.any((userRoom) => userRoom.roomId == room.roomId);
     } catch (e) {
-      debugPrint('❌ Error checking room access: $e');
+      AppLogger.commonError('❌ Error checking room access', error: e);
       return false;
     }
   }
@@ -333,7 +334,7 @@ class ChatNotificationService {
     final locationChanged = userLocation != null && userLocation != _userLocation;
 
     if (userChanged || roleChanged || locationChanged) {
-      debugPrint('🔄 Updating chat notification service user info');
+      AppLogger.common('🔄 Updating chat notification service user info');
 
       // Stop all current monitoring
       await _stopMonitoring();
@@ -352,7 +353,7 @@ class ChatNotificationService {
 
   /// Stop all monitoring and clean up resources
   Future<void> _stopMonitoring() async {
-    debugPrint('🛑 Stopping chat notification monitoring');
+    AppLogger.common('🛑 Stopping chat notification monitoring');
 
     // Cancel all message subscriptions
     for (final subscription in _messageSubscriptions.values) {
@@ -372,7 +373,7 @@ class ChatNotificationService {
 
   /// Dispose of the service
   Future<void> dispose() async {
-    debugPrint('🗑️ Disposing Chat Notification Service');
+    AppLogger.common('🗑️ Disposing Chat Notification Service');
     await _stopMonitoring();
   }
 

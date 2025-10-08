@@ -11,6 +11,7 @@ import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../../utils/performance_monitor.dart' as perf_monitor;
 import '../../../models/body_model.dart';
+import '../../../utils/app_logger.dart';
 
 class CandidateFollowRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -69,7 +70,7 @@ class CandidateFollowRepository {
       // Candidate not found in any state
       throw Exception('Candidate $candidateId not found in any state');
     } catch (e) {
-      debugPrint('❌ Failed to get candidate state ID: $e');
+      AppLogger.candidateError('Failed to get candidate state ID: $e');
       throw Exception('Unable to determine candidate state: $e');
     }
   }
@@ -91,7 +92,7 @@ class CandidateFollowRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('⚠️ Failed to update candidate index: $e');
+      AppLogger.candidate('Failed to update candidate index: $e');
       // Don't throw - this is not critical
     }
   }
@@ -130,13 +131,13 @@ class CandidateFollowRepository {
           candidateBodyId ??= indexData['bodyId'];
           candidateWardId ??= indexData['wardId'];
 
-          debugPrint(
-            '🎯 Using indexed location for follow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
+          AppLogger.candidate(
+            'Using indexed location for follow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
           );
         } else {
           // Fallback: Search across all states to find the candidate
-          debugPrint(
-            '🔄 Index not found, searching across all states for candidate',
+          AppLogger.candidate(
+            'Index not found, searching across all states for candidate',
           );
           final statesSnapshot = await _firestore.collection('states').get();
 
@@ -228,8 +229,8 @@ class CandidateFollowRepository {
 
           batch.update(candidateRef, {'followersCount': FieldValue.increment(1)});
         } catch (e) {
-          debugPrint('⚠️ Failed to update candidate in new structure: $e');
-          debugPrint('🔄 Falling back to legacy candidate structure');
+          AppLogger.candidate('Failed to update candidate in new structure: $e');
+          AppLogger.candidate('Falling back to legacy candidate structure');
         }
       }
 
@@ -254,9 +255,9 @@ class CandidateFollowRepository {
 
       await batch.commit();
 
-      debugPrint('✅ Successfully followed candidate: $candidateId');
+      AppLogger.candidate('Successfully followed candidate: $candidateId');
     } catch (e) {
-      debugPrint('❌ Failed to follow candidate: $e');
+      AppLogger.candidateError('Failed to follow candidate: $e');
       throw Exception('Failed to follow candidate: $e');
     }
   }
@@ -363,7 +364,7 @@ class CandidateFollowRepository {
 
           batch.update(candidateRef, {'followersCount': FieldValue.increment(-1)});
         } catch (e) {
-          debugPrint('⚠️ Failed to update candidate in new structure: $e');
+          AppLogger.candidate('Failed to update candidate in new structure: $e');
         }
       }
 
@@ -385,9 +386,9 @@ class CandidateFollowRepository {
 
       await batch.commit();
 
-      debugPrint('✅ Successfully unfollowed candidate: $candidateId');
+      AppLogger.candidate('Successfully unfollowed candidate: $candidateId');
     } catch (e) {
-      debugPrint('❌ Failed to unfollow candidate: $e');
+      AppLogger.candidateError('Failed to unfollow candidate: $e');
       throw Exception('Failed to unfollow candidate: $e');
     }
   }
@@ -407,7 +408,7 @@ class CandidateFollowRepository {
 
       return doc.exists;
     } catch (e) {
-      debugPrint('❌ Failed to check follow status: $e');
+      AppLogger.candidateError('Failed to check follow status: $e');
       throw Exception('Failed to check follow status: $e');
     }
   }
@@ -504,10 +505,10 @@ class CandidateFollowRepository {
       }
 
       // Candidate not in new structure - followers functionality may not be available
-      debugPrint('⚠️ Candidate not found in new structure - followers not available');
+      AppLogger.candidate('Candidate not found in new structure - followers not available');
       return [];
     } catch (e) {
-      debugPrint('❌ Failed to get followers: $e');
+      AppLogger.candidateError('Failed to get followers: $e');
       throw Exception('Failed to get followers: $e');
     }
   }
@@ -522,10 +523,10 @@ class CandidateFollowRepository {
           .get();
 
       final following = snapshot.docs.map((doc) => doc.id).toList();
-      debugPrint('✅ Retrieved ${following.length} following for user $userId');
+      AppLogger.candidate('Retrieved ${following.length} following for user $userId');
       return following;
     } catch (e) {
-      debugPrint('❌ Failed to get following list: $e');
+      AppLogger.candidateError('Failed to get following list: $e');
       throw Exception('Failed to get following list: $e');
     }
   }
@@ -638,9 +639,9 @@ class CandidateFollowRepository {
       }, SetOptions(merge: true));
 
       await batch.commit();
-      debugPrint('✅ Updated notification settings for candidate: $candidateId');
+      AppLogger.candidate('Updated notification settings for candidate: $candidateId');
     } catch (e) {
-      debugPrint('❌ Failed to update notification settings: $e');
+      AppLogger.candidateError('Failed to update notification settings: $e');
       throw Exception('Failed to update notification settings: $e');
     }
   }

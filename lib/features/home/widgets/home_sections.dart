@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/user_model.dart';
+import '../../../utils/app_logger.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../../widgets/highlight_banner.dart';
 import '../../../widgets/highlight_carousel.dart';
@@ -48,7 +49,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
   Widget build(BuildContext context) {
     // Get location data for highlights
     final locationData = _getLocationData();
-    debugPrint('🏠 HomeBodyContent: Using location - ${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}');
+    AppLogger.ui('HomeBodyContent: Using location - ${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}', tag: 'HOME');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -133,7 +134,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
         widget.candidateModel!.bodyId.isNotEmpty &&
         widget.candidateModel?.wardId != null &&
         widget.candidateModel!.wardId.isNotEmpty) {
-      debugPrint('🏠 Home: Using candidate location: ${widget.candidateModel!.districtId}/${widget.candidateModel!.bodyId}/${widget.candidateModel!.wardId}');
+      AppLogger.ui('Home: Using candidate location: ${widget.candidateModel!.districtId}/${widget.candidateModel!.bodyId}/${widget.candidateModel!.wardId}', tag: 'HOME');
       return {
         'districtId': widget.candidateModel!.districtId,
         'bodyId': widget.candidateModel!.bodyId,
@@ -146,7 +147,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
         widget.userModel!.electionAreas.isNotEmpty) {
       final primaryArea = widget.userModel!.electionAreas.first;
       final districtId = widget.userModel!.districtId ?? 'pune';
-      debugPrint('🏠 Home: Using user election area: $districtId/${primaryArea.bodyId}/${primaryArea.wardId}');
+      AppLogger.ui('Home: Using user election area: $districtId/${primaryArea.bodyId}/${primaryArea.wardId}', tag: 'HOME');
       return {
         'districtId': districtId,
         'bodyId': primaryArea.bodyId,
@@ -160,7 +161,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
       final districtId = widget.userModel!.districtId!;
       final bodyId = widget.userModel!.bodyId ?? 'pune_m_cop';
       final wardId = widget.userModel!.wardId ?? 'ward_17';
-      debugPrint('🏠 Home: Using user direct location: $districtId/$bodyId/$wardId');
+      AppLogger.ui('Home: Using user direct location: $districtId/$bodyId/$wardId', tag: 'HOME');
       return {
         'districtId': districtId,
         'bodyId': bodyId,
@@ -169,7 +170,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
     }
 
     // Fallback: Default Pune location (consistent with voter search)
-    debugPrint('🏠 Home: Using fallback location: pune/pune_m_cop/ward_17');
+    AppLogger.ui('Home: Using fallback location: pune/pune_m_cop/ward_17', tag: 'HOME');
     return {
       'districtId': 'pune',
       'bodyId': 'pune_m_cop',
@@ -213,4 +214,3 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
     );
   }
 }
-

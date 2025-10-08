@@ -20,6 +20,7 @@ import '../../../utils/theme_constants.dart';
 import '../models/candidate_model.dart';
 import '../widgets/candidate_card.dart';
 import '../../../services/local_database_service.dart';
+import '../../../utils/app_logger.dart';
 import '../../chat/controllers/chat_controller.dart';
 
 class CandidateListScreen extends StatefulWidget {
@@ -130,12 +131,12 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   void _onVerticalDragEnd(DragEndDetails details) {
     // Check if it was a pull-down to refresh gesture
     if (_dragDistance < -_minSwipeDistance) {
-      debugPrint('🔄 Pull down detected - refreshing candidates');
+      AppLogger.candidate('🔄 Pull down detected - refreshing candidates');
       _refreshCandidates();
     }
     // Check if it was a swipe up gesture
     else if (_dragDistance > _minSwipeDistance && selectedWard != null) {
-      debugPrint('🔄 Swipe up detected - loading more candidates');
+      AppLogger.candidate('🔄 Swipe up detected - loading more candidates');
       _loadMoreCandidates();
     }
 
@@ -155,9 +156,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           selectedBodyId!,
           selectedWard!.id,
         );
-        debugPrint('✅ Candidates refreshed successfully');
+        AppLogger.candidate('✅ Candidates refreshed successfully');
       } catch (e) {
-        debugPrint('❌ Failed to refresh candidates: $e');
+        AppLogger.candidateError('Failed to refresh candidates: $e');
       } finally {
         setState(() => controller.isLoading = false);
       }
@@ -213,7 +214,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         _hasMoreData = hasMore;
       });
     } catch (e) {
-      debugPrint('Error loading more candidates: $e');
+      AppLogger.candidateError('Error loading more candidates: $e');
     } finally {
       setState(() => _isLoadingMore = false);
     }
@@ -258,11 +259,11 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         DateTime.now().millisecondsSinceEpoch,
       );
 
-      debugPrint(
+      AppLogger.candidate(
         '💾 Cached location data for ${districts.length} districts, ${districtBodies.length} body groups, ${bodyWards.length} ward groups',
       );
     } catch (e) {
-      debugPrint('❌ Failed to cache location data: $e');
+      AppLogger.candidateError('Failed to cache location data: $e');
     }
   }
 
@@ -270,7 +271,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   Future<bool> _loadCachedLocationData() async {
     try {
       if (!_isCacheValid()) {
-        debugPrint('🔄 Location cache expired or missing');
+        AppLogger.candidate('🔄 Location cache expired or missing');
         return false;
       }
 
@@ -281,17 +282,17 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       if (districtsString == null ||
           bodiesString == null ||
           wardsString == null) {
-        debugPrint('🔄 Incomplete location cache');
+        AppLogger.candidate('🔄 Incomplete location cache');
         return false;
       }
 
       // Parse and load cached data
       // Note: In a real implementation, you'd use json.decode() here
       // For now, we'll just return false to force fresh load
-      debugPrint('⚡ CACHE HIT: Loading cached location data');
+      AppLogger.candidate('⚡ CACHE HIT: Loading cached location data');
       return false; // Temporary - implement proper JSON parsing
     } catch (e) {
-      debugPrint('❌ Failed to load cached location data: $e');
+      AppLogger.candidateError('Failed to load cached location data: $e');
       return false;
     }
   }
@@ -308,7 +309,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     }
 
     // SQLite cache miss - load from Firestore
-    debugPrint('🔄 Loading districts from Firestore');
+    AppLogger.candidate('🔄 Loading districts from Firestore');
     try {
       // Load districts from Firestore (correct path: states/stateId/districts)
       final districtsSnapshot = await FirebaseFirestore.instance
@@ -321,7 +322,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         return District.fromJson({'id': doc.id, ...data});
       }).toList();
 
-      debugPrint('✅ [CANDIDATE_LIST] Loaded ${districts.length} districts from Firebase');
+      AppLogger.candidate('✅ [CANDIDATE_LIST] Loaded ${districts.length} districts from Firebase');
 
       // Cache districts in SQLite for future use
       await _locationDatabase.insertDistricts(districts);
@@ -335,7 +336,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       _setInitialValues();
     } catch (e) {
-      debugPrint('❌ Error loading districts from Firebase: $e');
+      AppLogger.candidateError('Error loading districts from Firebase: $e');
       setState(() {
         isLoadingDistricts = false;
       });
@@ -346,7 +347,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   Future<bool> _loadDistrictsFromSQLite() async {
     final startTime = DateTime.now();
     try {
-      debugPrint('🔍 [CANDIDATE_LIST:SQLite] Checking districts cache for state: $selectedStateId');
+      AppLogger.candidate('🔍 [CANDIDATE_LIST:SQLite] Checking districts cache for state: $selectedStateId');
 
       // Check if districts cache is valid (24 hours)
       final lastUpdate = await _locationDatabase.getLastUpdateTime('districts');
@@ -354,13 +355,13 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       final isCacheValid = lastUpdate != null &&
           DateTime.now().difference(lastUpdate) < _cacheValidityDuration;
 
-      debugPrint('📊 [CANDIDATE_LIST:SQLite] Districts cache status:');
-      debugPrint('   - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
-      debugPrint('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
-      debugPrint('   - Is valid: $isCacheValid');
+      AppLogger.candidate('📊 [CANDIDATE_LIST:SQLite] Districts cache status:');
+      AppLogger.candidate('   - Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
+      AppLogger.candidate('   - Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
+      AppLogger.candidate('   - Is valid: $isCacheValid');
 
       if (!isCacheValid) {
-        debugPrint('🔄 [CANDIDATE_LIST:SQLite] Districts cache expired or missing - will fetch from Firebase');
+        AppLogger.candidate('🔄 [CANDIDATE_LIST:SQLite] Districts cache expired or missing - will fetch from Firebase');
         return false;
       }
 
@@ -375,20 +376,20 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
 
       if (maps.isEmpty) {
-        debugPrint('🔄 [CANDIDATE_LIST:SQLite] No districts found in SQLite for state: $selectedStateId (load time: ${loadTime}ms)');
+        AppLogger.candidate('🔄 [CANDIDATE_LIST:SQLite] No districts found in SQLite for state: $selectedStateId (load time: ${loadTime}ms)');
         return false;
       }
 
       districts = maps.map((map) => District.fromJson(map)).toList();
-      debugPrint('✅ [CANDIDATE_LIST:SQLite] CACHE HIT - Loaded ${districts.length} districts from SQLite');
-      debugPrint('   - State: $selectedStateId');
-      debugPrint('   - Load time: ${loadTime}ms');
-      debugPrint('   - Sample districts: ${districts.take(3).map((d) => '${d.id}:${d.name}').join(', ')}');
+      AppLogger.candidate('✅ [CANDIDATE_LIST:SQLite] CACHE HIT - Loaded ${districts.length} districts from SQLite');
+      AppLogger.candidate('   - State: $selectedStateId');
+      AppLogger.candidate('   - Load time: ${loadTime}ms');
+      AppLogger.candidate('   - Sample districts: ${districts.take(3).map((d) => '${d.id}:${d.name}').join(', ')}');
 
       return true;
     } catch (e) {
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('❌ [CANDIDATE_LIST:SQLite] Error loading districts from SQLite (${loadTime}ms): $e');
+      AppLogger.candidateError('[CANDIDATE_LIST:SQLite] Error loading districts from SQLite (${loadTime}ms): $e');
       return false;
     }
   }
@@ -453,17 +454,17 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       final userModel = chatController.currentUser;
 
       if (userModel == null) {
-        debugPrint('⚠️ No current user data available, skipping candidate loading');
+        AppLogger.candidate('No current user data available, skipping candidate loading');
         return;
       }
 
-      debugPrint('🔍 Loading candidates for user: ${userModel.uid}');
-      debugPrint('📊 User has ${userModel.electionAreas.length} election areas');
+      AppLogger.candidate('🔍 Loading candidates for user: ${userModel.uid}');
+      AppLogger.candidate('📊 User has ${userModel.electionAreas.length} election areas');
 
       // Use the new method to fetch candidates for user
       await controller.fetchCandidatesForUser(userModel);
     } catch (e) {
-      debugPrint('❌ Error loading candidates for current user: $e');
+      AppLogger.candidateError('Error loading candidates for current user: $e');
     }
   }
 
@@ -492,7 +493,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       try {
         // Perform search with debouncing
-        debugPrint('🔍 Performing debounced search for: "$query"');
+        AppLogger.candidate('🔍 Performing debounced search for: "$query"');
 
         // For now, filter locally. In production, you might want to search server-side
         final allCandidates = controller.candidates;
@@ -509,11 +510,11 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         // Update controller with filtered results
         controller.candidates = filteredCandidates;
         controller.update();
-        debugPrint(
+        AppLogger.candidate(
           '✅ Search completed: found ${filteredCandidates.length} candidates',
         );
       } catch (e) {
-        debugPrint('❌ Search failed: $e');
+        AppLogger.candidateError('Search failed: $e');
       } finally {
         if (mounted) {
           setState(() => _isSearching = false);
@@ -551,7 +552,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
     // Check if wards are already cached
     if (bodyWards.containsKey(cacheKey)) {
-      debugPrint('⚡ CACHE HIT: Using cached wards for $districtId/$bodyId');
+      AppLogger.candidate('⚡ CACHE HIT: Using cached wards for $districtId/$bodyId');
       setState(() {});
       return;
     }
@@ -563,8 +564,8 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       return;
     }
 
-    debugPrint('🔄 [CANDIDATE_LIST] Loading wards from Firestore for $districtId/$bodyId');
-    debugPrint('🔍 [CANDIDATE_LIST] State: $selectedStateId, District: $districtId, Body: $bodyId');
+    AppLogger.candidate('🔄 [CANDIDATE_LIST] Loading wards from Firestore for $districtId/$bodyId');
+    AppLogger.candidate('🔍 [CANDIDATE_LIST] State: $selectedStateId, District: $districtId, Body: $bodyId');
     try {
       // Load wards for the selected district and body
       final wardsSnapshot = await FirebaseFirestore.instance
@@ -579,7 +580,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       final wards = wardsSnapshot.docs.map((doc) {
         final data = doc.data();
-        debugPrint('   Ward: ${doc.id} - ${data['name'] ?? 'No name'}');
+        AppLogger.candidate('   Ward: ${doc.id} - ${data['name'] ?? 'No name'}');
         return Ward.fromJson({
           ...data,
           'wardId': doc.id,
@@ -589,21 +590,21 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       }).toList();
 
       bodyWards[cacheKey] = wards;
-      debugPrint('✅ [CANDIDATE_LIST] Successfully loaded ${wards.length} wards for body $bodyId from Firebase');
+      AppLogger.candidate('✅ [CANDIDATE_LIST] Successfully loaded ${wards.length} wards for body $bodyId from Firebase');
 
       // Cache wards in SQLite for future use
       await _locationDatabase.insertWards(wards);
 
       setState(() {});
     } catch (e) {
-      debugPrint('❌ Error loading wards from Firebase: $e');
+      AppLogger.candidateError('Error loading wards from Firebase: $e');
     }
   }
 
   // Load wards from SQLite cache
   Future<bool> _loadWardsFromSQLite(String districtId, String bodyId, String cacheKey) async {
     try {
-      debugPrint('🔍 [CANDIDATE_LIST] Checking SQLite cache for wards: $districtId/$bodyId');
+      AppLogger.candidate('🔍 [CANDIDATE_LIST] Checking SQLite cache for wards: $districtId/$bodyId');
 
       // Check if wards cache is valid (24 hours)
       final lastUpdate = await _locationDatabase.getLastUpdateTime('wards');
@@ -611,7 +612,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           DateTime.now().difference(lastUpdate) < _cacheValidityDuration;
 
       if (!isCacheValid) {
-        debugPrint('🔄 [CANDIDATE_LIST] Wards cache expired or missing');
+        AppLogger.candidate('🔄 [CANDIDATE_LIST] Wards cache expired or missing');
         return false;
       }
 
@@ -624,16 +625,16 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       );
 
       if (maps.isEmpty) {
-        debugPrint('🔄 [CANDIDATE_LIST] No wards found in SQLite for $districtId/$bodyId');
+        AppLogger.candidate('🔄 [CANDIDATE_LIST] No wards found in SQLite for $districtId/$bodyId');
         return false;
       }
 
       bodyWards[cacheKey] = maps.map((map) => Ward.fromJson(map)).toList();
-      debugPrint('✅ [CANDIDATE_LIST] Loaded ${bodyWards[cacheKey]!.length} wards from SQLite cache for $districtId/$bodyId');
+      AppLogger.candidate('✅ [CANDIDATE_LIST] Loaded ${bodyWards[cacheKey]!.length} wards from SQLite cache for $districtId/$bodyId');
 
       return true;
     } catch (e) {
-      debugPrint('❌ [CANDIDATE_LIST] Error loading wards from SQLite: $e');
+      AppLogger.candidateError('[CANDIDATE_LIST] Error loading wards from SQLite: $e');
       return false;
     }
   }
@@ -641,7 +642,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   Future<void> _loadBodiesForDistrict(String districtId) async {
     // Check if bodies are already loaded for this district
     if (districtBodies.containsKey(districtId)) {
-      debugPrint('⚡ CACHE HIT: Using cached bodies for district $districtId');
+      AppLogger.candidate('⚡ CACHE HIT: Using cached bodies for district $districtId');
       return;
     }
 
@@ -652,7 +653,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       return;
     }
 
-    debugPrint('🔄 [CANDIDATE_LIST] Loading bodies for district $districtId from Firebase');
+    AppLogger.candidate('🔄 [CANDIDATE_LIST] Loading bodies for district $districtId from Firebase');
     try {
       final bodiesSnapshot = await FirebaseFirestore.instance
           .collection('states')
@@ -662,11 +663,11 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           .collection('bodies')
           .get();
 
-      debugPrint('📊 [CANDIDATE_LIST] Found ${bodiesSnapshot.docs.length} bodies in district $districtId from Firebase');
+      AppLogger.candidate('📊 [CANDIDATE_LIST] Found ${bodiesSnapshot.docs.length} bodies in district $districtId from Firebase');
 
       districtBodies[districtId] = bodiesSnapshot.docs.map((doc) {
         final data = doc.data();
-        debugPrint('🏢 [CANDIDATE_LIST] Body: ${doc.id} - ${data['name'] ?? 'No name'} (${data['type'] ?? 'No type'})');
+        AppLogger.candidate('🏢 [CANDIDATE_LIST] Body: ${doc.id} - ${data['name'] ?? 'No name'} (${data['type'] ?? 'No type'})');
         return Body.fromJson({
           'id': doc.id,
           'districtId': districtId,
@@ -680,14 +681,14 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       setState(() {});
     } catch (e) {
-      debugPrint('❌ Error loading bodies for district $districtId from Firebase: $e');
+      AppLogger.candidateError('Error loading bodies for district $districtId from Firebase: $e');
     }
   }
 
   // Load bodies from SQLite cache
   Future<bool> _loadBodiesFromSQLite(String districtId) async {
     try {
-      debugPrint('🔍 [CANDIDATE_LIST] Checking SQLite cache for bodies in district: $districtId');
+      AppLogger.candidate('🔍 [CANDIDATE_LIST] Checking SQLite cache for bodies in district: $districtId');
 
       // Check if bodies cache is valid (24 hours)
       final lastUpdate = await _locationDatabase.getLastUpdateTime('bodies');
@@ -695,7 +696,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           DateTime.now().difference(lastUpdate) < _cacheValidityDuration;
 
       if (!isCacheValid) {
-        debugPrint('🔄 [CANDIDATE_LIST] Bodies cache expired or missing');
+        AppLogger.candidate('🔄 [CANDIDATE_LIST] Bodies cache expired or missing');
         return false;
       }
 
@@ -708,16 +709,16 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       );
 
       if (maps.isEmpty) {
-        debugPrint('🔄 [CANDIDATE_LIST] No bodies found in SQLite for district: $districtId');
+        AppLogger.candidate('🔄 [CANDIDATE_LIST] No bodies found in SQLite for district: $districtId');
         return false;
       }
 
       districtBodies[districtId] = maps.map((map) => Body.fromJson(map)).toList();
-      debugPrint('✅ [CANDIDATE_LIST] Loaded ${districtBodies[districtId]!.length} bodies from SQLite cache for district: $districtId');
+      AppLogger.candidate('✅ [CANDIDATE_LIST] Loaded ${districtBodies[districtId]!.length} bodies from SQLite cache for district: $districtId');
 
       return true;
     } catch (e) {
-      debugPrint('❌ [CANDIDATE_LIST] Error loading bodies from SQLite: $e');
+      AppLogger.candidateError('[CANDIDATE_LIST] Error loading bodies from SQLite: $e');
       return false;
     }
   }
@@ -765,7 +766,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           selectedBodyId: selectedBodyId,
           districtName: districtName,
           onBodySelected: (bodyId) {
-            debugPrint('🎯 [CANDIDATE_LIST] Body selected: $bodyId for district: $selectedDistrictId');
+            AppLogger.candidate('🎯 [CANDIDATE_LIST] Body selected: $bodyId for district: $selectedDistrictId');
             setState(() {
               selectedBodyId = bodyId;
               selectedWard = null;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../utils/app_logger.dart';
 
 class PromiseManagementSection extends StatefulWidget {
   final List<Map<String, dynamic>> promiseControllers;
@@ -20,7 +21,7 @@ class PromiseManagementSection extends StatefulWidget {
 
 class _PromiseManagementSectionState extends State<PromiseManagementSection> {
   void _addNewPromise() {
-    debugPrint('Add New Promise button pressed');
+    AppLogger.candidate('Add New Promise button pressed');
     setState(() {
       final newController = <String, dynamic>{
         'title': TextEditingController(),
@@ -37,7 +38,7 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    debugPrint(
+    AppLogger.candidate(
       'Added new promise, total promises: ${widget.promiseControllers.length}',
     );
   }
@@ -55,13 +56,13 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    debugPrint(
+    AppLogger.candidate(
       'Deleted promise at index $index, remaining promises: ${widget.promiseControllers.length}',
     );
   }
 
   void _addPointToPromise(int promiseIndex) {
-    debugPrint('Add Point button pressed for promise $promiseIndex');
+    AppLogger.candidate('Add Point button pressed for promise $promiseIndex');
     final pointsList =
         widget.promiseControllers[promiseIndex]['points']
             as List<TextEditingController>? ??
@@ -81,7 +82,7 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    debugPrint(
+    AppLogger.candidate(
       'Added point to promise $promiseIndex, total points: ${pointsList.length}',
     );
   }
@@ -545,7 +546,7 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
   }
 
   void _populatePromiseWithData(int promiseIndex, Map<String, dynamic> demoData) {
-    debugPrint('Populating promise $promiseIndex with demo data: ${demoData['title']}');
+    AppLogger.candidate('Populating promise $promiseIndex with demo data: ${demoData['title']}');
 
     setState(() {
       // Update title
@@ -585,7 +586,7 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     }).toList();
     widget.onPromisesChange(updatedPromises);
 
-    debugPrint('Demo data populated for promise $promiseIndex: ${demoData['title']}');
+    AppLogger.candidate('Demo data populated for promise $promiseIndex: ${demoData['title']}');
   }
 
   @override

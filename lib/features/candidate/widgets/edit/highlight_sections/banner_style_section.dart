@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../utils/app_logger.dart';
 import '../highlight_config.dart';
 import '../highlight_helpers.dart';
 
@@ -57,7 +58,7 @@ class BannerStyleSection extends StatelessWidget {
                     label: Text(HighlightHelpers.getStyleDisplayName(style)),
                     selected: isSelected,
                     onSelected: (selected) {
-                      debugPrint('Banner style selected: $style, selected: $selected');
+                      AppLogger.candidate('Banner style selected: $style, selected: $selected');
                       if (selected) {
                         onStyleChanged(style);
                       }

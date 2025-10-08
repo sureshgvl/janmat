@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../models/highlight_model.dart';
 import '../controllers/highlight_controller.dart';
 import 'highlight_card.dart';
@@ -74,7 +75,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
         _startAutoScroll();
       }
     } catch (e) {
-      debugPrint('Error loading highlights: $e');
+      AppLogger.error('Error loading highlights: $e');
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -107,7 +108,7 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
 
     // Navigate to candidate profile
     // You'll need to implement this navigation based on your app's routing
-    debugPrint('Navigate to candidate: ${highlight.candidateId}');
+    AppLogger.error('Navigate to candidate: ${highlight.candidateId}');
   }
 
 

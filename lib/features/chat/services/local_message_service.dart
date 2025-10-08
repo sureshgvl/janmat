@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../../../utils/app_logger.dart';
 import '../models/chat_message.dart';
 
 class LocalMessageService {
@@ -16,11 +17,11 @@ class LocalMessageService {
   Future<void> initialize() async {
     try {
       _appDir = await getApplicationDocumentsDirectory();
-      debugPrint(
+      AppLogger.chat(
         'LocalMessageService: Initialized with directory: ${_appDir!.path}',
       );
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to initialize: $e');
+      AppLogger.chat('LocalMessageService: Failed to initialize: $e');
     }
   }
 
@@ -59,11 +60,11 @@ class LocalMessageService {
       };
 
       await file.writeAsString(jsonEncode(jsonData));
-      debugPrint(
+      AppLogger.chat(
         'LocalMessageService: Saved message ${message.messageId} to local storage',
       );
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to save message: $e');
+      AppLogger.chat('LocalMessageService: Failed to save message: $e');
     }
   }
 
@@ -89,7 +90,7 @@ class LocalMessageService {
           final message = Message.fromJson(json);
           messages.add(message);
         } catch (e) {
-          debugPrint(
+          AppLogger.chat(
             'LocalMessageService: Failed to load message from ${file.path}: $e',
           );
         }
@@ -101,11 +102,11 @@ class LocalMessageService {
       // Cache the loaded messages
       _messageCache[roomId] = List.from(messages);
 
-      debugPrint(
+      AppLogger.chat(
         'LocalMessageService: Loaded ${messages.length} messages for room $roomId',
       );
     } catch (e) {
-      debugPrint(
+      AppLogger.chat(
         'LocalMessageService: Failed to load messages for room $roomId: $e',
       );
     }
@@ -142,14 +143,14 @@ class LocalMessageService {
           final json = jsonDecode(content) as Map<String, dynamic>;
           json['status'] = status.index;
           await file.writeAsString(jsonEncode(json));
-          debugPrint(
+          AppLogger.chat(
             'LocalMessageService: Updated status for message $messageId',
           );
           break;
         }
       }
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to update message status: $e');
+      AppLogger.chat('LocalMessageService: Failed to update message status: $e');
     }
   }
 
@@ -171,14 +172,14 @@ class LocalMessageService {
         final file = File(path.join(roomDir.path, '$messageId.json'));
         if (file.existsSync()) {
           await file.delete();
-          debugPrint(
+          AppLogger.chat(
             'LocalMessageService: Deleted message file for $messageId',
           );
           break;
         }
       }
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to delete message: $e');
+      AppLogger.chat('LocalMessageService: Failed to delete message: $e');
     }
   }
 
@@ -200,12 +201,12 @@ class LocalMessageService {
       await file.writeAsBytes(bytes);
 
       final localPath = file.path;
-      debugPrint(
+      AppLogger.chat(
         'LocalMessageService: Saved media file for $messageId at $localPath',
       );
       return localPath;
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to save media file: $e');
+      AppLogger.chat('LocalMessageService: Failed to save media file: $e');
       return null;
     }
   }
@@ -226,7 +227,7 @@ class LocalMessageService {
         }
       }
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to get local media path: $e');
+      AppLogger.chat('LocalMessageService: Failed to get local media path: $e');
     }
     return null;
   }
@@ -246,11 +247,11 @@ class LocalMessageService {
         await deleteMessage(message.messageId);
       }
 
-      debugPrint(
+      AppLogger.chat(
         'LocalMessageService: Cleaned up ${messagesToDelete.length} old messages from room $roomId',
       );
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to cleanup old messages: $e');
+      AppLogger.chat('LocalMessageService: Failed to cleanup old messages: $e');
     }
   }
 
@@ -270,7 +271,7 @@ class LocalMessageService {
         }
       }
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to get storage stats: $e');
+      AppLogger.chat('LocalMessageService: Failed to get storage stats: $e');
     }
 
     return {
@@ -295,15 +296,15 @@ class LocalMessageService {
           await mediaDir.delete(recursive: true);
         }
       }
-      debugPrint('LocalMessageService: Cleared all local data');
+      AppLogger.chat('LocalMessageService: Cleared all local data');
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to clear data: $e');
+      AppLogger.chat('LocalMessageService: Failed to clear data: $e');
     }
   }
 
   Future<void> close() async {
     _messageCache.clear();
-    debugPrint('LocalMessageService: Closed');
+    AppLogger.chat('LocalMessageService: Closed');
   }
 
   Future<void> updateMessageMediaUrl(String messageId, String remoteUrl) async {
@@ -332,14 +333,14 @@ class LocalMessageService {
           final json = jsonDecode(content) as Map<String, dynamic>;
           json['mediaUrl'] = remoteUrl;
           await file.writeAsString(jsonEncode(json));
-          debugPrint(
+          AppLogger.chat(
             'LocalMessageService: Updated media URL for message $messageId',
           );
           break;
         }
       }
     } catch (e) {
-      debugPrint('LocalMessageService: Failed to update message media URL: $e');
+      AppLogger.chat('LocalMessageService: Failed to update message media URL: $e');
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import './utils/app_logger.dart';
 
 class FCMTokenDebugger {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
@@ -12,31 +13,31 @@ class FCMTokenDebugger {
 
   // Check current FCM status
   Future<void> checkFCMStatus() async {
-    debugPrint('🔍 Checking FCM Status...');
+    AppLogger.fcm('🔍 Checking FCM Status...');
 
     try {
       // Check current user
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No user logged in');
+        AppLogger.fcm('❌ No user logged in');
         return;
       }
 
-      debugPrint('👤 Current User: ${currentUser.uid}');
-      debugPrint('📧 Email: ${currentUser.email}');
+      AppLogger.fcm('👤 Current User: ${currentUser.uid}');
+      AppLogger.fcm('📧 Email: ${currentUser.email}');
 
       // Check notification permissions
       final settings = await _fcm.getNotificationSettings();
-      debugPrint('🔐 Notification Permissions:');
-      debugPrint('   Authorized: ${settings.authorizationStatus == AuthorizationStatus.authorized}');
-      debugPrint('   Status: ${settings.authorizationStatus}');
+      AppLogger.fcm('🔐 Notification Permissions:');
+      AppLogger.fcm('   Authorized: ${settings.authorizationStatus == AuthorizationStatus.authorized}');
+      AppLogger.fcm('   Status: ${settings.authorizationStatus}');
 
       // Get FCM token
       final token = await _fcm.getToken();
-      debugPrint('🎫 FCM Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}');
+      AppLogger.fcm('🎫 FCM Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}');
 
       if (token != null) {
-        debugPrint('   Full Token: $token');
+        AppLogger.fcm('   Full Token: $token');
       }
 
       // Check if token is stored in user document
@@ -44,38 +45,38 @@ class FCMTokenDebugger {
       if (userDoc.exists) {
         final userData = userDoc.data();
         final storedToken = userData?['fcmToken'];
-        debugPrint('💾 Stored FCM Token: ${storedToken != null ? "Present (${storedToken.substring(0, 20)}...)" : "NULL"}');
+        AppLogger.fcm('💾 Stored FCM Token: ${storedToken != null ? "Present (${storedToken.substring(0, 20)}...)" : "NULL"}');
 
         if (storedToken != null && token != null) {
           final tokensMatch = storedToken == token;
-          debugPrint('   Tokens Match: $tokensMatch');
+          AppLogger.fcm('   Tokens Match: $tokensMatch');
           if (!tokensMatch) {
-            debugPrint('   ❌ MISMATCH! Stored token is different from current token');
+            AppLogger.fcm('   ❌ MISMATCH! Stored token is different from current token');
           }
         }
       } else {
-        debugPrint('❌ User document does not exist');
+        AppLogger.fcm('❌ User document does not exist');
       }
 
     } catch (e) {
-      debugPrint('❌ Error checking FCM status: $e');
+      AppLogger.fcmError('❌ Error checking FCM status', error: e);
     }
   }
 
   // Force update FCM token
   Future<void> forceUpdateFCMToken() async {
-    debugPrint('🔄 Force updating FCM token...');
+    AppLogger.fcm('🔄 Force updating FCM token...');
 
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        debugPrint('❌ No user logged in');
+        AppLogger.fcm('❌ No user logged in');
         return;
       }
 
       final token = await _fcm.getToken();
       if (token == null) {
-        debugPrint('❌ No FCM token available');
+        AppLogger.fcm('❌ No FCM token available');
         return;
       }
 
@@ -85,17 +86,17 @@ class FCMTokenDebugger {
         'lastTokenUpdate': FieldValue.serverTimestamp(),
       });
 
-      debugPrint('✅ FCM token updated for user: ${currentUser.uid}');
-      debugPrint('   Token: ${token.substring(0, 20)}...');
+      AppLogger.fcm('✅ FCM token updated for user: ${currentUser.uid}');
+      AppLogger.fcm('   Token: ${token.substring(0, 20)}...');
 
     } catch (e) {
-      debugPrint('❌ Error updating FCM token: $e');
+      AppLogger.fcmError('❌ Error updating FCM token', error: e);
     }
   }
 
   // Request notification permissions
   Future<void> requestPermissions() async {
-    debugPrint('🔐 Requesting notification permissions...');
+    AppLogger.fcm('🔐 Requesting notification permissions...');
 
     try {
       NotificationSettings settings = await _fcm.requestPermission(
@@ -105,27 +106,27 @@ class FCMTokenDebugger {
         provisional: false,
       );
 
-      debugPrint('📋 Permission Results:');
-      debugPrint('   Authorized: ${settings.authorizationStatus == AuthorizationStatus.authorized}');
-      debugPrint('   Alert: ${settings.alert}');
-      debugPrint('   Badge: ${settings.badge}');
-      debugPrint('   Sound: ${settings.sound}');
+      AppLogger.fcm('📋 Permission Results:');
+      AppLogger.fcm('   Authorized: ${settings.authorizationStatus == AuthorizationStatus.authorized}');
+      AppLogger.fcm('   Alert: ${settings.alert}');
+      AppLogger.fcm('   Badge: ${settings.badge}');
+      AppLogger.fcm('   Sound: ${settings.sound}');
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('✅ Permissions granted - FCM should work now');
+        AppLogger.fcm('✅ Permissions granted - FCM should work now');
         await forceUpdateFCMToken();
       } else {
-        debugPrint('❌ Permissions denied - notifications will not work');
+        AppLogger.fcm('❌ Permissions denied - notifications will not work');
       }
 
     } catch (e) {
-      debugPrint('❌ Error requesting permissions: $e');
+      AppLogger.fcmError('❌ Error requesting permissions', error: e);
     }
   }
 
   // Check all users with FCM tokens
   Future<void> checkAllUsersFCM() async {
-    debugPrint('👥 Checking FCM tokens for all users...');
+    AppLogger.fcm('👥 Checking FCM tokens for all users...');
 
     try {
       final usersSnapshot = await _firestore.collection('users').get();
@@ -138,26 +139,26 @@ class FCMTokenDebugger {
         final fcmToken = userData['fcmToken'];
 
         if (fcmToken != null) {
-          debugPrint('✅ User $userId ($email, role: $role) has FCM token');
+          AppLogger.fcm('✅ User $userId ($email, role: $role) has FCM token');
         } else {
-          debugPrint('❌ User $userId ($email, role: $role) missing FCM token');
+          AppLogger.fcm('❌ User $userId ($email, role: $role) missing FCM token');
         }
       }
 
     } catch (e) {
-      debugPrint('❌ Error checking all users: $e');
+      AppLogger.fcmError('❌ Error checking all users', error: e);
     }
   }
 
   // Test notification sending
   Future<void> testNotification(String targetUserId) async {
-    debugPrint('🧪 Testing notification to user: $targetUserId');
+    AppLogger.fcm('🧪 Testing notification to user: $targetUserId');
 
     try {
       // Get target user's FCM token
       final userDoc = await _firestore.collection('users').doc(targetUserId).get();
       if (!userDoc.exists) {
-        debugPrint('❌ Target user does not exist');
+        AppLogger.fcm('❌ Target user does not exist');
         return;
       }
 
@@ -165,21 +166,21 @@ class FCMTokenDebugger {
       final fcmToken = userData?['fcmToken'];
 
       if (fcmToken == null) {
-        debugPrint('❌ Target user has no FCM token');
+        AppLogger.fcm('❌ Target user has no FCM token');
         return;
       }
 
-      debugPrint('🎫 Target FCM Token: ${fcmToken.substring(0, 20)}...');
+      AppLogger.fcm('🎫 Target FCM Token: ${fcmToken.substring(0, 20)}...');
 
       // Send test notification via Firebase Functions
       // This would normally call your Firebase Function
-      debugPrint('📤 Would send notification with payload:');
-      debugPrint('   Title: "Test Notification"');
-      debugPrint('   Body: "This is a test from debug script"');
-      debugPrint('   Token: $fcmToken');
+      AppLogger.fcm('📤 Would send notification with payload:');
+      AppLogger.fcm('   Title: "Test Notification"');
+      AppLogger.fcm('   Body: "This is a test from debug script"');
+      AppLogger.fcm('   Token: $fcmToken');
 
     } catch (e) {
-      debugPrint('❌ Error testing notification: $e');
+      AppLogger.fcmError('❌ Error testing notification', error: e);
     }
   }
 }
@@ -205,4 +206,3 @@ await debugger.checkAllUsersFCM();
 // 5. Test notification to specific user
 await debugger.testNotification('user_id_here');
 */
-
