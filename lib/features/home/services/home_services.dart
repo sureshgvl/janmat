@@ -36,7 +36,7 @@ class HomeServices {
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
-        .get();
+        .get(const GetOptions(source: Source.server));
     UserModel? userModel;
     Candidate? candidateModel;
 

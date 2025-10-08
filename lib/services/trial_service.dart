@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../utils/app_logger.dart';
+import 'user_data_service.dart';
 
 class TrialService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

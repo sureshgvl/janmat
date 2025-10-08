@@ -1,3 +1,5 @@
+// ignore_for_file: dead_code
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'features/common/animated_splash_screen.dart';
@@ -6,6 +8,7 @@ import 'core/app_initializer.dart';
 import 'core/app_theme.dart';
 import 'core/app_routes.dart';
 import 'core/initial_app_data_service.dart';
+import 'services/background_initializer.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
@@ -14,6 +17,15 @@ import 'l10n/features/profile/profile_localizations.dart';
 import 'utils/app_logger.dart';
 
 void main() async {
+  // Enable testing mode for better emulator performance during development
+  // Set to false for production builds
+  const bool isTesting = false; // Change to false for production
+
+  if (isTesting) {
+    AppInitializer.testingMode = true;
+    BackgroundInitializer.testingMode = true;
+  }
+
   final initializer = AppInitializer();
   await initializer.initialize();
 

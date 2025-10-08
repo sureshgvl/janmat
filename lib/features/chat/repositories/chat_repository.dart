@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
+import 'package:get/get.dart';
 import '../../../models/chat_model.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
@@ -10,6 +11,7 @@ import '../../notifications/services/poll_notification_service.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
 import '../../../utils/app_logger.dart';
+import '../../../controllers/user_data_controller.dart';
 
 // WhatsApp-style Chat Metadata for efficient caching
 class ChatMetadata {
@@ -483,10 +485,11 @@ class ChatRepository {
           'Fetching location data from user profile',
           tag: 'CHAT',
         );
-        final userDoc = await _firestore.collection('users').doc(userId).get();
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          final userModel = UserModel.fromJson(userData);
+
+        // Use UserDataController for cached user data
+        final userDataController = Get.find<UserDataController>();
+        if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
+          final userModel = userDataController.currentUser.value!;
           stateId = userModel.stateId;
           districtId = userModel.districtId;
           bodyId = userModel.bodyId;
@@ -494,11 +497,28 @@ class ChatRepository {
           area = userModel.area;
 
           AppLogger.database(
-            'Updated location data - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+            'Updated location data from cache - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
             tag: 'CHAT',
           );
         } else {
-          AppLogger.database('User document not found', tag: 'CHAT');
+          // Fallback to fresh fetch if cache not available
+          final userDoc = await _firestore.collection('users').doc(userId).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            final userModel = UserModel.fromJson(userData);
+            stateId = userModel.stateId;
+            districtId = userModel.districtId;
+            bodyId = userModel.bodyId;
+            wardId = userModel.wardId;
+            area = userModel.area;
+
+            AppLogger.database(
+              'Updated location data from fresh fetch - State: $stateId, District: $districtId, Body: $bodyId, Ward: $wardId, Area: $area',
+              tag: 'CHAT',
+            );
+          } else {
+            AppLogger.database('User document not found', tag: 'CHAT');
+          }
         }
       }
 
@@ -2272,17 +2292,30 @@ class ChatRepository {
           districtId == null ||
           wardId == null ||
           area == null) {
-        final userDoc = await _firestore.collection('users').doc(userId).get();
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          userRole ??= userData['role'] ?? 'voter';
-          stateId ??= userData['stateId'];
-          districtId ??=
-              userData['districtId'] ??
-              userData['cityId']; // Backward compatibility
-          bodyId ??= userData['bodyId'];
-          wardId ??= userData['wardId'];
-          area ??= userData['area'];
+        // Use UserDataController for cached user data
+        final userDataController = Get.find<UserDataController>();
+        if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
+          final userModel = userDataController.currentUser.value!;
+          userRole ??= userModel.role ?? 'voter';
+          stateId ??= userModel.stateId;
+          districtId ??= userModel.districtId;
+          bodyId ??= userModel.bodyId;
+          wardId ??= userModel.wardId;
+          area ??= userModel.area;
+        } else {
+          // Fallback to fresh fetch if cache not available
+          final userDoc = await _firestore.collection('users').doc(userId).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            userRole ??= userData['role'] ?? 'voter';
+            stateId ??= userData['stateId'];
+            districtId ??=
+                userData['districtId'] ??
+                userData['cityId']; // Backward compatibility
+            bodyId ??= userData['bodyId'];
+            wardId ??= userData['wardId'];
+            area ??= userData['area'];
+          }
         }
       }
 

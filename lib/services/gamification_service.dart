@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../utils/app_logger.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
+import '../controllers/user_data_controller.dart';
 
 class GamificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -97,6 +99,15 @@ class GamificationService {
   // Get user's current points and level
   Future<Map<String, dynamic>> getUserGamificationData(String userId) async {
     try {
+      // Use UserDataController for user data (cached)
+      final userDataController = Get.find<UserDataController>();
+
+      // Wait for user data to be available
+      if (!userDataController.isInitialized.value) {
+        await userDataController.loadUserData(userId);
+      }
+
+      // Get fresh gamification data from Firestore (points can change frequently)
       final userDoc = await _firestore.collection('users').doc(userId).get();
 
       if (!userDoc.exists) {

@@ -13,6 +13,7 @@ import '../../../services/notifications/campaign_milestones_notifications.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/app_logger.dart';
 import '../../chat/controllers/chat_controller.dart';
+import '../../../services/user_cache_service.dart';
 
 class CandidateDataController extends GetxController {
   final CandidateRepository _candidateRepository = CandidateRepository();
@@ -477,6 +478,9 @@ class CandidateDataController extends GetxController {
       );
       if (!success) {
         AppLogger.database('Warning: Failed to save photo URL to Firebase', tag: 'CANDIDATE_CONTROLLER');
+      } else {
+        // Also update the user document with the new photo
+        await _updateUserDocumentForPhoto(photoUrl);
       }
     } catch (e) {
       AppLogger.databaseError('Error saving photo URL', tag: 'CANDIDATE_CONTROLLER', error: e);
@@ -595,6 +599,12 @@ class CandidateDataController extends GetxController {
       if (user == null || editedData.value == null) return false;
 
       final candidate = editedData.value!;
+
+      // Get current user data
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) return false;
+      final userData = userDoc.data()!;
+
       Map<String, dynamic> userUpdates = {};
 
       // Check if name was changed
@@ -613,9 +623,9 @@ class CandidateDataController extends GetxController {
       if (userUpdates.isNotEmpty) {
         onProgress?.call('Updating user profile...');
         await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update(userUpdates);
+          .collection('users')
+          .doc(user.uid)
+          .update(userUpdates);
 
         AppLogger.database('User document updated with: ${userUpdates.keys.join(', ')}', tag: 'CANDIDATE_CONTROLLER');
 
@@ -628,12 +638,78 @@ class CandidateDataController extends GetxController {
           AppLogger.database('Could not invalidate chat controller cache: $e', tag: 'CANDIDATE_CONTROLLER');
         }
 
+        // Update UserCacheService with new user data
+        try {
+          final userCacheService = UserCacheService();
+          // Create updated user model
+          final updatedUserData = {
+            'uid': user.uid,
+            'name': userUpdates['name'] ?? candidate.name,
+            'email': userData['email'],
+            'photoURL': userUpdates['photo'] ?? candidate.photo,
+          };
+          await userCacheService.updateCachedUserData(updatedUserData);
+          AppLogger.database('Updated user cache after profile update', tag: 'CANDIDATE_CONTROLLER');
+        } catch (e) {
+          AppLogger.database('Could not update user cache: $e', tag: 'CANDIDATE_CONTROLLER');
+        }
+
         return true; // Indicate that user document was updated
       }
       return false; // No updates made
     } catch (e) {
       AppLogger.databaseError('Error updating user document', tag: 'CANDIDATE_CONTROLLER', error: e);
       // Don't throw - allow candidate data to still be saved
+      return false;
+    }
+  }
+
+  // Update user document for photo changes
+  Future<bool> _updateUserDocumentForPhoto(String photoUrl) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return false;
+
+      // Get current user data
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) return false;
+      final userData = userDoc.data()!;
+
+      // Update user document with new photo
+      await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .update({'photo': photoUrl});
+
+      AppLogger.database('User document updated with photo: $photoUrl', tag: 'CANDIDATE_CONTROLLER');
+
+      // Invalidate cached user data in ChatController and other controllers
+      try {
+        final chatController = Get.find<ChatController>();
+        chatController.invalidateUserCache(user.uid);
+        AppLogger.database('Invalidated user cache after photo update', tag: 'CANDIDATE_CONTROLLER');
+      } catch (e) {
+        AppLogger.database('Could not invalidate chat controller cache: $e', tag: 'CANDIDATE_CONTROLLER');
+      }
+
+      // Update UserCacheService with new photo
+      try {
+        final userCacheService = UserCacheService();
+        final updatedUserData = {
+          'uid': user.uid,
+          'name': userData['name'],
+          'email': userData['email'],
+          'photoURL': photoUrl,
+        };
+        await userCacheService.updateCachedUserData(updatedUserData);
+        AppLogger.database('Updated user cache after photo update', tag: 'CANDIDATE_CONTROLLER');
+      } catch (e) {
+        AppLogger.database('Could not update user cache: $e', tag: 'CANDIDATE_CONTROLLER');
+      }
+
+      return true;
+    } catch (e) {
+      AppLogger.databaseError('Error updating user document for photo', tag: 'CANDIDATE_CONTROLLER', error: e);
       return false;
     }
   }

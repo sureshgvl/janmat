@@ -12,16 +12,25 @@ import '../utils/performance_monitor.dart';
 import '../utils/app_logger.dart';
 
 class AppInitializer {
+  // Testing mode flag - set to true during testing to reduce initialization load
+  static bool testingMode = false;
+
   Future<void> initialize() async {
     // Start performance monitoring
     startPerformanceTimer('app_startup');
 
     WidgetsFlutterBinding.ensureInitialized();
 
+    if (testingMode) {
+      AppLogger.core('🧪 TESTING MODE: Reduced initialization for better emulator performance');
+    }
+
     // Initialize background services asynchronously for better performance
     final backgroundInit = BackgroundInitializer();
-    // Run in parallel with other initializations
-    final backgroundInitFuture = backgroundInit.initializeAllServices();
+    // Run in parallel with other initializations (skip heavy services in testing mode)
+    final backgroundInitFuture = testingMode
+        ? Future.value() // Skip heavy background init in testing
+        : backgroundInit.initializeAllServices();
 
     // CRITICAL: Initialize Firebase BEFORE creating any controllers
     startPerformanceTimer('firebase_init');

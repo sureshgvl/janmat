@@ -99,7 +99,6 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
             context,
             widget.userModel,
             widget.currentUser,
-            widget.candidateModel,
           ),
 
           // Trial Status Banner (only for candidates with active trials)

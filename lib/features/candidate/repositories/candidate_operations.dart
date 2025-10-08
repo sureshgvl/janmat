@@ -214,7 +214,7 @@ class CandidateOperations {
           .collection('candidates')
           .where('userId', isEqualTo: userId)
           .limit(1)
-          .get();
+          .get(const GetOptions(source: Source.server));
 
       AppLogger.candidate(
         '👤 Found ${candidatesSnapshot.docs.length} candidates in $districtId/$bodyId/$wardId',
@@ -252,7 +252,7 @@ class CandidateOperations {
           .collection('candidates')
           .where('userId', isEqualTo: userId)
           .limit(1)
-          .get();
+          .get(const GetOptions(source: Source.server));
 
       if (legacyCandidateDoc.docs.isNotEmpty) {
         final doc = legacyCandidateDoc.docs.first;
@@ -739,6 +739,8 @@ class CandidateOperations {
   // Update candidate extra info (legacy - saves entire object)
   Future<bool> updateCandidateExtraInfo(Candidate candidate) async {
     try {
+      AppLogger.candidate('🔄 updateCandidateExtraInfo - Updating candidate: ${candidate.candidateId}');
+
       // Find the candidate's location in the new state/district/body/ward structure
       final districtsSnapshot = await _firestore
           .collection('states')
@@ -764,22 +766,35 @@ class CandidateOperations {
                 .get();
 
             if (candidateDoc.exists) {
+              AppLogger.candidate('🎯 Found candidate in new structure: ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+
               // Found the candidate, update it
-              await wardDoc.reference
-                  .collection('candidates')
-                  .doc(candidate.candidateId)
-                  .update({
-                    'name': candidate.name,
-                    'party': candidate.party,
-                    'symbol': candidate.symbolUrl,
-                    'symbolName': candidate.symbolName,
-                    'extra_info': candidate.extraInfo?.toJson(),
-                    'photo': candidate.photo,
-                    'manifesto': candidate.manifesto,
-                    'contact': candidate.contact.toJson(),
-                  });
-              foundInNewStructure = true;
-              return true;
+              try {
+                await wardDoc.reference
+                    .collection('candidates')
+                    .doc(candidate.candidateId)
+                    .update({
+                      'name': candidate.name,
+                      'party': candidate.party,
+                      'symbol': candidate.symbolUrl,
+                      'symbolName': candidate.symbolName,
+                      'extra_info': candidate.extraInfo?.toJson(),
+                      'photo': candidate.photo,
+                      'manifesto': candidate.manifesto,
+                      'contact': candidate.contact.toJson(),
+                    });
+                AppLogger.candidate('✅ Successfully updated candidate in new structure');
+                foundInNewStructure = true;
+                return true;
+              } catch (updateError) {
+                AppLogger.candidateError('❌ Failed to update candidate in new structure: $updateError');
+                // Check if it's a permission error
+                if (updateError.toString().contains('permission-denied') ||
+                    updateError.toString().contains('PERMISSION_DENIED')) {
+                  AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document. Check Firestore rules.');
+                }
+                throw updateError; // Re-throw to be caught by outer catch
+              }
             }
           }
         }
@@ -792,23 +807,42 @@ class CandidateOperations {
         final legacyDoc = await legacyDocRef.get();
 
         if (legacyDoc.exists) {
-          await legacyDocRef.update({
-            'name': candidate.name,
-            'party': candidate.party,
-            'symbol': candidate.symbolUrl,
-            'symbolName': candidate.symbolName,
-            'extra_info': candidate.extraInfo?.toJson(),
-            'photo': candidate.photo,
-            'manifesto': candidate.manifesto,
-            'contact': candidate.contact.toJson(),
-          });
-          AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
-          return true;
+          AppLogger.candidate('🎯 Found candidate in legacy collection');
+          try {
+            await legacyDocRef.update({
+              'name': candidate.name,
+              'party': candidate.party,
+              'symbol': candidate.symbolUrl,
+              'symbolName': candidate.symbolName,
+              'extra_info': candidate.extraInfo?.toJson(),
+              'photo': candidate.photo,
+              'manifesto': candidate.manifesto,
+              'contact': candidate.contact.toJson(),
+            });
+            AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
+            return true;
+          } catch (legacyUpdateError) {
+            AppLogger.candidateError('❌ Failed to update candidate in legacy collection: $legacyUpdateError');
+            // Check if it's a permission error
+            if (legacyUpdateError.toString().contains('permission-denied') ||
+                legacyUpdateError.toString().contains('PERMISSION_DENIED')) {
+              AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document in legacy collection. Check Firestore rules.');
+            }
+            throw legacyUpdateError; // Re-throw to be caught by outer catch
+          }
+        } else {
+          AppLogger.candidate('❌ Candidate not found in legacy collection either');
         }
       }
 
       throw Exception('Candidate not found');
     } catch (e) {
+      AppLogger.candidateError('❌ Failed to update candidate extra info: $e');
+      // Check if it's a permission error
+      if (e.toString().contains('permission-denied') ||
+          e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.candidateError('🚫 PERMISSION DENIED: Firestore security rules are blocking the update. Current user may not have permission to update this candidate document.');
+      }
       throw Exception('Failed to update candidate extra info: $e');
     }
   }
@@ -819,6 +853,8 @@ class CandidateOperations {
     Map<String, dynamic> fieldUpdates,
   ) async {
     try {
+      AppLogger.candidate('🔄 updateCandidateFields - Updating candidate: $candidateId with fields: $fieldUpdates');
+
       // First, try to get location from index
       final indexDoc = await _firestore
           .collection('candidate_index')
@@ -839,23 +875,34 @@ class CandidateOperations {
         final stateId = await _getCandidateStateId(candidateId);
 
         // Direct update using location metadata
-        await _firestore
-            .collection('states')
-            .doc(stateId)
-            .collection('districts')
-            .doc(districtId)
-            .collection('bodies')
-            .doc(bodyId)
-            .collection('wards')
-            .doc(wardId)
-            .collection('candidates')
-            .doc(candidateId)
-            .update(fieldUpdates);
+        try {
+          await _firestore
+              .collection('states')
+              .doc(stateId)
+              .collection('districts')
+              .doc(districtId)
+              .collection('bodies')
+              .doc(bodyId)
+              .collection('wards')
+              .doc(wardId)
+              .collection('candidates')
+              .doc(candidateId)
+              .update(fieldUpdates);
 
-        // Invalidate cache for this candidate
-        invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
+          AppLogger.candidate('✅ Successfully updated candidate fields in new structure');
+          // Invalidate cache for this candidate
+          invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
 
-        return true;
+          return true;
+        } catch (updateError) {
+          AppLogger.candidateError('❌ Failed to update candidate fields in new structure: $updateError');
+          // Check if it's a permission error
+          if (updateError.toString().contains('permission-denied') ||
+              updateError.toString().contains('PERMISSION_DENIED')) {
+            AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document in new structure. Check Firestore rules.');
+          }
+          throw updateError; // Re-throw to be caught by outer catch
+        }
       }
 
       // Fallback: Optimized brute force search
@@ -885,25 +932,38 @@ class CandidateOperations {
                 .get();
 
             if (candidateDoc.exists) {
+              AppLogger.candidate('🎯 Found candidate via brute force: ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+
               // Found the candidate, update only specified fields
-              await wardDoc.reference
-                  .collection('candidates')
-                  .doc(candidateId)
-                  .update(fieldUpdates);
+              try {
+                await wardDoc.reference
+                    .collection('candidates')
+                    .doc(candidateId)
+                    .update(fieldUpdates);
 
-              // Update index and invalidate cache
-              await _updateCandidateIndex(
-                candidateId,
-                'maharashtra', // Temporary default - should be dynamic
-                districtDoc.id,
-                bodyDoc.id,
-                wardDoc.id,
-              );
-              invalidateCache(
-                'candidates_maharashtra_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
-              );
+                AppLogger.candidate('✅ Successfully updated candidate fields via brute force');
+                // Update index and invalidate cache
+                await _updateCandidateIndex(
+                  candidateId,
+                  'maharashtra', // Temporary default - should be dynamic
+                  districtDoc.id,
+                  bodyDoc.id,
+                  wardDoc.id,
+                );
+                invalidateCache(
+                  'candidates_maharashtra_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
+                );
 
-              return true;
+                return true;
+              } catch (bruteForceUpdateError) {
+                AppLogger.candidateError('❌ Failed to update candidate fields via brute force: $bruteForceUpdateError');
+                // Check if it's a permission error
+                if (bruteForceUpdateError.toString().contains('permission-denied') ||
+                    bruteForceUpdateError.toString().contains('PERMISSION_DENIED')) {
+                  AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document via brute force. Check Firestore rules.');
+                }
+                throw bruteForceUpdateError; // Re-throw to be caught by outer catch
+              }
             }
           }
         }
@@ -915,13 +975,30 @@ class CandidateOperations {
       final legacyDoc = await legacyDocRef.get();
 
       if (legacyDoc.exists) {
-        await legacyDocRef.update(fieldUpdates);
-        AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
-        return true;
+        AppLogger.candidate('🎯 Found candidate in legacy collection');
+        try {
+          await legacyDocRef.update(fieldUpdates);
+          AppLogger.candidate('✅ Successfully updated candidate fields in legacy collection');
+          return true;
+        } catch (legacyUpdateError) {
+          AppLogger.candidateError('❌ Failed to update candidate fields in legacy collection: $legacyUpdateError');
+          // Check if it's a permission error
+          if (legacyUpdateError.toString().contains('permission-denied') ||
+              legacyUpdateError.toString().contains('PERMISSION_DENIED')) {
+            AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document in legacy collection. Check Firestore rules.');
+          }
+          throw legacyUpdateError; // Re-throw to be caught by outer catch
+        }
       }
 
       throw Exception('Candidate not found');
     } catch (e) {
+      AppLogger.candidateError('❌ Failed to update candidate fields: $e');
+      // Check if it's a permission error
+      if (e.toString().contains('permission-denied') ||
+          e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.candidateError('🚫 PERMISSION DENIED: Firestore security rules are blocking the field update. Current user may not have permission to update this candidate document.');
+      }
       throw Exception('Failed to update candidate fields: $e');
     }
   }

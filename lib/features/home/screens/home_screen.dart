@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../candidate/controllers/candidate_controller.dart';
 import '../../candidate/controllers/candidate_data_controller.dart';
-import '../../chat/controllers/chat_controller.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../services/home_services.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
-import 'home_actions.dart';
-import '../../candidate/controllers/candidate_data_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -81,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // User is authenticated, proceed with normal UI
     return GetBuilder<CandidateDataController>(
-      init: CandidateDataController(),
       builder: (candidateController) {
         return Scaffold(
           appBar: AppBar(
@@ -89,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           drawer: FutureBuilder<Map<String, dynamic>>(
             future: _homeServices.getUserData(currentUser.uid),
-            key: ValueKey('drawer_${currentUser.uid}_$_refreshCounter'),
+            key: ValueKey('drawer_${currentUser.uid}_${candidateController.candidateData.value?.name ?? ''}_$_refreshCounter'),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -101,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (snapshot.hasData) {
                 userModel = snapshot.data!['user'];
               }
+
 
               return HomeDrawer(
                 userModel: userModel,
@@ -120,19 +115,20 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: FutureBuilder<Map<String, dynamic>>(
               future: _homeServices.getUserData(currentUser.uid),
-              key: ValueKey('body_${currentUser.uid}_$_refreshCounter'),
+              key: ValueKey('body_${currentUser.uid}_${candidateController.candidateData.value?.name ?? ''}_$_refreshCounter'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
+ 
                 UserModel? userModel;
                 Candidate? candidateModel = candidateController.candidateData.value;
-
+ 
                 if (snapshot.hasData) {
                   userModel = snapshot.data!['user'];
                 }
-
+ 
+ 
                 return HomeBody(
                   userModel: userModel,
                   candidateModel: candidateModel,

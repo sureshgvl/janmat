@@ -20,9 +20,18 @@ class BackgroundInitializer {
   SendPort? _sendPort;
   bool _isInitialized = false;
 
+  // Testing mode flag - skip heavy operations during testing
+  static bool testingMode = false;
+
   /// Initialize all services in background isolate
   Future<void> initializeAllServices() async {
     if (_isInitialized) return;
+
+    if (testingMode) {
+      AppLogger.common('🧪 TESTING MODE: Skipping heavy background initialization');
+      _isInitialized = true;
+      return;
+    }
 
     AppLogger.common('🚀 Starting zero-frame background initialization');
 

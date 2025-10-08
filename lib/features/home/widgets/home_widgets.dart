@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
@@ -6,6 +7,7 @@ import '../../../services/trial_service.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../candidate/models/candidate_model.dart';
+import '../../candidate/controllers/candidate_data_controller.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
 import '../../candidate/screens/my_area_candidates_screen.dart';
 import '../../monetization/screens/monetization_screen.dart';
@@ -13,58 +15,64 @@ import '../screens/home_navigation.dart';
 
 class HomeWidgets {
   // Welcome Section Widget
-  static Widget buildWelcomeSection(BuildContext context, UserModel? userModel, User? currentUser, Candidate? candidateModel) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                '${userModel?.role == 'candidate' && candidateModel != null ? candidateModel.name : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+  static Widget buildWelcomeSection(BuildContext context, UserModel? userModel, User? currentUser) {
+    return Obx(() {
+      // Get candidate data reactively from the controller
+      final candidateController = Get.find<CandidateDataController>();
+      final candidateModel = candidateController.candidateData.value;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  '${userModel?.role == 'candidate' && candidateModel != null ? candidateModel.name : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            if (candidateModel != null) ...[
-              const SizedBox(width: 12),
-              Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(7),
-                  child: Image(
-                    image: _getPartySymbolImage(candidateModel),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/symbols/default.png',
-                        fit: BoxFit.cover,
-                      );
-                    },
+              if (candidateModel != null) ...[
+                const SizedBox(width: 12),
+                Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Image(
+                      image: _getPartySymbolImage(candidateModel),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/symbols/default.png',
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          userModel?.role == 'candidate'
-              ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
-              : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-        ),
-      ],
-    );
+          ),
+          const SizedBox(height: 8),
+          Text(
+            userModel?.role == 'candidate'
+                ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
+                : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ],
+      );
+    });
   }
 
   // Trial Banner Widget
