@@ -10,18 +10,18 @@ import '../utils/symbol_utils.dart';
 import '../utils/app_logger.dart';
 
 class HighlightBanner extends StatefulWidget {
-    final String districtId;
-    final String bodyId;
-    final String wardId;
-    final bool showViewMoreButton;
+      final String districtId;
+      final String bodyId;
+      final String wardId;
+      final bool showViewMoreButton;
 
-    const HighlightBanner({
-      super.key,
-      required this.districtId,
-      required this.bodyId,
-      required this.wardId,
-      this.showViewMoreButton = false,
-    });
+      const HighlightBanner({
+        super.key,
+        required this.districtId,
+        required this.bodyId,
+        required this.wardId,
+        this.showViewMoreButton = false,
+      });
 
    // Static method to refresh all banner instances
    static void refreshBanners() {
@@ -114,7 +114,6 @@ class _HighlightBannerState extends State<HighlightBanner> {
 
       // Fetch candidate data if banner exists
       String? profileImageUrl;
-      String? candidateParty;
       if (banner != null && banner.candidateId.isNotEmpty) {
         try {
           // Use candidate repository to fetch candidate data (handles hierarchical structure)
@@ -123,9 +122,67 @@ class _HighlightBannerState extends State<HighlightBanner> {
           final candidate = await candidateRepository.getCandidateDataById(banner.candidateId);
 
           if (candidate != null) {
+            // First print all candidate data from Firebase (broken into chunks to avoid truncation)
+            AppLogger.database('💾 [CANDIDATE] Raw Firebase candidate data:', tag: 'CANDIDATE');
+            final jsonData = candidate.toJson();
+            AppLogger.database('   📋 BASIC INFO:', tag: 'CANDIDATE');
+            AppLogger.database('     candidateId: ${candidate.candidateId}', tag: 'CANDIDATE');
+            AppLogger.database('     userId: ${candidate.userId}', tag: 'CANDIDATE');
+            AppLogger.database('     name: ${candidate.name}', tag: 'CANDIDATE');
+            AppLogger.database('     party: ${candidate.party}', tag: 'CANDIDATE');
+            AppLogger.database('     symbolUrl: ${candidate.symbolUrl}', tag: 'CANDIDATE');
+            AppLogger.database('     symbolName: ${candidate.symbolName}', tag: 'CANDIDATE');
+
+            AppLogger.database('   📍 LOCATION INFO:', tag: 'CANDIDATE');
+            AppLogger.database('     districtId: ${candidate.districtId}', tag: 'CANDIDATE');
+            AppLogger.database('     stateId: ${candidate.stateId}', tag: 'CANDIDATE');
+            AppLogger.database('     bodyId: ${candidate.bodyId}', tag: 'CANDIDATE');
+            AppLogger.database('     wardId: ${candidate.wardId}', tag: 'CANDIDATE');
+
+            AppLogger.database('   📸 MEDIA INFO:', tag: 'CANDIDATE');
+            AppLogger.database('     photo: ${candidate.photo}', tag: 'CANDIDATE');
+            AppLogger.database('     coverPhoto: ${candidate.coverPhoto}', tag: 'CANDIDATE');
+            AppLogger.database('     manifesto: ${candidate.manifesto}', tag: 'CANDIDATE');
+
+            AppLogger.database('   ⚙️ STATUS INFO:', tag: 'CANDIDATE');
+            AppLogger.database('     sponsored: ${candidate.sponsored}', tag: 'CANDIDATE');
+            AppLogger.database('     premium: ${candidate.premium}', tag: 'CANDIDATE');
+            AppLogger.database('     approved: ${candidate.approved}', tag: 'CANDIDATE');
+            AppLogger.database('     status: ${candidate.status}', tag: 'CANDIDATE');
+            AppLogger.database('     createdAt: ${candidate.createdAt}', tag: 'CANDIDATE');
+
+            AppLogger.database('   📞 CONTACT INFO:', tag: 'CANDIDATE');
+            AppLogger.database('     phone: ${candidate.contact.phone}', tag: 'CANDIDATE');
+            AppLogger.database('     email: ${candidate.contact.email}', tag: 'CANDIDATE');
+
+            AppLogger.database('   📊 STATS:', tag: 'CANDIDATE');
+            AppLogger.database('     followersCount: ${candidate.followersCount}', tag: 'CANDIDATE');
+            AppLogger.database('     followingCount: ${candidate.followingCount}', tag: 'CANDIDATE');
+
+            AppLogger.database('   📋 EXTRA INFO EXISTS: ${candidate.extraInfo != null}', tag: 'CANDIDATE');
+            if (candidate.extraInfo != null) {
+              AppLogger.database('   📋 EXTRA INFO DETAILS:', tag: 'CANDIDATE');
+              AppLogger.database('     bio: ${candidate.extraInfo!.bio}', tag: 'CANDIDATE');
+              AppLogger.database('     achievements count: ${candidate.extraInfo!.achievements?.length ?? 0}', tag: 'CANDIDATE');
+              AppLogger.database('     manifesto exists: ${candidate.extraInfo!.manifesto != null}', tag: 'CANDIDATE');
+              AppLogger.database('     contact exists: ${candidate.extraInfo!.contact != null}', tag: 'CANDIDATE');
+              AppLogger.database('     media count: ${candidate.extraInfo!.media?.length ?? 0}', tag: 'CANDIDATE');
+              AppLogger.database('     events count: ${candidate.extraInfo!.events?.length ?? 0}', tag: 'CANDIDATE');
+              AppLogger.database('     highlight exists: ${candidate.extraInfo!.highlight != null}', tag: 'CANDIDATE');
+              AppLogger.database('     analytics exists: ${candidate.extraInfo!.analytics != null}', tag: 'CANDIDATE');
+              AppLogger.database('     basicInfo exists: ${candidate.extraInfo!.basicInfo != null}', tag: 'CANDIDATE');
+            }
+
+            AppLogger.database('   🔍 FULL JSON KEYS: ${jsonData.keys.toList()}', tag: 'CANDIDATE');
+
             profileImageUrl = candidate.photo;
             candidateParty = candidate.party;
             candidateName = candidate.name;
+
+            // Debug logging for party symbol resolution
+            AppLogger.database('🎯 [HighlightBanner] Loaded candidate party: $candidateParty for candidate: $candidateName', tag: 'CANDIDATE');
+            AppLogger.database('   Raw candidate.party: ${candidate.party}', tag: 'CANDIDATE');
+            AppLogger.database('   candidate.toJson()["party"]: ${candidate.toJson()["party"]}', tag: 'CANDIDATE');
 
             // Debug logging
             AppLogger.database('Candidate data loaded successfully:', tag: 'CANDIDATE');
@@ -280,14 +337,20 @@ class _HighlightBannerState extends State<HighlightBanner> {
       return const SizedBox.shrink();
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bannerHeight = screenWidth * 0.6; // 60% of screen width for height
+    // Use Option 1 design (Single Symbol + Candidate Info)
+    return _buildOption1Design(context);
+  }
 
-    return Column(
-      children: [
-        // Main banner section - matches HTML design
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+  // Option 1: Single Symbol + Candidate Info design
+  Widget _buildOption1Design(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+      child: GestureDetector(
+        onTap: _onBannerTap, // Make entire banner clickable
+        child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
@@ -297,203 +360,267 @@ class _HighlightBannerState extends State<HighlightBanner> {
                 offset: const Offset(0, 4),
               ),
             ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: GestureDetector(
-              onTap: _onBannerTap,
-              child: SizedBox(
-                height: 192,
-                child: Stack(
-                  children: [
-                    // Background with custom gradient styling
-                    Container(
-                      height: 192,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: HighlightBanner.getBannerGradient(bannerStyle),
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: candidateProfileImageUrl != null
-                          ? Image.network(
-                              candidateProfileImageUrl!,
-                              fit: BoxFit.cover,
-                              color: Colors.white.withValues(alpha: 0.3),
-                              colorBlendMode: BlendMode.overlay,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback to stored highlight imageUrl if available
-                                if (platinumBanner!.imageUrl != null) {
-                                  return Image.network(
-                                    platinumBanner!.imageUrl!,
-                                    fit: BoxFit.cover,
-                                    color: Colors.white.withValues(alpha: 0.3),
-                                    colorBlendMode: BlendMode.overlay,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: HighlightBanner.getBannerGradient(bannerStyle),
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.person,
-                                          size: 48,
-                                          color: Colors.white70,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                } else {
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: HighlightBanner.getBannerGradient(bannerStyle),
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.person,
-                                      size: 48,
-                                      color: Colors.white70,
-                                    ),
-                                  );
-                                }
-                              },
-                            )
-                          : platinumBanner!.imageUrl != null
-                              ? Image.network(
-                                  platinumBanner!.imageUrl!,
-                                  fit: BoxFit.cover,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  colorBlendMode: BlendMode.overlay,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: HighlightBanner.getBannerGradient(bannerStyle),
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.person,
-                                        size: 48,
-                                        color: Colors.white70,
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: HighlightBanner.getBannerGradient(bannerStyle),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 48,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                    ),
-
-                    // Highlight Badge - top left like HTML
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF9933), // Saffron color
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '⭐ HIGHLIGHT',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-
-                    // Impression tracking overlay
-                    Positioned.fill(child: Container(color: Colors.transparent)),
-                  ],
-                ),
-              ),
+            gradient: LinearGradient(
+              colors: isDarkMode
+                  ? [
+                      Colors.blue.shade900.withValues(alpha: 0.3),
+                      Colors.green.shade900.withValues(alpha: 0.3),
+                    ]
+                  : [
+                      Colors.blue.shade100.withValues(alpha: 0.7),
+                      Colors.green.shade100.withValues(alpha: 0.7),
+                    ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
           ),
-        ),
-
-        // View More button (conditional)
-        if (widget.showViewMoreButton) ...[
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            width: 250, // Decreased width for narrower button
-            child: ElevatedButton(
-              onPressed: _onBannerTap,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976d2),
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            children: [
+              // Main content (image and info)
+              Column(
                 children: [
-                  Image.asset(
-                    SymbolUtils.getPartySymbolPath(candidateParty ?? 'independent'),
-                    width: 20,
-                    height: 20,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.star,
-                        size: 20,
-                        color: Colors.white,
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'View More',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  // Image section (without overlapping symbol)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 180, // Reduced height for more compact design
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                      child: _buildCandidateImage(),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Image.asset(
-                    SymbolUtils.getPartySymbolPath(candidateParty ?? 'independent'),
-                    width: 20,
-                    height: 20,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.star,
-                        size: 20,
-                        color: Colors.white,
-                      );
-                    },
+
+                  // Info section with symbol, candidate name and symbol name
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        // Party symbol
+                        Container(
+                          width: 50, // Slightly smaller for compact design
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              () {
+                                final partyToUse = candidateParty ?? 'independent';
+                                final partyPath = SymbolUtils.getPartySymbolPath(partyToUse);
+                                AppLogger.common('🎯 [HighlightBanner] Info section party symbol for candidate: $candidateName, party: $partyToUse, path: $partyPath');
+                                return partyPath;
+                              }(),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.star,
+                                  size: 25,
+                                  color: Colors.grey,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Candidate name and symbol name
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Candidate name
+                              Text(
+                                candidateName ?? 'Unknown Candidate',
+                                style: const TextStyle(
+                                  fontSize: 16, // Slightly smaller for compact design
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+
+                              // Symbol name
+                              Text(
+                                SymbolUtils.getPartySymbolNameLocal(candidateParty ?? 'independent', 'en'),
+                                style: const TextStyle(
+                                  fontSize: 12, // Smaller for compact design
+                                  color: Colors.black54,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
+
+              // Floating arrow button (right side) - now just visual, whole banner is clickable
+              Positioned(
+                top: 12, // Position from top
+                right: 12, // Position from right
+                child: Container(
+                  width: 40, // Smaller floating button
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward,
+                    color: Color(0xFF1976D2),
+                    size: 20, // Smaller icon
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-        ] else ...[
-          const SizedBox(height: 24),
+        ),
+      ),
+    );
+  }
+
+
+  // Helper method to build candidate image
+  Widget _buildCandidateImage() {
+    return candidateProfileImageUrl != null
+        ? Image.network(
+            candidateProfileImageUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              if (platinumBanner!.imageUrl != null) {
+                return Image.network(
+                  platinumBanner!.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return _buildPlaceholderImage();
+                  },
+                );
+              } else {
+                return _buildPlaceholderImage();
+              }
+            },
+          )
+        : platinumBanner!.imageUrl != null
+            ? Image.network(
+                platinumBanner!.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholderImage();
+                },
+              )
+            : _buildPlaceholderImage();
+  }
+
+  // Helper method to build placeholder image
+  Widget _buildPlaceholderImage() {
+    return Container(
+      color: Colors.grey.shade300,
+      child: const Icon(
+        Icons.person,
+        size: 48,
+        color: Colors.grey,
+      ),
+    );
+  }
+
+  // Helper method to build party symbol circle
+  Widget _buildPartySymbolCircle(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
-      ],
+      ),
+      child: ClipOval(
+        child: Image.asset(
+          () {
+            final partyToUse = candidateParty ?? 'independent';
+            final partyPath = SymbolUtils.getPartySymbolPath(partyToUse);
+            AppLogger.common('🎯 [HighlightBanner] Party symbol for candidate: $candidateName, party: $partyToUse, path: $partyPath');
+            return partyPath;
+          }(),
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.star,
+              size: size * 0.5,
+              color: Colors.grey,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build action button
+  Widget _buildActionButton() {
+    return ElevatedButton(
+      onPressed: _onBannerTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1976D2),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        shadowColor: Colors.black.withValues(alpha: 0.2),
+        elevation: 4,
+      ).copyWith(
+        overlayColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.pressed)) {
+              return Colors.blue.shade800;
+            }
+            if (states.contains(WidgetState.hovered)) {
+              return Colors.blue.shade700;
+            }
+            return null;
+          },
+        ),
+      ),
+      child: const Text(
+        'अधिक पहा',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Noto Sans Devanagari',
+        ),
+      ),
     );
   }
 }

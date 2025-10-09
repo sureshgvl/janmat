@@ -9,6 +9,14 @@ import '../utils/app_logger.dart';
 /// Eliminates redundant settings fetches by caching notification preferences.
 /// Follows the GetX controller pattern for consistency with the app architecture.
 class NotificationSettingsController extends GetxController {
+  NotificationSettingsController() {
+    try {
+      AppLogger.core('🔔 NotificationSettingsController constructor called');
+    } catch (e) {
+      AppLogger.coreError('❌ Error in NotificationSettingsController constructor', error: e);
+    }
+  }
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -27,6 +35,7 @@ class NotificationSettingsController extends GetxController {
 
   // Getters for commonly accessed settings
   String? get userId => settings.value?.userId;
+  User? get currentUser => _auth.currentUser;
   bool get pushEnabled => settings.value?.pushEnabled ?? true;
   bool get chatEnabled => settings.value?.chatEnabled ?? true;
   bool get candidateEnabled => settings.value?.candidateEnabled ?? true;
@@ -45,9 +54,25 @@ class NotificationSettingsController extends GetxController {
 
   @override
   void onInit() {
-    super.onInit();
-    AppLogger.core('🔔 NotificationSettingsController initialized');
-    _setupAuthStateListener();
+    try {
+      AppLogger.core('🔔 NotificationSettingsController onInit called');
+      super.onInit();
+      AppLogger.core('🔔 NotificationSettingsController initialized');
+      AppLogger.core('🔔 isInitialized: ${isInitialized.value}, isLoading: ${isLoading.value}');
+      _setupAuthStateListener();
+
+      // Check if user is already authenticated and load settings
+      final currentUser = _auth.currentUser;
+      AppLogger.core('🔔 Current user on init: ${currentUser?.uid ?? 'null'}');
+      if (currentUser != null) {
+        AppLogger.core('🔔 Loading settings for existing user: ${currentUser.uid}');
+        loadNotificationSettings(currentUser.uid);
+      } else {
+        AppLogger.core('🔔 No current user, waiting for auth state change');
+      }
+    } catch (e) {
+      AppLogger.coreError('❌ Error in NotificationSettingsController onInit', error: e);
+    }
   }
 
   @override
@@ -58,10 +83,14 @@ class NotificationSettingsController extends GetxController {
 
   /// Setup Firebase Auth state listener to automatically load settings on login
   void _setupAuthStateListener() {
+    AppLogger.core('🔔 Setting up auth state listener');
     _authStateSubscription = _auth.authStateChanges().listen((User? user) {
+      AppLogger.core('🔔 Auth state changed: ${user?.uid ?? 'null'}');
       if (user != null) {
+        AppLogger.core('🔔 User logged in, loading settings for: ${user.uid}');
         loadNotificationSettings(user.uid);
       } else {
+        AppLogger.core('🔔 User logged out, clearing settings');
         clearSettings();
       }
     });
@@ -69,32 +98,37 @@ class NotificationSettingsController extends GetxController {
 
   /// Load notification settings from Firestore with caching
   Future<void> loadNotificationSettings(String userId) async {
+    AppLogger.core('🔍 loadNotificationSettings called for userId: $userId');
     try {
       isLoading.value = true;
+      AppLogger.core('🔍 isLoading set to true, isInitialized: ${isInitialized.value}');
 
       // Check if we have valid cached data
       if (_hasValidCache() && settings.value?.userId == userId) {
         AppLogger.core('✅ Using cached notification settings for $userId');
         isInitialized.value = true;
         isLoading.value = false;
+        AppLogger.core('✅ Cache used, isInitialized set to true');
         return;
       }
 
       AppLogger.core('🔍 Loading notification settings from Firestore for $userId');
 
       // Set up real-time listener for notification settings
+      AppLogger.core('🔍 Setting up Firestore listener for userId: $userId');
       _settingsDocSubscription?.cancel();
       _settingsDocSubscription = _firestore
           .collection('notification_settings')
           .doc(userId)
           .snapshots()
           .listen((docSnapshot) {
+        AppLogger.core('📡 Firestore snapshot received for $userId, exists: ${docSnapshot.exists}');
         if (docSnapshot.exists) {
           final settingsData = docSnapshot.data() as Map<String, dynamic>;
           settings.value = NotificationSettingsModel.fromJson(settingsData);
           _lastFetchTime = DateTime.now();
           isInitialized.value = true;
-          AppLogger.core('📡 Notification settings updated via real-time listener for $userId');
+          AppLogger.core('📡 Notification settings loaded and isInitialized set to true for $userId');
         } else {
           // Create default settings for new users
           final defaultSettings = NotificationSettingsModel.createDefault(userId);
@@ -103,20 +137,23 @@ class NotificationSettingsController extends GetxController {
           isInitialized.value = true;
           // Save default settings to Firestore
           _saveSettingsToFirestore(defaultSettings);
-          AppLogger.core('📝 Created default notification settings for $userId');
+          AppLogger.core('📝 Created default notification settings and isInitialized set to true for $userId');
         }
       });
 
       // Wait for initial data load
       await Future.delayed(const Duration(milliseconds: 100));
+      AppLogger.core('🔍 Initial load delay completed for $userId');
 
     } catch (e) {
-      AppLogger.coreError('❌ Failed to load notification settings', error: e);
+      AppLogger.coreError('❌ Failed to load notification settings for $userId', error: e);
       // Create fallback default settings
       settings.value = NotificationSettingsModel.createDefault(userId);
       isInitialized.value = true;
+      AppLogger.core('🔍 Fallback settings created and isInitialized set to true for $userId');
     } finally {
       isLoading.value = false;
+      AppLogger.core('🔍 isLoading set to false for $userId, final state - isInitialized: ${isInitialized.value}');
     }
   }
 
@@ -243,12 +280,13 @@ class NotificationSettingsController extends GetxController {
 
   /// Clear settings (on logout)
   void clearSettings() {
+    AppLogger.core('🧹 Clearing notification settings');
     settings.value = null;
     isInitialized.value = false;
     _lastFetchTime = null;
     _settingsDocSubscription?.cancel();
     _settingsDocSubscription = null;
-    AppLogger.core('🧹 Notification settings cleared');
+    AppLogger.core('🧹 Notification settings cleared, isInitialized set to false');
   }
 
   /// Save settings to Firestore

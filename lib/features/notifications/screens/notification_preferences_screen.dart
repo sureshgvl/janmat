@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controllers/notification_settings_controller.dart';
+import '../../../utils/app_logger.dart';
+import '../../../l10n/features/notifications/notifications_localizations.dart';
 
-class NotificationPreferencesScreen extends StatelessWidget {
+class NotificationPreferencesScreen extends StatefulWidget {
   const NotificationPreferencesScreen({super.key});
 
   @override
+  State<NotificationPreferencesScreen> createState() => _NotificationPreferencesScreenState();
+}
+
+class _NotificationPreferencesScreenState extends State<NotificationPreferencesScreen> {
+  @override
   Widget build(BuildContext context) {
-    final NotificationSettingsController controller = Get.find<NotificationSettingsController>();
+    AppLogger.notifications('🔍 NotificationPreferencesScreen build called');
+    final NotificationSettingsController controller;
+    try {
+      controller = Get.find<NotificationSettingsController>();
+      AppLogger.notifications('🔍 Controller found successfully');
+      AppLogger.notifications('🔍 Controller state - isInitialized: ${controller.isInitialized.value}, isLoading: ${controller.isLoading.value}, hasSettings: ${controller.settings.value != null}');
+
+      // Force initialization if not initialized
+      if (!controller.isInitialized.value && !controller.isLoading.value) {
+        AppLogger.notifications('🔍 Controller not initialized, forcing initialization');
+        final currentUser = controller.currentUser;
+        if (currentUser != null) {
+          AppLogger.notifications('🔍 Found current user, loading settings: ${currentUser.uid}');
+          controller.loadNotificationSettings(currentUser.uid);
+        } else {
+          AppLogger.notifications('🔍 No current user, cannot initialize');
+        }
+      }
+    } catch (e) {
+      AppLogger.notifications('❌ Failed to find NotificationSettingsController: $e');
+      return const Scaffold(
+        body: Center(
+          child: Text('Controller not found'),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notification Preferences'),
+        title: Text(() {
+          final translated = NotificationsLocalizations.of(context)?.translate('notificationPreferences') ?? 'Notification Preferences';
+          AppLogger.notifications('🔍 Translated title: "$translated"');
+          return translated;
+        }()),
         actions: [
           Obx(() {
             if (controller.isLoading.value) {
@@ -29,14 +65,18 @@ class NotificationPreferencesScreen extends StatelessWidget {
         ],
       ),
       body: Obx(() {
+        AppLogger.notifications('🔍 Obx rebuild - isInitialized: ${controller.isInitialized.value}, isLoading: ${controller.isLoading.value}, hasSettings: ${controller.settings.value != null}');
         if (!controller.isInitialized.value) {
+          AppLogger.notifications('🔍 Showing loading indicator - not initialized');
           return const Center(child: CircularProgressIndicator());
         }
 
         if (controller.settings.value == null) {
+          AppLogger.notifications('🔍 Showing error state - settings is null');
           return _buildErrorState();
         }
 
+        AppLogger.notifications('🔍 Showing preferences content');
         return _buildPreferencesContent(controller);
       }),
     );
@@ -49,14 +89,23 @@ class NotificationPreferencesScreen extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-          const Text('Failed to load preferences'),
+          Text(NotificationsLocalizations.of(context)?.translate('failedToLoadPreferences') ?? 'Failed to load preferences'),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
               final controller = Get.find<NotificationSettingsController>();
-              controller.loadNotificationSettings(controller.userId ?? '');
+              final userId = controller.userId;
+              if (userId != null && userId.isNotEmpty) {
+                controller.loadNotificationSettings(userId);
+              } else {
+                // If no user ID, try to get from Firebase Auth
+                final currentUser = controller.currentUser;
+                if (currentUser != null) {
+                  controller.loadNotificationSettings(currentUser.uid);
+                }
+              }
             },
-            child: const Text('Retry'),
+            child: Text(NotificationsLocalizations.of(context)?.translate('retry') ?? 'Retry'),
           ),
         ],
       ),
@@ -85,15 +134,15 @@ class NotificationPreferencesScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'General Settings',
+            NotificationsLocalizations.of(context)?.translate('generalSettings') ?? 'General Settings',
             style: Get.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         Obx(() => SwitchListTile(
-          title: const Text('Push Notifications'),
-          subtitle: const Text('Receive notifications when app is closed'),
+          title: Text(NotificationsLocalizations.of(context)?.translate('pushNotifications') ?? 'Push Notifications'),
+          subtitle: Text(NotificationsLocalizations.of(context)?.translate('pushNotificationsDescription') ?? 'Receive notifications when app is closed'),
           value: controller.pushEnabled,
           onChanged: (value) => controller.togglePushNotifications(value),
         )),
@@ -101,39 +150,39 @@ class NotificationPreferencesScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Notification Types',
+            NotificationsLocalizations.of(Get.context!)?.translate('notificationTypes') ?? 'Notification Types',
             style: Get.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         Obx(() => SwitchListTile(
-          title: const Text('Chat Messages'),
-          subtitle: const Text('Messages, mentions, and chat updates'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('chatMessages') ?? 'Chat Messages'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('chatMessagesDescription') ?? 'Messages, mentions, and chat updates'),
           value: controller.chatEnabled,
           onChanged: controller.pushEnabled
               ? (value) => controller.toggleChatNotifications(value)
               : null,
         )),
         Obx(() => SwitchListTile(
-          title: const Text('Candidate Activity'),
-          subtitle: const Text('New followers, posts, and updates'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('candidateActivity') ?? 'Candidate Activity'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('candidateActivityDescription') ?? 'New followers, posts, and updates'),
           value: controller.candidateEnabled,
           onChanged: controller.pushEnabled
               ? (value) => controller.toggleCandidateNotifications(value)
               : null,
         )),
         Obx(() => SwitchListTile(
-          title: const Text('Polls & Surveys'),
-          subtitle: const Text('New polls, results, and deadlines'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('pollsAndSurveys') ?? 'Polls & Surveys'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('pollsAndSurveysDescription') ?? 'New polls, results, and deadlines'),
           value: controller.pollEnabled,
           onChanged: controller.pushEnabled
               ? (value) => controller.togglePollNotifications(value)
               : null,
         )),
         Obx(() => SwitchListTile(
-          title: const Text('System Updates'),
-          subtitle: const Text('App updates, security, and maintenance'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('systemUpdates') ?? 'System Updates'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('systemUpdatesDescription') ?? 'App updates, security, and maintenance'),
           value: controller.systemEnabled,
           onChanged: controller.pushEnabled
               ? (value) => controller.toggleSystemNotifications(value)
@@ -150,7 +199,7 @@ class NotificationPreferencesScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Important Notifications',
+            NotificationsLocalizations.of(Get.context!)?.translate('importantNotifications') ?? 'Important Notifications',
             style: Get.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -159,7 +208,7 @@ class NotificationPreferencesScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'These notifications are always important and help protect your account and keep you informed about critical updates.',
+            NotificationsLocalizations.of(Get.context!)?.translate('importantNotificationsDescription') ?? 'These notifications are always important and help protect your account and keep you informed about critical updates.',
             style: Get.textTheme.bodyMedium?.copyWith(
               color: Colors.grey[600],
             ),
@@ -167,20 +216,20 @@ class NotificationPreferencesScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _buildImportantNotificationItem(
-          'Security Alerts',
-          'Security issues and account alerts',
+          NotificationsLocalizations.of(Get.context!)?.translate('securityAlerts') ?? 'Security Alerts',
+          NotificationsLocalizations.of(Get.context!)?.translate('securityAlertsDescription') ?? 'Security issues and account alerts',
         ),
         _buildImportantNotificationItem(
-          'Election Reminders',
-          'Election day and voting reminders',
+          NotificationsLocalizations.of(Get.context!)?.translate('electionReminders') ?? 'Election Reminders',
+          NotificationsLocalizations.of(Get.context!)?.translate('electionRemindersDescription') ?? 'Election day and voting reminders',
         ),
         _buildImportantNotificationItem(
-          'Event Reminders',
-          'Upcoming event notifications',
+          NotificationsLocalizations.of(Get.context!)?.translate('eventReminders') ?? 'Event Reminders',
+          NotificationsLocalizations.of(Get.context!)?.translate('eventRemindersDescription') ?? 'Upcoming event notifications',
         ),
         _buildImportantNotificationItem(
-          'Poll Deadlines',
-          'Poll closing reminders',
+          NotificationsLocalizations.of(Get.context!)?.translate('pollDeadlines') ?? 'Poll Deadlines',
+          NotificationsLocalizations.of(Get.context!)?.translate('pollDeadlinesDescription') ?? 'Poll closing reminders',
         ),
       ],
     );
@@ -202,15 +251,15 @@ class NotificationPreferencesScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Quiet Hours',
+            NotificationsLocalizations.of(Get.context!)?.translate('quietHours') ?? 'Quiet Hours',
             style: Get.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         Obx(() => SwitchListTile(
-          title: const Text('Enable Quiet Hours'),
-          subtitle: const Text('Pause notifications during specified hours'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('enableQuietHours') ?? 'Enable Quiet Hours'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('quietHoursDescription') ?? 'Pause notifications during specified hours'),
           value: controller.quietHoursEnabled,
           onChanged: controller.pushEnabled
               ? (value) => controller.toggleQuietHours(value)
@@ -218,13 +267,13 @@ class NotificationPreferencesScreen extends StatelessWidget {
         )),
         if (controller.quietHoursEnabled) ...[
           Obx(() => ListTile(
-            title: const Text('Start Time'),
+            title: Text(NotificationsLocalizations.of(Get.context!)?.translate('startTime') ?? 'Start Time'),
             subtitle: Text(_formatTime(controller.quietHoursStart ?? '22:00')),
             trailing: const Icon(Icons.access_time),
             onTap: () => _selectTime(true, controller),
           )),
           Obx(() => ListTile(
-            title: const Text('End Time'),
+            title: Text(NotificationsLocalizations.of(Get.context!)?.translate('endTime') ?? 'End Time'),
             subtitle: Text(_formatTime(controller.quietHoursEnd ?? '08:00')),
             trailing: const Icon(Icons.access_time),
             onTap: () => _selectTime(false, controller),
@@ -241,22 +290,22 @@ class NotificationPreferencesScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Advanced Settings',
+            NotificationsLocalizations.of(Get.context!)?.translate('advancedSettings') ?? 'Advanced Settings',
             style: Get.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         Obx(() => SwitchListTile(
-          title: const Text('Do Not Disturb'),
-          subtitle: const Text('Block all notifications temporarily'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('doNotDisturb') ?? 'Do Not Disturb'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('doNotDisturbDescription') ?? 'Block all notifications temporarily'),
           value: controller.doNotDisturbEnabled,
           onChanged: (value) => controller.toggleDoNotDisturb(value),
         )),
         const Divider(),
         ListTile(
-          title: const Text('Reset to Defaults'),
-          subtitle: const Text('Restore all settings to default values'),
+          title: Text(NotificationsLocalizations.of(Get.context!)?.translate('resetToDefaults') ?? 'Reset to Defaults'),
+          subtitle: Text(NotificationsLocalizations.of(Get.context!)?.translate('resetToDefaultsDescription') ?? 'Restore all settings to default values'),
           trailing: const Icon(Icons.restore, color: Colors.orange),
           onTap: () => _showResetConfirmation(controller),
         ),
@@ -305,15 +354,16 @@ class NotificationPreferencesScreen extends StatelessWidget {
   }
 
   String _getImportantNotificationInfo(String title) {
+    final localizations = NotificationsLocalizations.of(Get.context!);
     switch (title) {
       case 'Security Alerts':
-        return 'These notifications help protect your account and data. They cannot be disabled to ensure your security.';
+        return localizations?.translate('securityAlertsDescription') ?? 'These notifications help protect your account and data. They cannot be disabled to ensure your security.';
       case 'Election Reminders':
-        return 'Stay informed about important election dates and voting opportunities. These reminders help ensure your voice is heard.';
+        return localizations?.translate('electionRemindersDescription') ?? 'Stay informed about important election dates and voting opportunities. These reminders help ensure your voice is heard.';
       case 'Event Reminders':
-        return 'Never miss important political events and rallies. These notifications help you stay engaged with your community.';
+        return localizations?.translate('eventRemindersDescription') ?? 'Never miss important political events and rallies. These notifications help you stay engaged with your community.';
       case 'Poll Deadlines':
-        return 'Get reminded before polls close so you don\'t miss your chance to participate in important decisions.';
+        return localizations?.translate('pollDeadlinesDescription') ?? 'Get reminded before polls close so you don\'t miss your chance to participate in important decisions.';
       default:
         return 'This is an important notification that helps keep you informed about critical updates.';
     }
@@ -322,24 +372,24 @@ class NotificationPreferencesScreen extends StatelessWidget {
   void _showResetConfirmation(NotificationSettingsController controller) {
     Get.dialog(
       AlertDialog(
-        title: const Text('Reset Settings'),
-        content: const Text('Are you sure you want to reset all notification settings to their default values?'),
+        title: Text(NotificationsLocalizations.of(Get.context!)?.translate('resetSettings') ?? 'Reset Settings'),
+        content: Text(NotificationsLocalizations.of(Get.context!)?.translate('resetSettingsConfirm') ?? 'Are you sure you want to reset all notification settings to their default values?'),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(NotificationsLocalizations.of(Get.context!)?.translate('cancel') ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () async {
               Get.back();
               await controller.resetToDefaults();
               Get.snackbar(
-                'Success',
-                'Settings reset to defaults',
+                NotificationsLocalizations.of(Get.context!)?.translate('success') ?? 'Success',
+                NotificationsLocalizations.of(Get.context!)?.translate('settingsResetToDefaults') ?? 'Settings reset to defaults',
                 snackPosition: SnackPosition.BOTTOM,
               );
             },
-            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+            child: Text(NotificationsLocalizations.of(Get.context!)?.translate('resetToDefaults') ?? 'Reset', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -347,7 +397,7 @@ class NotificationPreferencesScreen extends StatelessWidget {
   }
 
   String _formatTime(String? timeString) {
-    if (timeString == null) return 'Not set';
+    if (timeString == null) return NotificationsLocalizations.of(Get.context!)?.translate('notSet') ?? 'Not set';
 
     final parts = timeString.split(':');
     if (parts.length != 2) return timeString;

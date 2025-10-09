@@ -13,29 +13,29 @@ import 'event_poll_widgets.dart';
 class HomeSections {
   // Main Home Body Widget
   static Widget buildHomeBody({
-    required UserModel? userModel,
-    required Candidate? candidateModel,
-    required User? currentUser,
-  }) {
-    return HomeBodyContent(
-      userModel: userModel,
-      candidateModel: candidateModel,
-      currentUser: currentUser,
-    );
-  }
+     required UserModel? userModel,
+     required Candidate? candidateModel,
+     required User? currentUser,
+   }) {
+     return HomeBodyContent(
+       userModel: userModel,
+       candidateModel: candidateModel,
+       currentUser: currentUser,
+     );
+   }
 }
 
 class HomeBodyContent extends StatefulWidget {
-  final UserModel? userModel;
-  final Candidate? candidateModel;
-  final User? currentUser;
+   final UserModel? userModel;
+   final Candidate? candidateModel;
+   final User? currentUser;
 
-  const HomeBodyContent({
-    super.key,
-    required this.userModel,
-    required this.candidateModel,
-    required this.currentUser,
-  });
+   const HomeBodyContent({
+     super.key,
+     required this.userModel,
+     required this.candidateModel,
+     required this.currentUser,
+   });
 
   @override
   _HomeBodyContentState createState() => _HomeBodyContentState();

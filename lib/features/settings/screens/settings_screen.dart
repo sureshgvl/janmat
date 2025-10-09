@@ -149,6 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: const Text('Manage notification preferences'),
           trailing: const Icon(Icons.arrow_forward_ios),
           onTap: () {
+            AppLogger.settings('🔍 Navigating to NotificationPreferencesScreen');
             Get.to(() => const NotificationPreferencesScreen());
           },
         ),

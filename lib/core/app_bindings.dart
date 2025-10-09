@@ -19,6 +19,7 @@ import '../services/manifesto_sync_service.dart';
 class AppBindings extends Bindings {
   @override
   Future<void> dependencies() async {
+    AppLogger.common('🔧 AppBindings dependencies() called');
     // PERFORMANCE OPTIMIZATION: Use lazyPut for feature-specific controllers
     // to reduce main thread burden during app startup. Only critical controllers
     // that are always needed are eagerly loaded.
@@ -32,8 +33,9 @@ class AppBindings extends Bindings {
     Get.put<CandidateDataController>(CandidateDataController());
     Get.put<HighlightController>(HighlightController());
     Get.put<DeviceInfoController>(DeviceInfoController());
-    Get.put<NotificationSettingsController>( NotificationSettingsController());
-    Get.put<FollowingController>( FollowingController());
+    Get.put<NotificationSettingsController>(NotificationSettingsController());
+    AppLogger.common('✅ NotificationSettingsController put in bindings');
+    Get.put<FollowingController>(FollowingController());
 
     // Lazy load services that are only needed on specific screens
     Get.lazyPut<AdMobService>(() => AdMobService());

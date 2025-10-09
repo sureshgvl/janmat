@@ -14,6 +14,7 @@ import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
 import 'l10n/features/onboarding/onboarding_localizations.dart';
 import 'l10n/features/profile/profile_localizations.dart';
+import 'l10n/features/notifications/notifications_localizations.dart';
 import 'utils/app_logger.dart';
 
 void main() async {
@@ -79,6 +80,7 @@ class MyApp extends StatelessWidget {
             AuthLocalizations.delegate,
             OnboardingLocalizations.delegate,
             ProfileLocalizations.delegate,
+            NotificationsLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           initialBinding: AppBindings(),

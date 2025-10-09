@@ -22,7 +22,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FileUploadService _fileUploadService = FileUploadService();
   bool _isUploadingPhoto = false;
 
-  Future<void> _changeProfilePhoto(BuildContext context) async {
+  void _showPhotoOptions(BuildContext context, UserModel userModel) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: Text(ProfileLocalizations.of(context)?.translate('uploadPhoto') ?? 'Upload Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _uploadProfilePhoto(context);
+                },
+              ),
+              if (userModel.photoURL != null) ...[
+                ListTile(
+                  leading: const Icon(Icons.remove_circle_outline),
+                  title: Text(ProfileLocalizations.of(context)?.translate('removePhoto') ?? 'Remove Photo'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showRemovePhotoConfirmation(context);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.visibility),
+                  title: Text(ProfileLocalizations.of(context)?.translate('viewPhoto') ?? 'View Photo'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _viewProfilePhoto(context, userModel.photoURL!);
+                  },
+                ),
+              ],
+              ListTile(
+                leading: const Icon(Icons.cancel),
+                title: Text(ProfileLocalizations.of(context)?.translate('cancel') ?? 'Cancel'),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _uploadProfilePhoto(BuildContext context) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
@@ -66,6 +112,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isUploadingPhoto = false;
       });
     }
+  }
+
+  void _showRemovePhotoConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(ProfileLocalizations.of(context)?.translate('removePhoto') ?? 'Remove Photo'),
+          content: Text(ProfileLocalizations.of(context)?.translate('removePhotoConfirmation') ?? 'Are you sure you want to remove your profile photo?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(ProfileLocalizations.of(context)?.translate('cancel') ?? 'Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _removeProfilePhoto(context);
+              },
+              child: Text(
+                ProfileLocalizations.of(context)?.translate('remove') ?? 'Remove',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _removeProfilePhoto(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      // Update the user's photoURL in Firebase Auth to null
+      await currentUser.updatePhotoURL(null);
+
+      // Update the photoURL in Firestore to null
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .update({'photoURL': null});
+
+      // Refresh the chat controller to update the user data
+      final chatController = Get.find<ChatController>();
+      await chatController.refreshUserDataAndChat();
+
+      Get.snackbar(
+        ProfileLocalizations.of(context)?.translate('success') ?? 'Success',
+        ProfileLocalizations.of(context)?.translate('profilePhotoRemovedSuccessfully') ?? 'Profile photo removed successfully!',
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
+        ProfileLocalizations.of(context)?.translate('failedToRemoveProfilePhoto', args: {'error': e.toString()}) ?? 'Failed to remove profile photo: $e',
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      setState(() {
+        _isUploadingPhoto = false;
+      });
+    }
+  }
+
+  void _viewProfilePhoto(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                title: Text(ProfileLocalizations.of(context)?.translate('profilePhoto') ?? 'Profile Photo'),
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              InteractiveViewer(
+                child: Image.network(photoUrl),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -165,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: GestureDetector(
                         onTap: _isUploadingPhoto
                             ? null
-                            : () => _changeProfilePhoto(context),
+                            : () => _showPhotoOptions(context, userModel),
                         child: Container(
                           height: 32,
                           width: 32,

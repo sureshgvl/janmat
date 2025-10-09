@@ -239,29 +239,8 @@ class SymbolUtils {
     return party?['key'];
   }
 
-  /// Get party display name (automatically detects locale) - SHORT NAMES
-  static String getPartyDisplayName(String key) {
-    final party = getPartyByKey(key);
-    if (party == null) return key;
-
-    // Default to English short name, fallback to full name
-    return party['shortNameEn'] ?? party['nameEn'] ?? key;
-  }
-
-  /// Get party display name with explicit locale preference - SHORT NAMES
-  static String getPartyDisplayNameWithLocale(String key, String locale) {
-    final party = getPartyByKey(key);
-    if (party == null) return key;
-
-    if (locale == 'mr' && party['shortNameMr'] != null) {
-      return party['shortNameMr']!;
-    }
-
-    return party['shortNameEn'] ?? party['nameEn'] ?? key;
-  }
-
-  /// Get party full name (automatically detects locale) - FULL NAMES
-  static String getPartyFullName(String key) {
+  /// Get party full name (English)
+  static String getPartyName(String key) {
     final party = getPartyByKey(key);
     if (party == null) return key;
 
@@ -269,8 +248,8 @@ class SymbolUtils {
     return party['nameEn'] ?? party['shortNameEn'] ?? key;
   }
 
-  /// Get party full name with explicit locale preference - FULL NAMES
-  static String getPartyFullNameWithLocale(String key, String locale) {
+  /// Get party full name with locale
+  static String getPartyNameLocal(String key, String locale) {
     final party = getPartyByKey(key);
     if (party == null) return key;
 
@@ -281,8 +260,37 @@ class SymbolUtils {
     return party['nameEn'] ?? party['shortNameEn'] ?? key;
   }
 
-  /// Get party symbol name with explicit locale preference
-  static String getPartySymbolNameWithLocale(String key, String locale) {
+  /// Get party short name (English)
+  static String getPartyShortName(String key) {
+    final party = getPartyByKey(key);
+    if (party == null) return key;
+
+    // Default to English short name, fallback to full name
+    return party['shortNameEn'] ?? party['nameEn'] ?? key;
+  }
+
+  /// Get party short name with locale
+  static String getPartyShortNameLocal(String key, String locale) {
+    final party = getPartyByKey(key);
+    if (party == null) return key;
+
+    if (locale == 'mr' && party['shortNameMr'] != null) {
+      return party['shortNameMr']!;
+    }
+
+    return party['shortNameEn'] ?? party['nameEn'] ?? key;
+  }
+
+  /// Get party symbol name (English)
+  static String getPartySymbolName(String key) {
+    final party = getPartyByKey(key);
+    if (party == null) return 'Unknown';
+
+    return party['party_symbolEn'] ?? 'Unknown';
+  }
+
+  /// Get party symbol name with locale
+  static String getPartySymbolNameLocal(String key, String locale) {
     final party = getPartyByKey(key);
     if (party == null) return 'Unknown';
 
@@ -292,6 +300,22 @@ class SymbolUtils {
 
     return party['party_symbolEn'] ?? 'Unknown';
   }
+
+  /// LEGACY METHODS - Keep for backward compatibility
+  /// @deprecated Use getPartyShortName() instead
+  static String getPartyDisplayName(String key) => getPartyShortName(key);
+
+  /// @deprecated Use getPartyShortNameLocal() instead
+  static String getPartyDisplayNameWithLocale(String key, String locale) => getPartyShortNameLocal(key, locale);
+
+  /// @deprecated Use getPartyName() instead
+  static String getPartyFullName(String key) => getPartyName(key);
+
+  /// @deprecated Use getPartyNameLocal() instead
+  static String getPartyFullNameWithLocale(String key, String locale) => getPartyNameLocal(key, locale);
+
+  /// @deprecated Use getPartySymbolNameLocal() instead
+  static String getPartySymbolNameWithLocale(String key, String locale) => getPartySymbolNameLocal(key, locale);
 
   /// Convert old party name format to new key format
   /// This helps with data migration from old system to new key-based system
