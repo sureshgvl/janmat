@@ -60,11 +60,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   void initState() {
     super.initState();
 
-    // Initialize TabController for performance monitoring
-    // Length is 7 for non-own profiles (no analytics), 8 for own profile (with analytics)
-    _tabController = TabController(length: _isOwnProfile ? 8 : 7, vsync: this);
-    _tabController?.addListener(_onTabChanged);
-
     // Check if arguments are provided
     if (Get.arguments == null) {
       // Handle the case where no candidate data is provided
@@ -87,6 +82,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         candidate != null &&
         currentUserId == candidate!.userId;
 
+    // Initialize TabController after determining profile ownership
+    // Length is 7 for non-own profiles (no analytics), 8 for own profile (with analytics)
+    _tabController = TabController(length: _isOwnProfile ? 8 : 7, vsync: this);
+    _tabController?.addListener(_onTabChanged);
 
     // Check follow status when screen loads
     if (currentUserId != null && candidate != null) {

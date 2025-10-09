@@ -7,7 +7,11 @@ import '../controllers/user_data_controller.dart';
 
 class GamificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GamificationNotificationService _notificationService = GamificationNotificationService();
+  late final GamificationNotificationService _notificationService;
+
+  GamificationService() {
+    _notificationService = Get.find<GamificationNotificationService>();
+  }
 
   // Point values for different actions
   static const int POINTS_EVENT_INTERESTED = 5;

@@ -4,6 +4,7 @@ import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../../services/manifesto_comments_service.dart';
 import '../../../../services/manifesto_likes_service.dart';
 import '../../../../models/comment_model.dart';
+import '../../../../utils/advanced_analytics.dart' as analytics;
 
 class ManifestoCommentsSection extends StatefulWidget {
   final String? manifestoId;
@@ -87,6 +88,18 @@ class _ManifestoCommentsSectionState extends State<ManifestoCommentsSection> {
         });
       }
 
+      // Track comment analytics
+      analytics.AdvancedAnalyticsManager().trackUserInteraction(
+        'comment_post',
+        'manifesto_tab',
+        elementId: widget.manifestoId,
+        metadata: {
+          'comment_length': controller.text.length,
+          'user_id': widget.currentUserId,
+          'parent_id': parentId,
+        },
+      );
+
       // Award XP for commenting
       Get.snackbar(
         'xpEarned'.tr,
@@ -126,6 +139,17 @@ class _ManifestoCommentsSectionState extends State<ManifestoCommentsSection> {
 
     try {
       await ManifestoCommentsService.toggleCommentLike(widget.currentUserId!, commentId);
+
+      // Track comment like analytics
+      analytics.AdvancedAnalyticsManager().trackUserInteraction(
+        'comment_like',
+        'manifesto_tab',
+        elementId: commentId,
+        metadata: {
+          'user_id': widget.currentUserId,
+          'manifesto_id': widget.manifestoId,
+        },
+      );
     } catch (e) {
       Get.snackbar(
         'error'.tr,

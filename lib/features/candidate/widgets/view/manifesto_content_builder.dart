@@ -6,6 +6,10 @@ import '../../../../services/share_service.dart';
 import '../../../../services/notifications/constituency_notifications.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import 'manifesto_resources_section.dart';
+import 'manifesto_poll_section.dart';
+import 'manifesto_comments_section.dart';
+import '../../../../services/manifesto_likes_service.dart';
+import '../../../../utils/advanced_analytics.dart' as analytics;
 
 class ManifestoContentBuilder extends StatefulWidget {
   final Candidate candidate;
@@ -24,6 +28,45 @@ class ManifestoContentBuilder extends StatefulWidget {
 }
 
 class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
+  /// Get standardized manifesto ID for services
+  String _getManifestoId() {
+    return widget.candidate.candidateId ?? widget.candidate.userId ?? 'unknown';
+  }
+
+  Future<void> _toggleManifestoLike() async {
+    if (widget.currentUserId == null) {
+      Get.snackbar(
+        'error'.tr,
+        'pleaseLoginToInteract'.tr,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+      return;
+    }
+
+    try {
+      final isLiked = await ManifestoLikesService.toggleLike(widget.currentUserId!, _getManifestoId());
+
+      // Track manifesto like analytics
+      analytics.AdvancedAnalyticsManager().trackUserInteraction(
+        isLiked ? 'manifesto_like' : 'manifesto_unlike',
+        'manifesto_tab',
+        elementId: _getManifestoId(),
+        metadata: {
+          'user_id': widget.currentUserId,
+          'candidate_id': widget.candidate.candidateId,
+        },
+      );
+    } catch (e) {
+      Get.snackbar(
+        'error'.tr,
+        'failedToUpdateLike'.tr,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+    }
+  }
+
   void _shareManifesto() async {
     try {
       // Share the manifesto via native sharing
@@ -104,6 +147,45 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                               color: Colors.black87,
                             ),
                           ),
+                        ),
+                        // Like Button with Counter
+                        StreamBuilder<int>(
+                          stream: ManifestoLikesService.getLikeCountStream(_getManifestoId()),
+                          builder: (context, likeSnapshot) {
+                            final likeCount = likeSnapshot.data ?? 0;
+                            return StreamBuilder<bool>(
+                              stream: Stream.fromFuture(
+                                widget.currentUserId != null
+                                    ? ManifestoLikesService.hasUserLiked(widget.currentUserId!, _getManifestoId())
+                                    : Future.value(false)
+                              ),
+                              builder: (context, userLikeSnapshot) {
+                                final isLiked = userLikeSnapshot.data ?? false;
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      onPressed: _toggleManifestoLike,
+                                      icon: Icon(
+                                        isLiked ? Icons.favorite : Icons.favorite_border,
+                                        color: isLiked ? Colors.red : Colors.grey,
+                                      ),
+                                      tooltip: isLiked ? 'Unlike Manifesto' : 'Like Manifesto',
+                                    ),
+                                    if (likeCount > 0)
+                                      Text(
+                                        '$likeCount',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade600,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
                         ),
                         IconButton(
                           onPressed: _shareManifesto,
@@ -236,72 +318,19 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                   videoUrl: widget.candidate.extraInfo?.manifesto?.videoUrl,
                 ),
 
-                // Simple Voter Interactions (if enabled)
+                // Voter Interactions (if enabled)
                 if (widget.showVoterInteractions) ...[
                   const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.poll,
-                              color: Colors.blue.shade600,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Voter Interactions',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () => Get.snackbar(
-                                  'Poll',
-                                  'Poll functionality coming soon!',
-                                ),
-                                icon: const Icon(Icons.poll),
-                                label: const Text('Vote in Poll'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade600,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => Get.snackbar(
-                                  'Comments',
-                                  'Comments functionality coming soon!',
-                                ),
-                                icon: const Icon(Icons.comment),
-                                label: const Text('View Comments'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.blue.shade600,
-                                  side: BorderSide(color: Colors.blue.shade600),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  // Poll Section
+                  ManifestoPollSection(
+                    manifestoId: _getManifestoId(),
+                    currentUserId: widget.currentUserId,
+                  ),
+                  const SizedBox(height: 24),
+                  // Comments Section
+                  ManifestoCommentsSection(
+                    manifestoId: _getManifestoId(),
+                    currentUserId: widget.currentUserId,
                   ),
                 ],
               ],

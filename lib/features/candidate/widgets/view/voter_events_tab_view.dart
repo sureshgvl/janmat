@@ -20,57 +20,45 @@ class VoterEventsSection extends StatefulWidget {
 }
 
 class _VoterEventsSectionState extends State<VoterEventsSection> {
-  final CandidateDataController _controller =
-      Get.find<CandidateDataController>();
-  final EventRepository _eventRepository = EventRepository();
-  final EventNotificationService _notificationService =
-      EventNotificationService();
-  final GamificationService _gamificationService = GamificationService();
+  late final EventRepository _eventRepository;
+  late final EventNotificationService _notificationService;
+  late final GamificationService _gamificationService;
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-  Worker? _eventsWorker;
   Map<String, String?> _userRSVPStatuses = {};
   Map<String, Map<String, int>> _rsvpCounts = {};
+  bool _isLoadingRSVP = false;
 
   @override
   void initState() {
     super.initState();
-    // Ensure events are loaded when widget initializes
-    _ensureEventsLoaded();
-
-    // Listen to events changes for reactive updates
-    _eventsWorker = ever(_controller.events, (_) {
-      if (mounted) {
-        setState(() {});
-        // Reload RSVP data when events change
-        _loadRSVPData();
-      }
-    });
+    // Initialize services lazily to avoid circular dependencies
+    _eventRepository = EventRepository();
+    _notificationService = EventNotificationService();
+    _gamificationService = GamificationService();
+    // Load RSVP data when widget initializes
+    _loadRSVPData();
   }
 
   @override
   void dispose() {
-    _eventsWorker?.dispose();
     super.dispose();
   }
 
-  Future<void> _ensureEventsLoaded() async {
-    // Only fetch if we don't have cached data or if it's been more than 5 minutes
-    if (_controller.events.isEmpty && !_controller.isEventsLoading.value) {
-      await _controller.fetchEvents();
-    }
-    // Load RSVP data regardless of cache status
-    await _loadRSVPData();
-  }
-
   Future<void> _loadRSVPData() async {
-    if (_controller.events.isEmpty) return;
+    // Get events from candidate data
+    final candidateEvents = widget.candidateData.extraInfo?.events ?? [];
+    if (candidateEvents.isEmpty) return;
+
+    setState(() {
+      _isLoadingRSVP = true;
+    });
 
     try {
       final rsvpStatuses = <String, String?>{};
       final rsvpCounts = <String, Map<String, int>>{};
 
-      for (final event in _controller.events) {
+      for (final event in candidateEvents) {
         if (event.id != null && _currentUserId != null) {
           rsvpStatuses[event.id!] = await _eventRepository.getUserRSVPStatus(
             widget.candidateData.candidateId,
@@ -91,10 +79,16 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         setState(() {
           _userRSVPStatuses = rsvpStatuses;
           _rsvpCounts = rsvpCounts;
+          _isLoadingRSVP = false;
         });
       }
     } catch (e) {
       AppLogger.candidateError('❌ VoterEventsSection: Failed to load RSVP data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingRSVP = false;
+        });
+      }
     }
   }
 
@@ -215,66 +209,61 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      // First check for events in candidate's extra_info, then fallback to controller events
-      final candidateEvents = widget.candidateData.extraInfo?.events ?? [];
-      final displayEvents = candidateEvents.isNotEmpty
-          ? candidateEvents
-          : _controller.events.toList();
+    // Get events from candidate's data
+    final candidateEvents = widget.candidateData.extraInfo?.events ?? [];
 
-      return Card(
-        margin: const EdgeInsets.all(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Upcoming Events',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Upcoming Events',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
 
-              if (_controller.isEventsLoading.value && candidateEvents.isEmpty)
-                const Center(child: CircularProgressIndicator())
-              else if (displayEvents.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.event_note,
-                          size: 64,
-                          color: Colors.grey[400],
+            if (_isLoadingRSVP && candidateEvents.isEmpty)
+              const Center(child: CircularProgressIndicator())
+            else if (candidateEvents.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.event_note,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No upcoming events',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No upcoming events',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: displayEvents.length,
-                  itemBuilder: (context, index) {
-                    final event = displayEvents[index];
-                    return _buildEventCard(event);
-                  },
                 ),
-            ],
-          ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: candidateEvents.length,
+                itemBuilder: (context, index) {
+                  final event = candidateEvents[index];
+                  return _buildEventCard(event);
+                },
+              ),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildEventCard(EventData event) {
@@ -282,10 +271,12 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     final formattedDate = date != null
         ? DateFormat('dd MMM yyyy').format(date)
         : event.date;
-    final eventId = event.id!;
-    final userRSVP = _userRSVPStatuses[eventId];
-    final counts =
-        _rsvpCounts[eventId] ?? {'interested': 0, 'going': 0, 'not_going': 0};
+    final eventId = event.id;
+    final hasValidId = eventId != null && eventId.isNotEmpty;
+    final userRSVP = hasValidId ? _userRSVPStatuses[eventId] : null;
+    final counts = hasValidId
+        ? _rsvpCounts[eventId] ?? {'interested': 0, 'going': 0, 'not_going': 0}
+        : {'interested': 0, 'going': 0, 'not_going': 0};
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -350,23 +341,24 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
             const SizedBox(height: 12),
 
-            // RSVP Counts
-            Row(
-              children: [
-                _buildRSVPCount('Going', counts['going'] ?? 0, Colors.green),
-                const SizedBox(width: 16),
-                _buildRSVPCount(
-                  'Interested',
-                  counts['interested'] ?? 0,
-                  Colors.orange,
-                ),
-              ],
-            ),
+            // RSVP Counts - only show if event has valid ID
+            if (hasValidId)
+              Row(
+                children: [
+                  _buildRSVPCount('Going', counts['going'] ?? 0, Colors.green),
+                  const SizedBox(width: 16),
+                  _buildRSVPCount(
+                    'Interested',
+                    counts['interested'] ?? 0,
+                    Colors.orange,
+                  ),
+                ],
+              ),
 
             const SizedBox(height: 12),
 
-            // RSVP Buttons
-            if (_currentUserId != null)
+            // RSVP Buttons - only show if event has valid ID
+            if (hasValidId && _currentUserId != null)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -375,23 +367,30 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
                     EventRepository.RSVP_GOING,
                     userRSVP == EventRepository.RSVP_GOING,
                     Colors.green,
-                    eventId,
+                    eventId!,
                   ),
                   _buildRSVPButton(
                     'Interested',
                     EventRepository.RSVP_INTERESTED,
                     userRSVP == EventRepository.RSVP_INTERESTED,
                     Colors.orange,
-                    eventId,
+                    eventId!,
                   ),
                   _buildRSVPButton(
                     'Not Going',
                     EventRepository.RSVP_NOT_GOING,
                     userRSVP == EventRepository.RSVP_NOT_GOING,
                     Colors.red,
-                    eventId,
+                    eventId!,
                   ),
                 ],
+              )
+            else if (!hasValidId)
+              Center(
+                child: Text(
+                  'RSVP not available for this event',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
               )
             else
               Center(

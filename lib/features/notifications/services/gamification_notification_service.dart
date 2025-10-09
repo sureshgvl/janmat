@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../services/gamification_service.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/app_logger.dart';
@@ -11,7 +12,9 @@ import '../repositories/notification_repository_impl.dart';
 /// Service for handling gamification-related notifications
 class GamificationNotificationService {
   final NotificationRepository _notificationRepository = NotificationRepositoryImpl();
-  final GamificationService _gamificationService = GamificationService();
+
+  // Get gamification service when needed to avoid circular dependency
+  GamificationService get _gamificationService => Get.find<GamificationService>();
 
   /// Send level up notification when user reaches a new level
   Future<void> sendLevelUpNotification({

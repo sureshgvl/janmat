@@ -15,6 +15,8 @@ import '../controllers/notification_settings_controller.dart';
 import '../controllers/following_controller.dart';
 import '../services/background_location_sync_service.dart';
 import '../services/manifesto_sync_service.dart';
+import '../features/notifications/services/gamification_notification_service.dart';
+import '../services/gamification_service.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -41,6 +43,10 @@ class AppBindings extends Bindings {
     Get.lazyPut<AdMobService>(() => AdMobService());
     Get.lazyPut<RazorpayService>(() => RazorpayService());
 
+    // Register gamification services for dependency injection
+    Get.lazyPut<GamificationNotificationService>(() => GamificationNotificationService());
+    Get.lazyPut<GamificationService>(() => GamificationService());
+
     // Initialize background location sync service
     final backgroundLocationSync = BackgroundLocationSyncService.instance;
     backgroundLocationSync.initialize();
@@ -58,4 +64,3 @@ class AppBindings extends Bindings {
     }
   }
 }
-

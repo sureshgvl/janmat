@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../../services/manifesto_poll_service.dart';
+import '../../../../utils/advanced_analytics.dart' as analytics;
 
 class ManifestoPollSection extends StatefulWidget {
   final String? manifestoId;
@@ -54,6 +55,17 @@ class _ManifestoPollSectionState extends State<ManifestoPollSection> {
 
     try {
       await ManifestoPollService.voteOnPoll(widget.manifestoId!, widget.currentUserId!, option);
+
+      // Track poll vote analytics
+      analytics.AdvancedAnalyticsManager().trackUserInteraction(
+        'poll_vote',
+        'manifesto_tab',
+        elementId: widget.manifestoId,
+        metadata: {
+          'option': option,
+          'user_id': widget.currentUserId,
+        },
+      );
 
       Get.snackbar(
         'thankYou'.tr,
