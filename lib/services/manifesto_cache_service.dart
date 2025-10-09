@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
-import '../models/comment_model.dart';
 import '../models/like_model.dart';
 import '../utils/app_logger.dart';
 import 'local_database_service.dart';
@@ -12,73 +11,6 @@ class ManifestoCacheService {
 
   final LocalDatabaseService _dbService = LocalDatabaseService();
 
-  // Comment operations
-  Future<void> cacheComment(CommentModel comment, {bool synced = false}) async {
-    final db = await _dbService.database;
-    await db.insert(
-      LocalDatabaseService.commentsTable,
-      {
-        'id': comment.id,
-        'userId': comment.userId,
-        'postId': comment.postId,
-        'text': comment.text,
-        'createdAt': comment.createdAt.toIso8601String(),
-        'parentId': comment.parentId,
-        'synced': synced ? 1 : 0,
-        'syncAction': 'create',
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    AppLogger.common('💾 [ManifestoCache] Cached comment: ${comment.id}');
-  }
-
-  Future<List<CommentModel>> getCachedComments(String manifestoId) async {
-    final db = await _dbService.database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      LocalDatabaseService.commentsTable,
-      where: 'postId = ?',
-      whereArgs: [manifestoId],
-      orderBy: 'createdAt DESC',
-    );
-
-    return maps.map((map) => CommentModel(
-      id: map['id'],
-      userId: map['userId'],
-      postId: map['postId'],
-      text: map['text'],
-      createdAt: DateTime.parse(map['createdAt']),
-      parentId: map['parentId'],
-    )).toList();
-  }
-
-  Future<void> markCommentSynced(String commentId) async {
-    final db = await _dbService.database;
-    await db.update(
-      LocalDatabaseService.commentsTable,
-      {'synced': 1},
-      where: 'id = ?',
-      whereArgs: [commentId],
-    );
-    AppLogger.common('✅ [ManifestoCache] Marked comment synced: $commentId');
-  }
-
-  Future<List<CommentModel>> getUnsyncedComments() async {
-    final db = await _dbService.database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      LocalDatabaseService.commentsTable,
-      where: 'synced = ?',
-      whereArgs: [0],
-    );
-
-    return maps.map((map) => CommentModel(
-      id: map['id'],
-      userId: map['userId'],
-      postId: map['postId'],
-      text: map['text'],
-      createdAt: DateTime.parse(map['createdAt']),
-      parentId: map['parentId'],
-    )).toList();
-  }
 
   // Like operations
   Future<void> cacheLike(LikeModel like, {bool synced = false}) async {
@@ -129,7 +61,7 @@ class ManifestoCacheService {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  Future<List<LikeModel>> getUnsyncedLikes() async {
+  Future<List<Map<String, dynamic>>> getUnsyncedLikes() async {
     final db = await _dbService.database;
     final List<Map<String, dynamic>> maps = await db.query(
       LocalDatabaseService.likesTable,
@@ -137,12 +69,7 @@ class ManifestoCacheService {
       whereArgs: [0],
     );
 
-    return maps.map((map) => LikeModel(
-      id: map['id'],
-      userId: map['userId'],
-      postId: map['postId'],
-      createdAt: DateTime.parse(map['createdAt']),
-    )).toList();
+    return maps;
   }
 
   Future<void> markLikeSynced(String likeId) async {
@@ -233,12 +160,10 @@ class ManifestoCacheService {
 
   // Sync operations
   Future<Map<String, dynamic>> getPendingSyncItems() async {
-    final unsyncedComments = await getUnsyncedComments();
     final unsyncedLikes = await getUnsyncedLikes();
     final unsyncedPolls = await getUnsyncedPollVotes();
 
     return {
-      'comments': unsyncedComments,
       'likes': unsyncedLikes,
       'polls': unsyncedPolls,
     };
@@ -246,13 +171,6 @@ class ManifestoCacheService {
 
   Future<void> clearSyncedItems() async {
     final db = await _dbService.database;
-
-    // Remove synced comments
-    await db.delete(
-      LocalDatabaseService.commentsTable,
-      where: 'synced = ?',
-      whereArgs: [1],
-    );
 
     // Remove synced likes
     await db.delete(
@@ -272,16 +190,11 @@ class ManifestoCacheService {
   }
 
   // Cache management
-  Future<void> updateManifestoCache(String manifestoId, List<CommentModel> comments, List<LikeModel> likes, Map<String, int> pollResults) async {
+  Future<void> updateManifestoCache(String manifestoId, List<LikeModel> likes, Map<String, int> pollResults) async {
     final db = await _dbService.database;
     final batch = db.batch();
 
     // Clear existing data for this manifesto
-    batch.delete(
-      LocalDatabaseService.commentsTable,
-      where: 'postId = ?',
-      whereArgs: [manifestoId],
-    );
     batch.delete(
       LocalDatabaseService.likesTable,
       where: 'postId = ?',
@@ -292,24 +205,6 @@ class ManifestoCacheService {
       where: 'manifestoId = ?',
       whereArgs: [manifestoId],
     );
-
-    // Insert new comments
-    for (final comment in comments) {
-      batch.insert(
-        LocalDatabaseService.commentsTable,
-        {
-          'id': comment.id,
-          'userId': comment.userId,
-          'postId': comment.postId,
-          'text': comment.text,
-          'createdAt': comment.createdAt.toIso8601String(),
-          'parentId': comment.parentId,
-          'synced': 1, // Server data is already synced
-          'syncAction': null,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
 
     // Insert new likes
     for (final like in likes) {

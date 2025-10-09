@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/manifesto_likes_service.dart';
-import '../../../../services/manifesto_comments_service.dart';
 import '../../../../services/manifesto_poll_service.dart';
 
 class AnalyticsTabView extends StatefulWidget {
@@ -25,12 +24,10 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
 
   // Real-time engagement metrics
   int _manifestoLikes = 0;
-  int _manifestoComments = 0;
   int _pollParticipation = 0;
 
   // Stream subscriptions
   Stream<int>? _likesStream;
-  Stream<List<dynamic>>? _commentsStream;
   Stream<Map<String, int>>? _pollStream;
 
   @override
@@ -42,7 +39,6 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
   @override
   void dispose() {
     _likesStream = null;
-    _commentsStream = null;
     _pollStream = null;
     super.dispose();
   }
@@ -55,14 +51,6 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
     _likesStream?.listen((count) {
       if (mounted) {
         setState(() => _manifestoLikes = count);
-      }
-    });
-
-    // Comments stream
-    _commentsStream = ManifestoCommentsService.getComments(manifestoId);
-    _commentsStream?.listen((comments) {
-      if (mounted) {
-        setState(() => _manifestoComments = comments.length);
       }
     });
 
@@ -212,15 +200,7 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: _buildMetricCard(
-                  title: 'Manifesto Comments',
-                  value: '$_manifestoComments',
-                  icon: Icons.comment,
-                  color: Colors.blue,
-                  subtitle: 'Total comments on manifesto',
-                ),
-              ),
+              const Expanded(child: SizedBox()), // Empty space for balance
             ],
           ),
           const SizedBox(height: 12),

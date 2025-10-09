@@ -191,6 +191,33 @@ class ManifestoPollService {
     }
   }
 
+  /// Get stream of user's current vote on a manifesto poll (with offline support)
+  static Stream<String?> getUserVoteStream(String manifestoId, String userId) {
+    // If offline, return cached result as stream
+    if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
+      return Stream.fromFuture(_cacheService.getCachedUserVote(manifestoId, userId));
+    }
+
+    // Online: Get from Firestore as stream
+    final pollRef = FirebaseFirestore.instance
+        .collection('manifesto_polls')
+        .doc(manifestoId)
+        .collection('polls')
+        .doc(_mainPollId);
+
+    return pollRef.snapshots().map((snapshot) {
+      if (!snapshot.exists) {
+        return null;
+      }
+
+      final data = snapshot.data()!;
+      _monitor.trackFirebaseRead('manifesto_polls', 1);
+
+      final userVotes = Map<String, String>.from(data['userVotes'] ?? {});
+      return userVotes[userId];
+    });
+  }
+
   /// Get user's current vote on a manifesto poll (with offline support)
   static Future<String?> getUserVote(String manifestoId, String userId) async {
     _monitor.startTimer('get_user_vote_manifesto_poll');

@@ -7,7 +7,6 @@ import '../../../../services/notifications/constituency_notifications.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import 'manifesto_resources_section.dart';
 import 'manifesto_poll_section.dart';
-import 'manifesto_comments_section.dart';
 import '../../../../services/manifesto_likes_service.dart';
 import '../../../../utils/advanced_analytics.dart' as analytics;
 
@@ -154,11 +153,9 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                           builder: (context, likeSnapshot) {
                             final likeCount = likeSnapshot.data ?? 0;
                             return StreamBuilder<bool>(
-                              stream: Stream.fromFuture(
-                                widget.currentUserId != null
-                                    ? ManifestoLikesService.hasUserLiked(widget.currentUserId!, _getManifestoId())
-                                    : Future.value(false)
-                              ),
+                              stream: widget.currentUserId != null
+                                  ? ManifestoLikesService.getUserLikeStatusStream(widget.currentUserId!, _getManifestoId())
+                                  : Stream.value(false),
                               builder: (context, userLikeSnapshot) {
                                 final isLiked = userLikeSnapshot.data ?? false;
                                 return Row(
@@ -323,12 +320,6 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                   const SizedBox(height: 24),
                   // Poll Section
                   ManifestoPollSection(
-                    manifestoId: _getManifestoId(),
-                    currentUserId: widget.currentUserId,
-                  ),
-                  const SizedBox(height: 24),
-                  // Comments Section
-                  ManifestoCommentsSection(
                     manifestoId: _getManifestoId(),
                     currentUserId: widget.currentUserId,
                   ),

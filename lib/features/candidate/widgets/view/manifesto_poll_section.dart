@@ -29,9 +29,7 @@ class _ManifestoPollSectionState extends State<ManifestoPollSection> {
     super.initState();
     if (widget.manifestoId != null && widget.currentUserId != null) {
       _pollResultsStream = ManifestoPollService.getPollResultsStream(widget.manifestoId!);
-      _userVoteStream = Stream.fromFuture(
-        ManifestoPollService.getUserVote(widget.manifestoId!, widget.currentUserId!)
-      );
+      _userVoteStream = ManifestoPollService.getUserVoteStream(widget.manifestoId!, widget.currentUserId!);
     }
   }
 

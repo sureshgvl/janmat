@@ -58,15 +58,6 @@ class ManifestoSyncService {
       final pendingItems = await _cacheService.getPendingSyncItems();
       int syncedCount = 0;
 
-      // Sync comments
-      for (final comment in pendingItems['comments'] as List) {
-        try {
-          await _syncComment(comment);
-          syncedCount++;
-        } catch (e) {
-          AppLogger.commonError('❌ Failed to sync comment ${comment.id}', error: e);
-        }
-      }
 
       // Sync likes
       for (final like in pendingItems['likes'] as List) {
@@ -100,47 +91,36 @@ class ManifestoSyncService {
     }
   }
 
-  Future<void> _syncComment(dynamic comment) async {
-    final commentsRef = _firestore.collection('comments');
 
-    if (comment.syncAction == 'delete') {
-      // Find and delete from Firestore
-      final query = await commentsRef
-          .where('userId', isEqualTo: comment.userId)
-          .where('postId', isEqualTo: comment.postId)
-          .where('text', isEqualTo: comment.text)
-          .get();
+  Future<void> _syncLike(Map<String, dynamic> likeData) async {
+    // Use subcollection structure: /comment_likes/{manifestoId}/likes/{likeId}
+    final likesRef = _firestore
+        .collection('comment_likes')
+        .doc(likeData['postId'])  // manifestoId (assuming postId contains manifestoId for likes)
+        .collection('likes');
 
-      for (final doc in query.docs) {
-        await doc.reference.delete();
-      }
-    } else {
-      // Add to Firestore
-      await commentsRef.add(comment.toJson());
-    }
-
-    await _cacheService.markCommentSynced(comment.id);
-  }
-
-  Future<void> _syncLike(dynamic like) async {
-    final likesRef = _firestore.collection('likes');
-
-    if (like.syncAction == 'delete') {
-      // Find and delete from Firestore
+    if (likeData['syncAction'] == 'delete') {
+      // Find and delete from Firestore subcollection
       final query = await likesRef
-          .where('userId', isEqualTo: like.userId)
-          .where('postId', isEqualTo: like.postId)
+          .where('userId', isEqualTo: likeData['userId'])
+          .where('postId', isEqualTo: likeData['postId'])
           .get();
 
       for (final doc in query.docs) {
         await doc.reference.delete();
       }
     } else {
-      // Add to Firestore
-      await likesRef.add(like.toJson());
+      // Add to Firestore subcollection
+      final likeJson = {
+        'id': likeData['id'],
+        'userId': likeData['userId'],
+        'postId': likeData['postId'],
+        'createdAt': DateTime.parse(likeData['createdAt']),
+      };
+      await likesRef.add(likeJson);
     }
 
-    await _cacheService.markLikeSynced(like.id);
+    await _cacheService.markLikeSynced(likeData['id']);
   }
 
   Future<void> _syncPollVote(Map<String, dynamic> pollData) async {
@@ -235,7 +215,6 @@ class ManifestoSyncService {
     final pendingItems = await _cacheService.getPendingSyncItems();
     return {
       'isOnline': _connectionOptimizer.currentQuality != ConnectionQuality.offline,
-      'pendingComments': (pendingItems['comments'] as List).length,
       'pendingLikes': (pendingItems['likes'] as List).length,
       'pendingPolls': (pendingItems['polls'] as List).length,
     };

@@ -5,11 +5,13 @@ import '../utils/performance_monitor.dart';
 import '../utils/connection_optimizer.dart';
 import '../utils/app_logger.dart';
 import 'manifesto_cache_service.dart';
+import 'local_database_service.dart';
 
 class ManifestoLikesService {
   static final PerformanceMonitor _monitor = PerformanceMonitor();
   static final ConnectionOptimizer _connectionOptimizer = ConnectionOptimizer();
   static final ManifestoCacheService _cacheService = ManifestoCacheService();
+  static final LocalDatabaseService _dbService = LocalDatabaseService();
 
   /// Toggle like for a manifesto
   /// Returns true if liked, false if unliked
@@ -22,8 +24,19 @@ class ManifestoLikesService {
       bool isLiked;
 
       if (hasLiked) {
-        // Unlike: remove from cache
-        await _cacheService.removeCachedLike(manifestoId);
+        // Unlike: find the like record and remove it from cache
+        final db = await _dbService.database;
+        final existingLike = await db.query(
+          LocalDatabaseService.likesTable,
+          where: 'userId = ? AND postId = ? AND (syncAction != ? OR syncAction IS NULL)',
+          whereArgs: [userId, manifestoId, 'delete'],
+          limit: 1,
+        );
+
+        if (existingLike.isNotEmpty) {
+          final likeId = existingLike.first['id'] as String;
+          await _cacheService.removeCachedLike(likeId);
+        }
         isLiked = false;
 
         // If online, sync to Firestore
@@ -96,6 +109,27 @@ class ManifestoLikesService {
         .map((snapshot) {
           _monitor.trackFirebaseRead('likes', snapshot.docs.length);
           return snapshot.docs.length;
+        });
+  }
+
+  /// Get stream of user's like status for a manifesto (with offline support)
+  static Stream<bool> getUserLikeStatusStream(String userId, String manifestoId) {
+    // If offline, return cached result as stream
+    if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
+      return Stream.fromFuture(_cacheService.hasUserLiked(userId, manifestoId));
+    }
+
+    // Online: Get from Firestore as stream
+    final likesRef = FirebaseFirestore.instance.collection('likes');
+
+    return likesRef
+        .where('userId', isEqualTo: userId)
+        .where('postId', isEqualTo: manifestoId)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+          _monitor.trackFirebaseRead('likes', 1);
+          return snapshot.docs.isNotEmpty;
         });
   }
 
