@@ -93,7 +93,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else ...[
-            // Key Metrics Cards
+            // Key Metrics Cards - Enhanced
             Row(
               children: [
                 Expanded(
@@ -137,6 +137,28 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
                         : '0',
                     icon: Icons.trending_up,
                     color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMetricCard(
+                    title: 'Attendance Rate',
+                    value: _calculateAttendanceRate(),
+                    icon: Icons.people,
+                    color: Colors.teal,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildMetricCard(
+                    title: 'Event Reach',
+                    value: _calculateEventReach(),
+                    icon: Icons.location_on,
+                    color: Colors.indigo,
                   ),
                 ),
               ],
@@ -389,6 +411,32 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
     } catch (e) {
       return dateString;
     }
+  }
+
+  String _calculateAttendanceRate() {
+    if (_totalEvents == 0) return '0%';
+
+    // Calculate average attendance rate (assuming 70% of "going" actually attend)
+    final estimatedAttendance = (_totalGoing * 0.7).round();
+    final expectedTotal = _totalInterested + _totalGoing;
+
+    if (expectedTotal == 0) return '0%';
+
+    final rate = (estimatedAttendance / expectedTotal * 100).round();
+    return '$rate%';
+  }
+
+  String _calculateEventReach() {
+    if (_totalEvents == 0) return '0';
+
+    // Estimate geographic reach based on events and responses
+    final totalResponses = _totalInterested + _totalGoing;
+    final avgReachPerEvent = totalResponses ~/ _totalEvents;
+
+    if (avgReachPerEvent >= 50) return 'Wide';
+    if (avgReachPerEvent >= 20) return 'Good';
+    if (avgReachPerEvent >= 10) return 'Local';
+    return 'Limited';
   }
 }
 

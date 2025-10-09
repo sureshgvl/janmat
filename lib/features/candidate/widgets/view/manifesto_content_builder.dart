@@ -8,6 +8,7 @@ import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import 'manifesto_resources_section.dart';
 import 'manifesto_poll_section.dart';
 import '../../../../services/manifesto_likes_service.dart';
+import '../../../../services/analytics_data_collection_service.dart';
 import '../../../../utils/advanced_analytics.dart' as analytics;
 
 class ManifestoContentBuilder extends StatefulWidget {
@@ -46,7 +47,19 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
     try {
       final isLiked = await ManifestoLikesService.toggleLike(widget.currentUserId!, _getManifestoId());
 
-      // Track manifesto like analytics
+      // Track manifesto like analytics using new service
+      await AnalyticsDataCollectionService().trackManifestoInteraction(
+        candidateId: widget.candidate.candidateId ?? widget.candidate.userId ?? 'unknown',
+        interactionType: isLiked ? 'like' : 'unlike',
+        userId: widget.currentUserId,
+        section: 'manifesto_title',
+        metadata: {
+          'manifesto_title': widget.candidate.extraInfo?.manifesto?.title,
+          'interaction_source': 'manifesto_tab',
+        },
+      );
+
+      // Also track using existing analytics manager for backward compatibility
       analytics.AdvancedAnalyticsManager().trackUserInteraction(
         isLiked ? 'manifesto_like' : 'manifesto_unlike',
         'manifesto_tab',
@@ -70,6 +83,19 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
     try {
       // Share the manifesto via native sharing
       await ShareService.shareCandidateManifesto(widget.candidate);
+
+      // Track manifesto share analytics
+      await AnalyticsDataCollectionService().trackManifestoInteraction(
+        candidateId: widget.candidate.candidateId ?? widget.candidate.userId ?? 'unknown',
+        interactionType: 'share',
+        userId: widget.currentUserId,
+        section: 'full_manifesto',
+        metadata: {
+          'manifesto_title': widget.candidate.extraInfo?.manifesto?.title,
+          'share_platform': 'native_share',
+          'interaction_source': 'manifesto_tab',
+        },
+      );
 
       // Send notification to followers and constituency about the sharing
       final manifestoTitle = widget.candidate.extraInfo?.manifesto?.title ?? 'Manifesto';

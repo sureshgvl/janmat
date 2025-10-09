@@ -5,6 +5,7 @@ import '../../models/candidate_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../screens/followers_list_screen.dart';
 import '../../../../utils/app_logger.dart';
+import '../../../../services/realtime_analytics_service.dart';
 
 class FollowersAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -19,14 +20,30 @@ class FollowersAnalyticsSection extends StatefulWidget {
 class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
   final CandidateController controller = Get.find<CandidateController>();
   final CandidateRepository repository = CandidateRepository();
+  final RealtimeAnalyticsService _analyticsService = RealtimeAnalyticsService();
+
   List<Map<String, dynamic>> followers = [];
   Map<String, Map<String, dynamic>?> userDataCache = {};
   bool isLoadingFollowers = true;
 
+  // Real-time follower count
+  int _realtimeFollowerCount = 0;
+  late Stream<int> _followerCountStream;
+
   @override
   void initState() {
     super.initState();
+    _initializeRealtimeFollowerCount();
     _loadFollowersData();
+  }
+
+  void _initializeRealtimeFollowerCount() {
+    _followerCountStream = _analyticsService.getFollowerCountStream(widget.candidateData.candidateId);
+    _followerCountStream.listen((count) {
+      if (mounted) {
+        setState(() => _realtimeFollowerCount = count);
+      }
+    });
   }
 
   Future<void> _loadFollowersData() async {
@@ -59,6 +76,13 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
   }
 
   @override
+  void dispose() {
+    // Cancel real-time stream subscription
+    _analyticsService.cancelSubscription('follower_count_${widget.candidateData.candidateId}');
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -84,7 +108,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
               Expanded(
                 child: _buildMetricCard(
                   title: 'Total Followers',
-                  value: widget.candidateData.followersCount.toString(),
+                  value: _realtimeFollowerCount.toString(),
                   icon: Icons.people,
                   color: Colors.blue,
                 ),

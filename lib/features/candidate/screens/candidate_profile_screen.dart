@@ -21,6 +21,7 @@ import '../widgets/profile_tab_bar_widget.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../services/plan_service.dart';
 import '../../../services/local_database_service.dart';
+import '../../../services/analytics_data_collection_service.dart';
 import '../../../utils/app_logger.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
@@ -106,6 +107,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
     // Load location data
     _loadLocationData();
+
+    // Track profile view (only for other users viewing this profile)
+    if (!_isOwnProfile && candidate != null) {
+      _trackProfileView();
+    }
   }
 
   @override
@@ -287,6 +293,27 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           _wardName = 'Ward ${candidate!.wardId}';
         });
       }
+    }
+  }
+
+  // Track profile view for analytics
+  Future<void> _trackProfileView() async {
+    if (candidate == null) return;
+
+    try {
+      await AnalyticsDataCollectionService().trackProfileView(
+        candidateId: candidate!.candidateId,
+        viewerId: currentUserId,
+        viewerRole: currentUserId != null ? 'voter' : 'anonymous',
+        source: 'profile_screen',
+        metadata: {
+          'viewedFrom': 'candidate_profile_screen',
+          'tab': 'initial_load',
+        },
+      );
+    } catch (e) {
+      // Analytics tracking should not interrupt user experience
+      AppLogger.common('⚠️ Failed to track profile view: $e');
     }
   }
 

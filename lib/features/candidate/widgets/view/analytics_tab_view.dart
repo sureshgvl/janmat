@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/manifesto_likes_service.dart';
 import '../../../../services/manifesto_poll_service.dart';
+import '../../../../services/analytics_export_service.dart';
+import '../../../../widgets/charts/follower_growth_chart.dart';
 
 class AnalyticsTabView extends StatefulWidget {
   final Candidate candidate;
@@ -130,6 +132,11 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
                         ],
                       ),
                     ),
+                    IconButton(
+                      onPressed: _exportAnalytics,
+                      icon: const Icon(Icons.download, color: Colors.blue),
+                      tooltip: 'Export Analytics Data',
+                    ),
                   ],
                 ),
               ],
@@ -222,73 +229,10 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
 
           const SizedBox(height: 20),
 
-          // Follower Growth Chart Placeholder
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.show_chart,
-                        color: Colors.purple.shade600,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Follower Growth',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1f2937),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.bar_chart,
-                          size: 48,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Growth chart will be displayed here',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          // Follower Growth Chart
+          FollowerGrowthChart(
+            growthData: analytics?.followerGrowth ?? [],
+            isLoading: false,
           ),
 
           const SizedBox(height: 20),
@@ -466,6 +410,22 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
         ],
       ),
     );
+  }
+
+  Future<void> _exportAnalytics() async {
+    try {
+      await AnalyticsExportService().shareAnalyticsData(widget.candidate, format: 'csv');
+    } catch (e) {
+      // Show error snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export analytics: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildMetricCard({

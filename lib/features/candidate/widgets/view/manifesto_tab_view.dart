@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/candidate_model.dart';
 import '../../controllers/candidate_data_controller.dart';
 import 'manifesto_content_builder.dart';
+import '../../../../services/analytics_data_collection_service.dart';
 
 class ManifestoTabView extends StatefulWidget {
   final Candidate candidate;
@@ -43,10 +44,34 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
     } else {
       _dataController = null;
     }
+// Get current user ID
+_currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    // Get current user ID
-    _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+// Track manifesto view (only for other users, not the candidate themselves)
+if (!widget.isOwnProfile && widget.candidate.candidateId != null) {
+  _trackManifestoView();
+}
 
+
+  }
+
+  // Track manifesto view for analytics
+  Future<void> _trackManifestoView() async {
+    try {
+      await AnalyticsDataCollectionService().trackManifestoInteraction(
+        candidateId: widget.candidate.candidateId!,
+        interactionType: 'view',
+        userId: _currentUserId,
+        section: 'full_manifesto',
+        metadata: {
+          'viewedFrom': 'manifesto_tab',
+          'hasStructuredData': widget.candidate.extraInfo?.manifesto?.promises?.isNotEmpty ?? false,
+        },
+      );
+    } catch (e) {
+      // Analytics tracking should not interrupt user experience
+      // Silently fail
+    }
   }
 
   @override
