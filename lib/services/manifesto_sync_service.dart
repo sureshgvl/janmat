@@ -65,7 +65,7 @@ class ManifestoSyncService {
           await _syncLike(like);
           syncedCount++;
         } catch (e) {
-          AppLogger.commonError('❌ Failed to sync like ${like.id}', error: e);
+          AppLogger.commonError('❌ Failed to sync like ${like['id']}', error: e);
         }
       }
 

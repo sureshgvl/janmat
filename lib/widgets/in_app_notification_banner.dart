@@ -37,7 +37,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1),
+      begin: const Offset(0, 1),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
@@ -69,99 +69,102 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  width: 1,
                 ),
-              ],
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                width: 1,
               ),
-            ),
-            child: InkWell(
-              onTap: () {
-                widget.onTap?.call();
-                _dismiss();
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    // Notification icon
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: _getNotificationColor(),
-                        shape: BoxShape.circle,
+              child: InkWell(
+                onTap: () {
+                  widget.onTap?.call();
+                  _dismiss();
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      // Notification icon
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _getNotificationColor(),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _getNotificationIcon(),
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
-                      child: Icon(
-                        _getNotificationIcon(),
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
 
-                    // Content
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Title
-                          Text(
-                            widget.notification.title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface,
+                      // Content
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Title
+                            Text(
+                              widget.notification.title,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
+                            const SizedBox(height: 2),
 
-                          // Body
-                          Text(
-                            widget.notification.body,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            // Body
+                            Text(
+                              widget.notification.body,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
-                    // Dismiss button
-                    IconButton(
-                      onPressed: _dismiss,
-                      icon: Icon(
-                        Icons.close,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      // Dismiss button
+                      IconButton(
+                        onPressed: _dismiss,
+                        icon: Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
