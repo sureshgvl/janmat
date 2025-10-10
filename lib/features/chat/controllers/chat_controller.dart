@@ -24,8 +24,8 @@ import '../../../utils/app_logger.dart';
 
 class ChatController extends GetxController {
   // New controllers
-  final MessageController _messageController = Get.put(MessageController());
   final RoomController _roomController = Get.put(RoomController());
+  final MessageController _messageController = Get.put(MessageController());
   final AuthRepository _authRepository = AuthRepository();
   final ChatRepository _repository = ChatRepository();
   final PrivateChatService _privateChatService = PrivateChatService();

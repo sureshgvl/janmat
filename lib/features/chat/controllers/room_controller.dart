@@ -162,36 +162,75 @@ class RoomController extends GetxController {
   Future<void> _calculateUnreadCounts(String userId, List<ChatRoom> rooms) async {
     final firestore = FirebaseFirestore.instance;
 
-    for (final room in rooms) {
-      try {
-        final messages = await firestore
-            .collection('chats')
-            .doc(room.roomId)
-            .collection('messages')
-            .where('readBy', arrayContains: userId)
-            .get();
+    // Process rooms in batches to avoid overwhelming Firestore
+    const batchSize = 5;
+    for (var i = 0; i < rooms.length; i += batchSize) {
+      final batch = rooms.sublist(i, i + batchSize > rooms.length ? rooms.length : i + batchSize);
+      final futures = batch.map((room) => _calculateUnreadCountForRoom(userId, room));
+      await Future.wait(futures);
+    }
+  }
 
-        final totalMessages = await firestore
-            .collection('chats')
-            .doc(room.roomId)
-            .collection('messages')
-            .get();
+  // Calculate unread count for a single room
+  Future<void> _calculateUnreadCountForRoom(String userId, ChatRoom room) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
 
-        final unreadCount = totalMessages.docs.length - messages.docs.length;
-        _unreadCounts[room.roomId] = unreadCount;
+      // Get all messages for this room (we need them anyway for last message info)
+      final totalMessagesSnapshot = await firestore
+          .collection('chats')
+          .doc(room.roomId)
+          .collection('messages')
+          .orderBy('createdAt', descending: true)
+          .limit(50) // Limit to recent messages for performance
+          .get();
 
-        // Also get last message info for sorting
-        if (totalMessages.docs.isNotEmpty) {
-          final lastMessage = totalMessages.docs.last;
-          final messageData = lastMessage.data();
-          _lastMessageTimes[room.roomId] = (messageData['createdAt'] as Timestamp).toDate();
-          _lastMessagePreviews[room.roomId] = messageData['text'] ?? 'Media message';
-          _lastMessageSenders[room.roomId] = messageData['senderId'] ?? '';
+      final allMessages = totalMessagesSnapshot.docs;
+
+      // Calculate unread count by checking which messages don't contain userId in readBy
+      var unreadCount = 0;
+      for (final messageDoc in allMessages) {
+        final messageData = messageDoc.data();
+        final readBy = List<String>.from(messageData['readBy'] ?? []);
+        if (!readBy.contains(userId)) {
+          unreadCount++;
         }
-      } catch (e) {
-        AppLogger.chat('Error calculating unread count for room ${room.roomId}: $e');
-        _unreadCounts[room.roomId] = 0;
       }
+
+      _unreadCounts[room.roomId] = unreadCount;
+
+      // Get last message info for sorting (from the first message since we ordered descending)
+      if (allMessages.isNotEmpty) {
+        final lastMessage = allMessages.first; // First because we ordered descending
+        final messageData = lastMessage.data();
+        _lastMessageTimes[room.roomId] = (messageData['createdAt'] as Timestamp).toDate();
+        _lastMessagePreviews[room.roomId] = _getMessagePreview(messageData);
+        _lastMessageSenders[room.roomId] = messageData['senderId'] ?? '';
+      }
+    } catch (e) {
+      AppLogger.chat('Error calculating unread count for room ${room.roomId}: $e');
+      _unreadCounts[room.roomId] = 0;
+    }
+  }
+
+  // Helper method to get message preview
+  String _getMessagePreview(Map<String, dynamic> messageData) {
+    final text = messageData['text'] as String?;
+    final type = messageData['type'] as String? ?? 'text';
+
+    if (text != null && text.isNotEmpty) {
+      return text;
+    }
+
+    switch (type) {
+      case 'image':
+        return '📷 Image';
+      case 'audio':
+        return '🎵 Voice message';
+      case 'poll':
+        return '📊 Poll';
+      default:
+        return 'Media message';
     }
   }
 

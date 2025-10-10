@@ -13,14 +13,16 @@ import '../services/media_service.dart';
 import '../services/offline_message_queue.dart';
 import '../services/private_chat_service.dart';
 import '../repositories/chat_repository.dart';
+import 'room_controller.dart';
 
 class MessageController extends GetxController {
-  final ChatRepository _repository = ChatRepository();
-  final LocalMessageService _localMessageService = LocalMessageService();
-  final MediaService _mediaService = MediaService();
-  final OfflineMessageQueue _offlineQueue = OfflineMessageQueue();
-  final PrivateChatService _privateChatService = PrivateChatService();
-  final AudioRecorder _audioRecorder = AudioRecorder();
+   final ChatRepository _repository = ChatRepository();
+   final LocalMessageService _localMessageService = LocalMessageService();
+   final MediaService _mediaService = MediaService();
+   final OfflineMessageQueue _offlineQueue = OfflineMessageQueue();
+   final PrivateChatService _privateChatService = PrivateChatService();
+   final AudioRecorder _audioRecorder = AudioRecorder();
+   final RoomController _roomController = Get.find<RoomController>();
 
   // Voice recording state
   var isRecording = false.obs;
@@ -534,6 +536,9 @@ class MessageController extends GetxController {
       '✅ MessageController: Added message ${message.messageId} to UI, total messages: ${messages.length}',
     );
 
+    // Update room's last message info for sorting
+    _updateRoomLastMessageInfo(message, roomId);
+
     // Log all current messages for debugging
     for (int i = 0; i < messages.length; i++) {
       AppLogger.chat('   Message $i: ID=${messages[i].messageId}, Text="${messages[i].text}"');
@@ -579,6 +584,13 @@ class MessageController extends GetxController {
       // Merge with current messages (not just local messages)
       final mergedMessages = _mergeMessages(messages, serverMessages);
       messages.assignAll(mergedMessages);
+
+      // Update room's last message info if we received new messages
+      if (serverMessages.isNotEmpty) {
+        final latestMessage = serverMessages.last;
+        _updateRoomLastMessageInfo(latestMessage, roomId);
+      }
+
       update(); // Force UI update
     });
   }
@@ -703,6 +715,33 @@ class MessageController extends GetxController {
     }
 
     return sortedMessages;
+  }
+
+  // Update room's last message info for sorting
+  void _updateRoomLastMessageInfo(Message message, String roomId) {
+    try {
+      // Create message preview for chat list
+      String messagePreview = message.text;
+      if (message.type == 'image') {
+        messagePreview = '📷 Image';
+      } else if (message.type == 'audio') {
+        messagePreview = '🎵 Voice message';
+      } else if (message.type == 'poll') {
+        messagePreview = '📊 Poll';
+      }
+
+      // Update room controller with last message info
+      _roomController.updateLastMessageInfo(
+        roomId,
+        time: message.createdAt,
+        preview: messagePreview,
+        sender: message.senderId,
+      );
+
+      AppLogger.chat('✅ Updated room last message info for room: $roomId');
+    } catch (e) {
+      AppLogger.chat('❌ Error updating room last message info: $e');
+    }
   }
 
   String _generateMessageId() {
