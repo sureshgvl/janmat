@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
-import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
 
 class RoomController extends GetxController {

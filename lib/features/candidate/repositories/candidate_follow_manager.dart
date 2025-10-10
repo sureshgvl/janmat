@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../../utils/app_logger.dart';
-import '../../../models/user_model.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
 import 'candidate_cache_manager.dart';

@@ -5,7 +5,6 @@ import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../services/language_service.dart';
-import '../../../services/fcm_service.dart';
 import 'device_management_screen.dart';
 import '../../notifications/screens/notification_preferences_screen.dart';
 

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../../../utils/app_logger.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';

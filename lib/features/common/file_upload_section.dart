@@ -31,7 +31,6 @@ class FileUploadSection extends StatefulWidget {
 }
 
 class _FileUploadSectionState extends State<FileUploadSection> {
-  final FileUploadService _fileUploadService = FileUploadService();
   bool _isUploadingPdf = false;
   bool _isUploadingImage = false;
   bool _isUploadingVideo = false;

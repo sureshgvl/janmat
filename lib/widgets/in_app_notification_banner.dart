@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../features/notifications/models/notification_model.dart';
 
 /// In-app notification banner that appears at the top of the screen

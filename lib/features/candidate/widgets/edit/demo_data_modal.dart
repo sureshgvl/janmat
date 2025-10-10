@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../models/candidate_achievement_model.dart';
 
 class DemoDataModal extends StatelessWidget {
   final String category;
-  final Function(Map<String, dynamic>) onDataSelected;
+  final Function(dynamic) onDataSelected;
 
   const DemoDataModal({
     super.key,
@@ -20,6 +21,8 @@ class DemoDataModal extends StatelessWidget {
           children: [
             if (category == 'media') ...[
               _buildMediaDemoOptions(context),
+            ] else if (category == 'achievements') ...[
+              _buildAchievementsDemoOptions(context),
             ] else ...[
               const Text('Demo data not available for this category.'),
             ],
@@ -98,11 +101,65 @@ class DemoDataModal extends StatelessWidget {
     );
   }
 
+  Widget _buildAchievementsDemoOptions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Choose demo achievements:',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 16),
+        _buildDemoOption(
+          context,
+          'Community Service Award',
+          'Recognition for outstanding community service and volunteer work',
+          [
+            Achievement(
+              title: 'Community Service Award',
+              description: 'Recognized for outstanding community service and volunteer work in Ward 23',
+              year: 2023,
+              photoUrl: 'https://example.com/demo_achievement_1.jpg',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildDemoOption(
+          context,
+          'Education Excellence',
+          'Achievement in promoting education and literacy programs',
+          [
+            Achievement(
+              title: 'Education Excellence Award',
+              description: 'Awarded for successful implementation of literacy programs in the community',
+              year: 2022,
+              photoUrl: 'https://example.com/demo_achievement_2.jpg',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildDemoOption(
+          context,
+          'Environmental Leadership',
+          'Leadership in environmental conservation and sustainability initiatives',
+          [
+            Achievement(
+              title: 'Environmental Leadership Award',
+              description: 'Recognized for leading environmental conservation projects in the ward',
+              year: 2021,
+              photoUrl: 'https://example.com/demo_achievement_3.jpg',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildDemoOption(
     BuildContext context,
     String title,
     String description,
-    Map<String, dynamic> demoData,
+    dynamic demoData,
   ) {
     return InkWell(
       onTap: () {

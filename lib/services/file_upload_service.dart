@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
@@ -544,7 +543,7 @@ class FileUploadService {
           fileTypeName = 'image';
           break;
         case 'video':
-          maxSizeMB = 3.0; // 3MB for videos
+          maxSizeMB = 20.0; // 20MB for videos
           fileTypeName = 'video';
           break;
         default:

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../utils/app_logger.dart';
 import '../features/notifications/services/gamification_notification_service.dart';

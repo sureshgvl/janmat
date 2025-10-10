@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
-import '../../../models/body_model.dart';
 import 'candidate_cache_manager.dart';
 import '../../../utils/app_logger.dart';
 

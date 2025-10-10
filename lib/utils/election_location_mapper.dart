@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'maharashtra_utils.dart';
 
 /// Utility class for mapping user locations to election-specific information

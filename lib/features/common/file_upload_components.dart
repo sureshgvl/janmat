@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
 
 /// Reusable file upload components for candidate profile editing
 class FileUploadComponents {

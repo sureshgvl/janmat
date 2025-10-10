@@ -1,7 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../utils/app_logger.dart';
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/repositories/candidate_repository.dart';

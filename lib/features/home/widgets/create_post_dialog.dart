@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../l10n/app_localizations.dart';
 import '../services/community_feed_service.dart';
 import '../services/push_feed_service.dart';
 

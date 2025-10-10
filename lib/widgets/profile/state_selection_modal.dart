@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/state_model.dart' as state_model;
-import '../../l10n/app_localizations.dart';
 import '../../utils/app_logger.dart';
 
 class StateSelectionModal extends StatefulWidget {

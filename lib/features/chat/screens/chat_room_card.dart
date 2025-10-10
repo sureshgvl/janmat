@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../../l10n/app_localizations.dart';
-import '../../../l10n/features/chat/chat_translations.dart';
 import '../controllers/chat_controller.dart';
 import '../../../models/chat_model.dart';
 import '../../../utils/app_logger.dart';

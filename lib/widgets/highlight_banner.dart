@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../services/highlight_service.dart';
-import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
 import '../features/candidate/repositories/candidate_repository.dart';
 import '../utils/symbol_utils.dart';

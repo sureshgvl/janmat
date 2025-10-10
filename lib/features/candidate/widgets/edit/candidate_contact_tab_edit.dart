@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import 'package:get/get.dart';
 
 class ContactSection extends StatelessWidget {
   final Candidate candidateData;
@@ -44,22 +45,98 @@ class ContactSection extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (isEditing) ...[
-              TextFormField(
-                initialValue: phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  border: OutlineInputBorder(),
+              // Phone number with OTP verification
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
                 ),
-                onChanged: (value) => onContactChange('phone', value),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.phone, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Phone Number',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      phone ?? 'Not provided',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showPhoneChangeDialog(context, phone),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Change Phone Number'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                initialValue: email ?? '',
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+              // Email (read-only)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
-                onChanged: (value) => onContactChange('email', value),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.email, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Email Address',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      email ?? 'Not provided',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Email cannot be changed',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               // Social links
@@ -115,6 +192,136 @@ class ContactSection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showPhoneChangeDialog(BuildContext context, String? currentPhone) {
+    final TextEditingController newPhoneController = TextEditingController();
+    final TextEditingController otpController = TextEditingController();
+    bool otpSent = false;
+    bool isVerifying = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Change Phone Number'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Enter your new phone number. You will receive an OTP for verification.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: newPhoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'New Phone Number',
+                        hintText: '+91xxxxxxxxxx',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      enabled: !otpSent,
+                    ),
+                    if (otpSent) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: otpController,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter OTP',
+                          hintText: '6-digit code',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: isVerifying ? null : () {
+                              // Resend OTP logic
+                              setState(() => otpSent = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('OTP sent again')),
+                              );
+                            },
+                            child: const Text('Resend OTP'),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'OTP sent to ${newPhoneController.text}',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                if (!otpSent)
+                  ElevatedButton(
+                    onPressed: newPhoneController.text.isEmpty ? null : () {
+                      // Send OTP logic (simulated)
+                      setState(() => otpSent = true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('OTP sent to ${newPhoneController.text}')),
+                      );
+                    },
+                    child: const Text('Send OTP'),
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: isVerifying || otpController.text.length != 6 ? null : () async {
+                      setState(() => isVerifying = true);
+
+                      // Simulate OTP verification
+                      await Future.delayed(const Duration(seconds: 2));
+
+                      if (otpController.text == '123456') { // Demo OTP
+                        // Update phone number
+                        onContactChange('phone', newPhoneController.text);
+                        Navigator.of(dialogContext).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Phone number updated successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Invalid OTP. Please try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        setState(() => isVerifying = false);
+                      }
+                    },
+                    child: isVerifying
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Verify & Update'),
+                  ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../../utils/app_logger.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';

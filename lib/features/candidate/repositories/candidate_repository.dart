@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
@@ -9,8 +8,6 @@ import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
-import '../../../utils/performance_monitor.dart' as perf_monitor;
-import '../../../models/body_model.dart';
 import '../../../utils/app_logger.dart';
 
 import 'candidate_cache_manager.dart';

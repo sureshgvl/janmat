@@ -1,7 +1,6 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import '../models/candidate_model.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/data_compression.dart';
@@ -9,7 +8,6 @@ import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
 import 'candidate_cache_manager.dart';
-import 'candidate_state_manager.dart';
 import '../../../utils/app_logger.dart';
 
 class CandidateOperations {

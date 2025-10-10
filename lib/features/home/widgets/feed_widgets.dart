@@ -4,8 +4,6 @@ import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../services/community_feed_service.dart';
 import '../services/push_feed_service.dart';
-import '../models/post_model.dart';
-
 class FeedWidgets {
   final CommunityFeedService _communityFeedService = CommunityFeedService();
   final PushFeedService _pushFeedService = PushFeedService();

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../models/user_model.dart';
 import '../controllers/monetization_controller.dart';
 
 class UserStatusSection extends StatelessWidget {
