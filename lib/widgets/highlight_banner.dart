@@ -376,100 +376,55 @@ class _HighlightBannerState extends State<HighlightBanner> {
           ),
           child: Stack(
             children: [
-              // Main content (image and info)
-              Column(
-                children: [
-                  // Image section (without overlapping symbol)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 180, // Reduced height for more compact design
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
+              // Main content (image only - info section removed to reduce height)
+              // Image section (without overlapping symbol)
+              SizedBox(
+                width: double.infinity,
+                height: 180, // Reduced height for more compact design
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12), // Full rounded corners since no info section
+                  child: _buildCandidateImage(),
+                ),
+              ),
+
+              // Floating party symbol (upper left)
+              Positioned(
+                top: 12, // Position from top
+                left: 12, // Position from left
+                child: Container(
+                  width: 55, // Same size as before
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
                       ),
-                      child: _buildCandidateImage(),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      () {
+                        final partyToUse = candidateParty ?? 'independent';
+                        final partyPath = SymbolUtils.getPartySymbolPath(partyToUse);
+                        AppLogger.common('🎯 [HighlightBanner] Floating party symbol for candidate: $candidateName, party: $partyToUse, path: $partyPath');
+                        return partyPath;
+                      }(),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.star,
+                          size: 25,
+                          color: Colors.grey,
+                        );
+                      },
                     ),
                   ),
-
-                  // Info section with symbol, candidate name and symbol name
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      children: [
-                        // Party symbol
-                        Container(
-                          width: 50, // Slightly smaller for compact design
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              () {
-                                final partyToUse = candidateParty ?? 'independent';
-                                final partyPath = SymbolUtils.getPartySymbolPath(partyToUse);
-                                AppLogger.common('🎯 [HighlightBanner] Info section party symbol for candidate: $candidateName, party: $partyToUse, path: $partyPath');
-                                return partyPath;
-                              }(),
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.star,
-                                  size: 25,
-                                  color: Colors.grey,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-
-                        // Candidate name and symbol name
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Candidate name
-                              Text(
-                                candidateName ?? 'Unknown Candidate',
-                                style: const TextStyle(
-                                  fontSize: 16, // Slightly smaller for compact design
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-
-                              // Symbol name
-                              Text(
-                                SymbolUtils.getPartySymbolNameLocal(candidateParty ?? 'independent', 'en'),
-                                style: const TextStyle(
-                                  fontSize: 12, // Smaller for compact design
-                                  color: Colors.black54,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
 
               // Floating arrow button (right side) - now just visual, whole banner is clickable
