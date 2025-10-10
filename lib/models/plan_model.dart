@@ -397,6 +397,43 @@ class ProfileFeatures {
   }
 }
 
+// Carousel-specific features
+class CarouselFeatures {
+  final int maxCarouselSlots;
+  final String priority; // 'normal', 'high', 'urgent', 'exclusive'
+  final bool autoRotation;
+  final bool customTiming;
+  final bool analyticsAccess;
+
+  CarouselFeatures({
+    required this.maxCarouselSlots,
+    required this.priority,
+    required this.autoRotation,
+    required this.customTiming,
+    required this.analyticsAccess,
+  });
+
+  factory CarouselFeatures.fromJson(Map<String, dynamic> json) {
+    return CarouselFeatures(
+      maxCarouselSlots: json['maxCarouselSlots'] ?? 6,
+      priority: json['priority'] ?? 'normal',
+      autoRotation: json['autoRotation'] ?? false,
+      customTiming: json['customTiming'] ?? false,
+      analyticsAccess: json['analyticsAccess'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'maxCarouselSlots': maxCarouselSlots,
+      'priority': priority,
+      'autoRotation': autoRotation,
+      'customTiming': customTiming,
+      'analyticsAccess': analyticsAccess,
+    };
+  }
+}
+
 // Highlight-specific features
 class HighlightFeatures {
   final int maxHighlights;
@@ -426,12 +463,13 @@ class SubscriptionPlan {
   final String id;
   final String planId;
   final String name;
-  final String type; // 'candidate' or 'highlight'
+  final String type; // 'candidate', 'highlight', or 'carousel'
   final Map<String, Map<int, int>> pricing; // electionType -> validityDays -> price
   final bool isActive;
   final DashboardTabs? dashboardTabs; // Only for candidate plans
   final ProfileFeatures profileFeatures;
   final HighlightFeatures? highlightFeatures; // Only for highlight plans
+  final CarouselFeatures? carouselFeatures; // For highlight and carousel plans
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -445,6 +483,7 @@ class SubscriptionPlan {
     this.dashboardTabs, // Optional for highlight plans
     required this.profileFeatures,
     this.highlightFeatures, // Optional for candidate plans
+    this.carouselFeatures, // Optional for candidate plans, required for highlight/carousel plans
     this.createdAt,
     this.updatedAt,
   });
@@ -490,6 +529,7 @@ class SubscriptionPlan {
       dashboardTabs: planType == 'candidate' ? DashboardTabs.fromJson(json['dashboardTabs'] ?? {}) : null,
       profileFeatures: ProfileFeatures.fromJson(json['profileFeatures'] ?? {}),
       highlightFeatures: planType == 'highlight' ? HighlightFeatures.fromJson(json['highlightFeatures'] ?? {}) : null,
+      carouselFeatures: (planType == 'highlight' || planType == 'carousel') ? CarouselFeatures.fromJson(json['carouselFeatures'] ?? {}) : null,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -521,6 +561,9 @@ class SubscriptionPlan {
     if (highlightFeatures != null) {
       json['highlightFeatures'] = highlightFeatures!.toJson();
     }
+    if (carouselFeatures != null) {
+      json['carouselFeatures'] = carouselFeatures!.toJson();
+    }
 
     return json;
   }
@@ -535,6 +578,7 @@ class SubscriptionPlan {
     DashboardTabs? dashboardTabs,
     ProfileFeatures? profileFeatures,
     HighlightFeatures? highlightFeatures,
+    CarouselFeatures? carouselFeatures,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -548,6 +592,7 @@ class SubscriptionPlan {
       dashboardTabs: dashboardTabs ?? this.dashboardTabs,
       profileFeatures: profileFeatures ?? this.profileFeatures,
       highlightFeatures: highlightFeatures ?? this.highlightFeatures,
+      carouselFeatures: carouselFeatures ?? this.carouselFeatures,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

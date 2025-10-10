@@ -130,8 +130,16 @@ class UserModel {
   }
   final int xpPoints;
   final bool premium;
-  final String? subscriptionPlanId; // current active subscription
+  final String? subscriptionPlanId; // current active candidate subscription
   final DateTime? subscriptionExpiresAt;
+  // Highlight plan fields
+  final String? highlightPlanId; // active highlight plan subscription
+  final DateTime? highlightPlanExpiresAt;
+  final int highlightSlotsUsed; // usage tracking for highlight slots
+  // Carousel plan fields
+  final String? carouselPlanId; // active carousel plan subscription
+  final DateTime? carouselPlanExpiresAt;
+  final int carouselSlotsUsed; // usage tracking for carousel slots
   final DateTime createdAt;
   // Trial fields for candidates
   final DateTime? trialStartedAt;
@@ -164,6 +172,14 @@ class UserModel {
     required this.premium,
     this.subscriptionPlanId,
     this.subscriptionExpiresAt,
+    // Highlight plan fields
+    this.highlightPlanId,
+    this.highlightPlanExpiresAt,
+    this.highlightSlotsUsed = 0,
+    // Carousel plan fields
+    this.carouselPlanId,
+    this.carouselPlanExpiresAt,
+    this.carouselSlotsUsed = 0,
     required this.createdAt,
     this.photoURL,
     this.followingCount = 0,
@@ -180,6 +196,22 @@ class UserModel {
           .toDate();
     } else if (json['subscriptionExpiresAt'] is String) {
       subscriptionExpiresAt = DateTime.parse(json['subscriptionExpiresAt']);
+    }
+
+    // Parse highlight plan dates
+    DateTime? highlightPlanExpiresAt;
+    if (json['highlightPlanExpiresAt'] is Timestamp) {
+      highlightPlanExpiresAt = (json['highlightPlanExpiresAt'] as Timestamp).toDate();
+    } else if (json['highlightPlanExpiresAt'] is String) {
+      highlightPlanExpiresAt = DateTime.parse(json['highlightPlanExpiresAt']);
+    }
+
+    // Parse carousel plan dates
+    DateTime? carouselPlanExpiresAt;
+    if (json['carouselPlanExpiresAt'] is Timestamp) {
+      carouselPlanExpiresAt = (json['carouselPlanExpiresAt'] as Timestamp).toDate();
+    } else if (json['carouselPlanExpiresAt'] is String) {
+      carouselPlanExpiresAt = DateTime.parse(json['carouselPlanExpiresAt']);
     }
 
     // Parse trial dates
@@ -228,6 +260,14 @@ class UserModel {
       premium: json['premium'] ?? false,
       subscriptionPlanId: json['subscriptionPlanId'],
       subscriptionExpiresAt: subscriptionExpiresAt,
+      // Highlight plan fields
+      highlightPlanId: json['highlightPlanId'],
+      highlightPlanExpiresAt: highlightPlanExpiresAt,
+      highlightSlotsUsed: json['highlightSlotsUsed'] ?? 0,
+      // Carousel plan fields
+      carouselPlanId: json['carouselPlanId'],
+      carouselPlanExpiresAt: carouselPlanExpiresAt,
+      carouselSlotsUsed: json['carouselSlotsUsed'] ?? 0,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
       photoURL: json['photoURL'],
       followingCount: json['followingCount']?.toInt() ?? 0,
@@ -291,6 +331,14 @@ class UserModel {
       'premium': premium,
       'subscriptionPlanId': subscriptionPlanId,
       'subscriptionExpiresAt': subscriptionExpiresAt?.toIso8601String(),
+      // Highlight plan fields
+      'highlightPlanId': highlightPlanId,
+      'highlightPlanExpiresAt': highlightPlanExpiresAt?.toIso8601String(),
+      'highlightSlotsUsed': highlightSlotsUsed,
+      // Carousel plan fields
+      'carouselPlanId': carouselPlanId,
+      'carouselPlanExpiresAt': carouselPlanExpiresAt?.toIso8601String(),
+      'carouselSlotsUsed': carouselSlotsUsed,
       'createdAt': createdAt.toIso8601String(),
       'photoURL': photoURL,
       'followingCount': followingCount,
@@ -316,6 +364,14 @@ class UserModel {
     bool? premium,
     String? subscriptionPlanId,
     DateTime? subscriptionExpiresAt,
+    // Highlight plan fields
+    String? highlightPlanId,
+    DateTime? highlightPlanExpiresAt,
+    int? highlightSlotsUsed,
+    // Carousel plan fields
+    String? carouselPlanId,
+    DateTime? carouselPlanExpiresAt,
+    int? carouselSlotsUsed,
     DateTime? createdAt,
     String? photoURL,
     int? followingCount,
@@ -340,6 +396,14 @@ class UserModel {
       subscriptionPlanId: subscriptionPlanId ?? this.subscriptionPlanId,
       subscriptionExpiresAt:
           subscriptionExpiresAt ?? this.subscriptionExpiresAt,
+      // Highlight plan fields
+      highlightPlanId: highlightPlanId ?? this.highlightPlanId,
+      highlightPlanExpiresAt: highlightPlanExpiresAt ?? this.highlightPlanExpiresAt,
+      highlightSlotsUsed: highlightSlotsUsed ?? this.highlightSlotsUsed,
+      // Carousel plan fields
+      carouselPlanId: carouselPlanId ?? this.carouselPlanId,
+      carouselPlanExpiresAt: carouselPlanExpiresAt ?? this.carouselPlanExpiresAt,
+      carouselSlotsUsed: carouselSlotsUsed ?? this.carouselSlotsUsed,
       createdAt: createdAt ?? this.createdAt,
       photoURL: photoURL ?? this.photoURL,
       followingCount: followingCount ?? this.followingCount,

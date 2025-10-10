@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../../models/plan_model.dart';
 import '../../../utils/app_logger.dart';
 
@@ -319,7 +318,7 @@ class MonetizationRepository {
   Future<void> initializeDefaultPlans() async {
     try {
       AppLogger.monetization('🔧 INITIALIZING DEFAULT PLANS...');
-      AppLogger.monetization('   This will create/update all 4 candidate plans in Firestore');
+      AppLogger.monetization('   This will create/update all candidate plans + highlight/carousel plans in Firestore');
       final batch = _firestore.batch();
 
       // Candidate plans - Free, Basic, Gold, Platinum
@@ -591,21 +590,82 @@ class MonetizationRepository {
           },
         },
         'profileFeatures': {
-          'premiumBadge': true,
           'sponsoredBanner': true,
-          'highlightCarousel': true,
           'pushNotifications': true,
-          'multipleHighlights': true,
-          'adminSupport': true,
-          'customBranding': true,
         },
         'createdAt': FieldValue.serverTimestamp(),
       });
 
 
+      // Highlight plan (banner only)
+      final highlightPlan = _firestore.collection('plans').doc('highlight_plan');
+      batch.set(highlightPlan, {
+        'id': 'highlight_plan',
+        'planId': 'highlight_plan',
+        'name': 'Highlight',
+        'type': 'highlight',
+        'pricing': {
+          'municipal_corporation': {'30': 299, '90': 799},
+          'municipal_council': {'30': 249, '90': 649},
+          'nagar_panchayat': {'30': 199, '90': 549},
+          'zila_parishad': {'30': 249, '90': 649},
+          'panchayat_samiti': {'30': 199, '90': 549},
+          'parliamentary': {'30': 499, '90': 1299},
+          'assembly': {'30': 399, '90': 999},
+        },
+        'isActive': true,
+        'profileFeatures': {
+          'premiumBadge': false,
+          'sponsoredBanner': false,
+          'highlightCarousel': true,
+          'pushNotifications': false,
+        },
+        'highlightFeatures': {
+          'maxHighlights': 4,
+          'priority': 'normal',
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Carousel plan (carousel features)
+      final carouselPlan = _firestore.collection('plans').doc('carousel_plan');
+      batch.set(carouselPlan, {
+        'id': 'carousel_plan',
+        'planId': 'carousel_plan',
+        'name': 'Carousel',
+        'type': 'carousel',
+        'pricing': {
+          'municipal_corporation': {'30': 799, '90': 1999},
+          'municipal_council': {'30': 649, '90': 1599},
+          'nagar_panchayat': {'30': 499, '90': 1299},
+          'zila_parishad': {'30': 699, '90': 1699},
+          'panchayat_samiti': {'30': 599, '90': 1499},
+          'parliamentary': {'30': 1499, '90': 3499},
+          'assembly': {'30': 1199, '90': 2799},
+        },
+        'isActive': true,
+        'profileFeatures': {
+          'premiumBadge': false,
+          'sponsoredBanner': false,
+          'highlightCarousel': true,
+          'pushNotifications': false,
+          'multipleHighlights': true,
+          'carouselPriority': true,
+          'exclusivePlacement': false,
+        },
+        'carouselFeatures': {
+          'maxCarouselSlots': 6,
+          'priority': 'high',
+          'autoRotation': true,
+          'customTiming': false,
+          'analyticsAccess': true,
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
       await batch.commit();
       AppLogger.monetization('✅ DEFAULT PLANS INITIALIZED SUCCESSFULLY');
-      AppLogger.monetization('   Created/Updated: Free, Basic, Gold, Platinum plans');
+      AppLogger.monetization('   Created/Updated: Free, Basic, Gold, Platinum, Highlight, Carousel plans');
       AppLogger.monetization('   All plans are now ready for use');
     } catch (e) {
       AppLogger.monetization('❌ FAILED TO INITIALIZE DEFAULT PLANS: $e');
