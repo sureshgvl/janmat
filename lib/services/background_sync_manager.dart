@@ -198,7 +198,7 @@ class BackgroundSyncManager {
           // Create default quota
           await quotaRef.set({
             'userId': userId,
-            'dailyLimit': 20,
+            'dailyLimit': 100,
             'messagesSent': 0,
             'extraQuota': 0,
             'lastReset': DateTime.now().toIso8601String(),

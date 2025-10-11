@@ -1077,7 +1077,7 @@ class ChatRepository {
             AppLogger.chat('📊 Creating default quota with 1 message sent');
             updatedQuota = UserQuota(
               userId: userId,
-              dailyLimit: 20,
+              dailyLimit: 100,
               messagesSent: 1, // Start with 1 since we're sending a message
               extraQuota: 0,
               lastReset: DateTime.now(),

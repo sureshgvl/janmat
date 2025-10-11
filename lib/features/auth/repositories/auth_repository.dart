@@ -1000,7 +1000,7 @@ class AuthRepository {
       final quotaRef = _firestore.collection('user_quotas').doc(userId);
       final quotaData = {
         'userId': userId,
-        'dailyLimit': 20,
+        'dailyLimit': 100,
         'messagesSent': 0,
         'extraQuota': 0,
         'lastReset': DateTime.now().toIso8601String(),
@@ -1023,7 +1023,7 @@ class AuthRepository {
       // Use server timestamp for better consistency
       final quotaData = {
         'userId': userId,
-        'dailyLimit': 20,
+        'dailyLimit': 100,
         'messagesSent': 0,
         'extraQuota': 0,
         'lastReset': now.toIso8601String(),

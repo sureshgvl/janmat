@@ -18,7 +18,6 @@ import '../services/private_chat_service.dart';
 import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../../services/admob_service.dart';
-import '../../monetization/repositories/monetization_repository.dart';
 import '../../notifications/services/poll_notification_service.dart';
 import '../../../utils/app_logger.dart';
 
@@ -91,20 +90,15 @@ class ChatController extends GetxController {
     // Premium users always can send
     if (user.premium) return true;
 
-    // Check quota first
-    if (userQuota.value != null && userQuota.value!.canSendMessage) {
-      return true;
-    }
-
-    // Check XP as fallback (1 XP = 1 message)
-    return user.xpPoints > 0;
+    // Check quota only
+    return userQuota.value != null && userQuota.value!.canSendMessage;
   }
 
   bool get shouldShowWatchAdsButton {
     final user = _cachedUser;
     if (user == null || user.premium) return false;
 
-    // Show if no quota and no XP
+    // Show if no remaining messages
     return !canSendMessage;
   }
 
@@ -115,13 +109,8 @@ class ChatController extends GetxController {
     // Premium users have unlimited
     if (user.premium) return 999;
 
-    // Return quota if available
-    if (userQuota.value != null) {
-      return userQuota.value!.remainingMessages;
-    }
-
-    // Fallback to XP count
-    return user.xpPoints;
+    // Return quota only
+    return userQuota.value?.remainingMessages ?? 0;
   }
 
   // Load complete user data from Firestore
@@ -467,26 +456,23 @@ class ChatController extends GetxController {
       }
 
       if (rewardXP != null && rewardXP > 0) {
-        AppLogger.ui('Ad completed, attempting to award $rewardXP XP', tag: 'CHAT');
+        AppLogger.ui('Ad completed, attempting to award 10 extra messages', tag: 'CHAT');
 
-        // Award XP to user
-        final awardSuccess = await _awardXPFromAd(rewardXP);
+        // Award 10 extra messages to user
+        final awardSuccess = await _awardExtraMessagesFromAd(10);
 
         if (awardSuccess) {
           Get.snackbar(
             '🎉 Reward Earned!',
-            'You earned $rewardXP XP for watching the ad!',
+            'You earned 10 extra messages for watching the ad!',
             backgroundColor: Colors.green.shade100,
             colorText: Colors.green.shade800,
             duration: const Duration(seconds: 4),
           );
-
-          // Refresh user data to show updated XP
-          await getCompleteUserData();
         } else {
           Get.snackbar(
             'Reward Error',
-            'Ad was watched but failed to award XP. Please contact support.',
+            'Ad was watched but failed to award extra messages. Please contact support.',
             backgroundColor: Colors.red.shade100,
             colorText: Colors.red.shade800,
             duration: const Duration(seconds: 4),
@@ -498,21 +484,19 @@ class ChatController extends GetxController {
           tag: 'CHAT',
         );
 
-        // For test ads, still award some XP as fallback
+        // For test ads, still award extra messages as fallback
         if (adMobService.isTestAdUnit()) {
-          AppLogger.ui('Test ad detected, awarding fallback XP', tag: 'CHAT');
-          final fallbackXP = 2;
-          final awardSuccess = await _awardXPFromAd(fallbackXP);
+          AppLogger.ui('Test ad detected, awarding fallback extra messages', tag: 'CHAT');
+          final awardSuccess = await _awardExtraMessagesFromAd(10);
 
           if (awardSuccess) {
             Get.snackbar(
               '🎉 Test Reward Earned!',
-              'You earned $fallbackXP XP (test mode)!',
+              'You earned 10 extra messages (test mode)!',
               backgroundColor: Colors.blue.shade100,
               colorText: Colors.blue.shade800,
               duration: const Duration(seconds: 4),
             );
-            await getCompleteUserData();
           }
         } else {
           Get.snackbar(
@@ -741,11 +725,11 @@ class ChatController extends GetxController {
       tag: 'CHAT',
     );
 
-    // Check if user can send message (basic check - TODO: implement full quota/XP logic)
+    // Check if user can send message
     if (!canSendMessage) {
       Get.snackbar(
         'Cannot Send Message',
-        'You have no remaining messages or XP.',
+        'You have no remaining messages. Watch a rewarded ad to get 10 extra messages.',
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade800,
         duration: const Duration(seconds: 4),
@@ -773,11 +757,6 @@ class ChatController extends GetxController {
     );
 
     try {
-      // Determine resource usage
-      final useQuota =
-          userQuota.value != null && userQuota.value!.canSendMessage;
-      final useXP = !useQuota && user.xpPoints > 0;
-
       // Add message to UI immediately (will be updated by stream)
       AppLogger.ui('Calling addMessageToUI...', tag: 'CHAT');
       await _messageController.addMessageToUI(
@@ -785,8 +764,8 @@ class ChatController extends GetxController {
         currentChatRoom.value!.roomId,
       );
 
-      // Deduct resources locally first
-      if (useQuota && userQuota.value != null) {
+      // Deduct quota locally first
+      if (userQuota.value != null) {
         final updatedQuota = userQuota.value!.copyWith(
           messagesSent: userQuota.value!.messagesSent + 1,
         );
@@ -795,30 +774,16 @@ class ChatController extends GetxController {
           'Local quota updated: ${updatedQuota.remainingMessages} remaining',
           tag: 'CHAT',
         );
-      } else if (useXP) {
-        // XP deduction will be handled by the repository method
-        AppLogger.ui('Will deduct 1 XP for message', tag: 'CHAT');
       }
 
-      // Send to server with quota/XP handling
+      // Send to server with quota handling
       AppLogger.ui('Sending message to server...', tag: 'CHAT');
       await sendMessage(currentChatRoom.value!.roomId, message);
 
-      // Update server-side quota/XP
-      if (useQuota && userQuota.value != null) {
+      // Update server-side quota
+      if (userQuota.value != null) {
         await _repository.updateUserQuota(userQuota.value!);
         AppLogger.ui('Server quota updated', tag: 'CHAT');
-      } else if (useXP) {
-        // Update XP via Firestore transaction
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final userRef = FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid);
-          transaction.update(userRef, {'xpPoints': FieldValue.increment(-1)});
-        });
-        // Refresh user data to reflect XP change
-        await getCompleteUserData();
-        AppLogger.ui('XP deducted from server', tag: 'CHAT');
       }
 
       // Update message status to sent
@@ -855,34 +820,36 @@ class ChatController extends GetxController {
     }
   }
 
-  // Award XP from watching ad
-  Future<bool> _awardXPFromAd(int xpAmount) async {
+  // Award extra messages from watching ad
+  Future<bool> _awardExtraMessagesFromAd(int extraMessages) async {
     final user = _cachedUser;
     if (user == null) {
-      AppLogger.ui('Cannot award XP: user is null', tag: 'CHAT');
+      AppLogger.ui('Cannot award extra messages: user is null', tag: 'CHAT');
       return false;
     }
 
     try {
-      AppLogger.ui('Attempting to award $xpAmount XP to user: ${user.uid}', tag: 'CHAT');
+      AppLogger.ui('Attempting to award $extraMessages extra messages to user: ${user.uid}', tag: 'CHAT');
 
-      // Use MonetizationRepository to handle XP transaction
-      final monetizationRepo = MonetizationRepository();
+      // Use ChatRepository to add extra quota
+      await _repository.addExtraQuota(user.uid, extraMessages);
 
-      // Create XP transaction and update balance
-      await monetizationRepo.updateUserXPBalance(user.uid, xpAmount);
+      // Immediately refresh user quota to reflect changes
+      if (userQuota.value != null) {
+        final updatedQuota = userQuota.value!.copyWith(
+          extraQuota: userQuota.value!.extraQuota + extraMessages,
+        );
+        userQuota.value = updatedQuota;
+        AppLogger.ui('Local quota updated: ${updatedQuota.remainingMessages} remaining', tag: 'CHAT');
+      }
 
-      // Immediately refresh cached user data to reflect XP changes
-      await getCompleteUserData();
-
-      // Force UI update for all listeners (including profile screen)
+      // Force UI update for all listeners
       update();
 
-      AppLogger.ui('Successfully awarded $xpAmount XP to user: ${user.uid}', tag: 'CHAT');
-      AppLogger.ui('Updated cached XP: ${_cachedUser?.xpPoints ?? 0}', tag: 'CHAT');
+      AppLogger.ui('Successfully awarded $extraMessages extra messages to user: ${user.uid}', tag: 'CHAT');
       return true;
     } catch (e) {
-      AppLogger.ui('Error awarding XP from ad: $e', tag: 'CHAT');
+      AppLogger.ui('Error awarding extra messages from ad: $e', tag: 'CHAT');
       AppLogger.ui('Error details: ${e.toString()}', tag: 'CHAT');
       return false;
     }

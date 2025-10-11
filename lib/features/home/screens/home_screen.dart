@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,6 +10,7 @@ import '../../candidate/models/candidate_model.dart';
 import '../services/home_services.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
+import '../../../services/district_spotlight_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +25,12 @@ class _HomeScreenState extends State<HomeScreen> {
       GlobalKey<RefreshIndicatorState>();
   bool _shouldRefreshData = false;
   int _refreshCounter = 0; // Add counter to force future refresh
+
+  @override
+  void initState() {
+    super.initState();
+    // Spotlight check will be done after authentication is confirmed in build method
+  }
 
   @override
   void didChangeDependencies() {
@@ -55,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
@@ -75,6 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // User is authenticated, proceed with normal UI
+    // Check for spotlight after authentication is confirmed (only if not dismissed globally)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !DistrictSpotlightService.isSpotlightDismissedForSession) {
+        // Show spotlight for Pune district (as per user requirement)
+        DistrictSpotlightService.showDistrictSpotlightIfAvailable('maharashtra', 'pune');
+      }
+    });
+
     return GetBuilder<CandidateDataController>(
       builder: (candidateController) {
         return Scaffold(
@@ -120,15 +137,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
- 
+
                 UserModel? userModel;
                 Candidate? candidateModel = candidateController.candidateData.value;
- 
+
                 if (snapshot.hasData) {
                   userModel = snapshot.data!['user'];
                 }
- 
- 
+
+
                 return HomeBody(
                   userModel: userModel,
                   candidateModel: candidateModel,

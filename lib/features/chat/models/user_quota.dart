@@ -10,7 +10,7 @@ class UserQuota {
 
   UserQuota({
     required this.userId,
-    this.dailyLimit = 20,
+    this.dailyLimit = 100,
     this.messagesSent = 0,
     this.extraQuota = 0,
     required this.lastReset,
@@ -38,7 +38,7 @@ class UserQuota {
 
     return UserQuota(
       userId: json['userId'] ?? '',
-      dailyLimit: json['dailyLimit'] ?? 20,
+      dailyLimit: json['dailyLimit'] ?? 100,
       messagesSent: json['messagesSent'] ?? 0,
       extraQuota: json['extraQuota'] ?? 0,
       lastReset: lastReset,
