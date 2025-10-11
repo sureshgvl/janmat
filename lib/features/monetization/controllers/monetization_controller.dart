@@ -129,7 +129,7 @@ class MonetizationController extends GetxController {
         AppLogger.monetization('🏛️ CANDIDATE USER: Election type: $userElectionType');
 
         if (userElectionType != null) {
-          // Show plans that have pricing for this election type + voter plans + free plans + highlight plans
+          // Show plans that have pricing for this election type + voter plans + free plans + highlight plans + carousel plans
           filteredPlans = allPlans.where((plan) {
             // Always include voter plans (XP plans)
             if (plan.type == 'voter') return true;
@@ -139,6 +139,9 @@ class MonetizationController extends GetxController {
 
             // Always include highlight plans for candidates
             if (plan.type == 'highlight') return true;
+
+            // Always include carousel plans for candidates
+            if (plan.type == 'carousel') return true;
 
             // Include candidate plans that have pricing for user's election type
             return plan.pricing.containsKey(userElectionType) &&

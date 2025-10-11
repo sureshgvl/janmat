@@ -94,8 +94,6 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
       appBar: AppBar(
         title: const Text('My Area Candidates'),
         elevation: 0,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
       ),
       body: GetBuilder<CandidateController>(
         builder: (controller) {

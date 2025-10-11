@@ -824,11 +824,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       appBar: AppBar(
         title: Text(
           CandidateLocalizations.of(context)!.searchCandidates,
-          style: AppTypography.heading4.copyWith(
-            color: AppColors.accent,
-          ),
         ),
-        backgroundColor: AppColors.primary,
         elevation: 0,
         actions: [
           Container(

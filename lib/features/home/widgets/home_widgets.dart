@@ -156,14 +156,7 @@ class HomeWidgets {
       elevation: 4,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFF138808).withValues(alpha: 0.8),
-              const Color(0xFF138808),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: const Color(0xFFFF9933),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Padding(

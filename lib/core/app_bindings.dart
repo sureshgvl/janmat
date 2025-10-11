@@ -8,6 +8,7 @@ import '../controllers/highlight_controller.dart';
 import '../features/notifications/services/notification_manager.dart';
 import '../services/admob_service.dart';
 import '../services/razorpay_service.dart';
+import '../services/user_data_service.dart';
 import '../controllers/user_data_controller.dart';
 import '../controllers/device_info_controller.dart';
 import '../controllers/notification_settings_controller.dart';
@@ -27,6 +28,7 @@ class AppBindings extends Bindings {
     // Eagerly load critical controllers that are always needed
     Get.put<AuthController>(AuthController());
     Get.put<UserDataController>(UserDataController());
+    Get.put<UserDataService>(UserDataService());
 
     // Lazy load feature-specific controllers to improve startup performance
     Get.put<ChatController>(ChatController());

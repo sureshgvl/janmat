@@ -60,7 +60,7 @@ class AppTheme {
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFFF9933),
+        backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         elevation: 0,
       ),

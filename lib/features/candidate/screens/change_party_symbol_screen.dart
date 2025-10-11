@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../../l10n/app_localizations.dart';
-import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_party_model.dart';
 import '../repositories/candidate_repository.dart';
@@ -29,27 +28,29 @@ class ChangePartySymbolScreen extends StatefulWidget {
 }
 
 class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final candidateRepository = CandidateRepository();
-  final partyRepository = PartyRepository();
+   final _formKey = GlobalKey<FormState>();
+   final candidateRepository = CandidateRepository();
+   final partyRepository = PartyRepository();
 
-  // Form controllers
-  final symbolNameController = TextEditingController();
+   // Form controllers
+   final symbolNameController = TextEditingController();
 
-  Party? selectedParty;
-  String? symbolImageUrl;
-  bool isLoading = false;
-  bool isLoadingParties = true;
-  bool isUploadingImage = false;
-  List<Party> parties = [];
-  bool isIndependent = false;
+   Party? selectedParty;
+   String? symbolImageUrl;
+   bool isLoading = false;
+   bool isLoadingParties = true;
+   bool isUploadingImage = false;
+   List<Party> parties = [];
+   bool isIndependent = false;
+   Candidate? _currentCandidate;
 
   @override
   void initState() {
     super.initState();
+    _currentCandidate = widget.currentCandidate;
     AppLogger.candidate('🎯 ChangePartySymbolScreen: Initializing screen');
     AppLogger.candidate(
-      '   Current candidate: ${widget.currentCandidate?.name ?? 'null'}',
+      '   Current candidate: ${_currentCandidate?.name ?? 'null'}',
     );
     AppLogger.candidate('   Current user: ${widget.currentUser?.uid ?? 'null'}');
     _loadParties();
@@ -58,32 +59,32 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
   void _loadCurrentData() {
     AppLogger.candidate('📋 ChangePartySymbolScreen: Loading current candidate data');
-    if (widget.currentCandidate != null) {
-      AppLogger.candidate('   Candidate: ${widget.currentCandidate!.name}');
-      AppLogger.candidate('   Current party: ${widget.currentCandidate!.party}');
+    if (_currentCandidate != null) {
+      AppLogger.candidate('   Candidate: ${_currentCandidate!.name}');
+      AppLogger.candidate('   Current party: ${_currentCandidate!.party}');
       AppLogger.candidate(
-        '   Current symbol: ${widget.currentCandidate!.symbolName ?? 'none'}',
+        '   Current symbol: ${_currentCandidate!.symbolName ?? 'none'}',
       );
 
       // Find current party
       if (parties.isNotEmpty) {
         selectedParty = parties.firstWhere(
-          (party) => party.name == widget.currentCandidate!.party,
+          (party) => party.name == _currentCandidate!.party,
           orElse: () => parties.first,
         );
         AppLogger.candidate('   Selected party: ${selectedParty?.name ?? 'none'}');
       }
 
       // Load symbol data
-      if (widget.currentCandidate!.symbolName != null) {
-        symbolNameController.text = widget.currentCandidate!.symbolName!;
-        AppLogger.candidate('   Symbol name loaded: ${widget.currentCandidate!.symbolName}');
+      if (_currentCandidate!.symbolName != null) {
+        symbolNameController.text = _currentCandidate!.symbolName!;
+        AppLogger.candidate('   Symbol name loaded: ${_currentCandidate!.symbolName}');
       }
 
       // Load existing symbol image URL from extraInfo.media
-      if (widget.currentCandidate!.extraInfo?.media != null &&
-          widget.currentCandidate!.extraInfo!.media!.isNotEmpty) {
-        final symbolImageItem = widget.currentCandidate!.extraInfo!.media!
+      if (_currentCandidate!.extraInfo?.media != null &&
+          _currentCandidate!.extraInfo!.media!.isNotEmpty) {
+        final symbolImageItem = _currentCandidate!.extraInfo!.media!
             .firstWhere(
               (item) => item['type'] == 'symbolImage',
               orElse: () => <String, dynamic>{},
@@ -94,7 +95,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         }
       }
 
-      isIndependent = widget.currentCandidate!.party.toLowerCase().contains(
+      isIndependent = _currentCandidate!.party.toLowerCase().contains(
         'independent',
       );
       AppLogger.candidate('   Is independent: $isIndependent');
@@ -136,15 +137,15 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   }
 
   String _getCurrentPartyDisplayName() {
-    if (widget.currentCandidate == null) return '';
+    if (_currentCandidate == null) return '';
 
     // Find the party object from the parties list
     final currentParty = parties.firstWhere(
-      (party) => party.name == widget.currentCandidate!.party,
+      (party) => party.name == _currentCandidate!.party,
       orElse: () => Party(
         id: 'unknown',
-        name: widget.currentCandidate!.party,
-        nameMr: widget.currentCandidate!.party,
+        name: _currentCandidate!.party,
+        nameMr: _currentCandidate!.party,
         abbreviation: '',
       ),
     );
@@ -156,12 +157,12 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   }
 
   String _getCurrentSymbolDisplayName() {
-    if (widget.currentCandidate == null ||
-        widget.currentCandidate!.symbolName == null) {
+    if (_currentCandidate == null ||
+        _currentCandidate!.symbolName == null) {
       return '';
     }
 
-    return widget.currentCandidate!.symbolName!;
+    return _currentCandidate!.symbolName!;
   }
 
   Future<void> _pickSymbolImage() async {
@@ -326,7 +327,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         throw Exception('User not authenticated');
       }
 
-      if (widget.currentCandidate == null) {
+      if (_currentCandidate == null) {
         AppLogger.candidate('❌ ChangePartySymbolScreen: Candidate data not found');
         throw Exception('Candidate data not found');
       }
@@ -335,11 +336,11 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
         '👤 ChangePartySymbolScreen: Authenticated user: ${currentUser.uid}',
       );
       AppLogger.candidate(
-        '👤 ChangePartySymbolScreen: Updating candidate: ${widget.currentCandidate!.candidateId}',
+        '👤 ChangePartySymbolScreen: Updating candidate: ${_currentCandidate!.candidateId}',
       );
 
       // Update candidate with new party and symbol
-      final currentMedia = widget.currentCandidate!.extraInfo?.media ?? [];
+      final currentMedia = _currentCandidate!.extraInfo?.media ?? [];
       final updatedMedia = List<Map<String, dynamic>>.from(currentMedia);
 
       // Remove existing symbol image if present
@@ -370,10 +371,10 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                 )
               : ExtraInfo());
 
-      final updatedCandidate = widget.currentCandidate!.copyWith(
-        party: selectedParty!.id, // Use party key instead of name
+      final updatedCandidate = _currentCandidate!.copyWith(
+        party: selectedParty!.name, // Use party name
         symbolUrl: isIndependent ? symbolImageUrl : null,
-        symbolName: isIndependent ? symbolNameController.text.trim() : null,
+        symbolName: isIndependent ? symbolNameController.text.trim() : SymbolUtils.getPartySymbolNameLocal(selectedParty!.id, Localizations.localeOf(context).languageCode),
         extraInfo: updatedExtraInfo,
       );
 
@@ -390,18 +391,13 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
 
       // Update the local candidate data to reflect changes immediately
       setState(() {
-        // Update the current candidate with new party and symbol
-        // This will refresh the current party display
+        _currentCandidate = updatedCandidate;
+        isLoading = false;
       });
 
       AppLogger.candidate(
         '🎉 ChangePartySymbolScreen: Party and symbol update completed successfully',
       );
-
-      // Update loading state before navigation
-      setState(() {
-        isLoading = false;
-      });
 
       // Show success message
       Get.snackbar(
@@ -519,15 +515,13 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                             );
                           } else {
                             // Load existing symbol image URL for independent candidates
-                            if (widget.currentCandidate!.extraInfo?.media !=
+                            if (_currentCandidate!.extraInfo?.media !=
                                     null &&
-                                widget
-                                    .currentCandidate!
+                                _currentCandidate!
                                     .extraInfo!
                                     .media!
                                     .isNotEmpty) {
-                              final symbolImageItem = widget
-                                  .currentCandidate!
+                              final symbolImageItem = _currentCandidate!
                                   .extraInfo!
                                   .media!
                                   .firstWhere(
@@ -739,7 +733,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                 const SizedBox(height: 32),
 
                 // Current Party Display
-                if (widget.currentCandidate != null) ...[
+                if (_currentCandidate != null) ...[
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -787,7 +781,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                                 _getCurrentPartyDisplayName(),
                                 style: TextStyle(color: Color(0xFF1976D2)),
                               ),
-                              if (widget.currentCandidate!.symbolName != null) ...[
+                              if (_currentCandidate!.symbolName != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
                                   localizations.symbolLabel(

@@ -99,40 +99,37 @@ class _MonetizationScreenState extends State<MonetizationScreen>
       final isCandidate = userRole == 'candidate';
 
       return Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.premiumFeatures),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: _buildTabs(isCandidate),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh Plans',
-              onPressed: _refreshPlans,
-            ),
-            if (isCandidate) ...[
-              IconButton(
-                icon: const Icon(Icons.settings),
-                tooltip: 'Initialize Default Plans',
-                onPressed: _initializeDefaultPlans,
-              ),
-              IconButton(
-                icon: const Icon(Icons.move_up),
-                tooltip: 'Migrate Candidates to States',
-                onPressed: _migrateCandidates,
-              ),
-            ],
-          ],
-        ),
-        body: LoadingOverlay(
-          isLoading: _controller.isLoading.value,
-          child: TabBarView(
-            controller: _tabController,
-            children: _buildTabViews(context, isCandidate),
-          ),
-        ),
-      );
+         appBar: AppBar(
+           title: Text(AppLocalizations.of(context)!.premiumFeatures),
+          //  bottom: TabBar(
+          //    controller: _tabController,
+          //    tabs: _buildTabs(isCandidate),
+          //  ),
+           actions: [
+             IconButton(
+               icon: const Icon(Icons.refresh),
+               tooltip: 'Refresh Plans',
+               onPressed: _refreshPlans,
+             ),
+            //  if (isCandidate) ...[
+            //    IconButton(
+            //      icon: const Icon(Icons.settings),
+            //      tooltip: 'Settings',
+            //      onPressed: () {
+            //        // Settings action
+            //      },
+            //    ),
+            // ],
+           ],
+         ),
+         body: LoadingOverlay(
+           isLoading: _controller.isLoading.value,
+           child: TabBarView(
+             controller: _tabController,
+             children: _buildTabViews(context, isCandidate),
+           ),
+         ),
+       );
     });
   }
 

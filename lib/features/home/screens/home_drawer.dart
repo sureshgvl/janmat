@@ -40,14 +40,7 @@ class HomeDrawer extends StatelessWidget {
           // Profile Header Section (Scrollable)
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).primaryColor,
-                  Theme.of(context).primaryColor.withValues(alpha: 0.8),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Theme.of(context).appBarTheme.backgroundColor,
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -83,9 +76,9 @@ class HomeDrawer extends StatelessWidget {
                                           currentUser?.displayName ??
                                           'U')[0])
                                 .toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 40,
-                              color: Colors.blue,
+                              color: Theme.of(context).appBarTheme.foregroundColor,
                             ),
                           )
                         : null,
@@ -101,10 +94,10 @@ class HomeDrawer extends StatelessWidget {
                         userModel?.role == 'candidate' && candidateModel != null
                             ? candidateModel!.name
                             : userModel?.name ?? currentUser?.displayName ?? 'User',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black,
+                          color: Theme.of(context).appBarTheme.foregroundColor,
                         ),
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
@@ -117,10 +110,10 @@ class HomeDrawer extends StatelessWidget {
                             currentUser?.email ??
                             currentUser?.phoneNumber ??
                             '',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: Colors.black,
+                          color: Theme.of(context).appBarTheme.foregroundColor,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -157,9 +150,9 @@ class HomeDrawer extends StatelessWidget {
                               const SizedBox(width: 6),
                               Text(
                                 _getPlanDisplayText(userModel!),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.black,
+                                  color: Theme.of(context).appBarTheme.foregroundColor,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -277,7 +270,7 @@ class HomeDrawer extends StatelessWidget {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.star, color: Colors.orange),
+            leading: const Icon(Icons.star, color: Color(0xFFFF9933)),
             title: Text(AppLocalizations.of(context)!.premiumFeatures),
             subtitle: Text(
               AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures,

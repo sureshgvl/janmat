@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/candidate_model.dart';
 import 'package:get/get.dart';
+import '../../../../utils/app_logger.dart';
+import '../../../../services/user_data_service.dart';
 
-class ContactSection extends StatelessWidget {
+class ContactSection extends StatefulWidget {
   final Candidate candidateData;
   final Candidate? editedData;
   final bool isEditing;
@@ -19,18 +22,64 @@ class ContactSection extends StatelessWidget {
   });
 
   @override
+  State<ContactSection> createState() => _ContactSectionState();
+}
+
+class _ContactSectionState extends State<ContactSection> {
+  String _loginMethod = 'unknown';
+
+  @override
+  void initState() {
+    super.initState();
+    _detectLoginMethod();
+  }
+
+  Future<void> _detectLoginMethod() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Check provider data
+        bool hasGoogleProvider = user.providerData
+            .any((info) => info.providerId == 'google.com');
+        bool hasPhoneProvider = user.providerData
+            .any((info) => info.providerId == 'phone');
+
+        setState(() {
+          if (hasGoogleProvider) {
+            _loginMethod = 'google';
+          } else if (hasPhoneProvider) {
+            _loginMethod = 'phone';
+          } else {
+            _loginMethod = 'unknown';
+          }
+        });
+      } else {
+        setState(() {
+          _loginMethod = 'unknown';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _loginMethod = 'unknown';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final data = editedData ?? candidateData;
+    final data = widget.editedData ?? widget.candidateData;
     final contact = data.extraInfo?.contact ?? data.contact;
-    final phone = contact is ExtendedContact
-        ? contact.phone
-        : (contact as Contact).phone;
-    final email = contact is ExtendedContact
-        ? contact.email
-        : (contact as Contact).email;
     final socialLinks = contact is ExtendedContact
         ? contact.socialLinks
         : (contact as Contact).socialLinks;
+
+    // Get current user data from UserDataService
+    final userDataService = Get.find<UserDataService>();
+    final currentUser = userDataService.currentUser.value;
+
+    // Use phone and email from user data for view mode
+    final phone = currentUser?.phone;
+    final email = currentUser?.email;
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -44,7 +93,7 @@ class ContactSection extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            if (isEditing) ...[
+            if (widget.isEditing) ...[
               // Phone number with OTP verification
               Container(
                 padding: const EdgeInsets.all(12),
@@ -71,7 +120,7 @@ class ContactSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      phone ?? 'Not provided',
+                      currentUser?.phone ?? 'Not provided',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -81,7 +130,7 @@ class ContactSection extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () => _showPhoneChangeDialog(context, phone),
+                        onPressed: () => _showPhoneChangeDialog(context, currentUser?.phone),
                         icon: const Icon(Icons.edit),
                         label: const Text('Change Phone Number'),
                         style: ElevatedButton.styleFrom(
@@ -94,47 +143,64 @@ class ContactSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              // Email (read-only)
+              // Email (conditionally editable based on login method)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: _loginMethod == 'google' ? Colors.grey.shade100 : Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(
+                    color: _loginMethod == 'google' ? Colors.grey.shade300 : Colors.blue.shade200,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.email, color: Colors.grey),
+                        Icon(
+                          Icons.email,
+                          color: _loginMethod == 'google' ? Colors.grey : Colors.blue,
+                        ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Email Address',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                            color: _loginMethod == 'google' ? Colors.grey : Colors.blue,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      email ?? 'Not provided',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                    if (_loginMethod == 'google') ...[
+                      Text(
+                        currentUser?.email ?? 'Not provided',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Email cannot be changed',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Email is managed by Google and cannot be changed',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      TextFormField(
+                        initialValue: email ?? '',
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        onChanged: (value) => widget.onContactChange('email', value),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -150,7 +216,7 @@ class ContactSection extends StatelessWidget {
                   labelText: 'Facebook',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) => onSocialChange('facebook', value),
+                onChanged: (value) => widget.onSocialChange('facebook', value),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -159,7 +225,7 @@ class ContactSection extends StatelessWidget {
                   labelText: 'Twitter',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) => onSocialChange('twitter', value),
+                onChanged: (value) => widget.onSocialChange('twitter', value),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -168,7 +234,7 @@ class ContactSection extends StatelessWidget {
                   labelText: 'Office Address',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) => onContactChange('officeAddress', value),
+                onChanged: (value) => widget.onContactChange('officeAddress', value),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -177,11 +243,12 @@ class ContactSection extends StatelessWidget {
                   labelText: 'Office Hours',
                   border: OutlineInputBorder(),
                 ),
-                onChanged: (value) => onContactChange('officeHours', value),
+                onChanged: (value) => widget.onContactChange('officeHours', value),
               ),
             ] else ...[
-              Text('Phone: $phone'),
-              if (email != null) Text('Email: $email'),
+              // Display phone and email from user data
+              if (phone != null && phone.isNotEmpty) Text('Phone: $phone'),
+              if (email != null && email.isNotEmpty) Text('Email: $email'),
               if (socialLinks != null)
                 ...socialLinks.entries.map((e) => Text('${e.key}: ${e.value}')),
               if (contact is ExtendedContact && contact.officeAddress != null)
@@ -290,15 +357,53 @@ class ContactSection extends StatelessWidget {
                       await Future.delayed(const Duration(seconds: 2));
 
                       if (otpController.text == '123456') { // Demo OTP
-                        // Update phone number
-                        onContactChange('phone', newPhoneController.text);
-                        Navigator.of(dialogContext).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Phone number updated successfully'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        try {
+                          // Update profile data first
+                          widget.onContactChange('phone', newPhoneController.text);
+
+                          // Update user data in UserDataService
+                          final userDataService = Get.find<UserDataService>();
+                          await userDataService.updateUserData({
+                            'phone': newPhoneController.text,
+                          });
+
+                          // If user logged in with phone, update Firebase Auth
+                          if (_loginMethod == 'phone') {
+                            User? user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              // Update Firebase Auth phone number
+                              await user.updatePhoneNumber(
+                                PhoneAuthProvider.credential(
+                                  verificationId: 'demo_verification_id', // In real app, this would come from phone verification
+                                  smsCode: otpController.text,
+                                ),
+                              );
+                              AppLogger.candidate('Firebase Auth phone number updated successfully');
+                            }
+                          }
+
+                          Navigator.of(dialogContext).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                _loginMethod == 'phone'
+                                  ? 'Phone number and authentication updated successfully'
+                                  : 'Phone number updated successfully'
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } catch (authError) {
+                          AppLogger.candidateError('Failed to update Firebase Auth: $authError');
+                          // Still allow profile update even if auth update fails
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Phone number updated, but authentication sync failed'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          Navigator.of(dialogContext).pop();
+                        }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

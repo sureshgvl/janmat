@@ -189,11 +189,15 @@ class CandidatePlansSection extends StatelessWidget {
       // Separate highlight plans (available to all candidates)
       final highlightPlans = allPlans.where((plan) => plan.type == 'highlight').toList();
 
+      // Separate carousel plans (available to all candidates)
+      final carouselPlans = allPlans.where((plan) => plan.type == 'carousel').toList();
+
       AppLogger.monetization('📊 [CandidatePlansSection] Plan breakdown:');
       AppLogger.monetization('   Free plans: ${freePlans.length}');
       AppLogger.monetization('   Basic plans: ${basicPlans.length}');
       AppLogger.monetization('   Premium plans: ${premiumPlans.length}');
       AppLogger.monetization('   Highlight plans: ${highlightPlans.length}');
+      AppLogger.monetization('   Carousel plans: ${carouselPlans.length}');
       AppLogger.monetization('   User election type: $userElectionType');
 
       final List<Widget> planWidgets = [];
@@ -374,6 +378,29 @@ class CandidatePlansSection extends StatelessWidget {
         }
       }
 
+      // Add carousel plans (available to all candidates)
+      if (carouselPlans.isNotEmpty) {
+        // Add section separator if there are highlight plans
+        if (highlightPlans.isNotEmpty) {
+          planWidgets.add(const SizedBox(height: 20)); // Section separator
+        }
+
+        for (final plan in carouselPlans) {
+          if (userElectionType != null &&
+              plan.pricing.containsKey(userElectionType) &&
+              plan.pricing[userElectionType]!.isNotEmpty) {
+            planWidgets.add(PlanCardWithValidityOptions(
+              plan: plan,
+              electionType: userElectionType!,
+              onPurchase: onPurchaseWithValidity,
+            ));
+            if (plan != carouselPlans.last) {
+              planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
+            }
+          }
+        }
+      }
+
       AppLogger.monetization('📋 [CandidatePlansSection] Final plan widgets count: ${planWidgets.length}');
 
       if (planWidgets.isEmpty) {
@@ -413,6 +440,7 @@ class CandidatePlansSection extends StatelessWidget {
               Text('Basic Plans: ${basicPlans.length}', style: const TextStyle(fontSize: 12)),
               Text('Premium Plans: ${premiumPlans.length}', style: const TextStyle(fontSize: 12)),
               Text('Highlight Plans: ${highlightPlans.length}', style: const TextStyle(fontSize: 12)),
+              Text('Carousel Plans: ${carouselPlans.length}', style: const TextStyle(fontSize: 12)),
               Text('Election Type: $userElectionType', style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               const Text('Plan Details:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
