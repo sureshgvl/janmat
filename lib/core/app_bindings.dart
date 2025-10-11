@@ -13,6 +13,7 @@ import '../controllers/user_data_controller.dart';
 import '../controllers/device_info_controller.dart';
 import '../controllers/notification_settings_controller.dart';
 import '../controllers/following_controller.dart';
+import '../controllers/theme_controller.dart';
 import '../services/background_location_sync_service.dart';
 import '../services/manifesto_sync_service.dart';
 import '../features/notifications/services/gamification_notification_service.dart';

@@ -40,12 +40,14 @@ class SettingsLocalizations {
     }
   }
 
-  String translate(String key, {Map<String, String>? args}) {
-    String translation = _localizedStrings[key] ?? key;
+  String? translate(String key, {Map<String, String>? args}) {
+    String? translation = _localizedStrings[key];
+
+    if (translation == null) return null;
 
     if (args != null) {
       args.forEach((argKey, value) {
-        translation = translation.replaceAll('{$argKey}', value);
+        translation = translation!.replaceAll('{$argKey}', value);
       });
     }
 
@@ -54,7 +56,7 @@ class SettingsLocalizations {
 
   // Convenience method that works like GetX .tr
   String tr(String key, {Map<String, String>? args}) {
-    return translate(key, args: args);
+    return translate(key, args: args) ?? key;
   }
 
   // Get the current instance
@@ -89,11 +91,11 @@ class _SettingsLocalizationsDelegate extends LocalizationsDelegate<SettingsLocal
 // Helper methods to make it easy to use
 class SettingsTranslations {
   static String tr(String key, {Map<String, String>? args}) {
-    return SettingsLocalizations.current.translate(key, args: args);
+    return SettingsLocalizations.current.translate(key, args: args) ?? key;
   }
 
   static String trArgs(String key, Map<String, String> args) {
-    return SettingsLocalizations.current.translate(key, args: args);
+    return SettingsLocalizations.current.translate(key, args: args) ?? key;
   }
 }
 

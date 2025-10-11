@@ -5,7 +5,7 @@ import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../services/language_service.dart';
-import 'device_management_screen.dart';
+import '../../../controllers/theme_controller.dart';
 import '../../notifications/screens/notification_preferences_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -18,7 +18,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedLanguage = 'en'; // Default to English
   bool _isChangingLanguage = false;
-  bool _darkModeEnabled = false;
 
   @override
   void initState() {
@@ -128,38 +127,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildOtherSettings(BuildContext context) {
+    final themeController = Get.find<ThemeController>();
+
     return Column(
       children: [
-        ListTile(
-          leading: const Icon(Icons.devices),
-          title: Text(SettingsLocalizations.of(context)?.translate('deviceManagement') ?? 'Device Management'),
-          subtitle: Text(SettingsLocalizations.of(context)?.translate('manageYourActiveDevices') ?? 'Manage your active devices'),
-          trailing: const Icon(Icons.arrow_forward_ios),
-          onTap: () {
-            Get.to(() => const DeviceManagementScreen());
-          },
+        // Theme Selection Section
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            SettingsLocalizations.of(context)?.translate('theme') ?? 'Theme',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
+        Obx(() => RadioListTile<AppThemeType>(
+          title: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: themeController.getThemePrimaryColor(AppThemeType.patriotic),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(SettingsLocalizations.of(context)?.translate('patrioticTheme') ?? 'Patriotic'),
+            ],
+          ),
+          subtitle: Text(SettingsLocalizations.of(context)?.translate('patrioticDescription') ?? 'Saffron & Green - National spirit'),
+          value: AppThemeType.patriotic,
+          groupValue: themeController.currentThemeType.value,
+          onChanged: (value) => themeController.changeTheme(value!),
+        )),
+        Obx(() => RadioListTile<AppThemeType>(
+          title: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: themeController.getThemePrimaryColor(AppThemeType.parliamentary),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(SettingsLocalizations.of(context)?.translate('parliamentaryTheme') ?? 'Parliamentary'),
+            ],
+          ),
+          subtitle: Text(SettingsLocalizations.of(context)?.translate('parliamentaryDescription') ?? 'Blue & White - Parliamentary elections'),
+          value: AppThemeType.parliamentary,
+          groupValue: themeController.currentThemeType.value,
+          onChanged: (value) => themeController.changeTheme(value!),
+        )),
+        Obx(() => RadioListTile<AppThemeType>(
+          title: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: themeController.getThemePrimaryColor(AppThemeType.assembly),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(SettingsLocalizations.of(context)?.translate('assemblyTheme') ?? 'Assembly'),
+            ],
+          ),
+          subtitle: Text(SettingsLocalizations.of(context)?.translate('assemblyDescription') ?? 'Green & White - State Assembly'),
+          value: AppThemeType.assembly,
+          groupValue: themeController.currentThemeType.value,
+          onChanged: (value) => themeController.changeTheme(value!),
+        )),
+        Obx(() => RadioListTile<AppThemeType>(
+          title: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: themeController.getThemePrimaryColor(AppThemeType.localBody),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(SettingsLocalizations.of(context)?.translate('localBodyTheme') ?? 'Local Body'),
+            ],
+          ),
+          subtitle: Text(SettingsLocalizations.of(context)?.translate('localBodyDescription') ?? 'Orange & Brown - Local governance'),
+          value: AppThemeType.localBody,
+          groupValue: themeController.currentThemeType.value,
+          onChanged: (value) => themeController.changeTheme(value!),
+        )),
         const Divider(),
         ListTile(
           leading: const Icon(Icons.notifications),
           title: Text(
             AppLocalizations.of(context)?.notifications ?? 'Notifications',
           ),
-          subtitle: const Text('Manage notification preferences'),
+          subtitle: Text(SettingsLocalizations.of(context)?.translate('manageNotificationPreferences') ?? 'Manage notification preferences'),
           trailing: const Icon(Icons.arrow_forward_ios),
           onTap: () {
             AppLogger.settings('🔍 Navigating to NotificationPreferencesScreen');
             Get.to(() => const NotificationPreferencesScreen());
           },
-        ),
-        ListTile(
-          leading: const Icon(Icons.dark_mode),
-          title: Text(AppLocalizations.of(context)?.darkMode ?? 'Dark Mode'),
-          subtitle: const Text('Coming soon'),
-          trailing: Switch(
-            value: _darkModeEnabled,
-            onChanged: _toggleDarkMode,
-          ),
         ),
         ListTile(
           leading: const Icon(Icons.info),
@@ -197,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         // Show confirmation message
         Get.snackbar(
-          'Success',
+          SettingsLocalizations.of(context)?.translate('success') ?? 'Success',
           languageCode == 'en'
               ? (SettingsLocalizations.of(context)?.translate('languageChangedToEnglish') ?? 'Language changed to English. Restarting app...')
               : (SettingsLocalizations.of(context)?.translate('languageChangedToMarathi') ?? 'भाषा मराठीमध्ये बदलली. अॅप रीस्टार्ट होत आहे...'),
@@ -254,54 +327,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
 
-  void _toggleDarkMode(bool value) {
-    // For now, just show a message that dark mode is coming soon
-    setState(() {
-      _darkModeEnabled = value;
-    });
-
-    if (value) {
-      Get.snackbar(
-        'Dark Mode',
-        'Dark mode feature is coming soon!',
-        duration: const Duration(seconds: 2),
-      );
-      // Reset to false after showing message
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() {
-            _darkModeEnabled = false;
-          });
-        }
-      });
-    }
-  }
 
   void _showAboutDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('About JanMat'),
+        title: Text(SettingsLocalizations.of(context)?.translate('aboutJanMat') ?? 'About JanMat'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Version: 1.0.0'),
+            Text(SettingsLocalizations.of(context)?.translate('versionLabel', args: {'version': '1.0.0'}) ?? 'Version: 1.0.0'),
             const SizedBox(height: 8),
-            const Text('JanMat is a platform connecting citizens with political candidates and fostering democratic engagement.'),
+            Text(SettingsLocalizations.of(context)?.translate('janMatDescription') ?? 'JanMat is a platform connecting citizens with political candidates and fostering democratic engagement.'),
             const SizedBox(height: 16),
-            const Text('Features:'),
+            Text(SettingsLocalizations.of(context)?.translate('features') ?? 'Features:'),
             const SizedBox(height: 4),
-            const Text('• Candidate profiles and information'),
-            const Text('• Real-time chat and discussions'),
-            const Text('• Election updates and notifications'),
-            const Text('• Multi-language support'),
+            Text(SettingsLocalizations.of(context)?.translate('featureCandidateProfiles') ?? '• Candidate profiles and information'),
+            Text(SettingsLocalizations.of(context)?.translate('featureRealTimeChat') ?? '• Real-time chat and discussions'),
+            Text(SettingsLocalizations.of(context)?.translate('featureElectionUpdates') ?? '• Election updates and notifications'),
+            Text(SettingsLocalizations.of(context)?.translate('featureMultiLanguage') ?? '• Multi-language support'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(SettingsLocalizations.of(context)?.translate('close') ?? 'Close'),
           ),
         ],
       ),

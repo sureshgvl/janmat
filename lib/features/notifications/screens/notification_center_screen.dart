@@ -4,6 +4,7 @@ import '../models/notification_model.dart';
 import '../models/notification_status.dart';
 import '../services/notification_manager.dart';
 import '../services/test_notifications.dart';
+import '../../../l10n/features/notifications/notifications_localizations.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
@@ -175,17 +176,17 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   Future<void> _deleteAllNotifications() async {
     final confirmed = await Get.dialog<bool>(
       AlertDialog(
-        title: const Text('Delete All Notifications'),
-        content: const Text('Are you sure you want to delete all notifications? This action cannot be undone.'),
+        title: Text(NotificationsLocalizations.of(context)?.translate('deleteAllNotifications') ?? 'Delete All Notifications'),
+        content: Text(NotificationsLocalizations.of(context)?.translate('deleteAllNotificationsConfirm') ?? 'Are you sure you want to delete all notifications? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
-            child: const Text('Cancel'),
+            child: Text(NotificationsLocalizations.of(context)?.translate('cancel') ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () => Get.back(result: true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete All'),
+            child: Text(NotificationsLocalizations.of(context)?.translate('deleteAll') ?? 'Delete all'),
           ),
         ],
       ),
@@ -219,12 +220,12 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Notifications ${_unreadCount > 0 ? '($_unreadCount)' : ''}'),
+        title: Text('${NotificationsLocalizations.of(context)?.translate('notificationsTitle') ?? 'Notifications'}${_unreadCount > 0 ? ' ($_unreadCount)' : ''}'),
         actions: [
           // Test button for development
           IconButton(
-            icon: const Icon(Icons.bug_report),
-            tooltip: 'Test Notifications',
+            icon: Icon(Icons.bug_report),
+            tooltip: NotificationsLocalizations.of(context)?.translate('testNotifications') ?? 'Test Notifications',
             onPressed: _showTestMenu,
           ),
           if (_notifications.isNotEmpty) ...[
@@ -248,22 +249,22 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'mark_all_read',
-                  child: Text('Mark all as read'),
+                  child: Text(NotificationsLocalizations.of(context)?.translate('markAllAsRead') ?? 'Mark all as read'),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete_all',
-                  child: Text('Delete all'),
+                  child: Text(NotificationsLocalizations.of(context)?.translate('deleteAll') ?? 'Delete all'),
                 ),
                 const PopupMenuDivider(),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear_test',
-                  child: Text('Clear test notifications'),
+                  child: Text(NotificationsLocalizations.of(context)?.translate('clearTestNotifications') ?? 'Clear test notifications'),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'stats',
-                  child: Text('Print stats'),
+                  child: Text(NotificationsLocalizations.of(context)?.translate('printStats') ?? 'Print stats'),
                 ),
               ],
             ),
@@ -387,16 +388,16 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
             color: Colors.grey,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No notifications yet',
-            style: TextStyle(
+          Text(
+            NotificationsLocalizations.of(context)?.translate('noNotificationsYet') ?? 'No notifications yet',
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'You\'ll see your notifications here when you receive them.',
+            NotificationsLocalizations.of(context)?.translate('noNotificationsDescription') ?? 'You\'ll see your notifications here when you receive them.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,

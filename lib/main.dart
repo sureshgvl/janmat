@@ -15,7 +15,9 @@ import 'l10n/features/auth/auth_localizations.dart';
 import 'l10n/features/onboarding/onboarding_localizations.dart';
 import 'l10n/features/profile/profile_localizations.dart';
 import 'l10n/features/notifications/notifications_localizations.dart';
+import 'l10n/features/settings/settings_localizations.dart';
 import 'utils/app_logger.dart';
+import 'controllers/theme_controller.dart';
 
 void main() async {
   // Enable testing mode for better emulator performance during development
@@ -26,6 +28,9 @@ void main() async {
     AppInitializer.testingMode = true;
     BackgroundInitializer.testingMode = true;
   }
+
+  // Initialize ThemeController early
+  Get.put<ThemeController>(ThemeController());
 
   final initializer = AppInitializer();
   await initializer.initialize();
@@ -70,24 +75,28 @@ class MyApp extends StatelessWidget {
         final initialRoute = appData['route'] as String;
         final initialLocale = appData['locale'] as Locale?;
 
-        return GetMaterialApp(
-          title: 'JanMat',
-          theme: AppTheme.lightTheme,
-          locale: initialLocale,
-          localizationsDelegates: [
-            ...AppLocalizations.localizationsDelegates,
-            CandidateLocalizations.delegate,
-            AuthLocalizations.delegate,
-            OnboardingLocalizations.delegate,
-            ProfileLocalizations.delegate,
-            NotificationsLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          initialBinding: AppBindings(),
-          initialRoute: initialRoute,
-          getPages: AppRoutes.getPages,
-          debugShowCheckedModeBanner: false,
-        );
+        return Obx(() {
+          final themeController = Get.find<ThemeController>();
+          return GetMaterialApp(
+            title: 'JanMat',
+            theme: themeController.currentTheme.value,
+            locale: initialLocale,
+            localizationsDelegates: [
+              ...AppLocalizations.localizationsDelegates,
+              CandidateLocalizations.delegate,
+              AuthLocalizations.delegate,
+              OnboardingLocalizations.delegate,
+              ProfileLocalizations.delegate,
+              NotificationsLocalizations.delegate,
+              SettingsLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            initialBinding: AppBindings(),
+            initialRoute: initialRoute,
+            getPages: AppRoutes.getPages,
+            debugShowCheckedModeBanner: false,
+          );
+        });
       },
     );
   }

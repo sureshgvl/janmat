@@ -240,7 +240,7 @@ class HomeDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.notifications),
-            title: const Text('Notifications'),
+            title: Text(AppLocalizations.of(context)!.notifications),
             onTap: () {
               Navigator.pop(context); // Close drawer
               HomeNavigation.toRightToLeft(
@@ -342,4 +342,3 @@ class HomeDrawer extends StatelessWidget {
     }
   }
 }
-
