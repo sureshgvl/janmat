@@ -12,20 +12,26 @@ class HighlightRepository {
     String wardId,
   ) async {
     try {
-      // Create composite location key for precise targeting
-      final locationKey = '${districtId}_${bodyId}_$wardId';
-      AppLogger.common('🎠 HighlightRepository: Fetching highlights for locationKey: $locationKey');
+      // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
+      AppLogger.common('🎠 HighlightRepository: Fetching highlights for ward: $districtId/$bodyId/$wardId');
 
       final snapshot = await _firestore
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
-          .where('locationKey', isEqualTo: locationKey)
           .where('active', isEqualTo: true)
           .orderBy('lastShown', descending: false)
           .orderBy('priority', descending: true)
           .limit(10)
           .get();
 
-      AppLogger.common('🎠 HighlightRepository: Found ${snapshot.docs.length} highlights for $locationKey');
+      AppLogger.common('🎠 HighlightRepository: Found ${snapshot.docs.length} highlights for $districtId/$bodyId/$wardId');
       final highlights = snapshot.docs
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
@@ -48,20 +54,26 @@ class HighlightRepository {
     String wardId,
   ) async {
     try {
-      // Create composite location key for precise targeting
-      final locationKey = '${districtId}_${bodyId}_$wardId';
-      AppLogger.common('🏷️ HighlightRepository: Fetching platinum banner for locationKey: $locationKey');
+      // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
+      AppLogger.common('🏷️ HighlightRepository: Fetching platinum banner for ward: $districtId/$bodyId/$wardId');
 
       final snapshot = await _firestore
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
-          .where('locationKey', isEqualTo: locationKey)
           .where('active', isEqualTo: true)
           .where('placement', arrayContains: 'top_banner')
           .orderBy('priority', descending: true)
           .limit(1)
           .get();
 
-      AppLogger.common('🏷️ HighlightRepository: Found ${snapshot.docs.length} platinum banners for $locationKey');
+      AppLogger.common('🏷️ HighlightRepository: Found ${snapshot.docs.length} platinum banners for $districtId/$bodyId/$wardId');
 
       if (snapshot.docs.isNotEmpty) {
         final banner = Highlight.fromJson(snapshot.docs.first.data());
@@ -69,7 +81,7 @@ class HighlightRepository {
         return banner;
       }
 
-      AppLogger.common('🏷️ HighlightRepository: No platinum banner found for $locationKey');
+      AppLogger.common('🏷️ HighlightRepository: No platinum banner found for $districtId/$bodyId/$wardId');
       return null;
     } catch (e) {
       AppLogger.commonError('❌ HighlightRepository: Error fetching platinum banner', error: e);
@@ -93,12 +105,33 @@ class HighlightRepository {
   }
 
   // Track click
-  Future<void> trackClick(String highlightId) async {
+  Future<void> trackClick(String highlightId, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      await _firestore
-          .collection('highlights')
-          .doc(highlightId)
-          .update({'clicks': FieldValue.increment(1)});
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        await _firestore
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'clicks': FieldValue.increment(1)});
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        await _firestore
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'clicks': FieldValue.increment(1)});
+      }
     } catch (e) {
       AppLogger.commonError('❌ HighlightRepository: Error tracking click', error: e);
     }

@@ -835,141 +835,250 @@ class ProfileCompletionController extends GetxController {
     );
   }
 
-  Future<void> saveProfile(BuildContext context) async {
+  // Validation methods
+  bool _validateBasicFields(BuildContext context) {
     final localizations = ProfileLocalizations.of(context)!;
 
-    if (!formKey.currentState!.validate()) return;
+    if (!formKey.currentState!.validate()) return false;
 
-    if (selectedStateId == null ||
-        selectedDistrictId == null ||
-        selectedGender == null) {
-      Get.snackbar(
-        localizations.error,
-        localizations.pleaseFillAllRequiredFields,
-      );
-      return;
+    if (selectedStateId == null || selectedDistrictId == null || selectedGender == null) {
+      Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+      return false;
     }
 
-    // Validate election type selection based on user role
-    if (currentUserRole == 'candidate' && selectedElectionType == 'zp_ps_combined') {
-      Get.snackbar(
-        localizations.error,
-        'Candidates can only select one election type. ZP+PS combined is only for voters.',
-      );
-      return;
+    return true;
+  }
+
+  // Voter-specific validation methods
+  bool _validateVoterElectionType(BuildContext context) {
+    final localizations = ProfileLocalizations.of(context)!;
+
+    // Voters cannot select individual ZP or PS (must use combined)
+    if (selectedElectionType == 'zilla_parishad' || selectedElectionType == 'panchayat_samiti') {
+      Get.snackbar(localizations.error, 'Voters should select ZP+PS Combined for rural elections.');
+      return false;
     }
 
-    // Prevent voters from selecting individual ZP or PS (they should use combined option)
-    if (currentUserRole != 'candidate' &&
-        (selectedElectionType == 'zilla_parishad' || selectedElectionType == 'panchayat_samiti')) {
-      Get.snackbar(
-        localizations.error,
-        'Voters should select ZP+PS Combined for rural elections.',
-      );
-      return;
-    }
+    return true;
+  }
 
-    // Validate based on election type and user role
+  bool _validateVoterElectionFields(BuildContext context) {
+    final localizations = ProfileLocalizations.of(context)!;
+
     if (selectedElectionType == 'zp_ps_combined') {
-      // ZP+PS validation - Only for voters
-      if (selectedZPBodyId == null ||
-          selectedZPWardId == null ||
-          selectedPSBodyId == null ||
-          selectedPSWardId == null) {
-        Get.snackbar(
-          localizations.error,
-          'Please select ZP body, ZP ward, PS body, and PS ward',
-        );
-        return;
+      if (selectedZPBodyId == null || selectedZPWardId == null ||
+          selectedPSBodyId == null || selectedPSWardId == null) {
+        Get.snackbar(localizations.error, 'Please select ZP body, ZP ward, PS body, and PS ward');
+        return false;
       }
     } else {
-      // Regular election validation
       if (selectedBodyId == null || selectedWard == null) {
-        Get.snackbar(
-          localizations.error,
-          localizations.pleaseFillAllRequiredFields,
-        );
-        return;
+        Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+        return false;
       }
     }
 
-    // Check if area selection is required and selected (only for non-candidates)
-    if (currentUserRole != 'candidate' &&
-        selectedWard != null &&
+    return true;
+  }
+
+  bool _validateVoterAdditionalFields(BuildContext context) {
+    final localizations = ProfileLocalizations.of(context)!;
+
+    // Area selection required for voters if ward has areas
+    if (selectedWard != null &&
         selectedWard!.areas != null &&
         selectedWard!.areas!.isNotEmpty &&
         selectedArea == null) {
       Get.snackbar(localizations.error, localizations.selectYourArea);
+      return false;
+    }
+
+    return true;
+  }
+
+  // Candidate-specific validation methods
+  bool _validateCandidateElectionType(BuildContext context) {
+    final localizations = ProfileLocalizations.of(context)!;
+
+    // Candidates cannot select ZP+PS combined
+    if (selectedElectionType == 'zp_ps_combined') {
+      Get.snackbar(localizations.error, 'Candidates can only select one election type. ZP+PS combined is only for voters.');
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _validateCandidateElectionFields(BuildContext context) {
+    final localizations = ProfileLocalizations.of(context)!;
+
+    // Candidates can only have regular elections
+    if (selectedBodyId == null || selectedWard == null) {
+      Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _validateCandidateAdditionalFields(BuildContext context) {
+    final localizations = ProfileLocalizations.of(context)!;
+
+    // Party selection required for candidates
+    if (selectedPartyId == null) {
+      Get.snackbar(localizations.error, 'Please select your political party');
+      return false;
+    }
+
+    return true;
+  }
+
+
+  List<ElectionArea> _createElectionAreas() {
+    final electionAreas = <ElectionArea>[];
+
+    if (selectedElectionType == 'zp_ps_combined') {
+      if (selectedZPBodyId != null && selectedZPWardId != null) {
+        electionAreas.add(ElectionArea(
+          bodyId: selectedZPBodyId!,
+          wardId: selectedZPWardId!,
+          area: selectedZPArea,
+          type: ElectionType.zp,
+        ));
+      }
+      if (selectedPSBodyId != null && selectedPSWardId != null) {
+        electionAreas.add(ElectionArea(
+          bodyId: selectedPSBodyId!,
+          wardId: selectedPSWardId!,
+          area: selectedPSArea,
+          type: ElectionType.ps,
+        ));
+      }
+    } else {
+      if (selectedBodyId != null && selectedWard != null) {
+        electionAreas.add(ElectionArea(
+          bodyId: selectedBodyId!,
+          wardId: selectedWard!.id,
+          area: selectedArea,
+          type: ElectionType.regular,
+        ));
+      }
+    }
+
+    return electionAreas;
+  }
+
+  Future<void> _saveUserData(UserModel updatedUser) async {
+    final currentUser = FirebaseAuth.instance.currentUser!;
+    await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).set({
+      ...updatedUser.toJson(),
+      'birthDate': selectedBirthDate?.toIso8601String(),
+      'gender': selectedGender,
+      'area': selectedArea,
+      'profileCompleted': true,
+    });
+  }
+
+  Future<void> _createCandidateRecord(String currentRole, String currentUserUid) async {
+    try {
+      int? age;
+      if (selectedBirthDate != null) {
+        final now = DateTime.now();
+        age = now.year - selectedBirthDate!.year;
+        if (now.month < selectedBirthDate!.month ||
+            (now.month == selectedBirthDate!.month && now.day < selectedBirthDate!.day)) {
+          age--;
+        }
+      }
+
+      final candidate = Candidate(
+        candidateId: 'temp_$currentUserUid',
+        userId: currentUserUid,
+        name: nameController.text.trim(),
+        party: selectedPartyId ?? 'independent',
+        districtId: selectedDistrictId!,
+        stateId: selectedStateId!,
+        bodyId: selectedBodyId!,
+        wardId: selectedWard!.id,
+        contact: Contact(
+          phone: '+91${phoneController.text.trim()}',
+          email: FirebaseAuth.instance.currentUser!.email,
+        ),
+        sponsored: false,
+        premium: false,
+        createdAt: DateTime.now(),
+        manifesto: null,
+        extraInfo: ExtraInfo(
+          basicInfo: BasicInfoData(
+            fullName: nameController.text.trim(),
+            dateOfBirth: selectedBirthDate?.toIso8601String(),
+            age: age,
+            gender: selectedGender,
+          ),
+        ),
+      );
+
+      AppLogger.common('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
+      final actualCandidateId = await candidateRepository.createCandidate(candidate, stateId: selectedStateId);
+
+      chatController.createCandidateChatRoom(actualCandidateId, candidate.name);
+
+      await FirebaseFirestore.instance.collection('users').doc(currentUserUid).update({'candidateId': actualCandidateId});
+
+      // Send notification
+      try {
+        final constituencyNotifications = ConstituencyNotifications();
+        await constituencyNotifications.sendCandidateProfileCreatedNotification(candidateId: actualCandidateId);
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to send new candidate notification', error: e);
+      }
+    } catch (e) {
+      AppLogger.commonError('⚠️ Failed to create basic candidate record', error: e);
+    }
+  }
+
+  Future<void> saveProfile(BuildContext context) async {
+    final localizations = ProfileLocalizations.of(context)!;
+
+    // Early validations with immediate returns
+    if (!_validateBasicFields(context)) return;
+
+    // Get user role to determine which save method to use
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      Get.snackbar(localizations.error, 'User not authenticated');
       return;
     }
 
-    // Validate party selection for candidates
-    if (currentUserRole == 'candidate' && selectedPartyId == null) {
-      Get.snackbar(
-        localizations.error,
-        'Please select your political party',
-      );
-      return;
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get();
+    final currentRole = userDoc.data()?['role'] ?? 'voter';
+
+    // Delegate to role-specific save methods
+    if (currentRole == 'candidate') {
+      await _saveCandidateProfile(context, currentUser, localizations);
+    } else {
+      await _saveVoterProfile(context, currentUser, localizations);
     }
+  }
+
+  Future<void> _saveVoterProfile(BuildContext context, User currentUser, ProfileLocalizations localizations) async {
+    // Voter-specific validations
+    if (!_validateVoterElectionType(context)) return;
+    if (!_validateVoterElectionFields(context)) return;
+    if (!_validateVoterAdditionalFields(context)) return;
 
     isLoading = true;
     update();
 
     try {
-      // Get current user
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        throw Exception('User not authenticated');
-      }
+      final electionAreas = _createElectionAreas();
 
-      // Get current user role from Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-      final currentRole = userDoc.data()?['role'] ?? 'voter';
-
-
-      // Create election areas based on selection type
-      List<ElectionArea> electionAreas = [];
-
-      if (selectedElectionType == 'zp_ps_combined') {
-        // ZP+PS combined elections - Both ZP and PS required
-        if (selectedZPBodyId != null && selectedZPWardId != null) {
-          electionAreas.add(ElectionArea(
-            bodyId: selectedZPBodyId!,
-            wardId: selectedZPWardId!,
-            area: selectedZPArea,
-            type: ElectionType.zp,
-          ));
-        }
-        if (selectedPSBodyId != null && selectedPSWardId != null) {
-          electionAreas.add(ElectionArea(
-            bodyId: selectedPSBodyId!,
-            wardId: selectedPSWardId!,
-            area: selectedPSArea,
-            type: ElectionType.ps,
-          ));
-        }
-      } else {
-        // Regular elections
-        if (selectedBodyId != null && selectedWard != null) {
-          electionAreas.add(ElectionArea(
-            bodyId: selectedBodyId!,
-            wardId: selectedWard!.id,
-            area: selectedArea,
-            type: ElectionType.regular,
-          ));
-        }
-      }
-
-      // Create updated user model
       final updatedUser = UserModel(
         uid: currentUser.uid,
         name: nameController.text.trim(),
         phone: '+91${phoneController.text.trim()}',
         email: currentUser.email,
-        role: currentRole,
+        role: 'voter',
         roleSelected: true,
         profileCompleted: true,
         districtId: selectedDistrictId!,
@@ -981,147 +1090,82 @@ class ProfileCompletionController extends GetxController {
         photoURL: currentUser.photoURL,
       );
 
-      // Save to Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .set({
-            ...updatedUser.toJson(),
-            'birthDate': selectedBirthDate?.toIso8601String(),
-            'gender': selectedGender,
-            'area': selectedArea, // Save selected area
-            'profileCompleted': true,
-          });
+      await _saveUserData(updatedUser);
 
-      // Refresh chat controller with new user data (creates ward rooms only for candidates)
+      // Refresh chat for voter
       try {
         await chatController.refreshUserDataAndChat();
-        AppLogger.common(
-          '✅ Chat data refreshed successfully for user: ${currentUser.uid}',
-        );
       } catch (e) {
-        AppLogger.commonError('⚠️ Failed to refresh chat data, but profile saved', error: e);
-        // Don't fail the entire process if chat refresh fails
+        AppLogger.commonError('⚠️ Failed to refresh chat data for voter, but profile saved', error: e);
       }
 
-      // If user is a candidate, create basic candidate record immediately
-      if (currentRole == 'candidate') {
-        try {
-          // Calculate age from birthdate
-          int? age;
-          if (selectedBirthDate != null) {
-            final now = DateTime.now();
-            age = now.year - selectedBirthDate!.year;
-            if (now.month < selectedBirthDate!.month ||
-                (now.month == selectedBirthDate!.month &&
-                    now.day < selectedBirthDate!.day)) {
-              age--;
-            }
-          }
-
-          // Create basic candidate record with birthdate, gender, and selected party
-          // Candidates can only have regular elections (ZP+PS is for voters only)
-          final primaryWardId = selectedWard!.id;
-          final primaryBodyId = selectedBodyId!;
-
-           final candidate = Candidate(
-            candidateId: 'temp_${currentUser.uid}', // Temporary ID
-            userId: currentUser.uid,
-            name: nameController.text.trim(),
-            party: selectedPartyId ?? 'independent', // Use selected party or default to independent
-            districtId: selectedDistrictId!,
-            stateId: selectedStateId!,
-            bodyId: primaryBodyId,
-            wardId: primaryWardId,
-            contact: Contact(
-              phone: '+91${phoneController.text.trim()}',
-              email: currentUser.email,
-            ),
-            sponsored: false,
-            premium: false,
-            createdAt: DateTime.now(),
-            manifesto: null, // Can be updated later in dashboard
-            extraInfo: ExtraInfo(
-              basicInfo: BasicInfoData(
-                fullName: nameController.text.trim(),
-                dateOfBirth: selectedBirthDate?.toIso8601String(),
-                age: age,
-                gender: selectedGender,
-              ),
-            ),
-          );
-
-          // Save basic candidate record to make them visible to voters
-          AppLogger.common(
-            '🏗️ Profile Completion: Creating candidate record for ${candidate.name}',
-          );
-          AppLogger.common(
-            '   District: ${candidate.districtId}, Body: ${candidate.bodyId}, Ward: ${candidate.wardId}',
-          );
-          AppLogger.common('   Temp ID: ${candidate.candidateId}');
-          //create candidate and get actual ID
-          final actualCandidateId = await candidateRepository.createCandidate(
-            candidate,
-            stateId: selectedStateId,
-          );
-
-          // here we have to create candidate chat room as well
-          chatController.createCandidateChatRoom(
-            actualCandidateId,
-            candidate.name,
-          );
-          AppLogger.common(
-            '✅ Basic candidate record created with ID: $actualCandidateId',
-          );
-
-          // Update user document with the actual candidateId
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUser.uid)
-              .update({'candidateId': actualCandidateId});
-          AppLogger.common(
-            '✅ User document updated with candidateId: $actualCandidateId',
-          );
-
-          // Send notification to constituency voters about new candidate
-          try {
-            AppLogger.common('📢 Sending new candidate notification to constituency voters...');
-            final constituencyNotifications = ConstituencyNotifications();
-            await constituencyNotifications.sendCandidateProfileCreatedNotification(
-              candidateId: actualCandidateId,
-            );
-            AppLogger.common('✅ New candidate notification sent successfully');
-          } catch (e) {
-            AppLogger.commonError('⚠️ Failed to send new candidate notification', error: e);
-            // Don't fail the entire profile completion if notification fails
-          }
-        } catch (e) {
-          AppLogger.commonError('⚠️ Failed to create basic candidate record', error: e);
-          // Continue with navigation even if candidate creation fails
-        }
-      }
-
-      // Navigate to home for all users (streamlined flow)
+      // Navigate and show voter success message
       Get.offAllNamed('/home');
-      if (currentRole == 'candidate') {
-        Get.snackbar(
-          localizations.profileCompleted,
-          localizations.profileCompletedMessage,
-          duration: const Duration(seconds: 4),
-        );
-      } else {
-        // For voters, don't mention ward chat creation since they don't create rooms
-        Get.snackbar(
-          localizations.success,
-          localizations.profileCompleted,
-          duration: const Duration(seconds: 4),
-        );
-      }
-    } catch (e) {
       Get.snackbar(
-        localizations.error,
-        localizations.failedToSaveProfile(e.toString()),
+        localizations.success,
+        localizations.profileCompleted,
+        duration: const Duration(seconds: 4),
       );
+    } catch (e) {
+      Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
+    }
+
+    isLoading = false;
+    update();
+  }
+
+  Future<void> _saveCandidateProfile(BuildContext context, User currentUser, ProfileLocalizations localizations) async {
+    // Candidate-specific validations
+    if (!_validateCandidateElectionType(context)) return;
+    if (!_validateCandidateElectionFields(context)) return;
+    if (!_validateCandidateAdditionalFields(context)) return;
+
+    isLoading = true;
+    update();
+
+    try {
+      final electionAreas = _createElectionAreas();
+
+      final updatedUser = UserModel(
+        uid: currentUser.uid,
+        name: nameController.text.trim(),
+        phone: '+91${phoneController.text.trim()}',
+        email: currentUser.email,
+        role: 'candidate',
+        roleSelected: true,
+        profileCompleted: true,
+        districtId: selectedDistrictId!,
+        stateId: selectedStateId!,
+        electionAreas: electionAreas,
+        xpPoints: 0,
+        premium: false,
+        subscriptionPlanId: 'free_plan',
+        subscriptionExpiresAt: DateTime(9999, 12, 31), // Never expires
+        createdAt: DateTime.now(),
+        photoURL: currentUser.photoURL,
+      );
+
+      await _saveUserData(updatedUser);
+
+      // Refresh chat for candidate
+      try {
+        await chatController.refreshUserDataAndChat();
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to refresh chat data for candidate, but profile saved', error: e);
+      }
+
+      // Create candidate record
+      await _createCandidateRecord('candidate', currentUser.uid);
+
+      // Navigate and show candidate success message
+      Get.offAllNamed('/home');
+      Get.snackbar(
+        localizations.profileCompleted,
+        localizations.profileCompletedMessage,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
     }
 
     isLoading = false;

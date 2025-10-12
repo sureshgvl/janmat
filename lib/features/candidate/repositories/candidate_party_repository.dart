@@ -37,55 +37,6 @@ class PartyRepository {
     return parties;
   }
 
-  // Fetch party by ID
-  Future<Party?> getPartyById(String partyId) async {
-    try {
-      final doc = await _firestore.collection('parties').doc(partyId).get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        data['id'] = doc.id;
-        return Party.fromJson(data);
-      }
-      return null;
-    } catch (e) {
-      AppLogger.candidateError('Error fetching party: $e');
-      return null;
-    }
-  }
-
-  // Add a new party
-  Future<void> addParty(Party party) async {
-    try {
-      await _firestore.collection('parties').doc(party.id).set(party.toJson());
-    } catch (e) {
-      AppLogger.candidateError('Error adding party: $e');
-      rethrow;
-    }
-  }
-
-  // Update party
-  Future<void> updateParty(Party party) async {
-    try {
-      await _firestore
-          .collection('parties')
-          .doc(party.id)
-          .update(party.toJson());
-    } catch (e) {
-      AppLogger.candidateError('Error updating party: $e');
-      rethrow;
-    }
-  }
-
-  // Delete party
-  Future<void> deleteParty(String partyId) async {
-    try {
-      await _firestore.collection('parties').doc(partyId).delete();
-    } catch (e) {
-      AppLogger.candidateError('Error deleting party: $e');
-      rethrow;
-    }
-  }
-
   // Get static Maharashtra parties data
   List<Party> _getMaharashtraParties() {
     AppLogger.candidate('📋 PartyRepository: Returning static Maharashtra parties data');

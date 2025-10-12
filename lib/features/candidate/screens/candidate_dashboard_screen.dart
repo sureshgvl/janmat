@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../controllers/candidate_data_controller.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
@@ -89,6 +90,24 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         canManageEvents = false;
         canViewAnalytics = false;
         canManageHighlights = false;
+      }
+
+      // Additionally check for active highlight subscriptions (for users who have highlight plans + candidate plans)
+      try {
+        final highlightSubscription = await FirebaseFirestore.instance
+            .collection('subscriptions')
+            .where('userId', isEqualTo: userId)
+            .where('planType', isEqualTo: 'highlight')
+            .where('isActive', isEqualTo: true)
+            .limit(1)
+            .get();
+
+        if (highlightSubscription.docs.isNotEmpty) {
+          // User has active highlight subscription, enable highlight management
+          canManageHighlights = true;
+        }
+      } catch (e) {
+        // Error checking highlight subscription, keep existing logic
       }
 
       // Update tab controller with correct length after loading features
@@ -224,4 +243,3 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     );
   }
 }
-

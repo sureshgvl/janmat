@@ -9,8 +9,18 @@ import '../utils/app_logger.dart';
 class HighlightCard extends StatefulWidget {
   final Highlight highlight;
   final VoidCallback? onTap;
+  final String? districtId;
+  final String? bodyId;
+  final String? wardId;
 
-  const HighlightCard({super.key, required this.highlight, this.onTap});
+  const HighlightCard({
+    super.key,
+    required this.highlight,
+    this.onTap,
+    this.districtId,
+    this.bodyId,
+    this.wardId,
+  });
 
   @override
   _HighlightCardState createState() => _HighlightCardState();
@@ -258,7 +268,11 @@ class _HighlightCardState extends State<HighlightCard> {
   void _defaultOnTap(BuildContext context) {
     // Track click
     final controller = Get.find<HighlightController>();
-    controller.trackClick(widget.highlight.id);
+    controller.trackClick(widget.highlight.id,
+      districtId: widget.districtId,
+      bodyId: widget.bodyId,
+      wardId: widget.wardId,
+    );
 
     // Default navigation - you'll need to implement this based on your routing
     AppLogger.common('Navigate to candidate profile: ${widget.highlight.candidateId}');

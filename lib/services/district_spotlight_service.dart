@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../models/district_spotlight_model.dart';
 import '../utils/app_logger.dart';
 import '../widgets/district_spotlight_overlay.dart';
+import '../services/local_database_service.dart';
 
 class DistrictSpotlightService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -55,8 +56,21 @@ class DistrictSpotlightService {
           return;
         }
 
-        // Preload the image before showing the dialog
-        await _preloadSpotlightImage(spotlight.fullImage);
+        // Check if we need to download the image (partyId comparison)
+        final localDb = LocalDatabaseService();
+        final cachedSpotlight = await localDb.getDistrictSpotlight(stateId, districtId);
+        final needsImageDownload = cachedSpotlight == null ||
+            cachedSpotlight.partyId != spotlight.partyId;
+
+        if (needsImageDownload) {
+          AppLogger.districtSpotlight('📥 Downloading/preloading spotlight image for party: ${spotlight.partyId}');
+          // Preload the image before showing the dialog
+          await _preloadSpotlightImage(spotlight.fullImage);
+        } else {
+          AppLogger.districtSpotlight('✅ Using cached image for party: ${spotlight.partyId}');
+          // Still preload to ensure image is ready, but it should be fast
+          await _preloadSpotlightImage(spotlight.fullImage);
+        }
 
         // Show the spotlight as a global dialog
         AppLogger.common('🎯 Showing district spotlight dialog globally');
@@ -152,13 +166,48 @@ class DistrictSpotlightService {
     }
   }
 
-  /// Get active district spotlight for a specific district
+  /// Get active district spotlight for a specific district with caching
   static Future<DistrictSpotlight?> getActiveDistrictSpotlight(String stateId, String districtId) async {
     try {
-      final spotlight = await getDistrictSpotlight(stateId, districtId);
-      return spotlight?.isActive == true ? spotlight : null;
+      AppLogger.common('🔍 Checking cached district spotlight for $stateId/$districtId');
+
+      // First check local database for cached spotlight
+      final localDb = LocalDatabaseService();
+      final cachedSpotlight = await localDb.getDistrictSpotlight(stateId, districtId);
+
+      if (cachedSpotlight != null && cachedSpotlight.isActive) {
+        AppLogger.common('✅ Found cached active spotlight for $districtId');
+        // Use persistent cache - no expiry check needed
+        AppLogger.districtSpotlight('📦 Using persistent cached spotlight for $districtId');
+        return cachedSpotlight;
+      }
+
+      // Fetch from Firestore
+      AppLogger.common('🔥 Fetching fresh district spotlight from Firestore for $stateId/$districtId');
+      final freshSpotlight = await getDistrictSpotlight(stateId, districtId);
+
+      if (freshSpotlight != null && freshSpotlight.isActive) {
+        // Compare partyId to decide if we need to download image
+        final needsImageDownload = cachedSpotlight == null ||
+            cachedSpotlight.partyId != freshSpotlight.partyId;
+
+        if (needsImageDownload) {
+          AppLogger.districtSpotlight('📥 Party ID changed (${cachedSpotlight?.partyId} -> ${freshSpotlight.partyId}), will download image');
+        } else {
+          AppLogger.districtSpotlight('✅ Party ID same (${freshSpotlight.partyId}), no image download needed');
+        }
+
+        // Cache the fresh data
+        await localDb.insertDistrictSpotlight(freshSpotlight, stateId, districtId);
+        AppLogger.districtSpotlight('💾 Cached fresh spotlight data for $stateId/$districtId');
+
+        return freshSpotlight;
+      } else {
+        AppLogger.common('ℹ️ No active spotlight found in Firestore for $districtId');
+        return null;
+      }
     } catch (e) {
-      AppLogger.common('❌ FIRESTORE ERROR: Failed to check active district spotlight: $e');
+      AppLogger.common('❌ ERROR: Failed to get active district spotlight: $e');
       return null;
     }
   }

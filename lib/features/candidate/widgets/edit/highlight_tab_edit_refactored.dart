@@ -98,6 +98,85 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
     AppLogger.candidate('📤 [Highlight] Config sync completed');
   }
 
+  // Test methods for adding/removing highlights
+  Future<void> _addHighlightForSameCandidate(BuildContext context) async {
+    try {
+      AppLogger.candidate('🧪 [TEST] Adding highlight for same candidate: ${widget.candidateData.candidateId}');
+
+      // Show snackbar to confirm
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Adding highlight for same candidate (Test Mode)'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Note: Actual implementation would call highlight service to create highlight
+      // This is just for testing the UI
+
+    } catch (e) {
+      AppLogger.candidate('❌ [TEST] Error adding highlight for same candidate: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addHighlightForDummyCandidate(BuildContext context) async {
+    try {
+      AppLogger.candidate('🧪 [TEST] Adding highlight for dummy candidate');
+
+      // Show snackbar to confirm
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Adding highlight for dummy candidate (Test Mode)'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Note: Actual implementation would create a dummy candidate highlight
+      // This is just for testing the UI
+
+    } catch (e) {
+      AppLogger.candidate('❌ [TEST] Error adding highlight for dummy candidate: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeTestHighlight(BuildContext context) async {
+    try {
+      AppLogger.candidate('🧪 [TEST] Removing test highlight');
+
+      // Show snackbar to confirm
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Removing test highlight (Test Mode)'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Note: Actual implementation would remove the test highlight
+      // This is just for testing the UI
+
+    } catch (e) {
+      AppLogger.candidate('❌ [TEST] Error removing test highlight: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Ensure config is initialized
@@ -111,22 +190,75 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          const Text(
-            '🏆 Premium Highlight Dashboard',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF374151),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Customize your home screen banner to attract more voters',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6B7280),
-            ),
+        // Header with Test Controls
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🏆 Premium Highlight Dashboard',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Customize your home screen banner to attract more voters',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Test Controls for Highlight Management
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0), // Light orange color
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFFCC02)), // Orange border
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'TESTING',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFFF6B35), // Dark orange color
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
+                          tooltip: 'Add Same Candidate',
+                          onPressed: () => _addHighlightForSameCandidate(context),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
+                          tooltip: 'Add Dummy Candidate',
+                          onPressed: () => _addHighlightForDummyCandidate(context),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
+                          tooltip: 'Remove Test Highlight',
+                          onPressed: () => _removeTestHighlight(context),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -239,4 +371,3 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
     );
   }
 }
-

@@ -104,7 +104,11 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
   void _onHighlightTap(Highlight highlight) async {
     // Track click
     final controller = Get.find<HighlightController>();
-    await controller.trackClick(highlight.id);
+    await controller.trackClick(highlight.id,
+      districtId: widget.districtId,
+      bodyId: widget.bodyId,
+      wardId: widget.wardId,
+    );
 
     // Navigate to candidate profile
     // You'll need to implement this navigation based on your app's routing
@@ -165,6 +169,9 @@ class _HighlightCarouselState extends State<HighlightCarousel> {
                 child: HighlightCard(
                   highlight: highlight,
                   onTap: () => _onHighlightTap(highlight),
+                  districtId: widget.districtId,
+                  bodyId: widget.bodyId,
+                  wardId: widget.wardId,
                 ),
               );
             },

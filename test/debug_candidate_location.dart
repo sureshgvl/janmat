@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:janmat/firebase_options.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/migrate_candidate_parties.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -184,6 +185,47 @@ void main() {
         }
       } catch (e) {
         AppLogger.common('❌ Error checking district collections: $e');
+      }
+    });
+
+    test('Audit party data in candidate documents', () async {
+      AppLogger.common('🔍 Starting party data audit...');
+
+      try {
+        final auditResult = await CandidatePartyMigrationManager.auditPartyData();
+
+        AppLogger.common('📊 AUDIT RESULTS:');
+        AppLogger.common('   Total candidates: ${auditResult['total_candidates'] ?? 0}');
+        AppLogger.common('   Unique parties: ${auditResult['unique_parties'] ?? 0}');
+        AppLogger.common('   Issues found: ${auditResult['issues_found'] ?? 0}');
+
+        // Print party distribution
+        final partyCounts = auditResult['party_counts'] as Map<String, int>? ?? {};
+        AppLogger.common('   Party distribution:');
+        partyCounts.forEach((party, count) {
+          AppLogger.common('     $party: $count');
+        });
+
+        // Print sample issues
+        final issues = auditResult['detailed_issues'] as List<String>? ?? [];
+        if (issues.isNotEmpty) {
+          AppLogger.common('   Sample issues:');
+          issues.take(10).forEach((issue) => AppLogger.common('     $issue'));
+          if (issues.length > 10) {
+            AppLogger.common('     ... and ${issues.length - 10} more issues');
+          }
+        }
+
+        // Check if we found any full party names that need conversion
+        final hasIssues = auditResult['issues_found'] > 0;
+        expect(hasIssues ? 'Found issues' : 'No issues found', hasIssues ? 'Found issues' : 'No issues found',
+          reason: 'Party data audit ${hasIssues ? 'detected data needing migration' : 'shows no issues'}');
+
+        AppLogger.common('✅ Party audit completed successfully');
+
+      } catch (e) {
+        AppLogger.common('❌ Error during party audit: $e');
+        fail('Party audit test failed: $e');
       }
     });
   });

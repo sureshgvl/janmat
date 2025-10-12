@@ -31,36 +31,44 @@ class CandidatePlansSection extends StatelessWidget {
         await controller.loadUserStatusData();
       }
 
-      // Check user model for premium status and plan level
+      // Check user model for premium status
       final userModel = controller.currentUserModel.value;
-      if (userModel != null && userModel.premium == true) {
-        final planId = userModel.subscriptionPlanId;
-        // Highlight plans are available for Platinum users only
-        final hasAccess = planId == 'platinum_plan';
-        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${planId}, hasHighlightAccess=$hasAccess');
+      if (userModel != null) {
+        // Highlight plans are available for any premium candidate (Basic, Gold, Platinum)
+        final hasAccess = userModel.premium == true;
+        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasHighlightAccess=$hasAccess');
 
         if (hasAccess) {
           AppLogger.monetization('✅ [CandidatePlansSection] User has access to highlight plans');
           return true;
         } else {
-          AppLogger.monetization('⚠️ [CandidatePlansSection] User has ${planId} but needs platinum_plan for highlights');
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs premium status for highlights');
           return false;
         }
       }
 
-      // Fallback: check active subscriptions
+      // Fallback: check active subscriptions for any premium plan
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         AppLogger.monetization('❌ [CandidatePlansSection] No current user');
         return false;
       }
 
-      final activeSubscription = await controller.getActiveSubscription(
+      // Check for any active premium subscription (not just platinum)
+      final candidateSubscription = await controller.getActiveSubscription(
         currentUser.uid,
         'candidate',
       );
-      final hasAccess = activeSubscription?.planId == 'platinum_plan' && (activeSubscription?.isActive ?? false);
-      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (plan: ${activeSubscription?.planId}, active: ${activeSubscription?.isActive})');
+      final hasCandidateAccess = candidateSubscription?.isActive ?? false;
+
+      final highlightSubscription = await controller.getActiveSubscription(
+        currentUser.uid,
+        'highlight',
+      );
+      final hasHighlightAccess = highlightSubscription?.isActive ?? false;
+
+      final hasAccess = hasCandidateAccess || hasHighlightAccess;
+      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (candidate: ${candidateSubscription?.planId}, highlight: ${highlightSubscription?.planId})');
       return hasAccess;
     } catch (e) {
       AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
@@ -113,7 +121,7 @@ class CandidatePlansSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Requires Platinum Plan',
+              'Requires Premium Plan',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -131,7 +139,7 @@ class CandidatePlansSection extends StatelessWidget {
                   elevation: 0,
                 ),
                 child: const Text(
-                  'Upgrade to Platinum First',
+                  'Subscribe to Premium First',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -325,25 +333,25 @@ class CandidatePlansSection extends StatelessWidget {
           planWidgets.add(const SizedBox(height: 20)); // Section separator
         }
 
-        // Add highlight plans header with restriction info
+        // Add highlight plans header with feature info
         planWidgets.add(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.amber[50],
+              color: Colors.blue[50],
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber[200]!),
+              border: Border.all(color: Colors.blue[200]!),
             ),
             child: Row(
               children: [
-                Icon(Icons.star, color: Colors.amber[700], size: 20),
+                Icon(Icons.visibility, color: Colors.blue[700], size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Highlight plans are only available to Platinum plan holders',
+                    'Professional Highlight Features - Up to 4 banners on home screen',
                     style: TextStyle(
-                      color: Colors.amber[800],
+                      color: Colors.blue[800],
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -361,12 +369,24 @@ class CandidatePlansSection extends StatelessWidget {
               final hasAccess = snapshot.data ?? false;
 
               if (hasAccess) {
-                return PlanCard(
-                  plan: plan,
-                  controller: controller,
-                  isCandidatePlan: true,
-                  onPurchase: () => onPurchase(plan),
-                );
+                // Show highlight plan with validity options if pricing is available
+                if (userElectionType != null &&
+                    plan.pricing.containsKey(userElectionType) &&
+                    plan.pricing[userElectionType]!.isNotEmpty) {
+                  return PlanCardWithValidityOptions(
+                    plan: plan,
+                    electionType: userElectionType!,
+                    onPurchase: onPurchaseWithValidity,
+                  );
+                } else {
+                  // Fallback to regular plan card
+                  return PlanCard(
+                    plan: plan,
+                    controller: controller,
+                    isCandidatePlan: true,
+                    onPurchase: () => onPurchase(plan),
+                  );
+                }
               } else {
                 return _buildDisabledPlanCard(plan);
               }
@@ -461,4 +481,3 @@ class CandidatePlansSection extends StatelessWidget {
     });
   }
 }
-

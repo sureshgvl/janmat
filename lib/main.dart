@@ -45,6 +45,7 @@ void main() async {
     database: true,    // Show database operation logs
     ui: false,         // Hide UI interaction logs (can be noisy)
     performance: true, // Show performance monitoring logs
+    districtSpotlight: true, // Show district spotlight caching logs
   );
 
   // Quick setup options (uncomment one):

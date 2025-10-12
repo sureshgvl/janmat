@@ -22,8 +22,8 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
 
-    // ⭐ HIGHLIGHTS COLLECTION - NEW!
-    match /highlights/{highlightId} {
+    // 🏛️ HIERARCHICAL HIGHLIGHTS - WARD-BASED STORAGE ONLY
+    match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights/{highlightId} {
       allow read: if true; // Public read for voters to see highlights
       allow write: if request.auth != null; // Authenticated users can create
       allow update: if request.auth != null &&
@@ -401,6 +401,13 @@ service cloud.firestore {
     // User subcollections
     match /users/{userId}/following/{followingId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // User following collection - for following relationships
+    match /user_following/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
     }
 
     match /users/{userId}/notifications/{notificationId} {

@@ -372,7 +372,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
               : ExtraInfo());
 
       final updatedCandidate = _currentCandidate!.copyWith(
-        party: selectedParty!.name, // Use party name
+        party: selectedParty!.id, // Use party key instead of full name for proper symbol resolution
         symbolUrl: isIndependent ? symbolImageUrl : null,
         symbolName: isIndependent ? symbolNameController.text.trim() : SymbolUtils.getPartySymbolNameLocal(selectedParty!.id, Localizations.localeOf(context).languageCode),
         extraInfo: updatedExtraInfo,
@@ -1208,4 +1208,3 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
     );
   }
 }
-

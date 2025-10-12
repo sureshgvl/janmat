@@ -175,11 +175,29 @@ class _HighlightBannerState extends State<HighlightBanner> {
             AppLogger.database('   🔍 FULL JSON KEYS: ${jsonData.keys.toList()}', tag: 'CANDIDATE');
 
             profileImageUrl = candidate.photo;
-            candidateParty = candidate.party;
+
+            // Resolve the proper party key for symbol display
+            final partyValue = candidate.party ?? '';
+            String resolvedParty;
+
+            // Check if party is already a key (short, starts with lowercase letter, no spaces)
+            if (partyValue.length <= 20 &&
+                partyValue.isNotEmpty &&
+                RegExp(r'^[a-z]').hasMatch(partyValue) &&
+                !partyValue.contains(' ') &&
+                !partyValue.contains('Nationalist') &&
+                !partyValue.contains('Congress') &&
+                !partyValue.contains('Party')) {
+              resolvedParty = partyValue;
+            } else {
+              // Convert old full names to keys
+              resolvedParty = SymbolUtils.convertOldPartyNameToKey(partyValue) ?? partyValue;
+            }
+            candidateParty = resolvedParty;
             candidateName = candidate.name;
 
             // Debug logging for party symbol resolution
-            AppLogger.database('🎯 [HighlightBanner] Loaded candidate party: $candidateParty for candidate: $candidateName', tag: 'CANDIDATE');
+            AppLogger.database('🎯 [HighlightBanner] Loaded candidate party: $resolvedParty (from: ${candidate.party}) for candidate: $candidateName', tag: 'CANDIDATE');
             AppLogger.database('   Raw candidate.party: ${candidate.party}', tag: 'CANDIDATE');
             AppLogger.database('   candidate.toJson()["party"]: ${candidate.toJson()["party"]}', tag: 'CANDIDATE');
 
@@ -231,14 +249,20 @@ class _HighlightBannerState extends State<HighlightBanner> {
         setState(() {
           platinumBanner = banner;
           candidateProfileImageUrl = profileImageUrl;
-          candidateParty = candidateParty;
-          candidateName = candidateName;
+          candidateParty = candidateParty ?? 'independent'; // Ensure fallback to independent
+          candidateName = candidateName ?? 'Unknown Candidate'; // Ensure fallback name
           bannerStyle = bannerStyleConfig;
           callToAction = callToActionConfig;
           customMessage = customMessageConfig;
           priorityLevel = priorityLevelConfig;
           isLoading = false;
         });
+
+        // Debug logging for final state
+        AppLogger.database('🎯 [HighlightBanner] Final banner state set:', tag: 'CANDIDATE');
+        AppLogger.database('   candidateName: $candidateName', tag: 'CANDIDATE');
+        AppLogger.database('   candidateParty: $candidateParty', tag: 'CANDIDATE');
+        AppLogger.database('   profileImageUrl: $candidateProfileImageUrl', tag: 'CANDIDATE');
 
         // Animation removed - no longer needed
       }
@@ -255,7 +279,12 @@ class _HighlightBannerState extends State<HighlightBanner> {
     if (platinumBanner == null) return;
 
     // Track click
-    await HighlightService.trackClick(platinumBanner!.id);
+    await HighlightService.trackClick(
+      platinumBanner!.id,
+      districtId: widget.districtId,
+      bodyId: widget.bodyId,
+      wardId: widget.wardId,
+    );
 
     // Track view analytics
     await _trackBannerView();
@@ -578,4 +607,3 @@ class _HighlightBannerState extends State<HighlightBanner> {
     );
   }
 }
-

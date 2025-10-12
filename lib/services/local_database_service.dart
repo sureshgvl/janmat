@@ -8,12 +8,13 @@ import '../utils/app_logger.dart';
 import '../models/district_model.dart';
 import '../models/body_model.dart';
 import '../models/ward_model.dart';
+import '../models/district_spotlight_model.dart';
 import '../features/candidate/models/candidate_model.dart';
 
 class LocalDatabaseService {
   static Database? _database;
   static const String _dbName = 'janmat_local.db';
-  static const int _dbVersion = 5; // Increment to add manifesto interaction tables
+  static const int _dbVersion = 6; // Increment to add district spotlights table
 
   // Table names
   static const String districtsTable = 'districts';
@@ -24,6 +25,7 @@ class LocalDatabaseService {
   static const String commentsTable = 'comments';
   static const String likesTable = 'likes';
   static const String pollsTable = 'polls';
+  static const String districtSpotlightsTable = 'district_spotlights';
 
   // Cache metadata columns
   static const String columnCacheKey = 'cache_key';
@@ -62,6 +64,7 @@ class LocalDatabaseService {
     await _createCommentsTable(db);
     await _createLikesTable(db);
     await _createPollsTable(db);
+    await _createDistrictSpotlightsTable(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -123,6 +126,22 @@ class LocalDatabaseService {
       }
 
       AppLogger.common('✅ [SQLite] Database upgrade to v5 completed');
+    }
+
+    if (oldVersion < 6 && newVersion >= 6) {
+      // Upgrade to version 6: Add district spotlights table
+      AppLogger.common('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding district spotlights table');
+
+      // Check if district spotlights table exists, create if not
+      final districtSpotlightsExists = await _tableExists(db, districtSpotlightsTable);
+      if (!districtSpotlightsExists) {
+        await _createDistrictSpotlightsTable(db);
+        AppLogger.common('✅ [SQLite] Created district spotlights table');
+      } else {
+        AppLogger.common('ℹ️ [SQLite] District spotlights table already exists, skipping creation');
+      }
+
+      AppLogger.common('✅ [SQLite] Database upgrade to v6 completed');
     }
   }
 
@@ -278,6 +297,25 @@ class LocalDatabaseService {
         synced INTEGER DEFAULT 0,
         syncAction TEXT,
         PRIMARY KEY (manifestoId, userId)
+      )
+    ''');
+  }
+
+  // Create district spotlights table
+  Future<void> _createDistrictSpotlightsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $districtSpotlightsTable (
+        id TEXT PRIMARY KEY,
+        stateId TEXT NOT NULL,
+        districtId TEXT NOT NULL,
+        partyId TEXT,
+        fullImage TEXT NOT NULL,
+        bannerImage TEXT,
+        isActive INTEGER NOT NULL,
+        createdAt TEXT,
+        updatedAt TEXT,
+        lastFetched TEXT NOT NULL,
+        UNIQUE(stateId, districtId)
       )
     ''');
   }
@@ -586,6 +624,7 @@ class LocalDatabaseService {
     await db.delete(commentsTable);
     await db.delete(likesTable);
     await db.delete(pollsTable);
+    await db.delete(districtSpotlightsTable);
     await db.delete(cacheMetadataTable);
   }
 
@@ -613,6 +652,9 @@ class LocalDatabaseService {
     final pollCount = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM $pollsTable'),
     ) ?? 0;
+    final districtSpotlightCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $districtSpotlightsTable'),
+    ) ?? 0;
 
     return {
       'districts': districtCount,
@@ -622,6 +664,7 @@ class LocalDatabaseService {
       'comments': commentCount,
       'likes': likeCount,
       'polls': pollCount,
+      'district_spotlights': districtSpotlightCount,
     };
   }
 
@@ -657,6 +700,70 @@ class LocalDatabaseService {
       AppLogger.common('⚠️ [SQLite] Using fallback location data: $fallbackResult');
       return fallbackResult;
     }
+  }
+
+  // District Spotlight operations
+  Future<void> insertDistrictSpotlight(DistrictSpotlight spotlight, String stateId, String districtId) async {
+    final db = await database;
+    final spotlightData = {
+      'id': spotlight.id ?? '${stateId}_${districtId}',
+      'stateId': stateId,
+      'districtId': districtId,
+      'partyId': spotlight.partyId,
+      'fullImage': spotlight.fullImage,
+      'bannerImage': spotlight.bannerImage,
+      'isActive': spotlight.isActive ? 1 : 0,
+      'createdAt': spotlight.createdAt?.toIso8601String(),
+      'updatedAt': spotlight.updatedAt?.toIso8601String(),
+      'lastFetched': DateTime.now().toIso8601String(),
+    };
+
+    await db.insert(
+      districtSpotlightsTable,
+      spotlightData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    await updateCacheMetadata('district_spotlight_${stateId}_${districtId}');
+    AppLogger.districtSpotlight('✅ [SQLite:DistrictSpotlight] Inserted district spotlight for $stateId/$districtId');
+  }
+
+  Future<DistrictSpotlight?> getDistrictSpotlight(String stateId, String districtId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      districtSpotlightsTable,
+      where: 'stateId = ? AND districtId = ?',
+      whereArgs: [stateId, districtId],
+    );
+
+    if (maps.isNotEmpty) {
+      final map = maps.first;
+      return DistrictSpotlight(
+        id: map['id'],
+        partyId: map['partyId'],
+        fullImage: map['fullImage'],
+        bannerImage: map['bannerImage'],
+        isActive: map['isActive'] == 1,
+        createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+        updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      );
+    }
+    return null;
+  }
+
+  Future<DateTime?> getDistrictSpotlightLastFetched(String stateId, String districtId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      districtSpotlightsTable,
+      columns: ['lastFetched'],
+      where: 'stateId = ? AND districtId = ?',
+      whereArgs: [stateId, districtId],
+    );
+
+    if (maps.isNotEmpty) {
+      return DateTime.parse(maps.first['lastFetched']);
+    }
+    return null;
   }
 
   // Close database

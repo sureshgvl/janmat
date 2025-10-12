@@ -49,6 +49,7 @@ class AppLogger {
   static bool _showMultiLevelCacheLogs = true;
   static bool _showProgressiveLoaderLogs = true;
   static bool _showRealtimeOptimizerLogs = true;
+  static bool _showDistrictSpotlightLogs = true;
 
   // Control which logs to show
   static void configure({
@@ -85,6 +86,7 @@ class AppLogger {
     bool multiLevelCache = true,
     bool progressiveLoader = true,
     bool realtimeOptimizer = true,
+    bool districtSpotlight = true,
   }) {
     _showChatLogs = chat;
     _showAuthLogs = auth;
@@ -119,6 +121,7 @@ class AppLogger {
     _showMultiLevelCacheLogs = multiLevelCache;
     _showProgressiveLoaderLogs = progressiveLoader;
     _showRealtimeOptimizerLogs = realtimeOptimizer;
+    _showDistrictSpotlightLogs = districtSpotlight;
 
     AppLogger.common('🔧 AppLogger configured:');
     AppLogger.common('   Chat: $_showChatLogs, Auth: $_showAuthLogs, Network: $_showNetworkLogs');
@@ -133,7 +136,7 @@ class AppLogger {
     AppLogger.common('   Symbol: $_showSymbolLogs, ABTest: $_showABTestLogs, BackgroundSync: $_showBackgroundSyncLogs');
     AppLogger.common('   ConnectionOpt: $_showConnectionOptimizerLogs, DataComp: $_showDataCompressionLogs, ErrorRec: $_showErrorRecoveryLogs');
     AppLogger.common('   MemoryMgr: $_showMemoryManagerLogs, MultiCache: $_showMultiLevelCacheLogs, ProgLoader: $_showProgressiveLoaderLogs');
-    AppLogger.common('   RealtimeOpt: $_showRealtimeOptimizerLogs');
+    AppLogger.common('   RealtimeOpt: $_showRealtimeOptimizerLogs, DistrictSpotlight: $_showDistrictSpotlightLogs');
   }
 
   // Chat-related logs
@@ -571,6 +574,19 @@ class AppLogger {
     }
   }
 
+  // District spotlight logs
+  static void districtSpotlight(String message, {String? tag}) {
+    if (_showDistrictSpotlightLogs) {
+      _logger.d('🎯 ${tag != null ? '[$tag] ' : ''}$message');
+    }
+  }
+
+  static void districtSpotlightError(String message, {String? tag, dynamic error, StackTrace? stackTrace}) {
+    if (_showDistrictSpotlightLogs) {
+      _logger.e('🎯❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+    }
+  }
+
   // Generic logs (always shown in debug mode)
   static void info(String message, {String? tag}) {
     _logger.i('ℹ️ ${tag != null ? '[$tag] ' : ''}$message');
@@ -627,6 +643,7 @@ class AppLogger {
       multiLevelCache: true,
       progressiveLoader: true,
       realtimeOptimizer: true,
+      districtSpotlight: true,
     );
   }
 
@@ -658,6 +675,7 @@ class AppLogger {
       profile: false,
       settings: false,
       notifications: false,
+      districtSpotlight: false,
     );
   }
 
@@ -716,6 +734,7 @@ class AppLogger {
       'multiLevelCache': _showMultiLevelCacheLogs,
       'progressiveLoader': _showProgressiveLoaderLogs,
       'realtimeOptimizer': _showRealtimeOptimizerLogs,
+      'districtSpotlight': _showDistrictSpotlightLogs,
     };
   }
 }

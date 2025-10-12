@@ -225,9 +225,17 @@ class HighlightController extends GetxController {
   }
 
   // Track click
-  Future<void> trackClick(String highlightId) async {
+  Future<void> trackClick(String highlightId, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      await _repository.trackClick(highlightId);
+      await _repository.trackClick(highlightId,
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
       AppLogger.highlight('Tracked click for highlight: $highlightId');
     } catch (e) {
       AppLogger.highlightError('Error tracking click', error: e);

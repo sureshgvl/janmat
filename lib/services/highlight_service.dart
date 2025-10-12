@@ -161,29 +161,61 @@ class HighlightService {
     String wardId,
   ) async {
     try {
-      // Create composite location key for precise targeting
-      final locationKey = '${districtId}_${bodyId}_$wardId';
-      AppLogger.common('🎠 HighlightService: Fetching highlights for locationKey: $locationKey');
+      // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
+      AppLogger.common('🎠 HighlightService: Fetching highlights for ward: $districtId/$bodyId/$wardId');
 
       final snapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
-          .where('locationKey', isEqualTo: locationKey)
           .where('active', isEqualTo: true)
           .orderBy('lastShown', descending: false)
           .orderBy('priority', descending: true)
-          .limit(10)
+          .limit(20) // Fetch more to filter premium candidates
           .get();
 
-      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} highlights for $locationKey');
-      final highlights = snapshot.docs
-          .map((doc) => Highlight.fromJson(doc.data()))
-          .toList();
+      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} potential highlights, filtering for premium candidates...');
 
-      if (highlights.isNotEmpty) {
-        AppLogger.common('🎠 HighlightService: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
+      final premiumHighlights = <Highlight>[];
+
+      // Filter highlights to only include premium candidates
+      for (final doc in snapshot.docs) {
+        final highlight = Highlight.fromJson(doc.data());
+        AppLogger.common('🔍 Checking candidate ${highlight.candidateId} premium status');
+
+        // Check if candidate has premium status
+        final candidateDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(highlight.candidateId)
+            .get();
+
+        if (candidateDoc.exists) {
+          final candidateData = candidateDoc.data()!;
+          final isPremium = candidateData['premium'] == true;
+
+          AppLogger.common('✅ Candidate ${highlight.candidateName}: premium=$isPremium');
+
+          if (isPremium) {
+            premiumHighlights.add(highlight);
+          }
+        } else {
+          AppLogger.common('⚠️ Candidate ${highlight.candidateId} not found in users collection');
+        }
       }
 
-      return highlights;
+      AppLogger.common('🎠 HighlightService: Returning ${premiumHighlights.length} premium highlights for $districtId/$bodyId/$wardId');
+
+      if (premiumHighlights.isNotEmpty) {
+        AppLogger.common('🎠 HighlightService: First highlight - ID: ${premiumHighlights.first.id}, Candidate: ${premiumHighlights.first.candidateName}');
+      }
+
+      return premiumHighlights.take(10).toList(); // Return max 10
     } catch (e) {
       AppLogger.commonError('❌ HighlightService: Error fetching highlights', error: e);
       return [];
@@ -197,28 +229,54 @@ class HighlightService {
     String wardId,
   ) async {
     try {
-      // Create composite location key for precise targeting
-      final locationKey = '${districtId}_${bodyId}_$wardId';
-      AppLogger.common('🏷️ HighlightService: Fetching platinum banner for locationKey: $locationKey');
+      // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
+      AppLogger.common('🏷️ HighlightService: Fetching platinum banner for ward: $districtId/$bodyId/$wardId');
 
       final snapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
-          .where('locationKey', isEqualTo: locationKey)
           .where('active', isEqualTo: true)
           .where('placement', arrayContains: 'top_banner')
           .orderBy('priority', descending: true)
-          .limit(1)
+          .limit(10) // Fetch more to filter premium candidates
           .get();
 
-      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} platinum banners for $locationKey');
+      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} potential banners, filtering for premium candidates...');
 
-      if (snapshot.docs.isNotEmpty) {
-        final banner = Highlight.fromJson(snapshot.docs.first.data());
-        AppLogger.common('🏷️ HighlightService: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
-        return banner;
+      // Filter highlights to only include premium candidates
+      for (final doc in snapshot.docs) {
+        final highlight = Highlight.fromJson(doc.data());
+        AppLogger.common('🔍 Checking candidate ${highlight.candidateId} premium status');
+
+        // Check if candidate has premium status
+        final candidateDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(highlight.candidateId)
+            .get();
+
+        if (candidateDoc.exists) {
+          final candidateData = candidateDoc.data()!;
+          final isPremium = candidateData['premium'] == true;
+
+          AppLogger.common('✅ Candidate ${highlight.candidateName}: premium=$isPremium');
+
+          if (isPremium) {
+            AppLogger.common('🏷️ HighlightService: Found premium banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}');
+            return highlight;
+          }
+        } else {
+          AppLogger.common('⚠️ Candidate ${highlight.candidateId} not found in users collection');
+        }
       }
 
-      AppLogger.common('🏷️ HighlightService: No platinum banner found for $locationKey');
+      AppLogger.common('🏷️ HighlightService: No premium platinum banner found for $districtId/$bodyId/$wardId');
       return null;
     } catch (e) {
       AppLogger.commonError('❌ HighlightService: Error fetching platinum banner', error: e);
@@ -227,27 +285,72 @@ class HighlightService {
   }
 
   // Track impression (view)
-  static Future<void> trackImpression(String highlightId) async {
+  static Future<void> trackImpression(String highlightId, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('highlights')
-          .doc(highlightId)
-          .update({
-            'views': FieldValue.increment(1),
-            'lastShown': FieldValue.serverTimestamp(),
-          });
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .update({
+              'views': FieldValue.increment(1),
+              'lastShown': FieldValue.serverTimestamp(),
+            });
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .update({
+              'views': FieldValue.increment(1),
+              'lastShown': FieldValue.serverTimestamp(),
+            });
+      }
     } catch (e) {
       AppLogger.commonError('Error tracking impression', error: e);
     }
   }
 
   // Track click
-  static Future<void> trackClick(String highlightId) async {
+  static Future<void> trackClick(String highlightId, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('highlights')
-          .doc(highlightId)
-          .update({'clicks': FieldValue.increment(1)});
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'clicks': FieldValue.increment(1)});
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'clicks': FieldValue.increment(1)});
+      }
     } catch (e) {
       AppLogger.commonError('Error tracking click', error: e);
     }
@@ -272,7 +375,7 @@ class HighlightService {
     try {
       final highlightId = 'hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey =
-          '${districtId}_${bodyId}_$wardId'; // Composite key for precise targeting
+          '${districtId}_${bodyId}_$wardId'; // Keep for backward compatibility
 
       final highlight = Highlight(
         id: highlightId,
@@ -299,7 +402,16 @@ class HighlightService {
         createdAt: DateTime.now(),
       );
 
+      // Save to hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights/{highlightId}
       await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
           .doc(highlightId)
           .set(highlight.toJson());
@@ -371,13 +483,33 @@ class HighlightService {
   // Update highlight status
   static Future<void> updateHighlightStatus(
     String highlightId,
-    bool active,
-  ) async {
+    bool active, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('highlights')
-          .doc(highlightId)
-          .update({'active': active});
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'active': active});
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'active': active});
+      }
     } catch (e) {
       AppLogger.commonError('Error updating highlight status', error: e);
     }
@@ -388,8 +520,9 @@ class HighlightService {
     String candidateId,
   ) async {
     try {
+      // Use collection group query to find highlights across all wards
       final snapshot = await FirebaseFirestore.instance
-          .collection('highlights')
+          .collectionGroup('highlights')
           .where('candidateId', isEqualTo: candidateId)
           .orderBy('createdAt', descending: true)
           .get();
@@ -457,7 +590,16 @@ class HighlightService {
       enhancedData['priorityLevel'] = priorityLevel;
       enhancedData['customMessage'] = customMessage;
 
+      // Save to hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights/{highlightId}
       await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
           .doc(highlightId)
           .set(enhancedData);
@@ -474,6 +616,9 @@ class HighlightService {
   // Update existing highlight with enhanced configuration
   static Future<bool> updateHighlightConfig({
     required String highlightId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
     String? bannerStyle,
     String? callToAction,
     String? priorityLevel,
@@ -496,10 +641,27 @@ class HighlightService {
       if (showAnalytics != null) updates['showAnalytics'] = showAnalytics;
 
       if (updates.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('highlights')
-            .doc(highlightId)
-            .update(updates);
+        // If location info is provided, use hierarchical path
+        if (districtId != null && bodyId != null && wardId != null) {
+          await FirebaseFirestore.instance
+              .collection('states')
+              .doc('maharashtra') // TODO: Make dynamic
+              .collection('districts')
+              .doc(districtId)
+              .collection('bodies')
+              .doc(bodyId)
+              .collection('wards')
+              .doc(wardId)
+              .collection('highlights')
+              .doc(highlightId)
+              .update(updates);
+        } else {
+          // Fallback: try to find in old structure (for backward compatibility)
+          await FirebaseFirestore.instance
+              .collection('highlights')
+              .doc(highlightId)
+              .update(updates);
+        }
 
         AppLogger.common('✅ HighlightService: Updated highlight $highlightId with ${updates.length} changes');
         return true;
@@ -513,15 +675,40 @@ class HighlightService {
   }
 
   // Get highlight configuration for editing
-  static Future<Map<String, dynamic>?> getHighlightConfig(String highlightId) async {
+  static Future<Map<String, dynamic>?> getHighlightConfig(String highlightId, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('highlights')
-          .doc(highlightId)
-          .get();
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .get();
 
-      if (doc.exists) {
-        return doc.data();
+        if (doc.exists) {
+          return doc.data();
+        }
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        final doc = await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .get();
+
+        if (doc.exists) {
+          return doc.data();
+        }
       }
       return null;
     } catch (e) {
