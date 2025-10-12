@@ -136,7 +136,7 @@ class BasicInfoView extends StatelessWidget {
                                   candidate.party.toLowerCase().contains('independent') ||
                                           candidate.party.trim().isEmpty
                                       ? CandidateLocalizations.of(context)!.independentCandidate
-                                            : candidate.party,
+                                      : SymbolUtils.getPartyShortNameLocal(candidate.party, Localizations.localeOf(context).languageCode),
                                   style: TextStyle(
                                     fontSize: 18,
                                     color: candidate.party.toLowerCase().contains('independent') ||
@@ -153,7 +153,7 @@ class BasicInfoView extends StatelessWidget {
                                   CandidateLocalizations.of(context)!.symbolLabel(
                                     symbol: candidate.party.toLowerCase().contains('independent') || candidate.party.trim().isEmpty
                                       ? (candidate.symbolName ?? CandidateLocalizations.of(context)!.notSpecified)
-                                      : SymbolUtils.getPartySymbolNameWithLocale(candidate.party, Localizations.localeOf(context).languageCode)
+                                      : SymbolUtils.getPartyShortNameLocal(candidate.party, Localizations.localeOf(context).languageCode)
                                   ),
                                   style: const TextStyle(
                                     fontSize: 14,

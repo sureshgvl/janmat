@@ -54,8 +54,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
   late TextEditingController _addressController;
   late TextEditingController _professionController;
   late TextEditingController _languagesController;
-  late TextEditingController _experienceYearsController;
-  late TextEditingController _previousPositionsController;
   late TextEditingController _symbolNameController;
 
   @override
@@ -91,12 +89,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     _languagesController = TextEditingController(
       text: extraInfo?.basicInfo?.languages?.join(', ') ?? '',
     );
-    _experienceYearsController = TextEditingController(
-      text: extraInfo?.basicInfo?.experienceYears?.toString() ?? '',
-    );
-    _previousPositionsController = TextEditingController(
-      text: extraInfo?.basicInfo?.previousPositions?.join(', ') ?? '',
-    );
     _symbolNameController = TextEditingController(
       text: data.symbolName ?? '',
     );
@@ -109,8 +101,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     AppLogger.candidate('   🎓 Education: "${_educationController.text}"');
     AppLogger.candidate('   💼 Profession: "${_professionController.text}"');
     AppLogger.candidate('   🌐 Languages: "${_languagesController.text}"');
-    AppLogger.candidate('   📅 Experience Years: "${_experienceYearsController.text}"');
-    AppLogger.candidate('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
     AppLogger.candidate('   📍 Address: "${_addressController.text}"');
     AppLogger.candidate('   🏛️ City: "${_cityController.text}"');
     AppLogger.candidate('   🏘️ Ward: "${_wardController.text}"');
@@ -136,8 +126,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     AppLogger.candidate('   🎓 Education: "${_educationController.text}"');
     AppLogger.candidate('   💼 Profession: "${_professionController.text}"');
     AppLogger.candidate('   🌐 Languages: "${_languagesController.text}"');
-    AppLogger.candidate('   📅 Experience Years: "${_experienceYearsController.text}"');
-    AppLogger.candidate('   🏛️ Previous Positions: "${_previousPositionsController.text}"');
     AppLogger.candidate('   📍 Address: "${_addressController.text}"');
     AppLogger.candidate('   🏛️ City: "${_cityController.text}"');
     AppLogger.candidate('   🏘️ Ward: "${_wardController.text}"');
@@ -152,8 +140,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     _addressController.dispose();
     _professionController.dispose();
     _languagesController.dispose();
-    _experienceYearsController.dispose();
-    _previousPositionsController.dispose();
     _symbolNameController.dispose();
     super.dispose();
   }
@@ -223,8 +209,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     _educationController.text = demoData['education'] as String;
     _professionController.text = demoData['profession'] as String;
     _languagesController.text = (demoData['languages'] as List<String>).join(', ');
-    _experienceYearsController.text = demoData['experienceYears'].toString();
-    _previousPositionsController.text = (demoData['previousPositions'] as List<String>).join(', ');
     _symbolNameController.text = demoData['symbolName'] as String;
     _addressController.text = demoData['address'] as String;
 
@@ -451,35 +435,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
             ),
             const SizedBox(height: 16),
 
-            // Experience Years field
-            TextFormField(
-              controller: _experienceYearsController,
-              decoration: InputDecoration(
-                labelText: CandidateLocalizations.of(context)!.experienceYears,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                AppLogger.candidate('🎯 Experience Years changed: $value');
-                AppLogger.candidate('   📝 Experience Years controller text: "${_experienceYearsController.text}"');
-                widget.onBasicInfoChange('experienceYears', int.tryParse(value) ?? 0);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Previous Positions field
-            TextFormField(
-              controller: _previousPositionsController,
-              decoration: InputDecoration(
-                labelText: CandidateLocalizations.of(context)!.previousPositionsCommaSeparated,
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                AppLogger.candidate('🎯 Previous Positions changed: $value');
-                AppLogger.candidate('   📝 Previous Positions controller text: "${_previousPositionsController.text}"');
-                widget.onBasicInfoChange('previousPositions', value.split(',').map((e) => e.trim()).toList());
-              },
-            ),
 
             // Symbol Name field (only for independent candidates)
             if (data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty) ...[

@@ -104,7 +104,7 @@ class InfoTab extends StatelessWidget {
                                 candidate.party.trim().isEmpty) &&
                             candidate.symbolName?.isNotEmpty == true
                             ? candidate.symbolName!
-                            : SymbolUtils.getPartySymbolNameWithLocale(
+                            : SymbolUtils.getPartyShortNameLocal(
                                 candidate.party,
                                 Localizations.localeOf(context).languageCode,
                               ),

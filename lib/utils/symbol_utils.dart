@@ -19,7 +19,7 @@ class SymbolUtils {
       "nameMr": "इंडियन नॅशनल कॉंग्रेस",
       "image": "inc.png",
       "party_symbolEn": "Hand",
-      "party_symbolMr": "हात"
+      "party_symbolMr": "हात",
     },
     {
       "key": "bjp",
@@ -29,7 +29,7 @@ class SymbolUtils {
       "nameMr": "भारतीय जनता पार्टी",
       "image": "bjp.png",
       "party_symbolEn": "Lotus",
-      "party_symbolMr": "कमळ"
+      "party_symbolMr": "कमळ",
     },
     {
       "key": "ncp_ajit",
@@ -39,7 +39,7 @@ class SymbolUtils {
       "nameMr": "राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)",
       "image": "ncp_ajit.png",
       "party_symbolEn": "Clock",
-      "party_symbolMr": "घड्याळ"
+      "party_symbolMr": "घड्याळ",
     },
     {
       "key": "ncp_sp",
@@ -49,7 +49,7 @@ class SymbolUtils {
       "nameMr": "राष्ट्रवादी काँग्रेस पक्ष (शरद पवार)",
       "image": "ncp_sp.png",
       "party_symbolEn": "A Traditional Trumpet",
-      "party_symbolMr": "तुतारी"
+      "party_symbolMr": "तुतारी",
     },
     {
       "key": "shiv_sena_shinde",
@@ -59,7 +59,7 @@ class SymbolUtils {
       "nameMr": "बाळासाहेबांची शिवसेना (शिंदे)",
       "image": "shiv_sena_shinde.png",
       "party_symbolEn": "Bow - Arrow",
-      "party_symbolMr": "धनुष्यबाण"
+      "party_symbolMr": "धनुष्यबाण",
     },
     {
       "key": "shiv_sena_ubt",
@@ -69,7 +69,7 @@ class SymbolUtils {
       "nameMr": "शिवसेना (उद्धव बाळासाहेब ठाकरे)",
       "image": "shiv_sena_ubt.jpeg",
       "party_symbolEn": "Torch",
-      "party_symbolMr": "मशाल"
+      "party_symbolMr": "मशाल",
     },
     {
       "key": "mns",
@@ -79,7 +79,7 @@ class SymbolUtils {
       "nameMr": "महाराष्ट्र नवनिर्माण सेना",
       "image": "mns.png",
       "party_symbolEn": "Railway Engine",
-      "party_symbolMr": "रेल्वे इंजिन"
+      "party_symbolMr": "रेल्वे इंजिन",
     },
     {
       "key": "cpi",
@@ -89,7 +89,7 @@ class SymbolUtils {
       "nameMr": "भारतीय कम्युनिस्ट पार्टी",
       "image": "cpi.png",
       "party_symbolEn": "Sickle and Hammer",
-      "party_symbolMr": "हातोडा आणि हसूया"
+      "party_symbolMr": "हातोडा आणि हसूया",
     },
     {
       "key": "cpi_m",
@@ -99,7 +99,7 @@ class SymbolUtils {
       "nameMr": "भारतीय कम्युनिस्ट पार्टी (मार्क्सवादी)",
       "image": "cpi_m.png",
       "party_symbolEn": "Hammer Sickle and Star",
-      "party_symbolMr": "हातोडा हसूया आणि तारा"
+      "party_symbolMr": "हातोडा हसूया आणि तारा",
     },
     {
       "key": "bsp",
@@ -109,7 +109,7 @@ class SymbolUtils {
       "nameMr": "बहुजन समाज पार्टी",
       "image": "bsp.png",
       "party_symbolEn": "Elephant",
-      "party_symbolMr": "हत्ती"
+      "party_symbolMr": "हत्ती",
     },
     {
       "key": "sp",
@@ -119,7 +119,7 @@ class SymbolUtils {
       "nameMr": "समाजवादी पार्टी",
       "image": "sp.png",
       "party_symbolEn": "Bicycle",
-      "party_symbolMr": "सायकल"
+      "party_symbolMr": "सायकल",
     },
     {
       "key": "aimim",
@@ -129,27 +129,27 @@ class SymbolUtils {
       "nameMr": "ऑल इंडिया मजलिस-ए-इत्तेहादुल मुस्लिमीन",
       "image": "aimim.png",
       "party_symbolEn": "Kite",
-      "party_symbolMr": "पतंग"
+      "party_symbolMr": "पतंग",
     },
     {
       "key": "npp",
       "shortNameEn": "NPP",
-      "shortNameMr": "रापापा",
+      "shortNameMr": "रालोपा",
       "nameEn": "National People Party",
       "nameMr": "राष्ट्रीय लोक पार्टी",
       "image": "npp.png",
       "party_symbolEn": "Book",
-      "party_symbolMr": "पुस्तक"
+      "party_symbolMr": "पुस्तक",
     },
     {
       "key": "pwpi",
       "shortNameEn": "PWPI",
-      "shortNameMr": "कृपेका",
+      "shortNameMr": "शेकाप",
       "nameEn": "Peasants and Workers Party of India",
       "nameMr": "पीपल्स वर्कर्स पार्टी ऑफ इंडिया",
       "image": "Pwpisymbol.jpg",
       "party_symbolEn": "Farmer with Sickle",
-      "party_symbolMr": "शेतकरी हसूया सह"
+      "party_symbolMr": "शेतकरी हसूया सह",
     },
     {
       "key": "vba",
@@ -159,7 +159,7 @@ class SymbolUtils {
       "nameMr": "वंचित बहुजन आघाडी",
       "image": "vba.png",
       "party_symbolEn": "Unknown",
-      "party_symbolMr": "अज्ञात"
+      "party_symbolMr": "अज्ञात",
     },
     {
       "key": "rsp",
@@ -169,7 +169,7 @@ class SymbolUtils {
       "nameMr": "राष्ट्रीय समाज पक्ष",
       "image": "rsp.jpg",
       "party_symbolEn": "Unknown",
-      "party_symbolMr": "अज्ञात"
+      "party_symbolMr": "अज्ञात",
     },
     {
       "key": "bva",
@@ -179,7 +179,7 @@ class SymbolUtils {
       "nameMr": "बहुजन विकास आघाडी",
       "image": "pwp.jpg",
       "party_symbolEn": "Whistle",
-      "party_symbolMr": "शिट्टी"
+      "party_symbolMr": "शिट्टी",
     },
     {
       "key": "abs",
@@ -189,7 +189,7 @@ class SymbolUtils {
       "nameMr": "अखिल भारतीय सेना",
       "image": "default.png",
       "party_symbolEn": "Unknown",
-      "party_symbolMr": "अज्ञात"
+      "party_symbolMr": "अज्ञात",
     },
     {
       "key": "independent",
@@ -199,8 +199,8 @@ class SymbolUtils {
       "nameMr": "अपक्ष",
       "image": "independent.png",
       "party_symbolEn": "No Symbol",
-      "party_symbolMr": "कोणतेही नाही"
-    }
+      "party_symbolMr": "कोणतेही नाही",
+    },
   ];
 
   /// Find party by key
@@ -271,14 +271,31 @@ class SymbolUtils {
 
   /// Get party short name with locale
   static String getPartyShortNameLocal(String key, String locale) {
+    AppLogger.candidate('🔍 [SymbolUtils] getPartyShortNameLocal called:');
+    AppLogger.candidate('   key: "$key"');
+    AppLogger.candidate('   locale: "$locale"');
+
     final party = getPartyByKey(key);
-    if (party == null) return key;
+    AppLogger.candidate('   getPartyByKey result: ${party != null ? 'found' : 'null'}');
+
+    if (party == null) {
+      AppLogger.candidate('   Returning key (party not found): "$key"');
+      return key;
+    }
+
+    AppLogger.candidate('   party data: ${party.keys.join(', ')}');
+    AppLogger.candidate('   shortNameMr: "${party['shortNameMr']}"');
+    AppLogger.candidate('   shortNameEn: "${party['shortNameEn']}"');
+    AppLogger.candidate('   nameEn: "${party['nameEn']}"');
 
     if (locale == 'mr' && party['shortNameMr'] != null) {
+      AppLogger.candidate('   Returning Marathi shortNameMr: "${party['shortNameMr']!}"');
       return party['shortNameMr']!;
     }
 
-    return party['shortNameEn'] ?? party['nameEn'] ?? key;
+    final result = party['shortNameEn'] ?? party['nameEn'] ?? key;
+    AppLogger.candidate('   Returning fallback result: "$result"');
+    return result;
   }
 
   /// Get party symbol name (English)
@@ -306,16 +323,19 @@ class SymbolUtils {
   static String getPartyDisplayName(String key) => getPartyShortName(key);
 
   /// @deprecated Use getPartyShortNameLocal() instead
-  static String getPartyDisplayNameWithLocale(String key, String locale) => getPartyShortNameLocal(key, locale);
+  static String getPartyDisplayNameWithLocale(String key, String locale) =>
+      getPartyShortNameLocal(key, locale);
 
   /// @deprecated Use getPartyName() instead
   static String getPartyFullName(String key) => getPartyName(key);
 
   /// @deprecated Use getPartyNameLocal() instead
-  static String getPartyFullNameWithLocale(String key, String locale) => getPartyNameLocal(key, locale);
+  static String getPartyFullNameWithLocale(String key, String locale) =>
+      getPartyNameLocal(key, locale);
 
   /// @deprecated Use getPartySymbolNameLocal() instead
-  static String getPartySymbolNameWithLocale(String key, String locale) => getPartySymbolNameLocal(key, locale);
+  static String getPartySymbolNameWithLocale(String key, String locale) =>
+      getPartySymbolNameLocal(key, locale);
 
   /// Convert old party name format to new key format
   /// This helps with data migration from old system to new key-based system
@@ -329,17 +349,22 @@ class SymbolUtils {
     // Handle special cases for common variations
     final normalizedName = oldPartyName.toLowerCase().trim();
 
-    if (normalizedName.contains('congress') || normalizedName.contains('कॉंग्रेस')) {
+    if (normalizedName.contains('congress') ||
+        normalizedName.contains('कॉंग्रेस')) {
       return 'inc';
-    } else if (normalizedName.contains('bjp') || normalizedName.contains('भाजप')) {
+    } else if (normalizedName.contains('bjp') ||
+        normalizedName.contains('भाजप')) {
       return 'bjp';
-    } else if (normalizedName.contains('ncp') || normalizedName.contains('राष्ट्रवादी')) {
+    } else if (normalizedName.contains('ncp') ||
+        normalizedName.contains('राष्ट्रवादी')) {
       // Default to Ajit Pawar faction for NCP
       return 'ncp_ajit';
-    } else if (normalizedName.contains('shiv sena') || normalizedName.contains('शिवसेना')) {
+    } else if (normalizedName.contains('shiv sena') ||
+        normalizedName.contains('शिवसेना')) {
       // Default to Shinde faction for Shiv Sena
       return 'shiv_sena_shinde';
-    } else if (normalizedName.contains('independent') || normalizedName.contains('अपक्ष')) {
+    } else if (normalizedName.contains('independent') ||
+        normalizedName.contains('अपक्ष')) {
       return 'independent';
     }
 
@@ -383,7 +408,9 @@ class SymbolUtils {
         if (candidate.symbolUrl != null &&
             candidate.symbolUrl!.isNotEmpty &&
             candidate.symbolUrl!.startsWith('http')) {
-          AppLogger.common('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
+          AppLogger.common(
+            '🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}',
+          );
           _symbolCache[cacheKey] = candidate.symbolUrl!;
           return candidate.symbolUrl!;
         }
@@ -400,7 +427,9 @@ class SymbolUtils {
             if (symbolImageUrl != null &&
                 symbolImageUrl.isNotEmpty &&
                 symbolImageUrl.startsWith('http')) {
-              AppLogger.common('🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl');
+              AppLogger.common(
+                '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',
+              );
               _symbolCache[cacheKey] = symbolImageUrl;
               return symbolImageUrl;
             }
@@ -441,7 +470,9 @@ class SymbolUtils {
       } else if (party.contains('NCP') || party.contains('राष्ट्रवादी')) {
         partyData = getPartyByKey('ncp_ajit'); // Default to Ajit faction
       } else if (party.contains('Shiv Sena') || party.contains('शिवसेना')) {
-        partyData = getPartyByKey('shiv_sena_shinde'); // Default to Shinde faction
+        partyData = getPartyByKey(
+          'shiv_sena_shinde',
+        ); // Default to Shinde faction
       }
     }
 
@@ -484,7 +515,9 @@ class SymbolUtils {
       if (candidate.symbolUrl != null &&
           candidate.symbolUrl!.isNotEmpty &&
           candidate.symbolUrl!.startsWith('http')) {
-        AppLogger.common('🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}');
+        AppLogger.common(
+          '🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}',
+        );
         _symbolCache[cacheKey] = candidate.symbolUrl!;
         return candidate.symbolUrl!;
       }
