@@ -49,7 +49,6 @@ class AppRoutes {
         final currentUser = FirebaseAuth.instance.currentUser;
         return ChangePartySymbolScreen(
           currentCandidate: candidate,
-          currentUser: currentUser,
         );
       },
     ),

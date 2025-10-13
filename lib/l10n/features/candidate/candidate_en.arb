@@ -290,5 +290,12 @@
   "city": "City",
   "male": "Male",
   "female": "Female",
-  "other": "Other"
+  "other": "Other",
+  "promiseLimitReached": "Promise Limit Reached",
+  "promiseLimitMessage": "You can only add up to {count} {promiseText} with your current plan. Upgrade to Gold or Platinum plan to add more promises.",
+  "promiseSingular": "promise",
+  "promisePlural": "promises",
+  "videoUploadNotAvailable": "Video Upload Not Available",
+  "videoUploadNotAvailableMessage": "Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.",
+  "upgradeToGold": "Upgrade to Gold"
 }

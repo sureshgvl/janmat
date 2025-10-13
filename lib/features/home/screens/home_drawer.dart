@@ -212,7 +212,6 @@ class HomeDrawer extends StatelessWidget {
                 HomeNavigation.toRightToLeft(
                   ChangePartySymbolScreen(
                     currentCandidate: candidateModel,
-                    currentUser: currentUser,
                   ),
                 );
               },

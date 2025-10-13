@@ -343,7 +343,7 @@ class MonetizationRepository {
               'pdfUpload': true,
               'videoUpload': false,
               'promises': true,
-              'maxPromises': 2,
+              'maxPromises': 1,
             },
           },
           'achievements': {

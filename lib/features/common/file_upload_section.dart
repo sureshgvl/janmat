@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/app_logger.dart';
 import '../candidate/models/candidate_model.dart';
-import '../../services/file_upload_service.dart';
+import '../../services/plan_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/features/candidate/candidate_localizations.dart';
 
 class FileUploadSection extends StatefulWidget {
   final Candidate candidateData;
@@ -268,6 +270,34 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
   Future<void> _uploadManifestoVideo() async {
     AppLogger.candidate('🎥 [Video Upload] Starting video selection process...');
+
+    // Check if user can upload videos based on their plan
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final plan = await PlanService.getUserPlan(currentUser.uid);
+      if (plan != null && plan.dashboardTabs?.manifesto.enabled == true) {
+        final canUploadVideo = plan.dashboardTabs!.manifesto.features.videoUpload;
+
+        if (!canUploadVideo) {
+          // Show upgrade message using snackbar
+          final candidateLocalizations = CandidateLocalizations.of(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(candidateLocalizations?.translate('videoUploadNotAvailableMessage') ?? 'Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.'),
+              action: SnackBarAction(
+                label: candidateLocalizations?.translate('upgradeToGold') ?? 'Upgrade to Gold',
+                onPressed: () {
+                  // TODO: Navigate to monetization screen
+                  // Get.to(() => const MonetizationScreen());
+                },
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          return;
+        }
+      }
+    }
 
     setState(() {
       _isUploadingVideo = true;
@@ -1037,4 +1067,6 @@ class FileSizeValidation {
     this.warning = false,
   });
 }
+
+
 

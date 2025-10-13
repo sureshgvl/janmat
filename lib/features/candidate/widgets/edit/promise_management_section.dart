@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../utils/app_logger.dart';
+import '../../../../services/plan_service.dart';
+import '../../../../l10n/features/candidate/candidate_localizations.dart';
 
 class PromiseManagementSection extends StatefulWidget {
   final List<Map<String, dynamic>> promiseControllers;
@@ -20,8 +23,37 @@ class PromiseManagementSection extends StatefulWidget {
 }
 
 class _PromiseManagementSectionState extends State<PromiseManagementSection> {
-  void _addNewPromise() {
+  Future<void> _addNewPromise() async {
     AppLogger.candidate('Add New Promise button pressed');
+
+    // Check if user can add more promises based on their plan
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final plan = await PlanService.getUserPlan(currentUser.uid);
+      if (plan != null && plan.dashboardTabs?.manifesto.enabled == true) {
+        final maxPromises = plan.dashboardTabs!.manifesto.features.maxPromises;
+        final currentPromises = widget.promiseControllers.length;
+
+        if (currentPromises >= maxPromises) {
+          // Show upgrade message
+          final localizations = CandidateLocalizations.of(context);
+          if (localizations != null) {
+            _showUpgradeDialog(
+              localizations.translate('promiseLimitReached'),
+              localizations.translate('promiseLimitMessage', args: {
+                'count': maxPromises.toString(),
+                'promiseText': maxPromises == 1
+                    ? localizations.translate('promiseSingular')
+                    : localizations.translate('promisePlural')
+              }),
+              localizations.translate('upgradeToGold'),
+            );
+          }
+          return;
+        }
+      }
+    }
+
     setState(() {
       final newController = <String, dynamic>{
         'title': TextEditingController(),
@@ -587,6 +619,30 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     widget.onPromisesChange(updatedPromises);
 
     AppLogger.candidate('Demo data populated for promise $promiseIndex: ${demoData['title']}');
+  }
+
+  void _showUpgradeDialog(String title, String message, String buttonText) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Navigate to monetization screen
+              // Get.to(() => const MonetizationScreen());
+            },
+            child: Text(buttonText),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

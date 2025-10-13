@@ -205,18 +205,26 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
   }
 
   Widget _buildCandidateDashboard(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+    final onSurfaceColor = theme.colorScheme.onSurface;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Candidate Dashboard',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: onSurfaceColor,
+          ),
         ),
         const SizedBox(height: 16),
         Card(
           elevation: 2,
           child: ListTile(
-            leading: const Icon(Icons.dashboard, color: Color(0xFFFF9933)),
+            leading: Icon(Icons.dashboard, color: primaryColor),
             title: const Text('Manage Your Campaign'),
             subtitle: const Text('View analytics and update your profile'),
             trailing: const Icon(Icons.arrow_forward_ios),
@@ -269,10 +277,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                   children: [
                     Text(
                       promotion.content.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (promotion.content.subtitle != null && promotion.content.subtitle!.isNotEmpty) ...[
@@ -300,10 +308,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                         const Spacer(),
                         Text(
                           promotion.partyName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFFFF9933),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -313,8 +321,8 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                       ElevatedButton(
                         onPressed: () => _handlePromotionCTA(context, promotion),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF9933),
-                          foregroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -352,9 +360,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                     Expanded(
                       child: Text(
                         promotion.content.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -420,10 +429,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                         const SizedBox(width: 4),
                         Text(
                           promotion.partyName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFFFF9933),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -438,8 +447,8 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                             _handlePromotionCTA(context, promotion);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF9933),
-                            foregroundColor: Colors.white,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
