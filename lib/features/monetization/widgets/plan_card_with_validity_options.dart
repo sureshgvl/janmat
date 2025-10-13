@@ -131,7 +131,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                       const Icon(Icons.shopping_cart, color: Colors.white, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        AppLocalizations.of(context)!.purchaseForAmount(singlePrice),
+                        'Purchase plan for Rs $singlePrice',
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -258,7 +258,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                     const Icon(Icons.shopping_cart, color: Colors.white, size: 18),
                     const SizedBox(width: 8),
                     Text(
-                      AppLocalizations.of(context)!.purchaseForAmount(pricing[validityOptions.first]!),
+                      'Purchase plan for Rs ${pricing[validityOptions.first]!}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -366,7 +366,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                     ],
                     Text(
                       selectedValidityDays != null
-                        ? AppLocalizations.of(context)!.purchaseForAmount(pricing[selectedValidityDays!]!)
+                        ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
                         : AppLocalizations.of(context)!.selectValidityPeriod,
                       style: const TextStyle(
                         fontSize: 14,
@@ -507,7 +507,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                   ),
                   child: Text(
                     selectedValidityDays != null
-                      ? AppLocalizations.of(context)!.purchaseForAmount(pricing[selectedValidityDays!]!)
+                      ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
                       : AppLocalizations.of(context)!.selectValidityPeriod,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),

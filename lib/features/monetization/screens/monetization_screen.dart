@@ -196,11 +196,16 @@ class _MonetizationScreenState extends State<MonetizationScreen>
     AppLogger.monetization('   User clicked refresh button - forcing cache refresh');
 
     try {
-      await _controller.refreshPlans();
+      // Show loading indicator
+      setState(() {});
+
+      // Refresh user data and plans
+      await _loadUserData();
+
       AppLogger.monetization('✅ REFRESH COMPLETED SUCCESSFULLY');
       Get.snackbar(
         'Success',
-        'Plans refreshed successfully!',
+        'Premium plans refreshed successfully!',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );

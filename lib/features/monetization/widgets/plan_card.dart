@@ -150,8 +150,29 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Show button for all plans (free plans can be activated, others can be purchased)
-            if (true)
+            // Show current plan status for active plans (instead of button)
+            if (isCurrentPlan)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Center(
+                  child: Text(
+                    _getCurrentPlanDisplayText(currentPlanId),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ),
+              )
+            // Show button for non-current plans
+            else
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -173,8 +194,8 @@ class PlanCard extends StatelessWidget {
                 ),
               ),
 
-            // Show message for disabled buttons
-            if (shouldDisableButton)
+            // Show message for disabled buttons (only for non-current plans)
+            if (shouldDisableButton && !isCurrentPlan)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -204,9 +225,9 @@ class PlanCard extends StatelessWidget {
       return false;
     }
 
-    // Highlight plans are separate purchases, not part of hierarchy
-    if (plan.type == 'highlight') {
-      return false; // Highlight plans are always available (if user has access)
+    // Highlight and carousel plans are separate purchases, not part of hierarchy
+    if (plan.type == 'highlight' || plan.type == 'carousel') {
+      return false; // These plans are always available (if user has access)
     }
 
     if (currentPlanId == null) return false;
@@ -249,10 +270,28 @@ class PlanCard extends StatelessWidget {
     return 'Plan not available';
   }
 
+  String _getCurrentPlanDisplayText(String? currentPlanId) {
+    if (currentPlanId == plan.planId) {
+      switch (plan.planId) {
+        case 'free_plan':
+          return 'Free Plan Active';
+        case 'basic_plan':
+          return 'Basic Plan Active';
+        case 'gold_plan':
+          return 'Gold Plan Active';
+        case 'platinum_plan':
+          return 'Platinum Plan Active';
+        default:
+          return 'Current Plan';
+      }
+    }
+    return '';
+  }
+
   String _getButtonText(BuildContext context, String? currentPlanId) {
     // Free plans
     if (plan.planId == 'free_plan') {
-      return currentPlanId == 'free_plan' ? 'Current Plan' : 'Activate Free Plan';
+      return currentPlanId == 'free_plan' ? 'Active Free Plan' : 'Activate Free Plan';
     }
 
     // XP plans
@@ -266,7 +305,7 @@ class PlanCard extends StatelessWidget {
     }
 
     if (_shouldDisableButton(currentPlanId)) {
-      return 'Already Upgraded';
+      return 'Already Active';
     }
 
     // Determine if this is an upgrade or downgrade
@@ -485,8 +524,92 @@ class PlanCard extends StatelessWidget {
       return;
     }
 
+    // Add confirmation dialog for free plan activation when user has paid plan
+    if (plan.planId == 'free_plan') {
+      final currentPlanId = controller.currentUserModel.value?.subscriptionPlanId;
+      if (currentPlanId != null && currentPlanId != 'free_plan') {
+        final shouldDowngrade = await _showDowngradeConfirmation(context, currentPlanId);
+        if (!shouldDowngrade) {
+          return; // User cancelled the downgrade
+        }
+      }
+    }
+
     // This would typically trigger the purchase flow
     debugPrint('Purchasing plan: ${plan.planId}');
+  }
+
+  Future<bool> _showDowngradeConfirmation(BuildContext context, String currentPlanId) async {
+    final currentPlanName = _getPlanDisplayName(currentPlanId);
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Plan Change'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You currently have $currentPlanName active. Are you sure you want to downgrade to the Free Plan?',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Warning: You will lose all premium features and may lose access to paid content.',
+                        style: const TextStyle(
+                          color: Color(0xFFB91C1C),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Yes, Downgrade'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
+
+  String _getPlanDisplayName(String planId) {
+    switch (planId) {
+      case 'free_plan': return 'Free Plan';
+      case 'basic_plan': return 'Basic Plan';
+      case 'gold_plan': return 'Gold Plan';
+      case 'platinum_plan': return 'Platinum Plan';
+      default: return 'Unknown Plan';
+    }
   }
 }
 

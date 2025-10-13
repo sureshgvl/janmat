@@ -11,6 +11,9 @@ import '../../../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../../controllers/highlight_controller.dart';
 import '../repositories/monetization_repository.dart';
+import '../widgets/plan_purchase_success_dialog.dart';
+import '../widgets/plan_benefits_showcase.dart';
+import '../widgets/welcome_content_preview.dart';
 import '../../../utils/app_logger.dart';
 
 class MonetizationController extends GetxController {
@@ -1136,6 +1139,78 @@ class MonetizationController extends GetxController {
       AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
       errorMessage.value = 'Failed to complete purchase: $e';
     }
+
+    // Show post-purchase UI after successful completion
+    _showPostPurchaseUI(planId, electionType, validityDays);
+  }
+
+  Future<void> _showPostPurchaseUI(String planId, String? electionType, int validityDays) async {
+    try {
+      final plan = getPlanById(planId);
+      if (plan == null) return;
+
+      // Show success dialog
+      if (Get.context != null) {
+        await showDialog(
+          context: Get.context!,
+          barrierDismissible: false,
+          builder: (context) => PlanPurchaseSuccessDialog(
+            plan: plan,
+            validityDays: validityDays,
+            amountPaid: plan.pricing[electionType ?? '']?[validityDays] ?? 0,
+            electionType: electionType,
+            onContinue: () {
+              Navigator.of(context).pop();
+              _showWelcomeContent(plan);
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.monetization('Error showing post-purchase UI: $e');
+    }
+  }
+
+  void _showBenefitsShowcase(SubscriptionPlan plan, int validityDays) {
+    Get.to(() => PlanBenefitsShowcase(
+      plan: plan,
+      validityDays: validityDays,
+      onGetStarted: () {
+        Get.back();
+        _showWelcomeContent(plan);
+      },
+    ));
+  }
+
+  void _showWelcomeContent(SubscriptionPlan plan) {
+    // Show welcome content preview for Platinum users
+    if (plan.planId == 'platinum_plan' && Get.context != null) {
+      showDialog(
+        context: Get.context!,
+        builder: (context) => AlertDialog(
+          contentPadding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: WelcomeContentPreview(
+              userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+              onViewFullContent: () {
+                Navigator.of(context).pop();
+                // Navigate to highlight/banner section
+                Get.toNamed('/candidate/highlights');
+              },
+              onCreateMoreContent: () {
+                Navigator.of(context).pop();
+                // Navigate to create highlight
+                Get.toNamed('/candidate/highlights/create');
+              },
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   // Create welcome content for Platinum users
@@ -1491,31 +1566,121 @@ class MonetizationController extends GetxController {
             final userData = snapshot.data() as Map<String, dynamic>;
             final userModel = UserModel.fromJson(userData);
 
+            // Store previous state for comparison
+            final previousUserModel = currentUserModel.value;
+
             // Update reactive variables
             currentUserModel.value = userModel;
 
-            // Check if subscription just expired
-            final previousPremium = currentUserModel.value?.premium ?? false;
-            final currentPremium = userModel.premium ?? false;
-
-            if (previousPremium && !currentPremium) {
-              AppLogger.monetization('⚠️ Subscription expired - user downgraded to free plan');
-              // Trigger UI refresh
-              update();
-
-              // Show expiration notification
-              Get.snackbar(
-                'Plan Expired',
-                'Your premium plan has expired. Upgrade to continue enjoying premium features.',
-                backgroundColor: Colors.orange,
-                colorText: Colors.white,
-                duration: const Duration(seconds: 5),
-              );
-            }
+            // Check for all plan type expiries
+            _checkForPlanExpiries(previousUserModel, userModel);
           }
         }, onError: (error) {
           AppLogger.monetization('❌ Error in user subscription listener: $error');
         });
+  }
+
+  void _checkForPlanExpiries(UserModel? previousUser, UserModel currentUser) {
+    final now = DateTime.now();
+
+    // Check Candidate Plan (Gold/Platinum) expiry
+    final previousPremium = previousUser?.premium ?? false;
+    final currentPremium = currentUser.premium ?? false;
+
+    if (previousPremium && !currentPremium) {
+      AppLogger.monetization('⚠️ Candidate plan expired - user downgraded to free plan');
+      _handlePlanExpiry('Candidate Plan', 'Your premium plan has expired. Upgrade to continue enjoying premium features.');
+    }
+
+    // Check Highlight Banner Plan expiry
+    final previousHighlightPlanId = previousUser?.highlightPlanId;
+    final currentHighlightPlanId = currentUser.highlightPlanId;
+    final highlightExpiry = currentUser.highlightPlanExpiresAt;
+
+    if (previousHighlightPlanId != null &&
+        currentHighlightPlanId == null &&
+        highlightExpiry != null &&
+        now.isAfter(highlightExpiry)) {
+      AppLogger.monetization('⚠️ Highlight banner plan expired');
+      _handlePlanExpiry('Highlight Banner', 'Your highlight banner plan has expired. Renew to maintain banner visibility.');
+    }
+
+    // Check Carousel Plan expiry
+    final previousCarouselPlanId = previousUser?.carouselPlanId;
+    final currentCarouselPlanId = currentUser.carouselPlanId;
+    final carouselExpiry = currentUser.carouselPlanExpiresAt;
+
+    if (previousCarouselPlanId != null &&
+        currentCarouselPlanId == null &&
+        carouselExpiry != null &&
+        now.isAfter(carouselExpiry)) {
+      AppLogger.monetization('⚠️ Carousel plan expired');
+      _handlePlanExpiry('Carousel Plan', 'Your carousel plan has expired. Renew to continue carousel placement.');
+    }
+
+    // Check for upcoming expiries (within 3 days)
+    _checkForUpcomingExpiries(currentUser);
+  }
+
+  void _handlePlanExpiry(String planType, String message) {
+    // Trigger UI refresh
+    update();
+
+    // Show expiration notification
+    Get.snackbar(
+      '$planType Expired',
+      message,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  void _checkForUpcomingExpiries(UserModel user) {
+    final now = DateTime.now();
+    const warningDays = 3;
+
+    // Check candidate plan expiry warning
+    if (user.subscriptionExpiresAt != null && user.premium == true) {
+      final daysUntilExpiry = user.subscriptionExpiresAt!.difference(now).inDays;
+      if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
+        Get.snackbar(
+          'Plan Expiring Soon',
+          'Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.',
+          backgroundColor: Colors.amber,
+          colorText: Colors.black,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    }
+
+    // Check highlight plan expiry warning
+    if (user.highlightPlanExpiresAt != null && user.highlightPlanId != null) {
+      final daysUntilExpiry = user.highlightPlanExpiresAt!.difference(now).inDays;
+      if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
+        Get.snackbar(
+          'Highlight Banner Expiring',
+          'Your highlight banner expires in $daysUntilExpiry days.',
+          backgroundColor: Colors.amber,
+          colorText: Colors.black,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    }
+
+    // Check carousel plan expiry warning
+    if (user.carouselPlanExpiresAt != null && user.carouselPlanId != null) {
+      final daysUntilExpiry = user.carouselPlanExpiresAt!.difference(now).inDays;
+      if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
+        Get.snackbar(
+          'Carousel Plan Expiring',
+          'Your carousel plan expires in $daysUntilExpiry days.',
+          backgroundColor: Colors.amber,
+          colorText: Colors.black,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    }
   }
 
   void _stopUserSubscriptionListener() {

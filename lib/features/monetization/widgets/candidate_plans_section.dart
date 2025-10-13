@@ -23,7 +23,7 @@ class CandidatePlansSection extends StatelessWidget {
 
   Future<bool> _hasRequiredPlanForHighlights() async {
     try {
-      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for highlights...');
+      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for highlights (requires Gold/Platinum)...');
 
       // Ensure user model is loaded
       if (controller.currentUserModel.value == null) {
@@ -31,35 +31,39 @@ class CandidatePlansSection extends StatelessWidget {
         await controller.loadUserStatusData();
       }
 
-      // Check user model for premium status
+      // Check user model for Gold or Platinum plan
       final userModel = controller.currentUserModel.value;
       if (userModel != null) {
-        // Highlight plans are available for any premium candidate (Basic, Gold, Platinum)
-        final hasAccess = userModel.premium == true;
-        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasHighlightAccess=$hasAccess');
+        // Highlight plans require Gold or Platinum plan
+        final hasAccess = userModel.premium == true &&
+                         (userModel.subscriptionPlanId == 'gold_plan' ||
+                          userModel.subscriptionPlanId == 'platinum_plan');
+        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasAccess=$hasAccess');
 
         if (hasAccess) {
-          AppLogger.monetization('✅ [CandidatePlansSection] User has access to highlight plans');
+          AppLogger.monetization('✅ [CandidatePlansSection] User has Gold/Platinum plan - access to highlight plans granted');
           return true;
         } else {
-          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs premium status for highlights');
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Gold or Platinum plan for highlights (current: ${userModel.subscriptionPlanId})');
           return false;
         }
       }
 
-      // Fallback: check active subscriptions for any premium plan
+      // Fallback: check active subscriptions for Gold or Platinum plan
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         AppLogger.monetization('❌ [CandidatePlansSection] No current user');
         return false;
       }
 
-      // Check for any active premium subscription (not just platinum)
+      // Check for active Gold or Platinum subscription
       final candidateSubscription = await controller.getActiveSubscription(
         currentUser.uid,
         'candidate',
       );
-      final hasCandidateAccess = candidateSubscription?.isActive ?? false;
+      final hasGoldOrPlatinumAccess = candidateSubscription?.isActive == true &&
+                                     (candidateSubscription?.planId == 'gold_plan' ||
+                                      candidateSubscription?.planId == 'platinum_plan');
 
       final highlightSubscription = await controller.getActiveSubscription(
         currentUser.uid,
@@ -67,8 +71,8 @@ class CandidatePlansSection extends StatelessWidget {
       );
       final hasHighlightAccess = highlightSubscription?.isActive ?? false;
 
-      final hasAccess = hasCandidateAccess || hasHighlightAccess;
-      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (candidate: ${candidateSubscription?.planId}, highlight: ${highlightSubscription?.planId})');
+      final hasAccess = hasGoldOrPlatinumAccess || hasHighlightAccess;
+      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (gold/platinum: $hasGoldOrPlatinumAccess, highlight: ${highlightSubscription?.planId})');
       return hasAccess;
     } catch (e) {
       AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
@@ -76,7 +80,66 @@ class CandidatePlansSection extends StatelessWidget {
     }
   }
 
-  Widget _buildDisabledPlanCard(SubscriptionPlan plan) {
+  Future<bool> _hasRequiredPlanForCarousel() async {
+    try {
+      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for carousel (requires Gold/Platinum)...');
+
+      // Ensure user model is loaded
+      if (controller.currentUserModel.value == null) {
+        AppLogger.monetization('⏳ [CandidatePlansSection] User model not loaded, loading now...');
+        await controller.loadUserStatusData();
+      }
+
+      // Check user model for Gold or Platinum plan
+      final userModel = controller.currentUserModel.value;
+      if (userModel != null) {
+        // Carousel plans require Gold or Platinum plan
+        final hasAccess = userModel.premium == true &&
+                         (userModel.subscriptionPlanId == 'gold_plan' ||
+                          userModel.subscriptionPlanId == 'platinum_plan');
+        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasAccess=$hasAccess');
+
+        if (hasAccess) {
+          AppLogger.monetization('✅ [CandidatePlansSection] User has Gold/Platinum plan - access to carousel plans granted');
+          return true;
+        } else {
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Gold or Platinum plan for carousel (current: ${userModel.subscriptionPlanId})');
+          return false;
+        }
+      }
+
+      // Fallback: check active subscriptions for Gold or Platinum plan
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        AppLogger.monetization('❌ [CandidatePlansSection] No current user');
+        return false;
+      }
+
+      // Check for active Gold or Platinum subscription
+      final candidateSubscription = await controller.getActiveSubscription(
+        currentUser.uid,
+        'candidate',
+      );
+      final hasGoldOrPlatinumAccess = candidateSubscription?.isActive == true &&
+                                     (candidateSubscription?.planId == 'gold_plan' ||
+                                      candidateSubscription?.planId == 'platinum_plan');
+
+      final carouselSubscription = await controller.getActiveSubscription(
+        currentUser.uid,
+        'carousel',
+      );
+      final hasCarouselAccess = carouselSubscription?.isActive ?? false;
+
+      final hasAccess = hasGoldOrPlatinumAccess || hasCarouselAccess;
+      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (gold/platinum: $hasGoldOrPlatinumAccess, carousel: ${carouselSubscription?.planId})');
+      return hasAccess;
+    } catch (e) {
+      AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
+      return false;
+    }
+  }
+
+  Widget _buildDisabledPlanCard(SubscriptionPlan plan, String requiredPlan) {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
@@ -120,8 +183,8 @@ class CandidatePlansSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Requires Premium Plan',
+            Text(
+              'Requires $requiredPlan or Platinum Plan',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -138,8 +201,8 @@ class CandidatePlansSection extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Subscribe to Premium First',
+                child: Text(
+                  'Subscribe to $requiredPlan First',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -154,21 +217,261 @@ class CandidatePlansSection extends StatelessWidget {
     );
   }
 
+  List<Widget> _showFreePlans(List<SubscriptionPlan> freePlans) {
+    final widgets = <Widget>[];
+
+    for (final plan in freePlans) {
+      widgets.add(PlanCard(
+        plan: plan,
+        controller: controller,
+        isCandidatePlan: false,
+        onPurchase: null, // Free plans don't need purchase
+      ));
+      if (plan != freePlans.last) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+
+    return widgets;
+  }
+
+  List<Widget> _showBasicPlans(List<SubscriptionPlan> basicPlans) {
+    final widgets = <Widget>[];
+
+    for (final plan in basicPlans) {
+      AppLogger.monetization('🎯 Checking basic plan: ${plan.name} (${plan.planId})');
+
+      if (userElectionType != null &&
+          plan.pricing.containsKey(userElectionType) &&
+          plan.pricing[userElectionType]!.isNotEmpty) {
+        AppLogger.monetization('✅✅ Showing PlanCardWithValidityOptions for basic plan');
+        widgets.add(PlanCardWithValidityOptions(
+          plan: plan,
+          electionType: userElectionType!,
+          onPurchase: onPurchaseWithValidity,
+        ));
+      } else {
+        AppLogger.monetization('⚠️ Showing regular PlanCard for basic plan');
+        widgets.add(PlanCard(
+          plan: plan,
+          controller: controller,
+          isCandidatePlan: true,
+          onPurchase: () => onPurchase(plan),
+        ));
+      }
+
+      if (plan != basicPlans.last) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+
+    return widgets;
+  }
+
+  List<Widget> _showGoldPlans(List<SubscriptionPlan> premiumPlans) {
+    final widgets = <Widget>[];
+    final goldPlans = premiumPlans.where((plan) => plan.planId == 'gold_plan').toList();
+    final currentPlanId = controller.currentUserModel.value?.subscriptionPlanId;
+
+    for (final plan in goldPlans) {
+      // If this is the user's current plan, always use PlanCard to show current plan status
+      if (currentPlanId == 'gold_plan') {
+        widgets.add(PlanCard(
+          plan: plan,
+          controller: controller,
+          isCandidatePlan: true,
+          onPurchase: () => onPurchase(plan),
+        ));
+      } else if (userElectionType != null &&
+          plan.pricing.containsKey(userElectionType) &&
+          plan.pricing[userElectionType]!.isNotEmpty) {
+        widgets.add(PlanCardWithValidityOptions(
+          plan: plan,
+          electionType: userElectionType!,
+          onPurchase: onPurchaseWithValidity,
+        ));
+      } else {
+        widgets.add(PlanCard(
+          plan: plan,
+          controller: controller,
+          isCandidatePlan: true,
+          onPurchase: () => onPurchase(plan),
+        ));
+      }
+
+      if (plan != goldPlans.last) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+
+    return widgets;
+  }
+
+  List<Widget> _showPlatinumPlans(List<SubscriptionPlan> premiumPlans) {
+    final widgets = <Widget>[];
+    final platinumPlans = premiumPlans.where((plan) => plan.planId == 'platinum_plan').toList();
+    final currentPlanId = controller.currentUserModel.value?.subscriptionPlanId;
+
+    for (final plan in platinumPlans) {
+      // If this is the user's current plan, always use PlanCard to show current plan status
+      if (currentPlanId == 'platinum_plan') {
+        widgets.add(PlanCard(
+          plan: plan,
+          controller: controller,
+          isCandidatePlan: true,
+          onPurchase: () => onPurchase(plan),
+        ));
+      } else if (userElectionType != null &&
+          plan.pricing.containsKey(userElectionType) &&
+          plan.pricing[userElectionType]!.isNotEmpty) {
+        widgets.add(PlanCardWithValidityOptions(
+          plan: plan,
+          electionType: userElectionType!,
+          onPurchase: onPurchaseWithValidity,
+        ));
+      } else {
+        widgets.add(PlanCard(
+          plan: plan,
+          controller: controller,
+          isCandidatePlan: true,
+          onPurchase: () => onPurchase(plan),
+        ));
+      }
+
+      if (plan != platinumPlans.last) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+
+    return widgets;
+  }
+
+  List<Widget> _showHighlightPlans(List<SubscriptionPlan> highlightPlans) {
+    final widgets = <Widget>[];
+
+    // Add highlight plans header
+    widgets.add(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.blue[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.visibility, color: Colors.blue[700], size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Professional Highlight Features - Up to 4 banners on home screen (Requires Gold or Platinum Plan)',
+                style: TextStyle(
+                  color: Colors.blue[800],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    for (final plan in highlightPlans) {
+      widgets.add(FutureBuilder<bool>(
+        future: _hasRequiredPlanForHighlights(),
+        builder: (context, snapshot) {
+          final hasAccess = snapshot.data ?? false;
+          AppLogger.monetization('🔍 [CandidatePlansSection] Highlight plan ${plan.name}: hasAccess=$hasAccess');
+
+          if (hasAccess) {
+            if (userElectionType != null &&
+                plan.pricing.containsKey(userElectionType) &&
+                plan.pricing[userElectionType]!.isNotEmpty) {
+              AppLogger.monetization('✅ [CandidatePlansSection] Showing PlanCardWithValidityOptions for highlight plan');
+              return PlanCardWithValidityOptions(
+                plan: plan,
+                electionType: userElectionType!,
+                onPurchase: onPurchaseWithValidity,
+              );
+            } else {
+              AppLogger.monetization('⚠️ [CandidatePlansSection] Showing regular PlanCard for highlight plan (no pricing)');
+              return PlanCard(
+                plan: plan,
+                controller: controller,
+                isCandidatePlan: true,
+                onPurchase: () => onPurchase(plan),
+              );
+            }
+          } else {
+            AppLogger.monetization('🔒 [CandidatePlansSection] Showing disabled card for highlight plan');
+            return _buildDisabledPlanCard(plan, 'Gold or Platinum');
+          }
+        },
+      ));
+
+      if (plan != highlightPlans.last) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+
+    return widgets;
+  }
+
+  List<Widget> _showCarouselPlans(List<SubscriptionPlan> carouselPlans) {
+    final widgets = <Widget>[];
+
+    for (final plan in carouselPlans) {
+      widgets.add(FutureBuilder<bool>(
+        future: _hasRequiredPlanForCarousel(),
+        builder: (context, snapshot) {
+          final hasAccess = snapshot.data ?? false;
+          AppLogger.monetization('🔍 [CandidatePlansSection] Carousel plan ${plan.name}: hasAccess=$hasAccess');
+
+          if (hasAccess) {
+            if (userElectionType != null &&
+                plan.pricing.containsKey(userElectionType) &&
+                plan.pricing[userElectionType]!.isNotEmpty) {
+              AppLogger.monetization('✅ [CandidatePlansSection] Showing PlanCardWithValidityOptions for carousel plan');
+              return PlanCardWithValidityOptions(
+                plan: plan,
+                electionType: userElectionType!,
+                onPurchase: onPurchaseWithValidity,
+              );
+            } else {
+              AppLogger.monetization('⚠️ [CandidatePlansSection] Showing regular PlanCard for carousel plan (no pricing)');
+              return PlanCard(
+                plan: plan,
+                controller: controller,
+                isCandidatePlan: true,
+                onPurchase: () => onPurchase(plan),
+              );
+            }
+          } else {
+            AppLogger.monetization('🔒 [CandidatePlansSection] Showing disabled card for carousel plan');
+            return _buildDisabledPlanCard(plan, 'Gold or Platinum');
+          }
+        },
+      ));
+
+      if (plan != carouselPlans.last) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+
+    return widgets;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final allPlans = controller.plans.toList();
+      final currentPlanId = controller.currentUserModel.value?.subscriptionPlanId;
 
       AppLogger.monetization('📋 [CandidatePlansSection] Total plans loaded: ${allPlans.length}');
       AppLogger.monetization('📋 [CandidatePlansSection] User election type: $userElectionType');
-      for (var plan in allPlans) {
-        AppLogger.monetization('   Plan: ${plan.name} (${plan.planId}) - Type: ${plan.type}');
-        if (plan.pricing.containsKey(userElectionType)) {
-          AppLogger.monetization('      ✅ Has pricing for $userElectionType: ${plan.pricing[userElectionType]!.length} options');
-        } else {
-          AppLogger.monetization('      ❌ No pricing for $userElectionType');
-        }
-      }
+      AppLogger.monetization('📋 [CandidatePlansSection] Current plan ID: $currentPlanId');
 
       // Show loading if plans are still being loaded
       if (controller.isLoading.value && allPlans.isEmpty) {
@@ -193,232 +496,43 @@ class CandidatePlansSection extends StatelessWidget {
         plan.planId != 'free_plan' &&
         plan.planId != 'basic_plan'
       ).toList();
-
-      // Separate highlight plans (available to all candidates)
       final highlightPlans = allPlans.where((plan) => plan.type == 'highlight').toList();
-
-      // Separate carousel plans (available to all candidates)
       final carouselPlans = allPlans.where((plan) => plan.type == 'carousel').toList();
-
-      AppLogger.monetization('📊 [CandidatePlansSection] Plan breakdown:');
-      AppLogger.monetization('   Free plans: ${freePlans.length}');
-      AppLogger.monetization('   Basic plans: ${basicPlans.length}');
-      AppLogger.monetization('   Premium plans: ${premiumPlans.length}');
-      AppLogger.monetization('   Highlight plans: ${highlightPlans.length}');
-      AppLogger.monetization('   Carousel plans: ${carouselPlans.length}');
-      AppLogger.monetization('   User election type: $userElectionType');
 
       final List<Widget> planWidgets = [];
 
-      // Add free plans (no pricing)
-      if (freePlans.isNotEmpty) {
-        for (final plan in freePlans) {
-          planWidgets.add(PlanCard(
-            plan: plan,
-            controller: controller,
-            isCandidatePlan: false,
-            onPurchase: null, // Free plans don't need purchase
-          ));
-          if (plan != freePlans.last) {
-            planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
-          }
-        }
-        // Add section separator if there are more plan types
+      // Show free plans only if user doesn't have a paid plan
+      if (freePlans.isNotEmpty && currentPlanId != 'gold_plan' && currentPlanId != 'platinum_plan') {
+        planWidgets.addAll(_showFreePlans(freePlans));
         if (basicPlans.isNotEmpty || premiumPlans.isNotEmpty || highlightPlans.isNotEmpty) {
-          planWidgets.add(const SizedBox(height: 20)); // Section separator
+          planWidgets.add(const SizedBox(height: 20));
         }
       }
 
-      // Add basic plans (with pricing if available)
       if (basicPlans.isNotEmpty) {
-        for (final plan in basicPlans) {
-          AppLogger.monetization('🎯 Checking basic plan: ${plan.name} (${plan.planId})');
-          AppLogger.monetization('   User Election Type: "$userElectionType"');
-          AppLogger.monetization('   Plan pricing keys: ${plan.pricing.keys.toList()}');
-          AppLogger.monetization('   Has pricing for user election type: ${plan.pricing.containsKey(userElectionType)}');
-
-          if (userElectionType != null) {
-            AppLogger.monetization('   ✅ User election type is not null');
-            final hasPricing = plan.pricing.containsKey(userElectionType);
-            AppLogger.monetization('   ✅ Plan has pricing for election type: $hasPricing');
-            if (hasPricing) {
-              final pricingCount = plan.pricing[userElectionType]!.length;
-              AppLogger.monetization('   ✅ Pricing count for election type: $pricingCount');
-              if (pricingCount > 0) {
-                AppLogger.monetization('   ✅✅ Showing PlanCardWithValidityOptions for basic plan');
-                // Basic plan with new pricing structure
-                planWidgets.add(PlanCardWithValidityOptions(
-                  plan: plan,
-                  electionType: userElectionType!,
-                  onPurchase: onPurchaseWithValidity,
-                ));
-                continue;
-              } else {
-                AppLogger.monetization('   ❌ Pricing count is 0');
-              }
-            } else {
-              AppLogger.monetization('   ❌ Plan does not have pricing for user election type');
-            }
-          } else {
-            AppLogger.monetization('   ❌ User election type is null');
-          }
-
-          AppLogger.monetization('   ⚠️ Showing regular PlanCard for basic plan');
-          // Basic plan without new pricing (legacy)
-          planWidgets.add(PlanCard(
-            plan: plan,
-            controller: controller,
-            isCandidatePlan: true,
-            onPurchase: () => onPurchase(plan),
-          ));
-
-          if (plan != basicPlans.last) {
-            planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
-          }
-        }
-        // Add section separator if there are premium plans
+        planWidgets.addAll(_showBasicPlans(basicPlans));
         if (premiumPlans.isNotEmpty || highlightPlans.isNotEmpty) {
-          planWidgets.add(const SizedBox(height: 20)); // Section separator
+          planWidgets.add(const SizedBox(height: 20));
         }
       }
 
-      // Add premium plans (Gold and Platinum - available to all candidates)
       if (premiumPlans.isNotEmpty) {
-        for (final plan in premiumPlans) {
-          // Gold and Platinum plans are available to all candidates
-          if (plan.planId == 'gold_plan' || plan.planId == 'platinum_plan') {
-            if (userElectionType != null &&
-                plan.pricing.containsKey(userElectionType) &&
-                plan.pricing[userElectionType]!.isNotEmpty) {
-              // Show with validity options if pricing is available
-              planWidgets.add(PlanCardWithValidityOptions(
-                plan: plan,
-                electionType: userElectionType!,
-                onPurchase: onPurchaseWithValidity,
-              ));
-            } else {
-              // Show regular plan card if no election-specific pricing
-              planWidgets.add(PlanCard(
-                plan: plan,
-                controller: controller,
-                isCandidatePlan: true,
-                onPurchase: () => onPurchase(plan),
-              ));
-            }
-            if (plan != premiumPlans.last) {
-              planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
-            }
-          } else {
-            // Other premium plans - only show if they have pricing for user's election type
-            if (userElectionType != null &&
-                plan.pricing.containsKey(userElectionType) &&
-                plan.pricing[userElectionType]!.isNotEmpty) {
-              planWidgets.add(PlanCardWithValidityOptions(
-                plan: plan,
-                electionType: userElectionType!,
-                onPurchase: onPurchaseWithValidity,
-              ));
-              if (plan != premiumPlans.last) {
-                planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
-              }
-            }
-          }
-        }
+        planWidgets.addAll(_showGoldPlans(premiumPlans));
+        planWidgets.addAll(_showPlatinumPlans(premiumPlans));
       }
 
-      // Add highlight plans (only available to Platinum plan holders)
       if (highlightPlans.isNotEmpty) {
-        // Add section separator if there are premium plans
         if (premiumPlans.isNotEmpty) {
-          planWidgets.add(const SizedBox(height: 20)); // Section separator
+          planWidgets.add(const SizedBox(height: 20));
         }
-
-        // Add highlight plans header with feature info
-        planWidgets.add(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.visibility, color: Colors.blue[700], size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Professional Highlight Features - Up to 4 banners on home screen',
-                    style: TextStyle(
-                      color: Colors.blue[800],
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-
-        for (final plan in highlightPlans) {
-          planWidgets.add(FutureBuilder<bool>(
-            future: _hasRequiredPlanForHighlights(),
-            builder: (context, snapshot) {
-              final hasAccess = snapshot.data ?? false;
-
-              if (hasAccess) {
-                // Show highlight plan with validity options if pricing is available
-                if (userElectionType != null &&
-                    plan.pricing.containsKey(userElectionType) &&
-                    plan.pricing[userElectionType]!.isNotEmpty) {
-                  return PlanCardWithValidityOptions(
-                    plan: plan,
-                    electionType: userElectionType!,
-                    onPurchase: onPurchaseWithValidity,
-                  );
-                } else {
-                  // Fallback to regular plan card
-                  return PlanCard(
-                    plan: plan,
-                    controller: controller,
-                    isCandidatePlan: true,
-                    onPurchase: () => onPurchase(plan),
-                  );
-                }
-              } else {
-                return _buildDisabledPlanCard(plan);
-              }
-            },
-          ));
-          if (plan != highlightPlans.last) {
-            planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
-          }
-        }
+        planWidgets.addAll(_showHighlightPlans(highlightPlans));
       }
 
-      // Add carousel plans (available to all candidates)
       if (carouselPlans.isNotEmpty) {
-        // Add section separator if there are highlight plans
         if (highlightPlans.isNotEmpty) {
-          planWidgets.add(const SizedBox(height: 20)); // Section separator
+          planWidgets.add(const SizedBox(height: 20));
         }
-
-        for (final plan in carouselPlans) {
-          if (userElectionType != null &&
-              plan.pricing.containsKey(userElectionType) &&
-              plan.pricing[userElectionType]!.isNotEmpty) {
-            planWidgets.add(PlanCardWithValidityOptions(
-              plan: plan,
-              electionType: userElectionType!,
-              onPurchase: onPurchaseWithValidity,
-            ));
-            if (plan != carouselPlans.last) {
-              planWidgets.add(const SizedBox(height: 12)); // Reduced spacing within section
-            }
-          }
-        }
+        planWidgets.addAll(_showCarouselPlans(carouselPlans));
       }
 
       AppLogger.monetization('📋 [CandidatePlansSection] Final plan widgets count: ${planWidgets.length}');
@@ -462,15 +576,7 @@ class CandidatePlansSection extends StatelessWidget {
               Text('Highlight Plans: ${highlightPlans.length}', style: const TextStyle(fontSize: 12)),
               Text('Carousel Plans: ${carouselPlans.length}', style: const TextStyle(fontSize: 12)),
               Text('Election Type: $userElectionType', style: const TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              const Text('Plan Details:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              ...allPlans.map((plan) => Padding(
-                padding: const EdgeInsets.only(left: 8, top: 2),
-                child: Text(
-                  '• ${plan.name} (${plan.planId}) - ${plan.type}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              )),
+              Text('Current Plan: $currentPlanId', style: const TextStyle(fontSize: 12)),
             ],
           ),
         ));

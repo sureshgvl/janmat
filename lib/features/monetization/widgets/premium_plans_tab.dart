@@ -48,7 +48,7 @@ class PremiumPlansTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Debug Info (only in debug mode)
-          _buildDebugInfo(),
+          //_buildDebugInfo(),
         ],
       ),
     );
