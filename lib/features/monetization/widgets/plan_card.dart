@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/plan_model.dart';
+import '../../../controllers/highlight_controller.dart';
 import '../controllers/monetization_controller.dart';
 
 class PlanCard extends StatelessWidget {
@@ -38,8 +40,8 @@ class PlanCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isCurrentPlan ? Colors.blue : Colors.transparent,
-          width: isCurrentPlan ? 2 : 0,
+          color: isCurrentPlan ? Colors.blue : Colors.grey.shade300,
+          width: isCurrentPlan ? 2 : 1,
         ),
       ),
       child: Padding(
@@ -47,57 +49,65 @@ class PlanCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    plan.name,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isCurrentPlan ? Colors.blue : Colors.black,
-                    ),
-                  ),
-                ),
-                if (isLimitedOffer)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'LIMITED',
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      plan.name,
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: isCurrentPlan ? Colors.blue : Colors.black,
                       ),
                     ),
                   ),
-                if (isCurrentPlan)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'CURRENT',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  if (isLimitedOffer)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'LIMITED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                  if (isCurrentPlan)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'CURRENT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 8),
@@ -391,19 +401,31 @@ class PlanCard extends StatelessWidget {
       features.add(_buildFeatureItem('Sponsored Banner', true));
     }
     if (plan.profileFeatures.highlightCarousel) {
-      features.add(_buildFeatureItem('Highlight Carousel', true));
+      features.add(_buildFeatureItem('Highlight Banner on Home Screen', true));
     }
     if (plan.profileFeatures.pushNotifications) {
       features.add(_buildFeatureItem('Push Notifications', true));
     }
     if (plan.profileFeatures.multipleHighlights == true) {
-      features.add(_buildFeatureItem('Multiple Highlights', true));
+      features.add(_buildFeatureItem('Carousel on Home Screen', true));
     }
     if (plan.profileFeatures.adminSupport == true) {
       features.add(_buildFeatureItem('Admin Support', true));
     }
     if (plan.profileFeatures.customBranding == true) {
       features.add(_buildFeatureItem('Custom Branding', true));
+    }
+
+    // Add allocated seats display for highlight plans
+    if (plan.type == 'highlight' && plan.highlightFeatures != null) {
+      features.add(const SizedBox(height: 8));
+      features.add(_buildAllocatedSeatsDisplay(plan.highlightFeatures!.maxHighlights));
+    }
+
+    // Add allocated seats display for carousel plans
+    if (plan.type == 'carousel' && plan.carouselFeatures != null) {
+      features.add(const SizedBox(height: 8));
+      features.add(_buildAllocatedSeatsDisplay(plan.carouselFeatures!.maxCarouselSlots));
     }
 
     return features;
@@ -429,6 +451,83 @@ class PlanCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildAllocatedSeatsDisplay(int maxHighlights) {
+    // Get current allocated seats count (for now, assume 0 - this will be implemented)
+    final allocatedSeats = _getCurrentAllocatedSeats();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber[200]!, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Allocated Seats',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                '$allocatedSeats/$maxHighlights',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: allocatedSeats == maxHighlights ? Colors.green : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(
+              maxHighlights,
+              (index) => Container(
+                margin: const EdgeInsets.only(right: 4),
+                child: Icon(
+                  index < allocatedSeats ? Icons.event_seat : Icons.event_seat_outlined,
+                  color: index < allocatedSeats ? Colors.green[600] : Colors.grey[400],
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _getCurrentAllocatedSeats() {
+    try {
+      // Get the highlight controller to check current usage
+      final highlightController = Get.find<HighlightController>();
+
+      // Get current user to find their highlights
+      final currentUser = controller.currentFirebaseUser.value;
+      if (currentUser == null) return 0;
+
+      // For now, we'll count active highlights for this user
+      // This is a simplified implementation - in production, you might want to
+      // cache this or get it from a dedicated method
+      final userHighlights = highlightController.highlights.where(
+        (highlight) => highlight.candidateId == currentUser.uid && highlight.active
+      ).length;
+
+      return userHighlights;
+    } catch (e) {
+      // If controller not found or any error, return 0
+      return 0;
+    }
   }
 
   Widget _buildExpirationCountdown(BuildContext context, DateTime expiresAt) {

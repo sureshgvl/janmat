@@ -45,7 +45,7 @@ class XpPlansTab extends StatelessWidget {
           XPUsageInfo(),
 
           // Debug Info (only in debug mode)
-          _buildDebugInfo(),
+          //_buildDebugInfo(),
         ],
       ),
     );

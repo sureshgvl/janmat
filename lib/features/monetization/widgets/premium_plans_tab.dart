@@ -19,39 +19,82 @@ class PremiumPlansTab extends StatelessWidget {
   Widget build(BuildContext context) {
     AppLogger.monetization('🏗️ PremiumPlansTab: Building with electionType: $userElectionType');
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Election Type Banner
-          if (userElectionType != null) ...[
-            _buildElectionTypeBanner(context, userElectionType!),
+    return Obx(() {
+      final isLoading = controller.isLoading.value;
+      final hasPlans = controller.plans.isNotEmpty;
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Election Type Banner
+            if (userElectionType != null) ...[
+              _buildElectionTypeBanner(context, userElectionType!),
+              const SizedBox(height: 12),
+            ],
+
+            // Section Header
+            _buildSectionHeader(context),
+
             const SizedBox(height: 12),
+
+            // Loading indicator while loading plans
+            if (isLoading && !hasPlans) ...[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading premium plans...',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ]
+            // Premium Plans Section
+            else if (hasPlans) ...[
+              CandidatePlansSection(
+                controller: controller,
+                userElectionType: userElectionType,
+                onPurchaseWithValidity: (plan, validityDays) =>
+                  _handlePurchaseWithValidity(context, plan, validityDays),
+                onPurchase: (plan) =>
+                  _handlePurchase(context, plan),
+              ),
+            ]
+            // No plans available
+            else ...[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Text(
+                    'No premium plans available at the moment.',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // Debug Info (only in debug mode)
+            //_buildDebugInfo(),
           ],
-
-          // Section Header
-          _buildSectionHeader(context),
-
-          const SizedBox(height: 12),
-
-          // Premium Plans Section
-          CandidatePlansSection(
-            controller: controller,
-            userElectionType: userElectionType,
-            onPurchaseWithValidity: (plan, validityDays) =>
-              _handlePurchaseWithValidity(context, plan, validityDays),
-            onPurchase: (plan) =>
-              _handlePurchase(context, plan),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Debug Info (only in debug mode)
-          //_buildDebugInfo(),
-        ],
-      ),
-    );
+        ),
+      );
+    });
   }
 
   Widget _buildElectionTypeBanner(BuildContext context, String electionType) {

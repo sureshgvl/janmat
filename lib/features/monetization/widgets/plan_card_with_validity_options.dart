@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
+import '../../../controllers/highlight_controller.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -46,31 +49,45 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       return Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Plan Header
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.plan.name,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  if (widget.plan.isActive)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(12),
+              // Plan Header with background
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.plan.name,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10)),
                     ),
-                ],
+                    if (widget.plan.isActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10)),
+                      ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -386,31 +403,45 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       return Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Plan Header
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.plan.name,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  if (widget.plan.isActive)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(12),
+              // Plan Header with background
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.plan.name,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10)),
                     ),
-                ],
+                    if (widget.plan.isActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10)),
+                      ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -419,6 +450,18 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               const Text('Features:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               ..._buildFeaturesList(),
+
+              // Add allocated seats display for highlight plans
+              if (widget.plan.type == 'highlight' && widget.plan.highlightFeatures != null) ...[
+                const SizedBox(height: 8),
+                _buildAllocatedSeatsDisplay(widget.plan.highlightFeatures!.maxHighlights),
+              ],
+
+              // Add allocated seats display for carousel plans
+              if (widget.plan.type == 'carousel' && widget.plan.carouselFeatures != null) ...[
+                const SizedBox(height: 8),
+                _buildAllocatedSeatsDisplay(widget.plan.carouselFeatures!.maxCarouselSlots),
+              ],
 
               const SizedBox(height: 16),
 
@@ -571,7 +614,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       features.add(_buildFeatureItem('✓ Sponsored Banner'));
     }
     if (widget.plan.profileFeatures.highlightCarousel) {
-      features.add(_buildFeatureItem('✓ Highlight Carousel'));
+      features.add(_buildFeatureItem('✓ Highlight Banner on Home Screen'));
     }
 
     return features;
@@ -628,7 +671,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
     }
 
     if (widget.plan.profileFeatures.highlightCarousel) {
-      features.add(_buildCompactFeatureItem('✓ Highlight Carousel'));
+      features.add(_buildCompactFeatureItem('✓ Highlight Banner on Home Screen'));
     }
 
     return features;
@@ -642,6 +685,83 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
         style: const TextStyle(fontSize: 11, color: Colors.grey),
       ),
     );
+  }
+
+  Widget _buildAllocatedSeatsDisplay(int maxHighlights) {
+    // Get current allocated seats count (for now, assume 0 - this will be implemented)
+    final allocatedSeats = _getCurrentAllocatedSeats();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber[200]!, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Allocated Seats',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                '$allocatedSeats/$maxHighlights',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: allocatedSeats == maxHighlights ? Colors.green : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(
+              maxHighlights,
+              (index) => Container(
+                margin: const EdgeInsets.only(right: 4),
+                child: Icon(
+                  index < allocatedSeats ? Icons.event_seat : Icons.event_seat_outlined,
+                  color: index < allocatedSeats ? Colors.green[600] : Colors.grey[400],
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _getCurrentAllocatedSeats() {
+    try {
+      // Get the highlight controller to check current usage
+      final highlightController = Get.find<HighlightController>();
+
+      // Get current user to find their highlights
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return 0;
+
+      // For now, we'll count active highlights for this user
+      // This is a simplified implementation - in production, you might want to
+      // cache this or get it from a dedicated method
+      final userHighlights = highlightController.highlights.where(
+        (highlight) => highlight.candidateId == currentUser.uid && highlight.active
+      ).length;
+
+      return userHighlights;
+    } catch (e) {
+      // If controller not found or any error, return 0
+      return 0;
+    }
   }
 }
 

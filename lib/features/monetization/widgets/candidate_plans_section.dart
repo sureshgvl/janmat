@@ -23,7 +23,7 @@ class CandidatePlansSection extends StatelessWidget {
 
   Future<bool> _hasRequiredPlanForHighlights() async {
     try {
-      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for highlights (requires Gold/Platinum)...');
+      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for highlights (requires Platinum)...');
 
       // Ensure user model is loaded
       if (controller.currentUserModel.value == null) {
@@ -31,39 +31,37 @@ class CandidatePlansSection extends StatelessWidget {
         await controller.loadUserStatusData();
       }
 
-      // Check user model for Gold or Platinum plan
+      // Check user model for Platinum plan
       final userModel = controller.currentUserModel.value;
       if (userModel != null) {
-        // Highlight plans require Gold or Platinum plan
+        // Highlight plans require Platinum plan
         final hasAccess = userModel.premium == true &&
-                         (userModel.subscriptionPlanId == 'gold_plan' ||
-                          userModel.subscriptionPlanId == 'platinum_plan');
+                         userModel.subscriptionPlanId == 'platinum_plan';
         AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasAccess=$hasAccess');
 
         if (hasAccess) {
-          AppLogger.monetization('✅ [CandidatePlansSection] User has Gold/Platinum plan - access to highlight plans granted');
+          AppLogger.monetization('✅ [CandidatePlansSection] User has Platinum plan - access to highlight plans granted');
           return true;
         } else {
-          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Gold or Platinum plan for highlights (current: ${userModel.subscriptionPlanId})');
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Platinum plan for highlights (current: ${userModel.subscriptionPlanId})');
           return false;
         }
       }
 
-      // Fallback: check active subscriptions for Gold or Platinum plan
+      // Fallback: check active subscriptions for Platinum plan
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         AppLogger.monetization('❌ [CandidatePlansSection] No current user');
         return false;
       }
 
-      // Check for active Gold or Platinum subscription
+      // Check for active Platinum subscription
       final candidateSubscription = await controller.getActiveSubscription(
         currentUser.uid,
         'candidate',
       );
-      final hasGoldOrPlatinumAccess = candidateSubscription?.isActive == true &&
-                                     (candidateSubscription?.planId == 'gold_plan' ||
-                                      candidateSubscription?.planId == 'platinum_plan');
+      final hasPlatinumAccess = candidateSubscription?.isActive == true &&
+                               candidateSubscription?.planId == 'platinum_plan';
 
       final highlightSubscription = await controller.getActiveSubscription(
         currentUser.uid,
@@ -71,8 +69,8 @@ class CandidatePlansSection extends StatelessWidget {
       );
       final hasHighlightAccess = highlightSubscription?.isActive ?? false;
 
-      final hasAccess = hasGoldOrPlatinumAccess || hasHighlightAccess;
-      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (gold/platinum: $hasGoldOrPlatinumAccess, highlight: ${highlightSubscription?.planId})');
+      final hasAccess = hasPlatinumAccess || hasHighlightAccess;
+      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (platinum: $hasPlatinumAccess, highlight: ${highlightSubscription?.planId})');
       return hasAccess;
     } catch (e) {
       AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
@@ -82,7 +80,7 @@ class CandidatePlansSection extends StatelessWidget {
 
   Future<bool> _hasRequiredPlanForCarousel() async {
     try {
-      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for carousel (requires Gold/Platinum)...');
+      AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for carousel (requires Platinum)...');
 
       // Ensure user model is loaded
       if (controller.currentUserModel.value == null) {
@@ -90,39 +88,37 @@ class CandidatePlansSection extends StatelessWidget {
         await controller.loadUserStatusData();
       }
 
-      // Check user model for Gold or Platinum plan
+      // Check user model for Platinum plan
       final userModel = controller.currentUserModel.value;
       if (userModel != null) {
-        // Carousel plans require Gold or Platinum plan
+        // Carousel plans require Platinum plan
         final hasAccess = userModel.premium == true &&
-                         (userModel.subscriptionPlanId == 'gold_plan' ||
-                          userModel.subscriptionPlanId == 'platinum_plan');
+                         userModel.subscriptionPlanId == 'platinum_plan';
         AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasAccess=$hasAccess');
 
         if (hasAccess) {
-          AppLogger.monetization('✅ [CandidatePlansSection] User has Gold/Platinum plan - access to carousel plans granted');
+          AppLogger.monetization('✅ [CandidatePlansSection] User has Platinum plan - access to carousel plans granted');
           return true;
         } else {
-          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Gold or Platinum plan for carousel (current: ${userModel.subscriptionPlanId})');
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Platinum plan for carousel (current: ${userModel.subscriptionPlanId})');
           return false;
         }
       }
 
-      // Fallback: check active subscriptions for Gold or Platinum plan
+      // Fallback: check active subscriptions for Platinum plan
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         AppLogger.monetization('❌ [CandidatePlansSection] No current user');
         return false;
       }
 
-      // Check for active Gold or Platinum subscription
+      // Check for active Platinum subscription
       final candidateSubscription = await controller.getActiveSubscription(
         currentUser.uid,
         'candidate',
       );
-      final hasGoldOrPlatinumAccess = candidateSubscription?.isActive == true &&
-                                     (candidateSubscription?.planId == 'gold_plan' ||
-                                      candidateSubscription?.planId == 'platinum_plan');
+      final hasPlatinumAccess = candidateSubscription?.isActive == true &&
+                               candidateSubscription?.planId == 'platinum_plan';
 
       final carouselSubscription = await controller.getActiveSubscription(
         currentUser.uid,
@@ -130,8 +126,8 @@ class CandidatePlansSection extends StatelessWidget {
       );
       final hasCarouselAccess = carouselSubscription?.isActive ?? false;
 
-      final hasAccess = hasGoldOrPlatinumAccess || hasCarouselAccess;
-      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (gold/platinum: $hasGoldOrPlatinumAccess, carousel: ${carouselSubscription?.planId})');
+      final hasAccess = hasPlatinumAccess || hasCarouselAccess;
+      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (platinum: $hasPlatinumAccess, carousel: ${carouselSubscription?.planId})');
       return hasAccess;
     } catch (e) {
       AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
@@ -359,18 +355,32 @@ class CandidatePlansSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.blue[200]!),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.visibility, color: Colors.blue[700], size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Professional Highlight Features - Up to 4 banners on home screen (Requires Gold or Platinum Plan)',
-                style: TextStyle(
-                  color: Colors.blue[800],
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+            Row(
+              children: [
+                Icon(Icons.visibility, color: Colors.blue[700], size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Professional Highlight Banner On Home Screen Features',
+                    style: TextStyle(
+                      color: Colors.blue[800],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '• Up to 4 banners on home screen\n• Premium visibility for your campaign\n• Requires Platinum Plan to unlock',
+              style: TextStyle(
+                color: Colors.blue[700],
+                fontSize: 11,
+                height: 1.3,
               ),
             ),
           ],
@@ -406,7 +416,7 @@ class CandidatePlansSection extends StatelessWidget {
             }
           } else {
             AppLogger.monetization('🔒 [CandidatePlansSection] Showing disabled card for highlight plan');
-            return _buildDisabledPlanCard(plan, 'Gold or Platinum');
+            return _buildDisabledPlanCard(plan, 'Platinum');
           }
         },
       ));
@@ -421,6 +431,49 @@ class CandidatePlansSection extends StatelessWidget {
 
   List<Widget> _showCarouselPlans(List<SubscriptionPlan> carouselPlans) {
     final widgets = <Widget>[];
+
+    // Add carousel plans header
+    widgets.add(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.purple[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.purple[200]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.view_carousel, color: Colors.purple[700], size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Carousel Profile on Home Screen',
+                    style: TextStyle(
+                      color: Colors.purple[800],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '• Up to 10 carousel slots on home screen\n• Maximum visibility for your campaign\n• Requires Platinum Plan to unlock',
+              style: TextStyle(
+                color: Colors.purple[700],
+                fontSize: 11,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 
     for (final plan in carouselPlans) {
       widgets.add(FutureBuilder<bool>(
@@ -450,7 +503,7 @@ class CandidatePlansSection extends StatelessWidget {
             }
           } else {
             AppLogger.monetization('🔒 [CandidatePlansSection] Showing disabled card for carousel plan');
-            return _buildDisabledPlanCard(plan, 'Gold or Platinum');
+            return _buildDisabledPlanCard(plan, 'Platinum');
           }
         },
       ));
@@ -509,7 +562,10 @@ class CandidatePlansSection extends StatelessWidget {
         }
       }
 
-      if (basicPlans.isNotEmpty) {
+      // Hide lower tier plans if user has Platinum plan
+      final hasPlatinumPlan = currentPlanId == 'platinum_plan';
+
+      if (basicPlans.isNotEmpty && !hasPlatinumPlan) {
         planWidgets.addAll(_showBasicPlans(basicPlans));
         if (premiumPlans.isNotEmpty || highlightPlans.isNotEmpty) {
           planWidgets.add(const SizedBox(height: 20));
@@ -517,7 +573,11 @@ class CandidatePlansSection extends StatelessWidget {
       }
 
       if (premiumPlans.isNotEmpty) {
-        planWidgets.addAll(_showGoldPlans(premiumPlans));
+        // Show Gold plans only if user doesn't have Platinum
+        if (!hasPlatinumPlan) {
+          planWidgets.addAll(_showGoldPlans(premiumPlans));
+        }
+        // Always show Platinum plans (for upgrades or current status)
         planWidgets.addAll(_showPlatinumPlans(premiumPlans));
       }
 
@@ -551,37 +611,37 @@ class CandidatePlansSection extends StatelessWidget {
       debugWidgets.addAll(planWidgets);
 
       // Debug section (only in debug mode)
-      assert(() {
-        debugWidgets.add(const SizedBox(height: 24));
-        debugWidgets.add(Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '🔍 Debug Info',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Text('Total Plans: ${allPlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Free Plans: ${freePlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Basic Plans: ${basicPlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Premium Plans: ${premiumPlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Highlight Plans: ${highlightPlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Carousel Plans: ${carouselPlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Election Type: $userElectionType', style: const TextStyle(fontSize: 12)),
-              Text('Current Plan: $currentPlanId', style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ));
-        return true;
-      }());
+      // assert(() {
+      //   debugWidgets.add(const SizedBox(height: 24));
+      //   debugWidgets.add(Container(
+      //     padding: const EdgeInsets.all(12),
+      //     margin: const EdgeInsets.symmetric(horizontal: 16),
+      //     decoration: BoxDecoration(
+      //       color: Colors.grey[100],
+      //       borderRadius: BorderRadius.circular(8),
+      //       border: Border.all(color: Colors.grey[300]!),
+      //     ),
+      //     // child: Column(
+      //     //   crossAxisAlignment: CrossAxisAlignment.start,
+      //     //   children: [
+      //     //     const Text(
+      //     //       '🔍 Debug Info',
+      //     //       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      //     //     ),
+      //     //     const SizedBox(height: 8),
+      //     //     Text('Total Plans: ${allPlans.length}', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Free Plans: ${freePlans.length}', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Basic Plans: ${basicPlans.length}', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Premium Plans: ${premiumPlans.length}', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Highlight Plans: ${highlightPlans.length}', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Carousel Plans: ${carouselPlans.length}', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Election Type: $userElectionType', style: const TextStyle(fontSize: 12)),
+      //     //     Text('Current Plan: $currentPlanId', style: const TextStyle(fontSize: 12)),
+      //     //   ],
+      //     // ),
+      //   ));
+      //   return true;
+      // }());
 
       return Column(children: debugWidgets);
     });
