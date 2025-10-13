@@ -506,4 +506,46 @@ class AppLocalizationsMr extends AppLocalizations {
   String locationLabel(Object district, Object ward) {
     return '$district, $ward';
   }
+
+  @override
+  String get selectValidityPeriod => 'वैधता कालावधी निवडा';
+
+  @override
+  String priceForDays(Object days) {
+    return '$days दिवसांसाठी किंमत';
+  }
+
+  @override
+  String purchaseForAmount(Object amount) {
+    return '₹$amount साठी खरेदी करा';
+  }
+
+  @override
+  String purchasePlan(Object planName) {
+    return '$planName खरेदी करा';
+  }
+
+  @override
+  String get electionTypeUpper => 'म्युनिसिपल कॉर्पोरेशन';
+
+  @override
+  String validityDays(Object days) {
+    return 'वैधता: $days दिवस';
+  }
+
+  @override
+  String expiresOn(Object date) {
+    return '$date पर्यंत वैध';
+  }
+
+  @override
+  String amount(Object price) {
+    return 'रक्कम: ₹$price';
+  }
+
+  @override
+  String get securePaymentGateway => 'आपणास आमच्या सुरक्षित पेमेंट गेटवेवर पाठवले जाईल.';
+
+  @override
+  String get proceedToPayment => 'पेमेंटकडे जा';
 }

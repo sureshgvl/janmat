@@ -1036,6 +1036,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{district}, {ward}'**
   String locationLabel(Object district, Object ward);
+
+  /// No description provided for @selectValidityPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Validity Period'**
+  String get selectValidityPeriod;
+
+  /// No description provided for @priceForDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Price for {days} Days'**
+  String priceForDays(Object days);
+
+  /// No description provided for @purchaseForAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase for ₹{amount}'**
+  String purchaseForAmount(Object amount);
+
+  /// No description provided for @purchasePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase {planName}'**
+  String purchasePlan(Object planName);
+
+  /// No description provided for @electionTypeUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'MUNICIPAL CORPORATION'**
+  String get electionTypeUpper;
+
+  /// No description provided for @validityDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Validity: {days} days'**
+  String validityDays(Object days);
+
+  /// No description provided for @expiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid until {date}'**
+  String expiresOn(Object date);
+
+  /// No description provided for @amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount: ₹{price}'**
+  String amount(Object price);
+
+  /// No description provided for @securePaymentGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'You will be redirected to our secure payment gateway.'**
+  String get securePaymentGateway;
+
+  /// No description provided for @proceedToPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed to Payment'**
+  String get proceedToPayment;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

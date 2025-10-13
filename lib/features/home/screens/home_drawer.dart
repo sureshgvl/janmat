@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
+import '../../candidate/controllers/candidate_data_controller.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
 import '../../candidate/screens/my_area_candidates_screen.dart';
@@ -31,144 +32,148 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        physics:
-            const AlwaysScrollableScrollPhysics(), // Ensure always scrollable
-        children: [
-          // Profile Header Section (Scrollable)
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).appBarTheme.backgroundColor,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min, // Allow natural height
-                children: [
-                  const SizedBox(height: 20), // Top padding above profile pic
-                  // Profile Picture at Top
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    backgroundImage:
-                        candidateModel?.photo != null &&
-                            candidateModel!.photo!.isNotEmpty
-                        ? NetworkImage(candidateModel!.photo!)
-                        : userModel?.photoURL != null
-                        ? NetworkImage(userModel!.photoURL!)
-                        : currentUser?.photoURL != null
-                        ? NetworkImage(currentUser!.photoURL!)
-                        : null,
-                    child:
-                        (candidateModel?.photo == null ||
-                                candidateModel!.photo!.isEmpty) &&
-                            userModel?.photoURL == null &&
-                            currentUser?.photoURL == null
-                        ? Text(
-                            ((userModel?.name ??
-                                            currentUser?.displayName ??
-                                            'U')
-                                        .isEmpty
-                                    ? 'U'
-                                    : (userModel?.name ??
-                                          currentUser?.displayName ??
-                                          'U')[0])
-                                .toUpperCase(),
+    return GetBuilder<CandidateDataController>(
+      builder: (candidateController) {
+        final currentCandidateModel = candidateController.candidateData.value;
+
+        return Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            physics:
+                const AlwaysScrollableScrollPhysics(), // Ensure always scrollable
+            children: [
+              // Profile Header Section (Scrollable)
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).appBarTheme.backgroundColor,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, // Allow natural height
+                    children: [
+                      const SizedBox(height: 20), // Top padding above profile pic
+                      // Profile Picture at Top
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        backgroundImage:
+                            candidateModel?.photo != null &&
+                                candidateModel!.photo!.isNotEmpty
+                            ? NetworkImage(candidateModel!.photo!)
+                            : userModel?.photoURL != null
+                            ? NetworkImage(userModel!.photoURL!)
+                            : currentUser?.photoURL != null
+                            ? NetworkImage(currentUser!.photoURL!)
+                            : null,
+                        child:
+                            (candidateModel?.photo == null ||
+                                    candidateModel!.photo!.isEmpty) &&
+                                userModel?.photoURL == null &&
+                                currentUser?.photoURL == null
+                            ? Text(
+                                ((userModel?.name ??
+                                                currentUser?.displayName ??
+                                                'U')
+                                            .isEmpty
+                                        ? 'U'
+                                        : (userModel?.name ??
+                                              currentUser?.displayName ??
+                                              'U')[0])
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 40,
+                                  color: Theme.of(context).appBarTheme.foregroundColor,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      // User Info Below Picture
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Name
+                          Text(
+                            userModel?.role == 'candidate' && candidateModel != null
+                                ? candidateModel!.name
+                                : userModel?.name ?? currentUser?.displayName ?? 'User',
                             style: TextStyle(
-                              fontSize: 40,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
                               color: Theme.of(context).appBarTheme.foregroundColor,
                             ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  // User Info Below Picture
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Name
-                      Text(
-                        userModel?.role == 'candidate' && candidateModel != null
-                            ? candidateModel!.name
-                            : userModel?.name ?? currentUser?.displayName ?? 'User',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).appBarTheme.foregroundColor,
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 4),
-                      // Email/Phone
-                      Text(
-                        userModel?.email ??
-                            currentUser?.email ??
-                            currentUser?.phoneNumber ??
-                            '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: Theme.of(context).appBarTheme.foregroundColor,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      // Plan Badge (only for candidates)
-                      if (userModel?.role == 'candidate') ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 1,
+                          const SizedBox(height: 4),
+                          // Email/Phone
+                          Text(
+                            userModel?.email ??
+                                currentUser?.email ??
+                                currentUser?.phoneNumber ??
+                                '',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Theme.of(context).appBarTheme.foregroundColor,
                             ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                userModel?.premium == true
-                                    ? Icons.star
-                                    : userModel?.isTrialActive == true
-                                    ? Icons.access_time
-                                    : Icons.free_breakfast,
-                                size: 16,
-                                color: Colors.white,
+                          const SizedBox(height: 8),
+                          // Plan Badge (only for candidates)
+                          if (userModel?.role == 'candidate') ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _getPlanDisplayText(userModel!),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).appBarTheme.foregroundColor,
-                                  fontWeight: FontWeight.w600,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  width: 1,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(
-                        height: 16,
-                      ), // Extra space before menu items
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    userModel?.premium == true
+                                        ? Icons.star
+                                        : userModel?.isTrialActive == true
+                                        ? Icons.access_time
+                                        : Icons.free_breakfast,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _getPlanDisplayText(userModel!),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(context).appBarTheme.foregroundColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(
+                            height: 16,
+                          ), // Extra space before menu items
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
           ListTile(
             leading: const Icon(Icons.person),
             title: Text(AppLocalizations.of(context)!.profile),
@@ -193,7 +198,7 @@ class HomeDrawer extends StatelessWidget {
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
             },
           ),
-          if (userModel?.role == 'candidate') ...[
+          if (userModel?.role == 'candidate' && currentCandidateModel != null) ...[
             ListTile(
               leading: const Icon(Icons.dashboard),
               title: Text(AppLocalizations.of(context)!.candidateDashboard),
@@ -211,7 +216,7 @@ class HomeDrawer extends StatelessWidget {
                 Navigator.pop(context); // Close drawer
                 HomeNavigation.toRightToLeft(
                   ChangePartySymbolScreen(
-                    currentCandidate: candidateModel,
+                    currentCandidate: currentCandidateModel,
                   ),
                 );
               },
@@ -323,8 +328,10 @@ class HomeDrawer extends StatelessWidget {
               }
             },
           ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 

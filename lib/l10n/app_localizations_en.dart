@@ -506,4 +506,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String locationLabel(Object district, Object ward) {
     return '$district, $ward';
   }
+
+  @override
+  String get selectValidityPeriod => 'Select Validity Period';
+
+  @override
+  String priceForDays(Object days) {
+    return 'Price for $days Days';
+  }
+
+  @override
+  String purchaseForAmount(Object amount) {
+    return 'Purchase for ₹$amount';
+  }
+
+  @override
+  String purchasePlan(Object planName) {
+    return 'Purchase $planName';
+  }
+
+  @override
+  String get electionTypeUpper => 'MUNICIPAL CORPORATION';
+
+  @override
+  String validityDays(Object days) {
+    return 'Validity: $days days';
+  }
+
+  @override
+  String expiresOn(Object date) {
+    return 'Valid until $date';
+  }
+
+  @override
+  String amount(Object price) {
+    return 'Amount: ₹$price';
+  }
+
+  @override
+  String get securePaymentGateway => 'You will be redirected to our secure payment gateway.';
+
+  @override
+  String get proceedToPayment => 'Proceed to Payment';
 }

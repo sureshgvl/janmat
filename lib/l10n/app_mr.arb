@@ -155,5 +155,15 @@
   "profileUnliked": "प्रोफाइल अनलाइक केले",
   "checkOutCandidateProfile": "{name} चे उमेदवार प्रोफाइल पहा",
   "partyLabel": "{party} ({locale})",
-  "locationLabel": "{district}, {ward}"
+  "locationLabel": "{district}, {ward}",
+  "selectValidityPeriod": "वैधता कालावधी निवडा",
+  "priceForDays": "{days} दिवसांसाठी किंमत",
+  "purchaseForAmount": "₹{amount} साठी खरेदी करा",
+  "purchasePlan": "{planName} खरेदी करा",
+  "electionTypeUpper": "म्युनिसिपल कॉर्पोरेशन",
+  "validityDays": "वैधता: {days} दिवस",
+  "expiresOn": "{date} पर्यंत वैध",
+  "amount": "रक्कम: ₹{price}",
+  "securePaymentGateway": "आपणास आमच्या सुरक्षित पेमेंट गेटवेवर पाठवले जाईल.",
+  "proceedToPayment": "पेमेंटकडे जा"
 }

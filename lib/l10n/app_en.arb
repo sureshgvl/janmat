@@ -155,5 +155,15 @@
   "profileUnliked": "Profile Unliked",
   "checkOutCandidateProfile": "Check out {name}'s candidate profile",
   "partyLabel": "{party} ({locale})",
-  "locationLabel": "{district}, {ward}"
+  "locationLabel": "{district}, {ward}",
+  "selectValidityPeriod": "Select Validity Period",
+  "priceForDays": "Price for {days} Days",
+  "purchaseForAmount": "Purchase for ₹{amount}",
+  "purchasePlan": "Purchase {planName}",
+  "electionTypeUpper": "MUNICIPAL CORPORATION",
+  "validityDays": "Validity: {days} days",
+  "expiresOn": "Valid until {date}",
+  "amount": "Amount: ₹{price}",
+  "securePaymentGateway": "You will be redirected to our secure payment gateway.",
+  "proceedToPayment": "Proceed to Payment"
 }

@@ -89,7 +89,7 @@ class PremiumPlansTab extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Select a validity period to unlock premium features',
+          AppLocalizations.of(context)!.selectValidityPeriod,
           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
       ],
@@ -176,22 +176,22 @@ class PremiumPlansTab extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Purchase ${plan.name}'),
+        title: Text(AppLocalizations.of(context)!.purchasePlan(plan.name)),
         content: Text(
-          'Purchase ${plan.name} for ${userElectionType?.replaceAll('_', ' ').toUpperCase() ?? 'MUNICIPAL CORPORATION'} election?\n\n'
-          'Validity: $validityDays days\n'
-          'Expires: ${expiryDate.toString().split(' ')[0]}\n'
-          'Amount: ₹${price}\n\n'
-          'You will be redirected to our secure payment gateway.',
+          '${AppLocalizations.of(context)!.purchasePlan(plan.name)} ${userElectionType?.replaceAll('_', ' ').toUpperCase() ?? 'MUNICIPAL CORPORATION'}?\n\n'
+          '${AppLocalizations.of(context)!.validityDays(validityDays)}\n'
+          '${AppLocalizations.of(context)!.expiresOn(expiryDate.toString().split(' ')[0])}\n'
+          '${AppLocalizations.of(context)!.amount(price)}\n\n'
+          '${AppLocalizations.of(context)!.securePaymentGateway}',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Proceed to Payment'),
+            child: Text(AppLocalizations.of(context)!.proceedToPayment),
           ),
         ],
       ),
