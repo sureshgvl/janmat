@@ -56,11 +56,8 @@ class CandidateDataController extends GetxController {
 
     isLoading.value = true;
     try {
-      // First check if user has completed their profile
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      // First check if user has completed their profile with retry logic
+      final userDoc = await _fetchUserDocumentWithRetry(user.uid);
 
       if (!userDoc.exists) {
         AppLogger.database('User document not found, skipping candidate data fetch', tag: 'CANDIDATE_CONTROLLER');
@@ -82,23 +79,92 @@ class CandidateDataController extends GetxController {
         return;
       }
 
-      final data = await _candidateRepository.getCandidateData(user.uid);
+      // Try to fetch candidate data with retry logic
+      final data = await _fetchCandidateDataWithRetry(user.uid);
       if (data != null) {
         candidateData.value = data;
         editedData.value = data;
 
-        // Check if user has premium access (sponsored OR in trial)
+        // Check if user has premium access (premium OR sponsored OR in trial)
         final isSponsored = data.sponsored;
         final isInTrial = await _trialService.isTrialActive(user.uid);
-        isPaid.value = isSponsored || isInTrial;
+ 
+        // Check premium status from users collection
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final isPremium = userDoc.exists && userDoc.data()?['premium'] == true;
+ 
+        // Check if highlight plan is active (not expired)
+        final highlightPlanExpiresAt = userDoc.data()?['highlightPlanExpiresAt'];
+        final isHighlightPlanActive = highlightPlanExpiresAt != null &&
+            (highlightPlanExpiresAt is Timestamp
+                ? highlightPlanExpiresAt.toDate().isAfter(DateTime.now())
+                : DateTime.parse(highlightPlanExpiresAt.toString()).isAfter(DateTime.now()));
+ 
+        isPaid.value = isPremium && isHighlightPlanActive;
 
         AppLogger.database('Candidate access check:', tag: 'CANDIDATE_CONTROLLER');
         AppLogger.database('  Sponsored: $isSponsored', tag: 'CANDIDATE_CONTROLLER');
         AppLogger.database('  In Trial: $isInTrial', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Premium: $isPremium', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Highlight Plan Active: $isHighlightPlanActive', tag: 'CANDIDATE_CONTROLLER');
         AppLogger.database('  Has Access: ${isPaid.value}', tag: 'CANDIDATE_CONTROLLER');
+
+        // Update cache with the successful data for future use
+        try {
+          final userCacheService = UserCacheService();
+          await userCacheService.updateCachedUserData({
+            'uid': userData['uid'] ?? '',
+            'name': data.name ?? userData['name'] ?? 'Unknown Candidate',
+            'email': userData['email'],
+            'photoURL': data.photo ?? userData['photo'],
+            'party': data.party ?? userData['party'] ?? 'independent',
+            'districtId': data.districtId ?? userData['districtId'],
+            'bodyId': data.bodyId ?? userData['bodyId'],
+            'wardId': data.wardId ?? userData['wardId'],
+          });
+          AppLogger.database('Updated cache with successful candidate data', tag: 'CANDIDATE_CONTROLLER');
+        } catch (cacheError) {
+          AppLogger.databaseError('Failed to update cache with candidate data', tag: 'CANDIDATE_CONTROLLER', error: cacheError);
+        }
+      } else {
+        // Fallback: Try to use cached user data when Firestore is unavailable
+        await _fallbackToCachedUserData(userData);
+
+        // Update cache with the fallback data for future use
+        try {
+          final userCacheService = UserCacheService();
+          await userCacheService.updateCachedUserData({
+            'uid': userData['uid'] ?? '',
+            'name': userData['name'] ?? 'Unknown Candidate',
+            'email': userData['email'],
+            'photoURL': userData['photo'],
+            'party': userData['party'] ?? 'independent',
+            'districtId': userData['districtId'],
+            'bodyId': userData['bodyId'],
+            'wardId': userData['wardId'],
+          });
+          AppLogger.database('Updated cache with fallback user data', tag: 'CANDIDATE_CONTROLLER');
+        } catch (cacheError) {
+          AppLogger.databaseError('Failed to update cache with fallback data', tag: 'CANDIDATE_CONTROLLER', error: cacheError);
+        }
       }
     } catch (e) {
       AppLogger.databaseError('Error fetching candidate data', tag: 'CANDIDATE_CONTROLLER', error: e);
+
+      // Fallback: Try to use cached user data when Firestore is unavailable
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get(const GetOptions(source: Source.cache));
+
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          await _fallbackToCachedUserData(userData);
+        }
+      } catch (cacheError) {
+        AppLogger.databaseError('Cache fallback also failed', tag: 'CANDIDATE_CONTROLLER', error: cacheError);
+      }
     } finally {
       isLoading.value = false;
     }
@@ -238,7 +304,7 @@ class CandidateDataController extends GetxController {
               enabled: value['enabled'] ?? currentHighlight?.enabled ?? false,
               title: value['callToAction'] ?? currentHighlight?.title ?? 'View Profile',
               message: value['customMessage'] ?? currentHighlight?.message ?? '',
-              imageUrl: currentHighlight?.imageUrl, // Keep existing image
+              imageUrl: value['bannerImageUrl'] ?? value['image_url'] ?? currentHighlight?.imageUrl, // Use banner image from config or keep existing
               priority: value['priorityLevel'] ?? currentHighlight?.priority ?? 'normal',
               expiresAt: currentHighlight?.expiresAt,
               // Banner config fields
@@ -732,61 +798,123 @@ class CandidateDataController extends GetxController {
   // Upload local photos to Firebase before saving
   Future<void> _uploadLocalPhotosToFirebase() async {
     try {
-      final achievements = editedData.value?.extraInfo?.achievements;
-      if (achievements == null) return;
-
       final fileUploadService = _getFileUploadService();
 
-      for (int i = 0; i < achievements.length; i++) {
-        final achievement = achievements[i];
-        if (achievement.photoUrl != null &&
-            fileUploadService.isLocalPath(achievement.photoUrl!)) {
-          AppLogger.database(
-            'Uploading local photo for achievement: ${achievement.title}',
-            tag: 'CANDIDATE_CONTROLLER',
-          );
+      // Upload banner image if it's a local path
+      await _uploadLocalBannerImageToFirebase(fileUploadService);
 
-          try {
-            final firebaseUrl = await fileUploadService
-                .uploadLocalPhotoToFirebase(achievement.photoUrl!);
+      // Upload achievement photos
+      final achievements = editedData.value?.extraInfo?.achievements;
+      if (achievements != null) {
+        for (int i = 0; i < achievements.length; i++) {
+          final achievement = achievements[i];
+          if (achievement.photoUrl != null &&
+              fileUploadService.isLocalPath(achievement.photoUrl!)) {
+            AppLogger.database(
+              'Uploading local photo for achievement: ${achievement.title}',
+              tag: 'CANDIDATE_CONTROLLER',
+            );
 
-            if (firebaseUrl != null) {
-              // Update the achievement with the Firebase URL
-              achievements[i] = achievement.copyWith(photoUrl: firebaseUrl);
+            try {
+              final firebaseUrl = await fileUploadService
+                  .uploadLocalPhotoToFirebase(achievement.photoUrl!);
 
-              // Also update the changed fields if this achievement was modified
-              if (_changedExtraInfoFields.containsKey('achievements')) {
-                final achievementsJson =
-                    _changedExtraInfoFields['achievements'] as List<dynamic>;
-                if (i < achievementsJson.length &&
-                    achievementsJson[i] is Map<String, dynamic>) {
-                  (achievementsJson[i] as Map<String, dynamic>)['photoUrl'] =
-                      firebaseUrl;
+              if (firebaseUrl != null) {
+                // Update the achievement with the Firebase URL
+                achievements[i] = achievement.copyWith(photoUrl: firebaseUrl);
+
+                // Also update the changed fields if this achievement was modified
+                if (_changedExtraInfoFields.containsKey('achievements')) {
+                  final achievementsJson =
+                      _changedExtraInfoFields['achievements'] as List<dynamic>;
+                  if (i < achievementsJson.length &&
+                      achievementsJson[i] is Map<String, dynamic>) {
+                    (achievementsJson[i] as Map<String, dynamic>)['photoUrl'] =
+                        firebaseUrl;
+                  }
                 }
-              }
 
-              AppLogger.database(
-                'Successfully uploaded photo for: ${achievement.title}',
-                tag: 'CANDIDATE_CONTROLLER',
-              );
+                AppLogger.database(
+                  'Successfully uploaded photo for: ${achievement.title}',
+                  tag: 'CANDIDATE_CONTROLLER',
+                );
+              }
+            } catch (e) {
+              AppLogger.databaseError('Failed to upload photo for ${achievement.title}', tag: 'CANDIDATE_CONTROLLER', error: e);
+              // Continue with other photos even if one fails
             }
-          } catch (e) {
-            AppLogger.databaseError('Failed to upload photo for ${achievement.title}', tag: 'CANDIDATE_CONTROLLER', error: e);
-            // Continue with other photos even if one fails
           }
         }
-      }
 
-      // Update the edited data with the new Firebase URLs
-      if (editedData.value?.extraInfo != null) {
-        editedData.value = editedData.value!.copyWith(
-          extraInfo: editedData.value!.extraInfo!.copyWith(
-            achievements: achievements,
-          ),
-        );
+        // Update the edited data with the new Firebase URLs
+        if (editedData.value?.extraInfo != null) {
+          editedData.value = editedData.value!.copyWith(
+            extraInfo: editedData.value!.extraInfo!.copyWith(
+              achievements: achievements,
+            ),
+          );
+        }
       }
     } catch (e) {
       AppLogger.databaseError('Error uploading local photos', tag: 'CANDIDATE_CONTROLLER', error: e);
+    }
+  }
+
+  // Upload local banner image to Firebase
+  Future<void> _uploadLocalBannerImageToFirebase(FileUploadService fileUploadService) async {
+    try {
+      final highlight = editedData.value?.extraInfo?.highlight;
+      if (highlight == null || highlight.imageUrl == null) return;
+
+      if (fileUploadService.isLocalPath(highlight.imageUrl!)) {
+        AppLogger.database(
+          'Uploading local banner image to Firebase',
+          tag: 'CANDIDATE_CONTROLLER',
+        );
+
+        final firebaseUrl = await fileUploadService.uploadLocalPhotoToFirebase(highlight.imageUrl!);
+
+        if (firebaseUrl != null) {
+          // Update the highlight with the Firebase URL
+          final updatedHighlight = HighlightData(
+            enabled: highlight.enabled,
+            title: highlight.title,
+            message: highlight.message,
+            imageUrl: firebaseUrl,
+            priority: highlight.priority,
+            expiresAt: highlight.expiresAt,
+            bannerStyle: highlight.bannerStyle,
+            callToAction: highlight.callToAction,
+            priorityLevel: highlight.priorityLevel,
+            targetLocations: highlight.targetLocations,
+            showAnalytics: highlight.showAnalytics,
+            customMessage: highlight.customMessage,
+          );
+
+          // Update the edited data
+          if (editedData.value?.extraInfo != null) {
+            editedData.value = editedData.value!.copyWith(
+              extraInfo: editedData.value!.extraInfo!.copyWith(
+                highlight: updatedHighlight,
+              ),
+            );
+          }
+
+          // Also update the changed fields if highlight was modified
+          if (_changedExtraInfoFields.containsKey('highlight')) {
+            final highlightJson = _changedExtraInfoFields['highlight'] as Map<String, dynamic>;
+            highlightJson['imageUrl'] = firebaseUrl;
+            highlightJson['image_url'] = firebaseUrl; // Also update the legacy field
+          }
+
+          AppLogger.database(
+            'Successfully uploaded banner image to Firebase: $firebaseUrl',
+            tag: 'CANDIDATE_CONTROLLER',
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.databaseError('Failed to upload banner image to Firebase', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 
@@ -813,11 +941,25 @@ class CandidateDataController extends GetxController {
     try {
       final isSponsored = candidateData.value!.sponsored;
       final isInTrial = await _trialService.isTrialActive(user.uid);
-      isPaid.value = isSponsored || isInTrial;
+
+      // Check premium status from users collection
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final isPremium = userDoc.exists && userDoc.data()?['premium'] == true;
+
+      // Check if highlight plan is active (not expired)
+      final highlightPlanExpiresAt = userDoc.data()?['highlightPlanExpiresAt'];
+      final isHighlightPlanActive = highlightPlanExpiresAt != null &&
+          (highlightPlanExpiresAt is Timestamp
+              ? highlightPlanExpiresAt.toDate().isAfter(DateTime.now())
+              : DateTime.parse(highlightPlanExpiresAt.toString()).isAfter(DateTime.now()));
+
+      isPaid.value = isPremium && isHighlightPlanActive;
 
       AppLogger.database('Refreshed access status:', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('  Sponsored: $isSponsored', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('  In Trial: $isInTrial', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Premium: $isPremium', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Highlight Plan Active: $isHighlightPlanActive', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('  Has Access: ${isPaid.value}', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
       AppLogger.databaseError('Error refreshing access status', tag: 'CANDIDATE_CONTROLLER', error: e);
@@ -910,11 +1052,18 @@ class CandidateDataController extends GetxController {
 
       AppLogger.database('Syncing banner to highlights collection for ${candidate.name}', tag: 'CANDIDATE_CONTROLLER');
 
-      // Check if highlight already exists
+      // Check if highlight already exists in hierarchical structure
       final existingHighlights = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
           .collection('highlights')
           .where('candidateId', isEqualTo: user.uid)
-          .where('locationKey', isEqualTo: '${districtId}_${bodyId}_$wardId')
           .where('placement', arrayContains: 'top_banner')
           .limit(1)
           .get();
@@ -927,6 +1076,14 @@ class CandidateDataController extends GetxController {
         AppLogger.database('Updating existing highlight: $highlightId', tag: 'CANDIDATE_CONTROLLER');
 
         await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra')
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
             .collection('highlights')
             .doc(highlightId)
             .update({
@@ -948,7 +1105,7 @@ class CandidateDataController extends GetxController {
 
         final highlight = {
           'highlightId': highlightId,
-          'candidateId': user.uid,
+          'candidateId': candidate.candidateId, // Use actual candidateId, not userId
           'wardId': wardId,
           'districtId': districtId,
           'bodyId': bodyId,
@@ -963,7 +1120,7 @@ class CandidateDataController extends GetxController {
           'rotation': (config['priorityLevel'] ?? 'normal') != 'urgent',
           'views': 0,
           'clicks': 0,
-          'imageUrl': candidate.photo,
+          'imageUrl': highlightData.imageUrl ?? candidate.photo,
           'candidateName': candidate.name ?? 'Candidate',
           'party': candidate.party ?? 'Party',
           'createdAt': FieldValue.serverTimestamp(),
@@ -976,6 +1133,14 @@ class CandidateDataController extends GetxController {
         };
 
         await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra')
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
             .collection('highlights')
             .doc(highlightId)
             .set(highlight);
@@ -1198,6 +1363,97 @@ class CandidateDataController extends GetxController {
       await _candidateRepository.logAllCandidatesInSystem();
     } catch (e) {
       AppLogger.databaseError('Error in candidate data audit', tag: 'CANDIDATE_CONTROLLER', error: e);
+    }
+  }
+
+  /// Helper method to fetch user document with retry logic
+  Future<DocumentSnapshot<Map<String, dynamic>>> _fetchUserDocumentWithRetry(String userId) async {
+    const maxRetries = 3;
+    const baseDelay = Duration(seconds: 1);
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+      } catch (e) {
+        AppLogger.databaseError('User document fetch attempt $attempt failed', tag: 'CANDIDATE_CONTROLLER', error: e);
+
+        if (attempt == maxRetries) {
+          rethrow;
+        }
+
+        // Exponential backoff
+        final delay = baseDelay * (1 << (attempt - 1)); // 1s, 2s, 4s
+        AppLogger.database('Retrying user document fetch in ${delay.inSeconds}s...', tag: 'CANDIDATE_CONTROLLER');
+        await Future.delayed(delay);
+      }
+    }
+
+    throw Exception('Failed to fetch user document after $maxRetries attempts');
+  }
+
+  /// Helper method to fetch candidate data with retry logic
+  Future<Candidate?> _fetchCandidateDataWithRetry(String userId) async {
+    const maxRetries = 3;
+    const baseDelay = Duration(seconds: 1);
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await _candidateRepository.getCandidateData(userId);
+      } catch (e) {
+        AppLogger.databaseError('Candidate data fetch attempt $attempt failed', tag: 'CANDIDATE_CONTROLLER', error: e);
+
+        if (attempt == maxRetries) {
+          rethrow;
+        }
+
+        // Exponential backoff
+        final delay = baseDelay * (1 << (attempt - 1)); // 1s, 2s, 4s
+        AppLogger.database('Retrying candidate data fetch in ${delay.inSeconds}s...', tag: 'CANDIDATE_CONTROLLER');
+        await Future.delayed(delay);
+      }
+    }
+
+    throw Exception('Failed to fetch candidate data after $maxRetries attempts');
+  }
+
+  /// Fallback method to use cached user data when Firestore is unavailable
+  Future<void> _fallbackToCachedUserData(Map<String, dynamic> userData) async {
+    try {
+      AppLogger.database('Using cached user data fallback', tag: 'CANDIDATE_CONTROLLER');
+
+      // Create a basic candidate object from user data
+      final fallbackCandidate = Candidate(
+        candidateId: userData['uid'] ?? '',
+        userId: userData['uid'] ?? '',
+        name: userData['name'] ?? 'Unknown Candidate',
+        party: userData['party'] ?? 'independent',
+        photo: userData['photo'],
+        districtId: userData['districtId'],
+        bodyId: userData['bodyId'],
+        wardId: userData['wardId'],
+        sponsored: false, // Default to false when offline
+        approved: true, // Assume approved for cached data
+        status: 'active',
+        createdAt: DateTime.now(),
+        contact: Contact(phone: '', email: null, socialLinks: null),
+      );
+
+      candidateData.value = fallbackCandidate;
+      editedData.value = fallbackCandidate;
+
+      // Set basic access (no premium features when offline)
+      isPaid.value = false;
+
+      AppLogger.database('Fallback candidate data loaded successfully', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Name: ${fallbackCandidate.name}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Party: ${fallbackCandidate.party}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  District: ${fallbackCandidate.districtId}', tag: 'CANDIDATE_CONTROLLER');
+
+    } catch (e) {
+      AppLogger.databaseError('Error creating fallback candidate data', tag: 'CANDIDATE_CONTROLLER', error: e);
     }
   }
 }

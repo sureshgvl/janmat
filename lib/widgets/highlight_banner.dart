@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../services/highlight_service.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
 import '../features/candidate/repositories/candidate_repository.dart';
+import '../features/candidate/models/candidate_model.dart' as candidate_model;
 import '../utils/symbol_utils.dart';
 import '../utils/app_logger.dart';
 
@@ -105,20 +106,24 @@ class _HighlightBannerState extends State<HighlightBanner> {
     setState(() => isLoading = true);
 
     try {
-      final banner = await HighlightService.getPlatinumBanner(
-        widget.districtId,
-        widget.bodyId,
-        widget.wardId,
-      );
+      final banner = await _fetchPlatinumBannerWithRetry();
+
+      // If no banner found, set loading to false and return
+      if (banner == null) {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+        return;
+      }
 
       // Fetch candidate data if banner exists
       String? profileImageUrl;
-      if (banner != null && banner.candidateId.isNotEmpty) {
+      if (banner.candidateId.isNotEmpty) {
         try {
-          // Use candidate repository to fetch candidate data (handles hierarchical structure)
+          // Use candidate repository to fetch candidate data with retry logic
           final candidateRepository = CandidateRepository();
           AppLogger.database('Fetching candidate data for ID: ${banner.candidateId}', tag: 'CANDIDATE');
-          final candidate = await candidateRepository.getCandidateDataById(banner.candidateId);
+          final candidate = await _fetchCandidateDataWithRetry(banner.candidateId);
 
           if (candidate != null) {
             // First print all candidate data from Firebase (broken into chunks to avoid truncation)
@@ -145,7 +150,7 @@ class _HighlightBannerState extends State<HighlightBanner> {
 
             AppLogger.database('   ⚙️ STATUS INFO:', tag: 'CANDIDATE');
             AppLogger.database('     sponsored: ${candidate.sponsored}', tag: 'CANDIDATE');
-            AppLogger.database('     premium: ${candidate.premium}', tag: 'CANDIDATE');
+            AppLogger.database('     premium: N/A (removed from candidate model)', tag: 'CANDIDATE');
             AppLogger.database('     approved: ${candidate.approved}', tag: 'CANDIDATE');
             AppLogger.database('     status: ${candidate.status}', tag: 'CANDIDATE');
             AppLogger.database('     createdAt: ${candidate.createdAt}', tag: 'CANDIDATE');
@@ -211,11 +216,43 @@ class _HighlightBannerState extends State<HighlightBanner> {
             AppLogger.database('  candidate.toJson()["party"]: ${candidate.toJson()["party"]}', tag: 'CANDIDATE');
             AppLogger.database('  Raw candidate object: ${candidate.toJson()}', tag: 'CANDIDATE');
           } else {
-            AppLogger.databaseError('Candidate not found for ID: ${banner.candidateId}', tag: 'CANDIDATE');
-            AppLogger.database('  This means getCandidateDataById returned null', tag: 'CANDIDATE');
+            // Candidate not found - skip this banner and try to clean it up
+            AppLogger.database('⛔ 💾❌ [CANDIDATE] Candidate not found for ID: ${banner.candidateId}', tag: 'CANDIDATE');
+            AppLogger.database('  This means getCandidateDataById returned null - skipping banner', tag: 'CANDIDATE');
+
+            // Attempt to deactivate the highlight since candidate doesn't exist
+            try {
+              await HighlightService.updateHighlightStatus(
+                banner.id,
+                false, // Set to inactive
+                districtId: widget.districtId,
+                bodyId: widget.bodyId,
+                wardId: widget.wardId,
+              );
+              AppLogger.database('  ✅ Deactivated highlight ${banner.id} due to missing candidate', tag: 'CANDIDATE');
+            } catch (deactivateError) {
+              AppLogger.databaseError('  ❌ Failed to deactivate highlight ${banner.id}', tag: 'CANDIDATE', error: deactivateError);
+            }
+
+            // Set banner to null so it won't be displayed
+            if (mounted) {
+              setState(() {
+                platinumBanner = null;
+                isLoading = false;
+              });
+            }
+            return;
           }
         } catch (e) {
           AppLogger.databaseError('Error fetching candidate data', tag: 'CANDIDATE', error: e);
+          // On error, also skip the banner
+          if (mounted) {
+            setState(() {
+              platinumBanner = null;
+              isLoading = false;
+            });
+          }
+          return;
         }
       }
 
@@ -226,10 +263,17 @@ class _HighlightBannerState extends State<HighlightBanner> {
       String? priorityLevelConfig;
 
       if (banner != null) {
-        // Get the full document data to access enhanced fields
+        // Get the full document data to access enhanced fields using hierarchical structure
         final snapshot = await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra')
+            .collection('districts')
+            .doc(widget.districtId)
+            .collection('bodies')
+            .doc(widget.bodyId)
+            .collection('wards')
+            .doc(widget.wardId)
             .collection('highlights')
-            .where('locationKey', isEqualTo: '${widget.districtId}_${widget.bodyId}_${widget.wardId}')
             .where('active', isEqualTo: true)
             .where('placement', arrayContains: 'top_banner')
             .orderBy('priority', descending: true)
@@ -605,5 +649,60 @@ class _HighlightBannerState extends State<HighlightBanner> {
         ),
       ),
     );
+  }
+
+  /// Helper method to fetch platinum banner with retry logic
+  Future<Highlight?> _fetchPlatinumBannerWithRetry() async {
+    const maxRetries = 3;
+    const baseDelay = Duration(seconds: 1);
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await HighlightService.getPlatinumBanner(
+          widget.districtId,
+          widget.bodyId,
+          widget.wardId,
+        );
+      } catch (e) {
+        AppLogger.databaseError('Platinum banner fetch attempt $attempt failed', tag: 'CANDIDATE', error: e);
+
+        if (attempt == maxRetries) {
+          rethrow;
+        }
+
+        // Exponential backoff
+        final delay = baseDelay * (1 << (attempt - 1)); // 1s, 2s, 4s
+        AppLogger.database('Retrying platinum banner fetch in ${delay.inSeconds}s...', tag: 'CANDIDATE');
+        await Future.delayed(delay);
+      }
+    }
+
+    throw Exception('Failed to fetch platinum banner after $maxRetries attempts');
+  }
+
+  /// Helper method to fetch candidate data with retry logic
+  Future<candidate_model.Candidate?> _fetchCandidateDataWithRetry(String candidateId) async {
+    const maxRetries = 3;
+    const baseDelay = Duration(seconds: 1);
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final candidateRepository = CandidateRepository();
+        return await candidateRepository.getCandidateDataById(candidateId);
+      } catch (e) {
+        AppLogger.databaseError('Candidate data fetch attempt $attempt failed for ID: $candidateId', tag: 'CANDIDATE', error: e);
+
+        if (attempt == maxRetries) {
+          rethrow;
+        }
+
+        // Exponential backoff
+        final delay = baseDelay * (1 << (attempt - 1)); // 1s, 2s, 4s
+        AppLogger.database('Retrying candidate data fetch in ${delay.inSeconds}s...', tag: 'CANDIDATE');
+        await Future.delayed(delay);
+      }
+    }
+
+    throw Exception('Failed to fetch candidate data after $maxRetries attempts');
   }
 }

@@ -812,6 +812,11 @@ class MonetizationController extends GetxController {
         }
       }
 
+      // For highlight plans, create highlight content
+      if (plan.type == 'highlight') {
+        await _createHighlightPlanContent(userId, planId, electionType, validityDays);
+      }
+
       // Reload data
       await loadUserSubscriptions(userId);
       await loadAnalyticsData();
@@ -898,13 +903,17 @@ class MonetizationController extends GetxController {
       // Get candidate data
       final candidateData = await _getCandidateDataForUser(userId);
       if (candidateData == null) {
+        AppLogger.monetization('❌ No candidate data found for user: $userId');
         return;
       }
+
+      AppLogger.monetization('✅ Found candidate data for Platinum content creation: ${candidateData['candidateId']}');
 
       // Get highlight controller
       final highlightController = Get.find<HighlightController>();
 
-      // Create Platinum highlight
+      // Create Platinum highlight - ensure we use the correct hierarchical path
+      AppLogger.monetization('🔥 Creating Platinum highlight for candidate: ${candidateData['candidateId']}');
       await highlightController.createPlatinumHighlight(
         candidateId: candidateData['candidateId'],
         districtId: candidateData['districtId'],
@@ -924,8 +933,68 @@ class MonetizationController extends GetxController {
             '${candidateData['name']} is now a Platinum member with maximum visibility!',
         imageUrl: candidateData['photo'],
       );
+
+      AppLogger.monetization('✅ Platinum welcome content created successfully');
     } catch (e) {
-      // Error handling
+      AppLogger.monetization('❌ Error creating Platinum welcome content: $e');
+    }
+  }
+
+  // Create content for highlight plans
+  Future<void> _createHighlightPlanContent(String userId, String planId, String? electionType, int validityDays) async {
+    try {
+      // Get candidate data
+      final candidateData = await _getCandidateDataForUser(userId);
+      if (candidateData == null) {
+        AppLogger.monetization('❌ No candidate data found for user: $userId');
+        return;
+      }
+
+      AppLogger.monetization('✅ Found candidate data for highlight plan content creation: ${candidateData['candidateId']}');
+
+      // Get highlight controller
+      final highlightController = Get.find<HighlightController>();
+
+      // Create highlight based on plan type
+      if (planId == 'highlight_plan') {
+        AppLogger.monetization('🔥 Creating highlight plan content for candidate: ${candidateData['candidateId']}');
+
+        // Get highlight config from candidate dashboard
+        Map<String, dynamic>? highlightConfig;
+        if (candidateData['extra_info'] != null &&
+            candidateData['extra_info']['highlight'] != null) {
+          highlightConfig = candidateData['extra_info']['highlight'] as Map<String, dynamic>;
+          AppLogger.monetization('📋 Found highlight config in candidate data: $highlightConfig');
+        }
+
+        await highlightController.createPlatinumHighlight(
+          candidateId: candidateData['candidateId'],
+          districtId: candidateData['districtId'],
+          bodyId: candidateData['bodyId'],
+          wardId: candidateData['wardId'],
+          candidateName: candidateData['name'],
+          party: candidateData['party'] ?? 'Independent',
+          imageUrl: candidateData['photo'],
+          priorityLevel: 'normal', // Default priority for highlight plan
+          validityDays: validityDays, // Use the purchased validity days
+          placement: ['top_banner'], // Only banner for highlight plans
+          highlightConfig: highlightConfig, // Pass the config from dashboard
+        );
+
+        // Create welcome sponsored post
+        await highlightController.createPushFeedItem(
+          candidateId: candidateData['candidateId'],
+          wardId: candidateData['wardId'],
+          title: '🎉 Highlight Plan Activated!',
+          message:
+              '${candidateData['name']} is now visible in highlight banners!',
+          imageUrl: candidateData['photo'],
+        );
+
+        AppLogger.monetization('✅ Highlight plan content created successfully');
+      }
+    } catch (e) {
+      AppLogger.monetization('❌ Error creating highlight plan content: $e');
     }
   }
 

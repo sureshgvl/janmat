@@ -4,6 +4,7 @@ import '../../models/candidate_model.dart';
 import 'highlight_config.dart';
 import 'highlight_sections/enable_section.dart';
 import 'highlight_sections/banner_style_section.dart';
+import 'highlight_sections/banner_image_section.dart';
 import 'highlight_sections/call_to_action_section.dart';
 import 'highlight_sections/priority_section.dart';
 import 'highlight_sections/custom_message_section.dart';
@@ -297,6 +298,19 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                     // This prevents the broken controller update from interfering with UI
                   },
                 );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // Banner Image Upload
+            BannerImageSection(
+              key: ValueKey('banner_image_section_${_config!.bannerImageUrl}_${DateTime.now().millisecondsSinceEpoch}'),
+              config: _config!,
+              isEditing: widget.isEditing,
+              onImageUrlChanged: (imageUrl) {
+                setState(() => _config = _config!.copyWith(bannerImageUrl: imageUrl));
+                // Local state only - sync on save
               },
             ),
 

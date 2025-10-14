@@ -533,7 +533,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
 
     // Check if candidate is premium based on plan permissions
-    bool isPremiumCandidate = candidate!.premium || _hasPremiumBadge;
+    bool isPremiumCandidate = _hasPremiumBadge;
 
     return Scaffold(
       appBar: AppBar(

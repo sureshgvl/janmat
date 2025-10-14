@@ -1,12 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../models/candidate_model.dart';
 import '../highlight_config.dart';
+import '../../../../../services/file_upload_service.dart';
 
 // Preview Section Widget
 // Follows Single Responsibility Principle - handles only banner preview display
 // Matches the exact appearance of HighlightBanner from home screen
 
-class PreviewSection extends StatelessWidget {
+class PreviewSection extends StatefulWidget {
   final HighlightConfig config;
   final Candidate candidate;
 
@@ -15,6 +17,13 @@ class PreviewSection extends StatelessWidget {
     required this.config,
     required this.candidate,
   });
+
+  @override
+  State<PreviewSection> createState() => _PreviewSectionState();
+}
+
+class _PreviewSectionState extends State<PreviewSection> {
+  final FileUploadService _fileUploadService = FileUploadService();
 
   // Helper method to get gradient colors based on banner style
   static List<Color> _getBannerGradient(String? bannerStyle) {
@@ -35,6 +44,18 @@ class PreviewSection extends StatelessWidget {
   // Helper method to get call to action text
   static String _getCallToAction(String? callToAction) {
     return callToAction ?? 'View Profile';
+  }
+
+  // Helper method to get image provider for banner image
+  ImageProvider _getImageProvider(String imageUrl) {
+    if (_fileUploadService.isLocalPath(imageUrl)) {
+      // Local file path
+      final actualPath = imageUrl.replaceFirst('local:', '');
+      return FileImage(File(actualPath));
+    } else {
+      // Firebase URL
+      return NetworkImage(imageUrl);
+    }
   }
 
   @override
@@ -79,30 +100,39 @@ class PreviewSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    // Background with gradient - matches HighlightBanner
+                    // Background with gradient or custom image - matches HighlightBanner
                     Container(
                       height: 192, // Same height as home screen banner
                       width: double.infinity,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: _getBannerGradient(config.bannerStyle),
+                          colors: _getBannerGradient(widget.config.bannerStyle),
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
-                      // Placeholder for background image (would be loaded from config)
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: _getBannerGradient(config.bannerStyle),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 48,
-                          color: Colors.white70,
-                        ),
-                      ),
+                      // Show custom banner image if available, otherwise show gradient with icon
+                      child: widget.config.bannerImageUrl.isNotEmpty
+                          ? Container(
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  image: _getImageProvider(widget.config.bannerImageUrl),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: _getBannerGradient(widget.config.bannerStyle),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 48,
+                                color: Colors.white70,
+                              ),
+                            ),
                     ),
 
                     // Highlight Badge - top left like home screen
@@ -165,7 +195,7 @@ class PreviewSection extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  candidate.name ?? 'Candidate Name',
+                                  widget.candidate.name ?? 'Candidate Name',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 20,
@@ -184,13 +214,13 @@ class PreviewSection extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 // Show custom message or party name
                                 Text(
-                                  config.customMessage.isNotEmpty
-                                      ? '"${config.customMessage}"'
-                                      : candidate.party ?? 'Political Party',
+                                  widget.config.customMessage.isNotEmpty
+                                      ? '"${widget.config.customMessage}"'
+                                      : widget.candidate.party ?? 'Political Party',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.9),
                                     fontSize: 14,
-                                    fontStyle: config.customMessage.isNotEmpty ? FontStyle.italic : FontStyle.normal,
+                                    fontStyle: widget.config.customMessage.isNotEmpty ? FontStyle.italic : FontStyle.normal,
                                     shadows: [
                                       Shadow(
                                         color: Colors.black,
@@ -246,7 +276,7 @@ class PreviewSection extends StatelessWidget {
                   elevation: 0,
                 ),
                 child: Text(
-                  _getCallToAction(config.callToAction),
+                  _getCallToAction(widget.config.callToAction),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

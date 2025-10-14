@@ -14,6 +14,7 @@ class HighlightRepository {
     try {
       // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
       AppLogger.common('🎠 HighlightRepository: Fetching highlights for ward: $districtId/$bodyId/$wardId');
+      AppLogger.common('🔍 Query: active=true, ordered by lastShown ASC, priority DESC, limit=10');
 
       final snapshot = await _firestore
           .collection('states')
@@ -38,6 +39,13 @@ class HighlightRepository {
 
       if (highlights.isNotEmpty) {
         AppLogger.common('🎠 HighlightRepository: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
+        AppLogger.common('📊 Highlights summary:');
+        for (var i = 0; i < highlights.length; i++) {
+          final h = highlights[i];
+          AppLogger.common('   ${i+1}. ${h.candidateName} (${h.id}) - Priority: ${h.priority}, Placement: ${h.placement}');
+        }
+      } else {
+        AppLogger.common('🎠 HighlightRepository: No active highlights found for $districtId/$bodyId/$wardId');
       }
 
       return highlights;
@@ -56,6 +64,7 @@ class HighlightRepository {
     try {
       // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
       AppLogger.common('🏷️ HighlightRepository: Fetching platinum banner for ward: $districtId/$bodyId/$wardId');
+      AppLogger.common('🔍 Query: active=true AND placement contains "top_banner"');
 
       final snapshot = await _firestore
           .collection('states')
@@ -78,10 +87,13 @@ class HighlightRepository {
       if (snapshot.docs.isNotEmpty) {
         final banner = Highlight.fromJson(snapshot.docs.first.data());
         AppLogger.common('🏷️ HighlightRepository: Platinum banner - ID: ${banner.id}, Candidate: ${banner.candidateName}');
+        AppLogger.common('📊 Banner details: Package=${banner.package}, Priority=${banner.priority}, Active=${banner.active}');
+        AppLogger.common('📍 Placement: ${banner.placement}');
         return banner;
       }
 
       AppLogger.common('🏷️ HighlightRepository: No platinum banner found for $districtId/$bodyId/$wardId');
+      AppLogger.common('💡 Possible reasons: No highlights with top_banner placement, or all inactive');
       return null;
     } catch (e) {
       AppLogger.commonError('❌ HighlightRepository: Error fetching platinum banner', error: e);
@@ -140,11 +152,30 @@ class HighlightRepository {
   // Create new highlight
   Future<String?> createHighlight(Highlight highlight) async {
     try {
+      AppLogger.common('💾 HighlightRepository: Creating highlight ${highlight.id}');
+      AppLogger.common('📍 Location: ${highlight.districtId}/${highlight.bodyId}/${highlight.wardId}');
+      AppLogger.common('👤 Candidate: ${highlight.candidateName} (${highlight.candidateId})');
+      AppLogger.common('📦 Package: ${highlight.package}, Placement: ${highlight.placement}');
+      AppLogger.common('🔥 Active: ${highlight.active}, Priority: ${highlight.priority}');
+
+      // Save to hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights/{highlightId}
+      final path = 'states/maharashtra/districts/${highlight.districtId}/bodies/${highlight.bodyId}/wards/${highlight.wardId}/highlights/${highlight.id}';
+      AppLogger.common('🔗 Firestore path: $path');
+
       await _firestore
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(highlight.districtId)
+          .collection('bodies')
+          .doc(highlight.bodyId)
+          .collection('wards')
+          .doc(highlight.wardId)
           .collection('highlights')
           .doc(highlight.id)
           .set(highlight.toJson());
 
+      AppLogger.common('✅ HighlightRepository: Successfully created highlight ${highlight.id}');
       return highlight.id;
     } catch (e) {
       AppLogger.commonError('❌ HighlightRepository: Error creating highlight', error: e);
@@ -192,13 +223,33 @@ class HighlightRepository {
   // Update highlight status
   Future<void> updateHighlightStatus(
     String highlightId,
-    bool active,
-  ) async {
+    bool active, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      await _firestore
-          .collection('highlights')
-          .doc(highlightId)
-          .update({'active': active});
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        await _firestore
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'active': active});
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        await _firestore
+            .collection('highlights')
+            .doc(highlightId)
+            .update({'active': active});
+      }
     } catch (e) {
       AppLogger.commonError('❌ HighlightRepository: Error updating highlight status', error: e);
     }
@@ -227,6 +278,9 @@ class HighlightRepository {
   // Update existing highlight with enhanced configuration
   Future<bool> updateHighlightConfig({
     required String highlightId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
     String? bannerStyle,
     String? callToAction,
     String? priorityLevel,
@@ -249,10 +303,27 @@ class HighlightRepository {
       if (showAnalytics != null) updates['showAnalytics'] = showAnalytics;
 
       if (updates.isNotEmpty) {
-        await _firestore
-            .collection('highlights')
-            .doc(highlightId)
-            .update(updates);
+        // If location info is provided, use hierarchical path
+        if (districtId != null && bodyId != null && wardId != null) {
+          await _firestore
+              .collection('states')
+              .doc('maharashtra') // TODO: Make dynamic
+              .collection('districts')
+              .doc(districtId)
+              .collection('bodies')
+              .doc(bodyId)
+              .collection('wards')
+              .doc(wardId)
+              .collection('highlights')
+              .doc(highlightId)
+              .update(updates);
+        } else {
+          // Fallback: try to find in old structure (for backward compatibility)
+          await _firestore
+              .collection('highlights')
+              .doc(highlightId)
+              .update(updates);
+        }
 
         AppLogger.common('✅ HighlightRepository: Updated highlight $highlightId with ${updates.length} changes');
         return true;
@@ -265,16 +336,78 @@ class HighlightRepository {
     }
   }
 
-  // Get highlight configuration for editing
-  Future<Map<String, dynamic>?> getHighlightConfig(String highlightId) async {
+  // Update entire highlight document
+  Future<bool> updateHighlight(Highlight highlight) async {
     try {
-      final doc = await _firestore
-          .collection('highlights')
-          .doc(highlightId)
-          .get();
+      AppLogger.common('🔄 HighlightRepository: Updating entire highlight ${highlight.id}');
+      AppLogger.common('📍 Location: ${highlight.districtId}/${highlight.bodyId}/${highlight.wardId}');
+      AppLogger.common('👤 Candidate: ${highlight.candidateName} (${highlight.candidateId})');
 
-      if (doc.exists) {
-        return doc.data();
+      // Add enhanced metadata for Platinum features
+      final enhancedData = highlight.toJson();
+      // These would be passed in the highlight object if needed
+      // enhancedData['bannerStyle'] = bannerStyle;
+      // enhancedData['callToAction'] = callToAction;
+      // enhancedData['priorityLevel'] = priorityLevel;
+      // enhancedData['customMessage'] = customMessage;
+
+      // Update in hierarchical structure
+      await _firestore
+          .collection('states')
+          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .collection('districts')
+          .doc(highlight.districtId)
+          .collection('bodies')
+          .doc(highlight.bodyId)
+          .collection('wards')
+          .doc(highlight.wardId)
+          .collection('highlights')
+          .doc(highlight.id)
+          .set(enhancedData, SetOptions(merge: true)); // Use merge to update existing
+
+      AppLogger.common('✅ HighlightRepository: Successfully updated highlight ${highlight.id}');
+      return true;
+    } catch (e) {
+      AppLogger.commonError('❌ HighlightRepository: Error updating highlight', error: e);
+      return false;
+    }
+  }
+
+  // Get highlight configuration for editing
+  Future<Map<String, dynamic>?> getHighlightConfig(String highlightId, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
+    try {
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        final doc = await _firestore
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .get();
+
+        if (doc.exists) {
+          return doc.data();
+        }
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        final doc = await _firestore
+            .collection('highlights')
+            .doc(highlightId)
+            .get();
+
+        if (doc.exists) {
+          return doc.data();
+        }
       }
       return null;
     } catch (e) {

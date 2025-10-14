@@ -164,6 +164,7 @@ class HighlightService {
       // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
       AppLogger.common('🎠 HighlightService: Fetching highlights for ward: $districtId/$bodyId/$wardId');
 
+      final now = DateTime.now();
       final snapshot = await FirebaseFirestore.instance
           .collection('states')
           .doc('maharashtra') // TODO: Make dynamic based on user location
@@ -175,47 +176,25 @@ class HighlightService {
           .doc(wardId)
           .collection('highlights')
           .where('active', isEqualTo: true)
-          .orderBy('lastShown', descending: false)
-          .orderBy('priority', descending: true)
-          .limit(20) // Fetch more to filter premium candidates
+          .orderBy('priority', descending: true) // Single orderBy to avoid composite index
+          .limit(10) // Limit to 10 directly since all are premium
           .get();
 
-      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} potential highlights, filtering for premium candidates...');
+      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} potential highlights, filtering by expiry...');
 
-      final premiumHighlights = <Highlight>[];
+      // Filter expired highlights manually (simpler than complex query)
+      final highlights = snapshot.docs
+          .map((doc) => Highlight.fromJson(doc.data()))
+          .where((highlight) => highlight.endDate.isAfter(now))
+          .toList();
 
-      // Filter highlights to only include premium candidates
-      for (final doc in snapshot.docs) {
-        final highlight = Highlight.fromJson(doc.data());
-        AppLogger.common('🔍 Checking candidate ${highlight.candidateId} premium status');
+      AppLogger.common('🎠 HighlightService: Found ${highlights.length} active premium highlights after expiry filter');
 
-        // Check if candidate has premium status
-        final candidateDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(highlight.candidateId)
-            .get();
-
-        if (candidateDoc.exists) {
-          final candidateData = candidateDoc.data()!;
-          final isPremium = candidateData['premium'] == true;
-
-          AppLogger.common('✅ Candidate ${highlight.candidateName}: premium=$isPremium');
-
-          if (isPremium) {
-            premiumHighlights.add(highlight);
-          }
-        } else {
-          AppLogger.common('⚠️ Candidate ${highlight.candidateId} not found in users collection');
-        }
+      if (highlights.isNotEmpty) {
+        AppLogger.common('🎠 HighlightService: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
       }
 
-      AppLogger.common('🎠 HighlightService: Returning ${premiumHighlights.length} premium highlights for $districtId/$bodyId/$wardId');
-
-      if (premiumHighlights.isNotEmpty) {
-        AppLogger.common('🎠 HighlightService: First highlight - ID: ${premiumHighlights.first.id}, Candidate: ${premiumHighlights.first.candidateName}');
-      }
-
-      return premiumHighlights.take(10).toList(); // Return max 10
+      return highlights;
     } catch (e) {
       AppLogger.commonError('❌ HighlightService: Error fetching highlights', error: e);
       return [];
@@ -232,6 +211,7 @@ class HighlightService {
       // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
       AppLogger.common('🏷️ HighlightService: Fetching platinum banner for ward: $districtId/$bodyId/$wardId');
 
+      final now = DateTime.now();
       final snapshot = await FirebaseFirestore.instance
           .collection('states')
           .doc('maharashtra') // TODO: Make dynamic based on user location
@@ -244,36 +224,25 @@ class HighlightService {
           .collection('highlights')
           .where('active', isEqualTo: true)
           .where('placement', arrayContains: 'top_banner')
-          .orderBy('priority', descending: true)
-          .limit(10) // Fetch more to filter premium candidates
+          .orderBy('priority', descending: true) // Single orderBy to avoid composite index requirement
+          .limit(4) // Max 4 banners, rotate every 3 seconds
           .get();
 
-      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} potential banners, filtering for premium candidates...');
+      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} potential banners, filtering by expiry...');
 
-      // Filter highlights to only include premium candidates
-      for (final doc in snapshot.docs) {
-        final highlight = Highlight.fromJson(doc.data());
-        AppLogger.common('🔍 Checking candidate ${highlight.candidateId} premium status');
+      // Filter expired highlights manually (simpler than complex query)
+      final validBanners = snapshot.docs
+          .map((doc) => Highlight.fromJson(doc.data()))
+          .where((highlight) => highlight.endDate.isAfter(now))
+          .toList();
 
-        // Check if candidate has premium status
-        final candidateDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(highlight.candidateId)
-            .get();
+      AppLogger.common('🏷️ HighlightService: Found ${validBanners.length} active premium banners after expiry filter');
 
-        if (candidateDoc.exists) {
-          final candidateData = candidateDoc.data()!;
-          final isPremium = candidateData['premium'] == true;
-
-          AppLogger.common('✅ Candidate ${highlight.candidateName}: premium=$isPremium');
-
-          if (isPremium) {
-            AppLogger.common('🏷️ HighlightService: Found premium banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}');
-            return highlight;
-          }
-        } else {
-          AppLogger.common('⚠️ Candidate ${highlight.candidateId} not found in users collection');
-        }
+      if (validBanners.isNotEmpty) {
+        // Return first banner (they will rotate on frontend)
+        final highlight = validBanners.first;
+        AppLogger.common('🏷️ HighlightService: Returning banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}');
+        return highlight;
       }
 
       AppLogger.common('🏷️ HighlightService: No premium platinum banner found for $districtId/$bodyId/$wardId');
@@ -550,6 +519,8 @@ class HighlightService {
     String callToAction = 'View Profile',
     String priorityLevel = 'normal',
     String? customMessage,
+    int validityDays = 7, // Default to 7 days for highlight plans
+    List<String> placement = const ['top_banner'], // Default to banner only for highlight plans
   }) async {
     try {
       AppLogger.common('🏆 HighlightService: Creating Platinum highlight for $candidateName');
@@ -568,10 +539,10 @@ class HighlightService {
         bodyId: bodyId,
         locationKey: locationKey,
         package: 'platinum', // Platinum package
-        placement: ['carousel', 'top_banner'], // Show in both carousel and banner
+        placement: placement, // Use provided placement
         priority: priorityValue,
         startDate: DateTime.now().subtract(const Duration(days: 1)),
-        endDate: DateTime.now().add(const Duration(days: 365)), // 1 year validity
+        endDate: DateTime.now().add(Duration(days: validityDays)), // Use provided validity
         active: true,
         exclusive: priorityLevel == 'urgent', // Urgent gets exclusive placement
         rotation: priorityLevel != 'urgent', // Don't rotate urgent items
@@ -606,6 +577,7 @@ class HighlightService {
 
       AppLogger.common('✅ HighlightService: Created Platinum highlight $highlightId for $candidateName');
       AppLogger.common('   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
+      AppLogger.common('   Validity: $validityDays days, Placement: $placement');
       return highlightId;
     } catch (e) {
       AppLogger.commonError('❌ HighlightService: Error creating Platinum highlight', error: e);

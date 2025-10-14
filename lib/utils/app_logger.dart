@@ -600,6 +600,22 @@ class AppLogger {
     _logger.w('⚠️ ${tag != null ? '[$tag] ' : ''}$message');
   }
 
+  // Section timing for performance monitoring
+  static Stopwatch startSectionTimer(String sectionName, {String? tag}) {
+    common('▶️ STARTING: $sectionName', tag: tag ?? 'TIMER');
+    return Stopwatch()..start();
+  }
+
+  static void endSectionTimer(String sectionName, Stopwatch timer, {String? tag, String? details}) {
+    timer.stop();
+    final timeMs = timer.elapsedMilliseconds;
+    final emoji = timeMs > 1000 ? '🐌' : timeMs > 500 ? '⚠️' : '✅';
+    final message = '$sectionName completed in ${timeMs}ms${details != null ? ' ($details)' : ''}';
+    if (_showPerformanceLogs) {
+      _logger.d('⚡ ${tag != null ? '[$tag] ' : ''}$emoji $message');
+    }
+  }
+
   // Debug logs (only in debug mode)
   static void debug(String message, {String? tag}) {
     if (kDebugMode) {

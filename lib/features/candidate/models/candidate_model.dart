@@ -705,7 +705,6 @@ class Candidate {
   final String? coverPhoto; // Premium feature: Facebook-style cover photo
   final Contact contact;
   final bool sponsored;
-  final bool premium; // Premium candidate features
   final DateTime createdAt;
   final ExtraInfo? extraInfo;
   final int followersCount;
@@ -729,7 +728,6 @@ class Candidate {
     this.coverPhoto,
     required this.contact,
     required this.sponsored,
-    required this.premium,
     required this.createdAt,
     this.extraInfo,
     this.followersCount = 0,
@@ -766,7 +764,6 @@ class Candidate {
       coverPhoto: json['coverPhoto'],
       contact: Contact.fromJson(json['contact'] ?? {}),
       sponsored: json['sponsored'] ?? false,
-      premium: json['premium'] ?? false,
       createdAt: createdAt,
       extraInfo: json['extra_info'] != null
           ? ExtraInfo.fromJson(json['extra_info'])
@@ -795,7 +792,6 @@ class Candidate {
       'coverPhoto': coverPhoto,
       'contact': contact.toJson(),
       'sponsored': sponsored,
-      'premium': premium,
       'createdAt': createdAt.toIso8601String(),
       'extra_info': extraInfo?.toJson(),
       'followersCount': followersCount,
@@ -821,7 +817,6 @@ class Candidate {
     String? coverPhoto,
     Contact? contact,
     bool? sponsored,
-    bool? premium,
     DateTime? createdAt,
     ExtraInfo? extraInfo,
     int? followersCount,
@@ -845,7 +840,6 @@ class Candidate {
       coverPhoto: coverPhoto ?? this.coverPhoto,
       contact: contact ?? this.contact,
       sponsored: sponsored ?? this.sponsored,
-      premium: premium ?? this.premium,
       createdAt: createdAt ?? this.createdAt,
       extraInfo: extraInfo ?? this.extraInfo,
       followersCount: followersCount ?? this.followersCount,

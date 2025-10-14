@@ -46,10 +46,20 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if request.auth != null &&
         (request.auth.uid == resource.data.candidateId ||
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
       allow write: if request.auth != null &&
         request.auth.uid == resource.data.candidateId;
+    }
+
+    // 🏆 HIGHLIGHTS COLLECTION - LEGACY FLAT STRUCTURE (for backward compatibility)
+    match /highlights/{highlightId} {
+      allow read: if true; // Public read for highlights
+      allow write: if request.auth != null; // Authenticated users can create
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.candidateId ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
 
     // Users collection

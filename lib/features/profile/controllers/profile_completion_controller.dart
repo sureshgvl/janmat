@@ -1005,7 +1005,6 @@ class ProfileCompletionController extends GetxController {
           email: FirebaseAuth.instance.currentUser!.email,
         ),
         sponsored: false,
-        premium: false,
         createdAt: DateTime.now(),
         manifesto: null,
         extraInfo: ExtraInfo(
@@ -1140,7 +1139,6 @@ class ProfileCompletionController extends GetxController {
         xpPoints: 0,
         premium: false,
         subscriptionPlanId: 'free_plan',
-        subscriptionExpiresAt: DateTime(9999, 12, 31), // Never expires
         createdAt: DateTime.now(),
         photoURL: currentUser.photoURL,
       );

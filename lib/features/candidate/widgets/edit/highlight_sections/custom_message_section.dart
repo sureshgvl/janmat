@@ -5,7 +5,7 @@ import '../highlight_helpers.dart';
 // Custom Message Section Widget
 // Follows Single Responsibility Principle - handles only custom message input
 
-class CustomMessageSection extends StatelessWidget {
+class CustomMessageSection extends StatefulWidget {
   final HighlightConfig config;
   final bool isEditing;
   final ValueChanged<String> onMessageChanged;
@@ -16,6 +16,36 @@ class CustomMessageSection extends StatelessWidget {
     required this.isEditing,
     required this.onMessageChanged,
   });
+
+  @override
+  State<CustomMessageSection> createState() => _CustomMessageSectionState();
+}
+
+class _CustomMessageSectionState extends State<CustomMessageSection> {
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.config.customMessage);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(CustomMessageSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config.customMessage != widget.config.customMessage) {
+      _controller.text = widget.config.customMessage;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +82,10 @@ class CustomMessageSection extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
             ),
             const SizedBox(height: 16),
-            if (isEditing)
+            if (widget.isEditing)
               TextFormField(
-                initialValue: config.customMessage,
+                controller: _controller,
+                focusNode: _focusNode,
                 maxLength: 100,
                 maxLines: 2,
                 decoration: const InputDecoration(
@@ -62,9 +93,14 @@ class CustomMessageSection extends StatelessWidget {
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.all(12),
                 ),
-                onChanged: onMessageChanged,
+                onChanged: widget.onMessageChanged,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  // Unfocus when done to prevent keyboard issues
+                  _focusNode.unfocus();
+                },
               )
-            else if (config.customMessage.isNotEmpty)
+            else if (widget.config.customMessage.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -72,7 +108,7 @@ class CustomMessageSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '"${config.customMessage}"',
+                  '"${widget.config.customMessage}"',
                   style: const TextStyle(
                     fontSize: 14,
                     fontStyle: FontStyle.italic,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/app_logger.dart';
@@ -7,6 +8,7 @@ import '../../../widgets/highlight_banner.dart';
 import '../../../widgets/highlight_carousel.dart';
 import '../../../services/district_promotion_service.dart';
 import '../../../models/district_promotion_model.dart';
+import '../../candidate/screens/candidate_dashboard_screen.dart';
 import 'home_widgets.dart';
 import 'feed_widgets.dart';
 class HomeSections {
@@ -46,6 +48,9 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
 
   @override
   Widget build(BuildContext context) {
+    // Start performance timing for entire home screen build
+    final homeBuildTimer = AppLogger.startSectionTimer('Home Screen Build', tag: 'HOME_PERF');
+
     // Get location data for highlights
     final locationData = _getLocationData();
     AppLogger.ui('HomeBodyContent: Using location - ${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}', tag: 'HOME');
@@ -55,52 +60,113 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // SECTION 1: PLATINUM BANNER (Conditional)
-          HighlightBanner(
-            districtId: locationData['districtId']!,
-            bodyId: locationData['bodyId']!,
-            wardId: locationData['wardId']!,
-            showViewMoreButton: true,
-          ),
-
-          // SECTION 2: HIGHLIGHT CAROUSEL
-          HighlightCarousel(
-            districtId: locationData['districtId']!,
-            bodyId: locationData['bodyId']!,
-            wardId: locationData['wardId']!,
-          ),
-
-          // SECTION 2.5: DISTRICT PROMOTION BANNER
-          FutureBuilder<DistrictPromotion?>(
-            future: DistrictPromotionService.getActivePromotionForDistrict(locationData['districtId']!),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SizedBox.shrink();
-              }
-
-              if (snapshot.hasData && snapshot.data != null) {
-                final promotion = snapshot.data!;
-                return _buildDistrictPromotionBanner(context, promotion);
-              }
-
+          // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+          // Start Highlight Section
+          Builder(
+            builder: (context) {
+              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'HIGHLIGHT_SECTION');
+              AppLogger.common('Start Highlight Section', tag: 'HIGHLIGHT_SECTION');
               return const SizedBox.shrink();
             },
           ),
 
+          // SECTION 1: PLATINUM BANNER (Conditional)
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Platinum Banner...', tag: 'HIGHLIGHT_SECTION');
+              return HighlightBanner(
+                districtId: locationData['districtId']!,
+                bodyId: locationData['bodyId']!,
+                wardId: locationData['wardId']!,
+                showViewMoreButton: true,
+              );
+            },
+          ),
+
+          // SECTION 2: HIGHLIGHT CAROUSEL
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Highlight Carousel...', tag: 'HIGHLIGHT_SECTION');
+              return HighlightCarousel(
+                districtId: locationData['districtId']!,
+                bodyId: locationData['bodyId']!,
+                wardId: locationData['wardId']!,
+              );
+            },
+          ),
+
+          Builder(
+            builder: (context) {
+              AppLogger.common('End Highlight Section', tag: 'HIGHLIGHT_SECTION');
+              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'HIGHLIGHT_SECTION');
+              return const SizedBox.shrink();
+            },
+          ),
+
+          // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+          // Start Feed Section
+          Builder(
+            builder: (context) {
+              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'FEED_SECTION');
+              AppLogger.common('Start Feed Section', tag: 'FEED_SECTION');
+              return const SizedBox.shrink();
+            },
+          ),
+
+          // SECTION 2.5: DISTRICT PROMOTION BANNER
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading District Promotion Banner...', tag: 'FEED_SECTION');
+              return FutureBuilder<DistrictPromotion?>(
+                future: DistrictPromotionService.getActivePromotionForDistrict(locationData['districtId']!),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox.shrink();
+                  }
+
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final promotion = snapshot.data!;
+                    return _buildDistrictPromotionBanner(context, promotion);
+                  }
+
+                  return const SizedBox.shrink();
+                },
+              );
+            },
+          ),
+
           // SECTION 3: PUSH FEED CARDS
-          _feedWidgets.buildPushFeedSection(
-            context,
-            widget.userModel,
-            widget.candidateModel,
-            locationData,
-            _showCreatePostDialog,
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Push Feed Cards...', tag: 'FEED_SECTION');
+              return _feedWidgets.buildPushFeedSection(
+                context,
+                widget.userModel,
+                widget.candidateModel,
+                locationData,
+                _showCreatePostDialog,
+              );
+            },
           ),
 
           // SECTION 4: NORMAL FEED
-          _feedWidgets.buildNormalFeedSection(
-            context,
-            locationData,
-            _showCreatePostDialog,
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Normal Feed...', tag: 'FEED_SECTION');
+              return _feedWidgets.buildNormalFeedSection(
+                context,
+                locationData,
+                _showCreatePostDialog,
+              );
+            },
+          ),
+
+          Builder(
+            builder: (context) {
+              AppLogger.common('End Feed Section', tag: 'FEED_SECTION');
+              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'FEED_SECTION');
+              return const SizedBox.shrink();
+            },
           ),
 
           // SECTION 5: EVENT CARD
@@ -109,36 +175,83 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
           // SECTION 6: POLL CARD
           //EventPollWidgets.buildPollCard(context),
 
+          // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+          // Start Static Sections
+          Builder(
+            builder: (context) {
+              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'STATIC_SECTIONS');
+              AppLogger.common('Start Static Sections', tag: 'STATIC_SECTIONS');
+              return const SizedBox.shrink();
+            },
+          ),
+
           // ===== EXISTING SECTIONS =====
           // Welcome Section
-          HomeWidgets.buildWelcomeSection(
-            context,
-            widget.userModel,
-            widget.currentUser,
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Welcome Section...', tag: 'STATIC_SECTIONS');
+              return HomeWidgets.buildWelcomeSection(
+                context,
+                widget.userModel,
+                widget.currentUser,
+              );
+            },
           ),
 
           // Trial Status Banner (only for candidates with active trials)
           if (widget.userModel?.role == 'candidate' &&
-              widget.userModel?.isTrialActive == true)
-            HomeWidgets.buildTrialBanner(context, widget.userModel!),
+              widget.userModel?.isTrialActive == true) ...[
+            Builder(
+              builder: (context) {
+                AppLogger.common('Loading Trial Status Banner...', tag: 'STATIC_SECTIONS');
+                return HomeWidgets.buildTrialBanner(context, widget.userModel!);
+              },
+            ),
+          ],
 
           const SizedBox(height: 32),
 
           // Premium Features Card
-          HomeWidgets.buildPremiumCard(context, widget.userModel),
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Premium Features Card...', tag: 'STATIC_SECTIONS');
+              return HomeWidgets.buildPremiumCard(context, widget.userModel);
+            },
+          ),
 
           const SizedBox(height: 32),
 
           // Quick Actions
-          HomeWidgets.buildQuickActions(context),
+          Builder(
+            builder: (context) {
+              AppLogger.common('Loading Quick Actions...', tag: 'STATIC_SECTIONS');
+              return HomeWidgets.buildQuickActions(context);
+            },
+          ),
+
+          Builder(
+            builder: (context) {
+              AppLogger.common('End Static Sections', tag: 'STATIC_SECTIONS');
+              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'STATIC_SECTIONS');
+              return const SizedBox.shrink();
+            },
+          ),
 
           if (widget.userModel?.role == 'candidate') ...[
             const SizedBox(height: 32),
-            _buildCandidateDashboard(context),
+            Builder(
+              builder: (context) {
+                AppLogger.common('Loading Candidate Dashboard...', tag: 'STATIC_SECTIONS');
+                return _buildCandidateDashboard(context);
+              },
+            ),
           ],
         ],
       ),
     );
+
+    // End performance timing
+    AppLogger.endSectionTimer('Home Screen Build', homeBuildTimer, tag: 'HOME_PERF');
   }
 
   Map<String, String> _getLocationData() {
@@ -230,6 +343,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
               // Navigate to candidate dashboard
+              Get.to(() => const CandidateDashboardScreen());
             },
           ),
         ),
