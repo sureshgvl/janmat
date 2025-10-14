@@ -32,6 +32,7 @@ class CandidateDataController extends GetxController {
   // Change tracking for field-level updates
   final Map<String, dynamic> _changedFields = {};
   final Map<String, dynamic> _changedExtraInfoFields = {};
+  final Map<String, dynamic> _changedCandidateFields = {};
 
   @override
   void onInit() {
@@ -112,10 +113,15 @@ class CandidateDataController extends GetxController {
     _changedExtraInfoFields[field] = value;
   }
 
+  void trackCandidateFieldChange(String field, dynamic value) {
+    _changedCandidateFields[field] = value;
+  }
+
   // Clear change tracking
   void clearChangeTracking() {
     _changedFields.clear();
     _changedExtraInfoFields.clear();
+    _changedCandidateFields.clear();
   }
 
   void updateExtraInfo(String field, dynamic value) {
@@ -470,6 +476,9 @@ class CandidateDataController extends GetxController {
     editedData.value = editedData.value!.copyWith(photo: photoUrl);
     candidateData.value = candidateData.value?.copyWith(photo: photoUrl);
 
+    // Track the change for candidate document updates
+    trackCandidateFieldChange('photo', photoUrl);
+
     // Save immediately to Firebase
     try {
       final success = await _candidateRepository.updateCandidateExtraInfo(
@@ -494,6 +503,8 @@ class CandidateDataController extends GetxController {
     switch (field) {
       case 'name':
         editedData.value = editedData.value!.copyWith(name: value);
+        // Track the change for candidate document updates
+        trackCandidateFieldChange('name', value);
         break;
       case 'party':
         editedData.value = editedData.value!.copyWith(party: value);
@@ -545,17 +556,22 @@ class CandidateDataController extends GetxController {
       final userDocumentUpdated = await _updateUserDocumentForBasicInfo(onProgress);
 
       // Use field-level updates for better performance
-      if (_changedExtraInfoFields.isNotEmpty) {
+      if (_changedExtraInfoFields.isNotEmpty || _changedCandidateFields.isNotEmpty) {
         AppLogger.database('Using field-level updates', tag: 'CANDIDATE_CONTROLLER');
         onProgress?.call('Saving data...');
-        success = await _candidateRepository.updateCandidateExtraInfoFields(
+
+        // Combine extra info and candidate field changes
+        final allFieldUpdates = Map<String, dynamic>.from(_changedExtraInfoFields);
+        allFieldUpdates.addAll(_changedCandidateFields);
+
+        success = await _candidateRepository.updateCandidateFields(
           editedData.value!.candidateId,
-          _changedExtraInfoFields,
+          allFieldUpdates,
         );
       }
 
       // Fallback to full update if no field-level changes tracked
-      if (!success && _changedExtraInfoFields.isEmpty) {
+      if (!success && _changedExtraInfoFields.isEmpty && _changedCandidateFields.isEmpty) {
         AppLogger.database('Using full update', tag: 'CANDIDATE_CONTROLLER');
         onProgress?.call('Saving data...');
         success = await _candidateRepository.updateCandidateExtraInfo(
