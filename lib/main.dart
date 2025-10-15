@@ -17,9 +17,17 @@ import 'l10n/features/profile/profile_localizations.dart';
 import 'l10n/features/notifications/notifications_localizations.dart';
 import 'l10n/features/settings/settings_localizations.dart';
 import 'utils/app_logger.dart';
+import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
 
 void main() async {
+  // PERFORMANCE TRACKING: Start app launch timer
+  final appStartTime = DateTime.now();
+  print('🚀 APP LAUNCH START: ${appStartTime.toIso8601String()}');
+
+  // PERFORMANCE: Start performance monitoring immediately
+  PerformanceMonitor().startTimer('app_startup');
+
   // Enable testing mode for better emulator performance during development
   // Set to false for production builds
   const bool isTesting = false; // Change to false for production
@@ -38,21 +46,18 @@ void main() async {
   // Configure app logger for filtered logging
   // Change this configuration to control which logs are shown
   AppLogger.configure(
-    chat: true,        // Show chat-related logs
-    auth: true,        // Show authentication logs
-    network: true,     // Show network request logs
-    cache: true,       // Show cache operation logs
-    database: true,    // Show database operation logs
+    chat: false,       // Reduced logging for performance
+    auth: true,        // Keep auth logs for debugging
+    network: false,    // Reduced network logging
+    cache: true,       // Keep cache logs for optimization tracking
+    database: false,   // Reduced database logging
     ui: false,         // Hide UI interaction logs (can be noisy)
     performance: true, // Show performance monitoring logs
-    districtSpotlight: true, // Show district spotlight caching logs
+    districtSpotlight: false, // Reduced spotlight logging
   );
 
-  // Quick setup options (uncomment one):
-  // AppLogger.enableAllLogs();      // Show all logs
-  // AppLogger.enableChatOnly();     // Show only chat logs
-  // AppLogger.enableCoreOnly();     // Show core functionality logs
-  // AppLogger.disableAllLogs();     // Disable all app logs
+  PerformanceMonitor().stopTimer('app_startup');
+  PerformanceMonitor().logSlowOperation('app_startup', 2000); // Log if startup > 2 seconds
 
   runApp(const MyApp());
 }

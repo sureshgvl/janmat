@@ -70,7 +70,7 @@ class PhotoUploadHandler {
 
     try {
       final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storagePath = 'profile_photos/$fileName';
+      final storagePath = 'profile_images/$userId/$fileName';
       final photoUrl = await _fileUploadService.uploadFile(
         imagePath,
         storagePath,
@@ -80,10 +80,33 @@ class PhotoUploadHandler {
       if (photoUrl != null) {
         _showSuccessSnackBar(context, 'Profile photo uploaded successfully!');
         return photoUrl;
+      } else {
+        // Check if this is a Firebase Storage permission error
+        AppLogger.candidate('⚠️ Photo upload returned null - checking for permission issues');
+        _showErrorSnackBar(context, 'Upload failed. Please check your internet connection and try again.');
+        return null;
       }
-      return null;
     } catch (e) {
-      _showErrorSnackBar(context, 'Failed to upload photo: $e');
+      final errorMessage = e.toString();
+
+      // Handle specific Firebase Storage errors
+      if (errorMessage.contains('firebase_storage/unauthorized') ||
+          errorMessage.contains('Permission denied') ||
+          errorMessage.contains('does not have permission')) {
+        AppLogger.candidate('⚠️ Firebase Storage permission error - this may be expected in development');
+        _showErrorSnackBar(context, 'Storage permissions not configured. Please contact support.');
+        return null;
+      }
+
+      // Handle network errors
+      if (errorMessage.contains('network') || errorMessage.contains('timeout')) {
+        _showErrorSnackBar(context, 'Network error. Please check your connection and try again.');
+        return null;
+      }
+
+      // Generic error
+      AppLogger.candidateError('Photo upload failed', error: e);
+      _showErrorSnackBar(context, 'Failed to upload photo. Please try again.');
       return null;
     }
   }

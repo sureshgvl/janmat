@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/performance_monitor.dart' as perf;
 
 class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({super.key});
@@ -19,9 +20,12 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
   void initState() {
     super.initState();
 
-    // Scale animation controller
+    // PERFORMANCE: Start splash screen timer
+    perf.PerformanceMonitor().startTimer('splash_screen');
+
+    // Scale animation controller - REDUCED from 1 second to 0.5 seconds for faster loading
     _scaleController = AnimationController(
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
@@ -61,6 +65,10 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
 
   @override
   void dispose() {
+    // PERFORMANCE: Stop splash screen timer
+    perf.PerformanceMonitor().stopTimer('splash_screen');
+    perf.PerformanceMonitor().logSlowOperation('splash_screen', 800); // Log if > 0.8 seconds
+
     _scaleController.dispose();
     _fadeController.dispose();
     super.dispose();

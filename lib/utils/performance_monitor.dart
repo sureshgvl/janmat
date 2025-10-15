@@ -19,7 +19,9 @@ class PerformanceMonitor {
   void startTimer(String operationName) {
     _timers[operationName] = Stopwatch()..start();
 
-    AppLogger.performance('Started timing: $operationName');
+    if (kDebugMode) {
+      AppLogger.performance('Started timing: $operationName');
+    }
   }
 
   // Stop timing and log the result

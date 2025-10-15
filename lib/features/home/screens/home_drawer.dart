@@ -36,6 +36,14 @@ class HomeDrawer extends StatelessWidget {
       builder: (candidateController) {
         final currentCandidateModel = candidateController.candidateData.value;
 
+        // Ensure candidate data is loaded for proper drawer display
+        if (userModel?.role == 'candidate' && currentCandidateModel == null && !candidateController.isLoading.value) {
+          // Trigger candidate data loading if not already loaded
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            candidateController.fetchCandidateData();
+          });
+        }
+
         return Drawer(
           child: ListView(
             padding: EdgeInsets.zero,
@@ -198,29 +206,48 @@ class HomeDrawer extends StatelessWidget {
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
             },
           ),
-          if (userModel?.role == 'candidate' && currentCandidateModel != null) ...[
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: Text(AppLocalizations.of(context)!.candidateDashboard),
-              onTap: () {
-                Navigator.pop(context); // Close drawer
-                HomeNavigation.toRightToLeft(
-                  const CandidateDashboardScreen(),
-                ); // Navigate to candidate dashboard
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.swap_horiz),
-              title: Text(AppLocalizations.of(context)!.changePartySymbolTitle),
-              onTap: () {
-                Navigator.pop(context); // Close drawer
-                HomeNavigation.toRightToLeft(
-                  ChangePartySymbolScreen(
-                    currentCandidate: currentCandidateModel,
-                  ),
-                );
-              },
-            ),
+          // Show candidate-specific menu items with loading state
+          if (userModel?.role == 'candidate') ...[
+            if (currentCandidateModel != null) ...[
+              ListTile(
+                leading: const Icon(Icons.dashboard),
+                title: Text(AppLocalizations.of(context)!.candidateDashboard),
+                onTap: () {
+                  Navigator.pop(context); // Close drawer
+                  HomeNavigation.toRightToLeft(
+                    const CandidateDashboardScreen(),
+                  ); // Navigate to candidate dashboard
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.swap_horiz),
+                title: Text(AppLocalizations.of(context)!.changePartySymbolTitle),
+                onTap: () {
+                  Navigator.pop(context); // Close drawer
+                  HomeNavigation.toRightToLeft(
+                    ChangePartySymbolScreen(
+                      currentCandidate: currentCandidateModel,
+                    ),
+                  );
+                },
+              ),
+            ] else if (candidateController.isLoading.value) ...[
+              // Show loading state for candidate menu items
+              ListTile(
+                leading: const Icon(Icons.hourglass_empty),
+                title: const Text('Loading candidate features...'),
+                enabled: false,
+              ),
+            ] else ...[
+              // Show retry option if loading failed
+              ListTile(
+                leading: const Icon(Icons.refresh),
+                title: const Text('Retry loading candidate data'),
+                onTap: () {
+                  candidateController.fetchCandidateData();
+                },
+              ),
+            ],
           ],
           ListTile(
             leading: const Icon(Icons.search),
