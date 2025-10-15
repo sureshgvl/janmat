@@ -51,7 +51,8 @@ class BodySelectionWidget extends StatelessWidget {
                                 );
                         return Text(
                           body.id.isNotEmpty
-                              ? '${MaharashtraUtils.getDistrictDisplayNameV2(controller.selectedDistrictId!, Localizations.localeOf(context))} - ${MaharashtraUtils.getBodyTypeDisplayNameV2(body.type.toString().split('.').last, Localizations.localeOf(context))}'
+                              //? '${MaharashtraUtils.getDistrictDisplayNameV2(controller.selectedDistrictId!, Localizations.localeOf(context))} - ${MaharashtraUtils.getBodyTypeDisplayNameV2(body.type.toString().split('.').last, Localizations.localeOf(context))}'
+                              ? body.name
                               : controller.selectedBodyId!,
                           style: const TextStyle(fontSize: 16),
                         );

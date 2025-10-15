@@ -459,6 +459,13 @@ class ProfileCompletionController extends GetxController {
         });
       }).toList();
 
+      // Sort wards by ward number ascending
+      bodyWards[bodyId]!.sort((a, b) {
+        final aNumber = int.tryParse(RegExp(r'ward_(\d+)').firstMatch(a.id.toLowerCase())?.group(1) ?? '0') ?? 0;
+        final bNumber = int.tryParse(RegExp(r'ward_(\d+)').firstMatch(b.id.toLowerCase())?.group(1) ?? '0') ?? 0;
+        return aNumber.compareTo(bNumber);
+      });
+
       // 🚀 OPTIMIZED: Cache wards directly from fetched data (no redundant Firebase call)
       AppLogger.common('🏛️ [Profile] Caching ${bodyWards[bodyId]!.length} wards in SQLite for $districtId/$bodyId');
       try {

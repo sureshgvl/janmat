@@ -239,7 +239,8 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${MaharashtraUtils.getDistrictDisplayNameV2(widget.districtName, Localizations.localeOf(context))} - ${MaharashtraUtils.getBodyTypeDisplayNameV2(body.type.toString().split('.').last, Localizations.localeOf(context))}',
+                                      //'${MaharashtraUtils.getDistrictDisplayNameV2(widget.districtName, Localizations.localeOf(context))} - ${MaharashtraUtils.getBodyTypeDisplayNameV2(body.type.toString().split('.').last, Localizations.localeOf(context))}',
+                                      body.name,
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
@@ -250,7 +251,7 @@ class _AreaSelectionModalState extends State<AreaSelectionModal> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      body.id.toUpperCase(),
+                                      body.id.toUpperCase(), 
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,
