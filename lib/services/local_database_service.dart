@@ -315,6 +315,7 @@ class LocalDatabaseService {
         createdAt TEXT,
         updatedAt TEXT,
         lastFetched TEXT NOT NULL,
+        version TEXT,
         UNIQUE(stateId, districtId)
       )
     ''');
@@ -716,6 +717,7 @@ class LocalDatabaseService {
       'createdAt': spotlight.createdAt?.toIso8601String(),
       'updatedAt': spotlight.updatedAt?.toIso8601String(),
       'lastFetched': DateTime.now().toIso8601String(),
+      'version': spotlight.version,
     };
 
     await db.insert(
@@ -746,6 +748,7 @@ class LocalDatabaseService {
         isActive: map['isActive'] == 1,
         createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
         updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+        version: map['version'],
       );
     }
     return null;
@@ -764,6 +767,17 @@ class LocalDatabaseService {
       return DateTime.parse(maps.first['lastFetched']);
     }
     return null;
+  }
+
+  // Delete district spotlight for a specific district
+  Future<void> clearDistrictSpotlight(String stateId, String districtId) async {
+    final db = await database;
+    await db.delete(
+      districtSpotlightsTable,
+      where: 'stateId = ? AND districtId = ?',
+      whereArgs: [stateId, districtId],
+    );
+    AppLogger.districtSpotlight('🗑️ [SQLite:DistrictSpotlight] Cleared district spotlight cache for $stateId/$districtId');
   }
 
   // Close database

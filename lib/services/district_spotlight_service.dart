@@ -175,34 +175,37 @@ class DistrictSpotlightService {
       final localDb = LocalDatabaseService();
       final cachedSpotlight = await localDb.getDistrictSpotlight(stateId, districtId);
 
-      if (cachedSpotlight != null && cachedSpotlight.isActive) {
-        AppLogger.common('✅ Found cached active spotlight for $districtId');
-        // Use persistent cache - no expiry check needed
-        AppLogger.districtSpotlight('📦 Using persistent cached spotlight for $districtId');
-        return cachedSpotlight;
-      }
-
-      // Fetch from Firestore
+      // Always fetch fresh data from Firestore to check current status
       AppLogger.common('🔥 Fetching fresh district spotlight from Firestore for $stateId/$districtId');
       final freshSpotlight = await getDistrictSpotlight(stateId, districtId);
 
       if (freshSpotlight != null && freshSpotlight.isActive) {
-        // Compare partyId to decide if we need to download image
-        final needsImageDownload = cachedSpotlight == null ||
-            cachedSpotlight.partyId != freshSpotlight.partyId;
+        // Check if we need to update cache (version changed OR no cached data exists)
+        final needsCacheUpdate = cachedSpotlight == null ||
+            cachedSpotlight.version != freshSpotlight.version;
 
-        if (needsImageDownload) {
-          AppLogger.districtSpotlight('📥 Party ID changed (${cachedSpotlight?.partyId} -> ${freshSpotlight.partyId}), will download image');
+        if (needsCacheUpdate) {
+          if (cachedSpotlight == null) {
+            AppLogger.districtSpotlight('📥 No cached data, caching fresh spotlight data');
+          } else {
+            AppLogger.districtSpotlight('📥 Version changed (${cachedSpotlight.version} -> ${freshSpotlight.version}), updating cache');
+          }
+
+          // Cache the fresh data
+          await localDb.insertDistrictSpotlight(freshSpotlight, stateId, districtId);
+          AppLogger.districtSpotlight('💾 Cached/Updated fresh spotlight data for $stateId/$districtId');
         } else {
-          AppLogger.districtSpotlight('✅ Party ID same (${freshSpotlight.partyId}), no image download needed');
+          AppLogger.districtSpotlight('✅ Cache is up-to-date, no changes needed');
         }
-
-        // Cache the fresh data
-        await localDb.insertDistrictSpotlight(freshSpotlight, stateId, districtId);
-        AppLogger.districtSpotlight('💾 Cached fresh spotlight data for $stateId/$districtId');
 
         return freshSpotlight;
       } else {
+        // If Firestore shows inactive or no spotlight, clear cache if it exists
+        if (cachedSpotlight != null) {
+          AppLogger.districtSpotlight('🗑️ Clearing cached spotlight as Firestore shows inactive/null');
+          await localDb.clearDistrictSpotlight(stateId, districtId);
+        }
+
         AppLogger.common('ℹ️ No active spotlight found in Firestore for $districtId');
         return null;
       }

@@ -8,6 +8,7 @@ class DistrictSpotlight {
   final bool isActive;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? version; // New version field for cache invalidation
 
   DistrictSpotlight({
     this.id,
@@ -17,6 +18,7 @@ class DistrictSpotlight {
     required this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.version, // New version field
   });
 
   factory DistrictSpotlight.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class DistrictSpotlight {
       isActive: json['isActive'] ?? false,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      version: json['version'], // New version field
     );
   }
 
@@ -54,6 +57,7 @@ class DistrictSpotlight {
       'isActive': isActive,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'version': version, // New version field
     };
   }
 
@@ -65,6 +69,7 @@ class DistrictSpotlight {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? version, // New version field
   }) {
     return DistrictSpotlight(
       id: id ?? this.id,
@@ -74,6 +79,7 @@ class DistrictSpotlight {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      version: version ?? this.version, // New version field
     );
   }
 }
