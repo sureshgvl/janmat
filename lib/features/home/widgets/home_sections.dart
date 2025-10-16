@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../../widgets/highlight_banner.dart';
-import '../../../widgets/highlight_carousel.dart';
+import '../../../widgets/highlight_banner_solid.dart';
+import '../../../widgets/highlight_carousel_solid.dart';
 import '../../../services/district_promotion_service.dart';
 import '../../../models/district_promotion_model.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
@@ -74,11 +74,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
           Builder(
             builder: (context) {
               AppLogger.common('Loading Platinum Banner...', tag: 'HIGHLIGHT_SECTION');
-              return HighlightBanner(
+              return HighlightBannerSolid(
                 districtId: locationData['districtId']!,
                 bodyId: locationData['bodyId']!,
                 wardId: locationData['wardId']!,
-                showViewMoreButton: true,
               );
             },
           ),
@@ -87,7 +86,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
           Builder(
             builder: (context) {
               AppLogger.common('Loading Highlight Carousel...', tag: 'HIGHLIGHT_SECTION');
-              return HighlightCarousel(
+              return HighlightCarouselSolid(
                 districtId: locationData['districtId']!,
                 bodyId: locationData['bodyId']!,
                 wardId: locationData['wardId']!,

@@ -11,9 +11,10 @@ class HighlightController extends GetxController {
   var isLoading = false.obs;
   var errorMessage = ''.obs;
 
-  // Cache for platinum banner
-  Highlight? _platinumBanner;
-  Highlight? get platinumBanner => _platinumBanner;
+  // Cache for platinum banners (list for rotation)
+  List<Highlight> _platinumBanners = [];
+  List<Highlight> get platinumBanners => _platinumBanners;
+  Highlight? get currentPlatinumBanner => _platinumBanners.isNotEmpty ? _platinumBanners.first : null;
 
   @override
   void onInit() {
@@ -41,7 +42,6 @@ class HighlightController extends GetxController {
 
       highlights.value = loadedHighlights;
       AppLogger.highlight('Loaded ${loadedHighlights.length} highlights');
-
     } catch (e) {
       AppLogger.highlightError('Error loading highlights', error: e);
       errorMessage.value = 'Failed to load highlights: $e';
@@ -51,27 +51,31 @@ class HighlightController extends GetxController {
     }
   }
 
-  // Load platinum banner for a specific location
-  Future<void> loadPlatinumBanner({
+  // Load platinum banners for a specific location (returns list for rotation)
+  Future<void> loadPlatinumBanners({
     required String districtId,
     required String bodyId,
     required String wardId,
   }) async {
     try {
-      AppLogger.highlight('Loading platinum banner for $districtId/$bodyId/$wardId');
-
-      _platinumBanner = await _repository.getPlatinumBanner(
-        districtId,
-        bodyId,
-        wardId,
+      AppLogger.highlight(
+        'Loading platinum banners for $districtId/$bodyId/$wardId',
       );
 
-      AppLogger.highlight('Platinum banner loaded: ${_platinumBanner?.id ?? 'None'}');
-      update(); // Notify listeners
+      _platinumBanners = await HighlightRepository.getHighlightBanners(
+        stateId: 'maharashtra', // TODO: Make dynamic based on user location
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
 
+      AppLogger.highlight(
+        'Platinum banners loaded: ${_platinumBanners.length} banners',
+      );
+      update(); // Notify listeners
     } catch (e) {
-      AppLogger.highlightError('Error loading platinum banner', error: e);
-      _platinumBanner = null;
+      AppLogger.highlightError('Error loading platinum banners', error: e);
+      _platinumBanners = [];
       update();
     }
   }
@@ -110,7 +114,9 @@ class HighlightController extends GetxController {
         priority: priority,
         startDate: startDate,
         endDate: endDate,
-        active: startDate.isBefore(DateTime.now()) && endDate.isAfter(DateTime.now()),
+        active:
+            startDate.isBefore(DateTime.now()) &&
+            endDate.isAfter(DateTime.now()),
         exclusive: exclusive,
         rotation: !exclusive,
         views: 0,
@@ -151,22 +157,32 @@ class HighlightController extends GetxController {
     String priorityLevel = 'normal',
     String? customMessage,
     int validityDays = 7, // Default to 7 days for highlight plans
-    List<String> placement = const ['top_banner'], // Default to banner only for highlight plans
-    Map<String, dynamic>? highlightConfig, // Add highlight config from dashboard
+    List<String> placement = const [
+      'top_banner',
+    ], // Default to banner only for highlight plans
+    Map<String, dynamic>?
+    highlightConfig, // Add highlight config from dashboard
   }) async {
     try {
-      AppLogger.highlight('🔥 Creating/Updating Platinum highlight for $candidateName');
+      AppLogger.highlight(
+        '🔥 Creating/Updating Platinum highlight for $candidateName',
+      );
       AppLogger.highlight('📍 Location: $districtId/$bodyId/$wardId');
       AppLogger.highlight('👤 Candidate ID: $candidateId');
-      AppLogger.highlight('⏰ Validity: $validityDays days, Placement: $placement');
+      AppLogger.highlight(
+        '⏰ Validity: $validityDays days, Placement: $placement',
+      );
 
       // Check if candidate already has an active highlight
       final existingHighlights = await getHighlightsByCandidate(candidateId);
-      final activeHighlight = existingHighlights.where((h) =>
-        h.active &&
-        h.package == 'platinum' &&
-        h.endDate.isAfter(DateTime.now())
-      ).firstOrNull;
+      final activeHighlight = existingHighlights
+          .where(
+            (h) =>
+                h.active &&
+                h.package == 'platinum' &&
+                h.endDate.isAfter(DateTime.now()),
+          )
+          .firstOrNull;
 
       String highlightId;
       bool isUpdate = false;
@@ -175,7 +191,9 @@ class HighlightController extends GetxController {
         // Update existing highlight
         highlightId = activeHighlight.id;
         isUpdate = true;
-        AppLogger.highlight('🔄 Found existing active highlight $highlightId, updating instead of creating new');
+        AppLogger.highlight(
+          '🔄 Found existing active highlight $highlightId, updating instead of creating new',
+        );
       } else {
         // Create new highlight
         highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
@@ -198,7 +216,9 @@ class HighlightController extends GetxController {
         placement: placement, // Use provided placement
         priority: priorityValue,
         startDate: DateTime.now().subtract(const Duration(days: 1)),
-        endDate: DateTime.now().add(Duration(days: validityDays)), // Use provided validity
+        endDate: DateTime.now().add(
+          Duration(days: validityDays),
+        ), // Use provided validity
         active: true,
         exclusive: priorityLevel == 'urgent', // Urgent gets exclusive placement
         rotation: priorityLevel != 'urgent', // Don't rotate urgent items
@@ -207,10 +227,14 @@ class HighlightController extends GetxController {
         imageUrl: imageUrl,
         candidateName: candidateName,
         party: party,
-        createdAt: isUpdate ? activeHighlight?.createdAt ?? DateTime.now() : DateTime.now(),
+        createdAt: isUpdate
+            ? activeHighlight?.createdAt ?? DateTime.now()
+            : DateTime.now(),
       );
 
-      AppLogger.highlight('📋 Highlight data (${isUpdate ? 'UPDATE' : 'CREATE'}):');
+      AppLogger.highlight(
+        '📋 Highlight data (${isUpdate ? 'UPDATE' : 'CREATE'}):',
+      );
       AppLogger.highlight('   ID: $highlightId');
       AppLogger.highlight('   Package: ${highlight.package}');
       AppLogger.highlight('   Placement: ${highlight.placement}');
@@ -239,7 +263,9 @@ class HighlightController extends GetxController {
         final success = await _repository.updateHighlight(highlight);
         result = success ? highlightId : null;
         if (success) {
-          AppLogger.highlight('✅ Updated existing Platinum highlight $highlightId for $candidateName');
+          AppLogger.highlight(
+            '✅ Updated existing Platinum highlight $highlightId for $candidateName',
+          );
         } else {
           AppLogger.highlight('❌ Failed to update existing highlight');
         }
@@ -247,15 +273,23 @@ class HighlightController extends GetxController {
         // Create new highlight
         result = await _repository.createHighlight(highlight);
         if (result != null) {
-          AppLogger.highlight('✅ Created new Platinum highlight $highlightId for $candidateName');
+          AppLogger.highlight(
+            '✅ Created new Platinum highlight $highlightId for $candidateName',
+          );
         } else {
-          AppLogger.highlight('❌ Failed to create highlight - repository returned null');
+          AppLogger.highlight(
+            '❌ Failed to create highlight - repository returned null',
+          );
         }
       }
 
       if (result != null) {
-        AppLogger.highlight('📍 Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
-        AppLogger.highlight('🔗 Firestore path: states/maharashtra/districts/$districtId/bodies/$bodyId/wards/$wardId/highlights/$highlightId');
+        AppLogger.highlight(
+          '📍 Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)',
+        );
+        AppLogger.highlight(
+          '🔗 Firestore path: states/maharashtra/districts/$districtId/bodies/$bodyId/wards/$wardId/highlights/$highlightId',
+        );
 
         // Create welcome sponsored post only for new highlights
         if (!isUpdate) {
@@ -270,7 +304,10 @@ class HighlightController extends GetxController {
 
       return result;
     } catch (e) {
-      AppLogger.highlightError('❌ Error creating/updating Platinum highlight', error: e);
+      AppLogger.highlightError(
+        '❌ Error creating/updating Platinum highlight',
+        error: e,
+      );
       errorMessage.value = 'Failed to create/update Platinum highlight: $e';
       return null;
     }
@@ -287,13 +324,15 @@ class HighlightController extends GetxController {
   }
 
   // Track click
-  Future<void> trackClick(String highlightId, {
+  Future<void> trackClick(
+    String highlightId, {
     String? districtId,
     String? bodyId,
     String? wardId,
   }) async {
     try {
-      await _repository.trackClick(highlightId,
+      await _repository.trackClick(
+        highlightId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,
@@ -324,13 +363,17 @@ class HighlightController extends GetxController {
   }
 
   // Update highlight status
-  Future<void> updateHighlightStatus(String highlightId, bool active, {
+  Future<void> updateHighlightStatus(
+    String highlightId,
+    bool active, {
     String? districtId,
     String? bodyId,
     String? wardId,
   }) async {
     try {
-      await _repository.updateHighlightStatus(highlightId, active,
+      await _repository.updateHighlightStatus(
+        highlightId,
+        active,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,
@@ -391,7 +434,10 @@ class HighlightController extends GetxController {
   }
 
   // Get push feed items for ward
-  Future<List<PushFeedItem>> getPushFeed(String wardId, {int limit = 20}) async {
+  Future<List<PushFeedItem>> getPushFeed(
+    String wardId, {
+    int limit = 20,
+  }) async {
     try {
       AppLogger.highlight('Getting push feed for ward: $wardId');
       return await _repository.getPushFeed(wardId, limit: limit);
@@ -411,7 +457,9 @@ class HighlightController extends GetxController {
     String? highlightId,
   }) async {
     try {
-      AppLogger.highlight('Creating push feed item for candidate: $candidateId');
+      AppLogger.highlight(
+        'Creating push feed item for candidate: $candidateId',
+      );
 
       final feedId = 'feed_${DateTime.now().millisecondsSinceEpoch}';
       final feedItem = PushFeedItem(
@@ -450,12 +498,16 @@ class HighlightController extends GetxController {
         candidateId: candidateId,
         wardId: wardId,
         title: '🎉 Platinum Plan Activated!',
-        message: '$candidateName is now a Platinum member with maximum visibility!',
+        message:
+            '$candidateName is now a Platinum member with maximum visibility!',
         highlightId: highlightId,
       );
       AppLogger.highlight('Created welcome push feed item');
     } catch (e) {
-      AppLogger.highlightError('Error creating welcome push feed item', error: e);
+      AppLogger.highlightError(
+        'Error creating welcome push feed item',
+        error: e,
+      );
     }
   }
 
