@@ -74,6 +74,45 @@ class MultiLevelCache {
     return null;
   }
 
+  /// Get user routing data with instant fallback
+  Future<Map<String, dynamic>?> getUserRoutingData(String userId) async {
+    final cacheKey = 'user_routing_$userId';
+
+    // Try memory cache first (instant)
+    final memoryValue = _memoryCache.get<Map<String, dynamic>>(cacheKey);
+    if (memoryValue != null) {
+      _log('⚡ Instant memory cache hit for user routing: $userId');
+      return memoryValue;
+    }
+
+    // Try disk cache (fast)
+    final diskValue = await _diskCache.get<Map<String, dynamic>>(cacheKey);
+    if (diskValue != null) {
+      // Promote to memory
+      _memoryCache.set<Map<String, dynamic>>(cacheKey, diskValue);
+      _log('💾 Fast disk cache hit for user routing: $userId');
+      return diskValue;
+    }
+
+    _log('❌ No cached routing data for user: $userId');
+    return null;
+  }
+
+  /// Set user routing data with high priority
+  Future<void> setUserRoutingData(String userId, Map<String, dynamic> routingData) async {
+    final cacheKey = 'user_routing_$userId';
+
+    // Set with high priority for instant access
+    await set<Map<String, dynamic>>(
+      cacheKey,
+      routingData,
+      priority: CachePriority.high,
+      ttl: const Duration(hours: 1), // Cache for 1 hour
+    );
+
+    _log('💾 Cached user routing data for: $userId');
+  }
+
   /// Set data in all cache layers
   Future<void> set<T>(
     String key,

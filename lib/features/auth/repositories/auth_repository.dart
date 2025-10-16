@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -426,12 +427,11 @@ class AuthRepository {
       final userCreationDuration = DateTime.now().difference(userCreationStart);
       AppLogger.auth('✅ [GOOGLE_SIGNIN] Minimal user record created in ${userCreationDuration.inMilliseconds}ms');
 
-      // Step 5.5: Update FCM token for push notifications
-      AppLogger.auth('📱 [GOOGLE_SIGNIN] Updating FCM token...');
-      final fcmUpdateStart = DateTime.now();
-      await _updateUserFCMToken(userCredential.user!);
-      final fcmUpdateDuration = DateTime.now().difference(fcmUpdateStart);
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] FCM token updated in ${fcmUpdateDuration.inMilliseconds}ms');
+      // Step 5.5: Update FCM token for push notifications (fire-and-forget)
+      AppLogger.auth('📱 [GOOGLE_SIGNIN] Updating FCM token in background...');
+      unawaited(_updateUserFCMToken(userCredential.user!).catchError((e) {
+        AppLogger.auth('⚠️ FCM token update failed (non-critical): $e');
+      }));
 
       // Step 6: Start background sync for heavy operations
       AppLogger.auth('🔄 [GOOGLE_SIGNIN] Starting background synchronization...');

@@ -52,18 +52,21 @@ class InitialAppDataService {
 
     AppLogger.core('User authenticated: ${currentUser.uid}, checking profile status...');
 
-    // PERFORMANCE: Aggressive caching with instant fallback
+    // INSTANT NAVIGATION: Use cached routing data first
+    final cache = MultiLevelCache();
+    final cachedRoutingData = await cache.getUserRoutingData(currentUser.uid);
+
+    if (cachedRoutingData != null) {
+      AppLogger.core('⚡ INSTANT NAVIGATION: Using cached routing data');
+      // Start background refresh silently
+      _refreshUserDataInBackground(currentUser.uid);
+      return cachedRoutingData;
+    }
+
+    // FALLBACK: Fresh fetch for first-time or cache miss
+    AppLogger.core('🔄 Cache miss - performing fresh user data fetch');
+
     try {
-      final cache = MultiLevelCache();
-      final cacheKey = 'user_routing_${currentUser.uid}';
-
-      // Try cache first (instant)
-      final cachedRoutingData = await cache.get<Map<String, dynamic>>(cacheKey);
-      if (cachedRoutingData != null) {
-        AppLogger.core('⚡ Using cached routing data for instant navigation');
-        return cachedRoutingData;
-      }
-
       // Fast parallel fetch: cache + server race
       final cacheFuture = FirebaseFirestore.instance
           .collection('users')
@@ -104,12 +107,8 @@ class InitialAppDataService {
         }
 
         // Cache routing decision for instant future loads
-        try {
-          await cache.set(cacheKey, result, ttl: const Duration(hours: 1));
-          AppLogger.core('💾 Routing data cached for instant future loads');
-        } catch (e) {
-          AppLogger.core('⚠️ Failed to cache routing data');
-        }
+        await cache.setUserRoutingData(currentUser.uid, result);
+        AppLogger.core('💾 Routing data cached for instant future loads');
 
         return result;
       } else {
@@ -128,6 +127,49 @@ class InitialAppDataService {
       } else {
         return {'route': '/login', 'locale': locale};
       }
+    }
+  }
+
+  // Background refresh mechanism for user data
+  Future<void> _refreshUserDataInBackground(String userId) async {
+    try {
+      AppLogger.core('🔄 Starting background user data refresh for: $userId');
+
+      // Fetch fresh data from server
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get(const GetOptions(source: Source.server));
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final userModel = UserModel.fromJson(userData);
+
+        // Update routing cache with fresh data
+        final cache = MultiLevelCache();
+        final role = userModel.role;
+        final profileCompleted = userModel.profileCompleted;
+
+        String route;
+        if (role.isEmpty) {
+          route = '/role-selection';
+        } else if (!profileCompleted) {
+          route = '/profile-completion';
+        } else {
+          route = '/home';
+        }
+
+        final updatedRoutingData = {
+          'route': route,
+          'locale': const Locale('en'), // Default locale
+        };
+
+        await cache.setUserRoutingData(userId, updatedRoutingData);
+        AppLogger.core('✅ Background refresh completed for user: $userId');
+      }
+    } catch (e) {
+      AppLogger.core('⚠️ Background refresh failed: $e');
+      // Don't throw - background operation should not fail the app
     }
   }
 

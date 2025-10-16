@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sqflite/sqflite.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_achievement_model.dart';
 import '../repositories/candidate_repository.dart';
@@ -13,6 +15,7 @@ import '../../../utils/symbol_utils.dart';
 import '../../../utils/app_logger.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../services/user_cache_service.dart';
+import '../../../services/local_database_service.dart';
 
 class CandidateDataController extends GetxController {
   final CandidateRepository _candidateRepository = CandidateRepository();
@@ -59,6 +62,43 @@ class CandidateDataController extends GetxController {
 
     isLoading.value = true;
     try {
+      // PERFORMANCE: Check SQLite cache first for instant loading
+      final cachedCandidate = await _loadCandidateDataFromSQLite(user.uid);
+      if (cachedCandidate != null) {
+        AppLogger.database('⚡ Using cached candidate data from SQLite', tag: 'CANDIDATE_CONTROLLER');
+        candidateData.value = cachedCandidate;
+        editedData.value = cachedCandidate;
+
+        // Check premium status from cached data
+        final isSponsored = cachedCandidate.sponsored;
+        final isInTrial = await _trialService.isTrialActive(user.uid);
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final isPremium = userDoc.exists && userDoc.data()?['premium'] == true;
+        final highlightPlanExpiresAt = userDoc.data()?['highlightPlanExpiresAt'];
+        final isHighlightPlanActive = highlightPlanExpiresAt != null &&
+            (highlightPlanExpiresAt is Timestamp
+                ? highlightPlanExpiresAt.toDate().isAfter(DateTime.now())
+                : DateTime.parse(highlightPlanExpiresAt.toString()).isAfter(DateTime.now()));
+
+        isPaid.value = isPremium && isHighlightPlanActive;
+
+        AppLogger.database('Candidate access check (cached):', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Sponsored: $isSponsored', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  In Trial: $isInTrial', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Premium: $isPremium', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Highlight Plan Active: $isHighlightPlanActive', tag: 'CANDIDATE_CONTROLLER');
+        AppLogger.database('  Has Access: ${isPaid.value}', tag: 'CANDIDATE_CONTROLLER');
+
+        // Refresh from Firebase in background (fire-and-forget)
+        _refreshCandidateDataInBackground(user.uid);
+
+        isLoading.value = false;
+        return;
+      }
+
+      // CACHE MISS: Fetch from Firebase and cache for next time
+      AppLogger.database('Cache miss - fetching candidate data from Firebase', tag: 'CANDIDATE_CONTROLLER');
+
       // First check if user has completed their profile with retry logic
       final userDoc = await _fetchUserDocumentWithRetry(user.uid);
 
@@ -88,21 +128,24 @@ class CandidateDataController extends GetxController {
         candidateData.value = data;
         editedData.value = data;
 
+        // Cache the candidate data in SQLite for instant future loads
+        await _cacheCandidateDataInSQLite(data);
+
         // Check if user has premium access (premium OR sponsored OR in trial)
         final isSponsored = data.sponsored;
         final isInTrial = await _trialService.isTrialActive(user.uid);
- 
+
         // Check premium status from users collection
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        final isPremium = userDoc.exists && userDoc.data()?['premium'] == true;
- 
+        final premiumUserDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final isPremium = premiumUserDoc.exists && premiumUserDoc.data()?['premium'] == true;
+
         // Check if highlight plan is active (not expired)
-        final highlightPlanExpiresAt = userDoc.data()?['highlightPlanExpiresAt'];
+        final highlightPlanExpiresAt = premiumUserDoc.data()?['highlightPlanExpiresAt'];
         final isHighlightPlanActive = highlightPlanExpiresAt != null &&
             (highlightPlanExpiresAt is Timestamp
                 ? highlightPlanExpiresAt.toDate().isAfter(DateTime.now())
                 : DateTime.parse(highlightPlanExpiresAt.toString()).isAfter(DateTime.now()));
- 
+
         isPaid.value = isPremium && isHighlightPlanActive;
 
         AppLogger.database('Candidate access check:', tag: 'CANDIDATE_CONTROLLER');
@@ -1408,6 +1451,118 @@ class CandidateDataController extends GetxController {
     }
 
     throw Exception('Failed to fetch candidate data after $maxRetries attempts');
+  }
+
+  /// Load candidate data from SQLite cache
+  Future<Candidate?> _loadCandidateDataFromSQLite(String userId) async {
+    try {
+      AppLogger.database('Checking candidate data cache for user: $userId', tag: 'CANDIDATE_CONTROLLER');
+
+      final localDb = LocalDatabaseService();
+
+      // Check if candidate data cache is valid (24 hours)
+      final lastUpdate = await localDb.getLastUpdateTime('candidate_data_$userId');
+      final cacheAge = lastUpdate != null ? DateTime.now().difference(lastUpdate) : null;
+      final isCacheValid = lastUpdate != null &&
+          DateTime.now().difference(lastUpdate) < const Duration(hours: 24);
+
+      AppLogger.database('Candidate data cache status for user $userId:', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Is valid: $isCacheValid', tag: 'CANDIDATE_CONTROLLER');
+
+      if (!isCacheValid) {
+        AppLogger.database('Candidate data cache expired for user: $userId', tag: 'CANDIDATE_CONTROLLER');
+        return null;
+      }
+
+      // Try to load from a dedicated candidate cache table
+      // For now, we'll use the existing candidates table with a special key
+      final db = await localDb.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        LocalDatabaseService.candidatesTable,
+        where: 'id = ?',
+        whereArgs: ['user_candidate_$userId']
+      );
+
+      if (maps.isEmpty) {
+        AppLogger.database('No cached candidate data found for user: $userId', tag: 'CANDIDATE_CONTROLLER');
+        return null;
+      }
+
+      final map = maps.first;
+      final data = map['data'] as String;
+      final candidate = Candidate.fromJson(Map<String, dynamic>.from(json.decode(data)));
+
+      AppLogger.database('CACHE HIT - Loaded candidate data from SQLite', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  User: $userId', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Name: ${candidate.name}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Party: ${candidate.party}', tag: 'CANDIDATE_CONTROLLER');
+
+      return candidate;
+    } catch (e) {
+      AppLogger.databaseError('Error loading candidate data from SQLite (${e.toString()})', tag: 'CANDIDATE_CONTROLLER', error: e);
+      return null;
+    }
+  }
+
+  /// Cache candidate data in SQLite for instant future loads
+  Future<void> _cacheCandidateDataInSQLite(Candidate candidate) async {
+    try {
+      AppLogger.database('Caching candidate data for user: ${candidate.userId}', tag: 'CANDIDATE_CONTROLLER');
+
+      final localDb = LocalDatabaseService();
+
+      // Store in candidates table with special key for user's own data
+      final candidateDataMap = {
+        'id': 'user_candidate_${candidate.userId}',
+        'wardId': candidate.wardId ?? 'unknown',
+        'districtId': candidate.districtId ?? 'unknown',
+        'bodyId': candidate.bodyId ?? 'unknown',
+        'stateId': 'maharashtra',
+        'userId': candidate.userId,
+        'name': candidate.name ?? 'Unknown',
+        'party': candidate.party ?? 'independent',
+        'photo': candidate.photo,
+        'followersCount': 0, // Not relevant for user's own data
+        'data': candidate.toJson().toString(),
+        'lastUpdated': DateTime.now().toIso8601String(),
+      };
+
+      final db = await localDb.database;
+      await db.insert(
+        LocalDatabaseService.candidatesTable,
+        candidateDataMap,
+        conflictAlgorithm: ConflictAlgorithm.replace
+      );
+
+      await localDb.updateCacheMetadata('candidate_data_${candidate.userId}');
+
+      AppLogger.database('Successfully cached candidate data', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('  Cache key: candidate_data_${candidate.userId}', tag: 'CANDIDATE_CONTROLLER');
+    } catch (e) {
+      AppLogger.databaseError('Error caching candidate data (${e.toString()})', tag: 'CANDIDATE_CONTROLLER', error: e);
+    }
+  }
+
+  /// Refresh candidate data from Firebase in background (fire-and-forget)
+  void _refreshCandidateDataInBackground(String userId) async {
+    try {
+      AppLogger.database('Background refresh: checking for updated candidate data', tag: 'CANDIDATE_CONTROLLER');
+
+      // Fetch latest data from Firebase
+      final data = await _fetchCandidateDataWithRetry(userId);
+      if (data != null) {
+        // Update cache with fresh data
+        await _cacheCandidateDataInSQLite(data);
+        AppLogger.database('Background refresh completed - cache updated', tag: 'CANDIDATE_CONTROLLER');
+      } else {
+        AppLogger.database('Background refresh: no candidate data found', tag: 'CANDIDATE_CONTROLLER');
+      }
+    } catch (e) {
+      AppLogger.database('Background refresh failed (non-critical): $e', tag: 'CANDIDATE_CONTROLLER');
+      // Don't throw - background refresh failure shouldn't affect UI
+    }
   }
 
   /// Fallback method to use cached user data when Firestore is unavailable

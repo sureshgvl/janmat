@@ -11,6 +11,7 @@ import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
 import '../../notifications/services/chat_notification_service.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/multi_level_cache.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -716,14 +717,27 @@ class AuthController extends GetxController {
 
       AppLogger.auth('Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted', tag: 'EXISTING_USER_NAV');
 
-      // Clean up expired trials on login
-      AppLogger.auth('Starting trial cleanup...', tag: 'EXISTING_USER_NAV');
-      try {
-        await _trialService.cleanupExpiredTrials(userId);
-        AppLogger.auth('Trial cleanup completed', tag: 'EXISTING_USER_NAV');
-      } catch (e) {
-        AppLogger.auth('Trial cleanup failed: $e', tag: 'EXISTING_USER_NAV');
+      // Cache routing decision for instant future navigation
+      final cache = MultiLevelCache();
+      String route;
+      if (!roleSelected) {
+        route = '/role-selection';
+      } else if (!profileCompleted) {
+        route = '/profile-completion';
+      } else {
+        route = '/home';
       }
+
+      final routingData = {
+        'route': route,
+        'locale': const Locale('en'), // Default locale
+      };
+      await cache.setUserRoutingData(userId, routingData);
+
+      // Clean up expired trials on login (background)
+      unawaited(_trialService.cleanupExpiredTrials(userId).catchError((e) {
+        AppLogger.auth('Trial cleanup failed: $e', tag: 'EXISTING_USER_NAV');
+      }));
 
       if (!roleSelected) {
         AppLogger.auth('Role not selected, navigating to role selection...', tag: 'EXISTING_USER_NAV');
@@ -740,41 +754,12 @@ class AuthController extends GetxController {
       // Profile is complete and role is selected, go to home
       AppLogger.auth('Profile complete, preparing to navigate to home...', tag: 'EXISTING_USER_NAV');
 
-      // Ensure controllers are initialized for the existing user session
-      if (!Get.isRegistered<ChatController>()) {
-        AppLogger.auth('Initializing ChatController...', tag: 'EXISTING_USER_NAV');
-        Get.put<ChatController>(ChatController());
-        AppLogger.auth('ChatController recreated for existing user session', tag: 'EXISTING_USER_NAV');
-      } else {
-        AppLogger.auth('ChatController already registered', tag: 'EXISTING_USER_NAV');
-      }
-
-      // Ensure CandidateController is initialized
-      if (!Get.isRegistered<CandidateController>()) {
-        AppLogger.auth('Initializing CandidateController...', tag: 'EXISTING_USER_NAV');
-        Get.put<CandidateController>(CandidateController());
-        AppLogger.auth('CandidateController recreated for existing user session', tag: 'EXISTING_USER_NAV');
-      } else {
-        AppLogger.auth('CandidateController already registered', tag: 'EXISTING_USER_NAV');
-      }
-
-      // Initialize Chat Notification Service
-      AppLogger.auth('Initializing Chat Notification Service...', tag: 'EXISTING_USER_NAV');
-      try {
-        final chatNotificationService = ChatNotificationService();
-        final userLocation = _extractUserLocation(userModel);
-        await chatNotificationService.initialize(
-          userId: userId,
-          userRole: userModel.role,
-          userLocation: userLocation,
-        );
-        AppLogger.auth('Chat Notification Service initialized', tag: 'EXISTING_USER_NAV');
-      } catch (e) {
-        AppLogger.auth('Chat Notification Service initialization failed: $e', tag: 'EXISTING_USER_NAV');
-      }
-
-      AppLogger.auth('Navigating to home screen...', tag: 'EXISTING_USER_NAV');
+      // Navigate to home first (instant)
       Get.offAllNamed('/home');
+
+      // Initialize controllers in background after navigation
+      _initializeControllersInBackground(userModel);
+
       AppLogger.auth('Navigation to home completed', tag: 'EXISTING_USER_NAV');
 
     } catch (e) {
@@ -786,6 +771,46 @@ class AuthController extends GetxController {
       AppLogger.auth('Navigation completed, clearing loading state', tag: 'EXISTING_USER_NAV');
       isLoading.value = false;
       _hideGoogleSignInLoadingDialog(); // Ensure dialog is closed
+    }
+  }
+
+  // Initialize controllers in background after navigation
+  void _initializeControllersInBackground(UserModel userModel) {
+    final userId = userModel.uid;
+
+    // Initialize ChatController in background
+    if (!Get.isRegistered<ChatController>()) {
+      try {
+        Get.put<ChatController>(ChatController());
+        AppLogger.auth('ChatController initialized in background', tag: 'BACKGROUND_INIT');
+      } catch (e) {
+        AppLogger.auth('ChatController initialization failed: $e', tag: 'BACKGROUND_INIT');
+      }
+    }
+
+    // Initialize CandidateController in background
+    if (!Get.isRegistered<CandidateController>()) {
+      try {
+        Get.put<CandidateController>(CandidateController());
+        AppLogger.auth('CandidateController initialized in background', tag: 'BACKGROUND_INIT');
+      } catch (e) {
+        AppLogger.auth('CandidateController initialization failed: $e', tag: 'BACKGROUND_INIT');
+      }
+    }
+
+    // Initialize Chat Notification Service in background
+    try {
+      final chatNotificationService = ChatNotificationService();
+      final userLocation = _extractUserLocation(userModel);
+      unawaited(chatNotificationService.initialize(
+        userId: userId,
+        userRole: userModel.role,
+        userLocation: userLocation,
+      ).catchError((e) {
+        AppLogger.auth('Chat Notification Service initialization failed: $e', tag: 'BACKGROUND_INIT');
+      }));
+    } catch (e) {
+      AppLogger.auth('Chat Notification Service setup failed: $e', tag: 'BACKGROUND_INIT');
     }
   }
 
@@ -810,17 +835,27 @@ class AuthController extends GetxController {
 
         AppLogger.auth('Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted', tag: 'AUTH_CONTROLLER');
 
-        // Clean up expired trials on login
-        AppLogger.auth('Starting trial cleanup...', tag: 'AUTH_CONTROLLER');
-        final trialStart = DateTime.now();
-        try {
-          await _trialService.cleanupExpiredTrials(user.uid);
-          final trialDuration = DateTime.now().difference(trialStart);
-          AppLogger.auth('Trial cleanup completed in ${trialDuration.inMilliseconds}ms', tag: 'AUTH_CONTROLLER');
-        } catch (e) {
-          final trialDuration = DateTime.now().difference(trialStart);
-          AppLogger.auth('Trial cleanup failed after ${trialDuration.inMilliseconds}ms: $e', tag: 'AUTH_CONTROLLER');
+        // Cache routing decision for instant future navigation
+        final cache = MultiLevelCache();
+        String route;
+        if (!roleSelected) {
+          route = '/role-selection';
+        } else if (!profileCompleted) {
+          route = '/profile-completion';
+        } else {
+          route = '/home';
         }
+
+        final routingData = {
+          'route': route,
+          'locale': const Locale('en'), // Default locale
+        };
+        await cache.setUserRoutingData(user.uid, routingData);
+
+        // Clean up expired trials on login (background)
+        unawaited(_trialService.cleanupExpiredTrials(user.uid).catchError((e) {
+          AppLogger.auth('Trial cleanup failed: $e', tag: 'AUTH_CONTROLLER');
+        }));
 
         if (!roleSelected) {
           AppLogger.auth('Role not selected, navigating to role selection...', tag: 'AUTH_CONTROLLER');
@@ -836,21 +871,12 @@ class AuthController extends GetxController {
 
         AppLogger.auth('Profile complete and role selected', tag: 'AUTH_CONTROLLER');
 
-        // Initialize Chat Notification Service
-        AppLogger.auth('Initializing Chat Notification Service...', tag: 'AUTH_CONTROLLER');
-        try {
-          final chatNotificationService = ChatNotificationService();
-          final userModel = UserModel.fromJson(userData!);
-          final userLocation = _extractUserLocation(userModel);
-          await chatNotificationService.initialize(
-            userId: user.uid,
-            userRole: userModel.role,
-            userLocation: userLocation,
-          );
-          AppLogger.auth('Chat Notification Service initialized', tag: 'AUTH_CONTROLLER');
-        } catch (e) {
-          AppLogger.auth('Chat Notification Service initialization failed: $e', tag: 'AUTH_CONTROLLER');
-        }
+        // Navigate to home first (instant)
+        Get.offAllNamed('/home');
+
+        // Initialize services in background after navigation
+        _initializeServicesInBackground(user, userData!);
+
       } else {
         // User document doesn't exist, need role selection first
         AppLogger.auth('User document not found, navigating to role selection...', tag: 'AUTH_CONTROLLER');
@@ -858,29 +884,6 @@ class AuthController extends GetxController {
         return;
       }
 
-      // Profile is complete and role is selected, go to home
-      AppLogger.auth('Profile complete, preparing to navigate to home...', tag: 'AUTH_CONTROLLER');
-
-      // Ensure controllers are initialized for the new user session
-      if (!Get.isRegistered<ChatController>()) {
-        AppLogger.auth('Initializing ChatController...', tag: 'AUTH_CONTROLLER');
-        Get.put<ChatController>(ChatController());
-        AppLogger.auth('ChatController recreated for new user session', tag: 'AUTH_CONTROLLER');
-      } else {
-        AppLogger.auth('ChatController already registered', tag: 'AUTH_CONTROLLER');
-      }
-
-      // Ensure CandidateController is initialized
-      if (!Get.isRegistered<CandidateController>()) {
-        AppLogger.auth('Initializing CandidateController...', tag: 'AUTH_CONTROLLER');
-        Get.put<CandidateController>(CandidateController());
-        AppLogger.auth('CandidateController recreated for new user session', tag: 'AUTH_CONTROLLER');
-      } else {
-        AppLogger.auth('CandidateController already registered', tag: 'AUTH_CONTROLLER');
-      }
-
-      AppLogger.auth('Navigating to home screen...', tag: 'AUTH_CONTROLLER');
-      Get.offAllNamed('/home');
       AppLogger.auth('Navigation to home completed', tag: 'AUTH_CONTROLLER');
     } catch (e) {
       AppLogger.authError('Error during profile check', tag: 'AUTH_CONTROLLER', error: e);
@@ -891,6 +894,44 @@ class AuthController extends GetxController {
       AppLogger.auth('Navigation completed, clearing loading state', tag: 'AUTH_CONTROLLER');
       isLoading.value = false;
       _hideGoogleSignInLoadingDialog(); // Ensure dialog is closed
+    }
+  }
+
+  // Initialize services in background after navigation
+  void _initializeServicesInBackground(User user, Map<String, dynamic> userData) {
+    // Initialize controllers in background
+    if (!Get.isRegistered<ChatController>()) {
+      try {
+        Get.put<ChatController>(ChatController());
+        AppLogger.auth('ChatController initialized in background', tag: 'BACKGROUND_INIT');
+      } catch (e) {
+        AppLogger.auth('ChatController initialization failed: $e', tag: 'BACKGROUND_INIT');
+      }
+    }
+
+    if (!Get.isRegistered<CandidateController>()) {
+      try {
+        Get.put<CandidateController>(CandidateController());
+        AppLogger.auth('CandidateController initialized in background', tag: 'BACKGROUND_INIT');
+      } catch (e) {
+        AppLogger.auth('CandidateController initialization failed: $e', tag: 'BACKGROUND_INIT');
+      }
+    }
+
+    // Initialize Chat Notification Service in background
+    try {
+      final chatNotificationService = ChatNotificationService();
+      final userModel = UserModel.fromJson(userData);
+      final userLocation = _extractUserLocation(userModel);
+      unawaited(chatNotificationService.initialize(
+        userId: user.uid,
+        userRole: userModel.role,
+        userLocation: userLocation,
+      ).catchError((e) {
+        AppLogger.auth('Chat Notification Service initialization failed: $e', tag: 'BACKGROUND_INIT');
+      }));
+    } catch (e) {
+      AppLogger.auth('Chat Notification Service setup failed: $e', tag: 'BACKGROUND_INIT');
     }
   }
 }
