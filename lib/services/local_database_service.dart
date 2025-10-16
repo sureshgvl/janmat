@@ -14,7 +14,7 @@ import '../features/candidate/models/candidate_model.dart';
 class LocalDatabaseService {
   static Database? _database;
   static const String _dbName = 'janmat_local.db';
-  static const int _dbVersion = 6; // Increment to add district spotlights table
+  static const int _dbVersion = 7; // Increment to add version column to district spotlights table
 
   // Table names
   static const String districtsTable = 'districts';
@@ -142,6 +142,29 @@ class LocalDatabaseService {
       }
 
       AppLogger.common('✅ [SQLite] Database upgrade to v6 completed');
+    }
+
+    if (oldVersion < 7 && newVersion >= 7) {
+      // Upgrade to version 7: Add version column to district spotlights table
+      AppLogger.common('🔄 [SQLite] Upgrading database from v$oldVersion to v$newVersion - adding version column to district spotlights table');
+
+      try {
+        // Check if version column exists, add if not
+        final result = await db.rawQuery("PRAGMA table_info($districtSpotlightsTable)");
+        final hasVersionColumn = result.any((column) => column['name'] == 'version');
+
+        if (!hasVersionColumn) {
+          await db.execute('ALTER TABLE $districtSpotlightsTable ADD COLUMN version TEXT');
+          AppLogger.common('✅ [SQLite] Added version column to district spotlights table');
+        } else {
+          AppLogger.common('ℹ️ [SQLite] Version column already exists in district spotlights table');
+        }
+
+        AppLogger.common('✅ [SQLite] Database upgrade to v7 completed');
+      } catch (e) {
+        AppLogger.common('❌ [SQLite] Error upgrading to v7: $e');
+        // Continue with upgrade even if this fails
+      }
     }
   }
 

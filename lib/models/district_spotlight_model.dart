@@ -38,13 +38,13 @@ class DistrictSpotlight {
 
     return DistrictSpotlight(
       id: json['id'],
-      partyId: json['partyId'], // Now optional
+      partyId: json['partyId']?.toString(), // Convert to string if it's an int
       fullImage: json['fullImage'] ?? '', // Changed from imageUrl
       bannerImage: json['bannerImage'], // New optional field
       isActive: json['isActive'] ?? false,
       createdAt: createdAt,
       updatedAt: updatedAt,
-      version: json['version'], // New version field
+      version: json['version']?.toString(), // Convert version to string if needed
     );
   }
 
