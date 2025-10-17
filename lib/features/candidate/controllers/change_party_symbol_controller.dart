@@ -78,7 +78,7 @@ class ChangePartySymbolController extends GetxController {
       // Find current party
       if (parties.isNotEmpty) {
         selectedParty.value = parties.firstWhere(
-          (party) => party.name == candidate.party,
+          (party) => party.id == candidate.party,
           orElse: () => parties.first,
         );
         AppLogger.candidate('   Selected party: ${selectedParty.value?.name ?? 'none'}');
