@@ -10,6 +10,8 @@ import '../../../models/user_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/state_model.dart' as state_model;
 import '../../candidate/models/candidate_model.dart';
+import '../../candidate/models/basic_info_model.dart';
+import '../../candidate/models/location_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
@@ -237,12 +239,21 @@ class ProfileCompletionController extends GetxController {
       } else {
         states = statesSnapshot.docs.map((doc) {
           final data = doc.data();
-          AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']}');
+          AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']} - Active: ${data['isActive']}');
           return state_model.State.fromJson({'id': doc.id, ...data});
         }).toList();
 
+        // Filter out inactive states
+        final originalCount = states.length;
+        states = states.where((state) => state.isActive != false).toList();
+        final filteredCount = originalCount - states.length;
+
+        if (filteredCount > 0) {
+          AppLogger.common('🚫 Filtered out $filteredCount inactive states. Active states: ${states.length}');
+        }
+
         // 🚀 OPTIMIZED: Cache states directly from fetched data (no redundant Firebase call)
-        AppLogger.common('🌍 [Profile] Caching ${states.length} states in SQLite during profile completion');
+        AppLogger.common('🌍 [Profile] Caching ${states.length} active states in SQLite during profile completion');
         try {
           await _locationDatabase.insertDistricts(states.map((state) => District(
             id: state.id,
@@ -255,23 +266,13 @@ class ProfileCompletionController extends GetxController {
         }
       }
 
-      // Set default state - prefer Maharashtra if available, otherwise use first available state
-      final defaultState = states.firstWhere(
-        (state) => state.name.toLowerCase() == 'maharashtra',
-        orElse: () => states.isNotEmpty ? states.first : state_model.State(id: '', name: ''),
-      );
+      // No default state selection - user must choose
+      AppLogger.common('✅ States loaded successfully. No default state selected - user must choose.');
 
-      if (defaultState.id.isNotEmpty) {
-        selectedStateId = defaultState.id;
-        AppLogger.common('✅ Default state set to: ${defaultState.name} (ID: ${defaultState.id})');
-
-        // Automatically load districts for the default state
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          loadDistrictsForState(defaultState.id);
-        });
-      } else {
-        AppLogger.commonError('⚠️ No states available to set as default');
-      }
+      // District dropdown will be disabled until state is selected
+      districts.clear();
+      districtBodies.clear();
+      isLoadingDistricts = false;
 
       isLoadingStates = false;
       update();
@@ -285,7 +286,7 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  // Optimized: Load districts only for selected state
+  // Optimized: Load districts only for selected state with caching
   Future<void> loadDistrictsForState(String stateId) async {
     const int maxRetries = 3;
     int retryCount = 0;
@@ -294,6 +295,52 @@ class ProfileCompletionController extends GetxController {
       try {
         AppLogger.common('🔍 Loading districts for state: $stateId (attempt ${retryCount + 1})');
 
+        // 🚀 OPTIMIZATION: First try to load from local cache - COMMENTED OUT FOR TESTING
+        /*
+        try {
+          // Check if districts are cached for this state
+          final db = await _locationDatabase.database;
+          final cachedDistrictsMaps = await db.query(
+            'districts',
+            where: 'stateId = ?',
+            whereArgs: [stateId],
+          );
+
+          if (cachedDistrictsMaps.isNotEmpty) {
+            final cachedDistricts = cachedDistrictsMaps.map((map) => District.fromJson(map)).toList();
+            AppLogger.common('🎯 Found ${cachedDistricts.length} districts in cache for state: $stateId');
+
+            // Check if this is the old cached data (states stored as districts)
+            // If so, clear cache and reload from Firestore
+            if (cachedDistricts.length == 1 && cachedDistricts.first.id == stateId) {
+              AppLogger.common('⚠️ Found old cached data (state stored as district), clearing cache and reloading from Firestore');
+              try {
+                await _locationDatabase.database.then((db) => db.delete('districts', where: 'stateId = ?', whereArgs: [stateId]));
+                AppLogger.common('✅ Cleared old cache data for state: $stateId');
+              } catch (e) {
+                AppLogger.commonError('❌ Failed to clear old cache data', error: e);
+              }
+            } else {
+              districts = cachedDistricts;
+              districtBodies.clear();
+
+              // Load bodies for cached districts
+              await _loadBodiesForDistricts(stateId);
+
+              isLoadingDistricts = false;
+              update();
+              AppLogger.common('✅ Successfully loaded ${districts.length} districts from cache for state $stateId');
+              return;
+            }
+          } else {
+            AppLogger.common('⚠️ No districts found in cache for state: $stateId, loading from Firestore');
+          }
+        } catch (cacheError) {
+          AppLogger.common('⚠️ Cache load failed, falling back to Firestore: $cacheError');
+        }
+        */
+
+        // Load from Firestore if cache miss
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('states')
             .doc(stateId)
@@ -308,9 +355,20 @@ class ProfileCompletionController extends GetxController {
 
         districts = districtsSnapshot.docs.map((doc) {
           final data = doc.data();
-          AppLogger.common('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'}');
+          AppLogger.common('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'} - Active: ${data['isActive']}');
           return District.fromJson({'id': doc.id, 'stateId': stateId, ...data});
         }).toList();
+
+        // Filter out inactive districts
+        final originalDistrictCount = districts.length;
+        districts = districts.where((district) => district.isActive != false).toList();
+        final filteredDistrictCount = originalDistrictCount - districts.length;
+
+        if (filteredDistrictCount > 0) {
+          AppLogger.common('🚫 Filtered out $filteredDistrictCount inactive districts. Active districts: ${districts.length}');
+        }
+
+        AppLogger.common('✅ Loaded ${districts.length} active districts from Firestore for state $stateId');
 
         // 🚀 OPTIMIZED: Cache districts directly from fetched data (no redundant Firebase call)
         AppLogger.common('🏙️ [Profile] Caching ${districts.length} districts in SQLite for state: $stateId');
@@ -532,6 +590,7 @@ class ProfileCompletionController extends GetxController {
   }
 
   void onStateSelected(String stateId) {
+    AppLogger.common('🎯 State selected: $stateId');
     selectedStateId = stateId;
     selectedDistrictId = null;
     selectedBodyId = null;
@@ -614,65 +673,27 @@ class ProfileCompletionController extends GetxController {
   // ZP+PS Election methods
   void onElectionTypeSelected(String electionType) {
     selectedElectionType = electionType;
-    // Reset ZP+PS selections when election type changes
+    // Reset all selections when election type changes
+    selectedBodyId = null;
+    selectedWard = null;
     selectedZPBodyId = null;
     selectedZPWardId = null;
+    selectedZPArea = null;
     selectedPSBodyId = null;
     selectedPSWardId = null;
+    selectedPSArea = null;
 
-    // Auto-select body based on election type
-    if (selectedDistrictId != null && districtBodies[selectedDistrictId!] != null) {
-      final bodies = districtBodies[selectedDistrictId!]!;
-      BodyType targetType;
+    // Clear body wards
+    bodyWards.clear();
 
-      switch (electionType) {
-        case 'municipal_corporation':
-          targetType = BodyType.municipal_corporation;
-          break;
-        case 'municipal_council':
-          targetType = BodyType.municipal_council;
-          break;
-        case 'nagar_panchayat':
-          targetType = BodyType.nagar_panchayat;
-          break;
-        case 'zilla_parishad':
-          targetType = BodyType.zilla_parishad;
-          break;
-        case 'panchayat_samiti':
-          targetType = BodyType.panchayat_samiti;
-          break;
-        case 'zp_ps_combined':
-          // For ZP+PS combined, auto-select both ZP and PS bodies
-          _autoSelectZPandPSBodies();
-          update();
-          return;
-        default:
-          update();
-          return;
-      }
-
-      // Find the first body of the target type
-      final matchingBody = bodies.firstWhere(
-        (body) => body.type == targetType,
-        orElse: () => Body(
-          id: '',
-          name: '',
-          type: targetType,
-          districtId: selectedDistrictId!,
-          stateId: selectedStateId ?? '',
-        ),
-      );
-
-      if (matchingBody.id.isNotEmpty) {
-        // For regular elections (including individual ZP/PS), set the regular body
-        selectedBodyId = matchingBody.id;
-        selectedWard = null;
-        bodyWards.clear();
-        // Load wards for the selected body
-        loadWardsForBody(selectedDistrictId!, matchingBody.id);
-      }
+    // For ZP+PS combined, auto-select both ZP and PS bodies
+    if (electionType == 'zp_ps_combined') {
+      _autoSelectZPandPSBodies();
+      update();
+      return;
     }
 
+    // For regular elections, don't auto-select - let user choose from filtered list
     update();
   }
 
@@ -1003,10 +1024,12 @@ class ProfileCompletionController extends GetxController {
         userId: currentUserUid,
         name: nameController.text.trim(),
         party: selectedPartyId ?? 'independent',
-        districtId: selectedDistrictId!,
-        stateId: selectedStateId!,
-        bodyId: selectedBodyId!,
-        wardId: selectedWard!.id,
+        location: LocationModel(
+          stateId: selectedStateId,
+          districtId: selectedDistrictId,
+          bodyId: selectedBodyId,
+          wardId: selectedWard!.id,
+        ),
         contact: Contact(
           phone: '+91${phoneController.text.trim()}',
           email: FirebaseAuth.instance.currentUser!.email,
@@ -1015,9 +1038,9 @@ class ProfileCompletionController extends GetxController {
         createdAt: DateTime.now(),
         manifesto: null,
         extraInfo: ExtraInfo(
-          basicInfo: BasicInfoData(
+          basicInfo: BasicInfoModel(
             fullName: nameController.text.trim(),
-            dateOfBirth: selectedBirthDate?.toIso8601String(),
+            dateOfBirth: selectedBirthDate,
             age: age,
             gender: selectedGender,
           ),
@@ -1025,16 +1048,17 @@ class ProfileCompletionController extends GetxController {
       );
 
       AppLogger.common('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
+      // 🚀 OPTIMIZATION: Pass stateId directly instead of making it search for it
       final actualCandidateId = await candidateRepository.createCandidate(candidate, stateId: selectedStateId);
 
-      chatController.createCandidateChatRoom(actualCandidateId, candidate.name);
-
+      // Update user document with candidateId
       await FirebaseFirestore.instance.collection('users').doc(currentUserUid).update({'candidateId': actualCandidateId});
 
-      // Send notification
+      // Send notification (non-blocking)
       try {
         final constituencyNotifications = ConstituencyNotifications();
-        await constituencyNotifications.sendCandidateProfileCreatedNotification(candidateId: actualCandidateId);
+        // Don't await - let it run in background
+        constituencyNotifications.sendCandidateProfileCreatedNotification(candidateId: actualCandidateId);
       } catch (e) {
         AppLogger.commonError('⚠️ Failed to send new candidate notification', error: e);
       }
@@ -1044,20 +1068,31 @@ class ProfileCompletionController extends GetxController {
   }
 
   Future<void> saveProfile(BuildContext context) async {
+    final startTime = DateTime.now();
+    AppLogger.common('⏱️ [PROFILE_COMPLETION] Starting profile save operation');
+
     final localizations = ProfileLocalizations.of(context)!;
 
     // Early validations with immediate returns
-    if (!_validateBasicFields(context)) return;
+    if (!_validateBasicFields(context)) {
+      final validationTime = DateTime.now().difference(startTime).inMilliseconds;
+      AppLogger.common('❌ [PROFILE_COMPLETION] Validation failed after ${validationTime}ms');
+      return;
+    }
 
     // Get user role to determine which save method to use
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       Get.snackbar(localizations.error, 'User not authenticated');
+      final authTime = DateTime.now().difference(startTime).inMilliseconds;
+      AppLogger.common('❌ [PROFILE_COMPLETION] User not authenticated after ${authTime}ms');
       return;
     }
 
     final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get();
     final currentRole = userDoc.data()?['role'] ?? 'voter';
+
+    AppLogger.common('👤 [PROFILE_COMPLETION] User role: $currentRole, starting save operation');
 
     // Delegate to role-specific save methods
     if (currentRole == 'candidate') {
@@ -1065,20 +1100,39 @@ class ProfileCompletionController extends GetxController {
     } else {
       await _saveVoterProfile(context, currentUser, localizations);
     }
+
+    final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+    AppLogger.common('✅ [PROFILE_COMPLETION] Profile save completed successfully in ${totalTime}ms');
   }
 
   Future<void> _saveVoterProfile(BuildContext context, User currentUser, ProfileLocalizations localizations) async {
+    final voterStartTime = DateTime.now();
+    AppLogger.common('🗳️ [PROFILE_COMPLETION] Starting voter profile save');
+
     // Voter-specific validations
-    if (!_validateVoterElectionType(context)) return;
-    if (!_validateVoterElectionFields(context)) return;
-    if (!_validateVoterAdditionalFields(context)) return;
+    if (!_validateVoterElectionType(context)) {
+      AppLogger.common('❌ [PROFILE_COMPLETION] Voter election type validation failed');
+      return;
+    }
+    if (!_validateVoterElectionFields(context)) {
+      AppLogger.common('❌ [PROFILE_COMPLETION] Voter election fields validation failed');
+      return;
+    }
+    if (!_validateVoterAdditionalFields(context)) {
+      AppLogger.common('❌ [PROFILE_COMPLETION] Voter additional fields validation failed');
+      return;
+    }
 
     isLoading = true;
     update();
 
     try {
+      final electionAreasStartTime = DateTime.now();
       final electionAreas = _createElectionAreas();
+      final electionAreasTime = DateTime.now().difference(electionAreasStartTime).inMilliseconds;
+      AppLogger.common('📊 [PROFILE_COMPLETION] Election areas created in ${electionAreasTime}ms');
 
+      final userModelStartTime = DateTime.now();
       final updatedUser = UserModel(
         uid: currentUser.uid,
         name: nameController.text.trim(),
@@ -1095,14 +1149,23 @@ class ProfileCompletionController extends GetxController {
         createdAt: DateTime.now(),
         photoURL: currentUser.photoURL,
       );
+      final userModelTime = DateTime.now().difference(userModelStartTime).inMilliseconds;
+      AppLogger.common('👤 [PROFILE_COMPLETION] User model created in ${userModelTime}ms');
 
+      final saveUserStartTime = DateTime.now();
       await _saveUserData(updatedUser);
+      final saveUserTime = DateTime.now().difference(saveUserStartTime).inMilliseconds;
+      AppLogger.common('💾 [PROFILE_COMPLETION] User data saved in ${saveUserTime}ms');
 
       // Refresh chat for voter
+      final chatRefreshStartTime = DateTime.now();
       try {
         await chatController.refreshUserDataAndChat();
+        final chatRefreshTime = DateTime.now().difference(chatRefreshStartTime).inMilliseconds;
+        AppLogger.common('💬 [PROFILE_COMPLETION] Chat data refreshed in ${chatRefreshTime}ms');
       } catch (e) {
-        AppLogger.commonError('⚠️ Failed to refresh chat data for voter, but profile saved', error: e);
+        final chatRefreshTime = DateTime.now().difference(chatRefreshStartTime).inMilliseconds;
+        AppLogger.commonError('⚠️ Failed to refresh chat data for voter after ${chatRefreshTime}ms, but profile saved', error: e);
       }
 
       // Navigate and show voter success message
@@ -1112,7 +1175,12 @@ class ProfileCompletionController extends GetxController {
         localizations.profileCompleted,
         duration: const Duration(seconds: 4),
       );
+
+      final totalVoterTime = DateTime.now().difference(voterStartTime).inMilliseconds;
+      AppLogger.common('✅ [PROFILE_COMPLETION] Voter profile save completed in ${totalVoterTime}ms');
     } catch (e) {
+      final errorTime = DateTime.now().difference(voterStartTime).inMilliseconds;
+      AppLogger.commonError('❌ [PROFILE_COMPLETION] Voter profile save failed after ${errorTime}ms', error: e);
       Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
     }
 
@@ -1121,17 +1189,38 @@ class ProfileCompletionController extends GetxController {
   }
 
   Future<void> _saveCandidateProfile(BuildContext context, User currentUser, ProfileLocalizations localizations) async {
+    final candidateStartTime = DateTime.now();
+    AppLogger.common('👤 [PROFILE_COMPLETION] Starting candidate profile save');
+
     // Candidate-specific validations
-    if (!_validateCandidateElectionType(context)) return;
-    if (!_validateCandidateElectionFields(context)) return;
-    if (!_validateCandidateAdditionalFields(context)) return;
+    if (!_validateCandidateElectionType(context)) {
+      AppLogger.common('❌ [PROFILE_COMPLETION] Candidate election type validation failed');
+      return;
+    }
+    if (!_validateCandidateElectionFields(context)) {
+      AppLogger.common('❌ [PROFILE_COMPLETION] Candidate election fields validation failed');
+      return;
+    }
+    if (!_validateCandidateAdditionalFields(context)) {
+      AppLogger.common('❌ [PROFILE_COMPLETION] Candidate additional fields validation failed');
+      return;
+    }
 
     isLoading = true;
     update();
 
     try {
-      final electionAreas = _createElectionAreas();
+      // Show initial loading status
+      _updateLoadingStatus('Creating election areas...');
 
+      final electionAreasStartTime = DateTime.now();
+      final electionAreas = _createElectionAreas();
+      final electionAreasTime = DateTime.now().difference(electionAreasStartTime).inMilliseconds;
+      AppLogger.common('📊 [PROFILE_COMPLETION] Election areas created in ${electionAreasTime}ms');
+
+      _updateLoadingStatus('Preparing user profile...');
+
+      final userModelStartTime = DateTime.now();
       final updatedUser = UserModel(
         uid: currentUser.uid,
         name: nameController.text.trim(),
@@ -1149,18 +1238,57 @@ class ProfileCompletionController extends GetxController {
         createdAt: DateTime.now(),
         photoURL: currentUser.photoURL,
       );
+      final userModelTime = DateTime.now().difference(userModelStartTime).inMilliseconds;
+      AppLogger.common('👤 [PROFILE_COMPLETION] User model created in ${userModelTime}ms');
 
+      _updateLoadingStatus('Saving profile data...');
+
+      final saveUserStartTime = DateTime.now();
       await _saveUserData(updatedUser);
+      final saveUserTime = DateTime.now().difference(saveUserStartTime).inMilliseconds;
+      AppLogger.common('💾 [PROFILE_COMPLETION] User data saved in ${saveUserTime}ms');
 
-      // Refresh chat for candidate
-      try {
-        await chatController.refreshUserDataAndChat();
-      } catch (e) {
-        AppLogger.commonError('⚠️ Failed to refresh chat data for candidate, but profile saved', error: e);
-      }
+      _updateLoadingStatus('Creating candidate record...');
 
-      // Create candidate record
+      // Create candidate record (this is the main bottleneck we optimized)
+      final candidateRecordStartTime = DateTime.now();
       await _createCandidateRecord('candidate', currentUser.uid);
+      final candidateRecordTime = DateTime.now().difference(candidateRecordStartTime).inMilliseconds;
+      AppLogger.common('🏗️ [PROFILE_COMPLETION] Candidate record created in ${candidateRecordTime}ms');
+
+      // 🚀 OPTIMIZATION: Skip chat operations during profile completion
+      // Chat setup will happen when user first accesses chat feature
+      // This saves significant time and prevents blocking profile completion
+      /*
+      _updateLoadingStatus('Setting up chat system...');
+
+      // Chat refresh is not critical for profile completion - can fail without breaking the flow
+      try {
+        // Don't await - let it run in background after profile completion
+        chatController.refreshUserDataAndChat().then((_) {
+          AppLogger.common('💬 [PROFILE_COMPLETION] Chat data refreshed successfully (background)');
+        }).catchError((e) {
+          AppLogger.commonError('⚠️ Chat data refresh failed in background, but profile completed', error: e);
+        });
+
+        // Create chat room in background (also non-critical)
+        FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get().then((userDoc) {
+          if (userDoc.exists && userDoc.data()?['candidateId'] != null) {
+            final candidateId = userDoc.data()!['candidateId'];
+            chatController.createCandidateChatRoom(candidateId, nameController.text.trim());
+          }
+        }).catchError((e) {
+          AppLogger.commonError('⚠️ Chat room creation failed in background', error: e);
+        });
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to start background chat operations, but profile saved', error: e);
+      }
+      */
+
+      _updateLoadingStatus('Profile completed successfully!');
+
+      // Small delay to show success message
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Navigate and show candidate success message
       Get.offAllNamed('/home');
@@ -1169,11 +1297,23 @@ class ProfileCompletionController extends GetxController {
         localizations.profileCompletedMessage,
         duration: const Duration(seconds: 4),
       );
+
+      final totalCandidateTime = DateTime.now().difference(candidateStartTime).inMilliseconds;
+      AppLogger.common('✅ [PROFILE_COMPLETION] Candidate profile save completed in ${totalCandidateTime}ms');
     } catch (e) {
+      final errorTime = DateTime.now().difference(candidateStartTime).inMilliseconds;
+      AppLogger.commonError('❌ [PROFILE_COMPLETION] Candidate profile save failed after ${errorTime}ms', error: e);
       Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
     }
 
     isLoading = false;
     update();
+  }
+
+  // Helper method to update loading status
+  void _updateLoadingStatus(String status) {
+    // This would be used by a loading overlay to show current operation
+    AppLogger.common('🔄 [PROFILE_COMPLETION] Status: $status');
+    update(); // Trigger UI update to show new status
   }
 }
