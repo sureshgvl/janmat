@@ -172,6 +172,8 @@ class MonetizationController extends GetxController {
   // Election Type Derivation using SQLite cache
   Future<String?> getUserElectionType(String userId) async {
     try {
+      AppLogger.monetization('🔍 [MonetizationController] Getting election type for user: $userId');
+
       // Get user document to access electionAreas
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -179,6 +181,7 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!userDoc.exists) {
+        AppLogger.monetization('❌ [MonetizationController] User document not found for: $userId');
         return null;
       }
 
@@ -186,6 +189,7 @@ class MonetizationController extends GetxController {
       final electionAreas = userData['electionAreas'] as List<dynamic>?;
 
       if (electionAreas == null || electionAreas.isEmpty) {
+        AppLogger.monetization('❌ [MonetizationController] No election areas found for user: $userId');
         return null;
       }
 
@@ -193,12 +197,17 @@ class MonetizationController extends GetxController {
       final primaryArea = electionAreas[0] as Map<String, dynamic>;
       final bodyId = primaryArea['bodyId'] as String;
 
-      final stateId = userData['stateId'];
-      final districtId = userData['districtId'];
+      // Get location data from the location map
+      final location = userData['location'] as Map<String, dynamic>?;
+      final stateId = location?['stateId'] as String?;
+      final districtId = location?['districtId'] as String?;
 
       if (stateId == null || districtId == null) {
+        AppLogger.monetization('❌ [MonetizationController] Missing stateId or districtId for user: $userId');
         return null;
       }
+
+      AppLogger.monetization('📍 [MonetizationController] User location: state=$stateId, district=$districtId, body=$bodyId');
 
       // Try SQLite cache first for better performance
       final localDb = LocalDatabaseService();
@@ -208,10 +217,13 @@ class MonetizationController extends GetxController {
       );
 
       if (cachedBody != null) {
-        return _mapBodyTypeToElectionType(cachedBody.type);
+        final electionType = _mapBodyTypeToElectionType(cachedBody.type);
+        AppLogger.monetization('✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})');
+        return electionType;
       }
 
       // Fallback to Firebase if not in cache
+      AppLogger.monetization('🔄 [MonetizationController] Body not in cache, fetching from Firebase...');
       final bodyDoc = await FirebaseFirestore.instance
           .collection('states')
           .doc(stateId)
@@ -222,10 +234,12 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!bodyDoc.exists) {
+        AppLogger.monetization('❌ [MonetizationController] Body document not found: $bodyId');
         return null;
       }
 
       final bodyTypeString = bodyDoc.data()?['type'] as String?;
+      AppLogger.monetization('📄 [MonetizationController] Body type from Firebase: $bodyTypeString');
 
       // Convert string to BodyType enum
       BodyType? bodyType;
@@ -249,8 +263,11 @@ class MonetizationController extends GetxController {
           bodyType = null;
       }
 
-      return _mapBodyTypeToElectionType(bodyType);
+      final electionType = _mapBodyTypeToElectionType(bodyType);
+      AppLogger.monetization('✅ [MonetizationController] Final election type: $electionType (body type: $bodyType)');
+      return electionType;
     } catch (e) {
+      AppLogger.monetization('❌ [MonetizationController] Error getting election type: $e');
       return null;
     }
   }
