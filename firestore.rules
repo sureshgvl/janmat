@@ -390,17 +390,6 @@ service cloud.firestore {
         (request.auth.token.admin == true || request.auth.token.role == 'admin');
     }
 
-    match /candidates/{candidateId} {
-      allow read: if true; // Public read for candidate information
-      allow create: if request.auth != null &&
-        (request.auth.uid == request.resource.data.userId ||
-         request.auth.token.admin == true || request.auth.token.role == 'admin');
-      // TEMPORARILY allow all authenticated users to update for testing
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null &&
-        (request.auth.uid == resource.data.userId ||
-         request.auth.token.admin == true || request.auth.token.role == 'admin');
-    }
 
     // Candidate index for search optimization
     match /candidate_index/{candidateId} {
