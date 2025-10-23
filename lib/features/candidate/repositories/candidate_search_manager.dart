@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/candidate_model.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../../../utils/performance_monitor.dart' as perf_monitor;
 import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';

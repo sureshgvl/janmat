@@ -3,11 +3,11 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import '../../../services/device_service.dart';
 import '../../../services/trial_service.dart';
-import '../../../controllers/user_controller.dart';
+import '../../../features/user/controllers/user_controller.dart';
 import '../../../services/background_sync_manager.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
@@ -786,4 +786,3 @@ class AuthController extends GetxController {
     }
   }
 }
-

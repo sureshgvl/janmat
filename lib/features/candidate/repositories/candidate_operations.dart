@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
 import '../models/achievements_model.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';

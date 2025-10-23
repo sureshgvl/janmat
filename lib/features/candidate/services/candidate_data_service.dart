@@ -8,7 +8,7 @@ import '../models/contact_model.dart';
 import '../models/location_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';
-import '../../../services/user_cache_service.dart';
+import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../../features/user/controllers/user_controller.dart';
 

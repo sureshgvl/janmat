@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:janmat/features/candidate/controllers/contact_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/contact_model.dart';
-import 'package:janmat/services/user_data_service.dart';
+import 'package:janmat/features/user/services/user_data_service.dart';
 import 'package:janmat/utils/app_logger.dart';
 
 

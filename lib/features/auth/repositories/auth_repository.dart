@@ -9,11 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
 import '../../../services/admob_service.dart';
-import '../../../services/user_cache_service.dart';
+import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/background_sync_manager.dart';
 import '../../../services/fcm_service.dart';
 import '../../../utils/performance_monitor.dart';
@@ -2053,4 +2053,3 @@ class AuthRepository {
     }
   }
 }
-

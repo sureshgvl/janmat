@@ -4,7 +4,7 @@ import '../models/candidate_model.dart';
 import '../models/basic_info_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';

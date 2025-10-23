@@ -3,11 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_follow_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
-import '../../../controllers/user_controller.dart';
+import '../../../features/user/controllers/user_controller.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/memory_manager.dart';
 import '../../../services/notifications/candidate_following_notifications.dart';
@@ -883,4 +883,3 @@ class CandidateController extends GetxController {
     }
   }
 }
-

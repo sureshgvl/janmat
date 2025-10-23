@@ -1,11 +1,11 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../models/candidate_model.dart';
 import '../models/events_model.dart';
 import '../models/basic_info_model.dart';
 import '../models/contact_model.dart';
-import '../../../controllers/user_controller.dart';
+import '../../../features/user/controllers/user_controller.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';
 

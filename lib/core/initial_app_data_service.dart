@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 import '../services/language_service.dart';
 import '../utils/multi_level_cache.dart';
 import '../utils/app_logger.dart';
@@ -225,4 +225,3 @@ class InitialAppDataService {
     }
   }
 }
-

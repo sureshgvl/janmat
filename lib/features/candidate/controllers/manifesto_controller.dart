@@ -6,7 +6,7 @@ import '../../../utils/app_logger.dart';
 import '../models/manifesto_model.dart';
 import '../repositories/manifesto_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
-import '../../../services/user_cache_service.dart';
+import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IManifestoController {

@@ -9,7 +9,7 @@ import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
-import '../../../models/user_model.dart';
+import '../../../features/user/models/user_model.dart';
 import '../../../utils/debouncer.dart';
 import '../../../widgets/profile/district_selection_modal.dart';
 import '../../../widgets/profile/area_selection_modal.dart';
