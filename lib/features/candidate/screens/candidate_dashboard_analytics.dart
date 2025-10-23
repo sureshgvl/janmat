@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../widgets/view/followers_analytics_tab_view.dart';
 import '../widgets/view/events_analytics_tab_view.dart';
 import '../widgets/view/profile_performance_analytics_section.dart';
@@ -13,9 +13,7 @@ class CandidateDashboardAnalytics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final CandidateDataController controller = Get.put(
-      CandidateDataController(),
-    );
+    final CandidateUserController controller = CandidateUserController.to;
 
     return Obx(() {
       if (controller.isLoading.value) {
@@ -61,4 +59,3 @@ class CandidateDashboardAnalytics extends StatelessWidget {
     });
   }
 }
-

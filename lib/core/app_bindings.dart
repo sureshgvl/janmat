@@ -3,13 +3,18 @@ import 'package:janmat/utils/app_logger.dart';
 import '../features/auth/controllers/auth_controller.dart';
 import '../features/chat/controllers/chat_controller.dart';
 import '../features/candidate/controllers/candidate_controller.dart';
-import '../features/candidate/controllers/candidate_data_controller.dart';
-import '../controllers/highlight_controller.dart';
-import '../features/notifications/services/notification_manager.dart';
+import '../features/candidate/controllers/manifesto_controller.dart';
+import '../features/candidate/controllers/media_controller.dart';
+import '../features/candidate/controllers/achievements_controller.dart';
+import '../features/candidate/controllers/contact_controller.dart';
+
 import '../services/admob_service.dart';
 import '../services/razorpay_service.dart';
+import '../features/notifications/services/notification_manager.dart';
 import '../services/user_data_service.dart';
 import '../controllers/user_data_controller.dart';
+import '../controllers/user_controller.dart';
+import '../features/candidate/controllers/candidate_user_controller.dart';
 import '../controllers/device_info_controller.dart';
 import '../controllers/notification_settings_controller.dart';
 import '../controllers/following_controller.dart';
@@ -30,12 +35,16 @@ class AppBindings extends Bindings {
     Get.put<AuthController>(AuthController());
     Get.put<UserDataController>(UserDataController());
     Get.put<UserDataService>(UserDataService());
+    Get.put<UserController>(UserController());
+    Get.put<CandidateUserController>(CandidateUserController());
 
     // Lazy load feature-specific controllers to improve startup performance
     Get.put<ChatController>(ChatController());
     Get.put<CandidateController>(CandidateController()); // Eagerly load since used in profile screens
-    Get.put<CandidateDataController>(CandidateDataController());
-    Get.put<HighlightController>(HighlightController());
+    Get.put<MediaController>(MediaController());
+    Get.put<AchievementsController>(AchievementsController());
+    Get.put<ManifestoController>(ManifestoController());
+    Get.put<ContactController>(ContactController());
     Get.put<DeviceInfoController>(DeviceInfoController());
     Get.put<NotificationSettingsController>(NotificationSettingsController());
     AppLogger.common('✅ NotificationSettingsController put in bindings');

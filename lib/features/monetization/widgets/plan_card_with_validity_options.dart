@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
-import '../../../controllers/highlight_controller.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -33,12 +32,26 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
     final electionType = widget.electionType.isNotEmpty ? widget.electionType :
       'municipal_corporation'; // Default fallback
 
-    final pricing = widget.plan.pricing[electionType];
+    Map<int, int>? pricing = widget.plan.pricing[electionType];
     if (pricing == null || pricing.isEmpty) {
-      return const SizedBox.shrink(); // Don't show plans without pricing
+      // Debug logging to understand why plans are not showing
+      AppLogger.monetization('⚠️ [PlanCardWithValidityOptions] Plan "${widget.plan.name}" (${widget.plan.planId}) has no pricing for election type: $electionType');
+      AppLogger.monetization('   Available pricing keys: ${widget.plan.pricing.keys.toList()}');
+
+      // For highlight and carousel plans, try fallback to 'municipal_corporation' if election type is null or different
+      if (widget.plan.type == 'highlight' || widget.plan.type == 'carousel') {
+        pricing = widget.plan.pricing['municipal_corporation'];
+        if (pricing != null && pricing.isNotEmpty) {
+          AppLogger.monetization('✅ [PlanCardWithValidityOptions] Using fallback pricing for ${widget.plan.type} plan');
+        } else {
+          return const SizedBox.shrink(); // Don't show plans without pricing
+        }
+      } else {
+        return const SizedBox.shrink(); // Don't show plans without pricing
+      }
     }
 
-    final validityOptions = pricing.keys.toList()..sort();
+    final validityOptions = pricing!.keys.toList()..sort();
     final hasSingleValidityOption = validityOptions.length == 1;
 
     // If only one validity option (like 30 days for gold/platinum), show simplified UI
@@ -293,7 +306,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
 
             // Validity Options - Compact version
             ...validityOptions.map((days) {
-              final price = pricing[days]!;
+              final price = pricing![days]!;
               final isSelected = selectedValidityDays == days;
               final displayText = '$days Days - ₹$price';
 
@@ -472,7 +485,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               // Validity Options
               Column(
                 children: validityOptions.map((days) {
-                  final price = pricing[days]!;
+                  final price = pricing![days]!;
                   final isSelected = selectedValidityDays == days;
                   final validityText = '$days Days';
                   final expiryText = 'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}';
@@ -742,26 +755,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
   }
 
   int _getCurrentAllocatedSeats() {
-    try {
-      // Get the highlight controller to check current usage
-      final highlightController = Get.find<HighlightController>();
-
-      // Get current user to find their highlights
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) return 0;
-
-      // For now, we'll count active highlights for this user
-      // This is a simplified implementation - in production, you might want to
-      // cache this or get it from a dedicated method
-      final userHighlights = highlightController.highlights.where(
-        (highlight) => highlight.candidateId == currentUser.uid && highlight.active
-      ).length;
-
-      return userHighlights;
-    } catch (e) {
-      // If controller not found or any error, return 0
-      return 0;
-    }
+    // Since highlight banner functionality has been removed, return 0
+    return 0;
   }
 }
-

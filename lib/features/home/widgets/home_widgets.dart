@@ -7,7 +7,7 @@ import '../../../services/trial_service.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../candidate/controllers/candidate_data_controller.dart';
+import '../../candidate/controllers/candidate_user_controller.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
 import '../../candidate/screens/my_area_candidates_screen.dart';
 import '../../monetization/screens/monetization_screen.dart';
@@ -19,67 +19,114 @@ class HomeWidgets {
     final theme = Theme.of(context);
     final onSurfaceColor = theme.colorScheme.onSurface;
 
-    return Obx(() {
-      // Get candidate data reactively from the controller
-      final candidateController = Get.find<CandidateDataController>();
-      final candidateModel = candidateController.candidateData.value;
+    // For candidates, use reactive widget
+    if (userModel?.role == 'candidate') {
+      return GetBuilder<CandidateUserController>(
+        builder: (candidateController) {
+          final candidateModel = candidateController.candidate.value;
+          // Debug: Log candidate data status
+          AppLogger.common('🏠 Welcome Section - CandidateUserController Status:', tag: 'HOME');
+          AppLogger.common('  👤 User Role: ${candidateController.user.value?.role ?? 'No user'}', tag: 'HOME');
+          AppLogger.common('  🎯 Candidate Available: ${candidateModel != null}', tag: 'HOME');
+          if (candidateModel != null) {
+            AppLogger.common('  👥 Candidate Name: ${candidateModel.name}', tag: 'HOME');
+            AppLogger.common('  🎭 Candidate Party: ${candidateModel.party}', tag: 'HOME');
+          }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  '${userModel?.role == 'candidate' && candidateModel != null ? candidateModel.name : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: onSurfaceColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (candidateModel != null) ...[
-                const SizedBox(width: 12),
-                Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300, width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(7),
-                    child: Image(
-                      image: _getPartySymbolImage(candidateModel),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'assets/symbols/default.png',
-                          fit: BoxFit.cover,
-                        );
-                      },
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${userModel?.role == 'candidate' && candidateModel != null ? candidateModel.name : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: onSurfaceColor,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (candidateModel != null) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300, width: 1),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image(
+                          image: SymbolUtils.getSymbolImageProvider(
+                            SymbolUtils.getPartySymbolPath(
+                              candidateModel.party,
+                              candidate: candidateModel,
+                            ),
+                          ),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/symbols/default.png',
+                              fit: BoxFit.cover,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                userModel?.role == 'candidate'
+                    ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
+                    : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: onSurfaceColor.withValues(alpha: 0.6),
                 ),
-              ],
+              ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            userModel?.role == 'candidate'
-                ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
-                : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
-            style: TextStyle(
-              fontSize: 16,
-              color: onSurfaceColor.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
+          );
+        },
       );
-    });
+    }
+
+    // For non-candidates, return static widget
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                '${userModel?.name ?? currentUser?.displayName ?? 'User'}!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: onSurfaceColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
+          style: TextStyle(
+            fontSize: 16,
+            color: onSurfaceColor.withValues(alpha: 0.6),
+          ),
+        ),
+      ],
+    );
   }
 
   // Trial Banner Widget
@@ -89,7 +136,8 @@ class HomeWidgets {
     final onPrimaryColor = theme.colorScheme.onPrimary;
 
     return FutureBuilder<int>(
-      future: TrialService().getTrialDaysRemaining(userModel.uid),
+      // future: TrialService().getTrialDaysRemaining(userModel.uid), // Commented out - no trial service in app
+      future: Future.value(0), // Return 0 since no trial service
       builder: (context, snapshot) {
         final daysRemaining = snapshot.data ?? 0;
         if (daysRemaining <= 0) return const SizedBox.shrink();
@@ -262,22 +310,22 @@ class HomeWidgets {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
-            buildAnimatedQuickActionCard(
+            _buildAnimatedQuickActionCard(
               icon: Icons.people,
               title: AppLocalizations.of(context)!.browseCandidates,
               page: const CandidateListScreen(),
             ),
-            buildAnimatedQuickActionCard(
+            _buildAnimatedQuickActionCard(
               icon: Icons.location_on,
               title: AppLocalizations.of(context)!.myArea,
               page: const MyAreaCandidatesScreen(),
             ),
-            buildAnimatedQuickActionCard(
+            _buildAnimatedQuickActionCard(
               icon: Icons.chat,
               title: AppLocalizations.of(context)!.chatRooms,
               routeName: '/chat',
             ),
-            buildAnimatedQuickActionCard(
+            _buildAnimatedQuickActionCard(
               icon: Icons.poll,
               title: AppLocalizations.of(context)!.polls,
               routeName: '/polls',
@@ -289,7 +337,7 @@ class HomeWidgets {
   }
 
   // Animated Quick Action Card
-  static Widget buildAnimatedQuickActionCard({
+  static Widget _buildAnimatedQuickActionCard({
     required IconData icon,
     required String title,
     Widget? page,
@@ -345,23 +393,5 @@ class HomeWidgets {
         );
       },
     );
-  }
-
-  // Helper method for party symbol image
-  static ImageProvider _getPartySymbolImage(Candidate candidateModel) {
-    try {
-      // Get the symbol path using SymbolUtils
-      final symbolPath = SymbolUtils.getPartySymbolPath(
-        candidateModel.party,
-        candidate: candidateModel,
-      );
-
-      // Return the appropriate ImageProvider
-      return SymbolUtils.getSymbolImageProvider(symbolPath);
-    } catch (e) {
-      AppLogger.ui('Error loading party symbol: $e', tag: 'UI');
-      // Fallback to default image
-      return const AssetImage('assets/symbols/default.png');
-    }
   }
 }

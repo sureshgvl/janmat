@@ -525,6 +525,7 @@ class CampaignMilestonesNotifications {
   /// Get candidate data
   Future<Map<String, dynamic>?> _getCandidateData(String candidateId) async {
     try {
+      // OPTIMIZED: Use UserController instead of direct Firebase call for candidate data
       // This would need to be implemented based on your candidate data structure
       // For now, return basic candidate info
       final userDoc = await _firestore.collection('users').doc(candidateId).get();

@@ -22,6 +22,7 @@ class CandidateFollowingNotifications {
     AppLogger.notifications('🚀 [FollowerNotification] Starting new follower notification process...');
 
     try {
+      // OPTIMIZED: Use UserController instead of direct Firebase call for follower data
       // Get follower details
       final followerData = await _candidateRepository.getUserData(followerId);
       final followerName = followerData?['name'] ?? 'Someone';

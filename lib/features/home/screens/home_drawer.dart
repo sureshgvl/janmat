@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/user_model.dart';
+import '../../candidate/controllers/candidate_user_controller.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../candidate/controllers/candidate_data_controller.dart';
+
 import '../../candidate/screens/candidate_list_screen.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
 import '../../candidate/screens/my_area_candidates_screen.dart';
@@ -20,29 +21,22 @@ import 'home_navigation.dart';
 
 class HomeDrawer extends StatelessWidget {
   final UserModel? userModel;
-  final Candidate? candidateModel;
   final User? currentUser;
+  final Candidate? candidateModel;
 
   const HomeDrawer({
     super.key,
     required this.userModel,
-    required this.candidateModel,
     required this.currentUser,
+    this.candidateModel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<CandidateDataController>(
+    return GetBuilder<CandidateUserController>(
       builder: (candidateController) {
-        final currentCandidateModel = candidateController.candidateData.value;
-
-        // Ensure candidate data is loaded for proper drawer display
-        if (userModel?.role == 'candidate' && currentCandidateModel == null && !candidateController.isLoading.value) {
-          // Trigger candidate data loading if not already loaded
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            candidateController.fetchCandidateData();
-          });
-        }
+        // Use the candidateModel parameter or controller data if available
+        final currentCandidateModel = candidateModel ?? candidateController.candidate.value;
 
         return Drawer(
           child: ListView(
@@ -66,17 +60,17 @@ class HomeDrawer extends StatelessWidget {
                         radius: 50,
                         backgroundColor: Colors.white,
                         backgroundImage:
-                            candidateModel?.photo != null &&
-                                candidateModel!.photo!.isNotEmpty
-                            ? NetworkImage(candidateModel!.photo!)
+                            currentCandidateModel?.photo != null &&
+                                currentCandidateModel!.photo!.isNotEmpty
+                            ? NetworkImage(currentCandidateModel!.photo!)
                             : userModel?.photoURL != null
                             ? NetworkImage(userModel!.photoURL!)
                             : currentUser?.photoURL != null
                             ? NetworkImage(currentUser!.photoURL!)
                             : null,
                         child:
-                            (candidateModel?.photo == null ||
-                                    candidateModel!.photo!.isEmpty) &&
+                            (currentCandidateModel?.photo == null ||
+                                    currentCandidateModel!.photo!.isEmpty) &&
                                 userModel?.photoURL == null &&
                                 currentUser?.photoURL == null
                             ? Text(
@@ -104,8 +98,8 @@ class HomeDrawer extends StatelessWidget {
                         children: [
                           // Name
                           Text(
-                            userModel?.role == 'candidate' && candidateModel != null
-                                ? candidateModel!.name
+                            userModel?.role == 'candidate' && currentCandidateModel != null
+                                ? currentCandidateModel!.name ?? 'Candidate'
                                 : userModel?.name ?? currentUser?.displayName ?? 'User',
                             style: TextStyle(
                               fontSize: 18,
@@ -188,10 +182,10 @@ class HomeDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context); // Close drawer
               // Navigate based on user role
-              if (userModel?.role == 'candidate' && candidateModel != null) {
+              if (userModel?.role == 'candidate' && currentCandidateModel != null) {
                 HomeNavigation.toRightToLeft(
                   const CandidateProfileScreen(),
-                  arguments: candidateModel,
+                  arguments: currentCandidateModel,
                 );
               } else {
                 HomeNavigation.toNamedRightToLeft('/profile');
@@ -206,48 +200,30 @@ class HomeDrawer extends StatelessWidget {
               HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
             },
           ),
-          // Show candidate-specific menu items with loading state
-          if (userModel?.role == 'candidate') ...[
-            if (currentCandidateModel != null) ...[
-              ListTile(
-                leading: const Icon(Icons.dashboard),
-                title: Text(AppLocalizations.of(context)!.candidateDashboard),
-                onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    const CandidateDashboardScreen(),
-                  ); // Navigate to candidate dashboard
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.swap_horiz),
-                title: Text(AppLocalizations.of(context)!.changePartySymbolTitle),
-                onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    ChangePartySymbolScreen(
-                      currentCandidate: currentCandidateModel,
-                    ),
-                  );
-                },
-              ),
-            ] else if (candidateController.isLoading.value) ...[
-              // Show loading state for candidate menu items
-              ListTile(
-                leading: const Icon(Icons.hourglass_empty),
-                title: const Text('Loading candidate features...'),
-                enabled: false,
-              ),
-            ] else ...[
-              // Show retry option if loading failed
-              ListTile(
-                leading: const Icon(Icons.refresh),
-                title: const Text('Retry loading candidate data'),
-                onTap: () {
-                  candidateController.fetchCandidateData();
-                },
-              ),
-            ],
+          // Show candidate-specific menu items
+          if (userModel?.role == 'candidate' && currentCandidateModel != null) ...[
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: Text(AppLocalizations.of(context)!.candidateDashboard),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                HomeNavigation.toRightToLeft(
+                  const CandidateDashboardScreen(),
+                ); // Navigate to candidate dashboard
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: Text(AppLocalizations.of(context)!.changePartySymbolTitle),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                HomeNavigation.toRightToLeft(
+                  ChangePartySymbolScreen(
+                    currentCandidate: currentCandidateModel,
+                  ),
+                );
+              },
+            ),
           ],
           ListTile(
             leading: const Icon(Icons.search),

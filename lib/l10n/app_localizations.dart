@@ -1096,6 +1096,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Proceed to Payment'**
   String get proceedToPayment;
+
+  /// No description provided for @profileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Details'**
+  String get profileDetails;
+
+  /// No description provided for @bio.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio'**
+  String get bio;
+
+  /// No description provided for @useDemoBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Demo Bio'**
+  String get useDemoBio;
+
+  /// No description provided for @noBioAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No bio available'**
+  String get noBioAvailable;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -15,6 +15,7 @@ class District {
   final String? zillaParishadPdfUrl;
   final String? panchayatSamitiPdfUrl;
   final DateTime? createdAt;
+  final bool? isActive;
 
   District({
     required this.id,
@@ -31,10 +32,12 @@ class District {
     this.zillaParishadPdfUrl,
     this.panchayatSamitiPdfUrl,
     this.createdAt,
+    this.isActive,
   });
 
   factory District.fromJson(Map<String, dynamic> json) {
     DateTime? createdAt;
+
     if (json['createdAt'] is Timestamp) {
       createdAt = (json['createdAt'] as Timestamp).toDate();
     } else if (json['createdAt'] is String) {
@@ -56,6 +59,7 @@ class District {
       zillaParishadPdfUrl: json['zillaParishadPdfUrl'],
       panchayatSamitiPdfUrl: json['panchayatSamitiPdfUrl'],
       createdAt: createdAt,
+      isActive: json['isActive'],
     );
   }
 

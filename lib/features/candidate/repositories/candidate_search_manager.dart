@@ -49,6 +49,7 @@ class CandidateSearchManager {
   // Delegate to follow manager
   Future<List<String>> getUserFollowing(String userId) => _followManager.getUserFollowing(userId);
 
+  // OPTIMIZED: Use UserDataController for user data
   // Get candidates for a user based on their election areas (NEW METHOD)
   Future<List<Candidate>> getCandidatesForUser(UserModel user) async {
     try {

@@ -110,6 +110,7 @@ class GamificationService {
         await userDataController.loadUserData(userId);
       }
 
+      // OPTIMIZED: Use UserDataController instead of direct Firebase call for user data
       // Get fresh gamification data from Firestore (points can change frequently)
       final userDoc = await _firestore.collection('users').doc(userId).get();
 

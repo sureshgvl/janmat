@@ -165,5 +165,9 @@
   "expiresOn": "Valid until {date}",
   "amount": "Amount: ₹{price}",
   "securePaymentGateway": "You will be redirected to our secure payment gateway.",
-  "proceedToPayment": "Proceed to Payment"
+  "proceedToPayment": "Proceed to Payment",
+  "profileDetails": "Profile Details",
+  "bio": "Bio",
+  "useDemoBio": "Use Demo Bio",
+  "noBioAvailable": "No bio available"
 }

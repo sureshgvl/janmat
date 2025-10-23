@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'firebase_options.dart';
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
 import 'core/app_initializer.dart';
@@ -40,20 +43,59 @@ void main() async {
   // Initialize ThemeController early
   Get.put<ThemeController>(ThemeController());
 
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize Firebase App Check
+  // IMPORTANT: For production builds, ensure App Check is ENABLED for security
+  // TODO: BEFORE PRODUCTION RELEASE - Enable App Check with proper configuration
+  // TODO: Set up debug tokens in Firebase Console for development testing
+  // TODO: Configure SHA-256 fingerprints in Google Play Console
+  const bool isProduction = bool.fromEnvironment('dart.vm.product');
+  if (isProduction) {
+    // PRODUCTION: Enable App Check for security
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+      appleProvider: AppleProvider.appAttest,
+    );
+    AppLogger.auth('✅ Firebase App Check enabled for production security');
+  } else {
+    // DEVELOPMENT: Disable App Check to avoid integrity check failures during testing
+    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
+    AppLogger.auth('⚠️ Firebase App Check disabled for development mode');
+    AppLogger.auth('🚨 REMINDER: Re-enable App Check before production release!');
+    AppLogger.auth('📋 TODO: Configure debug tokens in Firebase Console');
+    AppLogger.auth('📋 TODO: Set up SHA-256 fingerprints in Google Play Console');
+  }
+
+  // PRODUCTION CHECKLIST - Uncomment and complete before release:
+  /*
+  PRODUCTION CHECKLIST:
+  □ 1. Change isProduction logic to detect release builds
+  □ 2. Enable App Check with AndroidProvider.playIntegrity
+  □ 3. Set up debug tokens in Firebase Console > App Check
+  □ 4. Configure SHA-256 fingerprints in Google Play Console
+  □ 5. Test login with debug tokens on development devices
+  □ 6. Verify App Check is working in production (check Firebase Console)
+  □ 7. Monitor for any login failures after release
+  */
+
   final initializer = AppInitializer();
   await initializer.initialize();
 
   // Configure app logger for filtered logging
   // Change this configuration to control which logs are shown
   AppLogger.configure(
-    chat: false,       // Reduced logging for performance
+    chat: true,       // Reduced logging for performance
     auth: true,        // Keep auth logs for debugging
-    network: false,    // Reduced network logging
+    network: true,    // Reduced network logging
     cache: true,       // Keep cache logs for optimization tracking
-    database: false,   // Reduced database logging
-    ui: false,         // Hide UI interaction logs (can be noisy)
+    database: true,   // Reduced database logging
+    ui: true,         // Hide UI interaction logs (can be noisy)
     performance: true, // Show performance monitoring logs
-    districtSpotlight: false, // Reduced spotlight logging
+    districtSpotlight: true, // Reduced spotlight logging
   );
 
   PerformanceMonitor().stopTimer('app_startup');

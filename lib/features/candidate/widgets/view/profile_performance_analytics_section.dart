@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import '../../models/analytics_model.dart';
 import '../../../../services/realtime_analytics_service.dart';
 
 class ProfilePerformanceAnalyticsSection extends StatefulWidget {
@@ -72,7 +73,7 @@ class _ProfilePerformanceAnalyticsSectionState extends State<ProfilePerformanceA
 
   @override
   Widget build(BuildContext context) {
-    final analytics = widget.candidateData.extraInfo?.analytics;
+    final analytics = widget.candidateData.analytics;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -198,7 +199,7 @@ class _ProfilePerformanceAnalyticsSectionState extends State<ProfilePerformanceA
   }
 
   Widget _buildPerformanceInsights() {
-    final analytics = widget.candidateData.extraInfo?.analytics;
+    final analytics = widget.candidateData.analytics;
     final profileViews = analytics?.profileViews ?? 0;
     final manifestoViews = analytics?.manifestoViews ?? 0;
     final engagementRate = analytics?.engagementRate ?? 0.0;
@@ -330,7 +331,7 @@ class _ProfilePerformanceAnalyticsSectionState extends State<ProfilePerformanceA
     );
   }
 
-  String _calculateUniqueVisitors(AnalyticsData? analytics) {
+  String _calculateUniqueVisitors(AnalyticsModel? analytics) {
     // For now, estimate unique visitors as a percentage of total views
     // In a real implementation, this would be tracked separately
     final totalViews = (analytics?.profileViews ?? 0) + (analytics?.manifestoViews ?? 0);

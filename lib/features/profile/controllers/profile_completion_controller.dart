@@ -12,6 +12,8 @@ import '../../../models/state_model.dart' as state_model;
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/models/basic_info_model.dart';
 import '../../candidate/models/location_model.dart';
+import '../../candidate/models/contact_model.dart';
+import '../../candidate/models/extra_info_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
@@ -1030,20 +1032,18 @@ class ProfileCompletionController extends GetxController {
           bodyId: selectedBodyId,
           wardId: selectedWard!.id,
         ),
-        contact: Contact(
+        contact: ExtendedContact(
           phone: '+91${phoneController.text.trim()}',
           email: FirebaseAuth.instance.currentUser!.email,
         ),
         sponsored: false,
         createdAt: DateTime.now(),
-        manifesto: null,
-        extraInfo: ExtraInfo(
-          basicInfo: BasicInfoModel(
-            fullName: nameController.text.trim(),
-            dateOfBirth: selectedBirthDate,
-            age: age,
-            gender: selectedGender,
-          ),
+        manifestoData: null,
+        basicInfo: BasicInfoModel(
+          fullName: nameController.text.trim(),
+          dateOfBirth: selectedBirthDate,
+          age: age,
+          gender: selectedGender,
         ),
       );
 
@@ -1141,8 +1141,12 @@ class ProfileCompletionController extends GetxController {
         role: 'voter',
         roleSelected: true,
         profileCompleted: true,
-        districtId: selectedDistrictId!,
-        stateId: selectedStateId!,
+        location: LocationModel(
+          stateId: selectedStateId,
+          districtId: selectedDistrictId,
+          bodyId: selectedBodyId,
+          wardId: selectedWard?.id,
+        ),
         electionAreas: electionAreas,
         xpPoints: 0,
         premium: false,
@@ -1229,8 +1233,12 @@ class ProfileCompletionController extends GetxController {
         role: 'candidate',
         roleSelected: true,
         profileCompleted: true,
-        districtId: selectedDistrictId!,
-        stateId: selectedStateId!,
+        location: LocationModel(
+          stateId: selectedStateId,
+          districtId: selectedDistrictId,
+          bodyId: selectedBodyId,
+          wardId: selectedWard!.id,
+        ),
         electionAreas: electionAreas,
         xpPoints: 0,
         premium: false,

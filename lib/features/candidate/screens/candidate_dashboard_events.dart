@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../../../services/plan_service.dart';
-import '../widgets/edit/candidate_events_tab_edit.dart';
-import '../widgets/view/events_tab_view.dart';
+import '../widgets/edit/events/events_edit.dart';
+import '../widgets/view/events/events_tab_view.dart';
 import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardEvents extends StatefulWidget {
@@ -17,7 +17,7 @@ class CandidateDashboardEvents extends StatefulWidget {
 }
 
 class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
   bool canManageEvents = false;
 
@@ -62,9 +62,8 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                       controller.updateExtraInfo('events', events),
                 ),
               )
-            : EventsTabView(
-                candidate: controller.candidateData.value!,
-                isOwnProfile: true,
+            : VoterEventsSection(
+                candidateData: controller.candidateData.value!,
               ),
         floatingActionButton: canManageEvents ? (isEditing
             ? Padding(
@@ -174,4 +173,3 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
     });
   }
 }
-

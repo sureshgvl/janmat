@@ -5,7 +5,7 @@ import '../../../models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../candidate/controllers/candidate_data_controller.dart';
+import '../../candidate/controllers/candidate_user_controller.dart';
 
 class HomeServices {
 
@@ -66,19 +66,20 @@ class HomeServices {
         // Accept 2-3 second delay for this essential functionality
         if (userModel.profileCompleted && userModel.role == 'candidate') {
           try {
-            // Try controller cache first (instant)
-            final candidateController = Get.find<CandidateDataController>();
-            if (candidateController.candidateData.value != null) {
-              candidateModel = candidateController.candidateData.value;
-              AppLogger.common('⚡ Using cached candidate data from controller');
+            // FIRST: Try centralized CandidateUserController (preferred approach)
+            final candidateUserController = CandidateUserController.to;
+            if (candidateUserController.candidate.value != null) {
+              candidateModel = candidateUserController.candidate.value;
+              AppLogger.common('🎯 Using centralized CandidateUserController data');
             } else {
-              // Load from dedicated cache or Firestore (2-3 seconds acceptable)
-              candidateModel = await _loadCandidateDataOptimized(userModel.uid);
-              AppLogger.common('📥 Loaded candidate data for home screen (2-3s acceptable)');
+              // Load via centralized controller - always load for candidates
+              await candidateUserController.loadCandidateUserData(userModel.uid);
+              candidateModel = candidateUserController.candidate.value;
+              AppLogger.common('📥 Loaded candidate data via CandidateUserController');
             }
           } catch (e) {
-            AppLogger.common('⚠️ Controller not ready, loading candidate data directly');
-            // Load directly if controller not available (2-3 seconds acceptable)
+            AppLogger.common('⚠️ Centralized controller failed, using direct load: $e');
+            // Load directly if controller fails (2-3 seconds acceptable)
             candidateModel = await _loadCandidateDataOptimized(userModel.uid);
           }
         }

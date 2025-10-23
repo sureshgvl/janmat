@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../features/candidate/models/location_model.dart';
 
 enum ElectionType {
   regular,
@@ -62,17 +63,14 @@ class UserModel {
   final String role;
   final bool roleSelected;
   final bool profileCompleted;
-  final String? districtId;
-  final String? stateId;
+  final LocationModel? location;
   final List<ElectionArea> electionAreas;
 
   // Backward compatibility getters
-  String? get bodyId {
-    if (electionAreas.isNotEmpty) {
-      return electionAreas.first.bodyId;
-    }
-    return null;
-  }
+  String? get stateId => location?.stateId;
+  String? get districtId => location?.districtId;
+  String? get bodyId => location?.bodyId;
+  String? get wardId => location?.wardId;
 
   String? get area {
     if (electionAreas.isNotEmpty) {
@@ -150,7 +148,7 @@ class UserModel {
   final int followingCount;
 
   // Getter to get primary ward ID (for backward compatibility)
-  String get wardId {
+  String get primaryWardId {
     if (electionAreas.isNotEmpty) {
       return electionAreas.first.wardId;
     }
@@ -165,8 +163,7 @@ class UserModel {
     required this.role,
     required this.roleSelected,
     required this.profileCompleted,
-    this.districtId,
-    this.stateId,
+    this.location,
     this.electionAreas = const [],
     required this.xpPoints,
     required this.premium,
@@ -187,6 +184,8 @@ class UserModel {
     this.trialExpiresAt,
     this.isTrialActive = false,
     this.hasConvertedFromTrial = false,
+    // Deprecated fields for backward compatibility
+    @Deprecated('Use location.districtId instead') String? districtId,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -253,8 +252,14 @@ class UserModel {
       role: json['role'] ?? 'voter',
       roleSelected: json['roleSelected'] ?? false,
       profileCompleted: json['profileCompleted'] ?? false,
-      districtId: json['districtId'],
-      stateId: json['stateId'],
+      location: json['location'] != null
+          ? LocationModel.fromJson(json['location'])
+          : LocationModel(
+              stateId: json['stateId'],
+              districtId: json['districtId'],
+              bodyId: json['bodyId'],
+              wardId: json['wardId'],
+            ),
       electionAreas: areas,
       xpPoints: json['xpPoints'] ?? 0,
       premium: json['premium'] ?? false,
@@ -324,8 +329,7 @@ class UserModel {
       'role': role,
       'roleSelected': roleSelected,
       'profileCompleted': profileCompleted,
-      'districtId': districtId,
-      'stateId': stateId,
+      'location': location?.toJson(),
       'electionAreas': electionAreas.map((e) => e.toJson()).toList(),
       'xpPoints': xpPoints,
       'premium': premium,
@@ -357,8 +361,7 @@ class UserModel {
     String? role,
     bool? roleSelected,
     bool? profileCompleted,
-    String? districtId,
-    String? stateId,
+    LocationModel? location,
     List<ElectionArea>? electionAreas,
     int? xpPoints,
     bool? premium,
@@ -388,8 +391,7 @@ class UserModel {
       role: role ?? this.role,
       roleSelected: roleSelected ?? this.roleSelected,
       profileCompleted: profileCompleted ?? this.profileCompleted,
-      districtId: districtId ?? this.districtId,
-      stateId: stateId ?? this.stateId,
+      location: location ?? this.location,
       electionAreas: electionAreas ?? this.electionAreas,
       xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
@@ -431,4 +433,3 @@ class UserModel {
     return null;
   }
 }
-

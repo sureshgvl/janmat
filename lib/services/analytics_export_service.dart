@@ -15,7 +15,7 @@ class AnalyticsExportService {
   /// Export analytics data to CSV format
   Future<String> exportAnalyticsToCSV(Candidate candidate) async {
     try {
-      final analytics = candidate.extraInfo?.analytics;
+      final analytics = candidate.analytics;
       if (analytics == null) {
         throw Exception('No analytics data available');
       }
@@ -35,24 +35,19 @@ class AnalyticsExportService {
       buffer.writeln('Engagement Rate,${analytics.engagementRate?.toStringAsFixed(2) ?? '0.00'}%');
       buffer.writeln('Followers,${candidate.followersCount}');
       buffer.writeln('Following,${candidate.followingCount}');
-      buffer.writeln('Manifesto Likes,${analytics.manifestoLikes ?? 0}');
       buffer.writeln('Manifesto Comments,${analytics.manifestoComments ?? 0}');
-      buffer.writeln('Poll Participation,${analytics.pollParticipation ?? 0}');
+      buffer.writeln('Contact Clicks,${analytics.contactClicks ?? 0}');
+      buffer.writeln('Social Media Clicks,${analytics.socialMediaClicks ?? 0}');
       buffer.writeln('');
 
-      // Follower growth data
-      if (analytics.followerGrowth != null && analytics.followerGrowth!.isNotEmpty) {
-        buffer.writeln('FOLLOWER GROWTH TREND');
-        buffer.writeln('Date,Followers,Growth,Profile Views');
+      // Location views data
+      if (analytics.locationViews != null && analytics.locationViews!.isNotEmpty) {
+        buffer.writeln('LOCATION VIEWS');
+        buffer.writeln('Location,Views');
 
-        for (var data in analytics.followerGrowth!) {
-          final date = data['date'] as DateTime;
-          final followers = data['followers'] as int;
-          final growth = data['growth'] as int;
-          final views = data['profile_views'] as int? ?? 0;
-
-          buffer.writeln('${date.toIso8601String().split('T')[0]},$followers,$growth,$views');
-        }
+        analytics.locationViews!.forEach((location, views) {
+          buffer.writeln('$location,$views');
+        });
         buffer.writeln('');
       }
 
@@ -82,14 +77,18 @@ class AnalyticsExportService {
         buffer.writeln('');
       }
 
-      // Top performing content
-      if (analytics.topPerformingContent != null) {
-        buffer.writeln('TOP PERFORMING CONTENT');
-        buffer.writeln('Content Type,Views,Likes,Shares,Engagement Rate');
+      // Demographics data
+      if (analytics.demographics != null) {
+        buffer.writeln('DEMOGRAPHICS SUMMARY');
+        buffer.writeln('Category,Value');
 
-        final content = analytics.topPerformingContent!;
-        // This would need to be structured based on actual data format
-        buffer.writeln('Sample Content,${content['views'] ?? 0},${content['likes'] ?? 0},${content['shares'] ?? 0},${content['engagement'] ?? 0}%');
+        final demo = analytics.demographics!;
+        if (demo['total_viewers'] != null) {
+          buffer.writeln('Total Viewers,${demo['total_viewers']}');
+        }
+        if (demo['active_users'] != null) {
+          buffer.writeln('Active Users,${demo['active_users']}');
+        }
         buffer.writeln('');
       }
 
@@ -103,7 +102,7 @@ class AnalyticsExportService {
   /// Export analytics data to JSON format
   Future<String> exportAnalyticsToJSON(Candidate candidate) async {
     try {
-      final analytics = candidate.extraInfo?.analytics;
+      final analytics = candidate.analytics;
       if (analytics == null) {
         throw Exception('No analytics data available');
       }
@@ -113,8 +112,8 @@ class AnalyticsExportService {
           'id': candidate.candidateId,
           'name': candidate.name,
           'party': candidate.party,
-          'district': candidate.districtId,
-          'state': candidate.stateId,
+          'district': candidate.location.districtId,
+          'state': candidate.location.stateId,
         },
         'export_timestamp': DateTime.now().toIso8601String(),
         'analytics': {
@@ -123,12 +122,11 @@ class AnalyticsExportService {
           'engagement_rate': analytics.engagementRate ?? 0.0,
           'followers_count': candidate.followersCount,
           'following_count': candidate.followingCount,
-          'manifesto_likes': analytics.manifestoLikes ?? 0,
           'manifesto_comments': analytics.manifestoComments ?? 0,
-          'poll_participation': analytics.pollParticipation ?? 0,
-          'follower_growth': analytics.followerGrowth ?? [],
+          'contact_clicks': analytics.contactClicks ?? 0,
+          'social_media_clicks': analytics.socialMediaClicks ?? 0,
+          'location_views': analytics.locationViews ?? {},
           'demographics': analytics.demographics ?? {},
-          'top_performing_content': analytics.topPerformingContent ?? {},
         },
       };
 
@@ -180,7 +178,7 @@ class AnalyticsExportService {
   /// Generate analytics summary report
   Future<String> generateAnalyticsSummary(Candidate candidate) async {
     try {
-      final analytics = candidate.extraInfo?.analytics;
+      final analytics = candidate.analytics;
       if (analytics == null) {
         return 'No analytics data available for ${candidate.name}';
       }
@@ -191,7 +189,7 @@ class AnalyticsExportService {
       buffer.writeln('');
       buffer.writeln('Candidate: ${candidate.name}');
       buffer.writeln('Party: ${candidate.party}');
-      buffer.writeln('Location: ${candidate.districtId}, ${candidate.stateId ?? 'India'}');
+      buffer.writeln('Location: ${candidate.location.districtId}, ${candidate.location.stateId ?? 'India'}');
       buffer.writeln('Report Generated: ${DateTime.now().toString()}');
       buffer.writeln('');
 
@@ -206,31 +204,21 @@ class AnalyticsExportService {
 
       buffer.writeln('📝 CONTENT ENGAGEMENT');
       buffer.writeln('---------------------');
-      buffer.writeln('Manifesto Likes: ${analytics.manifestoLikes ?? 0}');
       buffer.writeln('Manifesto Comments: ${analytics.manifestoComments ?? 0}');
-      buffer.writeln('Poll Participation: ${analytics.pollParticipation ?? 0}');
+      buffer.writeln('Contact Clicks: ${analytics.contactClicks ?? 0}');
+      buffer.writeln('Social Media Clicks: ${analytics.socialMediaClicks ?? 0}');
       buffer.writeln('');
 
-      // Growth analysis
-      if (analytics.followerGrowth != null && analytics.followerGrowth!.isNotEmpty) {
-        final growth = analytics.followerGrowth!;
-        final latest = growth.last;
-        final previous = growth.length > 1 ? growth[growth.length - 2] : null;
+      // Location analysis
+      if (analytics.locationViews != null && analytics.locationViews!.isNotEmpty) {
+        buffer.writeln('📍 LOCATION ANALYSIS');
+        buffer.writeln('--------------------');
+        final sortedLocations = analytics.locationViews!.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
 
-        buffer.writeln('📈 GROWTH ANALYSIS');
-        buffer.writeln('------------------');
-        buffer.writeln('Current Followers: ${latest['followers']}');
-
-        if (previous != null) {
-          final growthAmount = (latest['followers'] as int) - (previous['followers'] as int);
-          final growthPercent = previous['followers'] > 0
-              ? (growthAmount / previous['followers'] * 100).toStringAsFixed(1)
-              : '0.0';
-          buffer.writeln('Recent Growth: ${growthAmount >= 0 ? '+' : ''}$growthAmount (${growthPercent}%)');
+        for (var entry in sortedLocations.take(5)) {
+          buffer.writeln('${entry.key}: ${entry.value} views');
         }
-
-        final totalGrowth = growth.isNotEmpty ? growth.last['followers'] - growth.first['followers'] : 0;
-        buffer.writeln('30-Day Growth: ${totalGrowth >= 0 ? '+' : ''}$totalGrowth');
         buffer.writeln('');
       }
 

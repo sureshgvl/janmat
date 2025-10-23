@@ -686,12 +686,12 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     if (!widget.isEditing) return const SizedBox.shrink();
 
     // Check if files already exist in database OR are pending local upload
-    final hasPdfInDb = widget.candidateData.extraInfo?.manifesto?.pdfUrl != null &&
-                       widget.candidateData.extraInfo!.manifesto!.pdfUrl!.isNotEmpty;
-    final hasImageInDb = widget.candidateData.extraInfo?.manifesto?.image != null &&
-                         widget.candidateData.extraInfo!.manifesto!.image!.isNotEmpty;
-    final hasVideoInDb = widget.candidateData.extraInfo?.manifesto?.videoUrl != null &&
-                         widget.candidateData.extraInfo!.manifesto!.videoUrl!.isNotEmpty;
+    final hasPdfInDb = widget.candidateData.manifestoData?.pdfUrl != null &&
+                       widget.candidateData.manifestoData!.pdfUrl!.isNotEmpty;
+    final hasImageInDb = widget.candidateData.manifestoData?.image != null &&
+                         widget.candidateData.manifestoData!.image!.isNotEmpty;
+    final hasVideoInDb = widget.candidateData.manifestoData?.videoUrl != null &&
+                         widget.candidateData.manifestoData!.videoUrl!.isNotEmpty;
 
     // Check if files are pending local upload
     final hasPdfLocal = _localFiles.any((file) => file['type'] == 'pdf');

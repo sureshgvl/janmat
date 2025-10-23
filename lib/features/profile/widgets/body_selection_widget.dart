@@ -20,9 +20,10 @@ class BodySelectionWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Area Selection
+        // Body Selection - Only show after election type is selected
         if (controller.selectedStateId != null &&
             controller.selectedDistrictId != null &&
+            controller.selectedElectionType != null &&
             controller.districtBodies[controller.selectedDistrictId!] != null &&
             controller.districtBodies[controller.selectedDistrictId!]!.isNotEmpty)
           InkWell(
@@ -109,13 +110,17 @@ class BodySelectionWidget extends StatelessWidget {
       Localizations.localeOf(context),
     );
 
+    // Filter bodies based on selected election type
+    final allBodies = controller.districtBodies[controller.selectedDistrictId!]!;
+    final filteredBodies = _filterBodiesByElectionType(allBodies, controller.selectedElectionType!);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return AreaSelectionModal(
-          bodies: controller.districtBodies[controller.selectedDistrictId!]!,
+          bodies: filteredBodies,
           selectedBodyId: controller.selectedBodyId,
           districtName: districtName,
           onBodySelected: (bodyId) {
@@ -125,6 +130,23 @@ class BodySelectionWidget extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<Body> _filterBodiesByElectionType(List<Body> bodies, String electionType) {
+    switch (electionType) {
+      case 'municipal_corporation':
+        return bodies.where((body) => body.type == BodyType.municipal_corporation).toList();
+      case 'municipal_council':
+        return bodies.where((body) => body.type == BodyType.municipal_council).toList();
+      case 'nagar_panchayat':
+        return bodies.where((body) => body.type == BodyType.nagar_panchayat).toList();
+      case 'zilla_parishad':
+        return bodies.where((body) => body.type == BodyType.zilla_parishad).toList();
+      case 'panchayat_samiti':
+        return bodies.where((body) => body.type == BodyType.panchayat_samiti).toList();
+      default:
+        return bodies; // Return all bodies if election type is not recognized
+    }
   }
 }
 

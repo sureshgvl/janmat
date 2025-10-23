@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
+import '../models/basic_info_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/user_model.dart';
@@ -15,6 +16,7 @@ import 'candidate_state_manager.dart';
 import 'candidate_operations.dart';
 import 'candidate_follow_manager.dart';
 import 'candidate_search_manager.dart';
+import 'basic_info_repository.dart';
 
 class CandidateRepository {
   // Shared services
@@ -30,6 +32,7 @@ class CandidateRepository {
   late final CandidateStateManager _stateManager;
   late final CandidateOperations _operations;
   late final CandidateFollowManager _followManager;
+  late final IBasicInfoRepository _basicInfoRepository;
   CandidateSearchManager? _searchManager;
 
   // Additional initialization
@@ -38,6 +41,7 @@ class CandidateRepository {
     _stateManager = CandidateStateManager(_firestore, _cacheManager);
     _operations = CandidateOperations(_firestore, _compressionManager, _dataOptimizer, _errorRecovery, _analytics, _cache, _cacheManager);
     _followManager = CandidateFollowManager(_firestore, _cacheManager, _stateManager);
+    _basicInfoRepository = BasicInfoRepository(firestore: _firestore);
     // Initialize search manager after operations and follow manager are ready
     _initializeSearchManager();
   }
@@ -131,6 +135,10 @@ class CandidateRepository {
   Future<Map<String, dynamic>> getUserDataAndFollowing(String userId) => _searchManager!.getUserDataAndFollowing(userId);
   Future<void> logAllCandidatesInSystem() => _searchManager!.logAllCandidatesInSystem();
 
+  // Basic info methods (delegate to BasicInfoRepository)
+  Future<BasicInfoModel?> getBasicInfo(String candidateId) => _basicInfoRepository.getBasicInfo(candidateId);
+  // Removed updateBasicInfo delegation - handled directly by BasicInfoController
+
   // Cache methods
   void invalidateCache(String cacheKey) => _cacheManager.invalidateCache(cacheKey);
   void invalidateAllCache() => _cacheManager.invalidateAllCache();
@@ -138,4 +146,3 @@ class CandidateRepository {
   void clearExpiredCache() => _cacheManager.clearExpiredCache();
   Map<String, dynamic> getCacheStats() => _cacheManager.getCacheStats();
 }
-

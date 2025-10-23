@@ -475,9 +475,9 @@ class LocalDatabaseService {
       final candidateData = {
         'id': candidate.candidateId,
         'wardId': wardId,
-        'districtId': candidate.districtId,
-        'bodyId': candidate.bodyId,
-        'stateId': candidate.stateId ?? 'maharashtra',
+        'districtId': candidate.location.districtId,
+        'bodyId': candidate.location.bodyId,
+        'stateId': candidate.location.stateId ?? 'maharashtra',
         'userId': candidate.userId ?? '',
         'name': candidate.name,
         'party': candidate.party,

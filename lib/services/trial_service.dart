@@ -1,6 +1,12 @@
+// TRIAL SERVICE COMMENTED OUT - No trial service in current app implementation
+// This service was used for 3-day free trial periods for candidates
+// All trial-related functionality has been removed from the app
+
+/*
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import '../utils/app_logger.dart';
+import '../controllers/user_controller.dart';
 import 'user_data_service.dart';
 
 class TrialService {
@@ -30,6 +36,22 @@ class TrialService {
   /// Check if user has an active trial
   Future<bool> isTrialActive(String userId) async {
     try {
+      // Use centralized UserController instead of direct Firebase call
+      final userController = UserController.to;
+      final userModel = userController.user.value;
+
+      if (userModel != null && userModel.uid == userId) {
+        // Use data from centralized controller
+        final isTrialActive = userModel.isTrialActive;
+        final trialExpiresAt = userModel.trialExpiresAt;
+
+        if (!isTrialActive || trialExpiresAt == null) return false;
+
+        // Check if trial is still valid
+        return DateTime.now().isBefore(trialExpiresAt);
+      }
+
+      // Fallback to direct Firebase call if controller doesn't have the data
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) return false;
 
@@ -60,6 +82,22 @@ class TrialService {
   /// Get remaining trial days
   Future<int> getTrialDaysRemaining(String userId) async {
     try {
+      // Use centralized UserController instead of direct Firebase call
+      final userController = UserController.to;
+      final userModel = userController.user.value;
+
+      if (userModel != null && userModel.uid == userId) {
+        // Use data from centralized controller
+        final trialExpiresAt = userModel.trialExpiresAt;
+        if (trialExpiresAt == null) return 0;
+
+        final now = DateTime.now();
+        if (now.isAfter(trialExpiresAt)) return 0;
+
+        return trialExpiresAt.difference(now).inDays + 1; // +1 to include current day
+      }
+
+      // Fallback to direct Firebase call if controller doesn't have the data
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) return 0;
 
@@ -128,6 +166,22 @@ class TrialService {
   /// Check if user has expired trial that needs cleanup
   Future<bool> hasExpiredTrial(String userId) async {
     try {
+      // Use centralized UserController instead of direct Firebase call
+      final userController = UserController.to;
+      final userModel = userController.user.value;
+
+      if (userModel != null && userModel.uid == userId) {
+        // Use data from centralized controller
+        final isTrialActive = userModel.isTrialActive;
+        final trialExpiresAt = userModel.trialExpiresAt;
+
+        if (!isTrialActive || trialExpiresAt == null) return false;
+
+        // Check if trial has expired
+        return DateTime.now().isAfter(trialExpiresAt);
+      }
+
+      // Fallback to direct Firebase call if controller doesn't have the data
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) return false;
 
@@ -226,4 +280,5 @@ class TrialService {
     }
   }
 }
+*/
 

@@ -24,15 +24,15 @@ class CandidateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCurrentUser = showCurrentUserIndicator && candidate.userId == currentUserId;
 
-    // Get age from extra info
-    final age = candidate.extraInfo?.basicInfo?.age;
+    // Get age from basic info
+    final age = candidate.basicInfo?.age;
     final displayName = age != null ? '${candidate.name}, $age' : candidate.name;
 
     // Get education
-    final education = candidate.extraInfo?.basicInfo?.education;
+    final education = candidate.basicInfo?.education;
 
     // Get achievements
-    final achievements = candidate.extraInfo?.achievements;
+    final achievements = candidate.achievements;
 
     // Determine if candidate is premium
     final isPremiumCandidate = candidate.sponsored || candidate.followersCount > 1000;
@@ -358,10 +358,10 @@ class CandidateCard extends StatelessWidget {
                                   await controller.followCandidate(
                                     userId,
                                     candidate.candidateId,
-                                    stateId: candidate.stateId,
-                                    districtId: candidate.districtId,
-                                    bodyId: candidate.bodyId,
-                                    wardId: candidate.wardId,
+                                    stateId: candidate.location.stateId,
+                                    districtId: candidate.location.districtId,
+                                    bodyId: candidate.location.bodyId,
+                                    wardId: candidate.location.wardId,
                                   );
                                   onFollowChanged?.call();
                                 },

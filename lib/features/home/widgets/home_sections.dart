@@ -4,8 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../candidate/models/candidate_model.dart';
-import '../../../widgets/highlight_banner_solid.dart';
-import '../../../widgets/highlight_carousel_solid.dart';
+
 import '../../../services/district_promotion_service.dart';
 import '../../../models/district_promotion_model.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
@@ -60,47 +59,7 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
-          // Start Highlight Section
-          Builder(
-            builder: (context) {
-              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'HIGHLIGHT_SECTION');
-              AppLogger.common('Start Highlight Section', tag: 'HIGHLIGHT_SECTION');
-              return const SizedBox.shrink();
-            },
-          ),
 
-          // SECTION 1: PLATINUM BANNER (Conditional)
-          Builder(
-            builder: (context) {
-              AppLogger.common('Loading Platinum Banner...', tag: 'HIGHLIGHT_SECTION');
-              return HighlightBannerSolid(
-                districtId: locationData['districtId']!,
-                bodyId: locationData['bodyId']!,
-                wardId: locationData['wardId']!,
-              );
-            },
-          ),
-
-          // SECTION 2: HIGHLIGHT CAROUSEL
-          Builder(
-            builder: (context) {
-              AppLogger.common('Loading Highlight Carousel...', tag: 'HIGHLIGHT_SECTION');
-              return HighlightCarouselSolid(
-                districtId: locationData['districtId']!,
-                bodyId: locationData['bodyId']!,
-                wardId: locationData['wardId']!,
-              );
-            },
-          ),
-
-          Builder(
-            builder: (context) {
-              AppLogger.common('End Highlight Section', tag: 'HIGHLIGHT_SECTION');
-              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'HIGHLIGHT_SECTION');
-              return const SizedBox.shrink();
-            },
-          ),
 
           // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
           // Start Feed Section
@@ -117,9 +76,14 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
             builder: (context) {
               AppLogger.common('Loading District Promotion Banner...', tag: 'FEED_SECTION');
               return FutureBuilder<DistrictPromotion?>(
-                future: DistrictPromotionService.getActivePromotionForDistrict(locationData['districtId']!),
+                future: DistrictPromotionService.getActivePromotionForDistrict(locationData['districtId'] ?? 'pune'),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox.shrink();
+                  }
+
+                  if (snapshot.hasError) {
+                    AppLogger.common('Error loading district promotion: ${snapshot.error}', tag: 'FEED_SECTION');
                     return const SizedBox.shrink();
                   }
 
@@ -255,17 +219,15 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
 
   Map<String, String> _getLocationData() {
     // Priority 1: Candidate's location data (for candidates)
-    if (widget.candidateModel?.districtId != null &&
-        widget.candidateModel!.districtId.isNotEmpty &&
-        widget.candidateModel?.bodyId != null &&
-        widget.candidateModel!.bodyId.isNotEmpty &&
-        widget.candidateModel?.wardId != null &&
-        widget.candidateModel!.wardId.isNotEmpty) {
-      AppLogger.ui('Home: Using candidate location: ${widget.candidateModel!.districtId}/${widget.candidateModel!.bodyId}/${widget.candidateModel!.wardId}', tag: 'HOME');
+    if (widget.candidateModel?.location.districtId != null &&
+        widget.candidateModel!.location.districtId?.isNotEmpty == true &&
+        widget.candidateModel?.location.bodyId?.isNotEmpty == true &&
+        widget.candidateModel?.location.wardId?.isNotEmpty == true) {
+      AppLogger.ui('Home: Using candidate location: ${widget.candidateModel!.location.districtId}/${widget.candidateModel!.location.bodyId}/${widget.candidateModel!.location.wardId}', tag: 'HOME');
       return {
-        'districtId': widget.candidateModel!.districtId,
-        'bodyId': widget.candidateModel!.bodyId,
-        'wardId': widget.candidateModel!.wardId,
+        'districtId': widget.candidateModel!.location.districtId ?? '',
+        'bodyId': widget.candidateModel!.location.bodyId ?? '',
+        'wardId': widget.candidateModel!.location.wardId ?? '',
       };
     }
 

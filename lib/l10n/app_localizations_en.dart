@@ -548,4 +548,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get proceedToPayment => 'Proceed to Payment';
+
+  @override
+  String get profileDetails => 'Profile Details';
+
+  @override
+  String get bio => 'Bio';
+
+  @override
+  String get useDemoBio => 'Use Demo Bio';
+
+  @override
+  String get noBioAvailable => 'No bio available';
 }

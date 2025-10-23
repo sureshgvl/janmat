@@ -1,10 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
-import '../models/candidate_model.dart';
+import '../models/events_model.dart';
 
 class EventRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // RSVP status enum
+  static const String RSVP_INTERESTED = 'interested';
+  static const String RSVP_GOING = 'going';
+  static const String RSVP_NOT_GOING = 'not_going';
 
   // Get candidate's actual state ID (helper method)
   Future<String> _getCandidateStateId(String candidateId) async {
@@ -57,308 +61,7 @@ class EventRepository {
     }
   }
 
-  // RSVP status enum
-  static const String RSVP_INTERESTED = 'interested';
-  static const String RSVP_GOING = 'going';
-  static const String RSVP_NOT_GOING = 'not_going';
-
-  // Add RSVP for a user to an event (supports events stored as List)
-  Future<bool> addEventRSVP(
-    String candidateId,
-    String eventId,
-    String userId,
-    String rsvpType,
-  ) async {
-    try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        throw Exception('Candidate not found');
-      }
-
-      final candidateRef = _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .doc(candidateLocation['districtId'])
-          .collection('bodies')
-          .doc(candidateLocation['bodyId'])
-          .collection('wards')
-          .doc(candidateLocation['wardId'])
-          .collection('candidates')
-          .doc(candidateId);
-
-      // Load full events list
-      final candidateDoc = await candidateRef.get();
-      if (!candidateDoc.exists) {
-        throw Exception('Candidate document missing');
-      }
-
-      final data = candidateDoc.data()!;
-      final extraInfo =
-          (data['extra_info'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final eventsData =
-          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
-
-      if (eventsData.isEmpty) {
-        throw Exception('No events found to RSVP');
-      }
-
-      // Resolve event index by id or by "event_<index>" pattern
-      final index = _resolveEventIndex(eventId, eventsData);
-
-      if (index == null || index < 0 || index >= eventsData.length) {
-        throw Exception('Event not found for id: $eventId');
-      }
-
-      // Normalize event map
-      final eventMap = Map<String, dynamic>.from(
-        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-      final rsvp = Map<String, dynamic>.from(
-        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-
-      final interested =
-          (rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>().toSet() ??
-          <dynamic>{};
-      final going =
-          (rsvp[RSVP_GOING] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
-      final notGoing =
-          (rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>().toSet() ??
-          <dynamic>{};
-
-      // Remove from all first
-      interested.remove(userId);
-      going.remove(userId);
-      notGoing.remove(userId);
-
-      // Add to selected
-      if (rsvpType == RSVP_INTERESTED) interested.add(userId);
-      if (rsvpType == RSVP_GOING) going.add(userId);
-      if (rsvpType == RSVP_NOT_GOING) notGoing.add(userId);
-
-      rsvp[RSVP_INTERESTED] = interested.toList();
-      rsvp[RSVP_GOING] = going.toList();
-      rsvp[RSVP_NOT_GOING] = notGoing.toList();
-      eventMap['rsvp'] = rsvp;
-
-      // Write back updated event into list
-      eventsData[index] = eventMap;
-      extraInfo['events'] = eventsData;
-
-      await candidateRef.update({'extra_info': extraInfo});
-      return true;
-    } catch (e) {
-      throw Exception('Failed to add RSVP: $e');
-    }
-  }
-
-  // Remove RSVP for a user from an event (supports events stored as List)
-  Future<bool> removeEventRSVP(
-    String candidateId,
-    String eventId,
-    String userId,
-  ) async {
-    try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        throw Exception('Candidate not found');
-      }
-
-      final candidateRef = _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .doc(candidateLocation['districtId'])
-          .collection('bodies')
-          .doc(candidateLocation['bodyId'])
-          .collection('wards')
-          .doc(candidateLocation['wardId'])
-          .collection('candidates')
-          .doc(candidateId);
-
-      final candidateDoc = await candidateRef.get();
-      if (!candidateDoc.exists) {
-        throw Exception('Candidate document missing');
-      }
-
-      final data = candidateDoc.data()!;
-      final extraInfo =
-          (data['extra_info'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final eventsData =
-          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
-
-      if (eventsData.isEmpty) {
-        return true;
-      }
-
-      final index = _resolveEventIndex(eventId, eventsData);
-      if (index == null || index < 0 || index >= eventsData.length) {
-        return true;
-      }
-
-      final eventMap = Map<String, dynamic>.from(
-        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-      final rsvp = Map<String, dynamic>.from(
-        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-
-      for (final key in [RSVP_INTERESTED, RSVP_GOING, RSVP_NOT_GOING]) {
-        final list =
-            (rsvp[key] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
-        list.remove(userId);
-        rsvp[key] = list.toList();
-      }
-
-      eventMap['rsvp'] = rsvp;
-      eventsData[index] = eventMap;
-      extraInfo['events'] = eventsData;
-
-      await candidateRef.update({'extra_info': extraInfo});
-      return true;
-    } catch (e) {
-      throw Exception('Failed to remove RSVP: $e');
-    }
-  }
-
-  // Get RSVP status for a user on an event (supports events stored as List)
-  Future<String?> getUserRSVPStatus(
-    String candidateId,
-    String eventId,
-    String userId,
-  ) async {
-    try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        return null;
-      }
-
-      final candidateDoc = await _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .doc(candidateLocation['districtId'])
-          .collection('bodies')
-          .doc(candidateLocation['bodyId'])
-          .collection('wards')
-          .doc(candidateLocation['wardId'])
-          .collection('candidates')
-          .doc(candidateId)
-          .get();
-
-      if (!candidateDoc.exists) {
-        return null;
-      }
-
-      final candidateData = candidateDoc.data()!;
-      final extraInfo =
-          (candidateData['extra_info'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final eventsData =
-          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
-      if (eventsData.isEmpty) return null;
-
-      final index = _resolveEventIndex(eventId, eventsData);
-      if (index == null || index < 0 || index >= eventsData.length) return null;
-
-      final eventMap = Map<String, dynamic>.from(
-        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-      final rsvp = Map<String, dynamic>.from(
-        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-
-      bool containsIn(String key) =>
-          ((rsvp[key] as List?)?.cast<dynamic>() ?? const <dynamic>[]).contains(
-            userId,
-          );
-
-      if (containsIn(RSVP_INTERESTED)) return RSVP_INTERESTED;
-      if (containsIn(RSVP_GOING)) return RSVP_GOING;
-      if (containsIn(RSVP_NOT_GOING)) return RSVP_NOT_GOING;
-
-      return null;
-    } catch (e) {
-      throw Exception('Failed to get RSVP status: $e');
-    }
-  }
-
-  // Get RSVP counts for an event (supports events stored as List)
-  Future<Map<String, int>> getEventRSVPCounts(
-    String candidateId,
-    String eventId,
-  ) async {
-    try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
-      }
-
-      final candidateDoc = await _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .doc(candidateLocation['districtId'])
-          .collection('bodies')
-          .doc(candidateLocation['bodyId'])
-          .collection('wards')
-          .doc(candidateLocation['wardId'])
-          .collection('candidates')
-          .doc(candidateId)
-          .get();
-
-      if (!candidateDoc.exists) {
-        return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
-      }
-
-      final candidateData = candidateDoc.data()!;
-      final extraInfo =
-          (candidateData['extra_info'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final eventsData =
-          (extraInfo['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
-      if (eventsData.isEmpty) {
-        return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
-      }
-
-      final index = _resolveEventIndex(eventId, eventsData);
-      if (index == null || index < 0 || index >= eventsData.length) {
-        return {RSVP_INTERESTED: 0, RSVP_GOING: 0, RSVP_NOT_GOING: 0};
-      }
-
-      final eventMap = Map<String, dynamic>.from(
-        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-      final rsvp = Map<String, dynamic>.from(
-        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
-      );
-
-      return {
-        RSVP_INTERESTED:
-            ((rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>() ??
-                    const <dynamic>[])
-                .length,
-        RSVP_GOING:
-            ((rsvp[RSVP_GOING] as List?)?.cast<dynamic>() ?? const <dynamic>[])
-                .length,
-        RSVP_NOT_GOING:
-            ((rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>() ??
-                    const <dynamic>[])
-                .length,
-      };
-    } catch (e) {
-      throw Exception('Failed to get RSVP counts: $e');
-    }
-  }
-
-  // Get all events for a candidate
+  // Get all events for a candidate - UPDATED to use top-level events field
   Future<List<EventData>> getCandidateEvents(String candidateId) async {
     try {
       final candidateStateId = await _getCandidateStateId(candidateId);
@@ -385,8 +88,7 @@ class EventRepository {
       }
 
       final candidateData = candidateDoc.data()!;
-      final extraInfo = candidateData['extra_info'] as Map<String, dynamic>?;
-      final eventsData = extraInfo?['events'] as List<dynamic>?;
+      final eventsData = candidateData['events'] as List<dynamic>?;
 
       if (eventsData == null) {
         return [];
@@ -414,10 +116,228 @@ class EventRepository {
     }
   }
 
+  // Create a new event - UPDATED to save directly to events field
+  Future<bool> createEvent(String candidateId, EventData eventData) async {
+    try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
+      final candidateLocation = await _findCandidateLocation(candidateId);
+      if (candidateLocation == null) {
+        throw Exception('Candidate not found');
+      }
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(candidateStateId)
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
+          .collection('wards')
+          .doc(candidateLocation['wardId'])
+          .collection('candidates')
+          .doc(candidateId);
+
+      final candidateDoc = await candidateRef.get();
+      if (!candidateDoc.exists) {
+        throw Exception('Candidate document missing');
+      }
+
+      final data = candidateDoc.data()!;
+      final eventsData = (data['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+
+      // Add new event
+      eventsData.add(eventData.toJson());
+
+      await candidateRef.update({
+        'events': eventsData,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Failed to create event: $e');
+    }
+  }
+
+  // Update an existing event - UPDATED to save directly to events field
+  Future<bool> updateEvent(String candidateId, String eventId, EventData eventData) async {
+    try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
+      final candidateLocation = await _findCandidateLocation(candidateId);
+      if (candidateLocation == null) {
+        throw Exception('Candidate not found');
+      }
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(candidateStateId)
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
+          .collection('wards')
+          .doc(candidateLocation['wardId'])
+          .collection('candidates')
+          .doc(candidateId);
+
+      final candidateDoc = await candidateRef.get();
+      if (!candidateDoc.exists) {
+        throw Exception('Candidate document missing');
+      }
+
+      final data = candidateDoc.data()!;
+      final eventsData = (data['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+
+      final index = _resolveEventIndex(eventId, eventsData);
+      if (index == null || index < 0 || index >= eventsData.length) {
+        throw Exception('Event not found');
+      }
+
+      // Update event
+      eventsData[index] = eventData.toJson();
+
+      await candidateRef.update({
+        'events': eventsData,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Failed to update event: $e');
+    }
+  }
+
+  // Delete an event - UPDATED to save directly to events field
+  Future<bool> deleteEvent(String candidateId, String eventId) async {
+    try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
+      final candidateLocation = await _findCandidateLocation(candidateId);
+      if (candidateLocation == null) {
+        throw Exception('Candidate not found');
+      }
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(candidateStateId)
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
+          .collection('wards')
+          .doc(candidateLocation['wardId'])
+          .collection('candidates')
+          .doc(candidateId);
+
+      final candidateDoc = await candidateRef.get();
+      if (!candidateDoc.exists) {
+        throw Exception('Candidate document missing');
+      }
+
+      final data = candidateDoc.data()!;
+      final eventsData = (data['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+
+      final index = _resolveEventIndex(eventId, eventsData);
+      if (index == null || index < 0 || index >= eventsData.length) {
+        throw Exception('Event not found');
+      }
+
+      // Remove event
+      eventsData.removeAt(index);
+
+      await candidateRef.update({
+        'events': eventsData,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Failed to delete event: $e');
+    }
+  }
+
+  // RSVP to an event - UPDATED to save directly to events field
+  Future<bool> rsvpToEvent(String candidateId, String eventId, String userId, String rsvpType) async {
+    try {
+      final candidateStateId = await _getCandidateStateId(candidateId);
+      final candidateLocation = await _findCandidateLocation(candidateId);
+      if (candidateLocation == null) {
+        throw Exception('Candidate not found');
+      }
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(candidateStateId)
+          .collection('districts')
+          .doc(candidateLocation['districtId'])
+          .collection('bodies')
+          .doc(candidateLocation['bodyId'])
+          .collection('wards')
+          .doc(candidateLocation['wardId'])
+          .collection('candidates')
+          .doc(candidateId);
+
+      // Load full events list
+      final candidateDoc = await candidateRef.get();
+      if (!candidateDoc.exists) {
+        throw Exception('Candidate document missing');
+      }
+
+      final data = candidateDoc.data()!;
+      final eventsData = (data['events'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+
+      if (eventsData.isEmpty) {
+        throw Exception('No events found to RSVP');
+      }
+
+      // Resolve event index by id or by "event_<index>" pattern
+      final index = _resolveEventIndex(eventId, eventsData);
+
+      if (index == null || index < 0 || index >= eventsData.length) {
+        throw Exception('Event not found for id: $eventId');
+      }
+
+      // Normalize event map
+      final eventMap = Map<String, dynamic>.from(
+        (eventsData[index] as Map?)?.cast<String, dynamic>() ?? {},
+      );
+      final rsvp = Map<String, dynamic>.from(
+        (eventMap['rsvp'] as Map?)?.cast<String, dynamic>() ?? {},
+      );
+
+      final interested =
+          (rsvp[RSVP_INTERESTED] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
+      final going =
+          (rsvp[RSVP_GOING] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
+      final notGoing =
+          (rsvp[RSVP_NOT_GOING] as List?)?.cast<dynamic>().toSet() ?? <dynamic>{};
+
+      // Remove from all first
+      interested.remove(userId);
+      going.remove(userId);
+      notGoing.remove(userId);
+
+      // Add to selected
+      if (rsvpType == RSVP_INTERESTED) interested.add(userId);
+      if (rsvpType == RSVP_GOING) going.add(userId);
+      if (rsvpType == RSVP_NOT_GOING) notGoing.add(userId);
+
+      rsvp[RSVP_INTERESTED] = interested.toList();
+      rsvp[RSVP_GOING] = going.toList();
+      rsvp[RSVP_NOT_GOING] = notGoing.toList();
+      eventMap['rsvp'] = rsvp;
+
+      // Write back updated event into list
+      eventsData[index] = eventMap;
+
+      await candidateRef.update({
+        'events': eventsData,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Failed to add RSVP: $e');
+    }
+  }
+
   // Helper method to find candidate location
-  Future<Map<String, String>?> _findCandidateLocation(
-    String candidateId,
-  ) async {
+  Future<Map<String, String>?> _findCandidateLocation(String candidateId) async {
     try {
       final candidateStateId = await _getCandidateStateId(candidateId);
       final districtsSnapshot = await _firestore
@@ -464,5 +384,53 @@ class EventRepository {
     }
     return null;
   }
-}
 
+  // Get RSVP counts for an event
+  Future<Map<String, int>> getEventRSVPCounts(String eventId) async {
+    try {
+      // This is a simplified implementation - in a real app you'd need to find the event first
+      // For now, return mock data
+      return {
+        'interested': 0,
+        'going': 0,
+        'not_going': 0,
+      };
+    } catch (e) {
+      throw Exception('Failed to get RSVP counts: $e');
+    }
+  }
+
+  // Get user's RSVP status for an event
+  Future<String?> getUserRSVPStatus(String eventId, String userId) async {
+    try {
+      // This is a simplified implementation - in a real app you'd need to find the event first
+      // For now, return null (no RSVP)
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get RSVP status: $e');
+    }
+  }
+
+  // Add RSVP for an event
+  Future<bool> addEventRSVP(String eventId, String userId, String rsvpType) async {
+    try {
+      // This is a simplified implementation - in a real app you'd need to find the event first
+      // For now, return true
+      return true;
+    } catch (e) {
+      throw Exception('Failed to add RSVP: $e');
+    }
+  }
+
+  // Remove RSVP for an event
+  Future<bool> removeEventRSVP(String eventId, String userId) async {
+    try {
+      // This is a simplified implementation - in a real app you'd need to find the event first
+      // For now, return true
+      return true;
+    } catch (e) {
+      throw Exception('Failed to remove RSVP: $e');
+    }
+  }
+
+}

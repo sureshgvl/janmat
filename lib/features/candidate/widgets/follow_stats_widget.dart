@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../controllers/candidate_controller.dart';
 import '../screens/followers_list_screen.dart';
 
@@ -50,10 +50,10 @@ class FollowStatsWidget extends StatelessWidget {
                                 await controller.followCandidate(
                                   userId,
                                   candidate.candidateId,
-                                  stateId: candidate.stateId,
-                                  districtId: candidate.districtId,
-                                  bodyId: candidate.bodyId,
-                                  wardId: candidate.wardId,
+                                  stateId: candidate.location.stateId,
+                                  districtId: candidate.location.districtId,
+                                  bodyId: candidate.location.bodyId,
+                                  wardId: candidate.location.wardId,
                                 );
                               } else {
                                 await controller.toggleFollow(userId, candidate.candidateId);
@@ -129,7 +129,7 @@ class FollowStatsWidget extends StatelessWidget {
               onTap: () async {
                 // Debug: Log all candidate data in system
                 try {
-                  final controller = Get.find<CandidateDataController>();
+                  final controller = CandidateUserController.to;
                   await controller.logAllCandidateData();
 
                   // Show detailed candidate info in a dialog
@@ -158,10 +158,10 @@ class FollowStatsWidget extends StatelessWidget {
                                 'User ID: ${candidate.userId}',
                               ),
                               Text(
-                                'District: ${candidate.districtId}',
+                                'District: ${candidate.location.districtId}',
                               ),
                               Text(
-                                'Ward: ${candidate.wardId}',
+                                'Ward: ${candidate.location.wardId}',
                               ),
                               Text(
                                 'Approved: ${candidate.approved}',
@@ -236,4 +236,3 @@ class FollowStatsWidget extends StatelessWidget {
     );
   }
 }
-

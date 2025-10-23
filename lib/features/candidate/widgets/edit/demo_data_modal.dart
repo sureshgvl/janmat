@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/candidate_achievement_model.dart';
+import '../../models/achievements_model.dart';
 
 class DemoDataModal extends StatelessWidget {
   final String category;
@@ -116,9 +116,10 @@ class DemoDataModal extends StatelessWidget {
           'Recognition for outstanding community service and volunteer work',
           [
             Achievement(
+              id: 'demo_achievement_1',
               title: 'Community Service Award',
               description: 'Recognized for outstanding community service and volunteer work in Ward 23',
-              year: 2023,
+              date: DateTime(2023),
               photoUrl: 'https://example.com/demo_achievement_1.jpg',
             ),
           ],
@@ -130,9 +131,10 @@ class DemoDataModal extends StatelessWidget {
           'Achievement in promoting education and literacy programs',
           [
             Achievement(
+              id: 'demo_achievement_2',
               title: 'Education Excellence Award',
               description: 'Awarded for successful implementation of literacy programs in the community',
-              year: 2022,
+              date: DateTime(2022),
               photoUrl: 'https://example.com/demo_achievement_2.jpg',
             ),
           ],
@@ -144,9 +146,10 @@ class DemoDataModal extends StatelessWidget {
           'Leadership in environmental conservation and sustainability initiatives',
           [
             Achievement(
+              id: 'demo_achievement_3',
               title: 'Environmental Leadership Award',
               description: 'Recognized for leading environmental conservation projects in the ward',
-              year: 2021,
+              date: DateTime(2021),
               photoUrl: 'https://example.com/demo_achievement_3.jpg',
             ),
           ],

@@ -149,12 +149,12 @@ class CandidateComparisonScreen extends StatelessWidget {
                   _buildComparisonRow(
                     'Age',
                     Text(
-                      candidate1.extraInfo?.basicInfo?.age?.toString() ?? 'N/A',
+                      candidate1.basicInfo?.age?.toString() ?? 'N/A',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      candidate2.extraInfo?.basicInfo?.age?.toString() ?? 'N/A',
+                      candidate2.basicInfo?.age?.toString() ?? 'N/A',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
@@ -164,12 +164,12 @@ class CandidateComparisonScreen extends StatelessWidget {
                   _buildComparisonRow(
                     'Manifesto Points',
                     Text(
-                      candidate1.extraInfo?.manifesto?.promises?.length.toString() ?? '0',
+                      candidate1.manifestoData?.promises?.length.toString() ?? '0',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      candidate2.extraInfo?.manifesto?.promises?.length.toString() ?? '0',
+                      candidate2.manifestoData?.promises?.length.toString() ?? '0',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
@@ -179,12 +179,12 @@ class CandidateComparisonScreen extends StatelessWidget {
                   _buildComparisonRow(
                     'Achievements',
                     Text(
-                      candidate1.extraInfo?.achievements?.length.toString() ?? '0',
+                      candidate1.achievements?.length.toString() ?? '0',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      candidate2.extraInfo?.achievements?.length.toString() ?? '0',
+                      candidate2.achievements?.length.toString() ?? '0',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
@@ -221,12 +221,12 @@ class CandidateComparisonScreen extends StatelessWidget {
                   _buildComparisonRow(
                     'Events Attended',
                     Text(
-                      candidate1.extraInfo?.events?.length.toString() ?? '0',
+                      candidate1.events?.length.toString() ?? '0',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      candidate2.extraInfo?.events?.length.toString() ?? '0',
+                      candidate2.events?.length.toString() ?? '0',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),

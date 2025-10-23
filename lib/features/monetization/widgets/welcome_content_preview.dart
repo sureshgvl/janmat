@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/highlight_model.dart' as highlight_model;
 import '../../../services/highlight_service.dart';
-import '../../../widgets/highlight_banner.dart';
+
 import '../../../utils/app_logger.dart';
 
 class WelcomeContentPreview extends StatefulWidget {
@@ -333,10 +333,29 @@ class _WelcomeContentPreviewState extends State<WelcomeContentPreview>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: HighlightBanner(
-          districtId: _platinumHighlight!.districtId,
-          bodyId: _platinumHighlight!.bodyId,
-          wardId: _platinumHighlight!.wardId,
+        child: Container(
+          color: Colors.grey[100],
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.content_paste_off,
+                  size: 48,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Highlight Banner Preview\n(Not Available)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

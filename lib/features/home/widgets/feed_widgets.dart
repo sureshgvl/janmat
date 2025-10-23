@@ -389,9 +389,9 @@ class FeedWidgets {
     try {
       // Fetch actual sponsored updates from Firestore
       final sponsoredUpdates = await _pushFeedService.getPushFeedForWard(
-        locationData['districtId']!,
-        locationData['bodyId']!,
-        locationData['wardId']!,
+        locationData['districtId'] ?? 'pune',
+        locationData['bodyId'] ?? 'pune_m_cop',
+        locationData['wardId'] ?? 'ward_17',
       );
 
       // Convert SponsoredUpdate objects to the expected Map format
@@ -418,9 +418,9 @@ class FeedWidgets {
       // Fetch actual community posts from Firestore
       final communityPosts = await _communityFeedService
           .getCommunityFeedForWard(
-            locationData['districtId']!,
-            locationData['bodyId']!,
-            locationData['wardId']!,
+            locationData['districtId'] ?? 'pune',
+            locationData['bodyId'] ?? 'pune_m_cop',
+            locationData['wardId'] ?? 'ward_17',
           );
 
       // Convert CommunityPost objects to the expected Map format
@@ -458,4 +458,3 @@ class FeedWidgets {
     }
   }
 }
-

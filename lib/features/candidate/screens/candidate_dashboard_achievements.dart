@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../../../services/plan_service.dart';
-import '../widgets/edit/candidate_achievements_tab_edit.dart';
-import '../widgets/view/achievements_tab_view.dart';
+import '../widgets/edit/achievements/achievements_edit.dart';
 import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardAchievements extends StatefulWidget {
@@ -18,7 +17,7 @@ class CandidateDashboardAchievements extends StatefulWidget {
 
 class _CandidateDashboardAchievementsState
     extends State<CandidateDashboardAchievements> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
   bool isSaving = false;
   bool canDisplayAchievements = false;
@@ -64,9 +63,11 @@ class _CandidateDashboardAchievementsState
                       controller.updateExtraInfo('achievements', achievements),
                 ),
               )
-            : AchievementsTabView(
-                candidate: controller.candidateData.value!,
-                isOwnProfile: true,
+            : AchievementsSection(
+                candidateData: controller.candidateData.value!,
+                editedData: null,
+                isEditing: false,
+                onAchievementsChange: (value) {},
               ),
         floatingActionButton: canDisplayAchievements ? (isEditing
             ? Padding(
@@ -183,4 +184,3 @@ class _CandidateDashboardAchievementsState
     });
   }
 }
-

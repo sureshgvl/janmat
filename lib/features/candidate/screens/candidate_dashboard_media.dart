@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/candidate_data_controller.dart';
-import '../widgets/edit/candidate_media_tab_edit.dart';
-import '../widgets/view/media_tab_view.dart';
+import '../controllers/candidate_user_controller.dart';
+import '../widgets/edit/media/media_edit.dart';
+import '../widgets/view/media/media_view.dart';
 import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardMedia extends StatefulWidget {
@@ -15,7 +15,7 @@ class CandidateDashboardMedia extends StatefulWidget {
 }
 
 class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
 
   // Global key to access media section for file uploads
@@ -47,7 +47,7 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
               )
             : Obx(() => MediaTabView(
                 candidate: controller.candidateData.value!,
-                isOwnProfile: true,
+                isOwnProfile: false,
               )),
         floatingActionButton: isEditing
             ? Padding(
@@ -157,4 +157,3 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
     });
   }
 }
-

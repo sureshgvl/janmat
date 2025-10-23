@@ -54,7 +54,7 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
         userId: widget.currentUserId,
         section: 'manifesto_title',
         metadata: {
-          'manifesto_title': widget.candidate.extraInfo?.manifesto?.title,
+          'manifesto_title': widget.candidate.manifestoData?.title,
           'interaction_source': 'manifesto_tab',
         },
       );
@@ -91,14 +91,14 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
         userId: widget.currentUserId,
         section: 'full_manifesto',
         metadata: {
-          'manifesto_title': widget.candidate.extraInfo?.manifesto?.title,
+          'manifesto_title': widget.candidate.manifestoData?.title,
           'share_platform': 'native_share',
           'interaction_source': 'manifesto_tab',
         },
       );
 
       // Send notification to followers and constituency about the sharing
-      final manifestoTitle = widget.candidate.extraInfo?.manifesto?.title ?? 'Manifesto';
+      final manifestoTitle = widget.candidate.manifestoData?.title ?? 'Manifesto';
       final constituencyNotifications = ConstituencyNotifications();
 
       await constituencyNotifications.sendManifestoSharedNotification(
@@ -129,15 +129,14 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
 
   @override
   Widget build(BuildContext context) {
-    final manifestoPromises = widget.candidate.extraInfo?.manifesto?.promises ?? [];
-    final manifesto = widget.candidate.manifesto ?? '';
+    final manifestoPromises = widget.candidate.manifestoData?.promises ?? [];
 
     // Use demo manifesto items if no real items exist
     final displayManifestoPromises = manifestoPromises.isNotEmpty
         ? manifestoPromises
         : DemoDataService.getDemoManifestoPromises('development', 'en');
 
-    final hasStructuredData = displayManifestoPromises.isNotEmpty || manifesto.isNotEmpty;
+    final hasStructuredData = displayManifestoPromises.isNotEmpty;
 
     // final manifestoId = widget.candidate.candidateId ?? widget.candidate.userId ?? '';
 
@@ -147,13 +146,13 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (hasStructuredData || manifesto.isNotEmpty)
+          if (hasStructuredData)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Simple Manifesto Title
-                if (widget.candidate.extraInfo?.manifesto?.title != null &&
-                    widget.candidate.extraInfo!.manifesto!.title!.isNotEmpty) ...[
+                if (widget.candidate.manifestoData?.title != null &&
+                    widget.candidate.manifestoData!.title!.isNotEmpty) ...[
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -165,7 +164,7 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.candidate.extraInfo!.manifesto!.title!,
+                            widget.candidate.manifestoData!.title!,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -336,9 +335,9 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
 
                 // Simple Resources Section
                 ManifestoResourcesSection(
-                  pdfUrl: widget.candidate.extraInfo?.manifesto?.pdfUrl,
-                  imageUrl: widget.candidate.extraInfo?.manifesto?.image,
-                  videoUrl: widget.candidate.extraInfo?.manifesto?.videoUrl,
+                  pdfUrl: widget.candidate.manifestoData?.pdfUrl,
+                  imageUrl: widget.candidate.manifestoData?.image,
+                  videoUrl: widget.candidate.manifestoData?.videoUrl,
                 ),
 
                 // Voter Interactions (if enabled)

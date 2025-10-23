@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../controllers/change_party_symbol_controller.dart';
+import '../models/media_model.dart';
 
 class UpdateButton extends StatelessWidget {
   final ChangePartySymbolController controller;
@@ -27,11 +28,11 @@ class UpdateButton extends StatelessWidget {
       // For independent candidates, also check if symbol name or image has changed
       final isIndependent = controller.isIndependent.value;
       final currentSymbolName = controller.currentCandidate.value?.symbolName ?? '';
-      final currentSymbolImageUrl = controller.currentCandidate.value?.extraInfo?.media
+      final currentSymbolImageUrl = controller.currentCandidate.value?.media
           ?.firstWhere(
-            (item) => item['type'] == 'symbolImage',
-            orElse: () => <String, dynamic>{},
-          )['url'] as String? ?? '';
+            (item) => item.type == 'symbolImage',
+            orElse: () => Media(url: '', type: ''),
+          ).url ?? '';
 
       final hasSymbolChanges = isIndependent && (
         controller.symbolNameController.text.trim() != currentSymbolName ||

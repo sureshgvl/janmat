@@ -60,34 +60,32 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
   void initState() {
     super.initState();
     final data = widget.editedData ?? widget.candidateData;
-    final extraInfo = data.extraInfo;
 
     AppLogger.candidate('🎯 BasicInfoEdit initState - Education debug:');
-    AppLogger.candidate('   extraInfo exists: ${extraInfo != null}');
-    AppLogger.candidate('   basicInfo exists: ${extraInfo?.basicInfo != null}');
-    AppLogger.candidate('   education from basicInfo: ${extraInfo?.basicInfo?.education}');
-    AppLogger.candidate('   address from contact: ${extraInfo?.contact?.address}');
+    AppLogger.candidate('   basicInfo exists: ${data.basicInfo != null}');
+    AppLogger.candidate('   education from basicInfo: ${data.basicInfo?.education}');
+    AppLogger.candidate('   address from contact: ${data.contact.address}');
 
     _nameController = TextEditingController(text: data.name);
-    _cityController = TextEditingController(text: data.districtId);
-    _wardController = TextEditingController(text: data.wardId);
+    _cityController = TextEditingController(text: data.location.districtId);
+    _wardController = TextEditingController(text: data.location.wardId);
     _ageController = TextEditingController(
-      text: extraInfo?.basicInfo?.age?.toString() ?? '',
+      text: data.basicInfo?.age?.toString() ?? '',
     );
     _genderController = TextEditingController(
-      text: extraInfo?.basicInfo?.gender ?? '',
+      text: data.basicInfo?.gender ?? '',
     );
     _educationController = TextEditingController(
-      text: extraInfo?.basicInfo?.education ?? '',
+      text: data.basicInfo?.education ?? '',
     );
     _addressController = TextEditingController(
-      text: extraInfo?.contact?.address ?? '',
+      text: data.contact.address ?? '',
     );
     _professionController = TextEditingController(
-      text: extraInfo?.basicInfo?.profession ?? '',
+      text: data.basicInfo?.profession ?? '',
     );
     _languagesController = TextEditingController(
-      text: extraInfo?.basicInfo?.languages?.join(', ') ?? '',
+      text: data.basicInfo?.languages?.join(', ') ?? '',
     );
     _symbolNameController = TextEditingController(
       text: data.symbolName ?? '',
@@ -401,7 +399,10 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
             _buildTextInputField(
               controller: _educationController,
               labelText: CandidateLocalizations.of(context)!.education,
-              onChanged: (value) => widget.onBasicInfoChange('education', value),
+                  onChanged: (value) {
+                    AppLogger.candidate('🎯 Education changed to: "$value"', tag: 'FORM_EDIT');
+                    widget.onBasicInfoChange('education', value);
+                  },
             ),
             const SizedBox(height: 16),
 
@@ -500,14 +501,14 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                     children: [
                       Expanded(
                         child: Text(
-                          CandidateLocalizations.of(context)!.districtLabel(district: data.districtId),
+                          CandidateLocalizations.of(context)!.districtLabel(district: data.location.districtId ?? ''),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(
-                          CandidateLocalizations.of(context)!.wardLabel(ward: data.wardId),
+                          CandidateLocalizations.of(context)!.wardLabel(ward: data.location.wardId ?? ''),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -522,4 +523,3 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     );
   }
 }
-

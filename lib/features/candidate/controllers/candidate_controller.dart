@@ -7,6 +7,7 @@ import '../../../models/user_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_follow_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
+import '../../../controllers/user_controller.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/memory_manager.dart';
 import '../../../services/notifications/candidate_following_notifications.dart';
@@ -38,18 +39,24 @@ class CandidateController extends GetxController {
   DateTime? _followStatusLastFetched; // Track when follow status was last fetched
 
   // Fetch candidates for a user based on their election areas (NEW METHOD)
-  Future<void> fetchCandidatesForUser(UserModel user) async {
-    AppLogger.database('Fetching candidates for user: ${user.uid}', tag: 'CANDIDATE_CONTROLLER');
-    AppLogger.database('User has ${user.electionAreas.length} election areas', tag: 'CANDIDATE_CONTROLLER');
+  Future<void> fetchCandidatesForUser([UserModel? user]) async {
+    // Use UserController if no user provided
+    final userModel = user ?? UserController.to.user.value;
+    if (userModel == null) {
+      AppLogger.database('No user available for fetching candidates', tag: 'CANDIDATE_CONTROLLER');
+      return;
+    }
+    AppLogger.database('Fetching candidates for user: ${userModel.uid}', tag: 'CANDIDATE_CONTROLLER');
+    AppLogger.database('User has ${userModel.electionAreas.length} election areas', tag: 'CANDIDATE_CONTROLLER');
 
     // Track user interaction
     _analytics.trackUserInteraction(
       'fetch_candidates_for_user',
       'candidate_list_screen',
       metadata: {
-        'userId': user.uid,
-        'electionAreasCount': user.electionAreas.length,
-        'electionTypes': user.electionAreas.map((e) => e.type.name).toList(),
+        'userId': userModel.uid,
+        'electionAreasCount': userModel.electionAreas.length,
+        'electionTypes': userModel.electionAreas.map((e) => e.type.name).toList(),
       },
     );
 
@@ -60,11 +67,11 @@ class CandidateController extends GetxController {
     final startTime = DateTime.now();
 
     try {
-      candidates = await _repository.getCandidatesForUser(user);
+      candidates = await _repository.getCandidatesForUser(userModel);
 
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
 
-      AppLogger.database('Found ${candidates.length} candidates for user: ${user.uid}', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('Found ${candidates.length} candidates for user: ${userModel.uid}', tag: 'CANDIDATE_CONTROLLER');
 
       // Track successful operation
       _analytics.trackPerformanceMetric(
@@ -80,11 +87,11 @@ class CandidateController extends GetxController {
 
       // Memory management - register for cleanup
       _memoryManager.registerObject(
-        'user_candidates_${user.uid}',
+        'user_candidates_${userModel.uid}',
         candidates,
         ttl: Duration(minutes: 15),
         category: 'user_candidates',
-        metadata: {'count': candidates.length, 'userId': user.uid},
+        metadata: {'count': candidates.length, 'userId': userModel.uid},
       );
 
       // Populate follow status for current user

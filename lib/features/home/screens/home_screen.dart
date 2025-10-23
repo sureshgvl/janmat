@@ -4,13 +4,13 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../candidate/controllers/candidate_data_controller.dart';
 import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../services/home_services.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
 import '../../../services/district_spotlight_service.dart';
+import '../../candidate/controllers/candidate_user_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -63,6 +63,37 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Check user profile completion and role selection, navigate accordingly
+  void _checkUserProfileAndNavigate(UserModel userModel) async {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      // Check if role is selected
+      if (!userModel.roleSelected) {
+        AppLogger.common('Role not selected, navigating to role selection');
+        Get.offAllNamed('/role-selection');
+        return;
+      }
+
+      // Check if profile is completed
+      if (!userModel.profileCompleted) {
+        AppLogger.common('Profile not completed, navigating to profile completion');
+        Get.offAllNamed('/profile-completion');
+        return;
+      }
+
+      // User has role selected and profile completed, stay on home screen
+      AppLogger.common('User profile complete, staying on home screen');
+
+    } catch (e) {
+      AppLogger.error('Error checking user profile: $e');
+      // On error, default to role selection
+      Get.offAllNamed('/role-selection');
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // PERFORMANCE TRACKING: Log when home screen starts building
     final homeBuildStart = DateTime.now();
-    print('🏠 HOME SCREEN BUILD START: ${homeBuildStart.toIso8601String()}');
+    AppLogger.common('🏠 HOME SCREEN BUILD START: ${homeBuildStart.toIso8601String()}', tag: 'HOME_PERF');
 
     // PERFORMANCE OPTIMIZATION: Single data fetch for entire screen
     return FutureBuilder<Map<String, dynamic>>(
@@ -105,15 +136,15 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         UserModel? userModel;
-        if (snapshot.hasData) {
-          final data = snapshot.data!;
-          if (data['user'] is UserModel) {
+        if (snapshot.hasData && snapshot.data != null) {
+          final data = snapshot.data;
+          if (data != null && data['user'] is UserModel) {
             userModel = data['user'] as UserModel;
 
             // PERFORMANCE TRACKING: Log when home screen data is loaded
             final homeDataLoaded = DateTime.now();
             final loadTime = homeDataLoaded.difference(homeBuildStart).inMilliseconds;
-            print('✅ HOME SCREEN DATA LOADED: ${homeDataLoaded.toIso8601String()} (${loadTime}ms from build start)');
+            AppLogger.common('✅ HOME SCREEN DATA LOADED: ${homeDataLoaded.toIso8601String()} (${loadTime}ms from build start)', tag: 'HOME_PERF');
           }
         }
 
@@ -126,140 +157,144 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         });
 
-        return GetBuilder<CandidateDataController>(
-          builder: (candidateController) {
-            // DEBUG: Add detailed logging to understand the issue
-            print('🔍 DEBUG - User role check:');
-            print('  userModel: ${userModel?.toJson()}');
-            print('  role: "${userModel?.role}"');
-            print('  role == candidate: ${userModel?.role == 'candidate'}');
-            print('  snapshot.hasData: ${snapshot.hasData}');
-            if (snapshot.hasData) {
-              print('  snapshot.data: ${snapshot.data}');
-              print('  candidate in snapshot: ${snapshot.data!['candidate']}');
-              print('  user in snapshot: ${snapshot.data!['user']}');
-            }
+        // Use the userModel from the FutureBuilder directly
+        final effectiveUserModel = userModel;
 
-            // FIX: Properly extract user data from snapshot
-            UserModel? extractedUserModel;
-            if (snapshot.hasData && snapshot.data != null) {
-              final data = snapshot.data!;
-              if (data['user'] != null) {
-                try {
-                  extractedUserModel = UserModel.fromJson(data['user'] as Map<String, dynamic>);
-                  print('✅ Successfully extracted user model: ${extractedUserModel.name}');
-                } catch (e) {
-                  print('❌ Failed to parse user model from snapshot: $e');
+        // Check user profile completion and role selection after data is loaded
+        if (effectiveUserModel != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _checkUserProfileAndNavigate(effectiveUserModel);
+            }
+          });
+        }
+
+        // Handle candidate and voter modes
+        if (effectiveUserModel?.role == 'candidate') {
+          AppLogger.common('✅ ENTERING CANDIDATE MODE', tag: 'HOME');
+
+          // Priority order for candidate data:
+          // 1. Centralized CandidateUserController (preferred)
+          // 2. Service data from HomeServices
+          Candidate? displayCandidate;
+
+          // First priority: Centralized controller
+          try {
+            final candidateUserController = Get.find<CandidateUserController>();
+            if (candidateUserController.candidate.value != null) {
+              displayCandidate = candidateUserController.candidate.value;
+              AppLogger.common('🎯 Using centralized CandidateUserController data: ${displayCandidate!.name}', tag: 'HOME');
+            }
+          } catch (e) {
+            // Controller not found, will initialize below
+          }
+
+          // Second priority: Service data
+          if (displayCandidate == null && snapshot.hasData && snapshot.data != null) {
+            final data = snapshot.data;
+            if (data != null && data['candidate'] != null) {
+              displayCandidate = data['candidate'] as Candidate;
+              AppLogger.common('📦 Using service candidate data: ${displayCandidate.name}', tag: 'HOME');
+            }
+          }
+
+          // Initialize controller if needed
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && effectiveUserModel != null) {
+              try {
+                final candidateUserController = Get.find<CandidateUserController>();
+                if (!candidateUserController.isInitialized.value) {
+                  candidateUserController.loadCandidateUserData(effectiveUserModel.uid);
                 }
-              } else {
-                print('❌ No user data in snapshot');
+              } catch (e) {
+                // Controller not registered yet, register and initialize
+                Get.put(CandidateUserController());
+                final candidateUserController = Get.find<CandidateUserController>();
+                candidateUserController.loadCandidateUserData(effectiveUserModel.uid);
               }
             }
+          });
 
-            // Use extracted user model, fallback to existing userModel
-            final effectiveUserModel = extractedUserModel ?? userModel;
+          // PERFORMANCE TRACKING: Log when home screen is fully rendered
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final homeFullyRendered = DateTime.now();
+            final totalTime = homeFullyRendered.difference(homeBuildStart).inMilliseconds;
+            AppLogger.common('🎉 HOME SCREEN FULLY RENDERED: ${homeFullyRendered.toIso8601String()} (${totalTime}ms from build start)', tag: 'HOME_PERF');
+            AppLogger.common('👤 CANDIDATE MODE - Data loaded: ${displayCandidate != null ? 'YES' : 'NO'}', tag: 'HOME');
+            AppLogger.common('🎯 Data source: ${displayCandidate != null ? 'Available' : 'Loading...'}', tag: 'HOME');
+          });
 
-            // CRITICAL FIX: Ensure candidate data is loaded immediately for candidates
-            if (effectiveUserModel?.role == 'candidate') {
-              print('✅ ENTERING CANDIDATE MODE');
-
-              // Check if we have candidate data from the service call
-              Candidate? candidateFromService;
-              if (snapshot.hasData && snapshot.data!['candidate'] != null) {
-                candidateFromService = snapshot.data!['candidate'] as Candidate;
-                print('📦 Candidate data found in service: ${candidateFromService.name}');
-              } else {
-                print('❌ No candidate data in service snapshot');
-              }
-
-              // Use service data if available, otherwise use controller data
-              final displayCandidate = candidateFromService ?? candidateController.candidateData.value;
-              print('🎯 Final display candidate: ${displayCandidate?.name ?? 'NULL'}');
-
-              // If still no candidate data, trigger immediate load (not lazy)
-              if (displayCandidate == null && !candidateController.isLoading.value) {
-                print('🔄 Triggering candidate data load...');
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && !candidateController.isLoading.value) {
-                    candidateController.fetchCandidateData();
-                  }
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.home),
+            ),
+            drawer: HomeDrawer(
+              userModel: effectiveUserModel,
+              candidateModel: displayCandidate,
+              currentUser: currentUser,
+            ),
+            body: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: () async {
+                setState(() {
+                  _refreshCounter++;
                 });
-              }
+                // Refresh via centralized controller
+                try {
+                  final candidateUserController = Get.find<CandidateUserController>();
+                  if (effectiveUserModel != null) {
+                    await candidateUserController.refreshData();
+                  }
+                } catch (e) {
+                  // Controller not available
+                }
+                await Future.delayed(const Duration(milliseconds: 300));
+              },
+              child: HomeBody(
+                userModel: effectiveUserModel,
+                candidateModel: displayCandidate,
+                currentUser: currentUser,
+              ),
+            ),
+          );
+        } else {
+          AppLogger.common('✅ ENTERING VOTER MODE', tag: 'HOME');
 
-              // PERFORMANCE TRACKING: Log when home screen is fully rendered
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final homeFullyRendered = DateTime.now();
-                final totalTime = homeFullyRendered.difference(homeBuildStart).inMilliseconds;
-                print('🎉 HOME SCREEN FULLY RENDERED: ${homeFullyRendered.toIso8601String()} (${totalTime}ms from build start)');
-                print('👤 CANDIDATE MODE - Data loaded: ${displayCandidate != null ? 'YES' : 'NO'}');
-              });
+          // For non-candidates, use the original logic
+          // PERFORMANCE TRACKING: Log when home screen is fully rendered
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final homeFullyRendered = DateTime.now();
+            final totalTime = homeFullyRendered.difference(homeBuildStart).inMilliseconds;
+            AppLogger.common('🎉 HOME SCREEN FULLY RENDERED: ${homeFullyRendered.toIso8601String()} (${totalTime}ms from build start)', tag: 'HOME_PERF');
+            AppLogger.common('👤 VOTER MODE - No candidate data needed', tag: 'HOME');
+          });
 
-              return Scaffold(
-                appBar: AppBar(
-                  title: Text(AppLocalizations.of(context)!.home),
-                ),
-                drawer: HomeDrawer(
-                  userModel: effectiveUserModel,
-                  candidateModel: displayCandidate,
-                  currentUser: currentUser,
-                ),
-                body: RefreshIndicator(
-                  key: _refreshIndicatorKey,
-                  onRefresh: () async {
-                    setState(() {
-                      _refreshCounter++;
-                    });
-                    await candidateController.refreshCandidateData();
-                    await Future.delayed(const Duration(milliseconds: 300));
-                  },
-                  child: HomeBody(
-                    userModel: effectiveUserModel,
-                    candidateModel: displayCandidate,
-                    currentUser: currentUser,
-                  ),
-                ),
-              );
-            } else {
-              print('✅ ENTERING VOTER MODE');
-
-              // For non-candidates, use the original logic
-              // PERFORMANCE TRACKING: Log when home screen is fully rendered
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final homeFullyRendered = DateTime.now();
-                final totalTime = homeFullyRendered.difference(homeBuildStart).inMilliseconds;
-                print('🎉 HOME SCREEN FULLY RENDERED: ${homeFullyRendered.toIso8601String()} (${totalTime}ms from build start)');
-                print('👤 VOTER MODE - No candidate data needed');
-              });
-
-              return Scaffold(
-                appBar: AppBar(
-                  title: Text(AppLocalizations.of(context)!.home),
-                ),
-                drawer: HomeDrawer(
-                  userModel: effectiveUserModel,
-                  candidateModel: null, // Voters don't have candidate data
-                  currentUser: currentUser,
-                ),
-                body: RefreshIndicator(
-                  key: _refreshIndicatorKey,
-                  onRefresh: () async {
-                    setState(() {
-                      _refreshCounter++;
-                    });
-                    await Future.delayed(const Duration(milliseconds: 300));
-                  },
-                  child: HomeBody(
-                    userModel: effectiveUserModel,
-                    candidateModel: null, // Voters don't have candidate data
-                    currentUser: currentUser,
-                  ),
-                ),
-              );
-            }
-          },
-        );
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.home),
+            ),
+            drawer: HomeDrawer(
+              userModel: effectiveUserModel,
+              candidateModel: null, // Voters don't have candidate data
+              currentUser: currentUser,
+            ),
+            body: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: () async {
+                setState(() {
+                  _refreshCounter++;
+                });
+                await Future.delayed(const Duration(milliseconds: 300));
+              },
+              child: HomeBody(
+                userModel: effectiveUserModel,
+                candidateModel: null, // Voters don't have candidate data
+                currentUser: currentUser,
+              ),
+            ),
+          );
+        }
       },
     );
   }
 }
-

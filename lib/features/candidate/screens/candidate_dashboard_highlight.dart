@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/highlight_tab_edit_refactored.dart';
-import '../widgets/view/highlight_tab_view.dart';
+import '../widgets/view/highlight/highlight_view.dart';
 import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardHighlight extends StatefulWidget {
@@ -16,7 +16,7 @@ class CandidateDashboardHighlight extends StatefulWidget {
 
 class _CandidateDashboardHighlightState
     extends State<CandidateDashboardHighlight> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
 
   // Global key to access highlight section for file uploads
@@ -168,4 +168,3 @@ class _CandidateDashboardHighlightState
     });
   }
 }
-

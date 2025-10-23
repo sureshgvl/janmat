@@ -5,15 +5,15 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_controller.dart';
-import '../controllers/candidate_data_controller.dart';
-import '../widgets/view/info_tab_view.dart';
-import '../widgets/view/manifesto_tab_view.dart';
-import '../widgets/view/profile_tab_view.dart';
-import '../widgets/view/media_tab_view.dart';
-import '../widgets/view/contact_tab_view.dart';
-import '../widgets/edit/candidate_achievements_tab_edit.dart';
-import '../widgets/edit/candidate_events_tab_edit.dart';
-import '../widgets/view/voter_events_tab_view.dart';
+import '../controllers/candidate_user_controller.dart';
+import '../widgets/view/basic_info/basic_info_tab_view.dart';
+import '../widgets/view/manifesto/manifesto_view.dart';
+import '../widgets/view/profile/profile_tab_view.dart';
+import '../widgets/view/media/media_view.dart';
+import '../widgets/view/contact/contact_tab_view.dart';
+import '../widgets/edit/achievements/achievements_edit.dart';
+import '../widgets/edit/events/events_edit.dart';
+import '../widgets/view/events/events_tab_view.dart';
 import '../widgets/view/followers_analytics_tab_view.dart';
 import '../widgets/profile_header_widget.dart';
 import '../widgets/follow_stats_widget.dart';
@@ -40,8 +40,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     with TickerProviderStateMixin {
   Candidate? candidate;
   final CandidateController controller = Get.find<CandidateController>();
-  final CandidateDataController dataController =
-      Get.find<CandidateDataController>();
+  final CandidateUserController dataController = CandidateUserController.to;
   final CandidateRepository candidateRepository = CandidateRepository();
   final LocalDatabaseService _locationDatabase = LocalDatabaseService();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
@@ -68,7 +67,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Get.snackbar(
           AppLocalizations.of(context)!.error,
-          CandidateLocalizations.of(context)?.candidateDataNotFound ?? 'Candidate data not found',
+          CandidateLocalizations.of(context)?.candidateDataNotFound ??
+              'Candidate data not found',
         );
         Get.back();
       });
@@ -168,12 +168,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     return locale.languageCode; // Returns 'en' or 'mr'
   }
 
-
   // Format date
   String formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-
 
   // Sync with controller data for own profile
   void _syncWithControllerData() {
@@ -205,8 +203,12 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
   // Load location data
   Future<void> _loadLocationData() async {
-    AppLogger.candidate('🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}');
-    AppLogger.candidate('📍 [Candidate Profile] IDs: district=${candidate?.districtId}, body=${candidate?.bodyId}, ward=${candidate?.wardId}');
+    AppLogger.candidate(
+      '🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}',
+    );
+    AppLogger.candidate(
+      '📍 [Candidate Profile] IDs: district=${candidate?.location.districtId}, body=${candidate?.location.bodyId}, ward=${candidate?.location.wardId}',
+    );
 
     if (candidate == null) return;
 
@@ -215,9 +217,13 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       AppLogger.candidate('🔍 [DEBUG] Checking all ward data in SQLite...');
       final db = await _locationDatabase.database;
       final allWards = await db.query('wards');
-      AppLogger.candidate('📊 [DEBUG] Total wards in SQLite: ${allWards.length}');
+      AppLogger.candidate(
+        '📊 [DEBUG] Total wards in SQLite: ${allWards.length}',
+      );
       for (var ward in allWards) {
-        AppLogger.candidate('🏛️ [DEBUG] Ward: id=${ward['id']}, name="${ward['name']}", districtId=${ward['districtId']}, bodyId=${ward['bodyId']}, stateId=${ward['stateId']}');
+        AppLogger.candidate(
+          '🏛️ [DEBUG] Ward: id=${ward['id']}, name="${ward['name']}", districtId=${ward['districtId']}, bodyId=${ward['bodyId']}, stateId=${ward['stateId']}',
+        );
       }
 
       // Specifically check ward_17 data
@@ -230,31 +236,36 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
       // Load location data from SQLite cache
       final locationData = await _locationDatabase.getCandidateLocationData(
-        candidate!.districtId,
-        candidate!.bodyId,
-        candidate!.wardId,
-        candidate!.stateId,
+        candidate!.location.districtId ?? '',
+        candidate!.location.bodyId ?? '',
+        candidate!.location.wardId ?? '',
+        candidate!.location.stateId ?? 'maharashtra',
       );
 
       // Check if ward data is missing or corrupted
       final rawWardName = locationData['wardName'];
-      final isWardDataCorrupted = rawWardName != null &&
+      final isWardDataCorrupted =
+          rawWardName != null &&
           (rawWardName.startsWith('Ward Ward ') ||
-           (rawWardName.startsWith('Ward ') && RegExp(r'^ward_\d+$').hasMatch(rawWardName.substring(5))));
+              (rawWardName.startsWith('Ward ') &&
+                  RegExp(r'^ward_\d+$').hasMatch(rawWardName.substring(5))));
 
       if (locationData['wardName'] == null || isWardDataCorrupted) {
-        AppLogger.candidate('⚠️ [Candidate Profile] Ward data missing or corrupted (raw: "$rawWardName"), triggering sync...');
+        AppLogger.candidate(
+          '⚠️ [Candidate Profile] Ward data missing or corrupted (raw: "$rawWardName"), triggering sync...',
+        );
 
         // Trigger background sync for missing/corrupted location data
         await _syncMissingLocationData();
 
         // Try loading again after sync
-        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
-          candidate!.districtId,
-          candidate!.bodyId,
-          candidate!.wardId,
-          candidate!.stateId,
-        );
+        final updatedLocationData = await _locationDatabase
+            .getCandidateLocationData(
+              candidate!.location.districtId ?? '',
+              candidate!.location.bodyId ?? '',
+              candidate!.location.wardId ?? '',
+              candidate!.location.stateId ?? 'maharashtra',
+            );
 
         if (mounted) {
           setState(() {
@@ -264,7 +275,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           });
         }
 
-        AppLogger.candidate('✅ [Candidate Profile] Location data loaded after sync:');
+        AppLogger.candidate(
+          '✅ [Candidate Profile] Location data loaded after sync:',
+        );
         AppLogger.candidate('   📍 District: $_districtName');
         AppLogger.candidate('   🏛️ Body: $_bodyName');
         AppLogger.candidate('   🏛️ Ward: $_wardName');
@@ -277,20 +290,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           });
         }
 
-        AppLogger.candidate('✅ [Candidate Profile] Location data loaded successfully from SQLite:');
+        AppLogger.candidate(
+          '✅ [Candidate Profile] Location data loaded successfully from SQLite:',
+        );
         AppLogger.candidate('   📍 District: $_districtName');
         AppLogger.candidate('   🏛️ Body: $_bodyName');
         AppLogger.candidate('   🏛️ Ward: $_wardName');
       }
     } catch (e) {
-      AppLogger.candidateError('❌ [Candidate Profile] Error loading location data: $e');
+      AppLogger.candidateError(
+        '❌ [Candidate Profile] Error loading location data: $e',
+      );
 
       // Fallback to ID-based display if sync fails
       if (mounted) {
         setState(() {
-          _districtName = candidate!.districtId;
-          _bodyName = candidate!.bodyId;
-          _wardName = 'Ward ${candidate!.wardId}';
+          _districtName = candidate!.location.districtId;
+          _bodyName = candidate!.location.bodyId;
+          _wardName = 'Ward ${candidate!.location.wardId}';
         });
       }
     }
@@ -320,18 +337,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   // Sync missing location data from Firebase to SQLite
   Future<void> _syncMissingLocationData() async {
     try {
-      AppLogger.candidate('🔄 [Candidate Profile] Syncing missing location data from Firebase...');
+      AppLogger.candidate(
+        '🔄 [Candidate Profile] Syncing missing location data from Firebase...',
+      );
 
       // Sync district data if missing
       if (_districtName == null) {
-        AppLogger.candidate('🏙️ [Sync] Fetching district data for ${candidate?.districtId}');
+        AppLogger.candidate(
+          '🏙️ [Sync] Fetching district data for ${candidate?.location.districtId}',
+        );
         final districts = await candidateRepository.getAllDistricts();
         final district = districts.firstWhere(
-          (d) => d.id == candidate?.districtId,
+          (d) => d.id == candidate?.location.districtId,
           orElse: () => District(
-            id: candidate!.districtId,
-            name: candidate!.districtId,
-            stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID with fallback
+            id: candidate!.location.districtId ?? '',
+            name: candidate!.location.districtId ?? '',
+            stateId:
+                candidate!.location.stateId ??
+                'maharashtra', // Use candidate's actual state ID with fallback
           ),
         );
         await _locationDatabase.insertDistricts([district]);
@@ -340,20 +363,24 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
       // Sync body data if missing
       if (_bodyName == null) {
-        AppLogger.candidate('🏛️ [Sync] Fetching body data for ${candidate?.bodyId}');
+        AppLogger.candidate(
+          '🏛️ [Sync] Fetching body data for ${candidate?.location.bodyId}',
+        );
         // Note: We need to get bodies for the district first
         final bodies = await candidateRepository.getWardsByDistrictAndBody(
-          candidate!.districtId,
-          candidate!.bodyId,
+          candidate!.location.districtId ?? '',
+          candidate!.location.bodyId ?? '',
         );
         // Extract body info from wards (since we don't have direct body fetch)
         if (bodies.isNotEmpty) {
           final body = Body(
-            id: candidate!.bodyId,
-            name: candidate!.bodyId, // Fallback name
+            id: candidate!.location.bodyId ?? '',
+            name: candidate!.location.bodyId ?? '', // Fallback name
             type: BodyType.municipal_corporation, // Default
-            districtId: candidate!.districtId,
-            stateId: candidate!.stateId ?? 'maharashtra', // Use candidate's actual state ID
+            districtId: candidate!.location.districtId ?? '',
+            stateId:
+                candidate!.location.stateId ??
+                'maharashtra', // Use candidate's actual state ID
           );
           await _locationDatabase.insertBodies([body]);
           AppLogger.candidate('✅ [Sync] Body data synced');
@@ -362,46 +389,60 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
       // Sync ward data (most critical)
       if (_wardName == null) {
-        AppLogger.candidate('🏛️ [Sync] Fetching ward data for ${candidate?.wardId}');
-        AppLogger.candidate('🏛️ [Sync] Candidate stateId: ${candidate!.stateId}');
+        AppLogger.candidate(
+          '🏛️ [Sync] Fetching ward data for ${candidate?.location.wardId}',
+        );
+        AppLogger.candidate(
+          '🏛️ [Sync] Candidate stateId: ${candidate!.location.stateId}',
+        );
 
         // Get the correct stateId for this candidate
-        final stateId = candidate!.stateId ?? 'maharashtra'; // Default fallback
+        final stateId =
+            candidate!.location.stateId ?? 'maharashtra'; // Default fallback
         AppLogger.candidate('🏛️ [Sync] Using stateId: $stateId');
 
         final wards = await candidateRepository.getWardsByDistrictAndBody(
-          candidate!.districtId,
-          candidate!.bodyId,
-          candidate!.stateId, // Pass the candidate's stateId
+          candidate!.location.districtId ?? '',
+          candidate!.location.bodyId ?? '',
+          candidate!.location.stateId ??
+              'maharashtra', // Pass the candidate's stateId
         );
 
-        AppLogger.candidate('🏛️ [Sync] Found ${wards.length} wards from Firebase');
+        AppLogger.candidate(
+          '🏛️ [Sync] Found ${wards.length} wards from Firebase',
+        );
         for (var w in wards) {
           AppLogger.candidate('🏛️ [Sync] Ward: ${w.id} -> ${w.name}');
         }
 
         final ward = wards.firstWhere(
-          (w) => w.id == candidate?.wardId,
+          (w) => w.id == candidate?.location.wardId,
           orElse: () => Ward(
-            id: candidate!.wardId,
-            name: 'Ward ${candidate!.wardId}',
-            districtId: candidate!.districtId,
-            bodyId: candidate!.bodyId,
+            id: candidate!.location.wardId ?? '',
+            name: 'Ward ${candidate!.location.wardId ?? ''}',
+            districtId: candidate!.location.districtId ?? '',
+            bodyId: candidate!.location.bodyId ?? '',
             stateId: stateId,
           ),
         );
 
-        AppLogger.candidate('🏛️ [Sync] Selected ward: ${ward.id} -> "${ward.name}"');
+        AppLogger.candidate(
+          '🏛️ [Sync] Selected ward: ${ward.id} -> "${ward.name}"',
+        );
 
         // Force update the ward data in SQLite to ensure we have the latest from Firebase
-        AppLogger.candidate('🔄 [Sync] Force updating ward data in SQLite: "${ward.name}"');
+        AppLogger.candidate(
+          '🔄 [Sync] Force updating ward data in SQLite: "${ward.name}"',
+        );
         await _locationDatabase.insertWards([ward]);
         AppLogger.candidate('✅ [Sync] Ward data synced');
       }
 
       AppLogger.candidate('✅ [Candidate Profile] Location data sync completed');
     } catch (e) {
-      AppLogger.candidateError('❌ [Candidate Profile] Error syncing location data: $e');
+      AppLogger.candidateError(
+        '❌ [Candidate Profile] Error syncing location data: $e',
+      );
       // Continue with fallback display
     }
   }
@@ -410,13 +451,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   List<Widget> _buildTabViews() {
     final List<Widget> tabViews = [
       // Info Tab
-      InfoTab(
+      BasicInfoTabView(
         candidate: candidate!,
         getPartySymbolPath: (party) =>
-            SymbolUtils.getPartySymbolPath(
-              party,
-              candidate: candidate,
-            ),
+            SymbolUtils.getPartySymbolPath(party, candidate: candidate),
         formatDate: formatDate,
         wardName: _wardName,
         districtName: _districtName,
@@ -427,8 +465,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       ManifestoTabView(
         candidate: candidate!,
         isOwnProfile: _isOwnProfile,
-        showVoterInteractions:
-            true, // Show voter interactions in profile view
+        showVoterInteractions: true, // Show voter interactions in profile view
       ),
 
       // Profile Tab
@@ -448,13 +485,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       ),
 
       // Media Tab
-      MediaTabView(
-        candidate: candidate!,
-        isOwnProfile: false,
-      ),
+      MediaTabView(candidate: candidate!, isOwnProfile: false),
 
       // Contact Tab
-      ContactTab(candidate: candidate!),
+      ContactTabView(candidate: candidate!),
 
       // Events Tab
       Builder(
@@ -527,7 +561,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           title: Text(CandidateLocalizations.of(context)!.candidateProfile),
         ),
         body: Center(
-          child: Text(CandidateLocalizations.of(context)!.candidateDataNotAvailable),
+          child: Text(
+            CandidateLocalizations.of(context)!.candidateDataNotAvailable,
+          ),
         ),
       );
     }
@@ -573,11 +609,25 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
                       children: [
                         Builder(
                           builder: (context) {
-                            AppLogger.candidate('🏛️ [Profile Screen] Building ProfileHeaderWidget:');
-                            AppLogger.candidate('   wardName passed: $_wardName');
-                            AppLogger.candidate('   districtName passed: $_districtName');
-                            AppLogger.candidate('   candidate wardId: ${candidate!.wardId}');
-                            AppLogger.candidate('   candidate districtId: ${candidate!.districtId}');
+                            AppLogger.candidate(
+                              '🏛️ [Profile Screen] Building ProfileHeaderWidget:',
+                            );
+                            AppLogger.candidate(
+                              '   wardName passed: $_wardName',
+                            );
+                            AppLogger.candidate(
+                              '   districtName passed: $_districtName',
+                            );
+                            AppLogger.candidate(
+                              '   body name passed: $_bodyName',
+                            );
+
+                            AppLogger.candidate(
+                              '   candidate wardId: ${candidate!.location.wardId}',
+                            );
+                            AppLogger.candidate(
+                              '   candidate districtId: ${candidate!.location.districtId}',
+                            );
                             return ProfileHeaderWidget(
                               candidate: candidate!,
                               hasSponsoredBanner: _hasSponsoredBanner,
@@ -603,7 +653,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             ),
 
             // Pinned Tab Bar
-            ProfileTabBarWidget(tabController: _tabController!, isOwnProfile: _isOwnProfile),
+            ProfileTabBarWidget(
+              tabController: _tabController!,
+              isOwnProfile: _isOwnProfile,
+            ),
           ];
         },
         body: RefreshIndicator(
@@ -617,5 +670,3 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     );
   }
 }
-
-

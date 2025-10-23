@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
+import '../../models/events_model.dart';
 import '../../repositories/candidate_event_repository.dart';
 import '../../../../utils/app_logger.dart';
 
@@ -15,7 +16,7 @@ class EventsAnalyticsSection extends StatefulWidget {
 class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
   final EventRepository _eventRepository = EventRepository();
   List<EventData> _events = [];
-  Map<String, Map<String, int>> _eventCounts = {};
+  Map<String, Map<String, dynamic>> _eventCounts = {};
   bool _isLoading = true;
 
   int _totalInterested = 0;
@@ -44,13 +45,10 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
 
       for (final event in events) {
         if (event.id != null) {
-          final eventCounts = await _eventRepository.getEventRSVPCounts(
-            widget.candidateData.candidateId,
-            event.id!,
-          );
+          final eventCounts = await _eventRepository.getEventRSVPCounts(event.id!);
           counts[event.id!] = eventCounts;
-          totalInterested += eventCounts['interested'] ?? 0;
-          totalGoing += eventCounts['going'] ?? 0;
+          totalInterested += (eventCounts['interested'] as num?)?.toInt() ?? 0;
+          totalGoing += (eventCounts['going'] as num?)?.toInt() ?? 0;
         }
       }
 

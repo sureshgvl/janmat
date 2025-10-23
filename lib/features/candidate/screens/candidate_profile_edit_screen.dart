@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/profile_tab_edit.dart';
 
 class CandidateProfileEditScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class CandidateProfileEditScreen extends StatefulWidget {
 
 class _CandidateProfileEditScreenState
     extends State<CandidateProfileEditScreen> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = true;
 
   @override
@@ -75,11 +75,9 @@ class _CandidateProfileEditScreenState
             candidateData: controller.candidateData.value!,
             editedData: controller.editedData.value,
             isEditing: isEditing,
-            onBioChange: (bio) => controller.updateExtraInfo('bio', bio),
           ),
         );
       }),
     );
   }
 }
-

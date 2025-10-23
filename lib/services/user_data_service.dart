@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../utils/app_logger.dart';
+import '../controllers/user_controller.dart';
 
 /// Centralized service for managing user data across the entire app.
 /// Eliminates redundant Firebase calls by caching user data and providing reactive updates.
@@ -83,7 +84,20 @@ class UserDataService extends GetxService {
         return;
       }
 
-      // Fetch fresh data from Firestore
+      // Fetch fresh data from Firestore - OPTIMIZED: Use UserController instead of direct call
+      final userController = Get.find<UserController>();
+      if (userController.user.value != null && userController.user.value!.uid == userId) {
+        // Use data from centralized controller
+        currentUser.value = userController.user.value;
+        _lastFetchTime = DateTime.now();
+        AppLogger.core('✅ User data loaded from UserController: ${currentUser.value?.name}');
+        isInitialized.value = true;
+        isLoading.value = false;
+        _setupRealtimeUpdates(userId);
+        return;
+      }
+
+      // Fallback to direct Firebase call if controller doesn't have the data
       final doc = await _firestore.collection('users').doc(userId).get();
 
       if (doc.exists) {
@@ -211,6 +225,15 @@ class UserDataService extends GetxService {
     if (userId == null) return null;
 
     try {
+      // OPTIMIZED: Use UserController instead of direct Firebase call
+      final userController = Get.find<UserController>();
+      if (userController.user.value != null && userController.user.value!.uid == userId) {
+        // Use data from centralized controller
+        AppLogger.core('✅ Fresh user data loaded from UserController');
+        return userController.user.value;
+      }
+
+      // Fallback to direct Firebase call if controller doesn't have the data
       AppLogger.core('🔍 Fetching fresh user data for critical operation');
       final doc = await _firestore.collection('users').doc(userId).get();
 

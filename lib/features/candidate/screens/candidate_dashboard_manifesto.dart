@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
+import '../controllers/manifesto_controller.dart';
 import '../../../services/plan_service.dart';
-import '../widgets/edit/candidate_manifesto_tab_edit.dart';
-import '../widgets/view/manifesto_tab_view.dart';
+import '../widgets/edit/manifesto/manifesto_edit.dart';
+import '../widgets/view/manifesto/manifesto_view.dart';
 import '../../../widgets/loading_overlay.dart';
+import '../../../utils/app_logger.dart';
 
 class CandidateDashboardManifesto extends StatefulWidget {
   const CandidateDashboardManifesto({super.key});
@@ -19,7 +21,8 @@ class CandidateDashboardManifesto extends StatefulWidget {
 
 class _CandidateDashboardManifestoState
     extends State<CandidateDashboardManifesto> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
+  final ManifestoController manifestoController = Get.put(ManifestoController());
   bool isEditing = false;
   bool isSaving = false;
   bool canEditManifesto = false;
@@ -84,107 +87,10 @@ class _CandidateDashboardManifestoState
                 candidate: controller.candidateData.value!,
                 isOwnProfile: true,
                 showVoterInteractions:
-                    false, // Hide voter interactions in dashboard
+                    true, // Show voter interactions so candidate can see how it looks to voters
               ),
         floatingActionButton: canEditManifesto ? (isEditing
-            ? Padding(
-                padding: const EdgeInsets.only(bottom: 20, right: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    FloatingActionButton(
-                      heroTag: 'save_manifesto',
-                      onPressed: () async {
-                        // Create a stream controller for progress updates
-                        final messageController = StreamController<String>();
-                        messageController.add('Preparing to save manifesto...');
-
-                        // Show loading dialog with message stream
-                        LoadingDialog.show(
-                          context,
-                          initialMessage: 'Preparing to save manifesto...',
-                          messageStream: messageController.stream,
-                        );
-
-                        try {
-                          // First, upload any pending local files to Firebase/Cloudinary
-                          final manifestoSectionState =
-                              _manifestoSectionKey.currentState;
-                          if (manifestoSectionState != null) {
-                            messageController.add(
-                              'Uploading files to cloud...',
-                            );
-                            await manifestoSectionState.uploadPendingFiles();
-                          }
-
-                          // Then save the manifesto data
-                          final success = await controller.saveExtraInfo(
-                            onProgress: (message) =>
-                                messageController.add(message),
-                          );
-
-                          if (success) {
-                            // Update progress: Success
-                            messageController.add(
-                              'Manifesto saved successfully!',
-                            );
-
-                            // Wait a moment to show success message
-                            await Future.delayed(
-                              const Duration(milliseconds: 800),
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              setState(() => isEditing = false);
-                              Get.snackbar(
-                                'Success',
-                                'Manifesto updated successfully',
-                                backgroundColor: Colors.green,
-                                colorText: Colors.white,
-                              );
-                            }
-                          } else {
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              Get.snackbar(
-                                'Error',
-                                'Failed to update manifesto',
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar('Error', 'An error occurred: $e');
-                          }
-                        } finally {
-                          // Clean up the stream controller
-                          await messageController.close();
-                        }
-                      },
-                      backgroundColor: Colors.green,
-                      tooltip: 'Save Changes',
-                      child: const Icon(Icons.save, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    FloatingActionButton(
-                      heroTag: 'cancel_manifesto',
-                      onPressed: () {
-                        controller.resetEditedData();
-                        setState(() => isEditing = false);
-                      },
-                      backgroundColor: Colors.red,
-                      tooltip: 'Cancel',
-                      child: const Icon(Icons.cancel, size: 28),
-                    ),
-                  ],
-                ),
-              )
+            ? null // Remove the common save button - each tab now has its own save/cancel buttons
             : Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
                 child: FloatingActionButton(
@@ -199,4 +105,3 @@ class _CandidateDashboardManifestoState
     });
   }
 }
-

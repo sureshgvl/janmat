@@ -68,6 +68,10 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+
+    // Firebase App Check
+    implementation("com.google.firebase:firebase-appcheck:18.0.0")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")
 }
 
 flutter {

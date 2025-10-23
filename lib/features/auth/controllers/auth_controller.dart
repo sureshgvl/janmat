@@ -7,6 +7,8 @@ import '../../../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import '../../../services/device_service.dart';
 import '../../../services/trial_service.dart';
+import '../../../controllers/user_controller.dart';
+import '../../../services/background_sync_manager.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
 import '../../notifications/services/chat_notification_service.dart';
@@ -16,7 +18,8 @@ import '../../../utils/multi_level_cache.dart';
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
   final DeviceService _deviceService = DeviceService();
-  final TrialService _trialService = TrialService();
+  // final TrialService _trialService = TrialService(); // Commented out - no trial service in app
+  final BackgroundSyncManager _syncManager = BackgroundSyncManager();
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
@@ -372,125 +375,62 @@ class AuthController extends GetxController {
 
   Future<void> signInWithGoogle({bool forceAccountPicker = false}) async {
     final controllerStartTime = DateTime.now();
-    AppLogger.auth('Starting Google Sign-In process (${forceAccountPicker ? 'forced account picker' : 'smart mode'})', tag: 'AUTH_CONTROLLER');
+    AppLogger.auth('Starting optimized Google Sign-In process (${forceAccountPicker ? 'forced account picker' : 'smart mode'})', tag: 'AUTH_CONTROLLER');
 
-    // Show prominent loading dialog immediately
+    // Show loading dialog immediately
     _showGoogleSignInLoadingDialog();
     AppLogger.auth('Loading dialog displayed', tag: 'AUTH_CONTROLLER');
 
     try {
-      // Step 1: Google authentication with smart account switching
+      // Step 1: Google authentication
       AppLogger.auth('Calling repository signInWithGoogle', tag: 'AUTH_CONTROLLER');
       final repoStartTime = DateTime.now();
       final userCredential = await _authRepository.signInWithGoogle(forceAccountPicker: forceAccountPicker);
       final repoDuration = DateTime.now().difference(repoStartTime);
       AppLogger.auth('Repository signInWithGoogle completed in ${repoDuration.inSeconds}s', tag: 'AUTH_CONTROLLER');
 
-      // Handle cancelled sign-in or timeout with successful auth
+      // Handle cancelled sign-in
       if (userCredential == null) {
-        AppLogger.auth('Repository returned null UserCredential', tag: 'AUTH_CONTROLLER');
-        // Check if authentication actually succeeded despite returning null
-        final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser != null) {
-          AppLogger.auth('Authentication succeeded despite null credential, proceeding with current user: ${currentUser.uid}', tag: 'AUTH_CONTROLLER');
-          await _handleSuccessfulAuthenticationWithCurrentUser(currentUser);
-          final totalDuration = DateTime.now().difference(controllerStartTime);
-          AppLogger.auth('Google Sign-In completed successfully (recovery path) in ${totalDuration.inSeconds}s', tag: 'AUTH_CONTROLLER');
-          return;
-        } else {
-          AppLogger.auth('No authenticated user found, sign-in was cancelled', tag: 'AUTH_CONTROLLER');
-          _hideGoogleSignInLoadingDialog();
-          Get.snackbar("Cancelled", "Google sign-in was cancelled");
-          final totalDuration = DateTime.now().difference(controllerStartTime);
-          AppLogger.auth('Google Sign-In cancelled after ${totalDuration.inSeconds}s', tag: 'AUTH_CONTROLLER');
-          return;
-        }
+        AppLogger.auth('Repository returned null UserCredential - user cancelled', tag: 'AUTH_CONTROLLER');
+        _hideGoogleSignInLoadingDialog();
+        Get.snackbar("Cancelled", "Google sign-in was cancelled");
+        return;
       }
+
       if (userCredential.user == null) {
         AppLogger.auth('UserCredential exists but user is null', tag: 'AUTH_CONTROLLER');
         _hideGoogleSignInLoadingDialog();
         Get.snackbar("Error", "Google sign-in failed: No user returned");
-        final totalDuration = DateTime.now().difference(controllerStartTime);
-        AppLogger.auth('Google Sign-In failed (no user) after ${totalDuration.inSeconds}s', tag: 'AUTH_CONTROLLER');
         return;
       }
 
       AppLogger.auth('Valid user obtained: ${userCredential.user!.uid} (${userCredential.user!.email})', tag: 'AUTH_CONTROLLER');
 
-      // Step 2: Check if user already exists in Firestore by email
-      AppLogger.auth('Checking for existing user profile by email', tag: 'GOOGLE_VERIFY');
-      final existingUser = await _findExistingUserByEmail(userCredential.user!.email!);
+      // Step 2: Initialize UserController and load user data
+      AppLogger.auth('Initializing UserController and loading user data', tag: 'AUTH_CONTROLLER');
+      final userController = Get.put(UserController());
+      await userController.loadUserData(userCredential.user!.uid);
 
-      if (existingUser != null) {
-        AppLogger.auth('Found existing user profile: ${existingUser['uid']}', tag: 'GOOGLE_VERIFY');
-
-        // Link the Firebase Auth user to the existing Firestore profile
-        AppLogger.auth('Linking Firebase Auth user to existing profile', tag: 'GOOGLE_VERIFY');
-        await _linkFirebaseUserToExistingProfile(userCredential.user!, existingUser);
-
-        // Use the existing user's UID for navigation and device registration
-        final existingUserId = existingUser['uid'];
-        AppLogger.auth('Successfully linked to existing user: $existingUserId', tag: 'GOOGLE_VERIFY');
-
-        // Register device for the existing user
-        try {
-          await _deviceService.registerDevice(existingUserId);
-          AppLogger.auth('Device registered for existing user', tag: 'GOOGLE_VERIFY');
-        } catch (e) {
-          AppLogger.auth('Device registration failed (non-critical): $e', tag: 'GOOGLE_VERIFY');
-        }
-
-        Get.snackbar('Success', 'Google sign-in successful');
-        await _navigateBasedOnProfileCompletionForExistingUser(existingUser);
-        return;
-      }
-
-      // No existing user found, proceed with normal flow
-      await _handleSuccessfulAuthentication(userCredential);
-
-      // Update loading dialog message
-      _updateGoogleSignInLoadingDialog('Creating your profile...');
-
-      // Step 3: Keep loading while creating/updating user profile
-      AppLogger.auth('Creating/updating user profile', tag: 'AUTH_CONTROLLER');
-      final profileStart = DateTime.now();
-      await _authRepository.createOrUpdateUser(userCredential.user!);
-      final profileDuration = DateTime.now().difference(profileStart);
-      AppLogger.auth('User profile updated in ${profileDuration.inMilliseconds}ms', tag: 'AUTH_CONTROLLER');
-
-      // Update loading dialog message
-      _updateGoogleSignInLoadingDialog('Setting up your account...');
-
-      // Step 4: Keep loading while registering device
-      AppLogger.auth('Registering device', tag: 'AUTH_CONTROLLER');
-      final deviceStart = DateTime.now();
+      // Step 3: Register device (quick operation)
       try {
         await _deviceService.registerDevice(userCredential.user!.uid);
-        final deviceDuration = DateTime.now().difference(deviceStart);
-        AppLogger.auth('Device registered in ${deviceDuration.inMilliseconds}ms', tag: 'AUTH_CONTROLLER');
+        AppLogger.auth('Device registered successfully', tag: 'AUTH_CONTROLLER');
       } catch (e) {
-        final deviceDuration = DateTime.now().difference(deviceStart);
-        AppLogger.auth('Device registration failed after ${deviceDuration.inMilliseconds}ms (non-critical): $e', tag: 'AUTH_CONTROLLER');
-        // Don't throw here - device registration failure shouldn't block sign-in
-        // The user can still use the app, just without device management features
+        AppLogger.auth('Device registration failed (non-critical): $e', tag: 'AUTH_CONTROLLER');
       }
 
-      // Update loading dialog message
-      _updateGoogleSignInLoadingDialog('Almost ready...');
+      // Step 4: Navigate to home screen immediately
+      AppLogger.auth('Navigating to home screen immediately', tag: 'AUTH_CONTROLLER');
+      Get.offAllNamed('/home');
 
-      // Step 5: Show success and navigate
+      // Step 5: Start background sync AFTER navigation
+      AppLogger.auth('Starting background sync after navigation', tag: 'AUTH_CONTROLLER');
+      _startBackgroundSyncAfterNavigation(userCredential.user!);
+
       Get.snackbar('Success', 'Google sign-in successful');
-      AppLogger.auth('Success snackbar displayed', tag: 'AUTH_CONTROLLER');
 
-      AppLogger.auth('Checking profile completion and navigating', tag: 'AUTH_CONTROLLER');
-      final navStart = DateTime.now();
-      await _navigateBasedOnProfileCompletion(userCredential.user!);
-      final navDuration = DateTime.now().difference(navStart);
-      AppLogger.auth('Navigation completed in ${navDuration.inMilliseconds}ms', tag: 'AUTH_CONTROLLER');
     } catch (e) {
-      final totalDuration = DateTime.now().difference(controllerStartTime);
-      AppLogger.authError('Google sign-in failed after ${totalDuration.inSeconds}s', tag: 'AUTH_CONTROLLER', error: e);
-      AppLogger.auth('Error type: ${e.runtimeType}', tag: 'AUTH_CONTROLLER');
+      AppLogger.authError('Google sign-in failed', tag: 'AUTH_CONTROLLER', error: e);
       _hideGoogleSignInLoadingDialog();
       Get.snackbar('Error', 'Google sign-in failed: ${e.toString()}');
     } finally {
@@ -599,39 +539,26 @@ class AuthController extends GetxController {
     }
   }
 
-  // Handle successful authentication flow
-  Future<void> _handleSuccessfulAuthentication(
-    UserCredential userCredential,
-  ) async {
-    // Update loading dialog message
-    _updateGoogleSignInLoadingDialog('Creating your profile...');
+  // Start background sync after navigation (non-blocking)
+  void _startBackgroundSyncAfterNavigation(User user) {
+    AppLogger.auth('Starting background sync operations after navigation', tag: 'AUTH_CONTROLLER');
 
-    // Step 2: Keep loading while creating/updating user profile
-    AppLogger.auth('Creating/updating user profile', tag: 'AUTH_CONTROLLER');
-    await _authRepository.createOrUpdateUser(userCredential.user!);
-    AppLogger.auth('User profile updated', tag: 'AUTH_CONTROLLER');
+    // Start comprehensive background sync
+    _syncManager.performFullBackgroundSync(user);
 
-    // Update loading dialog message
-    _updateGoogleSignInLoadingDialog('Setting up your account...');
-
-    // Step 3: Keep loading while registering device
-    AppLogger.auth('Registering device', tag: 'AUTH_CONTROLLER');
-    try {
-      await _deviceService.registerDevice(userCredential.user!.uid);
-      AppLogger.auth('Device registered', tag: 'AUTH_CONTROLLER');
-    } catch (e) {
-      AppLogger.auth('Device registration failed (non-critical): $e', tag: 'AUTH_CONTROLLER');
-      // Don't throw here - device registration failure shouldn't block sign-in
-    }
-
-    // Update loading dialog message
-    _updateGoogleSignInLoadingDialog('Almost ready...');
-
-    // Step 4: Show success and navigate
-    Get.snackbar('Success', 'Google sign-in successful');
-
-    AppLogger.auth('Checking profile completion and navigating', tag: 'AUTH_CONTROLLER');
-    await _navigateBasedOnProfileCompletion(userCredential.user!);
+    // Show subtle sync indicator (optional)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (Get.isSnackbarOpen != true) {
+        Get.snackbar(
+          'Syncing',
+          'Setting up your account in the background...',
+          duration: const Duration(seconds: 3),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.blue.shade50,
+          colorText: Colors.blue.shade800,
+        );
+      }
+    });
   }
 
   // Handle successful authentication when userCredential is null but user is authenticated
@@ -717,44 +644,8 @@ class AuthController extends GetxController {
 
       AppLogger.auth('Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted', tag: 'EXISTING_USER_NAV');
 
-      // Cache routing decision for instant future navigation
-      final cache = MultiLevelCache();
-      String route;
-      if (!roleSelected) {
-        route = '/role-selection';
-      } else if (!profileCompleted) {
-        route = '/profile-completion';
-      } else {
-        route = '/home';
-      }
-
-      final routingData = {
-        'route': route,
-        'locale': const Locale('en'), // Default locale
-      };
-      await cache.setUserRoutingData(userId, routingData);
-
-      // Clean up expired trials on login (background)
-      unawaited(_trialService.cleanupExpiredTrials(userId).catchError((e) {
-        AppLogger.auth('Trial cleanup failed: $e', tag: 'EXISTING_USER_NAV');
-      }));
-
-      if (!roleSelected) {
-        AppLogger.auth('Role not selected, navigating to role selection...', tag: 'EXISTING_USER_NAV');
-        Get.offAllNamed('/role-selection');
-        return;
-      }
-
-      if (!profileCompleted) {
-        AppLogger.auth('Profile not completed, navigating to profile completion...', tag: 'EXISTING_USER_NAV');
-        Get.offAllNamed('/profile-completion');
-        return;
-      }
-
-      // Profile is complete and role is selected, go to home
-      AppLogger.auth('Profile complete, preparing to navigate to home...', tag: 'EXISTING_USER_NAV');
-
-      // Navigate to home first (instant)
+      // Always navigate to home - role/profile checks will happen on home screen
+      AppLogger.auth('Navigating to home screen for role/profile checks...', tag: 'EXISTING_USER_NAV');
       Get.offAllNamed('/home');
 
       // Initialize controllers in background after navigation
@@ -829,53 +720,13 @@ class AuthController extends GetxController {
       AppLogger.auth('User document fetched in ${docDuration.inMilliseconds}ms - Exists: ${userDoc.exists}', tag: 'AUTH_CONTROLLER');
 
       if (userDoc.exists) {
-        final userData = userDoc.data();
-        final profileCompleted = userData?['profileCompleted'] ?? false;
-        final roleSelected = userData?['roleSelected'] ?? false;
-
-        AppLogger.auth('Profile status - Role selected: $roleSelected, Profile completed: $profileCompleted', tag: 'AUTH_CONTROLLER');
-
-        // Cache routing decision for instant future navigation
-        final cache = MultiLevelCache();
-        String route;
-        if (!roleSelected) {
-          route = '/role-selection';
-        } else if (!profileCompleted) {
-          route = '/profile-completion';
-        } else {
-          route = '/home';
-        }
-
-        final routingData = {
-          'route': route,
-          'locale': const Locale('en'), // Default locale
-        };
-        await cache.setUserRoutingData(user.uid, routingData);
-
-        // Clean up expired trials on login (background)
-        unawaited(_trialService.cleanupExpiredTrials(user.uid).catchError((e) {
-          AppLogger.auth('Trial cleanup failed: $e', tag: 'AUTH_CONTROLLER');
-        }));
-
-        if (!roleSelected) {
-          AppLogger.auth('Role not selected, navigating to role selection...', tag: 'AUTH_CONTROLLER');
-          Get.offAllNamed('/role-selection');
-          return;
-        }
-
-        if (!profileCompleted) {
-          AppLogger.auth('Profile not completed, navigating to profile completion...', tag: 'AUTH_CONTROLLER');
-          Get.offAllNamed('/profile-completion');
-          return;
-        }
-
-        AppLogger.auth('Profile complete and role selected', tag: 'AUTH_CONTROLLER');
-
-        // Navigate to home first (instant)
+        // Always navigate to home - role/profile checks will happen on home screen
+        AppLogger.auth('Navigating to home screen for role/profile checks...', tag: 'AUTH_CONTROLLER');
         Get.offAllNamed('/home');
 
         // Initialize services in background after navigation
-        _initializeServicesInBackground(user, userData!);
+        final userData = userDoc.data()!;
+        _initializeServicesInBackground(user, userData);
 
       } else {
         // User document doesn't exist, need role selection first

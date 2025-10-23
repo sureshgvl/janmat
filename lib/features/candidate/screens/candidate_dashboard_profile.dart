@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/profile_tab_edit.dart';
-import '../widgets/view/profile_tab_view.dart';
+import '../widgets/view/profile/profile_tab_view.dart';
 import '../../../widgets/loading_overlay.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -16,7 +16,7 @@ class CandidateDashboardProfile extends StatefulWidget {
 }
 
 class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
 
   // Global key to access profile section for file uploads
@@ -47,7 +47,6 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onBioChange: (bio) => controller.updateExtraInfo('bio', bio),
                 ),
               )
             : ProfileTabView(
@@ -164,4 +163,3 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
     });
   }
 }
-

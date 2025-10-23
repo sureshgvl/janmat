@@ -18,7 +18,7 @@ class LoadingOverlay extends StatelessWidget {
         if (isLoading)
           Positioned.fill(
             child: Container(
-              color: Colors.black.withValues(alpha: 0.5 * 255),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -30,4 +30,3 @@ class LoadingOverlay extends StatelessWidget {
     );
   }
 }
-

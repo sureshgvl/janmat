@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
+import '../models/achievements_model.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/data_compression.dart';
 import '../../../utils/error_recovery_manager.dart';
@@ -228,6 +229,7 @@ class CandidateOperations {
         return null;
       }
 
+      // OPTIMIZED: Use UserDataController for user data
       // First, get the user's districtId, bodyId and wardId from their user document
       final userDoc = await _firestore.collection('users').doc(userId).get();
 
@@ -261,10 +263,14 @@ class CandidateOperations {
         '🎯 Direct search: District: $districtId, Body: $bodyId, Ward: $wardId',
       );
 
+      // Determine state ID dynamically for the direct query
+      final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for direct query: $stateId');
+
       // Direct query to the specific state/district/body/ward path
       final candidatesSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -361,6 +367,7 @@ class CandidateOperations {
     AppLogger.candidate('🔍 Falling back to targeted brute force search for userId: $userId');
 
     try {
+      // OPTIMIZED: Use UserDataController for user data
       // First try to get user's selected location from their profile
       final userDoc = await _firestore.collection('users').doc(userId).get();
       String? userStateId;
@@ -448,6 +455,7 @@ class CandidateOperations {
     try {
       AppLogger.candidate('🎯 Searching in specific district: $districtId');
 
+      // OPTIMIZED: Use UserDataController for user data
       // First get user's ward from their electionAreas
       final userDoc = await _firestore.collection('users').doc(userId).get();
       String? userWardId;
@@ -469,10 +477,14 @@ class CandidateOperations {
       // If user has selected a specific body, only search in that body
       final bodyToSearch = bodyId ?? 'pune_m_cop'; // Default fallback
 
+      // Determine state ID dynamically for the ward search
+      final stateId = await _determineStateId(districtId, bodyToSearch, userWardId) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for ward search: $stateId');
+
       AppLogger.candidate('🔍 Searching in ward: $userWardId in $districtId/$bodyToSearch');
       final candidatesSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -507,9 +519,13 @@ class CandidateOperations {
     try {
       AppLogger.candidate('🔍 Falling back to full district search: $districtId');
 
+      // Determine state ID dynamically for the full district search
+      final stateId = await _determineStateId(districtId, null, null) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for full district search: $stateId');
+
       final bodiesSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -547,6 +563,15 @@ class CandidateOperations {
               districtId: districtId,
               bodyId: bodyDoc.id,
               wardId: wardDoc.id,
+            );
+
+            // Update candidate index with correct state ID
+            await _updateCandidateIndex(
+              doc.id,
+              stateId,
+              districtId,
+              bodyDoc.id,
+              wardDoc.id,
             );
 
             AppLogger.candidate('✅ Found candidate in specific district: ${candidateData['name']} (ID: ${doc.id}) in $districtId/${bodyDoc.id}/${wardDoc.id}');
@@ -803,10 +828,14 @@ class CandidateOperations {
     try {
       AppLogger.candidate('🔄 updateCandidateExtraInfo - Updating candidate: ${candidate.candidateId}');
 
+      // Determine the correct state ID dynamically
+      final stateId = await _getCandidateStateId(candidate.candidateId);
+      AppLogger.candidate('🎯 Using state ID for update: $stateId');
+
       // Find the candidate's location in the new state/district/body/ward structure
       final districtsSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .get();
       bool foundInNewStructure = false;
@@ -840,13 +869,14 @@ class CandidateOperations {
                       'party': candidate.party,
                       'symbol': candidate.symbolUrl,
                       'symbolName': candidate.symbolName,
-                      'extra_info': candidate.extraInfo?.toJson(),
+                      'extra_info': null,
                       'photo': candidate.photo,
-                      'manifesto': candidate.manifesto,
                       'contact': candidate.contact.toJson(),
                     });
                 AppLogger.candidate('✅ Successfully updated candidate in new structure');
                 foundInNewStructure = true;
+                // Invalidate cache for this candidate
+                invalidateCache('candidates_${stateId}_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}');
                 return true;
               } catch (updateError) {
                 AppLogger.candidateError('❌ Failed to update candidate in new structure: $updateError');
@@ -876,9 +906,7 @@ class CandidateOperations {
               'party': candidate.party,
               'symbol': candidate.symbolUrl,
               'symbolName': candidate.symbolName,
-              'extra_info': candidate.extraInfo?.toJson(),
               'photo': candidate.photo,
-              'manifesto': candidate.manifesto,
               'contact': candidate.contact.toJson(),
             });
             AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
@@ -917,6 +945,10 @@ class CandidateOperations {
     try {
       AppLogger.candidate('🔄 updateCandidateFields - Updating candidate: $candidateId with fields: $fieldUpdates');
 
+      // Get the actual state ID for this candidate first
+      final stateId = await _getCandidateStateId(candidateId);
+      AppLogger.candidate('🎯 Using state ID for field update: $stateId');
+
       // First, try to get location from index
       final indexDoc = await _firestore
           .collection('candidate_index')
@@ -933,11 +965,11 @@ class CandidateOperations {
           '🎯 Using indexed location for update: $districtId/$bodyId/$wardId',
         );
 
-        // Get the actual state ID for this candidate
-        final stateId = await _getCandidateStateId(candidateId);
-
         // Direct update using location metadata
         try {
+          // Process Achievement objects in fieldUpdates if present
+          final processedUpdates = _processFieldUpdatesForFirestore(fieldUpdates);
+ 
           await _firestore
               .collection('states')
               .doc(stateId)
@@ -949,12 +981,12 @@ class CandidateOperations {
               .doc(wardId)
               .collection('candidates')
               .doc(candidateId)
-              .update(fieldUpdates);
-
+              .update(processedUpdates);
+ 
           AppLogger.candidate('✅ Successfully updated candidate fields in new structure');
           // Invalidate cache for this candidate
           invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
-
+ 
           return true;
         } catch (updateError) {
           AppLogger.candidateError('❌ Failed to update candidate fields in new structure: $updateError');
@@ -973,7 +1005,7 @@ class CandidateOperations {
       );
       final districtsSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .get();
 
@@ -1007,13 +1039,13 @@ class CandidateOperations {
                 // Update index and invalidate cache
                 await _updateCandidateIndex(
                   candidateId,
-                  'maharashtra', // Temporary default - should be dynamic
+                  stateId,
                   districtDoc.id,
                   bodyDoc.id,
                   wardDoc.id,
                 );
                 invalidateCache(
-                  'candidates_maharashtra_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
+                  'candidates_${stateId}_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
                 );
 
                 return true;
@@ -1126,10 +1158,14 @@ class CandidateOperations {
     try {
       final batch = _firestore.batch();
 
+      // Get the actual state ID for this candidate
+      final stateId = await _getCandidateStateId(candidateId);
+      AppLogger.candidate('🎯 Using state ID for batch update: $stateId');
+
       // Find the candidate's location in the new state/district/body/ward structure
       final districtsSnapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .get();
       String? candidateDistrictId;
@@ -1170,7 +1206,7 @@ class CandidateOperations {
         // Found in new structure
         final candidateRef = _firestore
             .collection('states')
-            .doc('maharashtra') // Temporary default - should be dynamic
+            .doc(stateId)
             .collection('districts')
             .doc(candidateDistrictId)
             .collection('bodies')
@@ -1182,6 +1218,8 @@ class CandidateOperations {
 
         batch.update(candidateRef, updates);
         await batch.commit();
+        // Invalidate cache for this candidate
+        invalidateCache('candidates_${stateId}_${candidateDistrictId}_${candidateBodyId}_${candidateWardId}');
         return true;
       }
 
@@ -1211,9 +1249,13 @@ class CandidateOperations {
     bool approved,
   ) async {
     try {
+      // Determine state ID dynamically
+      final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for approval status query: $stateId');
+
       final snapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -1243,9 +1285,13 @@ class CandidateOperations {
     String status,
   ) async {
     try {
+      // Determine state ID dynamically
+      final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for status query: $stateId');
+
       final snapshot = await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -1276,9 +1322,13 @@ class CandidateOperations {
     bool approved,
   ) async {
     try {
+      // Determine state ID dynamically
+      final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for approval update: $stateId');
+
       await _firestore
           .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -1291,6 +1341,9 @@ class CandidateOperations {
             'approved': approved,
             'status': approved ? 'pending_election' : 'rejected',
           });
+
+      // Invalidate cache for this candidate
+      invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
     } catch (e) {
       throw Exception('Failed to update candidate approval: $e');
     }
@@ -1304,12 +1357,16 @@ class CandidateOperations {
     List<String> candidateIds,
   ) async {
     try {
+      // Determine state ID dynamically
+      final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+      AppLogger.candidate('🎯 Using state ID for finalization: $stateId');
+
       final batch = _firestore.batch();
 
       for (final candidateId in candidateIds) {
         final candidateRef = _firestore
             .collection('states')
-            .doc('maharashtra') // Temporary default - should be dynamic
+            .doc(stateId)
             .collection('districts')
             .doc(districtId)
             .collection('bodies')
@@ -1323,6 +1380,9 @@ class CandidateOperations {
       }
 
       await batch.commit();
+
+      // Invalidate cache for this ward
+      invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
     } catch (e) {
       throw Exception('Failed to finalize candidates: $e');
     }
@@ -1331,38 +1391,44 @@ class CandidateOperations {
   // Get all pending approval candidates across all districts, bodies, and wards
   Future<List<Map<String, dynamic>>> getPendingApprovalCandidates() async {
     try {
-      final districtsSnapshot = await _firestore
-          .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
-          .collection('districts')
-          .get();
+      // Get all states first
+      final statesSnapshot = await _firestore.collection('states').get();
       List<Map<String, dynamic>> pendingCandidates = [];
 
-      for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+      for (var stateDoc in statesSnapshot.docs) {
+        final stateId = stateDoc.id;
+        AppLogger.candidate('🔍 Checking state: $stateId for pending candidates');
 
-        for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+        final districtsSnapshot = await stateDoc.reference.collection('districts').get();
 
-          for (var wardDoc in wardsSnapshot.docs) {
-            final candidatesSnapshot = await wardDoc.reference
-                .collection('candidates')
-                .where('approved', isEqualTo: false)
-                .get();
+        for (var districtDoc in districtsSnapshot.docs) {
+          final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-            for (var candidateDoc in candidatesSnapshot.docs) {
-              final data = candidateDoc.data();
-              final candidateData = Map<String, dynamic>.from(data);
-              candidateData['candidateId'] = candidateDoc.id;
-              candidateData['districtId'] = districtDoc.id;
-              candidateData['bodyId'] = bodyDoc.id;
-              candidateData['wardId'] = wardDoc.id;
-              pendingCandidates.add(candidateData);
+          for (var bodyDoc in bodiesSnapshot.docs) {
+            final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+
+            for (var wardDoc in wardsSnapshot.docs) {
+              final candidatesSnapshot = await wardDoc.reference
+                  .collection('candidates')
+                  .where('approved', isEqualTo: false)
+                  .get();
+
+              for (var candidateDoc in candidatesSnapshot.docs) {
+                final data = candidateDoc.data();
+                final candidateData = Map<String, dynamic>.from(data);
+                candidateData['candidateId'] = candidateDoc.id;
+                candidateData['districtId'] = districtDoc.id;
+                candidateData['bodyId'] = bodyDoc.id;
+                candidateData['wardId'] = wardDoc.id;
+                candidateData['stateId'] = stateId; // Include state ID
+                pendingCandidates.add(candidateData);
+              }
             }
           }
         }
       }
 
+      AppLogger.candidate('📊 Found ${pendingCandidates.length} pending approval candidates across all states');
       return pendingCandidates;
     } catch (e) {
       throw Exception('Failed to fetch pending approval candidates: $e');
@@ -1389,9 +1455,13 @@ class CandidateOperations {
             districtId.isNotEmpty &&
             bodyId.isNotEmpty &&
             wardId.isNotEmpty) {
+          // Determine state ID dynamically for the user check
+          final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+          AppLogger.candidate('🎯 Using state ID for user registration check: $stateId');
+
           final candidateSnapshot = await _firestore
               .collection('states')
-              .doc('maharashtra') // Temporary default - should be dynamic
+              .doc(stateId)
               .collection('districts')
               .doc(districtId)
               .collection('bodies')
@@ -1410,31 +1480,35 @@ class CandidateOperations {
       }
 
       // Fallback: search through all districts, bodies, and wards
-      final districtsSnapshot = await _firestore
-          .collection('states')
-          .doc('maharashtra') // Temporary default - should be dynamic
-          .collection('districts')
-          .get();
+      // Get all states first for comprehensive search
+      final statesSnapshot = await _firestore.collection('states').get();
 
-      for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference
-            .collection('bodies')
-            .get();
+      for (var stateDoc in statesSnapshot.docs) {
+        final stateId = stateDoc.id;
+        AppLogger.candidate('🔍 Checking state: $stateId for user registration');
 
-        for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference
-              .collection('wards')
+        final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+
+        for (var districtDoc in districtsSnapshot.docs) {
+          final bodiesSnapshot = await districtDoc.reference
+              .collection('bodies')
               .get();
 
-          for (var wardDoc in wardsSnapshot.docs) {
-            final candidateSnapshot = await wardDoc.reference
-                .collection('candidates')
-                .where('userId', isEqualTo: userId)
-                .limit(1)
+          for (var bodyDoc in bodiesSnapshot.docs) {
+            final wardsSnapshot = await bodyDoc.reference
+                .collection('wards')
                 .get();
 
-            if (candidateSnapshot.docs.isNotEmpty) {
-              return true;
+            for (var wardDoc in wardsSnapshot.docs) {
+              final candidateSnapshot = await wardDoc.reference
+                  .collection('candidates')
+                  .where('userId', isEqualTo: userId)
+                  .limit(1)
+                  .get();
+
+              if (candidateSnapshot.docs.isNotEmpty) {
+                return true;
+              }
             }
           }
         }
@@ -1445,5 +1519,34 @@ class CandidateOperations {
       throw Exception('Failed to check user candidate registration: $e');
     }
   }
-}
 
+  // Helper method to process field updates for Firestore (handles Achievement objects)
+  Map<String, dynamic> _processFieldUpdatesForFirestore(Map<String, dynamic> fieldUpdates) {
+    final processedUpdates = <String, dynamic>{};
+
+    fieldUpdates.forEach((key, value) {
+      if (key == 'achievements') {
+        // Handle achievements data at the top level
+        if (value is List) {
+          final processedAchievements = value.map((item) {
+            if (item is Achievement) {
+              return item.toJson();
+            } else if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              AppLogger.candidate('Invalid achievement data type: ${item.runtimeType}, converting to string');
+              return item.toString();
+            }
+          }).toList();
+          processedUpdates[key] = processedAchievements;
+        } else {
+          processedUpdates[key] = value;
+        }
+      } else {
+        processedUpdates[key] = value;
+      }
+    });
+
+    return processedUpdates;
+  }
+}

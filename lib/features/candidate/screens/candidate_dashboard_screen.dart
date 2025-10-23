@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../services/plan_service.dart';
@@ -26,7 +26,7 @@ class CandidateDashboardScreen extends StatefulWidget {
 class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
 
   // Plan-based feature access
@@ -41,7 +41,10 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
   void initState() {
     super.initState();
     // Initialize TabController with default length, will be updated when plan features are loaded
-    _tabController = TabController(length: 3, vsync: this); // Start with basic tabs
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+    ); // Start with basic tabs
     _tabController.addListener(_handleTabChange);
     _loadPlanFeatures();
     // Refresh data when dashboard is opened
@@ -76,11 +79,14 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         } else {
           // Candidate plan with dashboard access
           canEditManifesto = plan.dashboardTabs?.manifesto.enabled ?? false;
-          canDisplayAchievements = plan.dashboardTabs?.achievements.enabled ?? false;
+          canDisplayAchievements =
+              plan.dashboardTabs?.achievements.enabled ?? false;
           canUploadMedia = plan.dashboardTabs?.media.enabled ?? false;
           canManageEvents = plan.dashboardTabs?.events.enabled ?? false;
           canViewAnalytics = plan.dashboardTabs?.analytics.enabled ?? false;
-          canManageHighlights = plan.profileFeatures.highlightCarousel || plan.profileFeatures.multipleHighlights == true;
+          canManageHighlights =
+              plan.profileFeatures.highlightCarousel ||
+              plan.profileFeatures.multipleHighlights == true;
         }
       } else {
         // Free plan defaults
@@ -115,7 +121,10 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
       if (mounted && availableTabs.length != _tabController.length) {
         setState(() {
           _tabController.dispose();
-          _tabController = TabController(length: availableTabs.length, vsync: this);
+          _tabController = TabController(
+            length: availableTabs.length,
+            vsync: this,
+          );
         });
       }
     }
@@ -127,7 +136,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     // Basic Info - always available
     tabs.add({
       'title': CandidateLocalizations.of(context)!.basicInfo,
-      'widget': const CandidateDashboardInfo(),
+      'widget': const CandidateDashboardBasicInfo(),
     });
 
     // Manifesto - available if can edit manifesto or at least view
@@ -209,7 +218,9 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.black,
           indicatorColor: Colors.blue,
-          tabs: availableTabs.map((tab) => Tab(text: tab['title'] as String)).toList(),
+          tabs: availableTabs
+              .map((tab) => Tab(text: tab['title'] as String))
+              .toList(),
         ),
         actions: null,
       ),
@@ -219,7 +230,11 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         }
 
         if (controller.candidateData.value == null) {
-          return Center(child: Text(CandidateLocalizations.of(context)!.candidateDataNotFound));
+          return Center(
+            child: Text(
+              CandidateLocalizations.of(context)!.candidateDataNotFound,
+            ),
+          );
         }
 
         // Create a list of widgets that matches the TabController length
@@ -235,10 +250,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
           tabWidgets.add(const SizedBox.shrink());
         }
 
-        return TabBarView(
-          controller: _tabController,
-          children: tabWidgets,
-        );
+        return TabBarView(controller: _tabController, children: tabWidgets);
       }),
     );
   }

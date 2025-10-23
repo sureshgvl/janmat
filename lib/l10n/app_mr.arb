@@ -165,5 +165,9 @@
   "expiresOn": "{date} पर्यंत वैध",
   "amount": "रक्कम: ₹{price}",
   "securePaymentGateway": "आपणास आमच्या सुरक्षित पेमेंट गेटवेवर पाठवले जाईल.",
-  "proceedToPayment": "पेमेंटकडे जा"
+  "proceedToPayment": "पेमेंटकडे जा",
+  "profileDetails": "प्रोफाइल तपशील",
+  "bio": "जीवनी",
+  "useDemoBio": "डेमो बायो वापरा",
+  "noBioAvailable": "कोणतीही बायो उपलब्ध नाही"
 }

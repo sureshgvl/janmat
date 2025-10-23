@@ -125,7 +125,6 @@ class BackgroundSyncManager {
             roleSelected: false,
             profileCompleted: false,
             electionAreas: [],
-            districtId: '',
             xpPoints: 0,
             premium: false,
             createdAt: DateTime.now(),
@@ -262,13 +261,12 @@ class BackgroundSyncManager {
     AppLogger.common('🔄 [BACKGROUND_SYNC] Starting comprehensive background sync for user ${firebaseUser.uid} at ${startTime.toIso8601String()}');
 
     try {
-      AppLogger.common('📋 [BACKGROUND_SYNC] Queuing 5 background operations: profile, preferences, quota, device, cleanup');
+      AppLogger.common('📋 [BACKGROUND_SYNC] Queuing 4 background operations: profile, preferences, quota, cleanup');
 
       await Future.wait([
         syncUserProfileAfterLogin(firebaseUser),
         syncUserPreferences(firebaseUser.uid),
         syncUserQuota(firebaseUser.uid),
-        registerDeviceBackground(firebaseUser.uid),
         cleanupExpiredData(firebaseUser.uid),
       ]);
 

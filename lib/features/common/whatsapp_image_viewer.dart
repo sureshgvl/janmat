@@ -261,12 +261,16 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
                   ),
 
                   // Title
-                  Text(
-                    widget.title ?? 'Image',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                  Flexible(
+                    child: Text(
+                      widget.title ?? 'Image',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
 

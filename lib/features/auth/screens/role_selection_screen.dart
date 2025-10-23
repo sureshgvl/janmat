@@ -25,10 +25,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
 
     if (selectedRole == null) {
-      Get.snackbar(
-        appLocalizations.error,
-        authLocalizations.pleaseSelectARoleToContinue,
-      );
+      Get.snackbar( appLocalizations.error, authLocalizations.pleaseSelectARoleToContinue);
       return;
     }
 
@@ -48,23 +45,19 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           .doc(currentUser.uid)
           .update({'role': selectedRole, 'roleSelected': true});
 
-      // After role selection, navigate to profile completion
-      if (selectedRole == 'candidate') {
-        Get.offAllNamed('/profile-completion');
-        Get.snackbar(
-          authLocalizations.roleSelected,
-          authLocalizations.youSelectedCandidatePleaseCompleteYourProfile,
-          duration: const Duration(seconds: 3),
-        );
-      } else {
-        // For voter role, go to profile completion
-        Get.offAllNamed('/profile-completion');
-        Get.snackbar(
-          authLocalizations.roleSelected,
-          authLocalizations.youSelectedVoterPleaseCompleteYourProfile,
-          duration: const Duration(seconds: 3),
-        );
-      }
+      // Navigate to profile completion with animation
+      Get.offAllNamed('/profile-completion');
+
+      // Show appropriate success message based on selected role
+      final message = selectedRole == 'candidate'
+          ? authLocalizations.youSelectedCandidatePleaseCompleteYourProfile
+          : authLocalizations.youSelectedVoterPleaseCompleteYourProfile;
+
+      Get.snackbar(
+        authLocalizations.roleSelected,
+        message,
+        duration: const Duration(seconds: 3),
+      );
     } catch (e) {
       Get.snackbar(
         appLocalizations.error,

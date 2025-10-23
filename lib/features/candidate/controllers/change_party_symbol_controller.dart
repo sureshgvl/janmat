@@ -7,6 +7,8 @@ import 'dart:io';
 import '../../../l10n/app_localizations.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_party_model.dart';
+import '../models/media_model.dart';
+import '../models/extra_info_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_party_repository.dart';
 import '../../../utils/symbol_utils.dart';
@@ -90,16 +92,16 @@ class ChangePartySymbolController extends GetxController {
         AppLogger.candidate('   Symbol name loaded: ${candidate.symbolName}');
       }
 
-      // Load existing symbol image URL from extraInfo.media
-      if (candidate.extraInfo?.media != null &&
-          candidate.extraInfo!.media!.isNotEmpty) {
-        final symbolImageItem = candidate.extraInfo!.media!
+      // Load existing symbol image URL from media
+      if (candidate.media != null &&
+          candidate.media!.isNotEmpty) {
+        final symbolImageItem = candidate.media!
             .firstWhere(
-              (item) => item['type'] == 'symbolImage',
-              orElse: () => <String, dynamic>{},
+              (item) => item.type == 'symbolImage',
+              orElse: () => Media(url: '', type: ''),
             );
-        if (symbolImageItem.isNotEmpty) {
-          symbolImageUrl.value = symbolImageItem['url'] as String?;
+        if (symbolImageItem.url.isNotEmpty) {
+          symbolImageUrl.value = symbolImageItem.url;
           AppLogger.candidate('   Symbol image URL loaded: ${symbolImageUrl.value ?? 'none'}');
         }
       }
@@ -268,8 +270,8 @@ class ChangePartySymbolController extends GetxController {
       );
 
       // Update candidate with new party and symbol
-      final currentMedia = candidate.extraInfo?.media ?? [];
-      final updatedMedia = List<Map<String, dynamic>>.from(currentMedia);
+      final currentMedia = candidate.media ?? [];
+      final updatedMedia = currentMedia.map((media) => media.toJson()).toList();
 
       // Remove existing symbol image if present
       updatedMedia.removeWhere((item) => item['type'] == 'symbolImage');
@@ -284,33 +286,18 @@ class ChangePartySymbolController extends GetxController {
         });
       }
 
-      final updatedExtraInfo =
-          candidate.extraInfo?.copyWith(media: updatedMedia) ??
-          (symbolImageUrl.value != null
-              ? ExtraInfo(
-                  media: [
-                    {
-                      'type': 'symbolImage',
-                      'url': symbolImageUrl.value!,
-                      'title': 'Party Symbol',
-                      'uploadedAt': DateTime.now().toIso8601String(),
-                    },
-                  ],
-                )
-              : ExtraInfo());
-
       final updatedCandidate = candidate.copyWith(
         party: selectedParty.value!.id, // Use party key instead of full name for proper symbol resolution
         symbolUrl: isIndependent.value ? symbolImageUrl.value : null,
         symbolName: isIndependent.value ? symbolNameController.text.trim() : SymbolUtils.getPartySymbolNameLocal(selectedParty.value!.id, Localizations.localeOf(context).languageCode),
-        extraInfo: updatedExtraInfo,
+        media: updatedMedia.map((json) => Media.fromJson(json)).toList(),
       );
 
       AppLogger.candidate('💾 ChangePartySymbolController: Data to be saved:');
       AppLogger.candidate('   Party: ${updatedCandidate.party}');
       AppLogger.candidate('   Symbol Name: ${updatedCandidate.symbolName}');
       AppLogger.candidate('   Symbol URL: ${updatedCandidate.symbolUrl}');
-      AppLogger.candidate('   Symbol Image URL: ${updatedCandidate.extraInfo?.media}');
+      AppLogger.candidate('   Symbol Image URL: ${updatedCandidate.media}');
 
       AppLogger.candidate('📤 ChangePartySymbolController: Sending update to database...');
       // Update candidate in database
@@ -363,15 +350,15 @@ class ChangePartySymbolController extends GetxController {
     } else {
       // Load existing symbol image URL for independent candidates
       final candidate = currentCandidate.value;
-      if (candidate!.extraInfo?.media != null &&
-          candidate.extraInfo!.media!.isNotEmpty) {
-        final symbolImageItem = candidate.extraInfo!.media!
+      if (candidate!.media != null &&
+          candidate.media!.isNotEmpty) {
+        final symbolImageItem = candidate.media!
             .firstWhere(
-              (item) => item['type'] == 'symbolImage',
-              orElse: () => <String, dynamic>{},
+              (item) => item.type == 'symbolImage',
+              orElse: () => Media(url: '', type: ''),
             );
-        if (symbolImageItem.isNotEmpty) {
-          symbolImageUrl.value = symbolImageItem['url'] as String?;
+        if (symbolImageItem.url.isNotEmpty) {
+          symbolImageUrl.value = symbolImageItem.url;
           AppLogger.candidate(
             '   Loaded existing symbol image URL for independent party',
           );

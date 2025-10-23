@@ -61,13 +61,13 @@ class _ContentEngagementAnalyticsSectionState
     });
 
     // Get comments count from analytics data
-    final analytics = widget.candidateData.extraInfo?.analytics;
+    final analytics = widget.candidateData.analytics;
     _manifestoComments = analytics?.manifestoComments ?? 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    final analytics = widget.candidateData.extraInfo?.analytics;
+    final analytics = widget.candidateData.analytics;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

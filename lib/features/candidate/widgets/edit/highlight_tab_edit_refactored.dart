@@ -58,7 +58,8 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
   void _loadHighlight() {
     AppLogger.candidate('_loadHighlight called');
     final data = widget.editedData ?? widget.candidateData;
-    final highlightData = data.extraInfo?.highlight;
+    final highlights = data.highlights ?? [];
+    final highlightData = highlights.isNotEmpty ? highlights.first : null;
     final oldConfig = _config?.bannerStyle ?? 'uninitialized';
 
     AppLogger.candidate('_loadHighlight - oldConfig: $oldConfig, highlightData: $highlightData');

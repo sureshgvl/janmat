@@ -548,4 +548,16 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get proceedToPayment => 'पेमेंटकडे जा';
+
+  @override
+  String get profileDetails => 'प्रोफाइल तपशील';
+
+  @override
+  String get bio => 'जीवनी';
+
+  @override
+  String get useDemoBio => 'डेमो बायो वापरा';
+
+  @override
+  String get noBioAvailable => 'कोणतीही बायो उपलब्ध नाही';
 }

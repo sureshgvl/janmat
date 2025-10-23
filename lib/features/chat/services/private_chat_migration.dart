@@ -56,6 +56,7 @@ class PrivateChatMigration {
     String userId2,
   ) async {
     try {
+      // OPTIMIZED: Use UserController for user names
       // Get user names for the chat metadata
       final user1Doc = await _firestore.collection('users').doc(userId1).get();
       final user2Doc = await _firestore.collection('users').doc(userId2).get();

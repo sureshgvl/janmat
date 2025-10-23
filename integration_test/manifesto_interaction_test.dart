@@ -4,7 +4,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:janmat/firebase_options.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
-import 'package:janmat/features/candidate/widgets/view/manifesto_tab_view.dart';
+import 'package:janmat/features/candidate/widgets/view/manifesto/manifesto_view.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -162,4 +162,3 @@ Candidate _createTestCandidate() {
 
   return Candidate.fromJson(candidateData);
 }
-

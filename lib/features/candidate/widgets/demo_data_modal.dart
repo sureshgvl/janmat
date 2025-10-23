@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../services/demo_data_service.dart';
-import '../models/candidate_achievement_model.dart';
+import '../models/achievements_model.dart';
 
 class DemoDataModal extends StatefulWidget {
   final String category;
@@ -55,7 +55,7 @@ class _DemoDataModalState extends State<DemoDataModal> {
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
-          maxWidth: MediaQuery.of(context).size.width * 0.9,
+          maxWidth: MediaQuery.of(context).size.width - 10,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -79,7 +79,7 @@ class _DemoDataModalState extends State<DemoDataModal> {
                       'Demo ${widget.category.capitalizeFirst}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -100,14 +100,6 @@ class _DemoDataModalState extends State<DemoDataModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Language Selection
-                    const Text(
-                      'Select Language:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
@@ -169,54 +161,49 @@ class _DemoDataModalState extends State<DemoDataModal> {
                     const SizedBox(height: 24),
 
                     // Template Selection
-                    const Text(
-                      'Choose Template:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    Row(
                       children: types.map((type) {
                         final isSelected = selectedType == type;
-                        return InkWell(
-                          onTap: () {
-                            setState(() {
-                              selectedType = type;
-                              _updatePreview();
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Theme.of(
-                                      context,
-                                    ).primaryColor.withValues(alpha: 0.1)
-                                  : Colors.grey[100],
-                              border: Border.all(
-                                color: isSelected
-                                    ? Theme.of(context).primaryColor
-                                    : Colors.grey[300]!,
-                                width: isSelected ? 2 : 1,
+                        return Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                selectedType = type;
+                                _updatePreview();
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              DemoDataService.getTypeDisplayName(type),
-                              style: TextStyle(
+                              decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Theme.of(context).primaryColor
-                                    : Colors.black87,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
+                                    ? Theme.of(
+                                        context,
+                                      ).primaryColor.withValues(alpha: 0.1)
+                                    : Colors.grey[100],
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Theme.of(context).primaryColor
+                                      : Colors.grey[300]!,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  DemoDataService.getTypeDisplayName(type),
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.black87,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -262,20 +249,20 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
+                                            SelectableText(
                                               item.title,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
                                               ),
                                             ),
-                                            Text(
+                                            SelectableText(
                                               item.description,
                                               style: const TextStyle(
                                                 fontSize: 12,
                                               ),
                                             ),
-                                            Text(
+                                            SelectableText(
                                               'Year: ${item.year}',
                                               style: const TextStyle(
                                                 fontSize: 12,
@@ -303,8 +290,9 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                       height: 1.5,
                                     ),
                                   ),
+                                  selectable: true,
                                 )
-                              : Text(
+                              : SelectableText(
                                   previewText?.toString() ?? '',
                                   style: const TextStyle(
                                     fontSize: 14,
@@ -313,68 +301,21 @@ class _DemoDataModalState extends State<DemoDataModal> {
                                 ),
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '* select text to copy',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ],
                   ],
                 ),
               ),
             ),
 
-            // Actions
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: previewText != null
-                          ? () {
-                              if (widget.category == 'achievements' &&
-                                  previewText is List) {
-                                widget.onDataSelected(previewText);
-                              } else {
-                                widget.onDataSelected(previewText!);
-                              }
-                              Navigator.of(context).pop();
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Use This',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

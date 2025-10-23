@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../models/candidate_model.dart';
-import '../controllers/candidate_data_controller.dart';
+import '../models/events_model.dart';
+import '../models/extra_info_model.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';
 
@@ -25,8 +27,8 @@ class EventCreationDialog extends StatefulWidget {
 class _EventCreationDialogState extends State<EventCreationDialog> {
   final _formKey = GlobalKey<FormState>();
   final CandidateRepository _candidateRepository = CandidateRepository();
-  final CandidateDataController _controller =
-      Get.find<CandidateDataController>();
+  final CandidateUserController _controller =
+      CandidateUserController.to;
 
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
@@ -177,8 +179,8 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
         '✅ Found candidate: ${candidate.name} (ID: ${candidate.candidateId})',
       );
 
-      // Update events in extra_info
-      final currentEvents = candidate.extraInfo?.events ?? [];
+      // Update events directly
+      final currentEvents = candidate.events ?? [];
       final updatedEvents = List<EventData>.from(currentEvents);
 
       // Remove existing event if editing
@@ -189,15 +191,11 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
       // Add/update the event
       updatedEvents.add(eventData);
 
-      // Update candidate extra info
-      final updatedExtraInfo =
-          candidate.extraInfo?.copyWith(events: updatedEvents) ??
-          ExtraInfo(events: updatedEvents);
+      final updatedCandidate = candidate.copyWith(events: updatedEvents);
 
-      final updatedCandidate = candidate.copyWith(extraInfo: updatedExtraInfo);
-
-      final success = await _candidateRepository.updateCandidateExtraInfo(
-        updatedCandidate,
+      final success = await _candidateRepository.updateCandidateFields(
+        widget.candidateId,
+        updatedCandidate.toJson(),
       );
 
       if (success) {
@@ -392,4 +390,3 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     );
   }
 }
-

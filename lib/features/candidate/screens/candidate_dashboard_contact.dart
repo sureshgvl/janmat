@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/candidate_data_controller.dart';
-import '../widgets/edit/candidate_contact_tab_edit.dart';
+import '../controllers/candidate_user_controller.dart';
+import '../widgets/edit/contact/contact_edit.dart';
 import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardContact extends StatefulWidget {
@@ -14,7 +14,7 @@ class CandidateDashboardContact extends StatefulWidget {
 }
 
 class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
-  final CandidateDataController controller = Get.put(CandidateDataController());
+  final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
   bool isSaving = false;
 
@@ -140,4 +140,3 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
     });
   }
 }
-

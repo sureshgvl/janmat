@@ -1,339 +1,481 @@
-# JanMat - Election Engagement Platform
+# Firebase Collections Architecture Analysis
 
-A comprehensive Flutter application designed to revolutionize voter-candidate interaction in Indian local body elections, built with Firebase backend and featuring real-time communication, gamification, and multilingual support.
+This document provides a comprehensive analysis of the Firebase Firestore collections used in the Janmat application, including their purposes, use cases, scalability considerations, and architectural recommendations.
 
-## 📱 **App Overview**
+## Overview
 
-JanMat empowers voters with transparent access to candidate information while enabling candidates to connect directly with constituents. The app bridges the democratic gap through technology, fostering informed voting decisions and active civic participation.
+The Janmat application is a political candidate platform built with Flutter, utilizing Firebase Firestore for data storage. The database architecture includes 11 main collections that handle various aspects of the application including user management, content engagement, monetization, and analytics.
 
-## 🔄 **Current App Flow**
+## Firebase Collections
 
-### **1. First Launch Flow**
+### 1. `/comments/{manifestoId}/comments/{commentId}`
+
+**Purpose**: Stores comments on manifesto content and community posts.
+
+**Structure**:
 ```
-App Launch → Language Selection → Login → Role Selection → Profile Completion → Home Dashboard
-```
-
-### **2. Returning User Flow**
-```
-App Launch → Authentication Check → Profile Validation → Home Dashboard
-```
-
-### **3. Detailed User Journey**
-
-#### **Language Selection** (`/language-selection`)
-- **First-time users** are prompted to select language (English/Marathi)
-- **Default**: English for new users
-- **Persistent**: Language preference stored locally
-
-#### **Authentication** (`/login`)
-- **Phone OTP Verification** using Firebase Authentication
-- **Secure login** with SMS-based verification
-- **Automatic redirect** based on user state
-
-#### **Role Selection** (`/role-selection`)
-- **User Type Selection**: Voter or Candidate
-- **Critical Decision Point**: Determines app functionality
-- **Stored in Firebase**: Persists across sessions
-
-#### **Profile Completion** (`/profile-completion`)
-- **Location Setup**: State → District → Body → Ward selection
-- **Dynamic Hierarchy**: Location options filtered based on previous selections
-- **Validation Required**: Must complete before accessing main features
-
-#### **Main Dashboard** (`/home`)
-- **Bottom Navigation**: 4 main tabs (Home, Candidates, Chat, Polls)
-- **Role-based Features**: Different capabilities for voters vs candidates
-
-## ✨ **Core Features**
-
-### 🏠 **Home Tab**
-- **Feed System**: Community posts and election updates
-- **Quick Actions**: Access to key features
-- **Election Information**: Current election status and reminders
-- **Gamification Elements**: XP display and achievement badges
-
-### 👥 **Candidates Tab**
-- **Ward-based Discovery**: Candidates filtered by user's ward
-- **Comprehensive Profiles**:
-  - Basic Info: Name, party, photo, manifesto
-  - Contact Details: Phone, email, social media
-  - Campaign Materials: Posters, videos, promises
-- **Sponsored Candidates**: Premium visibility for paid candidates
-- **Search & Filter**: Find candidates by name, party, or ward
-
-### 💬 **Chat Tab**
-- **Real-time Messaging**: Direct communication with candidates
-- **Rate Limiting**: 1 free message per 5 minutes
-- **XP-based Unlock**: Earn points to send additional messages
-- **Message History**: Complete conversation tracking
-- **Group Chats**: Ward-based community discussions
-
-### 📊 **Polls Tab**
-- **Survey System**: Election-related opinion polls
-- **Real-time Results**: Live poll updates
-- **Voter Engagement**: Participate in democratic discussions
-- **Analytics**: Poll participation tracking
-
-### 👤 **Profile & Settings**
-- **User Profile**: Personal information and location details
-- **Party Symbol**: Candidates can update party affiliation
-- **Device Management**: Manage logged-in devices
-- **Language Settings**: Switch between English/Marathi
-- **Notification Preferences**: Customize push notifications
-
-## 🎮 **Gamification System**
-
-### **XP Earning Mechanisms**
-- **Rewarded Video Ads**: Watch AdMob videos to earn XP
-- **Message Unlock**: Spend XP for additional candidate messages
-- **Achievement System**: Milestones and badges for engagement
-- **Progress Tracking**: Visual XP meter and reward history
-
-### **Premium Features**
-- **Enhanced Messaging**: Unlimited candidate communication
-- **Priority Visibility**: Higher placement in candidate lists
-- **Advanced Analytics**: Detailed engagement metrics
-- **Custom Branding**: Personalized app experience
-
-## 💰 **Monetization Features**
-
-### **AdMob Integration**
-- **Rewarded Videos**: XP earning through video ads
-- **Banner Ads**: Non-intrusive monetization
-- **Interstitial Ads**: Optional engagement rewards
-
-### **Subscription Model**
-- **Premium Tiers**: Different access levels
-- **Razorpay Integration**: Secure payment processing
-- **Feature Unlocks**: Enhanced capabilities for subscribers
-
-## 🌐 **Multilingual Support**
-
-### **Supported Languages**
-- **English** (en): Primary language
-- **Marathi** (mr): Regional language support
-
-### **Localization Coverage**
-- **App UI**: All screens and components
-- **Election Content**: Candidate information and election data
-- **Notifications**: Push messages in user language
-- **Error Messages**: Localized error handling
-
-## 🏗️ **Technical Architecture**
-
-### **State Management**
-- **GetX Pattern**: Reactive state management
-- **Clean Architecture**: Feature-based module organization
-- **Dependency Injection**: Modular service management
-
-### **Backend Services**
-- **Firebase Authentication**: Phone OTP verification
-- **Cloud Firestore**: Real-time NoSQL database
-- **Firebase Cloud Messaging**: Push notifications
-- **Firebase Storage**: Media file hosting
-- **Firebase Functions**: Server-side business logic
-
-### **Data Models**
-- **State Model**: State information with multilingual names
-- **District Model**: District data with state relationships
-- **Body Model**: Local body information (Corporation/Council/Panchayat)
-- **Ward Model**: Ward details with population and area data
-- **Candidate Model**: Comprehensive candidate profiles
-- **User Model**: User accounts with role and location data
-
-### **Location Hierarchy**
-```
-State (Maharashtra) → District → Body → Ward
-```
-- **Dynamic Selection**: Options filtered based on hierarchy
-- **Validation**: Ensures data consistency
-- **Offline Support**: Cached location data
-
-## 🔐 **Authentication Flow**
-
-### **Phone Number Verification**
-1. **Number Input**: User enters phone number
-2. **OTP Request**: Firebase sends SMS code
-3. **Code Verification**: User enters received OTP
-4. **Profile Creation**: Automatic user document creation
-
-### **Session Management**
-- **Persistent Login**: Automatic authentication on app restart
-- **Device Tracking**: Multiple device management
-- **Security**: Firebase security rules enforcement
-
-## 📱 **UI/UX Design**
-
-### **Design System**
-- **Colors**: Saffron (#FF9933) and Green (#138808) theme
-- **Typography**: Consistent text styles across app
-- **Components**: Reusable widgets and modals
-- **Responsive**: Optimized for various screen sizes
-
-### **Key Screens**
-- **Splash Screen**: Animated loading with branding
-- **Onboarding**: Language and role selection
-- **Location Selection**: Hierarchical picker modals
-- **Dashboard**: Tab-based navigation
-- **Profile Views**: Detailed candidate and user profiles
-- **Chat Interface**: Real-time messaging UI
-
-## 🔧 **Development Setup**
-
-### **Prerequisites**
-- Flutter SDK 3.8.1+
-- Firebase CLI
-- Android Studio / VS Code
-- Java 11+ and Android SDK
-
-### **Quick Start**
-```bash
-# Clone repository
-git clone <repository-url>
-cd janmat
-
-# Install dependencies
-flutter pub get
-
-# Configure Firebase
-# 1. Create Firebase project
-# 2. Enable Authentication, Firestore, Storage, Messaging
-# 3. Add google-services.json to android/app/
-
-# Generate localization
-flutter gen-l10n
-
-# Run app
-flutter run
+comments/
+├── {manifestoId}/
+│   └── comments/
+│       └── {commentId}
 ```
 
-## 📊 **Database Schema**
+**Where Used**:
+- Manifesto content viewers (`content_engagement_analytics_section.dart`)
+- Community feed posts (`feed_widgets.dart`, `community_feed_service.dart`)
+- Local SQLite database for offline caching (`local_database_service.dart`)
 
-### **Users Collection**
-```json
-{
-  "id": "user_id",
-  "phoneNumber": "+919876543210",
-  "role": "voter|candidate",
-  "districtId": "mumbai_city",
-  "bodyId": "mumbai_corporation",
-  "wardId": "ward_1",
-  "xpPoints": 150,
-  "profileCompleted": true,
-  "language": "en|mr"
-}
-```
+**Use Cases**:
+- Users can comment on candidate manifestos
+- Community engagement on feed posts
+- Real-time comment counts in analytics
 
-### **Candidates Collection**
-```json
-{
-  "id": "candidate_id",
-  "name": "Rajesh Kumar",
-  "party": "BJP",
-  "districtId": "mumbai_city",
-  "bodyId": "mumbai_corporation",
-  "wardId": "ward_1",
-  "manifesto": "Infrastructure development...",
-  "isSponsored": true,
-  "contactInfo": {
-    "phone": "+91-9876543210",
-    "email": "rajesh@bjp.org"
-  }
-}
-```
+**Scalability with 1M Users**:
+- ✅ Hierarchical structure prevents collection bloat
+- ✅ Local SQLite caching for offline support
+- ✅ Background sync service handles pending comments
+- ✅ Should scale well with proper indexing on manifestoId
 
-### **Election Types Collection**
-```json
-{
-  "key": "municipal_corporation",
-  "nameEn": "Municipal Corporation",
-  "nameMr": "महानगरपालिका"
-}
-```
+**Current Services**:
+- `ManifestoCacheService`
+- `LocalDatabaseService`
 
-## 🚀 **Deployment & Distribution**
-
-### **Build Process**
-```bash
-# Android APK
-flutter build apk --release
-
-# Android App Bundle
-flutter build appbundle --release
-
-# iOS
-flutter build ios --release
-```
-
-### **App Stores**
-- **Google Play**: Internal testing → Beta → Production
-- **App Store**: TestFlight → App Review → Release
-
-## 🔒 **Security & Privacy**
-
-### **Data Protection**
-- **Firebase Security Rules**: Granular access control
-- **Phone Authentication**: OTP-based verification
-- **Data Encryption**: Sensitive information protection
-- **Rate Limiting**: API abuse prevention
-
-### **Privacy Features**
-- **GDPR Compliance**: User data control
-- **Consent Management**: Permission-based features
-- **Data Minimization**: Only necessary data collection
-
-## 📈 **Performance Optimizations**
-
-### **App Performance**
-- **Lazy Loading**: On-demand feature loading
-- **Image Caching**: Efficient media handling
-- **Background Sync**: Offline data synchronization
-- **Memory Management**: Optimized state handling
-
-### **Database Performance**
-- **Firestore Indexing**: Optimized queries
-- **Caching Layers**: Multi-level data caching
-- **Compression**: Data size optimization
-
-## 🧪 **Testing Strategy**
-
-### **Test Coverage**
-- **Unit Tests**: Individual function testing
-- **Widget Tests**: UI component validation
-- **Integration Tests**: End-to-end flow testing
-- **Performance Tests**: App responsiveness validation
-
-## 📞 **Support & Maintenance**
-
-### **Error Handling**
-- **Graceful Degradation**: App functions despite errors
-- **User Feedback**: Error reporting system
-- **Recovery Mechanisms**: Automatic error recovery
-
-### **Monitoring**
-- **Crash Reporting**: Firebase Crashlytics
-- **Analytics**: User behavior tracking
-- **Performance Metrics**: App performance monitoring
-
-## 🎯 **Future Roadmap**
-
-### **Planned Features**
-- **Election Notifications**: Real-time election updates
-- **Voting Guides**: Educational content for voters
-- **Candidate Comparison**: Side-by-side candidate analysis
-- **Offline Mode**: Full functionality without internet
-- **Multi-state Support**: Expand beyond Maharashtra
-
-### **Technical Improvements**
-- **PWA Support**: Web app functionality
-- **Advanced Analytics**: Detailed user insights
-- **AI Features**: Smart candidate recommendations
-- **Blockchain Integration**: Voting transparency
+**Recommendations**:
+- Extract to dedicated `CommentService` following SOLID principles
+- Implement `CommentRepository` for data access layer
 
 ---
 
-**Built with ❤️ to strengthen Indian democracy through technology**
+### 2. `/highlights` (Hierarchical Structure)
 
-**Developer**: Suresh G V L
-**Contact**: sureshgvl@gmail.com
-**Version**: 1.0.1+2
+**Purpose**: Stores premium highlight banners for candidates (Platinum plan feature).
+
+**Structure**:
+```
+states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights/{highlightId}
+```
+
+**Where Used**:
+- Home screen highlight carousels and banners
+- Candidate dashboard for managing highlights
+- Monetization system (requires Platinum subscription)
+
+**Use Cases**:
+- Candidates can purchase and display highlight banners
+- Location-based display (ward/district/body specific)
+- Analytics tracking (views, clicks, expiry)
+
+**Scalability with 1M Users**:
+- ✅ Hierarchical structure for efficient querying
+- ✅ Migration system exists (flat → hierarchical)
+- ✅ Active highlights filtered by expiry and location
+- ✅ Should handle 1M users well with proper sharding
+
+**Current Services**:
+- `HighlightService`
+- `HighlightRepository`
+
+**Recommendations**:
+- ✅ Well-separated following repository pattern
+- Consider implementing caching layer for frequently accessed highlights
+
+---
+
+### 3. `/likes/{likeId}`
+
+**Purpose**: Tracks likes on manifesto content.
+
+**Structure**:
+```
+likes/
+├── {likeId} (contains userId, postId, timestamp)
+```
+
+**Where Used**:
+- Manifesto content viewers
+- Analytics dashboards
+- Real-time like counters
+
+**Use Cases**:
+- Users can like/unlike manifestos
+- Real-time like counts in UI
+- Engagement analytics for candidates
+
+**Scalability with 1M Users**:
+- ⚠️ Flat collection structure
+- ✅ Local SQLite caching for offline support
+- ✅ Background sync for pending likes
+- ⚠️ Could face performance issues without proper compound indexing on (userId, postId)
+
+**Current Services**:
+- `ManifestoLikesService`
+
+**Recommendations**:
+- Separate into `LikeService` and `LikeRepository`
+- Implement compound indexes on (userId, postId)
+- Consider aggregation for like counts to reduce read operations
+
+---
+
+### 4. `/manifesto_polls/{manifestoId}/polls/{pollId}`
+
+**Purpose**: Stores polls within manifesto content for voter engagement.
+
+**Structure**:
+```
+manifesto_polls/
+├── {manifestoId}/
+│   └── polls/
+│       └── {pollId}
+```
+
+**Where Used**:
+- Manifesto content viewers
+- Analytics sections showing poll participation
+- Real-time poll results
+
+**Use Cases**:
+- Candidates can create polls in their manifestos
+- Voters can participate in polls
+- Real-time results display
+
+**Scalability with 1M Users**:
+- ✅ Hierarchical structure
+- ✅ Local caching with sync service
+- ✅ Should scale well with proper indexing
+
+**Current Services**:
+- `ManifestoPollService`
+
+**Recommendations**:
+- ✅ Well-separated following service pattern
+- Consider implementing real-time poll result aggregation
+
+---
+
+### 5. `/notification_settings/{userId}`
+
+**Purpose**: Stores user notification preferences.
+
+**Structure**:
+```
+notification_settings/
+├── {userId} (document containing notification preferences)
+```
+
+**Where Used**:
+- Notification preferences screen
+- FCM notification services
+- User settings management
+
+**Use Cases**:
+- Users can customize notification preferences
+- Control push notifications, email alerts, etc.
+- Per-user notification settings
+
+**Scalability with 1M Users**:
+- ✅ Simple document-per-user structure
+- ✅ Real-time subscriptions for preference changes
+- ✅ Scales well as it's read-heavy with infrequent writes
+
+**Current Services**:
+- `NotificationSettingsController`
+
+**Recommendations**:
+- Extract to `NotificationSettingsService`
+- Implement default preference templates
+- Consider caching frequently accessed preferences
+
+---
+
+### 6. `/pushFeed/{feedId}`
+
+**Purpose**: Stores sponsored/push feed content for monetization.
+
+**Structure**:
+```
+pushFeed/
+├── {feedId} (sponsored post data)
+```
+
+**Where Used**:
+- Home screen sponsored updates section
+- Community feed integration
+- Paid content creation
+
+**Use Cases**:
+- Candidates can create sponsored posts
+- Premium content visibility
+- Monetization through sponsored updates
+
+**Scalability with 1M Users**:
+- ✅ Ward-based filtering for targeted content
+- ✅ Should scale well with location-based queries
+
+**Current Services**:
+- Inline in `PushFeedService` (feed widgets)
+
+**Recommendations**:
+- Extract to dedicated `PushFeedService`
+- Implement `PushFeedRepository`
+- Add content moderation and approval workflow
+
+---
+
+### 7. `/section_views/{viewId}`
+
+**Purpose**: Tracks views on different UI sections (banners, carousels).
+
+**Structure**:
+```
+section_views/
+├── {viewId} (contains sectionType, userId, timestamp, etc.)
+```
+
+**Where Used**:
+- Highlight banner/carousel components
+- Analytics for content engagement
+- Performance tracking
+
+**Use Cases**:
+- Track which sections users view
+- Analytics for highlight effectiveness
+- Content performance metrics
+
+**Scalability with 1M Users**:
+- ⚠️ Write-heavy collection (every view creates a document)
+- ⚠️ Could become expensive at scale
+- ⚠️ Consider aggregation or sampling for large user base
+
+**Current Services**:
+- Inline in repositories (`HighlightRepository`, etc.)
+
+**Recommendations**:
+- Extract to dedicated `AnalyticsService`
+- Implement sampling (track 10% of views) or aggregation
+- Use Firestore counters for high-frequency metrics
+- Consider BigQuery for advanced analytics
+
+---
+
+### 8. `/subscriptions/{subscriptionId}`
+
+**Purpose**: Manages user subscription plans and billing.
+
+**Structure**:
+```
+subscriptions/
+├── {subscriptionId} (contains userId, planId, status, dates, etc.)
+```
+
+**Where Used**:
+- Monetization system
+- Plan validation
+- Feature access control
+
+**Use Cases**:
+- Track active subscriptions
+- Validate plan features
+- Billing and renewal management
+
+**Scalability with 1M Users**:
+- ✅ User-based queries (where userId = ...)
+- ✅ Should scale well with proper indexing
+
+**Current Services**:
+- `MonetizationRepository`
+
+**Recommendations**:
+- ✅ Well-separated following repository pattern
+- Implement subscription lifecycle management
+- Add billing integration hooks
+
+---
+
+### 9. `/user_following/{userId}`
+
+**Purpose**: Tracks which users follow which candidates.
+
+**Structure**:
+```
+user_following/
+├── {userId} (document containing followed candidate IDs)
+```
+
+**Where Used**:
+- Following system
+- Social features
+- Candidate follower counts
+
+**Use Cases**:
+- Users can follow candidates
+- Follower analytics
+- Social engagement tracking
+
+**Scalability with 1M Users**:
+- ✅ Document-per-user structure
+- ✅ Real-time follower counts
+- ✅ Scales well for social features
+
+**Current Services**:
+- `FollowingController`
+
+**Recommendations**:
+- ✅ Well-separated following MVC pattern
+- Implement follower recommendations
+- Add follow/unfollow analytics
+
+---
+
+### 10. `/user_mappings/{firebaseUid}`
+
+**Purpose**: Maps phone numbers to Firebase UIDs for authentication.
+
+**Structure**:
+```
+user_mappings/
+├── {firebaseUid} (contains phone number, user data)
+```
+
+**Where Used**:
+- Authentication system
+- User lookup by phone number
+
+**Use Cases**:
+- Phone number based authentication
+- User identification across devices
+
+**Scalability with 1M Users**:
+- ✅ Simple key-value mapping
+- ✅ Critical for auth, must be highly available
+- ✅ Scales well as read-heavy
+
+**Current Services**:
+- Handled in `AuthController`
+
+**Recommendations**:
+- Extract to `UserMappingService`
+- Implement phone number validation
+- Add user migration capabilities
+
+---
+
+### 11. `/user_quotas/{userId}`
+
+**Purpose**: Tracks user usage quotas (chat messages, etc.).
+
+**Structure**:
+```
+user_quotas/
+├── {userId} (contains quota limits, current usage, reset dates)
+```
+
+**Where Used**:
+- Chat system
+- Usage limiting
+- Plan enforcement
+
+**Use Cases**:
+- Limit chat messages based on plan
+- Track user activity
+- Prevent abuse
+
+**Scalability with 1M Users**:
+- ✅ Document-per-user structure
+- ✅ Transaction-based updates for quota management
+- ✅ Scales well with proper transaction handling
+
+**Current Services**:
+- Handled in `ChatRepository`
+
+**Recommendations**:
+- Extract to dedicated `QuotaService`
+- Implement quota reset scheduling
+- Add quota violation handling and notifications
+
+## Architecture Assessment
+
+### Current State
+The codebase follows a reasonable service/repository pattern but could benefit from more consistent SOLID principle application. Some services are well-separated while others are inline or tightly coupled.
+
+### Scalability Status
+
+**Well-Scaled Collections**:
+- ✅ `/comments` (hierarchical)
+- ✅ `/highlights` (hierarchical)
+- ✅ `/manifesto_polls` (hierarchical)
+- ✅ `/notification_settings` (document-per-user)
+- ✅ `/subscriptions` (indexed queries)
+- ✅ `/user_following` (document-per-user)
+- ✅ `/user_mappings` (key-value)
+- ✅ `/user_quotas` (document-per-user)
+
+**Collections Needing Attention**:
+- ⚠️ `/likes` (needs compound indexing)
+- ⚠️ `/pushFeed` (needs dedicated service)
+- ⚠️ `/section_views` (write-heavy, consider aggregation)
+
+### Recommended Service Separation
+
+**High Priority**:
+1. Extract `CommentService` and `CommentRepository`
+2. Extract `LikeService` and `LikeRepository`
+3. Extract `PushFeedService` and `PushFeedRepository`
+4. Extract `AnalyticsService` for section views
+5. Extract `QuotaService`
+
+**Medium Priority**:
+1. Extract `NotificationSettingsService`
+2. Extract `UserMappingService`
+3. Implement consistent repository pattern across all services
+
+**Low Priority**:
+1. Consider microservice architecture for high-traffic features
+2. Implement caching layers for frequently accessed data
+3. Add comprehensive monitoring and alerting
+
+## Performance Optimization Recommendations
+
+### For 1M Users
+
+1. **Indexing Strategy**:
+   - Compound indexes on frequently queried fields
+   - Single field indexes for range queries
+   - Partial indexes for filtered queries
+
+2. **Caching Strategy**:
+   - Redis for frequently accessed data
+   - CDN for static content
+   - Local caching for offline capabilities
+
+3. **Data Aggregation**:
+   - Pre-computed analytics data
+   - Daily aggregation jobs for metrics
+   - Sampling for high-frequency events
+
+4. **Architecture Improvements**:
+   - CQRS pattern for read/write separation
+   - Event sourcing for audit trails
+   - Microservices for independent scaling
+
+## Monitoring and Maintenance
+
+### Key Metrics to Monitor
+- Query performance and latency
+- Collection sizes and growth rates
+- Index usage and efficiency
+- Error rates and failed operations
+
+### Backup and Recovery
+- Regular automated backups
+- Point-in-time recovery capabilities
+- Data validation and integrity checks
+
+### Migration Strategy
+- Versioned migration scripts
+- Backward compatibility during transitions
+- Rollback procedures for failed migrations
+
+---
+
+*This analysis is based on the codebase as of October 2025. Regular reviews and updates are recommended as the application scales.*

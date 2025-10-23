@@ -65,12 +65,28 @@ class PartySelectionModal extends StatelessWidget {
 
           // Party List
           Expanded(
-            child: Obx(() => ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: controller.parties.length,
-              itemBuilder: (context, index) {
-                final party = controller.parties[index];
-                final isSelected = controller.selectedParty.value?.id == party.id;
+            child: Obx(() {
+              // Sort parties to show current party first if it exists
+              final currentParty = controller.currentCandidate.value?.party;
+              final sortedParties = List<Party>.from(controller.parties);
+
+              if (currentParty != null) {
+                // Find current party and move it to the top
+                final currentPartyIndex = sortedParties.indexWhere(
+                  (party) => party.id == currentParty,
+                );
+                if (currentPartyIndex != -1) {
+                  final currentPartyItem = sortedParties.removeAt(currentPartyIndex);
+                  sortedParties.insert(0, currentPartyItem);
+                }
+              }
+
+              return ListView.builder(
+               padding: const EdgeInsets.symmetric(vertical: 8),
+               itemCount: sortedParties.length,
+               itemBuilder: (context, index) {
+                 final party = sortedParties[index];
+                 final isSelected = controller.selectedParty.value?.id == party.id;
 
                 return InkWell(
                   onTap: () {
@@ -195,9 +211,10 @@ class PartySelectionModal extends StatelessWidget {
                       ],
                     ),
                   ),
-                );
-              },
-            )),
+                  );
+                },
+              );
+            }),
           ),
         ],
       ),

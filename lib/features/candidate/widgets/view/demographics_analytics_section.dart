@@ -11,7 +11,7 @@ class DemographicsAnalyticsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final analytics = candidateData.extraInfo?.analytics;
+    final analytics = candidateData.analytics;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

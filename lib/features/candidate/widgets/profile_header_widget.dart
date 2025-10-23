@@ -204,51 +204,13 @@ class ProfileHeaderWidget extends StatelessWidget {
                       builder: (context) {
                         final locale = Localizations.localeOf(context).languageCode;
 
-                        // Use MaharashtraUtils for ward name translation (same as BasicInfoView)
                         final translatedWard = MaharashtraUtils.getWardDisplayNameWithLocale(
-                          candidate.wardId,
-                          locale,
-                        );
-
-                        // Use translated ward if translation succeeded, otherwise use SQLite data or fallback
-                        String displayWard;
-                        if (translatedWard != candidate.wardId) {
-                          // Translation succeeded
-                          displayWard = translatedWard;
-                        } else if (wardName?.isNotEmpty == true && wardName != candidate.wardId) {
-                          // Use cleaned SQLite data if available and different from raw wardId
-                          displayWard = wardName!;
-                        } else {
-                          // Fallback to wardId
-                          displayWard = candidate.wardId;
-                        }
-
-                        AppLogger.candidate('🏛️ [ProfileHeader] Ward name resolution:');
-                        AppLogger.candidate('   wardId: ${candidate.wardId}');
-                        AppLogger.candidate('   locale: $locale');
-                        AppLogger.candidate('   translatedWard: $translatedWard');
-                        AppLogger.candidate('   wardName param: $wardName');
-                        AppLogger.candidate('   displayWard: $displayWard');
-
-                        // Use MaharashtraUtils for district name translation
-                        final translatedDistrict = MaharashtraUtils.getDistrictDisplayNameWithLocale(
-                          candidate.districtId,
-                          locale,
-                        );
-                        final displayDistrict = translatedDistrict != candidate.districtId
-                          ? translatedDistrict
-                          : (districtName ?? candidate.districtId);
-
+                            candidate.location.wardId ?? '',
+                            locale,
+                          );
 
                         // Construct final text
-                        final finalText = '$displayWard • $displayDistrict';
-
-                        // Debug logs
-                        AppLogger.candidate('🔍 [ProfileHeader] Location Display Debug:');
-                        AppLogger.candidate('   Locale: $locale');
-                        AppLogger.candidate('   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})');
-                        AppLogger.candidate('   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.districtId ? "YES" : "NO"})');
-                        AppLogger.candidate('   Final Text: "$finalText"');
+                        final finalText = '$translatedWard • $bodyName';
 
                         return Text(
                           finalText,

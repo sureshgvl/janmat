@@ -32,21 +32,21 @@ class ShareService {
     buffer.writeln('🏛️ Party: ${candidate.party}');
 
     // Location info
-    if (candidate.districtId.isNotEmpty) {
-      buffer.writeln('📍 Location: ${candidate.districtId}');
+    if (candidate.location.districtId?.isNotEmpty == true) {
+      buffer.writeln('📍 Location: ${candidate.location.districtId}');
     }
 
     buffer.writeln();
 
     // Manifesto title
-    if (candidate.extraInfo?.manifesto?.title != null &&
-        candidate.extraInfo!.manifesto!.title!.isNotEmpty) {
-      buffer.writeln('📄 ${candidate.extraInfo!.manifesto!.title}');
+    if (candidate.manifestoData?.title != null &&
+        candidate.manifestoData!.title!.isNotEmpty) {
+      buffer.writeln('📄 ${candidate.manifestoData!.title}');
       buffer.writeln();
     }
 
     // Manifesto promises (first 3)
-    final promises = candidate.extraInfo?.manifesto?.promises ?? [];
+    final promises = candidate.manifestoData?.promises ?? [];
     if (promises.isNotEmpty) {
       buffer.writeln('Key Promises:');
       final displayPromises = promises.take(3); // Limit to 3 promises
@@ -76,12 +76,12 @@ class ShareService {
     buffer.writeln('👤 ${candidate.name}');
     buffer.writeln('🏛️ Party: ${candidate.party}');
 
-    if (candidate.districtId.isNotEmpty) {
-      buffer.writeln('📍 Location: ${candidate.districtId}');
+    if (candidate.location.districtId?.isNotEmpty == true) {
+      buffer.writeln('📍 Location: ${candidate.location.districtId}');
     }
 
-    if (candidate.extraInfo?.basicInfo?.age != null) {
-      buffer.writeln('🎂 Age: ${candidate.extraInfo!.basicInfo!.age}');
+    if (candidate.basicInfo?.age != null) {
+      buffer.writeln('🎂 Age: ${candidate.basicInfo!.age}');
     }
 
     buffer.writeln();

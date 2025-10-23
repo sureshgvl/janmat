@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/models/candidate_party_model.dart';
+import '../features/candidate/models/media_model.dart';
 import './app_logger.dart';
 
 /// Centralized utility for party symbol path resolution
@@ -416,16 +417,15 @@ class SymbolUtils {
         }
 
         // Fallback: Check for uploaded symbol image URL in media
-        if (candidate.extraInfo?.media != null &&
-            candidate.extraInfo!.media!.isNotEmpty) {
-          final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
-            (item) => item['type'] == 'symbolImage',
-            orElse: () => <String, dynamic>{},
+        if (candidate.media != null &&
+            candidate.media!.isNotEmpty) {
+          final symbolImageItem = candidate.media!.firstWhere(
+            (item) => item.type == 'symbolImage',
+            orElse: () => Media(url: '', type: ''),
           );
-          if (symbolImageItem.isNotEmpty) {
-            final symbolImageUrl = symbolImageItem['url'] as String?;
-            if (symbolImageUrl != null &&
-                symbolImageUrl.isNotEmpty &&
+          if (symbolImageItem.url.isNotEmpty) {
+            final symbolImageUrl = symbolImageItem.url;
+            if (symbolImageUrl.isNotEmpty &&
                 symbolImageUrl.startsWith('http')) {
               AppLogger.common(
                 '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',
@@ -523,16 +523,15 @@ class SymbolUtils {
       }
 
       // Fallback: Check for uploaded symbol image URL in media
-      if (candidate.extraInfo?.media != null &&
-          candidate.extraInfo!.media!.isNotEmpty) {
-        final symbolImageItem = candidate.extraInfo!.media!.firstWhere(
-          (item) => item['type'] == 'symbolImage',
-          orElse: () => <String, dynamic>{},
+      if (candidate.media != null &&
+          candidate.media!.isNotEmpty) {
+        final symbolImageItem = candidate.media!.firstWhere(
+          (item) => item.type == 'symbolImage',
+          orElse: () => Media(url: '', type: ''),
         );
-        if (symbolImageItem.isNotEmpty) {
-          final symbolImageUrl = symbolImageItem['url'] as String?;
-          if (symbolImageUrl != null &&
-              symbolImageUrl.isNotEmpty &&
+        if (symbolImageItem.url.isNotEmpty) {
+          final symbolImageUrl = symbolImageItem.url;
+          if (symbolImageUrl.isNotEmpty &&
               symbolImageUrl.startsWith('http')) {
             AppLogger.common(
               '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',

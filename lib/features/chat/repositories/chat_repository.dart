@@ -485,7 +485,7 @@ class ChatRepository {
           tag: 'CHAT',
         );
 
-        // Use UserDataController for cached user data
+        // OPTIMIZED: Use UserDataController for cached user data
         final userDataController = Get.find<UserDataController>();
         if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
           final userModel = userDataController.currentUser.value!;
@@ -2291,7 +2291,7 @@ class ChatRepository {
           districtId == null ||
           wardId == null ||
           area == null) {
-        // Use UserDataController for cached user data
+        // OPTIMIZED: Use UserDataController for cached user data
         final userDataController = Get.find<UserDataController>();
         if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
           final userModel = userDataController.currentUser.value!;
@@ -2365,11 +2365,28 @@ class ChatRepository {
       final roomData = roomDoc.data() as Map<String, dynamic>;
       final members = List<String>.from(roomData['members'] ?? []);
 
+      // OPTIMIZED: Use UserDataController for sender info
       // Get sender info
-      final senderDoc = await _firestore.collection('users').doc(message.senderId).get();
-      final senderName = senderDoc.exists
-          ? (senderDoc.data()?['name'] ?? 'Someone')
-          : 'Someone';
+      final userDataController = Get.find<UserDataController>();
+      String senderName = 'Someone';
+      if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
+        final userModel = userDataController.currentUser.value!;
+        if (userModel.uid == message.senderId) {
+          senderName = userModel.name;
+        } else {
+          // Fallback to direct fetch for other users
+          final senderDoc = await _firestore.collection('users').doc(message.senderId).get();
+          senderName = senderDoc.exists
+              ? (senderDoc.data()?['name'] ?? 'Someone')
+              : 'Someone';
+        }
+      } else {
+        // Fallback to direct fetch if cache not available
+        final senderDoc = await _firestore.collection('users').doc(message.senderId).get();
+        senderName = senderDoc.exists
+            ? (senderDoc.data()?['name'] ?? 'Someone')
+            : 'Someone';
+      }
 
       // Send notification to each member except the sender
       final notificationManager = NotificationManager();

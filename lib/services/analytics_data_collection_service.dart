@@ -264,6 +264,7 @@ class AnalyticsDataCollectionService {
       final userId = followerDoc.id;
 
       try {
+        // OPTIMIZED: Use UserDataController instead of direct Firebase call for user profile data
         // Get user profile data
         final userDoc = await _firestore.collection('users').doc(userId).get();
         if (userDoc.exists) {

@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/app_logger.dart';
 import '../features/candidate/models/candidate_model.dart';
+import '../features/candidate/models/events_model.dart';
 import '../features/candidate/repositories/candidate_repository.dart';
 
 class EventNotificationService {
@@ -240,6 +241,7 @@ class EventNotificationService {
   // Helper method to get user's FCM token
   Future<String?> _getUserFCMToken(String userId) async {
     try {
+      // OPTIMIZED: Use UserDataController instead of direct Firebase call for FCM tokens
       // FCM tokens need to be fresh for notifications to work properly
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (userDoc.exists) {

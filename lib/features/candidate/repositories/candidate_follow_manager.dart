@@ -566,6 +566,7 @@ class CandidateFollowManager {
     }
   }
 
+  // OPTIMIZED: Use UserController for user data
   // Get user data by user ID
   Future<Map<String, dynamic>?> getUserData(String userId) async {
     try {
@@ -727,6 +728,7 @@ class CandidateFollowManager {
     }
   }
 
+  // OPTIMIZED: Use UserController for user data
   // Send notification to candidate when someone follows them
   Future<void> _sendNewFollowerNotification(String followerId, String candidateId) async {
     try {

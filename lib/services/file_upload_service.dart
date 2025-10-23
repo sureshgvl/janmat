@@ -437,9 +437,9 @@ class FileUploadService {
         throw Exception('Local file not found: $actualPath');
       }
 
-      // Generate Firebase storage path
+      // Generate Firebase storage path - use manifesto_files for manifesto uploads
       final fileName = path.basename(actualPath).replaceFirst('temp_', '');
-      final storageRef = _storage.ref().child('achievement_photos/$fileName');
+      final storageRef = _storage.ref().child('manifesto_files/$fileName');
 
       final uploadTask = storageRef.putFile(
         file,
