@@ -8,7 +8,6 @@ import '../../../l10n/app_localizations.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_party_model.dart';
 import '../models/media_model.dart';
-import '../models/extra_info_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/candidate_party_repository.dart';
 import '../../../utils/symbol_utils.dart';

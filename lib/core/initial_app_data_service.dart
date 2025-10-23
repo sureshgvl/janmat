@@ -9,11 +9,32 @@ import '../utils/multi_level_cache.dart';
 import '../utils/app_logger.dart';
 import '../utils/performance_monitor.dart' as perf;
 
+/// Extension to handle Locale serialization/deserialization for JSON
+extension LocaleJsonExtension on Locale {
+  /// Convert Locale to a JSON serializable map
+  Map<String, dynamic> toJson() {
+    return {
+      'languageCode': languageCode,
+      if (countryCode != null) 'countryCode': countryCode,
+      if (scriptCode != null) 'scriptCode': scriptCode,
+    };
+  }
+
+  /// Create Locale from JSON map
+  static Locale fromJson(Map<String, dynamic> json) {
+    return Locale.fromSubtags(
+      languageCode: json['languageCode'] as String,
+      countryCode: json['countryCode'] as String?,
+      scriptCode: json['scriptCode'] as String?,
+    );
+  }
+}
+
 class InitialAppDataService {
   final LanguageService _languageService = LanguageService();
 
   Future<Map<String, dynamic>> getInitialAppData() async {
-    perf.PerformanceMonitor().startTimer('initial_app_data');
+    // perf.PerformanceMonitor().startTimer('initial_app_data');
 
     // PERFORMANCE OPTIMIZATION: Parallelize independent operations
     final languageChecks = Future.wait([
@@ -116,9 +137,9 @@ class InitialAppDataService {
         return {'route': '/login', 'locale': locale};
       }
     } catch (e) {
-      AppLogger.coreError('Error checking user state', error: e);
-      perf.PerformanceMonitor().stopTimer('initial_app_data');
-      perf.PerformanceMonitor().logSlowOperation('initial_app_data', 1000); // Log if > 1 second
+      AppLogger.core('Error checking user state: $e');
+      // perf.PerformanceMonitor().stopTimer('initial_app_data');
+      // perf.PerformanceMonitor().logSlowOperation('initial_app_data', 1000); // Log if > 1 second
 
       // On error, default to home for authenticated users (fail-safe)
       if (currentUser != null) {

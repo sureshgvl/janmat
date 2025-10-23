@@ -63,10 +63,14 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
 
     AppLogger.candidate('🎯 BasicInfoEdit initState - Education debug:');
     AppLogger.candidate('   basicInfo exists: ${data.basicInfo != null}');
-    AppLogger.candidate('   education from basicInfo: ${data.basicInfo?.education}');
+    AppLogger.candidate(
+      '   education from basicInfo: ${data.basicInfo?.education}',
+    );
     AppLogger.candidate('   address from contact: ${data.contact.address}');
 
-    _nameController = TextEditingController(text: data.name);
+    _nameController = TextEditingController(
+      text: data.basicInfo?.fullName ?? '',
+    );
     _cityController = TextEditingController(text: data.location.districtId);
     _wardController = TextEditingController(text: data.location.wardId);
     _ageController = TextEditingController(
@@ -87,12 +91,12 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     _languagesController = TextEditingController(
       text: data.basicInfo?.languages?.join(', ') ?? '',
     );
-    _symbolNameController = TextEditingController(
-      text: data.symbolName ?? '',
-    );
+    _symbolNameController = TextEditingController(text: data.symbolName ?? '');
 
     // Debug log initial state of all input boxes
-    AppLogger.candidate('🎬 BasicInfoEdit initState - Initial controller values:');
+    AppLogger.candidate(
+      '🎬 BasicInfoEdit initState - Initial controller values:',
+    );
     AppLogger.candidate('   👤 Name: "${_nameController.text}"');
     AppLogger.candidate('   🎂 Age: "${_ageController.text}"');
     AppLogger.candidate('   👥 Gender: "${_genderController.text}"');
@@ -108,38 +112,19 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
   @override
   void didUpdateWidget(BasicInfoEdit oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Note: We don't update controller text in didUpdateWidget to preserve user input
-    // The controllers are initialized in initState and should maintain their state
-    // If external data changes are needed, they should come through the editedData parameter
+    // Update controller text when external data changes (e.g., after data loads)
+    if (widget.editedData != oldWidget.editedData) {
+      final data = widget.editedData ?? widget.candidateData;
+      // Only update if the data actually changed and basicInfo has fullName
+      if (data.basicInfo?.fullName != null &&
+          data.basicInfo!.fullName!.isNotEmpty) {
+        _nameController.text = data.basicInfo!.fullName!;
+        AppLogger.candidate(
+          '🔄 Updated name controller with basicInfo.fullName: ${data.basicInfo!.fullName}',
+        );
+      }
+    }
     AppLogger.candidate('🔄 BasicInfoEdit didUpdateWidget called');
-  }
-
-  @override
-  void dispose() {
-    // Debug log final state of all input boxes
-    AppLogger.candidate('🗂️ BasicInfoEdit dispose - Final controller values:');
-    AppLogger.candidate('   👤 Name: "${_nameController.text}"');
-    AppLogger.candidate('   🎂 Age: "${_ageController.text}"');
-    AppLogger.candidate('   👥 Gender: "${_genderController.text}"');
-    AppLogger.candidate('   🎓 Education: "${_educationController.text}"');
-    AppLogger.candidate('   💼 Profession: "${_professionController.text}"');
-    AppLogger.candidate('   🌐 Languages: "${_languagesController.text}"');
-    AppLogger.candidate('   📍 Address: "${_addressController.text}"');
-    AppLogger.candidate('   🏛️ City: "${_cityController.text}"');
-    AppLogger.candidate('   🏘️ Ward: "${_wardController.text}"');
-    AppLogger.candidate('   🎯 Symbol Name: "${_symbolNameController.text}"');
-
-    _nameController.dispose();
-    _cityController.dispose();
-    _wardController.dispose();
-    _ageController.dispose();
-    _genderController.dispose();
-    _educationController.dispose();
-    _addressController.dispose();
-    _professionController.dispose();
-    _languagesController.dispose();
-    _symbolNameController.dispose();
-    super.dispose();
   }
 
   Future<void> _pickAndUploadImage() async {
@@ -151,7 +136,11 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
       final imagePath = await _photoHandler.pickAndCropImage(context);
       if (imagePath != null) {
         final userId = widget.candidateData.userId ?? '';
-        final photoUrl = await _photoHandler.uploadPhoto(imagePath, userId, context);
+        final photoUrl = await _photoHandler.uploadPhoto(
+          imagePath,
+          userId,
+          context,
+        );
         if (photoUrl != null) {
           widget.onPhotoChange(photoUrl);
         }
@@ -206,7 +195,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     _genderController.text = demoData['gender'] as String;
     _educationController.text = demoData['education'] as String;
     _professionController.text = demoData['profession'] as String;
-    _languagesController.text = (demoData['languages'] as List<String>).join(', ');
+    _languagesController.text = (demoData['languages'] as List<String>).join(
+      ', ',
+    );
     _symbolNameController.text = demoData['symbolName'] as String;
     _addressController.text = demoData['address'] as String;
 
@@ -250,7 +241,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                           : null,
                       child: data.photo == null
                           ? Text(
-                              data.name[0].toUpperCase(),
+                              data.basicInfo?.fullName?.isNotEmpty == true
+                                  ? data.basicInfo!.fullName![0].toUpperCase()
+                                  : '?',
                               style: const TextStyle(fontSize: 24),
                             )
                           : null,
@@ -317,29 +310,32 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                 Expanded(
                   child: Stack(
                     children: [
-                    TextFormField(
-                      controller: _ageController,
-                      decoration: InputDecoration(
-                        labelText: CandidateLocalizations.of(context)!.age,
-                        border: const OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) =>
-                          widget.onBasicInfoChange('age', int.tryParse(value) ?? 0),
-                    ),
-                    Positioned(
-                      right: 8,
-                      top: 12,
-                      child: GestureDetector(
-                        onTap: () => _selectBirthDate(context),
-                        child: Icon(
-                          Icons.calendar_today,
-                          color: Colors.grey.shade600,
-                          size: 20,
+                      TextFormField(
+                        controller: _ageController,
+                        decoration: InputDecoration(
+                          labelText: CandidateLocalizations.of(context)!.age,
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) => widget.onBasicInfoChange(
+                          'age',
+                          int.tryParse(value) ?? 0,
                         ),
                       ),
-                    ),
-                  ]),
+                      Positioned(
+                        right: 8,
+                        top: 12,
+                        child: GestureDetector(
+                          onTap: () => _selectBirthDate(context),
+                          child: Icon(
+                            Icons.calendar_today,
+                            color: Colors.grey.shade600,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -370,7 +366,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                                 Text(
                                   _genderController.text.isNotEmpty
                                       ? _genderController.text
-                                      : CandidateLocalizations.of(context)!.tapToSelectGender,
+                                      : CandidateLocalizations.of(
+                                          context,
+                                        )!.tapToSelectGender,
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: _genderController.text.isNotEmpty
@@ -399,10 +397,13 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
             _buildTextInputField(
               controller: _educationController,
               labelText: CandidateLocalizations.of(context)!.education,
-                  onChanged: (value) {
-                    AppLogger.candidate('🎯 Education changed to: "$value"', tag: 'FORM_EDIT');
-                    widget.onBasicInfoChange('education', value);
-                  },
+              onChanged: (value) {
+                AppLogger.candidate(
+                  '🎯 Education changed to: "$value"',
+                  tag: 'FORM_EDIT',
+                );
+                widget.onBasicInfoChange('education', value);
+              },
             ),
             const SizedBox(height: 16),
 
@@ -415,7 +416,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
               ),
               onChanged: (value) {
                 AppLogger.candidate('🎯 Profession changed: $value');
-                AppLogger.candidate('   📝 Profession controller text: "${_professionController.text}"');
+                AppLogger.candidate(
+                  '   📝 Profession controller text: "${_professionController.text}"',
+                );
                 widget.onBasicInfoChange('profession', value);
               },
             ),
@@ -425,24 +428,33 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
             TextFormField(
               controller: _languagesController,
               decoration: InputDecoration(
-                labelText: CandidateLocalizations.of(context)!.languagesCommaSeparated,
+                labelText: CandidateLocalizations.of(
+                  context,
+                )!.languagesCommaSeparated,
                 border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 AppLogger.candidate('🎯 Languages changed: $value');
-                AppLogger.candidate('   📝 Languages controller text: "${_languagesController.text}"');
-                widget.onBasicInfoChange('languages', value.split(',').map((e) => e.trim()).toList());
+                AppLogger.candidate(
+                  '   📝 Languages controller text: "${_languagesController.text}"',
+                );
+                widget.onBasicInfoChange(
+                  'languages',
+                  value.split(',').map((e) => e.trim()).toList(),
+                );
               },
             ),
             const SizedBox(height: 16),
 
-
             // Symbol Name field (only for independent candidates)
-            if (data.party.toLowerCase().contains('independent') || data.party.trim().isEmpty) ...[
+            if (data.party.toLowerCase().contains('independent') ||
+                data.party.trim().isEmpty) ...[
               const SizedBox(height: 16),
               _buildTextInputField(
                 controller: _symbolNameController,
-                labelText: CandidateLocalizations.of(context)!.symbolNameForIndependent,
+                labelText: CandidateLocalizations.of(
+                  context,
+                )!.symbolNameForIndependent,
                 onChanged: (value) {
                   AppLogger.candidate('🎯 Symbol Name changed: $value');
                   widget.onBasicInfoChange('symbolName', value);
@@ -501,14 +513,18 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                     children: [
                       Expanded(
                         child: Text(
-                          CandidateLocalizations.of(context)!.districtLabel(district: data.location.districtId ?? ''),
+                          CandidateLocalizations.of(context)!.districtLabel(
+                            district: data.location.districtId ?? '',
+                          ),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(
-                          CandidateLocalizations.of(context)!.wardLabel(ward: data.location.wardId ?? ''),
+                          CandidateLocalizations.of(
+                            context,
+                          )!.wardLabel(ward: data.location.wardId ?? ''),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),

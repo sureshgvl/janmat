@@ -8,7 +8,12 @@ import '../../candidate/controllers/candidate_user_controller.dart';
 
 class HomeServices {
 
-  Future<Map<String, dynamic>> getUserData(String? uid) async {
+  Future<Map<String, dynamic>> getUserData(String? uid, {bool forceRefresh = false}) async {
+    // EMERGENCY FIX: Disable caching completely due to cache corruption bug
+    // UserModel objects are being corrupted during cache retrieval/serialization
+    // This causes home screen to receive null UserModel, preventing candidate mode
+    forceRefresh = true; // Always force refresh until cache bug is fixed
+
     // Check if user is authenticated before attempting to fetch data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null || uid == null) {
@@ -22,22 +27,7 @@ class HomeServices {
       return {'user': null, 'candidate': null};
     }
 
-    // PERFORMANCE OPTIMIZATION: Use cache-first strategy for instant loading
-    final cache = MultiLevelCache();
-    final cacheKey = 'user_data_$uid';
-
-    try {
-      // Try cache first (should be instant)
-      final cachedData = await cache.get<Map<String, dynamic>>(cacheKey);
-      if (cachedData != null) {
-        AppLogger.common('⚡ Using cached user data for instant loading');
-        // Return cached data immediately, refresh in background
-        _refreshUserDataInBackground(uid, cache, cacheKey);
-        return cachedData;
-      }
-    } catch (e) {
-      AppLogger.common('⚠️ Cache read failed, proceeding with fresh fetch');
-    }
+    AppLogger.common('� EMERGENCY: Cache disabled due to corruption bug - fetching fresh data', tag: 'HOME_DEBUG');
 
     // Fallback: Fast fetch with short timeout and cache-first strategy
     try {
@@ -83,16 +73,11 @@ class HomeServices {
           }
         }
 
-        // Cache the result for future instant loads (without candidate data initially)
-        final result = {'user': userModel, 'candidate': candidateModel};
-        try {
-          await cache.set(cacheKey, result, ttl: const Duration(hours: 1));
-          AppLogger.common('💾 User data cached for future instant loads');
-        } catch (e) {
-          AppLogger.common('⚠️ Failed to cache user data');
-        }
+        // EMERGENCY FIX: Skip caching until cache corruption bug is fixed
+        // Cache disabled due to UserModel corruption during serialization
+        AppLogger.common('� EMERGENCY: Skipping cache save due to corruption bug', tag: 'HOME_DEBUG');
 
-        return result;
+        return {'user': userModel, 'candidate': candidateModel};
       }
     } catch (e) {
       AppLogger.commonError('❌ Fast user data fetch failed', error: e);

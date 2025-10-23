@@ -39,7 +39,7 @@ class HomeWidgets {
                 children: [
                   Expanded(
                     child: Text(
-                      '${userModel?.role == 'candidate' && candidateModel != null ? candidateModel.name : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
+                      '${userModel?.role == 'candidate' && candidateModel != null ? (candidateModel.basicInfo?.fullName ?? candidateModel.name ?? userModel?.name ?? currentUser?.displayName ?? 'User') : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,

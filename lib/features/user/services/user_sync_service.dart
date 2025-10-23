@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/user/services/user_cache_service.dart';
-import '../../../utils/app_logger.dart';
+import '../../../../../../../utils/app_logger.dart';
 import '../../chat/controllers/chat_controller.dart';
 
 /// Service responsible for synchronizing user document updates.

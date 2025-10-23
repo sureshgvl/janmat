@@ -75,6 +75,7 @@ class BasicInfoRepository implements IBasicInfoRepository {
     try {
       AppLogger.database('Updating basic info with candidate object for candidate: $candidateId', tag: 'BASIC_INFO_REPO');
       AppLogger.database('BasicInfo data: ${basicInfo.toJson()}', tag: 'BASIC_INFO_REPO');
+      AppLogger.database('Candidate photo field: "${candidate.photo}"', tag: 'BASIC_INFO_REPO');
 
       final stateId = candidate.location.stateId ?? 'maharashtra';
       final districtId = candidate.location.districtId!;
@@ -88,7 +89,16 @@ class BasicInfoRepository implements IBasicInfoRepository {
         'basic_info': basicInfo.toJson(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      AppLogger.database('Update data: $updates', tag: 'BASIC_INFO_REPO');
+
+      // Also update photo field if it's changed in the candidate object
+      if (candidate.photo != null && candidate.photo!.isNotEmpty) {
+        updates['photo'] = candidate.photo;
+        AppLogger.database('✓ Including photo field in update: "${candidate.photo}"', tag: 'BASIC_INFO_REPO');
+      } else {
+        AppLogger.database('⚠️ No photo field to include - candidate.photo is: ${candidate.photo}', tag: 'BASIC_INFO_REPO');
+      }
+
+      AppLogger.database('Final update data: $updates', tag: 'BASIC_INFO_REPO');
 
       final candidateRef = _firestore
           .collection('states')

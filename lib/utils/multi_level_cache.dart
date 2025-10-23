@@ -786,4 +786,3 @@ class PerformanceMonitor {
     }
   }
 }
-

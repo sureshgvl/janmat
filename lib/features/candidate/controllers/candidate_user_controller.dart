@@ -6,6 +6,7 @@ import '../models/events_model.dart';
 import '../models/basic_info_model.dart';
 import '../models/contact_model.dart';
 import '../../../features/user/controllers/user_controller.dart';
+import '../../../features/user/services/user_cache_service.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';
 
@@ -56,27 +57,34 @@ class CandidateUserController extends GetxController {
 
   /// Initialize candidate data - called explicitly when user role is determined to be 'candidate'
   /// This replaces the auto-initialization to avoid loading for non-candidate users
+  /// Loads candidate data via Firebase call if not already loaded
   void initializeForCandidate() async {
-    if (isInitialized.value) return;
+    // If already initialized and candidate data is available, skip
+    if (isInitialized.value && candidate.value != null) {
+      AppLogger.common('👤 CandidateUserController already initialized with candidate data, skipping');
+      return;
+    }
 
     try {
       AppLogger.common('👤 Initializing CandidateUserController for candidate user');
 
       // Listen to auth state changes to load candidate data when user logs in
-      ever(_userController.user, (UserModel? user) async {
-        if (user != null && user.role == 'candidate' && !isInitialized.value) {
+      ever(_userController.user, (UserModel? authenticatedUser) async {
+        if (authenticatedUser != null && authenticatedUser.role == 'candidate' && candidate.value == null) {
           AppLogger.common('👤 Loading candidate data for authenticated candidate user');
-          await loadCandidateUserData(user.uid);
+          // Load candidate data via Firebase call - candidate data may not be available yet
+          await loadCandidateUserData(authenticatedUser.uid);
         }
       });
 
-      // Check immediately in case user is already authenticated
+      // Check immediately in case user is already authenticated but candidate data is missing
       final currentUser = FirebaseAuth.instance.currentUser;
       final userController = UserController.to;
       if (currentUser != null &&
           userController.user.value?.role == 'candidate' &&
-          !isInitialized.value) {
+          candidate.value == null) {
         AppLogger.common('👤 Loading candidate data for already authenticated candidate user');
+        // Load candidate data via Firebase call since it's not available yet
         await loadCandidateUserData(currentUser.uid);
       }
     } catch (e) {
@@ -201,17 +209,22 @@ class CandidateUserController extends GetxController {
     }
   }
 
-  /// Refresh all data
+  /// Refresh all data - Clean refresh that bypasses caching for candidate dashboard/profile screens
   Future<void> refreshData() async {
     if (user.value == null) return;
 
     try {
+      // Clear user cache service to ensure fresh Firebase data is loaded (not cached Google login name)
+      final userCacheService = Get.find<UserCacheService>();
+      await userCacheService.clearUserCache();
+      AppLogger.common('🧹 Cleared user cache for fresh Firebase data load in candidate screens');
+
       await _userController.refreshUserData();
       user.value = _userController.user.value;
 
       await refreshCandidateData();
 
-      AppLogger.common('✅ Candidate user data refreshed');
+      AppLogger.common('✅ Candidate user data refreshed (cache-free)');
     } catch (e) {
       AppLogger.commonError('❌ Failed to refresh candidate user data', error: e);
     }
@@ -314,7 +327,11 @@ class CandidateUserController extends GetxController {
   }
 
   void updatePhoto(String photoUrl) {
-    // Stub - not implemented in simplified version
+    // Track the photo change for save operations
+    trackExtraInfoFieldChange('photo', photoUrl);
+
+    // Store in candidate.basicInfo.photo instead of candidate.photo
+    updateBasicInfo('photo', photoUrl);  // ⬅️ Delegates to updateBasicInfo for photo field
   }
 
   void updateBasicInfo(String field, dynamic value) {
@@ -363,6 +380,13 @@ class CandidateUserController extends GetxController {
       else if (field == 'name') {
         editedData.value = editedData.value!.copyWith(name: value);
         AppLogger.common('✅ Updated editedData candidate name: $value', tag: 'BASIC_INFO_UPDATE');
+
+        // Also update basicInfo.fullName to keep them in sync
+        if (editedData.value!.basicInfo != null) {
+          BasicInfoModel updatedBasicInfo = editedData.value!.basicInfo!.copyWith(fullName: value);
+          editedData.value = editedData.value!.copyWith(basicInfo: updatedBasicInfo);
+          AppLogger.common('✅ Also updated basicInfo.fullName to keep in sync: $value', tag: 'BASIC_INFO_UPDATE');
+        }
       }
     } else {
       AppLogger.common('❌ editedData.value is null - cannot update field: $field', tag: 'BASIC_INFO_UPDATE');

@@ -75,6 +75,9 @@ class Candidate {
       createdAt = DateTime.now();
     }
 
+    // Determine photo source: prefer basic_info.photo, fallback to top-level photo
+    String? extractedPhoto = (json['basic_info']?['photo'] as String?) ?? json['photo'];
+
     return Candidate(
       candidateId: json['candidateId'] ?? '',
       userId: json['userId'],
@@ -90,15 +93,17 @@ class Candidate {
               bodyId: json['bodyId'],
               wardId: json['wardId'],
             ),
-      photo: json['photo'],
+      photo: extractedPhoto,
       coverPhoto: json['coverPhoto'],
       contact: ContactModel.fromJson(json['contact'] ?? {}),
       sponsored: json['sponsored'] ?? false,
       createdAt: createdAt,
       achievements: json['achievements'] != null
           ? (json['achievements'] as List<dynamic>)
-              .map((item) => Achievement.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (item) => Achievement.fromJson(item as Map<String, dynamic>),
+                )
+                .toList()
           : null,
       basicInfo: json['basic_info'] != null
           ? BasicInfoModel.fromJson(json['basic_info'])
@@ -108,21 +113,24 @@ class Candidate {
           : null,
       events: json['events'] != null
           ? (json['events'] as List<dynamic>)
-              .map((item) => EventData.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map((item) => EventData.fromJson(item as Map<String, dynamic>))
+                .toList()
           : null,
       highlights: json['highlights'] != null
           ? (json['highlights'] as List<dynamic>)
-              .map((item) => HighlightData.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (item) =>
+                      HighlightData.fromJson(item as Map<String, dynamic>),
+                )
+                .toList()
           : null,
       manifestoData: json['manifesto_data'] != null
           ? ManifestoModel.fromJson(json['manifesto_data'])
           : null,
       media: json['media'] != null
           ? (json['media'] as List<dynamic>)
-              .map((item) => Media.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map((item) => Media.fromJson(item as Map<String, dynamic>))
+                .toList()
           : null,
       followersCount: json['followersCount']?.toInt() ?? 0,
       followingCount: json['followingCount']?.toInt() ?? 0,

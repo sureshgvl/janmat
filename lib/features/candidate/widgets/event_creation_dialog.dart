@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../models/candidate_model.dart';
 import '../models/events_model.dart';
-import '../models/extra_info_model.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';

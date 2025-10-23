@@ -272,7 +272,7 @@ class _CandidateDashboardBasicInfoState
                   onBasicInfoChange: (field, value) =>
                       candidateUserController.updateBasicInfo(field, value),
                 )
-              : Builder(
+                : Builder(
                   builder: (context) {
                   return BasicInfoTabView(
                     candidate: candidateUserController.candidateData.value!,
@@ -286,6 +286,7 @@ class _CandidateDashboardBasicInfoState
                     districtName: _districtName,
                     wardName: _wardName,
                     bodyName: _bodyName,
+                    displayName: candidateUserController.user.value?.name,
                   );
                   },
                 ),
@@ -358,7 +359,9 @@ class _CandidateDashboardBasicInfoState
                           // AppLogger.candidate('🧬 Raw BasicInfoModel.toJson(): ${basicInfo.toJson()}', tag: 'BASIC_INFO_SAVE');
 
                           // Pass candidate object directly (cleaner architecture)
+                          // Use editedData if available (contains photo updates), otherwise fallback to candidateData
                           final candidate =
+                              candidateUserController.editedData.value ??
                               candidateUserController.candidateData.value!;
 
                           final success = await basicInfoController

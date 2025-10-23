@@ -1,13 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../../utils/app_logger.dart';
-import '../../../../../services/file_upload_service.dart';
 
 /// PhotoUploadHandler - Handles photo upload functionality
 /// Follows Single Responsibility Principle: Only handles photo operations
 class PhotoUploadHandler {
-  final FileUploadService _fileUploadService = FileUploadService();
   final ImagePicker _imagePicker = ImagePicker();
 
   /// Picks and crops an image from gallery
@@ -70,22 +70,20 @@ class PhotoUploadHandler {
 
     try {
       final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storagePath = 'profile_images/$userId/$fileName';
-      final photoUrl = await _fileUploadService.uploadFile(
-        imagePath,
-        storagePath,
-        'image/jpeg',
+
+      // Upload directly to Firebase Storage with proper path
+      final storageRef = FirebaseStorage.instance.ref().child('profile_images/$userId/$fileName');
+      final uploadTask = storageRef.putFile(
+        File(imagePath),
+        SettableMetadata(contentType: 'image/jpeg'),
       );
 
-      if (photoUrl != null) {
-        _showSuccessSnackBar(context, 'Profile photo uploaded successfully!');
-        return photoUrl;
-      } else {
-        // Check if this is a Firebase Storage permission error
-        AppLogger.candidate('⚠️ Photo upload returned null - checking for permission issues');
-        _showErrorSnackBar(context, 'Upload failed. Please check your internet connection and try again.');
-        return null;
-      }
+      final snapshot = await uploadTask.whenComplete(() {});
+      final photoUrl = await snapshot.ref.getDownloadURL();
+
+      AppLogger.candidate('✅ Photo uploaded successfully to: profile_images/$userId/$fileName');
+      _showSuccessSnackBar(context, 'Profile photo uploaded successfully!');
+      return photoUrl;
     } catch (e) {
       final errorMessage = e.toString();
 
@@ -129,4 +127,3 @@ class PhotoUploadHandler {
     );
   }
 }
-

@@ -73,14 +73,14 @@ class HomeDrawer extends StatelessWidget {
                                 userModel?.photoURL == null &&
                                 currentUser?.photoURL == null
                             ? Text(
-                                ((userModel?.name ??
-                                                currentUser?.displayName ??
-                                                'U')
+                                ((userModel?.role == 'candidate' && currentCandidateModel != null
+                                      ? (currentCandidateModel!.basicInfo?.fullName ?? currentCandidateModel.name ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
+                                      : userModel?.name ?? currentUser?.displayName ?? 'U')
                                             .isEmpty
                                         ? 'U'
-                                        : (userModel?.name ??
-                                              currentUser?.displayName ??
-                                              'U')[0])
+                                        : (userModel?.role == 'candidate' && currentCandidateModel != null
+                                            ? (currentCandidateModel!.basicInfo?.fullName ?? currentCandidateModel.name ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
+                                            : userModel?.name ?? currentUser?.displayName ?? 'U')[0])
                                     .toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 40,
@@ -98,7 +98,7 @@ class HomeDrawer extends StatelessWidget {
                           // Name
                           Text(
                             userModel?.role == 'candidate' && currentCandidateModel != null
-                                ? currentCandidateModel!.name ?? 'Candidate'
+                                ? (currentCandidateModel!.basicInfo?.fullName ?? currentCandidateModel.name ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
                                 : userModel?.name ?? currentUser?.displayName ?? 'User',
                             style: TextStyle(
                               fontSize: 18,

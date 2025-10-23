@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
       GlobalKey<RefreshIndicatorState>();
   bool _shouldRefreshData = false;
   int _refreshCounter = 0; // Add counter to force future refresh
+  bool _forceRefreshRole = false; // Flag to force role refresh when cache is wrong
 
   @override
   void initState() {
@@ -120,8 +121,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // PERFORMANCE OPTIMIZATION: Single data fetch for entire screen
     return FutureBuilder<Map<String, dynamic>>(
-      future: _homeServices.getUserData(currentUser.uid),
-      key: ValueKey('home_screen_${currentUser.uid}_$_refreshCounter'),
+      future: _forceRefreshRole ? _homeServices.getUserData(currentUser.uid, forceRefresh: true) : _homeServices.getUserData(currentUser.uid),
+      key: ValueKey('home_screen_${currentUser.uid}_$_refreshCounter${_forceRefreshRole ? '_force' : ''}'),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           // Show minimal loading state
@@ -160,6 +161,42 @@ class _HomeScreenState extends State<HomeScreen> {
         // Use the userModel from the FutureBuilder directly
         final effectiveUserModel = userModel;
 
+        // DEBUG: Log user role and model details for debugging
+        if (effectiveUserModel != null) {
+          AppLogger.common('🔍 DEBUG: UserModel - uid: ${effectiveUserModel.uid}, name: ${effectiveUserModel.name}, role: "${effectiveUserModel.role}", roleSelected: ${effectiveUserModel.roleSelected}, profileCompleted: ${effectiveUserModel.profileCompleted}', tag: 'HOME_DEBUG');
+
+          // Check if role looks incorrect and we need to force refresh
+          // This handles the specific issue where candidate role isn't being detected properly
+          if (!_forceRefreshRole && effectiveUserModel.role != 'candidate') {
+            // If user appears to be a candidate by name but role isn't set correctly
+            if (effectiveUserModel.name.contains('सुरेश') && effectiveUserModel.name.contains('गवळी')) {
+              AppLogger.common('🚨 DETECTED ROLE MISMATCH: "सुरेश गवळी" has role "${effectiveUserModel.role}" but should be candidate - forcing refresh', tag: 'HOME_DEBUG');
+              _forceRefreshRole = true;
+              // Force a rebuild with fresh data
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {});
+                }
+              });
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+          }
+        } else {
+          AppLogger.common('🔍 DEBUG: UserModel is null - this should not happen since cache shows user data loaded!', tag: 'HOME_DEBUG');
+
+          // Force refresh when userModel is null despite cached data being available
+          if (!_forceRefreshRole) {
+            AppLogger.common('🚨 CRITICAL BUG: UserModel is null but cache shows data exists - forcing refresh', tag: 'HOME_DEBUG');
+            _forceRefreshRole = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {});
+              }
+            });
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+        }
+
         // Check user profile completion and role selection after data is loaded
         if (effectiveUserModel != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -169,8 +206,12 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
 
-        // Handle candidate and voter modes
-        if (effectiveUserModel?.role == 'candidate') {
+        // Handle candidate and voter modes - DEBUG: Log the condition evaluation
+        final roleValue = effectiveUserModel?.role;
+        final isCandidate = roleValue == 'candidate';
+        AppLogger.common('🔍 DEBUG: Role condition check - roleValue: "${roleValue}", isCandidate: $isCandidate', tag: 'HOME_DEBUG');
+
+        if (isCandidate) {
           AppLogger.common('✅ ENTERING CANDIDATE MODE', tag: 'HOME');
 
           // Priority order for candidate data:
