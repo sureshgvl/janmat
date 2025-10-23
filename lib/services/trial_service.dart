@@ -6,7 +6,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import '../utils/app_logger.dart';
-import '../controllers/user_controller.dart';
+import '../features/user/controllers/user_controller.dart';
 import 'user_data_service.dart';
 
 class TrialService {
@@ -281,4 +281,3 @@ class TrialService {
   }
 }
 */
-

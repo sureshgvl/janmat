@@ -10,7 +10,7 @@ import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';
 import '../../../services/user_cache_service.dart';
 import '../../../services/local_database_service.dart';
-import '../../../controllers/user_controller.dart';
+import '../../../features/user/controllers/user_controller.dart';
 
 /// Service responsible for candidate data fetching, caching, and persistence.
 /// Follows Single Responsibility Principle - handles only data operations.
