@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
-import '../utils/app_logger.dart';
+import '../repositories/user_repository.dart';
+import '../../../utils/app_logger.dart';
 
 class UserController extends GetxController {
   static UserController get to => Get.find();
@@ -11,7 +11,7 @@ class UserController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isInitialized = false.obs;
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final UserRepository _userRepository = UserRepository();
 
   @override
   void onInit() {
@@ -37,7 +37,7 @@ class UserController extends GetxController {
     super.onClose();
   }
 
-  // Load user data from Firestore (single call)
+  // Load user data from repository
   Future<void> loadUserData(String uid) async {
     if (isInitialized.value) {
       AppLogger.common('ℹ️ User data already loaded, skipping');
@@ -49,7 +49,7 @@ class UserController extends GetxController {
       AppLogger.common('📥 Loading user data for UID: $uid');
 
       final startTime = DateTime.now();
-      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userDoc = await _userRepository.getUserDocument(uid);
       final loadDuration = DateTime.now().difference(startTime);
 
       if (userDoc.exists) {
@@ -80,10 +80,7 @@ class UserController extends GetxController {
     try {
       AppLogger.common('🔄 Updating user data: ${updates.keys.join(', ')}');
 
-      await _firestore.collection('users').doc(user.value!.uid).update({
-        ...updates,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      await _userRepository.updateUserDocument(user.value!.uid, updates);
 
       // Update local user object using copyWith
       user.value = user.value!.copyWith(
@@ -106,14 +103,14 @@ class UserController extends GetxController {
     }
   }
 
-  // Refresh user data from Firestore
+  // Refresh user data from repository
   Future<void> refreshUserData() async {
     if (user.value == null) return;
 
     try {
-      AppLogger.common('🔄 Refreshing user data from Firestore');
+      AppLogger.common('🔄 Refreshing user data from repository');
 
-      final userDoc = await _firestore.collection('users').doc(user.value!.uid).get();
+      final userDoc = await _userRepository.getUserDocument(user.value!.uid);
 
       if (userDoc.exists) {
         final userData = userDoc.data()!;

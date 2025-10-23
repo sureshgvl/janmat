@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../models/user_model.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../common/confirmation_dialog.dart';
 

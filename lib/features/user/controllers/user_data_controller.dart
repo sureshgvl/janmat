@@ -3,14 +3,14 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
-import '../utils/app_logger.dart';
+import '../repositories/user_repository.dart';
+import '../../../utils/app_logger.dart';
 
 /// Centralized controller for managing user data across the entire app.
 /// Eliminates redundant Firebase calls by caching user data and providing reactive updates.
 /// Follows the GetX controller pattern for consistency with the app architecture.
 class UserDataController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final UserRepository _userRepository = UserRepository();
 
   // Reactive user data
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
@@ -57,7 +57,7 @@ class UserDataController extends GetxController {
 
   /// Setup Firebase Auth state listener to automatically load user data on login
   void _setupAuthStateListener() {
-    _authStateSubscription = _auth.authStateChanges().listen((User? user) {
+    _authStateSubscription = _userRepository.listenToAuthStateChanges().listen((User? user) {
       if (user != null) {
         loadUserData(user.uid);
       } else {
@@ -83,10 +83,8 @@ class UserDataController extends GetxController {
 
       // Set up real-time listener for user data
       _userDocSubscription?.cancel();
-      _userDocSubscription = _firestore
-          .collection('users')
-          .doc(userId)
-          .snapshots()
+      _userDocSubscription = _userRepository
+          .listenToUserDocument(userId)
           .listen((docSnapshot) {
         if (docSnapshot.exists) {
           final userData = docSnapshot.data() as Map<String, dynamic>;
@@ -113,11 +111,11 @@ class UserDataController extends GetxController {
 
   /// Update user data in Firestore
   Future<void> updateUserData(Map<String, dynamic> updates) async {
-    final userId = _auth.currentUser?.uid;
+    final userId = _userRepository.getCurrentUserId();
     if (userId == null) return;
 
     try {
-      await _firestore.collection('users').doc(userId).update(updates);
+      await _userRepository.updateUserDocument(userId, updates);
 
       // Local update will happen via real-time listener
       // No need to manually update currentUser.value
@@ -140,12 +138,12 @@ class UserDataController extends GetxController {
 
   /// Get fresh user data from Firestore (for critical operations)
   Future<UserModel?> getFreshUserData() async {
-    final userId = _auth.currentUser?.uid;
+    final userId = _userRepository.getCurrentUserId();
     if (userId == null) return null;
 
     try {
       AppLogger.core('🔍 Fetching fresh user data for critical operation');
-      final doc = await _firestore.collection('users').doc(userId).get();
+      final doc = await _userRepository.getUserDocument(userId);
 
       if (doc.exists) {
         return UserModel.fromJson(doc.data()!);

@@ -46,11 +46,11 @@ class ChatDialogs {
                 items: [
                   DropdownMenuItem(
                     value: 'public',
-                    child: Text(ChatLocalizations.of(context)!.publicRoom),
+                    child: Text(ChatLocalizations.of(context).publicRoom),
                   ),
                   DropdownMenuItem(
                     value: 'private',
-                    child: Text(ChatLocalizations.of(context)!.privateRoom),
+                    child: Text(ChatLocalizations.of(context).privateRoom),
                   ),
                 ],
                 onChanged: (value) {

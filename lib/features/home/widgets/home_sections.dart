@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../models/user_model.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../candidate/models/candidate_model.dart';
-
 import '../../../services/district_promotion_service.dart';
 import '../../../models/district_promotion_model.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';

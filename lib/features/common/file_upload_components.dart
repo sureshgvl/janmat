@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 
 /// Reusable file upload components for candidate profile editing
 class FileUploadComponents {
@@ -177,9 +176,7 @@ class FileUploadComponents {
         return Icons.videocam;
       case FileType.custom:
         return Icons.upload_file;
-      default:
-        return Icons.upload_file;
-    }
+      }
   }
 
   /// Helper method to get appropriate upload button text
@@ -191,9 +188,7 @@ class FileUploadComponents {
         return 'Choose Video';
       case FileType.custom:
         return 'Choose PDF';
-      default:
-        return 'Choose File';
-    }
+      }
   }
 }
 

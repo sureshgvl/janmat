@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../models/user_model.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../widgets/home_sections.dart';
-import 'home_screen.dart';
+
 
 class HomeBody extends StatelessWidget {
    final UserModel? userModel;

@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_model.dart';
+import 'package:janmat/features/user/models/user_model.dart';
+import 'package:janmat/features/user/services/user_cache_service.dart';
 import '../utils/app_logger.dart';
-import 'user_cache_service.dart';
+
 
 class BackgroundSyncManager {
   static final BackgroundSyncManager _instance = BackgroundSyncManager._internal();

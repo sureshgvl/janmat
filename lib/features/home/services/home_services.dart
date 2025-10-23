@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
-import '../../../models/user_model.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../candidate/models/candidate_model.dart';

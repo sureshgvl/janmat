@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../services/gamification_service.dart';
-import '../../../models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
 import '../models/notification_status.dart';

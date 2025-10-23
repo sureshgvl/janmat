@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../features/candidate/models/location_model.dart';
+import 'package:janmat/features/candidate/models/location_model.dart';
+
 
 enum ElectionType {
   regular,

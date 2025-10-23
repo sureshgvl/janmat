@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:janmat/utils/app_logger.dart';
 import '../models/user_model.dart';
 import '../utils/app_logger.dart';
 import '../controllers/user_controller.dart';

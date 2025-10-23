@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/utils/app_logger.dart';
-import '../../../models/user_model.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../services/community_feed_service.dart';
 import '../services/push_feed_service.dart';

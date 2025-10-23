@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:janmat/features/user/controllers/user_data_controller.dart';
 import '../utils/app_logger.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
-import '../controllers/user_data_controller.dart';
+
 
 class GamificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

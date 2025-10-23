@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../models/user_model.dart';
-import '../../../services/trial_service.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/symbol_utils.dart';
-import '../../candidate/models/candidate_model.dart';
 import '../../candidate/controllers/candidate_user_controller.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
 import '../../candidate/screens/my_area_candidates_screen.dart';

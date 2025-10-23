@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../models/user_model.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../services/private_chat_service.dart';
 import '../controllers/chat_controller.dart';

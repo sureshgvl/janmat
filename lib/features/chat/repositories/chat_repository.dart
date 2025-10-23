@@ -1,16 +1,17 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:janmat/features/user/controllers/user_data_controller.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:get/get.dart';
 import '../../../models/chat_model.dart';
-import '../../../models/user_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../notifications/services/poll_notification_service.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
 import '../../../utils/app_logger.dart';
-import '../../../controllers/user_data_controller.dart';
+
 
 // WhatsApp-style Chat Metadata for efficient caching
 class ChatMetadata {
