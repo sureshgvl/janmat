@@ -560,4 +560,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noBioAvailable => 'No bio available';
+
+  @override
+  String get thankYou => 'Thank you!';
+
+  @override
+  String get voteRecorded => 'Your vote is recorded';
+
+  @override
+  String shareManifestoText(Object name) {
+    return 'Check out $name\'s Manifesto PDF';
+  }
+
+  @override
+  String shareManifestoSubject(Object name, Object title) {
+    return '$name\'s $title PDF';
+  }
+
+  @override
+  String manifestoVision(Object name) {
+    return 'Learn more about $name\'s vision for our community!';
+  }
+
+  @override
+  String get downloadAppText => 'Download JanMat app to explore complete manifestos and connect with candidates.';
 }

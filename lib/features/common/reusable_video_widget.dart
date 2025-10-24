@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../utils/app_logger.dart';
@@ -35,6 +36,13 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
   @override
   void initState() {
     super.initState();
+    // Allow device rotation for video fullscreen mode
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _initializePlayer();
   }
 
@@ -123,6 +131,13 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
   void dispose() {
     _videoPlayerController.dispose();
     _chewieController?.dispose();
+
+    // Reset device orientation to portrait only (no landscape allowed for app UI)
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
     super.dispose();
   }
 

@@ -231,8 +231,27 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
 
         if (controller.candidateData.value == null) {
           return Center(
-            child: Text(
-              CandidateLocalizations.of(context)!.candidateDataNotFound,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  CandidateLocalizations.of(context)!.candidateDataNotFound,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    controller.debugCandidateDataIssue();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Debug scan started - check logs')),
+                    );
+                  },
+                  child: const Text('Debug Candidate Data'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
             ),
           );
         }

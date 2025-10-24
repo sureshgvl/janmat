@@ -560,4 +560,28 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get noBioAvailable => 'कोणतीही बायो उपलब्ध नाही';
+
+  @override
+  String get thankYou => 'धन्यवाद!';
+
+  @override
+  String get voteRecorded => 'आपला मत नोंदवला गेला आहे';
+
+  @override
+  String shareManifestoText(Object name) {
+    return '$nameचे घोषणापत्र PDF पहा';
+  }
+
+  @override
+  String shareManifestoSubject(Object name, Object title) {
+    return '$nameचे $title PDF';
+  }
+
+  @override
+  String manifestoVision(Object name) {
+    return 'आमच्या समुदायासाठी $nameच्या दृष्टीविषयी अधिक जाणून घ्या!';
+  }
+
+  @override
+  String get downloadAppText => 'पूर्ण घोषणापत्रे एक्सप्लोर करण्यासाठी आणि उमेदवारांशी संपर्क साधण्यासाठी जनमत अॅप डाउनलोड करा.';
 }

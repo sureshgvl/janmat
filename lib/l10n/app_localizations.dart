@@ -1120,6 +1120,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No bio available'**
   String get noBioAvailable;
+
+  /// No description provided for @thankYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you!'**
+  String get thankYou;
+
+  /// No description provided for @voteRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Your vote is recorded'**
+  String get voteRecorded;
+
+  /// No description provided for @shareManifestoText.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out {name}\'s Manifesto PDF'**
+  String shareManifestoText(Object name);
+
+  /// No description provided for @shareManifestoSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s {title} PDF'**
+  String shareManifestoSubject(Object name, Object title);
+
+  /// No description provided for @manifestoVision.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn more about {name}\'s vision for our community!'**
+  String manifestoVision(Object name);
+
+  /// No description provided for @downloadAppText.
+  ///
+  /// In en, this message translates to:
+  /// **'Download JanMat app to explore complete manifestos and connect with candidates.'**
+  String get downloadAppText;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

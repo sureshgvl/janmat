@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 /// Custom logging utility for filtering and controlling app logs
 class AppLogger {
@@ -14,6 +16,83 @@ class AppLogger {
     ),
     level: kDebugMode ? Level.verbose : Level.warning,
   );
+
+  // File logging
+  static RandomAccessFile? _logFile;
+  static bool _fileLoggingEnabled = true;
+  static IOSink? _fileSink;
+
+  // Initialize file logging
+  static Future<void> initFileLogging() async {
+    if (!_fileLoggingEnabled) return;
+
+    try {
+      // Try to write to project logs directory first, fallback to app documents
+      String logPath;
+
+      try {
+        // For development: Try writing to project's logs directory
+        final projectDir = Directory.current;
+        final logsDir = Directory('${projectDir.path}/logs');
+
+        // Create logs directory if it doesn't exist
+        if (!await logsDir.exists()) {
+          await logsDir.create(recursive: true);
+        }
+
+        logPath = '${logsDir.path}/janmat_logs.txt';
+        AppLogger.common('📝 Using project directory logs: $logPath');
+      } catch (e) {
+        // Fallback to app documents directory (production/some development cases)
+        final directory = await getApplicationDocumentsDirectory();
+        logPath = '${directory.path}/janmat_logs.txt';
+        AppLogger.common('📝 Fallback to app documents directory: $logPath');
+      }
+
+      // Create or truncate the file
+      final logFile = File(logPath);
+      _fileSink = logFile.openWrite(mode: FileMode.append);
+
+      // Write header to file
+      final header = '\n\n=== JANMAT LOGS SESSION STARTED ${DateTime.now()} ===\n';
+      _fileSink?.write(header);
+      _fileSink?.flush();
+
+      AppLogger.common('📝 File logging initialized successfully');
+    } catch (e) {
+      AppLogger.error('❌ Failed to initialize file logging: $e');
+      _fileLoggingEnabled = false;
+    }
+  }
+
+  // Close file logging
+  static Future<void> closeFileLogging() async {
+    if (!_fileLoggingEnabled || _fileSink == null) return;
+
+    try {
+      _fileSink?.write('\n=== JANMAT LOGS SESSION ENDED ${DateTime.now()} ===\n\n');
+      await _fileSink?.flush();
+      await _fileSink?.close();
+      _fileSink = null;
+      AppLogger.common('📝 File logging closed');
+    } catch (e) {
+      // Silent failure when closing
+    }
+  }
+
+  // Write to log file
+  static Future<void> _writeToLogFile(String message, {String? level}) async {
+    if (!_fileLoggingEnabled || _fileSink == null) return;
+
+    try {
+      final timestamp = DateTime.now().toIso8601String();
+      final formattedMessage = '${level ?? 'INFO'} [$timestamp] $message\n';
+      _fileSink?.write(formattedMessage);
+      await _fileSink?.flush();
+    } catch (e) {
+      // Silent failure during file writing to avoid log loops
+    }
+  }
 
   // Log level control
   static bool _showChatLogs = true;
@@ -239,7 +318,9 @@ class AppLogger {
   // Common logs
   static void common(String message, {String? tag}) {
     if (_showCommonLogs) {
-      _logger.d('🔧 ${tag != null ? '[$tag] ' : ''}$message');
+      final logMessage = '🔧 ${tag != null ? '[$tag] ' : ''}$message';
+      _logger.d(logMessage);
+      _writeToLogFile(logMessage, level: 'INFO');
     }
   }
 

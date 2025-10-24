@@ -81,8 +81,8 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
 
   void _shareManifesto() async {
     try {
-      // Share the manifesto via native sharing
-      await ShareService.shareCandidateManifesto(widget.candidate);
+      // Share the manifesto via native sharing (now with context for translations)
+      await ShareService.shareCandidateManifesto(widget.candidate, context);
 
       // Track manifesto share analytics
       await AnalyticsDataCollectionService().trackManifestoInteraction(
@@ -338,6 +338,7 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                   pdfUrl: widget.candidate.manifestoData?.pdfUrl,
                   imageUrl: widget.candidate.manifestoData?.image,
                   videoUrl: widget.candidate.manifestoData?.videoUrl,
+                  candidateName: widget.candidate.basicInfo?.fullName ?? widget.candidate.name, // Pass proper candidate name for PDF sharing
                 ),
 
                 // Voter Interactions (if enabled)
@@ -393,10 +394,9 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                 ),
               ),
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 120), // Increased from 20 to add 100px bottom padding
         ],
       ),
     );
   }
 }
-

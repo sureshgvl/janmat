@@ -104,14 +104,35 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       }
       AppLogger.candidate('📄 [PDF Upload] Saved locally at: $localPath');
 
-      // Add to local files list for visual display
+      // Check if we already have a PDF in local files (shouldn't happen due to UI logic, but safety check)
+      final existingPdfIndex = _localFiles.indexWhere((f) => f['type'] == 'pdf');
+      if (existingPdfIndex != -1) {
+        // Remove existing PDF before adding new one
+        final existingPath = _localFiles[existingPdfIndex]['localPath'] as String;
+        await _cleanupLocalFile(existingPath);
+        _localFiles.removeAt(existingPdfIndex);
+      }
+
+      // Add to local files list for visual display (prevent duplicates)
       setState(() {
-        _localFiles.add({
-          'type': 'pdf',
-          'localPath': localPath,
-          'fileName': file.name,
-          'fileSize': fileSizeMB,
-        });
+        final existingIndex = _localFiles.indexWhere((f) => f['type'] == 'pdf');
+        if (existingIndex != -1) {
+          // Replace existing PDF file
+          _localFiles[existingIndex] = {
+            'type': 'pdf',
+            'localPath': localPath,
+            'fileName': file.name,
+            'fileSize': fileSizeMB,
+          };
+        } else {
+          // Add new PDF file
+          _localFiles.add({
+            'type': 'pdf',
+            'localPath': localPath,
+            'fileName': file.name,
+            'fileSize': fileSizeMB,
+          });
+        }
       });
 
       widget.onLocalFilesUpdate(_localFiles);
@@ -227,6 +248,15 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         throw Exception('Failed to save optimized image locally');
       }
       AppLogger.candidate('🖼️ [Image Upload] Saved locally at: $localPath');
+
+      // Check if we already have an image in local files (shouldn't happen due to UI logic, but safety check)
+      final existingImageIndex = _localFiles.indexWhere((f) => f['type'] == 'image');
+      if (existingImageIndex != -1) {
+        // Remove existing image before adding new one
+        final existingPath = _localFiles[existingImageIndex]['localPath'] as String;
+        await _cleanupLocalFile(existingPath);
+        _localFiles.removeAt(existingImageIndex);
+      }
 
       // Add to local files list for visual display
       setState(() {
@@ -368,6 +398,15 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       }
       AppLogger.candidate('🎥 [Video Upload] Saved locally at: $localPath');
 
+      // Check if we already have a video in local files (shouldn't happen due to UI logic, but safety check)
+      final existingVideoIndex = _localFiles.indexWhere((f) => f['type'] == 'video');
+      if (existingVideoIndex != -1) {
+        // Remove existing video before adding new one
+        final existingPath = _localFiles[existingVideoIndex]['localPath'] as String;
+        await _cleanupLocalFile(existingPath);
+        _localFiles.removeAt(existingVideoIndex);
+      }
+
       // Add to local files list for visual display
       setState(() {
         _localFiles.add({
@@ -414,6 +453,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     try {
       AppLogger.candidate('💾 [Local Storage] Saving $type file locally...');
 
+      // Clean up old temp files first (keep only files from last 30 minutes)
+      await _cleanupOldTempFiles();
+
       // Get application documents directory
       final directory = await getApplicationDocumentsDirectory();
       final localDir = Directory('${directory.path}/manifesto_temp');
@@ -454,6 +496,51 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     } catch (e) {
       AppLogger.candidate('💾 [Local Storage] Error saving file locally: $e');
       return null;
+    }
+  }
+
+  // Clean up old temporary files (older than 30 minutes)
+  Future<void> _cleanupOldTempFiles() async {
+    try {
+      AppLogger.candidate('🧹 [Cache Cleanup] Starting cache cleanup...');
+
+      final directory = await getApplicationDocumentsDirectory();
+      final localDir = Directory('${directory.path}/manifesto_temp');
+
+      if (!await localDir.exists()) {
+        AppLogger.candidate('🧹 [Cache Cleanup] Temp directory does not exist, nothing to clean');
+        return;
+      }
+
+      final files = await localDir.list().toList();
+      final cutoffTime = DateTime.now().subtract(const Duration(minutes: 30));
+      int cleanedCount = 0;
+      int totalSize = 0;
+
+      for (final entity in files) {
+        if (entity is File) {
+          try {
+            final stat = await entity.stat();
+            if (stat.modified.isBefore(cutoffTime)) {
+              final size = stat.size;
+              await entity.delete();
+              cleanedCount++;
+              totalSize += size;
+              AppLogger.candidate('🧹 [Cache Cleanup] Deleted old file: ${entity.path} (${(size / (1024 * 1024)).toStringAsFixed(2)} MB)');
+            }
+          } catch (e) {
+            AppLogger.candidate('⚠️ [Cache Cleanup] Failed to delete ${entity.path}: $e');
+          }
+        }
+      }
+
+      if (cleanedCount > 0) {
+        AppLogger.candidate('🧹 [Cache Cleanup] Cleaned up $cleanedCount old files, freed ${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB');
+      } else {
+        AppLogger.candidate('🧹 [Cache Cleanup] No old files to clean');
+      }
+    } catch (e) {
+      AppLogger.candidate('⚠️ [Cache Cleanup] Error during cache cleanup: $e');
     }
   }
 
@@ -651,6 +738,10 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         return image;
       }
 
+      // Get the original image temp path for cleanup
+      final originalTempPath = image.path;
+      AppLogger.candidate('🖼️ [Manifesto Image] Original temp path: $originalTempPath');
+
       // Create optimized version
       final ImagePicker imagePicker = ImagePicker();
       final optimizedImage = await imagePicker.pickImage(
@@ -668,10 +759,22 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         AppLogger.candidate(
           '🖼️ [Manifesto Image] Optimized size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)',
         );
+
+        // If optimization created a different file, clean up the original temp file
+        if (optimizedImage.path != originalTempPath) {
+          AppLogger.candidate('🖼️ [Manifesto Image] Cleaning up original temp file');
+          try {
+            await _cleanupLocalFile(originalTempPath);
+          } catch (cleanupError) {
+            AppLogger.candidate('⚠️ [Manifesto Image] Failed to cleanup original temp file: $cleanupError');
+          }
+        }
+
         return optimizedImage;
       }
 
       // If optimization failed, return original
+      AppLogger.candidate('⚠️ [Manifesto Image] Optimization returned null, using original');
       return image;
     } catch (e) {
       AppLogger.candidate(
@@ -693,10 +796,10 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     final hasVideoInDb = widget.candidateData.manifestoData?.videoUrl != null &&
                          widget.candidateData.manifestoData!.videoUrl!.isNotEmpty;
 
-    // Check if files are pending local upload
-    final hasPdfLocal = _localFiles.any((file) => file['type'] == 'pdf');
-    final hasImageLocal = _localFiles.any((file) => file['type'] == 'image');
-    final hasVideoLocal = _localFiles.any((file) => file['type'] == 'video');
+    // Check if files are pending local upload (only allow one per type)
+    final hasPdfLocal = _localFiles.where((file) => file['type'] == 'pdf').isNotEmpty;
+    final hasImageLocal = _localFiles.where((file) => file['type'] == 'image').isNotEmpty;
+    final hasVideoLocal = _localFiles.where((file) => file['type'] == 'video').isNotEmpty;
 
     // Combine database and local checks
     final hasPdf = hasPdfInDb || hasPdfLocal;
@@ -706,15 +809,6 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context)!.uploadFiles,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 12),
         Column(
           children: [
             // PDF Upload Row
@@ -1067,6 +1161,3 @@ class FileSizeValidation {
     this.warning = false,
   });
 }
-
-
-

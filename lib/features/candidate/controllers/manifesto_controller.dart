@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
+import '../models/candidate_model.dart';
 import '../models/manifesto_model.dart';
 import '../repositories/manifesto_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -11,9 +12,8 @@ import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IManifestoController {
   Future<ManifestoModel?> getManifesto(String candidateId);
-  Future<bool> saveManifesto(String candidateId, ManifestoModel manifesto);
-  Future<bool> updateManifestoFields(String candidateId, Map<String, dynamic> updates);
-  Future<bool> saveManifestoTab({required String candidateId, required ManifestoModel manifesto, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveManifestoTab({required String candidateId, required Candidate candidate, required ManifestoModel manifesto, Function(String)? onProgress});
+  Future<bool> updateManifestoUrls(String candidateId, {String? pdfUrl, String? imageUrl, String? videoUrl});
   ManifestoModel getUpdatedCandidate(ManifestoModel current, String field, dynamic value);
 }
 
@@ -34,32 +34,7 @@ class ManifestoController extends GetxController implements IManifestoController
     }
   }
 
-  @override
-  Future<bool> saveManifesto(String candidateId, ManifestoModel manifesto) async {
-    try {
-      AppLogger.database('ManifestoController: Saving manifesto for $candidateId', tag: 'MANIFESTO_CTRL');
-      AppLogger.database('  Manifesto data: title=${manifesto.title}, promises=${manifesto.promises?.length ?? 0}', tag: 'MANIFESTO_CTRL');
-      final result = await _repository.updateManifesto(candidateId, manifesto);
-      AppLogger.database('ManifestoController: Manifesto saved successfully for $candidateId', tag: 'MANIFESTO_CTRL');
-      return result;
-    } catch (e) {
-      AppLogger.databaseError('❌ ManifestoController: Error saving manifesto for $candidateId', tag: 'MANIFESTO_CTRL', error: e);
-      AppLogger.databaseError('❌ Error details: ${e.toString()}', tag: 'MANIFESTO_CTRL');
-      AppLogger.databaseError('❌ Stack trace: ${StackTrace.current}', tag: 'MANIFESTO_CTRL');
-      throw Exception('Failed to save manifesto: $e');
-    }
-  }
 
-  @override
-  Future<bool> updateManifestoFields(String candidateId, Map<String, dynamic> updates) async {
-    try {
-      AppLogger.database('ManifestoController: Updating manifesto fields for $candidateId', tag: 'MANIFESTO_CTRL');
-      return await _repository.updateManifestoFields(candidateId, updates);
-    } catch (e) {
-      AppLogger.databaseError('ManifestoController: Error updating manifesto fields', tag: 'MANIFESTO_CTRL', error: e);
-      throw Exception('Failed to update manifesto fields: $e');
-    }
-  }
 
   @override
   ManifestoModel getUpdatedCandidate(ManifestoModel current, String field, dynamic value) {
@@ -93,9 +68,8 @@ class ManifestoController extends GetxController implements IManifestoController
   /// Handles all manifesto operations for the tab independently
   Future<bool> saveManifestoTab({
     required String candidateId,
+    required Candidate candidate,
     required ManifestoModel manifesto,
-    String? candidateName,
-    String? photoUrl,
     Function(String)? onProgress
   }) async {
     try {
@@ -103,14 +77,14 @@ class ManifestoController extends GetxController implements IManifestoController
 
       onProgress?.call('Saving manifesto...');
 
-      // Direct save using the repository
-      final success = await _repository.updateManifesto(candidateId, manifesto);
+      // Direct save using the repository with candidate object, like basic_info
+      final success = await _repository.updateManifestoWithCandidate(candidateId, manifesto, candidate);
 
       if (success) {
         onProgress?.call('Manifesto saved successfully!');
 
         // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(candidateId, candidateName, photoUrl, manifesto.toJson());
+        _runBackgroundSyncOperations(candidateId, candidate.name, candidate.photo, manifesto.toJson());
 
         AppLogger.database('✅ TAB SAVE: Manifesto completed successfully', tag: 'MANIFESTO_TAB');
         return true;
@@ -225,6 +199,39 @@ class ManifestoController extends GetxController implements IManifestoController
       AppLogger.database('💾 BACKGROUND: Caches updated', tag: 'MANIFESTO_FAST');
     } catch (e) {
       AppLogger.databaseError('⚠️ BACKGROUND: Cache update failed', tag: 'MANIFESTO_FAST', error: e);
+    }
+  }
+
+  /// Update manifesto URLs atomically (for batch updates)
+  @override
+  Future<bool> updateManifestoUrls(String candidateId, {String? pdfUrl, String? imageUrl, String? videoUrl}) async {
+    try {
+      AppLogger.database('Updating manifesto URLs for $candidateId: pdf=$pdfUrl, image=$imageUrl, video=$videoUrl', tag: 'MANIFESTO_URLS');
+
+      // Use the repository's updateManifestoFields method which already handles the location lookup
+      final Map<String, dynamic> fieldUpdates = {};
+      if (pdfUrl != null && pdfUrl.isNotEmpty) fieldUpdates['pdfUrl'] = pdfUrl;
+      if (imageUrl != null && imageUrl.isNotEmpty) fieldUpdates['image'] = imageUrl;
+      if (videoUrl != null && videoUrl.isNotEmpty) fieldUpdates['videoUrl'] = videoUrl;
+
+      if (fieldUpdates.isEmpty) {
+        AppLogger.database('No URLs to update', tag: 'MANIFESTO_URLS');
+        return true;
+      }
+
+      // Use the repository method that already handles location lookup
+      final success = await _repository.updateManifestoFields(candidateId, fieldUpdates);
+
+      if (success) {
+        AppLogger.database('✅ Manifesto URLs updated successfully', tag: 'MANIFESTO_URLS');
+      } else {
+        AppLogger.databaseError('❌ Failed to update manifesto URLs via repository', tag: 'MANIFESTO_URLS');
+      }
+
+      return success;
+    } catch (e) {
+      AppLogger.databaseError('❌ Failed to update manifesto URLs: $e', tag: 'MANIFESTO_URLS');
+      return false;
     }
   }
 }

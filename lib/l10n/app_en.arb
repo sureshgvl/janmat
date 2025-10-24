@@ -169,5 +169,11 @@
   "profileDetails": "Profile Details",
   "bio": "Bio",
   "useDemoBio": "Use Demo Bio",
-  "noBioAvailable": "No bio available"
+  "noBioAvailable": "No bio available",
+  "thankYou": "Thank you!",
+  "voteRecorded": "Your vote is recorded",
+  "shareManifestoText": "Check out {name}'s Manifesto PDF",
+  "shareManifestoSubject": "{name}'s {title} PDF",
+  "manifestoVision": "Learn more about {name}'s vision for our community!",
+  "downloadAppText": "Download JanMat app to explore complete manifestos and connect with candidates."
 }

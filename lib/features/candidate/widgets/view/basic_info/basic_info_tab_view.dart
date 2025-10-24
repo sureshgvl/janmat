@@ -448,7 +448,7 @@ class BasicInfoTabView extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          displayName ?? candidate.name,
+                          displayName ?? candidate.basicInfo?.fullName ?? candidate.name,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

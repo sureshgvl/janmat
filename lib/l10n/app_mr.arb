@@ -169,5 +169,11 @@
   "profileDetails": "प्रोफाइल तपशील",
   "bio": "जीवनी",
   "useDemoBio": "डेमो बायो वापरा",
-  "noBioAvailable": "कोणतीही बायो उपलब्ध नाही"
+  "noBioAvailable": "कोणतीही बायो उपलब्ध नाही",
+  "thankYou": "धन्यवाद!",
+  "voteRecorded": "आपला मत नोंदवला गेला आहे",
+  "shareManifestoText": "{name}चे घोषणापत्र PDF पहा",
+  "shareManifestoSubject": "{name}चे {title} PDF",
+  "manifestoVision": "आमच्या समुदायासाठी {name}च्या दृष्टीविषयी अधिक जाणून घ्या!",
+  "downloadAppText": "पूर्ण घोषणापत्रे एक्सप्लोर करण्यासाठी आणि उमेदवारांशी संपर्क साधण्यासाठी जनमत अॅप डाउनलोड करा."
 }

@@ -5,6 +5,7 @@ import '../models/candidate_model.dart';
 import '../models/events_model.dart';
 import '../models/basic_info_model.dart';
 import '../models/contact_model.dart';
+import '../models/manifesto_model.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../repositories/candidate_repository.dart';
@@ -160,8 +161,13 @@ class CandidateUserController extends GetxController {
     if (user.value?.role != 'candidate') return;
 
     try {
+      AppLogger.common('🔄 Refreshing candidate data for user: ${user.value!.uid}');
       candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
-      AppLogger.common('✅ Candidate data refreshed');
+      if (candidate.value != null) {
+        AppLogger.common('✅ Candidate data refreshed: ${candidate.value!.name} (${candidate.value!.candidateId})');
+      } else {
+        AppLogger.common('⚠️ No candidate data found during refresh for user: ${user.value!.uid}');
+      }
     } catch (e) {
       AppLogger.commonError('❌ Failed to refresh candidate data', error: e);
     }
@@ -206,6 +212,25 @@ class CandidateUserController extends GetxController {
       AppLogger.database('Audit completed', tag: 'CANDIDATE_CONTROLLER');
     } catch (e) {
       AppLogger.databaseError('Error in candidate data audit', tag: 'CANDIDATE_CONTROLLER', error: e);
+    }
+  }
+
+  /// Debug method: Scan entire database for candidate documents to troubleshoot "candidate data not found"
+  Future<void> debugCandidateDataIssue() async {
+    try {
+      AppLogger.database('🔍 CANDIDATE DATA DEBUG SCAN STARTED', tag: 'CANDIDATE_DEBUG');
+      AppLogger.database('Current user UID: ${FirebaseAuth.instance.currentUser?.uid ?? 'null'}', tag: 'CANDIDATE_DEBUG');
+      AppLogger.database('Current user name: ${FirebaseAuth.instance.currentUser?.displayName ?? 'null'}', tag: 'CANDIDATE_DEBUG');
+      AppLogger.database('Controller user role: ${user.value?.role ?? 'not set'}', tag: 'CANDIDATE_DEBUG');
+
+      // Try scanning all candidate documents to see what's available
+      await _candidateRepository.logAllCandidatesInSystem();
+
+      AppLogger.database('🔍 CANDIDATE DATA DEBUG SCAN COMPLETED', tag: 'CANDIDATE_DEBUG');
+      AppLogger.database('Check the logs above for any candidate documents found', tag: 'CANDIDATE_DEBUG');
+      AppLogger.database('If no candidates are found, user needs to register as candidate first', tag: 'CANDIDATE_DEBUG');
+    } catch (e) {
+      AppLogger.databaseError('❌ Error in candidate data debug scan', tag: 'CANDIDATE_DEBUG', error: e);
     }
   }
 
@@ -318,8 +343,57 @@ class CandidateUserController extends GetxController {
   }
 
   void updateExtraInfo(String field, dynamic value) {
-    // Stub - not implemented in simplified version
-    trackExtraInfoFieldChange(field, value);
+    // Handle manifesto-specific fields
+    if (field == 'manifesto_pdf') {
+      updateManifestoInfo('pdfUrl', value);
+    } else if (field == 'manifesto_image') {
+      updateManifestoInfo('image', value);
+    } else if (field == 'manifesto_video') {
+      updateManifestoInfo('videoUrl', value);
+    } else if (field == 'manifesto') {
+      updateManifestoInfo('title', value);
+    } else if (field == 'manifesto_promises') {
+      updateManifestoInfo('promises', value);
+    } else {
+      // Other fields - track but don't update editedData
+      trackExtraInfoFieldChange(field, value);
+    }
+  }
+
+  void updateManifestoInfo(String manifestoField, dynamic value) {
+    trackExtraInfoFieldChange('manifesto_$manifestoField', value);
+
+    // Actually update the editedData object with the new manifesto values
+    if (editedData.value != null) {
+      var currentManifesto = editedData.value!.manifestoData;
+      if (currentManifesto == null) {
+        // Initialize manifesto data if it doesn't exist
+        currentManifesto = ManifestoModel(title: '', promises: []);
+      }
+
+      // Update the specific field in manifesto data
+      ManifestoModel updatedManifesto;
+      if (manifestoField == 'pdfUrl') {
+        updatedManifesto = currentManifesto.copyWith(pdfUrl: value);
+      } else if (manifestoField == 'image') {
+        updatedManifesto = currentManifesto.copyWith(image: value);
+      } else if (manifestoField == 'videoUrl') {
+        updatedManifesto = currentManifesto.copyWith(videoUrl: value);
+      } else if (manifestoField == 'title') {
+        updatedManifesto = currentManifesto.copyWith(title: value);
+      } else if (manifestoField == 'promises') {
+        updatedManifesto = currentManifesto.copyWith(promises: List<Map<String, dynamic>>.from(value));
+      } else {
+        AppLogger.common('⚠️ Unknown manifesto field: $manifestoField', tag: 'MANIFESTO_UPDATE');
+        return;
+      }
+
+      // Update the candidate with the new manifesto data
+      editedData.value = editedData.value!.copyWith(manifestoData: updatedManifesto);
+      AppLogger.common('✅ Updated editedData manifesto field: $manifestoField = $value', tag: 'MANIFESTO_UPDATE');
+    } else {
+      AppLogger.common('❌ editedData.value is null - cannot update manifesto field: $manifestoField', tag: 'MANIFESTO_UPDATE');
+    }
   }
 
   void updateContact(String field, String value) {

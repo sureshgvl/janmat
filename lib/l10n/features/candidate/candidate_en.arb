@@ -297,5 +297,16 @@
   "promisePlural": "promises",
   "videoUploadNotAvailable": "Video Upload Not Available",
   "videoUploadNotAvailableMessage": "Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.",
-  "upgradeToGold": "Upgrade to Gold"
+  "upgradeToGold": "Upgrade to Gold",
+  "manifestoPdf": "Manifesto PDF",
+  "pdfDocument": "PDF Document",
+  "openWith": "Open with",
+  "chooseAppToOpenPdf": "Choose an app to open this PDF",
+  "share": "Share",
+  "sendToOthers": "Send to others",
+  "tapToViewPdf": "Tap to view PDF",
+  "preparingPdfForSharing": "Preparing PDF for sharing...",
+  "pdfDownloadedSuccessfully": "PDF downloaded successfully",
+  "shareFailed": "Share failed:",
+  "downloadFailed": "Download failed:"
 }
