@@ -84,8 +84,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         currentUserId == candidate!.userId;
 
     // Initialize TabController after determining profile ownership
-    // Length is 7 for non-own profiles (no analytics), 8 for own profile (with analytics)
-    _tabController = TabController(length: _isOwnProfile ? 8 : 7, vsync: this);
+    // Length is 6 for non-own profiles (no analytics), 7 for own profile (with analytics)
+    _tabController = TabController(length: _isOwnProfile ? 7 : 6, vsync: this);
     _tabController?.addListener(_onTabChanged);
 
     // Check follow status when screen loads
@@ -126,7 +126,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       final tabNames = [
         CandidateLocalizations.of(context)!.info,
         CandidateLocalizations.of(context)!.manifesto,
-        CandidateLocalizations.of(context)!.profile,
         CandidateLocalizations.of(context)!.achievements,
         CandidateLocalizations.of(context)!.media,
         CandidateLocalizations.of(context)!.contact,
@@ -468,14 +467,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         showVoterInteractions: true, // Show voter interactions in profile view
       ),
 
-      // Profile Tab
-      ProfileTabView(
-        candidate: candidate!,
-        isOwnProfile: _isOwnProfile,
-        showVoterInteractions:
-            !_isOwnProfile, // Show like/share buttons for voters only
-      ),
-
       // Achievements Tab
       AchievementsSection(
         candidateData: candidate!,
@@ -609,25 +600,25 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
                       children: [
                         Builder(
                           builder: (context) {
-                            AppLogger.candidate(
-                              '🏛️ [Profile Screen] Building ProfileHeaderWidget:',
-                            );
-                            AppLogger.candidate(
-                              '   wardName passed: $_wardName',
-                            );
-                            AppLogger.candidate(
-                              '   districtName passed: $_districtName',
-                            );
-                            AppLogger.candidate(
-                              '   body name passed: $_bodyName',
-                            );
+                            // AppLogger.candidate(
+                            //   '🏛️ [Profile Screen] Building ProfileHeaderWidget:',
+                            // );
+                            // AppLogger.candidate(
+                            //   '   wardName passed: $_wardName',
+                            // );
+                            // AppLogger.candidate(
+                            //   '   districtName passed: $_districtName',
+                            // );
+                            // AppLogger.candidate(
+                            //   '   body name passed: $_bodyName',
+                            // );
 
-                            AppLogger.candidate(
-                              '   candidate wardId: ${candidate!.location.wardId}',
-                            );
-                            AppLogger.candidate(
-                              '   candidate districtId: ${candidate!.location.districtId}',
-                            );
+                            // AppLogger.candidate(
+                            //   '   candidate wardId: ${candidate!.location.wardId}',
+                            // );
+                            // AppLogger.candidate(
+                            //   '   candidate districtId: ${candidate!.location.districtId}',
+                            // );
                             return ProfileHeaderWidget(
                               candidate: candidate!,
                               hasSponsoredBanner: _hasSponsoredBanner,

@@ -69,7 +69,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                         pageBuilder: (context, animation, secondaryAnimation) {
                           return WhatsAppImageViewer(
                             imageUrl: candidate.photo!,
-                            title: '${candidate.name} - Profile Photo',
+                            title: candidate.basicInfo!.fullName!,
                           );
                         },
                         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -108,7 +108,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                                   return CircleAvatar(
                                     backgroundColor: Colors.blue.shade100,
                                     child: Text(
-                                      candidate.name[0].toUpperCase(),
+                                      candidate.basicInfo!.fullName![0].toUpperCase(),
                                       style: const TextStyle(
                                         color: Colors.blue,
                                         fontSize: 32,
@@ -121,7 +121,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                             : CircleAvatar(
                                 backgroundColor: Colors.blue.shade100,
                                 child: Text(
-                                  candidate.name[0].toUpperCase(),
+                                  candidate.basicInfo!.fullName![0].toUpperCase(),
                                   style: const TextStyle(
                                     color: Colors.blue,
                                     fontSize: 32,
@@ -179,7 +179,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      candidate.name,
+                      candidate.basicInfo!.fullName!,
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 20,
@@ -204,13 +204,30 @@ class ProfileHeaderWidget extends StatelessWidget {
                       builder: (context) {
                         final locale = Localizations.localeOf(context).languageCode;
 
-                        final translatedWard = MaharashtraUtils.getWardDisplayNameWithLocale(
-                            candidate.location.wardId ?? '',
-                            locale,
-                          );
+                        String displayWard;
+                          if (wardName?.isNotEmpty == true &&
+                              wardName != candidate.location.wardId) {
+                            // Use cleaned SQLite data if available and different from raw wardId
+                            displayWard = wardName!;
+                          } else {
+                            // Fallback to wardId
+                            displayWard = candidate.location.wardId ?? '';
+                          }
 
-                        // Construct final text
-                        final finalText = '$translatedWard • $bodyName';
+                          // Use MaharashtraUtils for district name translation
+                          final translatedDistrict =
+                              MaharashtraUtils.getDistrictDisplayNameWithLocale(
+                                candidate.location.districtId ?? '',
+                                locale,
+                              );
+                          final displayDistrict =
+                              translatedDistrict !=
+                                  candidate.location.districtId
+                              ? translatedDistrict
+                              : (districtName ?? candidate.location.districtId);
+
+                          // Construct final text: "Ward name, District name"
+                          final finalText = '$displayWard, $displayDistrict';
 
                         return Text(
                           finalText,
@@ -231,4 +248,3 @@ class ProfileHeaderWidget extends StatelessWidget {
     );
   }
 }
-

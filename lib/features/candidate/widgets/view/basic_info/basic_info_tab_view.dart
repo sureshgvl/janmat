@@ -151,19 +151,8 @@ class BasicInfoTabView extends StatelessWidget {
                             context,
                           ).languageCode;
 
-                          // Use MaharashtraUtils for ward name translation (same as BasicInfoView)
-                          final translatedWard =
-                              MaharashtraUtils.getWardDisplayNameWithLocale(
-                                candidate.location.wardId ?? '',
-                                locale,
-                              );
-
-                          // Use translated ward if translation succeeded, otherwise use SQLite data or fallback
                           String displayWard;
-                          if (translatedWard != candidate.location.wardId) {
-                            // Translation succeeded
-                            displayWard = translatedWard;
-                          } else if (wardName?.isNotEmpty == true &&
+                          if (wardName?.isNotEmpty == true &&
                               wardName != candidate.location.wardId) {
                             // Use cleaned SQLite data if available and different from raw wardId
                             displayWard = wardName!;
@@ -192,9 +181,7 @@ class BasicInfoTabView extends StatelessWidget {
                             '🔍 [InfoTab] Location Display Debug:',
                           );
                           AppLogger.candidate('   Locale: $locale');
-                          AppLogger.candidate(
-                            '   Ward Display: "$displayWard" (translated: ${translatedWard != candidate.location.wardId ? "YES" : "NO"}, from SQLite: ${wardName != null ? "YES" : "NO"})',
-                          );
+                          
                           AppLogger.candidate(
                             '   District Display: "$displayDistrict" (translated: ${translatedDistrict != candidate.location.districtId ? "YES" : "NO"})',
                           );

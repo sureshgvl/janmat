@@ -39,18 +39,6 @@ class ProfileTabBarWidget extends StatelessWidget {
         ),
       ),
 
-      //Profile
-      Tab(
-        child: Text(
-          CandidateTranslations.tr('profile'),
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-
       //Achievements
       Tab(
         child: Text(
@@ -165,4 +153,3 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     return false;
   }
 }
-

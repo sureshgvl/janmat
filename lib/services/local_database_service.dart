@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:convert';
 import '../utils/app_logger.dart';
 import '../models/district_model.dart';
+import '../models/state_model.dart' as state_model;
 import '../models/body_model.dart';
 import '../models/ward_model.dart';
 import '../models/district_spotlight_model.dart';
@@ -17,6 +18,7 @@ class LocalDatabaseService {
   static const int _dbVersion = 7; // Increment to add version column to district spotlights table
 
   // Table names
+  static const String statesTable = 'states';
   static const String districtsTable = 'districts';
   static const String bodiesTable = 'bodies';
   static const String wardsTable = 'wards';
@@ -56,6 +58,7 @@ class LocalDatabaseService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await _createStatesTable(db);
     await _createDistrictsTable(db);
     await _createBodiesTable(db);
     await _createWardsTable(db);
@@ -166,6 +169,22 @@ class LocalDatabaseService {
         // Continue with upgrade even if this fails
       }
     }
+  }
+
+  // Create states table
+  Future<void> _createStatesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE $statesTable (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        marathiName TEXT,
+        code TEXT,
+        isActive INTEGER,
+        createdAt TEXT,
+        updatedAt TEXT,
+        UNIQUE(id)
+      )
+    ''');
   }
 
   // Helper method to check if a table exists
@@ -342,6 +361,53 @@ class LocalDatabaseService {
         UNIQUE(stateId, districtId)
       )
     ''');
+  }
+
+  // State operations
+  Future<void> insertStates(List<state_model.State> states) async {
+    AppLogger.common('🌍 [SQLite] Starting to insert ${states.length} states into local database');
+    final db = await database;
+    final batch = db.batch();
+    for (var state in states) {
+      batch.insert(
+        statesTable,
+        state.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit();
+    await updateCacheMetadata('states');
+    AppLogger.common('✅ [SQLite] Successfully inserted ${states.length} states into local database');
+    if (states.isNotEmpty) {
+      AppLogger.common('🌍 [SQLite] Sample states cached: ${states.take(2).map((s) => '${s.id}:${s.name}').join(', ')}');
+    }
+  }
+
+  Future<state_model.State?> getState(String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      statesTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return state_model.State.fromJson(maps.first);
+    }
+    return null;
+  }
+
+  Future<String?> getStateName(String stateId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      statesTable,
+      columns: ['name'],
+      where: 'id = ?',
+      whereArgs: [stateId],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['name'] as String?;
+    }
+    return null;
   }
 
   // District operations
@@ -641,6 +707,7 @@ class LocalDatabaseService {
   // Clear all data (useful for testing or reset)
   Future<void> clearAllData() async {
     final db = await database;
+    await db.delete(statesTable);
     await db.delete(districtsTable);
     await db.delete(bodiesTable);
     await db.delete(wardsTable);
@@ -655,6 +722,9 @@ class LocalDatabaseService {
   // Get database statistics
   Future<Map<String, int>> getStatistics() async {
     final db = await database;
+    final stateCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM $statesTable'),
+    ) ?? 0;
     final districtCount = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM $districtsTable'),
     ) ?? 0;
@@ -681,6 +751,7 @@ class LocalDatabaseService {
     ) ?? 0;
 
     return {
+      'states': stateCount,
       'districts': districtCount,
       'bodies': bodyCount,
       'wards': wardCount,
