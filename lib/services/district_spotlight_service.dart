@@ -13,20 +13,27 @@ class DistrictSpotlightService {
   // Global flag to track if spotlight has been dismissed for this app session
   static bool _isSpotlightDismissedForSession = false;
 
+  // Flag to track if spotlight is currently being checked/shown
+  static bool _isSpotlightInProgress = false;
+
   // Getter for dismissal state
   static bool get isSpotlightDismissedForSession => _isSpotlightDismissedForSession;
 
   // Method to dismiss spotlight for the session
   static void dismissSpotlightForSession() {
     _isSpotlightDismissedForSession = true;
+    _isSpotlightInProgress = false; // Reset progress flag
     AppLogger.common('🚫 District spotlight dismissed for this app session');
   }
 
   // Method to reset dismissal state (for testing or new sessions)
   static void resetSpotlightDismissal() {
     _isSpotlightDismissedForSession = false;
+    _isSpotlightInProgress = false; // Reset progress flag
     AppLogger.common('🔄 District spotlight dismissal reset');
   }
+
+
 
   // Global method to show district spotlight anywhere in the app
   static Future<void> showDistrictSpotlightIfAvailable(String stateId, String districtId) async {
@@ -36,11 +43,20 @@ class DistrictSpotlightService {
       return;
     }
 
+    // Check if currently in progress
+    if (_isSpotlightInProgress) {
+      AppLogger.common('ℹ️ District spotlight already in progress, skipping');
+      return;
+    }
+
     // Check if dialog is already open
     if (Get.isDialogOpen ?? false) {
       AppLogger.common('ℹ️ Dialog already open, skipping spotlight');
       return;
     }
+
+    // Mark as in progress
+    _isSpotlightInProgress = true;
 
     try {
       AppLogger.common('🔍 Checking spotlight for $stateId/$districtId globally');
@@ -53,6 +69,7 @@ class DistrictSpotlightService {
         // Check if image URL is valid
         if (spotlight.fullImage == null || spotlight.fullImage.isEmpty) {
           AppLogger.common('⚠️ District spotlight has empty/null fullImage URL');
+          _isSpotlightInProgress = false; // Reset progress flag
           return;
         }
 
@@ -87,9 +104,11 @@ class DistrictSpotlightService {
         );
       } else {
         AppLogger.common('ℹ️ No active spotlight found for $districtId');
+        _isSpotlightInProgress = false; // Reset progress flag
       }
     } catch (e) {
       AppLogger.common('❌ Error showing district spotlight globally: $e');
+      _isSpotlightInProgress = false; // Reset progress flag
     }
   }
 

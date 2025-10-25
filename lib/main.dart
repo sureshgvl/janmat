@@ -1,8 +1,12 @@
 // ignore_for_file: dead_code
 
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 import 'features/common/animated_splash_screen.dart';
@@ -22,6 +26,27 @@ import 'l10n/features/settings/settings_localizations.dart';
 import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
+
+/// Extension to handle Locale serialization/deserialization for JSON
+extension LocaleJsonExtension on Locale {
+  /// Convert Locale to a JSON serializable map
+  Map<String, dynamic> toJson() {
+    return {
+      'languageCode': languageCode,
+      if (countryCode != null) 'countryCode': countryCode,
+      if (scriptCode != null) 'scriptCode': scriptCode,
+    };
+  }
+
+  /// Create Locale from JSON map
+  static Locale fromJson(Map<String, dynamic> json) {
+    return Locale.fromSubtags(
+      languageCode: json['languageCode'] as String,
+      countryCode: json['countryCode'] as String?,
+      scriptCode: json['scriptCode'] as String?,
+    );
+  }
+}
 
 void main() async {
   // PERFORMANCE TRACKING: Start app launch timer
@@ -98,6 +123,52 @@ void main() async {
     districtSpotlight: true, // Reduced spotlight logging
   );
 
+  // Initialize file logging for project directory
+  await AppLogger.initFileLogging();
+
+  // Determine log file path
+  late String logFilePath;
+  if (kIsWeb) {
+    // Web: use app docs
+    final directory = await getApplicationDocumentsDirectory();
+    logFilePath = '${directory.path}/janmat_log.txt';
+  } else if (kDebugMode) {
+    // Debug mode: try project logs directory first for easier access
+    try {
+      final projectDir = Directory.current.path;
+      final logsDir = Directory('$projectDir/logs');
+      if (!logsDir.existsSync()) logsDir.createSync(recursive: true);
+      logFilePath = '${logsDir.path}/janmat_log.txt';
+      AppLogger.common('📝 Debug logging to project directory: $logFilePath');
+    } catch (e) {
+      // Fallback to app docs
+      final directory = await getApplicationDocumentsDirectory();
+      final logsDir = Directory('${directory.path}/logs');
+      await logsDir.create(recursive: true);
+      logFilePath = '${logsDir.path}/janmat_log.txt';
+      AppLogger.common('📝 Fallback logging to app docs: $logFilePath');
+    }
+  } else {
+    // Production: app docs
+    final directory = await getApplicationDocumentsDirectory();
+    final logsDir = Directory('${directory.path}/logs');
+    await logsDir.create(recursive: true);
+    logFilePath = '${logsDir.path}/janmat_log.txt';
+  }
+
+  // Override debugPrint to log to file
+  final void Function(String? message, {int? wrapWidth}) originalDebugPrint = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) {
+    originalDebugPrint(message, wrapWidth: wrapWidth);
+    if (message != null) {
+      try {
+        File(logFilePath).writeAsStringSync('$message\n', mode: FileMode.append);
+      } catch (_) {
+        // Ignore file write errors
+      }
+    }
+  };
+
   PerformanceMonitor().stopTimer('app_startup');
   PerformanceMonitor().logSlowOperation('app_startup', 2000); // Log if startup > 2 seconds
 
@@ -109,26 +180,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: InitialAppDataService().getInitialAppData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const MaterialApp(
-            home: AnimatedSplashScreen(),
-            debugShowCheckedModeBanner: false,
-          );
-        }
+    // REACTIVE AUTH STATE: Use StreamBuilder for Firebase auth state changes
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        final user = authSnapshot.data;
+        final isLoggedIn = user != null;
 
-        final appData = snapshot.data ?? {'route': '/login', 'locale': null};
-        final initialRoute = appData['route'] as String;
-        final initialLocale = appData['locale'] as Locale?;
+        // Determine home widget based on auth state
+        final String initialRoute = isLoggedIn ? '/home' : '/login';
+
+        AppLogger.core('🔄 Auth state changed - User: ${user?.uid ?? 'null'} - Route: $initialRoute');
 
         return Obx(() {
           final themeController = Get.find<ThemeController>();
           return GetMaterialApp(
             title: 'JanMat',
             theme: themeController.currentTheme.value,
-            locale: initialLocale,
+            // Let GetX manage locale internally without forcing rebuilds
             localizationsDelegates: [
               ...AppLocalizations.localizationsDelegates,
               CandidateLocalizations.delegate,
@@ -149,4 +218,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

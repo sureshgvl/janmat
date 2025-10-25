@@ -33,121 +33,46 @@ extension LocaleJsonExtension on Locale {
 class InitialAppDataService {
   final LanguageService _languageService = LanguageService();
 
-  Future<Map<String, dynamic>> getInitialAppData() async {
-    // perf.PerformanceMonitor().startTimer('initial_app_data');
+  // STREAM FOR LANGUAGE DATA: Returns reactive stream of language preferences
+  Stream<Map<String, dynamic>> getLanguageData() {
+    return Stream.fromFuture(_getLanguageData());
+  }
 
-    // PERFORMANCE OPTIMIZATION: Parallelize independent operations
+  // PRIVATE METHOD: Get language data from shared preferences
+  Future<Map<String, dynamic>> _getLanguageData() async {
+    final locale = await _languageService.getStoredLocale();
+    return {'locale': locale};
+  }
+
+  Future<Map<String, dynamic>> getInitialAppData() async {
+    // SIMPLE AUTH LOGIC: Check if user is logged in, that's it!
+
+    // Get language preferences (no complex checks)
     final languageChecks = Future.wait([
-      _languageService.isFirstTimeUser(),
-      _languageService.isOnboardingCompleted(),
       _languageService.getStoredLocale(),
     ]);
 
     final results = await languageChecks;
-    final isFirstTime = results[0] as bool;
-    final isOnboardingCompleted = results[1] as bool;
-    final storedLocale = results[2] as Locale?;
-
-    // Fast path for first-time users
-    if (isFirstTime) {
-      await _languageService.setDefaultLanguage('en');
-      return {'route': '/language-selection', 'locale': const Locale('en')};
-    }
-
-    // Fast path for incomplete onboarding
-    if (!isOnboardingCompleted) {
-      final locale = storedLocale ?? const Locale('en');
-      return {'route': '/onboarding', 'locale': locale};
-    }
-
+    final storedLocale = results[0] as Locale?;
     final locale = storedLocale ?? const Locale('en');
-    AppLogger.core('Initial app locale: ${locale.languageCode}');
 
-    // PERFORMANCE: Ultra-fast auth check with minimal timeout
-    final User? currentUser = await _fastFirebaseAuthCheck();
-
-    if (currentUser == null) {
-      AppLogger.core('No authenticated user found, showing login screen');
-      return {'route': '/login', 'locale': locale};
-    }
-
-    AppLogger.core('User authenticated: ${currentUser.uid}, checking profile status...');
-
-    // INSTANT NAVIGATION: Use cached routing data first
-    final cache = MultiLevelCache();
-    final cachedRoutingData = await cache.getUserRoutingData(currentUser.uid);
-
-    if (cachedRoutingData != null) {
-      AppLogger.core('⚡ INSTANT NAVIGATION: Using cached routing data');
-      // Start background refresh silently
-      _refreshUserDataInBackground(currentUser.uid);
-      return cachedRoutingData;
-    }
-
-    // FALLBACK: Fresh fetch for first-time or cache miss
-    AppLogger.core('🔄 Cache miss - performing fresh user data fetch');
-
+    // SIMPLE: Wait for Firebase Auth state (no timeout like Facebook/Twitter)
+    User? currentUser;
     try {
-      // Fast parallel fetch: cache + server race
-      final cacheFuture = FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get(const GetOptions(source: Source.cache));
-
-      final serverFuture = FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 2));
-
-      // Race condition: whichever completes first wins
-      final userDoc = await Future.any([cacheFuture, serverFuture]);
-
-      if (userDoc.exists) {
-        final userData = userDoc.data()!;
-        final userModel = UserModel.fromJson(userData);
-
-        final role = userModel.role;
-        final profileCompleted = userModel.profileCompleted;
-
-        AppLogger.core('User state check - Role: "$role", Profile: $profileCompleted');
-
-        // Determine route based on user state
-        String route;
-        if (role.isEmpty) {
-          route = '/role-selection';
-        } else if (!profileCompleted) {
-          route = '/profile-completion';
-        } else {
-          route = '/home';
-        }
-
-        final result = {'route': route, 'locale': locale};
-        if (route == '/profile-completion') {
-          result['userData'] = userData; // Pass data to avoid refetch
-        }
-
-        // Cache routing decision for instant future loads
-        await cache.setUserRoutingData(currentUser.uid, result);
-        AppLogger.core('💾 Routing data cached for instant future loads');
-
-        return result;
-      } else {
-        AppLogger.core('User document not found - redirecting to login');
-        return {'route': '/login', 'locale': locale};
-      }
+      currentUser = await FirebaseAuth.instance.authStateChanges().first;
     } catch (e) {
-      AppLogger.core('Error checking user state: $e');
-      // perf.PerformanceMonitor().stopTimer('initial_app_data');
-      // perf.PerformanceMonitor().logSlowOperation('initial_app_data', 1000); // Log if > 1 second
+      // If auth fails, user is not logged in
+      currentUser = null;
+    }
 
-      // On error, default to home for authenticated users (fail-safe)
-      if (currentUser != null) {
-        AppLogger.core('User authenticated but data fetch failed, defaulting to home');
-        return {'route': '/home', 'locale': locale};
-      } else {
-        return {'route': '/login', 'locale': locale};
-      }
+    if (currentUser != null) {
+      // User is authenticated - go to home
+      AppLogger.core('User authenticated: ${currentUser.uid}, navigating to home');
+      return {'route': '/home', 'locale': locale.toJson()};
+    } else {
+      // User not authenticated - go to login
+      AppLogger.core('No authenticated user, showing login screen');
+      return {'route': '/login', 'locale': locale.toJson()};
     }
   }
 
@@ -182,7 +107,7 @@ class InitialAppDataService {
 
         final updatedRoutingData = {
           'route': route,
-          'locale': const Locale('en'), // Default locale
+          'locale': const Locale('en').toJson(), // Default locale
         };
 
         await cache.setUserRoutingData(userId, updatedRoutingData);
@@ -194,7 +119,7 @@ class InitialAppDataService {
     }
   }
 
-  // PERFORMANCE: Ultra-fast auth check with instant fallback
+  // PERFORMANCE: Robust auth check without timeout (like major apps)
   Future<User?> _fastFirebaseAuthCheck() async {
     // Immediate check - if we have a current user, return instantly
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -203,19 +128,14 @@ class InitialAppDataService {
       return currentUser;
     }
 
-    // Very short timeout for auth state determination (1 second instead of 5)
+    // Wait for auth state changes without timeout (like Facebook/Twitter)
+    // Firebase will restore auth state based on device and network conditions
     try {
-      final user = await FirebaseAuth.instance.authStateChanges().first.timeout(
-        const Duration(seconds: 1),
-        onTimeout: () {
-          AppLogger.core('⚡ Firebase Auth check timeout - assuming no user');
-          return null;
-        },
-      );
+      final user = await FirebaseAuth.instance.authStateChanges().first;
       AppLogger.core('Firebase Auth state determined: ${user?.uid ?? 'null'}');
       return user;
     } catch (e) {
-      AppLogger.coreError('Error in fast auth check', error: e);
+      AppLogger.coreError('Error in auth state check - assuming no user for security', error: e);
       return null;
     }
   }

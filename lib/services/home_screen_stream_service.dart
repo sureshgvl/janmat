@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/services/home_data_preloader.dart';
 import 'package:janmat/utils/multi_level_cache.dart';
 import 'package:janmat/features/home/services/home_services.dart';
+import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
+import 'package:janmat/features/candidate/models/candidate_model.dart';
 
 /// Stream-based service for HomeScreen data loading
 class HomeScreenStreamService {
@@ -114,8 +117,14 @@ class HomeScreenStreamService {
         enablePreload: true,
       );
 
-      final userModel = result['user'] as UserModel?;
-      final candidateModel = result['candidate'];
+      // Handle both UserModel object and raw Map from cache/partial data
+      final userModel = result['user'] is Map<String, dynamic>
+        ? UserModel.fromJson(result['user'] as Map<String, dynamic>)
+        : result['user'] as UserModel?;
+      final rawCandidate = result['candidate'];
+      final candidateModel = rawCandidate is Map<String, dynamic>
+        ? Candidate.fromJson(rawCandidate)
+        : rawCandidate as Candidate?;
 
       if (userModel != null) {
         // Extract navigation data for routing cache
@@ -128,6 +137,23 @@ class HomeScreenStreamService {
 
         // Cache routing data for future instant loads
         await MultiLevelCache().setUserRoutingData(userId, routingData);
+
+        // Initialize candidate controller if user is a candidate
+        if (userModel.role == 'candidate') {
+          try {
+            final candidateController = Get.find<CandidateUserController>();
+            // Ensure controller has the candidate data synchronized
+            if (candidateModel != null && candidateController.candidate.value == null) {
+              candidateController.candidate.value = candidateModel;
+              candidateController.isInitialized.value = true;
+              AppLogger.common('✅ Synchronized candidate data to controller for user: $userId');
+            }
+            candidateController.initializeForCandidate();
+            AppLogger.common('✅ Candidate controller initialized for user: $userId');
+          } catch (e) {
+            AppLogger.commonError('❌ Failed to initialize candidate controller', error: e);
+          }
+        }
 
         // Emit complete data
         _dataController.add(HomeScreenData.complete(

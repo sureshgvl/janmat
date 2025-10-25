@@ -54,25 +54,35 @@ class HomeServices {
         final userData = userDoc.data() as Map<String, dynamic>;
         userModel = UserModel.fromJson(userData);
 
+        AppLogger.common('👤 User loaded: ${userModel!.name}, role: ${userModel.role}, profileCompleted: ${userModel.profileCompleted}, roleSelected: ${userModel.roleSelected}');
+
         // Load candidate data for candidates - prioritizes controller first
         if (userModel.profileCompleted && userModel.role == 'candidate') {
+          AppLogger.common('🎯 Loading candidate data for ${userModel.name} (profileCompleted: ${userModel.profileCompleted}, role: ${userModel.role})');
           try {
             // FIRST: Try centralized CandidateUserController (preferred approach)
             final candidateUserController = CandidateUserController.to;
             if (candidateUserController.candidate.value != null) {
               candidateModel = candidateUserController.candidate.value;
-              AppLogger.common('🎯 Using centralized CandidateUserController data');
+              AppLogger.common('🎯 Using centralized CandidateUserController data: ${candidateModel?.name}');
             } else {
               // Load via centralized controller
+              AppLogger.common('📥 Calling loadCandidateUserData for ${userModel.uid}');
               await candidateUserController.loadCandidateUserData(userModel.uid);
               candidateModel = candidateUserController.candidate.value;
-              AppLogger.common('📥 Loaded candidate data via CandidateUserController');
+              if (candidateModel != null) {
+                AppLogger.common('📥 Loaded candidate data via CandidateUserController: ${candidateModel.name}');
+              } else {
+                AppLogger.common('⚠️ CandidateUserController.loadCandidateUserData returned null');
+              }
             }
           } catch (e) {
             AppLogger.common('⚠️ Centralized controller failed, using direct load: $e');
             // Fallback to direct load
             candidateModel = await _loadCandidateDataOptimized(userModel.uid);
           }
+        } else {
+          AppLogger.common('ℹ️ Skipping candidate data load - profileCompleted: ${userModel.profileCompleted}, role: ${userModel.role}');
         }
 
         // Prepare result data

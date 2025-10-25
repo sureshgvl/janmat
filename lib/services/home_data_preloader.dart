@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/features/home/services/home_services.dart';
 import 'package:janmat/services/background_sync_manager.dart';
 import 'package:janmat/services/background_initializer.dart';
@@ -181,7 +182,9 @@ extension HomePreloaderIntegration on HomeServices {
 
     // If preload is enabled and we have valid data, trigger preload for related assets
     if (enablePreload && result['user'] != null) {
-      final user = result['user'] as dynamic;
+      final user = result['user'] is Map<String, dynamic>
+        ? UserModel.fromJson(result['user'] as Map<String, dynamic>)
+        : result['user'] as dynamic;
       if (user.role == 'candidate' && result['candidate'] != null) {
         // Preload candidate-specific data in background
         Future.microtask(() => HomeDataPreloader().preloadHomeDataForUser(uid!));

@@ -462,7 +462,15 @@ class DemoDataService {
         final data =
             achievementTemplates[type]?[language] ??
             achievementTemplates['community_service']!['en']!;
-        return data.map((item) => Achievement.fromJson(item)).toList();
+        return data.map((item) {
+          final year = item['year'];
+          final itemWithDate = Map<String, dynamic>.from(item);
+          if (year != null) {
+            itemWithDate['date'] = DateTime(year).toIso8601String();
+            itemWithDate.remove('year');
+          }
+          return Achievement.fromJson(itemWithDate);
+        }).toList();
       case 'events':
         final data =
             eventTemplates[type]?[language] ??
@@ -567,4 +575,3 @@ class DemoDataService {
     }
   }
 }
-

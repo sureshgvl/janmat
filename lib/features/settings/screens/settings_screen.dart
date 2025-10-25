@@ -259,43 +259,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final languageService = LanguageService();
       await languageService.setLanguage(languageCode);
 
-      // Change app locale
+      // Change app locale without restarting app
       final locale = Locale(languageCode);
       Get.updateLocale(locale);
 
       // Wait for locale change to take effect
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      // Force app restart to ensure complete locale update
-      if (mounted) {
-        // Show confirmation message
-        Get.snackbar(
-          SettingsLocalizations.of(context)?.translate('success') ?? 'Success',
-          languageCode == 'en'
-              ? (SettingsLocalizations.of(context)?.translate('languageChangedToEnglish') ?? 'Language changed to English. Restarting app...')
-              : (SettingsLocalizations.of(context)?.translate('languageChangedToMarathi') ?? 'भाषा मराठीमध्ये बदलली. अॅप रीस्टार्ट होत आहे...'),
-          duration: const Duration(seconds: 2),
-        );
-
-        // Delay to show the message, then restart
-        await Future.delayed(const Duration(seconds: 2));
-
-        // Force complete app restart by navigating to root and rebuilding
+        // Show confirmation message - but check if widget is still mounted
         if (mounted) {
-          // Clear all routes and go to home
-          Get.offAllNamed('/home');
-
-          // Force a complete rebuild by recreating the app context
-          await Future.delayed(const Duration(milliseconds: 100));
-          Get.forceAppUpdate();
-
-          // Additional restart mechanism - reload the entire app
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            // This will trigger a complete rebuild of the app
-            (context as Element).markNeedsBuild();
-          });
+          Get.snackbar(
+            SettingsLocalizations.of(context)?.translate('success') ?? 'Success',
+            languageCode == 'en'
+                ? 'Language changed to English'
+                : 'भाषा मराठीमध्ये बदलली',
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade800,
+          );
         }
+
+      // Force UI refresh to update all localized text
+      if (mounted) {
+        setState(() {
+          // Setting state will trigger rebuild with new locale
+        });
       }
+
     } catch (e) {
       AppLogger.uiError('Error changing language: $e');
 
@@ -306,15 +296,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _isChangingLanguage = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              previousLanguage == 'en'
-                  ? (SettingsLocalizations.of(context)?.translate('failedToChangeLanguageEnglish') ?? 'Failed to change language. Please try again.')
-                  : (SettingsLocalizations.of(context)?.translate('failedToChangeLanguageMarathi') ?? 'भाषा बदलण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.'),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
+        // Use Get.snackbar instead of ScaffoldMessenger to avoid mounted context issues
+        Get.snackbar(
+          'Error',
+          previousLanguage == 'en'
+              ? 'Failed to change language. Please try again.'
+              : 'भाषा बदलण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.',
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
         );
       }
     } finally {
@@ -359,4 +349,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-

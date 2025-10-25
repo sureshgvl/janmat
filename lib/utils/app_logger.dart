@@ -40,12 +40,12 @@ class AppLogger {
           await logsDir.create(recursive: true);
         }
 
-        logPath = '${logsDir.path}/janmat_logs.txt';
+        logPath = '${logsDir.path}/janmat_log.txt';
         AppLogger.common('📝 Using project directory logs: $logPath');
       } catch (e) {
         // Fallback to app documents directory (production/some development cases)
         final directory = await getApplicationDocumentsDirectory();
-        logPath = '${directory.path}/janmat_logs.txt';
+        logPath = '${directory.path}/janmat_log.txt';
         AppLogger.common('📝 Fallback to app documents directory: $logPath');
       }
 
@@ -320,7 +320,6 @@ class AppLogger {
     if (_showCommonLogs) {
       final logMessage = '🔧 ${tag != null ? '[$tag] ' : ''}$message';
       _logger.d(logMessage);
-      _writeToLogFile(logMessage, level: 'INFO');
     }
   }
 

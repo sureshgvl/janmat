@@ -126,8 +126,11 @@ class CandidateUserController extends GetxController {
       }
 
       // Load candidate data - always load for candidates
+      AppLogger.common('🗳️ Calling _candidateRepository.getCandidateData for UID: $uid');
       candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
       editedData.value = candidate.value; // Initialize edited data
+
+      AppLogger.common('✅ Finished _candidateRepository.getCandidateData, candidate.value: ${candidate.value != null ? 'not null' : 'null'}');
 
       isInitialized.value = true;
       AppLogger.common('✅ Candidate user data loaded successfully');
@@ -136,6 +139,8 @@ class CandidateUserController extends GetxController {
       }
       if (candidate.value != null) {
         AppLogger.common('👥 Candidate: ${candidate.value!.name} (${candidate.value!.party ?? 'No Party'})');
+      } else {
+        AppLogger.common('⚠️ Candidate data is null after loading - check Firebase database');
       }
 
     } catch (e) {
