@@ -1,6 +1,7 @@
 // ignore_for_file: dead_code
 
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -180,40 +181,55 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // REACTIVE AUTH STATE: Use StreamBuilder for Firebase auth state changes
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, authSnapshot) {
-        final user = authSnapshot.data;
-        final isLoggedIn = user != null;
-
-        // Determine home widget based on auth state
-        final String initialRoute = isLoggedIn ? '/home' : '/login';
-
-        AppLogger.core('🔄 Auth state changed - User: ${user?.uid ?? 'null'} - Route: $initialRoute');
-
-        return Obx(() {
-          final themeController = Get.find<ThemeController>();
-          return GetMaterialApp(
-            title: 'JanMat',
-            theme: themeController.currentTheme.value,
-            // Let GetX manage locale internally without forcing rebuilds
-            localizationsDelegates: [
-              ...AppLocalizations.localizationsDelegates,
-              CandidateLocalizations.delegate,
-              AuthLocalizations.delegate,
-              OnboardingLocalizations.delegate,
-              ProfileLocalizations.delegate,
-              NotificationsLocalizations.delegate,
-              SettingsLocalizations.delegate,
-            ],
-            supportedLocales: AppLocalizations.supportedLocales,
-            initialBinding: AppBindings(),
-            initialRoute: initialRoute,
-            getPages: AppRoutes.getPages,
+    // FORCE BEAUTIFUL ANIMATED SPLASH SCREEN FOR 4 SECONDS MINIMUM
+    // This ensures users FULLY see the animated splash regardless of Firebase auth speed
+    return FutureBuilder<void>(
+      future: Future.delayed(const Duration(seconds: 4)), // Increased to 4 seconds
+      builder: (context, splashSnapshot) {
+        if (splashSnapshot.connectionState != ConnectionState.done) {
+          // 🔥 ALWAYS SHOW ANIMATED SPLASH FIRST FOR FULL ANIMATION
+          AppLogger.core('❄️ SHOWING ANIMATED SPLASH SCREEN (4 seconds)...');
+          return const MaterialApp(
+            home: AnimatedSplashScreen(),
             debugShowCheckedModeBanner: false,
           );
-        });
+        }
+
+        AppLogger.core('❄️ SPLASH SCREEN COMPLETE - STARTING AUTH FLOW...');
+
+        // REACTIVE AUTH STATE: Handle Firebase auth state after splash
+        return StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, authSnapshot) {
+            final user = authSnapshot.data;
+            final isLoggedIn = user != null;
+
+            final String initialRoute = isLoggedIn ? '/home' : '/login';
+            AppLogger.core('🔄 Auth state: ${user?.uid ?? 'null'} → Route: $initialRoute');
+
+            return Obx(() {
+              final themeController = Get.find<ThemeController>();
+              return GetMaterialApp(
+                title: 'JanMat',
+                theme: themeController.currentTheme.value,
+                localizationsDelegates: [
+                  ...AppLocalizations.localizationsDelegates,
+                  CandidateLocalizations.delegate,
+                  AuthLocalizations.delegate,
+                  OnboardingLocalizations.delegate,
+                  ProfileLocalizations.delegate,
+                  NotificationsLocalizations.delegate,
+                  SettingsLocalizations.delegate,
+                ],
+                supportedLocales: AppLocalizations.supportedLocales,
+                initialBinding: AppBindings(),
+                initialRoute: initialRoute,
+                getPages: AppRoutes.getPages,
+                debugShowCheckedModeBanner: false,
+              );
+            });
+          },
+        );
       },
     );
   }
