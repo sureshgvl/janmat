@@ -1,11 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../../../services/plan_service.dart';
 import '../widgets/edit/achievements/achievements_edit.dart';
-import '../../../widgets/loading_overlay.dart';
+import '../models/achievements_model.dart';
+import '../controllers/achievements_controller.dart';
 
 class CandidateDashboardAchievements extends StatefulWidget {
   const CandidateDashboardAchievements({super.key});
@@ -59,8 +59,7 @@ class _CandidateDashboardAchievementsState
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onAchievementsChange: (achievements) =>
-                      controller.updateExtraInfo('achievements', achievements),
+                  onAchievementsChange: controller.updateAchievementsInfo,
                 ),
               )
             : AchievementsSection(
@@ -78,51 +77,31 @@ class _CandidateDashboardAchievementsState
                     FloatingActionButton(
                       heroTag: 'save_achievements',
                       onPressed: () async {
-                        // Create a stream controller for progress updates
-                        final messageController = StreamController<String>();
-                        messageController.add(
-                          'Preparing to save achievements...',
-                        );
-
-                        // Show loading dialog with message stream
-                        LoadingDialog.show(
-                          context,
-                          initialMessage: 'Preparing to save achievements...',
-                          messageStream: messageController.stream,
-                        );
+                        setState(() => isSaving = true);
 
                         try {
-                          // First, upload any pending local files to Firebase
+                          // Upload any pending local files to Firebase
                           final achievementsSectionState =
                               _achievementsSectionKey.currentState;
                           if (achievementsSectionState != null) {
-                            messageController.add(
-                              'Uploading photos to cloud...',
-                            );
                             await achievementsSectionState.uploadPendingFiles();
                           }
 
-                          // Then save the achievements data
-                          final success = await controller.saveExtraInfo(
-                            onProgress: (message) =>
-                                messageController.add(message),
-                          );
+                          // Get the achievements data from the widget state and save
+                          if (achievementsSectionState != null) {
+                            final achievements = achievementsSectionState.getAchievements();
+                            final achievementsModel = AchievementsModel(achievements: achievements);
 
-                          if (success) {
-                            // Update progress: Success
-                            messageController.add(
-                              'Achievements saved successfully!',
+                            // Save achievements using the achievements controller
+                            final achievementsController = Get.find<AchievementsController>();
+                            final success = await achievementsController.saveAchievementsTabWithCandidate(
+                              candidateId: controller.candidateData.value!.candidateId,
+                              achievements: achievementsModel,
+                              candidate: controller.candidateData.value,
+                              onProgress: (message) {},
                             );
 
-                            // Wait a moment to show success message
-                            await Future.delayed(
-                              const Duration(milliseconds: 800),
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
+                            if (success) {
                               setState(() => isEditing = false);
                               Get.snackbar(
                                 'Success',
@@ -130,26 +109,19 @@ class _CandidateDashboardAchievementsState
                                 backgroundColor: Colors.green,
                                 colorText: Colors.white,
                               );
-                            }
-                          } else {
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
+                            } else {
                               Get.snackbar(
                                 'Error',
                                 'Failed to update achievements',
                               );
                             }
+                          } else {
+                            Get.snackbar('Error', 'Failed to access achievements data');
                           }
                         } catch (e) {
-                          if (context.mounted) {
-                            Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar('Error', 'An error occurred: $e');
-                          }
+                          Get.snackbar('Error', 'An error occurred: $e');
                         } finally {
-                          // Clean up the stream controller
-                          await messageController.close();
+                          if (mounted) setState(() => isSaving = false);
                         }
                       },
                       backgroundColor: Colors.green,

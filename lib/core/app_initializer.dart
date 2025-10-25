@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../firebase_options.dart';
 import '../services/background_initializer.dart';
 import '../services/background_sync_manager.dart';
+import '../services/home_data_preloader.dart';
 import '../services/fcm_service.dart';
 // import '../services/ime_manager.dart';
 import '../utils/performance_monitor.dart';

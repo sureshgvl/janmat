@@ -35,36 +35,56 @@ class MultiLevelCache {
     final monitor = PerformanceMonitor();
     monitor.startTimer('cache_get_$key');
 
-    // Layer 1: Memory cache (fastest)
-    T? value = _memoryCache.get<T>(key);
-    if (value != null) {
-      _emitEvent(CacheEvent.hit(key, CacheLayer.memory, value));
-      monitor.stopTimer('cache_get_$key');
-      _log('✅ Memory cache hit for key: $key');
-      return value;
-    }
+    try {
+      // Layer 1: Memory cache (fastest)
+      T? value = _memoryCache.get<T>(key);
+      if (value != null) {
+        _emitEvent(CacheEvent.hit(key, CacheLayer.memory, value));
+        monitor.stopTimer('cache_get_$key');
+        _log('✅ Memory cache hit for key: $key');
+        return value;
+      }
 
-    // Layer 2: Disk cache
-    value = await _diskCache.get<T>(key);
-    if (value != null) {
-      // Promote to memory cache
-      _memoryCache.set<T>(key, value);
-      _emitEvent(CacheEvent.hit(key, CacheLayer.disk, value));
-      monitor.stopTimer('cache_get_$key');
-      _log('💾 Disk cache hit for key: $key (promoted to memory)');
-      return value;
-    }
+      // Layer 2: Disk cache
+      value = await _diskCache.get<T>(key);
+      if (value != null) {
+        // Validate the retrieved value
+        if (_isValidCacheValue(value)) {
+          // Promote to memory cache
+          _memoryCache.set<T>(key, value);
+          _emitEvent(CacheEvent.hit(key, CacheLayer.disk, value));
+          monitor.stopTimer('cache_get_$key');
+          _log('💾 Disk cache hit for key: $key (promoted to memory)');
+          return value;
+        } else {
+          // Corrupted value, remove from cache
+          _log('🚨 Corrupted disk cache value for key: $key - removing');
+          await _diskCache.remove(key);
+        }
+      }
 
-    // Layer 3: Remote cache (slowest)
-    value = await _remoteCache.get<T>(key);
-    if (value != null) {
-      // Promote to higher caches
-      _memoryCache.set<T>(key, value);
-      await _diskCache.set<T>(key, value);
-      _emitEvent(CacheEvent.hit(key, CacheLayer.remote, value));
-      monitor.stopTimer('cache_get_$key');
-      _log('🌐 Remote cache hit for key: $key (promoted to memory + disk)');
-      return value;
+      // Layer 3: Remote cache (slowest)
+      value = await _remoteCache.get<T>(key);
+      if (value != null) {
+        // Validate before promoting
+        if (_isValidCacheValue(value)) {
+          // Promote to higher caches
+          _memoryCache.set<T>(key, value);
+          await _diskCache.set<T>(key, value);
+          _emitEvent(CacheEvent.hit(key, CacheLayer.remote, value));
+          monitor.stopTimer('cache_get_$key');
+          _log('🌐 Remote cache hit for key: $key (promoted to memory + disk)');
+          return value;
+        }
+      }
+    } catch (e, stackTrace) {
+      _log('💥 Cache error for key $key: $e\n$stackTrace');
+      // Try to clean up corrupted data
+      try {
+        await remove(key);
+      } catch (cleanupError) {
+        _log('⚠️ Failed to cleanup corrupted cache key $key: $cleanupError');
+      }
     }
 
     // Cache miss
@@ -72,6 +92,42 @@ class MultiLevelCache {
     monitor.stopTimer('cache_get_$key');
     _log('❌ Cache miss for key: $key');
     return null;
+  }
+
+  /// Validate cache value integrity
+  bool _isValidCacheValue(dynamic value) {
+    if (value == null) return false;
+
+    try {
+      // Check if it's a map with expected structure for user data
+      if (value is Map<String, dynamic>) {
+        // Validate UserModel structure
+        if (value.containsKey('user')) {
+          final userMap = value['user'];
+          if (userMap is Map<String, dynamic>) {
+            // Check required UserModel fields
+            final requiredFields = ['uid', 'name', 'role'];
+            for (final field in requiredFields) {
+              if (!userMap.containsKey(field) || userMap[field] == null) {
+                _log('🚨 Invalid UserModel cache: missing field $field');
+                return false;
+              }
+            }
+            return true;
+          }
+        }
+        // Validate simple values
+        if (value.containsKey('candidate') || value.containsKey('data')) {
+          return true;
+        }
+      }
+
+      // For other types, basic null check
+      return true;
+    } catch (e) {
+      _log('🚨 Cache validation error: $e');
+      return false;
+    }
   }
 
   /// Get user routing data with instant fallback
@@ -113,7 +169,7 @@ class MultiLevelCache {
     _log('💾 Cached user routing data for: $userId');
   }
 
-  /// Set data in all cache layers
+  /// Set data in all cache layers with validation
   Future<void> set<T>(
     String key,
     T value, {
@@ -123,17 +179,28 @@ class MultiLevelCache {
     final monitor = PerformanceMonitor();
     monitor.startTimer('cache_set_$key');
 
-    // Set in all layers
-    _memoryCache.set<T>(key, value, ttl: ttl, priority: priority);
-    await _diskCache.set<T>(key, value, ttl: ttl, priority: priority);
-    await _remoteCache.set<T>(key, value, ttl: ttl, priority: priority);
+    try {
+      // Validate value before caching
+      if (!_isValidCacheValue(value)) {
+        _log('🚨 Invalid value for key: $key - cannot cache');
+        return;
+      }
 
-    _emitEvent(CacheEvent.set(key, value, priority));
-    monitor.stopTimer('cache_set_$key');
+      // Set in all layers
+      _memoryCache.set<T>(key, value, ttl: ttl, priority: priority);
+      await _diskCache.set<T>(key, value, ttl: ttl, priority: priority);
+      await _remoteCache.set<T>(key, value, ttl: ttl, priority: priority);
 
-    _log(
-      '💾 Set value for key: $key in all cache layers (priority: $priority)',
-    );
+      _emitEvent(CacheEvent.set(key, value, priority));
+      monitor.stopTimer('cache_set_$key');
+
+      _log(
+        '💾 Set value for key: $key in all cache layers (priority: $priority)',
+      );
+    } catch (e, stackTrace) {
+      _log('💥 Cache set error for key $key: $e\n$stackTrace');
+      // Don't rethrow - cache failures shouldn't break app
+    }
   }
 
   /// Remove from all cache layers

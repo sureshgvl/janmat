@@ -8,6 +8,8 @@ import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/features/candidate/widgets/demo_data_modal.dart';
 import 'package:janmat/features/candidate/controllers/achievements_controller.dart';
 
+import '../../../models/achievements_model.dart';
+
 // Reusable Achievement Item Widget
 class AchievementItemWidget extends StatelessWidget {
   final Achievement achievement;
@@ -379,6 +381,11 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
     }
   }
 
+  /// Get current achievements list from the state
+  List<Achievement> getAchievements() {
+    return List.from(_achievements);
+  }
+
   Future<void> uploadPendingFiles() async {
     AppLogger.candidate('📤 [Achievements] Starting upload of pending files...');
 
@@ -492,10 +499,10 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
 
   @override
   Widget build(BuildContext context) {
-    final card = Card(
+    return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -564,54 +571,6 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
           ],
         ),
       ),
-    );
-
-    // Add Save and Cancel buttons at the bottom
-    return Stack(
-      children: [
-        card,
-        Positioned(
-          bottom: 16,
-          left: 16,
-          right: 16,
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _saveAchievements,
-                  icon: _isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_isSaving ? 'Saving...' : 'Save Achievements'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.cancel),
-                  label: const Text('Cancel'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/candidate_user_controller.dart';
+import '../controllers/media_controller.dart';
 import '../widgets/edit/media/media_edit.dart';
 import '../widgets/view/media/media_view.dart';
 import '../../../widgets/loading_overlay.dart';
@@ -42,7 +43,7 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
                   onMediaChange: (media) =>
-                      controller.updateExtraInfo('media', media),
+                      controller.updateMediaInfo('media', media),
                 ),
               )
             : Obx(() => MediaTabView(
@@ -80,10 +81,14 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
                             await mediaSectionState.uploadPendingFiles();
                           }
 
-                          // Then save the media data
-                          final success = await controller.saveExtraInfo(
-                            onProgress: (message) =>
-                                messageController.add(message),
+                          // Then save the media data using media controller
+                          final mediaController = Get.find<MediaController>();
+                          final mediaData = controller.candidateData.value!.media ?? [];
+                          final success = await mediaController.saveMediaTabWithCandidate(
+                            candidateId: controller.candidateData.value!.candidateId,
+                            media: mediaData,
+                            candidate: controller.candidateData.value,
+                            onProgress: (message) => messageController.add(message),
                           );
 
                           if (success) {

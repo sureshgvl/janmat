@@ -141,6 +141,47 @@ class HighlightsController extends GetxController {
     }
   }
 
+  /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct highlights tab save method with candidate context
+  /// Handles all highlights operations for the tab independently with full candidate data
+  Future<bool> saveHighlightsTabWithCandidate({
+    required String candidateId,
+    required dynamic candidate,
+    required HighlightData? highlight,
+    Function(String)? onProgress
+  }) async {
+    try {
+      AppLogger.candidate('🎯 TAB SAVE: Highlights tab with candidate for $candidateId');
+
+      onProgress?.call('Saving highlights...');
+
+      // For highlights tab, we save the highlight data
+      bool success;
+      if (highlight != null) {
+        success = await updateHighlight(candidateId, highlight);
+      } else {
+        // If no highlight, delete existing one
+        success = await deleteHighlight(candidateId);
+      }
+
+      if (success) {
+        onProgress?.call('Highlights saved successfully!');
+
+        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
+        // Highlights don't typically need additional background operations
+        // like notifications or cache updates since they're profile-specific
+
+        AppLogger.candidate('✅ TAB SAVE: Highlights completed successfully');
+        return true;
+      } else {
+        AppLogger.candidateError('❌ TAB SAVE: Highlights save failed');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.candidateError('❌ TAB SAVE: Highlights tab save failed', error: e);
+      return false;
+    }
+  }
+
   /// FAST SAVE: Direct highlights update for simple field changes
   /// Main save is fast, but triggers essential background operations
   Future<bool> saveHighlightsFast(

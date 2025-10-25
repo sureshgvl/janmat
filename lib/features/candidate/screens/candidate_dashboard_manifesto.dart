@@ -66,21 +66,21 @@ class _CandidateDashboardManifestoState
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
                   onManifestoChange: (manifesto) =>
-                      controller.updateExtraInfo('manifesto', manifesto),
+                      controller.updateManifestoInfo('title', manifesto),
                   onManifestoPdfChange: (pdf) =>
-                      controller.updateExtraInfo('manifesto_pdf', pdf),
+                      controller.updateManifestoInfo('pdfUrl', pdf),
                   onManifestoTitleChange: (title) =>
-                      controller.updateExtraInfo('manifesto_title', title),
+                      controller.updateManifestoInfo('title', title),
                   onManifestoPromisesChange:
                       (List<Map<String, dynamic>> manifestoPromises) =>
-                          controller.updateExtraInfo(
-                            'manifesto_promises',
+                          controller.updateManifestoInfo(
+                            'promises',
                             manifestoPromises,
                           ),
                   onManifestoImageChange: (image) =>
-                      controller.updateExtraInfo('manifesto_image', image),
+                      controller.updateManifestoInfo('image', image),
                   onManifestoVideoChange: (video) =>
-                      controller.updateExtraInfo('manifesto_video', video),
+                      controller.updateManifestoInfo('videoUrl', video),
                 )
               : ManifestoTabView(
                   candidate: controller.candidateData.value!,

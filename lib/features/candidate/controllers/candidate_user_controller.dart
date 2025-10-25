@@ -6,9 +6,11 @@ import '../models/events_model.dart';
 import '../models/basic_info_model.dart';
 import '../models/contact_model.dart';
 import '../models/manifesto_model.dart';
+import '../models/achievements_model.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../repositories/candidate_repository.dart';
+import '../controllers/achievements_controller.dart';
 import '../../../utils/app_logger.dart';
 
 /// Centralized controller for candidate role users.
@@ -342,6 +344,49 @@ class CandidateUserController extends GetxController {
     await refreshCandidateData();
   }
 
+  /// Update achievements information
+  void updateAchievementsInfo(List<Achievement> achievements) {
+    trackExtraInfoFieldChange('achievements', achievements);
+    // Actually update the editedData object with the new achievements
+    if (editedData.value != null) {
+      editedData.value = editedData.value!.copyWith(achievements: achievements);
+      AppLogger.common('✅ Updated editedData achievements: ${achievements.length} items', tag: 'ACHIEVEMENTS_UPDATE');
+    } else {
+      AppLogger.common('❌ editedData.value is null - cannot update achievements', tag: 'ACHIEVEMENTS_UPDATE');
+    }
+  }
+
+  /// Update media information
+  void updateMediaInfo(String field, dynamic value) {
+    trackExtraInfoFieldChange('media_$field', value);
+    // Handle media-specific updates if needed in the future
+  }
+
+  /// Update events information
+  void updateEventsInfo(List<EventData> events) {
+    trackExtraInfoFieldChange('events', events);
+    // Actually update the editedData object with the new events
+    if (editedData.value != null) {
+      editedData.value = editedData.value!.copyWith(events: events);
+      AppLogger.common('✅ Updated editedData events: ${events.length} items', tag: 'EVENTS_UPDATE');
+    } else {
+      AppLogger.common('❌ editedData.value is null - cannot update events', tag: 'EVENTS_UPDATE');
+    }
+  }
+
+  /// Update highlights information
+  void updateHighlightsInfo(dynamic highlights) {
+    trackExtraInfoFieldChange('highlights', highlights);
+    // Handle highlights updates if needed
+  }
+
+  /// Update analytics information
+  void updateAnalyticsInfo(String field, dynamic value) {
+    trackExtraInfoFieldChange('analytics_$field', value);
+    // Handle analytics updates if needed
+  }
+
+  @Deprecated('Use individual update methods like updateAchievementsInfo, updateEventsInfo, etc. instead of updateExtraInfo for cleaner, separate logic.')
   void updateExtraInfo(String field, dynamic value) {
     // Handle manifesto-specific fields
     if (field == 'manifesto_pdf') {
@@ -473,7 +518,6 @@ class CandidateUserController extends GetxController {
     return true;
   }
 
-  
   Future<bool> saveExtraInfo({Function(String)? onProgress}) async {
     return saveBasicInfoOnly(onProgress: onProgress);
   }

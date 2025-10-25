@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/candidate_user_controller.dart';
+import '../controllers/highlights_controller.dart';
 import '../widgets/edit/highlight_tab_edit_refactored.dart';
 import '../widgets/view/highlight/highlight_view.dart';
 import '../../../widgets/loading_overlay.dart';
@@ -47,8 +48,7 @@ class _CandidateDashboardHighlightState
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onHighlightChange: (highlight) =>
-                      controller.updateExtraInfo('highlight', highlight),
+                  onHighlightChange: controller.updateHighlightsInfo,
                 ),
               )
             : HighlightTabView(
@@ -86,10 +86,16 @@ class _CandidateDashboardHighlightState
                             await highlightSectionState.uploadPendingFiles();
                           }
 
-                          // Then save the highlight data
-                          final success = await controller.saveExtraInfo(
-                            onProgress: (message) =>
-                                messageController.add(message),
+                          // Then save the highlight data using highlights controller
+                          final highlightsController = Get.find<HighlightsController>();
+                          final highlightData = highlightsController.highlights.value?.highlights?.isNotEmpty == true
+                              ? highlightsController.highlights.value!.highlights!.first
+                              : null;
+                          final success = await highlightsController.saveHighlightsTabWithCandidate(
+                            candidateId: controller.candidateData.value!.candidateId,
+                            candidate: controller.candidateData.value,
+                            highlight: highlightData,
+                            onProgress: (message) => messageController.add(message),
                           );
 
                           if (success) {

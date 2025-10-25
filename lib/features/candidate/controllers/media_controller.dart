@@ -121,8 +121,42 @@ class MediaController extends GetxController implements IMediaController {
       if (success) {
         onProgress?.call('Media saved successfully!');
 
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
+        // 🔄 BACKGROUND OPERATIONS (fire-and-for-get, don't block UI)
         _runBackgroundSyncOperations(candidateId, candidateName, photoUrl, {'media': media.map((m) => m.toJson()).toList()});
+
+        AppLogger.database('✅ TAB SAVE: Media completed successfully', tag: 'MEDIA_TAB');
+        return true;
+      } else {
+        AppLogger.databaseError('❌ TAB SAVE: Media save failed', tag: 'MEDIA_TAB');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.databaseError('❌ TAB SAVE: Media tab save failed', tag: 'MEDIA_TAB', error: e);
+      return false;
+    }
+  }
+
+  /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct media tab save method with candidate context
+  /// Handles all media operations for the tab independently with full candidate data
+  Future<bool> saveMediaTabWithCandidate({
+    required String candidateId,
+    required List<Media> media,
+    required dynamic candidate,
+    Function(String)? onProgress
+  }) async {
+    try {
+      AppLogger.database('🎬 TAB SAVE: Media tab with candidate for $candidateId', tag: 'MEDIA_TAB');
+
+      onProgress?.call('Saving media...');
+
+      // Save using the repository
+      final success = await _repository.updateMedia(candidateId, media);
+
+      if (success) {
+        onProgress?.call('Media saved successfully!');
+
+        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
+        _runBackgroundSyncOperations(candidateId, candidate?.basicInfo?.fullName, candidate?.basicInfo?.photo, {'media': media.map((m) => m.toJson()).toList()});
 
         AppLogger.database('✅ TAB SAVE: Media completed successfully', tag: 'MEDIA_TAB');
         return true;

@@ -7,13 +7,9 @@ import '../../candidate/models/candidate_model.dart';
 import '../../candidate/controllers/candidate_user_controller.dart';
 
 class HomeServices {
+  final MultiLevelCache _cache = MultiLevelCache();
 
   Future<Map<String, dynamic>> getUserData(String? uid, {bool forceRefresh = false}) async {
-    // EMERGENCY FIX: Disable caching completely due to cache corruption bug
-    // UserModel objects are being corrupted during cache retrieval/serialization
-    // This causes home screen to receive null UserModel, preventing candidate mode
-    forceRefresh = true; // Always force refresh until cache bug is fixed
-
     // Check if user is authenticated before attempting to fetch data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null || uid == null) {
@@ -27,22 +23,29 @@ class HomeServices {
       return {'user': null, 'candidate': null};
     }
 
-    AppLogger.common('� EMERGENCY: Cache disabled due to corruption bug - fetching fresh data', tag: 'HOME_DEBUG');
+    final cacheKey = 'home_user_data_$uid';
 
-    // Fallback: Fast fetch with short timeout and cache-first strategy
+    // Try cache first (unless force refresh)
+    if (!forceRefresh) {
+      try {
+        final cachedData = await _cache.get<Map<String, dynamic>>(cacheKey);
+        if (cachedData != null && cachedData['user'] != null) {
+          AppLogger.common('⚡ Cache hit for home user data: $uid');
+          return cachedData;
+        }
+      } catch (e) {
+        AppLogger.common('⚠️ Cache retrieval failed, will fetch fresh data: $e');
+      }
+    }
+
+    AppLogger.common('🔄 Fetching fresh user data for home: $uid');
+
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .get(const GetOptions(source: Source.cache)) // Try cache first
-          .timeout(const Duration(seconds: 2), onTimeout: () async {
-            // If cache fails, try server with very short timeout
-            return await FirebaseFirestore.instance
-                .collection('users')
-                .doc(uid)
-                .get(const GetOptions(source: Source.server))
-                .timeout(const Duration(seconds: 1));
-          });
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 3));
 
       UserModel? userModel;
       Candidate? candidateModel;
@@ -51,8 +54,7 @@ class HomeServices {
         final userData = userDoc.data() as Map<String, dynamic>;
         userModel = UserModel.fromJson(userData);
 
-        // CRITICAL: Load candidate data for candidates - this is required for home screen
-        // Accept 2-3 second delay for this essential functionality
+        // Load candidate data for candidates - prioritizes controller first
         if (userModel.profileCompleted && userModel.role == 'candidate') {
           try {
             // FIRST: Try centralized CandidateUserController (preferred approach)
@@ -61,28 +63,45 @@ class HomeServices {
               candidateModel = candidateUserController.candidate.value;
               AppLogger.common('🎯 Using centralized CandidateUserController data');
             } else {
-              // Load via centralized controller - always load for candidates
+              // Load via centralized controller
               await candidateUserController.loadCandidateUserData(userModel.uid);
               candidateModel = candidateUserController.candidate.value;
               AppLogger.common('📥 Loaded candidate data via CandidateUserController');
             }
           } catch (e) {
             AppLogger.common('⚠️ Centralized controller failed, using direct load: $e');
-            // Load directly if controller fails (2-3 seconds acceptable)
+            // Fallback to direct load
             candidateModel = await _loadCandidateDataOptimized(userModel.uid);
           }
         }
 
-        // EMERGENCY FIX: Skip caching until cache corruption bug is fixed
-        // Cache disabled due to UserModel corruption during serialization
-        AppLogger.common('� EMERGENCY: Skipping cache save due to corruption bug', tag: 'HOME_DEBUG');
+        // Prepare result data
+        final result = {'user': userModel, 'candidate': candidateModel};
 
-        return {'user': userModel, 'candidate': candidateModel};
+        // Cache the result with high priority for home screen
+        try {
+          await _cache.set<Map<String, dynamic>>(cacheKey, result,
+            priority: CachePriority.high,
+            ttl: const Duration(minutes: 30)); // Cache for 30 minutes
+          AppLogger.common('✅ Cached home user data for: $uid');
+        } catch (e) {
+          AppLogger.common('⚠️ Failed to cache home data, continuing without cache: $e');
+        }
+
+        return result;
       }
     } catch (e) {
-      AppLogger.commonError('❌ Fast user data fetch failed', error: e);
-      // Return minimal data to allow app to continue
-      return {'user': null, 'candidate': null};
+      AppLogger.commonError('❌ User data fetch failed', error: e);
+      // Try to return cached data even if old, as fallback
+      try {
+        final cachedData = await _cache.get<Map<String, dynamic>>(cacheKey);
+        if (cachedData != null) {
+          AppLogger.common('🔄 Returning stale cached data as fallback');
+          return cachedData;
+        }
+      } catch (cacheError) {
+        AppLogger.common('⚠️ Even cache fallback failed: $cacheError');
+      }
     }
 
     return {'user': null, 'candidate': null};

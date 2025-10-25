@@ -14,6 +14,7 @@ abstract class IAchievementsController {
   Future<bool> saveAchievements(String candidateId, AchievementsModel achievements);
   Future<bool> updateAchievementsFields(String candidateId, Map<String, dynamic> updates);
   Future<bool> saveAchievementsTab({required String candidateId, required AchievementsModel achievements, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveAchievementsTabWithCandidate({required String candidateId, required AchievementsModel achievements, required dynamic candidate, Function(String)? onProgress});
   Future<bool> saveAchievementsFast(String candidateId, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
   AchievementsModel getUpdatedCandidate(AchievementsModel current, String field, dynamic value);
 }
@@ -99,6 +100,41 @@ class AchievementsController extends GetxController implements IAchievementsCont
 
         // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
         _runBackgroundSyncOperations(candidateId, candidateName, photoUrl, achievements.toJson());
+
+        AppLogger.database('✅ TAB SAVE: Achievements completed successfully', tag: 'ACHIEVEMENTS_TAB');
+        return true;
+      } else {
+        AppLogger.databaseError('❌ TAB SAVE: Achievements save failed', tag: 'ACHIEVEMENTS_TAB');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.databaseError('❌ TAB SAVE: Achievements tab save failed', tag: 'ACHIEVEMENTS_TAB', error: e);
+      return false;
+    }
+  }
+
+  /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct achievements tab save method with candidate context
+  /// Handles all achievements operations for the tab independently with full candidate data
+  Future<bool> saveAchievementsTabWithCandidate({
+    required String candidateId,
+    required AchievementsModel achievements,
+    required dynamic candidate,
+    Function(String)? onProgress
+  }) async {
+    try {
+      AppLogger.database('🏆 TAB SAVE: Achievements tab with candidate for $candidateId', tag: 'ACHIEVEMENTS_TAB');
+
+      onProgress?.call('Saving achievements...');
+
+      // Direct save using the repository
+      final success = await _repository.updateAchievements(candidateId, achievements);
+      AppLogger.database('🏆 TAB SAVE: Repository result: $success', tag: 'ACHIEVEMENTS_TAB');
+
+      if (success) {
+        onProgress?.call('Achievements saved successfully!');
+
+        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
+        _runBackgroundSyncOperations(candidateId, candidate?.basicInfo?.fullName, candidate?.basicInfo?.photo, achievements.toJson());
 
         AppLogger.database('✅ TAB SAVE: Achievements completed successfully', tag: 'ACHIEVEMENTS_TAB');
         return true;

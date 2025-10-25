@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_user_controller.dart';
+import '../controllers/events_controller.dart';
 import '../../../services/plan_service.dart';
 import '../widgets/edit/events/events_edit.dart';
 import '../widgets/view/events/events_tab_view.dart';
+import '../models/events_model.dart';
 import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardEvents extends StatefulWidget {
@@ -58,8 +60,10 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
-                  onEventsChange: (events) =>
-                      controller.updateExtraInfo('events', events),
+                  onEventsChange: (eventsJson) {
+                    final events = eventsJson.map((e) => EventData.fromJson(e)).toList();
+                    controller.updateEventsInfo(events);
+                  },
                 ),
               )
             : VoterEventsSection(
@@ -96,10 +100,13 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                             await eventsSectionState.uploadPendingFiles();
                           }
 
-                          // Then save the events data
-                          final success = await controller.saveExtraInfo(
-                            onProgress: (message) =>
-                                messageController.add(message),
+                          // Then save the events data using events controller
+                          final eventsController = Get.find<EventsController>();
+                          final success = await eventsController.saveEventsTabWithCandidate(
+                            candidateId: controller.candidateData.value!.candidateId,
+                            events: controller.candidateData.value!.events ?? [],
+                            candidate: controller.candidateData.value,
+                            onProgress: (message) => messageController.add(message),
                           );
 
                           if (success) {
