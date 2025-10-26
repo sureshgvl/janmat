@@ -8,7 +8,6 @@ import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/features/candidate/widgets/demo_data_modal.dart';
 import 'package:janmat/features/candidate/controllers/achievements_controller.dart';
 
-import '../../../models/achievements_model.dart';
 
 // Reusable Achievement Item Widget
 class AchievementItemWidget extends StatelessWidget {

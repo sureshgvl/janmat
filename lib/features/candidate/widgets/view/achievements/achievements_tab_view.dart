@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/candidate_model.dart';
+import 'package:janmat/features/candidate/models/candidate_model.dart';
+
 
 class AchievementsTabView extends StatefulWidget {
   final Candidate candidate;

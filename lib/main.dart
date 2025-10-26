@@ -17,6 +17,7 @@ import 'core/app_theme.dart';
 import 'core/app_routes.dart';
 import 'core/initial_app_data_service.dart';
 import 'services/background_initializer.dart';
+import 'services/language_service.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
@@ -27,6 +28,7 @@ import 'l10n/features/settings/settings_localizations.dart';
 import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
+import 'controllers/language_controller.dart';
 
 /// Extension to handle Locale serialization/deserialization for JSON
 extension LocaleJsonExtension on Locale {
@@ -68,6 +70,8 @@ void main() async {
 
   // Initialize ThemeController early
   Get.put<ThemeController>(ThemeController());
+  // Initialize LanguageController early for reactive locale
+  Get.put<LanguageController>(LanguageController());
 
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -209,23 +213,32 @@ class MyApp extends StatelessWidget {
 
             return Obx(() {
               final themeController = Get.find<ThemeController>();
-              return GetMaterialApp(
-                title: 'JanMat',
-                theme: themeController.currentTheme.value,
-                localizationsDelegates: [
-                  ...AppLocalizations.localizationsDelegates,
-                  CandidateLocalizations.delegate,
-                  AuthLocalizations.delegate,
-                  OnboardingLocalizations.delegate,
-                  ProfileLocalizations.delegate,
-                  NotificationsLocalizations.delegate,
-                  SettingsLocalizations.delegate,
-                ],
-                supportedLocales: AppLocalizations.supportedLocales,
-                initialBinding: AppBindings(),
-                initialRoute: initialRoute,
-                getPages: AppRoutes.getPages,
-                debugShowCheckedModeBanner: false,
+              final languageController = Get.find<LanguageController>();
+              final currentLocale = languageController.currentLocale.value;
+
+              // Smooth transition when language changes
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: GetMaterialApp(
+                  key: ValueKey(currentLocale.languageCode), // Unique key for animation
+                  title: 'JanMat',
+                  theme: themeController.currentTheme.value,
+                  locale: currentLocale,  // Reactive locale binding
+                  localizationsDelegates: [
+                    ...AppLocalizations.localizationsDelegates,
+                    CandidateLocalizations.delegate,
+                    AuthLocalizations.delegate,
+                    OnboardingLocalizations.delegate,
+                    ProfileLocalizations.delegate,
+                    NotificationsLocalizations.delegate,
+                    SettingsLocalizations.delegate,
+                  ],
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  initialBinding: AppBindings(),
+                  initialRoute: initialRoute,
+                  getPages: AppRoutes.getPages,
+                  debugShowCheckedModeBanner: false,
+                ),
               );
             });
           },

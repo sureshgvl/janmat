@@ -104,7 +104,6 @@ class CandidateRepository {
   Future<Candidate?> getCandidateDataById(String candidateId) => _operations.getCandidateDataById(candidateId);
   Future<bool> updateCandidateExtraInfo(Candidate candidate) => _operations.updateCandidateExtraInfo(candidate);
   Future<bool> updateCandidateFields(String candidateId, Map<String, dynamic> fieldUpdates) => _operations.updateCandidateFields(candidateId, fieldUpdates);
-  Future<bool> updateCandidateExtraInfoFields(String candidateId, Map<String, dynamic> extraInfoUpdates) => _operations.updateCandidateExtraInfoFields(candidateId, extraInfoUpdates);
   Future<bool> batchUpdateCandidateFields(String candidateId, Map<String, dynamic> updates) => _operations.batchUpdateCandidateFields(candidateId, updates);
   Future<List<Candidate>> getCandidatesByApprovalStatus(String districtId, String bodyId, String wardId, bool approved) => _operations.getCandidatesByApprovalStatus(districtId, bodyId, wardId, approved);
   Future<List<Candidate>> getCandidatesByStatus(String districtId, String bodyId, String wardId, String status) => _operations.getCandidatesByStatus(districtId, bodyId, wardId, status);

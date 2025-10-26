@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Build main screen based on data state
   Widget _buildMainScreen(BuildContext context, HomeScreenData data) {
     final userModel = data.userModel;
-    final candidateModel = data.candidateModel as Candidate?;
+    final candidateModel = data.effectiveCandidateModel as Candidate?;
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
@@ -199,10 +199,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build drawer with appropriate placeholders
   Widget _buildDrawer(BuildContext context, HomeScreenData data, User? currentUser) {
-    if (data.isComplete && data.isCandidateMode) {
+    if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       return HomeDrawer(
         userModel: data.userModel!,
-        candidateModel: data.candidateModel as Candidate?,
+        candidateModel: data.effectiveCandidateModel as Candidate?,
         currentUser: currentUser!,
       );
     } else if (data.hasPartialData || data.isComplete) {
@@ -218,13 +218,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build body with appropriate placeholders
   Widget _buildBody(BuildContext context, HomeScreenData data, User? currentUser) {
-    if (data.isComplete && data.isCandidateMode) {
+    if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       return HomeBody(
         userModel: data.userModel!,
-        candidateModel: data.candidateModel as Candidate?,
+        candidateModel: data.effectiveCandidateModel as Candidate?,
         currentUser: currentUser!,
       );
-    } else if (data.hasPartialData && data.role == 'candidate') {
+    } else if ((data.hasPartialData || data.hasCachedCandidate) && data.role == 'candidate') {
       return _buildCandidatePlaceholderBody(context, data);
     } else {
       return HomeBody(
@@ -259,6 +259,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build candidate-specific placeholder body
   Widget _buildCandidatePlaceholderBody(BuildContext context, HomeScreenData data) {
+    final candidateModel = data.effectiveCandidateModel as Candidate?;
+    final isUsingCachedData = data.hasCachedCandidate;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -271,39 +274,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Candidate card placeholder
+          // Candidate card with actual data if available
           Card(
             elevation: 4,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  // Party symbol placeholder
+                  // Party symbol or photo
                   Container(
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.account_circle, size: 40, color: Colors.grey),
+                    child: candidateModel?.photo != null
+                      ? Image.network(
+                          candidateModel!.photo!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.account_circle, size: 40, color: Colors.grey),
+                        )
+                      : Icon(Icons.account_circle, size: 40, color: Colors.grey),
                   ),
                   const SizedBox(width: 16),
-                  // Candidate info placeholder
+                  // Candidate info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          height: 20,
-                          width: double.infinity,
-                          color: Colors.grey[300],
+                        Text(
+                          candidateModel?.name ?? 'Loading...',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          height: 16,
-                          width: 150,
-                          color: Colors.grey[300],
+                        const SizedBox(height: 4),
+                        Text(
+                          candidateModel?.party ?? '',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ],
                     ),
@@ -315,24 +324,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 24),
 
-          // Actions placeholder
+          // Actions section
           Text(
             'Quick Actions',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
 
-          // Action buttons placeholder
+          // Action buttons placeholder or actual buttons
           Row(
             children: [
               Expanded(
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: isUsingCachedData ? Colors.blue[50] : Colors.grey[300],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.refresh),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isUsingCachedData ? Icons.cloud_done : Icons.refresh,
+                        color: isUsingCachedData ? Colors.blue : Colors.grey,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isUsingCachedData ? 'Cached Data' : 'Refresh',
+                        style: TextStyle(
+                          color: isUsingCachedData ? Colors.blue : Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -351,16 +376,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 32),
 
-          // Loading indicator
-          const Center(
-            child: Column(
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading candidate data...'),
-              ],
+          // Status indicator based on data availability
+          if (!isUsingCachedData)
+            const Center(
+              child: Column(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading candidate data...'),
+                ],
+              ),
+            )
+          else
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(
+                      Icons.cloud_done,
+                      color: Colors.blue,
+                      size: 32,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Using cached data\nSyncing in background...',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );

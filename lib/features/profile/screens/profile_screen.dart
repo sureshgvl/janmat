@@ -18,7 +18,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isLoggingOut = false; // Add loading state for logout
+  bool _isLoggingOut = false;
   final FileUploadService _fileUploadService = FileUploadService();
   bool _isUploadingPhoto = false;
 
@@ -26,159 +26,307 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: Text(ProfileLocalizations.of(context)?.translate('uploadPhoto') ?? 'Upload Photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _uploadProfilePhoto(context);
-                },
-              ),
-              if (userModel.photoURL != null) ...[
-                ListTile(
-                  leading: const Icon(Icons.remove_circle_outline),
-                  title: Text(ProfileLocalizations.of(context)?.translate('removePhoto') ?? 'Remove Photo'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showRemovePhotoConfirmation(context);
-                  },
+        return Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.visibility),
-                  title: Text(ProfileLocalizations.of(context)?.translate('viewPhoto') ?? 'View Photo'),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    child: Icon(
+                      Icons.photo_camera,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  title: Text(
+                    ProfileLocalizations.of(context)?.translate('uploadPhoto') ??
+                        'Upload Photo',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
-                    _viewProfilePhoto(context, userModel.photoURL!);
+                    _uploadProfilePhoto(context, userModel);
                   },
                 ),
+                if (userModel.photoURL != null) ...[
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.red.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.remove_circle_outline,
+                        color: Colors.red,
+                      ),
+                    ),
+                    title: Text(
+                      ProfileLocalizations.of(context)?.translate('removePhoto') ??
+                          'Remove Photo',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showRemovePhotoConfirmation(context, userModel);
+                    },
+                  ),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.visibility,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    title: Text(
+                      ProfileLocalizations.of(context)?.translate('viewPhoto') ??
+                          'View Photo',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _viewProfilePhoto(context, userModel.photoURL!);
+                    },
+                  ),
+                ],
+                const SizedBox(height: 8),
               ],
-              ListTile(
-                leading: const Icon(Icons.cancel),
-                title: Text(ProfileLocalizations.of(context)?.translate('cancel') ?? 'Cancel'),
-                onTap: () => Navigator.pop(context),
-              ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Future<void> _uploadProfilePhoto(BuildContext context) async {
+  Future<void> _uploadProfilePhoto(
+    BuildContext context,
+    UserModel userModel,
+  ) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
+
+    final localizations = ProfileLocalizations.of(context);
+    final successTitle = localizations?.translate('success') ?? 'Success';
+    final successMessage =
+        localizations?.translate('profilePhotoUpdatedSuccessfully') ??
+        'Profile photo updated successfully!';
+    final errorTitle = localizations?.translate('error') ?? 'Error';
+    final errorMessageTemplate =
+        localizations?.translate(
+          'failedToUpdateProfilePhoto',
+          args: {'error': ''},
+        ) ??
+        'Failed to update profile photo: ';
 
     setState(() {
       _isUploadingPhoto = true;
     });
 
     try {
+      if (userModel.photoURL != null) {
+        await _fileUploadService.deleteFile(userModel.photoURL!);
+      }
+
       final downloadUrl = await _fileUploadService.uploadProfilePhoto(
         currentUser.uid,
       );
 
       if (downloadUrl != null) {
-        // Update the user's photoURL in Firebase Auth
         await currentUser.updatePhotoURL(downloadUrl);
-
-        // Update the photoURL in Firestore
         await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
             .update({'photoURL': downloadUrl});
 
-        // Refresh the chat controller to update the user data
         final chatController = Get.find<ChatController>();
         await chatController.refreshUserDataAndChat();
 
-        Get.snackbar(
-          ProfileLocalizations.of(context)?.translate('success') ?? 'Success',
-          ProfileLocalizations.of(context)?.translate('profilePhotoUpdatedSuccessfully') ?? 'Profile photo updated successfully!',
-          duration: const Duration(seconds: 2),
-        );
+        if (mounted) {
+          Get.snackbar(
+            successTitle,
+            successMessage,
+            duration: const Duration(seconds: 2),
+          );
+        }
       }
     } catch (e) {
-      Get.snackbar(
-        ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
-        ProfileLocalizations.of(context)?.translate('failedToUpdateProfilePhoto', args: {'error': e.toString()}) ?? 'Failed to update profile photo: $e',
-        duration: const Duration(seconds: 3),
-      );
+      if (mounted) {
+        Get.snackbar(
+          errorTitle,
+          errorMessageTemplate + e.toString(),
+          duration: const Duration(seconds: 3),
+        );
+      }
     } finally {
-      setState(() {
-        _isUploadingPhoto = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
     }
   }
 
-  void _showRemovePhotoConfirmation(BuildContext context) {
+  void _showRemovePhotoConfirmation(BuildContext context, UserModel userModel) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(ProfileLocalizations.of(context)?.translate('removePhoto') ?? 'Remove Photo'),
-          content: Text(ProfileLocalizations.of(context)?.translate('removePhotoConfirmation') ?? 'Are you sure you want to remove your profile photo?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(ProfileLocalizations.of(context)?.translate('cancel') ?? 'Cancel'),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 48,
+                  color: Colors.red.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  ProfileLocalizations.of(context)?.translate('removePhoto') ??
+                      'Remove Photo',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  ProfileLocalizations.of(
+                        context,
+                      )?.translate('removePhotoConfirmation') ??
+                      'Are you sure you want to remove your profile photo?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          ProfileLocalizations.of(context)?.translate('cancel') ??
+                              'Cancel',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _removeProfilePhoto(context, userModel);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          ProfileLocalizations.of(context)?.translate('remove') ??
+                              'Remove',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _removeProfilePhoto(context);
-              },
-              child: Text(
-                ProfileLocalizations.of(context)?.translate('remove') ?? 'Remove',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );
   }
 
-  Future<void> _removeProfilePhoto(BuildContext context) async {
+  Future<void> _removeProfilePhoto(
+    BuildContext context,
+    UserModel userModel,
+  ) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
+
+    final localizations = ProfileLocalizations.of(context);
+    final successTitle = localizations?.translate('success') ?? 'Success';
+    final successMessage =
+        localizations?.translate('profilePhotoRemovedSuccessfully') ??
+        'Profile photo removed successfully!';
+    final errorTitle = localizations?.translate('error') ?? 'Error';
+    final errorMessageTemplate =
+        localizations?.translate(
+          'failedToRemoveProfilePhoto',
+          args: {'error': ''},
+        ) ??
+        'Failed to remove profile photo: ';
 
     setState(() {
       _isUploadingPhoto = true;
     });
 
     try {
-      // Update the user's photoURL in Firebase Auth to null
-      await currentUser.updatePhotoURL(null);
+      if (userModel.photoURL != null) {
+        await _fileUploadService.deleteFile(userModel.photoURL!);
+      }
 
-      // Update the photoURL in Firestore to null
+      await currentUser.updatePhotoURL(null);
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
           .update({'photoURL': null});
 
-      // Refresh the chat controller to update the user data
       final chatController = Get.find<ChatController>();
       await chatController.refreshUserDataAndChat();
 
-      Get.snackbar(
-        ProfileLocalizations.of(context)?.translate('success') ?? 'Success',
-        ProfileLocalizations.of(context)?.translate('profilePhotoRemovedSuccessfully') ?? 'Profile photo removed successfully!',
-        duration: const Duration(seconds: 2),
-      );
+      if (mounted) {
+        Get.snackbar(
+          successTitle,
+          successMessage,
+          duration: const Duration(seconds: 2),
+        );
+      }
     } catch (e) {
-      Get.snackbar(
-        ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
-        ProfileLocalizations.of(context)?.translate('failedToRemoveProfilePhoto', args: {'error': e.toString()}) ?? 'Failed to remove profile photo: $e',
-        duration: const Duration(seconds: 3),
-      );
+      if (mounted) {
+        Get.snackbar(
+          errorTitle,
+          errorMessageTemplate + e.toString(),
+          duration: const Duration(seconds: 3),
+        );
+      }
     } finally {
-      setState(() {
-        _isUploadingPhoto = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
     }
   }
 
@@ -187,20 +335,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppBar(
-                title: Text(ProfileLocalizations.of(context)?.translate('profilePhoto') ?? 'Profile Photo'),
-                leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.photo,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        ProfileLocalizations.of(context)?.translate('profilePhoto') ??
+                            'Profile Photo',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              InteractiveViewer(
-                child: Image.network(photoUrl),
-              ),
-            ],
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.7,
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: InteractiveViewer(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(photoUrl),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -210,246 +400,392 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(ProfileLocalizations.of(context)?.translate('profile') ?? 'Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              // Force refresh user data
-              final chatController = Get.find<ChatController>();
-              chatController.refreshUserDataAndChat();
-            },
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                spreadRadius: 0,
+              ),
+            ],
           ),
-        ],
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        title: Text(
+          ProfileLocalizations.of(context)?.translate('profile') ?? 'Profile',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: GetBuilder<ChatController>(
-        builder: (chatController) {
-          // Try to get user from ChatController first (reactive)
-          UserModel? userModel = chatController.currentUser;
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primary.withOpacity(0.8),
+              Colors.white,
+            ],
+            stops: const [0.0, 0.3, 1.0],
+          ),
+        ),
+        child: GetBuilder<ChatController>(
+          builder: (chatController) {
+            UserModel? userModel = chatController.currentUser;
 
-          // If no cached user, show loading and fetch
-          if (userModel == null) {
-            return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(FirebaseAuth.instance.currentUser?.uid)
-                  .get(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      '${ProfileLocalizations.of(context)?.translate('error') ?? 'Error'}: ${snapshot.error}',
-                    ),
-                  );
-                }
-                if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return Center(
-                    child: Text(ProfileLocalizations.of(context)?.translate('userDataNotFound') ?? 'User data not found'),
-                  );
-                }
+            if (userModel == null) {
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '${ProfileLocalizations.of(context)?.translate('error') ?? 'Error'}: ${snapshot.error}',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.account_circle_outlined,
+                            size: 48,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            ProfileLocalizations.of(context)?.translate('userDataNotFound') ??
+                                'User data not found',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
 
-                final userData = snapshot.data!.data() as Map<String, dynamic>;
-                userModel = UserModel.fromJson(userData);
-                return _buildProfileContent(context, userModel!);
-              },
-            );
-          }
+                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  userModel = UserModel.fromJson(userData);
+                  return _buildProfileContent(context, userModel!);
+                },
+              );
+            }
 
-          // Use reactive user data from ChatController
-          return _buildProfileContent(context, userModel);
-        },
+            return _buildProfileContent(context, userModel);
+          },
+        ),
       ),
     );
   }
 
   Widget _buildProfileContent(BuildContext context, UserModel userModel) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          // Avatar and user info
-          Center(
+          const SizedBox(height: kToolbarHeight + 20),
+          // Profile Header Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 64,
-                      backgroundColor: Colors.blue,
-                      backgroundImage: userModel.photoURL != null
-                          ? NetworkImage(userModel.photoURL!)
-                          : null,
-                      child: userModel.photoURL == null
-                          ? Text(
-                              (userModel.name.isEmpty ? 'U' : userModel.name[0])
-                                  .toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 40,
-                                color: Colors.white,
-                              ),
-                            )
-                          : null,
+                // Avatar Section
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                      ],
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _isUploadingPhoto
-                            ? null
-                            : () => _showPhotoOptions(context, userModel),
-                        child: Container(
-                          height: 32,
-                          width: 32,
-                          decoration: BoxDecoration(
-                            color: _isUploadingPhoto
-                                ? Colors.grey
-                                : Colors.orange,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: _isUploadingPhoto
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                  size: 20,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: userModel.photoURL != null
+                            ? NetworkImage(userModel.photoURL!)
+                            : null,
+                        child: userModel.photoURL == null
+                            ? Text(
+                                (userModel.name.isEmpty ? 'U' : userModel.name[0])
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _isUploadingPhoto
+                              ? null
+                              : () => _showPhotoOptions(context, userModel),
+                          child: Container(
+                            height: 36,
+                            width: 36,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Theme.of(context).colorScheme.primary,
+                                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: _isUploadingPhoto
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                // User Name
                 Text(
                   userModel.name,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: Color(0xFF1F2937),
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  userModel.email ?? '',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF94A3B8),
+                const SizedBox(height: 6),
+                // Email
+                if (userModel.email != null)
+                  Text(
+                    userModel.email!,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
+                // Premium Badge
+                if (userModel.premium) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFFF59E0B),
+                          const Color(0xFFF97316),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF97316).withOpacity(0.3),
+                          blurRadius: 8,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          ProfileLocalizations.of(context)?.translate('premium') ??
+                              'Premium',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 24),
+
+
+
           // Account Details Card
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        ProfileLocalizations.of(context)?.translate('accountDetails') ?? 'Account Details',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 20),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      if (userModel.premium)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                color: Color(0xFFF97316),
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                ProfileLocalizations.of(context)?.translate('premium') ?? 'Premium',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFF97316),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.7,
+                      child: Icon(
+                        Icons.person_outline,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      ProfileLocalizations.of(context)?.translate('accountDetails') ??
+                          'Account Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                MediaQuery(
+                  data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
+                  child: Column(
                     children: [
                       _buildDetailItem(
                         context: context,
                         icon: Icons.phone,
                         label: ProfileLocalizations.of(context)?.translate('phoneNumber') ?? 'Phone Number',
                         value: userModel.phone,
-                        iconColor: Colors.blue,
+                        iconColor: Theme.of(context).colorScheme.primary,
                       ),
+                      if (userModel.email != null)
+                        _buildDetailItem(
+                          context: context,
+                          icon: Icons.email,
+                          label: ProfileLocalizations.of(context)?.translate('email') ?? 'Email',
+                          value: userModel.email!,
+                          iconColor: Theme.of(context).colorScheme.primary,
+                        ),
                       _buildDetailItem(
                         context: context,
-                        icon: Icons.star,
-                        label: ProfileLocalizations.of(context)?.translate('xpPoints') ?? 'XP Points',
-                        value: userModel.xpPoints.toString(),
-                        iconColor: Colors.blue,
-                      ),
-                      _buildDetailItem(
-                        context: context,
-                        icon: Icons.email,
-                        label: ProfileLocalizations.of(context)?.translate('email') ?? 'Email',
-                        value: userModel.email ?? '',
-                        iconColor: Colors.blue,
+                        icon: Icons.calendar_today,
+                        label: 'Member Since',
+                        value: '${userModel.createdAt.day}/${userModel.createdAt.month}/${userModel.createdAt.year}',
+                        iconColor: Theme.of(context).colorScheme.primary,
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          // Log Out Button
-          SizedBox(
+
+          const SizedBox(height: 32),
+
+          // Logout Button
+          Container(
             width: double.infinity,
+            height: 56,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
             child: ElevatedButton(
               onPressed: _isLoggingOut
                   ? null
@@ -461,7 +797,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final authRepository = AuthRepository();
                         await authRepository.signOut();
 
-                        // Reset login controller state (if available)
                         try {
                           if (Get.isRegistered<AuthController>()) {
                             final loginController = Get.find<AuthController>();
@@ -475,14 +810,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             );
                           }
                         } catch (e) {
-                          AppLogger.error('⚠️ Could not reset login controller: $e');
+                          AppLogger.error(
+                            '⚠️ Could not reset login controller: $e',
+                          );
                         }
 
                         Get.offAllNamed('/login');
                       } catch (e) {
                         Get.snackbar(
                           ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
-                          ProfileLocalizations.of(context)?.translate('failedToLogout', args: {'error': e.toString()}) ?? 'Failed to logout: $e',
+                          ProfileLocalizations.of(context)?.translate('failedToLogout', args: {'error': e.toString()}) ??
+                              'Failed to logout: $e',
                         );
                       } finally {
                         if (mounted) {
@@ -491,45 +829,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isLoggingOut
-                    ? Colors.grey
-                    : const Color(0xFFFEE2E2),
-                foregroundColor: _isLoggingOut
-                    ? Colors.white
-                    : const Color(0xFFDC2626),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: _isLoggingOut ? Colors.grey.shade400 : Colors.redAccent,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                elevation: _isLoggingOut ? 0 : 8,
+                shadowColor: Colors.redAccent.withOpacity(0.4),
               ),
               child: _isLoggingOut
-                  ? Row(
+                  ? const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 24,
+                          height: 24,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Text(ProfileLocalizations.of(context)?.translate('loggingOut') ?? 'Logging out...'),
+                        SizedBox(width: 12),
+                        Text(
+                          'Logging out...',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
                       ],
                     )
-                  : Text(
-                      ProfileLocalizations.of(context)?.translate('logOut') ?? 'Log Out',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.logout, size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          ProfileLocalizations.of(context)?.translate('logOut') ?? 'Log Out',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
             ),
           ),
+
+          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -541,39 +935,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String value,
     required Color iconColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            height: 48,
-            width: 48,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFDBEAFE),
-              borderRadius: BorderRadius.circular(8),
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: iconColor, size: 24),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF0F172A),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   value,
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF94A3B8),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
                   ),
                 ),
               ],
@@ -584,4 +986,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-

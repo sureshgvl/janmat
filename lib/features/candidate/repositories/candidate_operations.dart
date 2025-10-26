@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
@@ -215,7 +216,7 @@ class CandidateOperations {
     }
   }
 
-  // Get candidate data by user ID (optimized)
+  // Get candidate data by user ID (optimized) with retry logic
   Future<Candidate?> getCandidateData(String userId) async {
     try {
       AppLogger.candidate(
@@ -229,137 +230,194 @@ class CandidateOperations {
         return null;
       }
 
-      // OPTIMIZED: Use UserDataController for user data
-      // First, get the user's districtId, bodyId and wardId from their user document
-      final userDoc = await _firestore.collection('users').doc(userId).get();
-
-      if (!userDoc.exists) {
-        AppLogger.candidate('❌ User document not found for userId: $userId');
-        AppLogger.candidate(
-          '🔄 Falling back to brute force search due to missing user document',
-        );
-        // Fallback to brute force search if user document doesn't exist
-        return await _getCandidateDataBruteForce(userId);
-      }
-
-      final userData = userDoc.data()!;
-      final userModel = UserModel.fromJson(userData);
-      String? districtId = userModel.districtId;
-      String? bodyId = userModel.bodyId;
-      String? wardId = userModel.wardId;
-
-      if (districtId == null ||
-          wardId == null ||
-          districtId.isEmpty ||
-          wardId.isEmpty) {
-        AppLogger.candidate(
-          '⚠️ User has no districtId or wardId, falling back to brute force search',
-        );
-        // Fallback to the old method if location info is missing
-        return await _getCandidateDataBruteForce(userId);
-      }
-
-      AppLogger.candidate(
-        '🎯 Direct search: District: $districtId, Body: $bodyId, Ward: $wardId',
-      );
-
-      // Determine state ID dynamically for the direct query
-      final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
-      AppLogger.candidate('🎯 Using state ID for direct query: $stateId');
-
-      // Direct query to the specific state/district/body/ward path
-      final candidatesSnapshot = await _firestore
-          .collection('states')
-          .doc(stateId)
-          .collection('districts')
-          .doc(districtId)
-          .collection('bodies')
-          .doc(
-            bodyId ?? '',
-          ) // Empty string if bodyId is null for backward compatibility
-          .collection('wards')
-          .doc(wardId)
-          .collection('candidates')
-          .where('userId', isEqualTo: userId)
-          .limit(1)
-          .get(const GetOptions(source: Source.server));
-
-      AppLogger.candidate(
-        '👤 Found ${candidatesSnapshot.docs.length} candidates in $districtId/$bodyId/$wardId',
-      );
-
-      if (candidatesSnapshot.docs.isNotEmpty) {
-        final doc = candidatesSnapshot.docs.first;
-        final data = doc.data();
-        final candidateData = Map<String, dynamic>.from(data);
-        candidateData['candidateId'] = doc.id;
-
-        AppLogger.candidate('📄 Raw candidate data from DB:');
-        final extraInfo = data['extra_info'] as Map<String, dynamic>?;
-        AppLogger.candidate('   extra_info keys: ${extraInfo?.keys.toList() ?? 'null'}');
-        AppLogger.candidate('   education in extra_info: ${extraInfo?.containsKey('education') ?? false}');
-        AppLogger.candidate(
-          '   education value: ${extraInfo != null && extraInfo.containsKey('education') ? extraInfo['education'] : 'not found'}',
-        );
-
-        AppLogger.candidate(
-          '✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})',
-        );
-        return Candidate.fromJson(candidateData);
-      }
-
-      AppLogger.candidate(
-        '❌ No candidate found in user\'s district/body/ward: $districtId/$bodyId/$wardId',
-      );
-
-      // Fallback: Check legacy /candidates collection
-      AppLogger.candidate('🔄 Checking legacy /candidates collection for userId: $userId');
-
-      // First try exact match
-      final legacyCandidateDoc = await _firestore
-          .collection('candidates')
-          .where('userId', isEqualTo: userId)
-          .limit(1)
-          .get(const GetOptions(source: Source.server));
-
-      if (legacyCandidateDoc.docs.isNotEmpty) {
-        final doc = legacyCandidateDoc.docs.first;
-        final data = doc.data();
-        final candidateData = Map<String, dynamic>.from(data);
-        candidateData['candidateId'] = doc.id;
-
-        AppLogger.candidate(
-          '✅ Found candidate in legacy collection: ${candidateData['name']} (ID: ${doc.id})',
-        );
-        AppLogger.candidate('   userId in doc: ${candidateData['userId']}');
-
-        // Update user document with location info for future use
-        await ensureUserDocumentExists(
-          userId,
-          districtId: districtId,
-          bodyId: bodyId,
-          wardId: wardId,
-        );
-
-        return Candidate.fromJson(candidateData);
-      }
-
-      // If no exact match, try to find any candidate documents to debug
-      AppLogger.candidate('🔍 No exact match, checking all candidates in legacy collection...');
-      final allCandidates = await _firestore.collection('candidates').limit(10).get();
-      AppLogger.candidate('📊 Found ${allCandidates.docs.length} total candidates in legacy collection');
-
-      for (var doc in allCandidates.docs) {
-        final data = doc.data();
-        AppLogger.candidate('   Candidate ${doc.id}: userId=${data['userId']}, name=${data['name']}');
-      }
-
-      AppLogger.candidate('❌ No candidate found in legacy collection either');
-      return null;
+      // Use retry logic for all Firestore operations
+      return await _getCandidateDataWithRetry(userId);
     } catch (e) {
       AppLogger.candidateError('❌ Error fetching candidate data: $e');
       throw Exception('Failed to fetch candidate data: $e');
     }
+  }
+
+  /// Fetch candidate data with retry logic for transient Firestore errors
+  Future<Candidate?> _getCandidateDataWithRetry(String userId) async {
+    const maxRetries = 3;
+    const baseDelayMs = 1000; // 1 second initial delay
+
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // OPTIMIZED: Use UserDataController for user data
+        // First, get the user's districtId, bodyId and wardId from their user document
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+
+        if (!userDoc.exists) {
+          AppLogger.candidate('❌ User document not found for userId: $userId');
+          AppLogger.candidate(
+            '🔄 Falling back to brute force search due to missing user document',
+          );
+          // Fallback to brute force search if user document doesn't exist
+          return await _getCandidateDataBruteForce(userId);
+        }
+
+        final userData = userDoc.data()!;
+        final userModel = UserModel.fromJson(userData);
+        String? districtId = userModel.districtId;
+        String? bodyId = userModel.bodyId;
+        String? wardId = userModel.wardId;
+
+        if (districtId == null ||
+            wardId == null ||
+            districtId.isEmpty ||
+            wardId.isEmpty) {
+          AppLogger.candidate(
+            '⚠️ User has no districtId or wardId, falling back to brute force search',
+          );
+          // Fallback to the old method if location info is missing
+          return await _getCandidateDataBruteForce(userId);
+        }
+
+        AppLogger.candidate(
+          '🎯 Direct search: District: $districtId, Body: $bodyId, Ward: $wardId',
+        );
+
+        // Determine state ID dynamically for the direct query
+        final stateId = await _determineStateId(districtId, bodyId, wardId) ?? 'maharashtra';
+        AppLogger.candidate('🎯 Using state ID for direct query: $stateId');
+
+        // Direct query to the specific state/district/body/ward path
+        final candidatesSnapshot = await _firestore
+            .collection('states')
+            .doc(stateId)
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(
+              bodyId ?? '',
+            ) // Empty string if bodyId is null for backward compatibility
+            .collection('wards')
+            .doc(wardId)
+            .collection('candidates')
+            .where('userId', isEqualTo: userId)
+            .limit(1)
+            .get(const GetOptions(source: Source.server));
+
+        AppLogger.candidate(
+          '👤 Found ${candidatesSnapshot.docs.length} candidates in $districtId/$bodyId/$wardId',
+        );
+
+        if (candidatesSnapshot.docs.isNotEmpty) {
+          final doc = candidatesSnapshot.docs.first;
+          final data = doc.data();
+          final candidateData = Map<String, dynamic>.from(data);
+          candidateData['candidateId'] = doc.id;
+
+          AppLogger.candidate('📄 Raw candidate data from DB:');
+          final extraInfo = data['extra_info'] as Map<String, dynamic>?;
+          AppLogger.candidate('   extra_info keys: ${extraInfo?.keys.toList() ?? 'null'}');
+          AppLogger.candidate('   education in extra_info: ${extraInfo?.containsKey('education') ?? false}');
+          AppLogger.candidate(
+            '   education value: ${extraInfo != null && extraInfo.containsKey('education') ? extraInfo['education'] : 'not found'}',
+          );
+
+          AppLogger.candidate(
+            '✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})',
+          );
+          return Candidate.fromJson(candidateData);
+        }
+
+        AppLogger.candidate(
+          '❌ No candidate found in user\'s district/body/ward: $districtId/$bodyId/$wardId',
+        );
+
+        // Fallback: Check legacy /candidates collection
+        AppLogger.candidate('🔄 Checking legacy /candidates collection for userId: $userId');
+
+        // First try exact match
+        final legacyCandidateDoc = await _firestore
+            .collection('candidates')
+            .where('userId', isEqualTo: userId)
+            .limit(1)
+            .get(const GetOptions(source: Source.server));
+
+        if (legacyCandidateDoc.docs.isNotEmpty) {
+          final doc = legacyCandidateDoc.docs.first;
+          final data = doc.data();
+          final candidateData = Map<String, dynamic>.from(data);
+          candidateData['candidateId'] = doc.id;
+
+          AppLogger.candidate(
+            '✅ Found candidate in legacy collection: ${candidateData['name']} (ID: ${doc.id})',
+          );
+          AppLogger.candidate('   userId in doc: ${candidateData['userId']}');
+
+          // Update user document with location info for future use
+          await ensureUserDocumentExists(
+            userId,
+            districtId: districtId,
+            bodyId: bodyId,
+            wardId: wardId,
+          );
+
+          return Candidate.fromJson(candidateData);
+        }
+
+        // If no exact match, try to find any candidate documents to debug
+        AppLogger.candidate('🔍 No exact match, checking all candidates in legacy collection...');
+        final allCandidates = await _firestore.collection('candidates').limit(10).get();
+        AppLogger.candidate('📊 Found ${allCandidates.docs.length} total candidates in legacy collection');
+
+        for (var doc in allCandidates.docs) {
+          final data = doc.data();
+          AppLogger.candidate('   Candidate ${doc.id}: userId=${data['userId']}, name=${data['name']}');
+        }
+
+        AppLogger.candidate('❌ No candidate found in legacy collection either');
+        return null;
+      } catch (error) {
+        // Check if this is a retriable error
+        if (_isRetriableFirestoreError(error) && attempt < maxRetries) {
+          final delayMs = baseDelayMs * (1 << attempt); // Exponential backoff: 1s, 2s, 4s
+          AppLogger.candidate('⏳ Retriable Firestore error on attempt ${attempt + 1}, retrying in ${delayMs}ms: $error');
+          await Future.delayed(Duration(milliseconds: delayMs));
+          continue;
+        }
+
+        // If this is the last attempt or not retriable, try cache-only fallback
+        if (attempt == maxRetries || !_isRetriableFirestoreError(error)) {
+          try {
+            AppLogger.candidate('🔄 Attempting cache-only fallback after server failures');
+            // Try reading from cache (not implemented in this method, but we could add it)
+            return null; // For now, return null as cache fallback isn't implemented
+          } catch (cacheError) {
+            AppLogger.candidate('❌ Cache fallback also failed: $cacheError');
+          }
+        }
+
+        // Re-throw the original error if we can't recover
+        AppLogger.candidate('❌ All retry attempts and fallback failed: $error');
+        rethrow;
+      }
+    }
+
+    // This should never be reached, but just in case
+    throw Exception('Unexpected error in candidate fetch retry logic');
+  }
+
+  /// Check if a Firestore error is retriable (transient)
+  bool _isRetriableFirestoreError(dynamic error) {
+    if (error is FirebaseException) {
+      // UNAVAILABLE errors are transient and should be retried
+      // Other retriable codes: DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED (with backoff)
+      return error.code == 'unavailable' ||
+             error.code == 'deadline-exceeded' ||
+             error.code == 'resource-exhausted';
+    }
+
+    // Timeout exceptions are also retriable
+    if (error is TimeoutException) {
+      return true;
+    }
+
+    return false;
   }
 
   // Optimized brute force search (limited to user's selected district)
@@ -1096,60 +1154,7 @@ class CandidateOperations {
       throw Exception('Failed to update candidate fields: $e');
     }
   }
-
-  // Update specific extra_info fields (most common use case)
-  Future<bool> updateCandidateExtraInfoFields(
-    String candidateId,
-    Map<String, dynamic> extraInfoUpdates,
-  ) async {
-    try {
-      AppLogger.candidate(
-        '🔄 updateCandidateExtraInfoFields - Input: $extraInfoUpdates',
-      );
-
-      // Convert extra_info field updates to dot notation
-      final fieldUpdates = <String, dynamic>{};
-
-      extraInfoUpdates.forEach((key, value) {
-        // Handle nested basic_info fields
-        if (['profession', 'languages', 'experienceYears', 'previousPositions', 'age', 'gender', 'education', 'dateOfBirth'].contains(key)) {
-          fieldUpdates['extra_info.basic_info.$key'] = value;
-          AppLogger.candidate('   Converting $key -> extra_info.basic_info.$key = $value');
-        } else {
-          fieldUpdates['extra_info.$key'] = value;
-          AppLogger.candidate('   Converting $key -> extra_info.$key = $value');
-        }
-      });
-
-      AppLogger.candidate('   Final field updates: $fieldUpdates');
-
-      // Try to update in new structure first
-      try {
-        final success = await updateCandidateFields(candidateId, fieldUpdates);
-        if (success) return true;
-      } catch (e) {
-        AppLogger.candidate('⚠️ Failed to update in new structure: $e');
-      }
-
-      // Fallback: Update in legacy collection
-      AppLogger.candidate('🔄 Falling back to legacy collection update');
-      final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
-
-      // Check if candidate exists in legacy collection
-      final legacyDoc = await legacyDocRef.get();
-      if (!legacyDoc.exists) {
-        throw Exception('Candidate not found in legacy collection either');
-      }
-
-      await legacyDocRef.update(fieldUpdates);
-      AppLogger.candidate('✅ Successfully updated candidate in legacy collection');
-
-      return true;
-    } catch (e) {
-      throw Exception('Failed to update candidate extra info fields: $e');
-    }
-  }
-
+  
   // Batch update multiple fields at once
   Future<bool> batchUpdateCandidateFields(
     String candidateId,

@@ -22,8 +22,7 @@ class FileUploadService {
 
       if (image == null) return null;
 
-      final fileName =
-          'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName = 'profile_${userId}.jpg';
       final storageRef = _storage.ref().child('profile_photos/$fileName');
 
       final uploadTask = storageRef.putFile(
@@ -278,9 +277,10 @@ class FileUploadService {
     try {
       final ref = _storage.refFromURL(fileUrl);
       await ref.delete();
+      AppLogger.common('File deleted successfully: $fileUrl');
     } catch (e) {
-      AppLogger.commonError('Error deleting file', error: e);
-      // Don't throw error for delete failures as file might not exist
+      // Log the error but don't throw it - file might not exist
+      AppLogger.common('Warning: File delete failed (may not exist): $fileUrl - ${e.toString()}');
     }
   }
 

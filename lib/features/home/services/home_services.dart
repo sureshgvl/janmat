@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
@@ -41,11 +42,8 @@ class HomeServices {
     AppLogger.common('🔄 Fetching fresh user data for home: $uid');
 
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 3));
+      // Try to fetch from server with retry logic for unavailable errors
+      final userDoc = await _fetchUserDocWithRetry(uid);
 
       UserModel? userModel;
       Candidate? candidateModel;
@@ -130,19 +128,8 @@ class HomeServices {
         return Candidate.fromJson(cachedCandidate);
       }
 
-      // Fast fetch with short timeout
-      final candidateDoc = await FirebaseFirestore.instance
-          .collection('candidates')
-          .doc(uid)
-          .get(const GetOptions(source: Source.cache))
-          .timeout(const Duration(seconds: 1), onTimeout: () async {
-            // Fallback to server with 2 second timeout
-            return await FirebaseFirestore.instance
-                .collection('candidates')
-                .doc(uid)
-                .get(const GetOptions(source: Source.server))
-                .timeout(const Duration(seconds: 2));
-          });
+      // Try fetch with retry logic
+      final candidateDoc = await _fetchCandidateDocWithRetry(uid);
 
       if (candidateDoc.exists) {
         final candidateData = candidateDoc.data()!;
@@ -162,6 +149,132 @@ class HomeServices {
       AppLogger.common('⚠️ Candidate data load failed: $e');
     }
     return null;
+  }
+
+  /// Fetch candidate document with retry logic for transient Firestore errors
+  Future<DocumentSnapshot<Map<String, dynamic>>> _fetchCandidateDocWithRetry(String uid) async {
+    const maxRetries = 3;
+    const baseDelayMs = 500; // Shorter delays for candidate data
+
+    // Try cache first with fallback to server
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Try cache fetch first
+        final candidateDoc = await FirebaseFirestore.instance
+            .collection('candidates')
+            .doc(uid)
+            .get(const GetOptions(source: Source.cache))
+            .timeout(const Duration(seconds: 1));
+
+        if (candidateDoc.exists) {
+          AppLogger.common('✅ Candidate data fetched from cache on attempt ${attempt + 1}');
+          return candidateDoc;
+        }
+      } catch (cacheError) {
+        AppLogger.common('⏳ Cache fetch failed (${cacheError.toString()}), trying server on attempt ${attempt + 1}');
+      }
+
+      // Cache failed, try server
+      try {
+        final candidateDoc = await FirebaseFirestore.instance
+            .collection('candidates')
+            .doc(uid)
+            .get(const GetOptions(source: Source.server))
+            .timeout(const Duration(seconds: 2));
+
+        AppLogger.common('✅ Candidate data fetched from server on attempt ${attempt + 1}');
+        return candidateDoc;
+      } catch (e) {
+        // Check if this is a retriable error
+        if (_isRetriableFirestoreError(e) && attempt < maxRetries) {
+          final delayMs = baseDelayMs * (1 << attempt); // Exponential backoff: 500ms, 1s, 2s
+          AppLogger.common('⏳ Retriable Firestore error on attempt ${attempt + 1}, retrying in ${delayMs}ms: $e');
+          await Future.delayed(Duration(milliseconds: delayMs));
+          continue;
+        }
+
+        // If this is the last attempt or not retriable, re-throw
+        if (attempt == maxRetries || !_isRetriableFirestoreError(e)) {
+          AppLogger.common('❌ All retry attempts failed for candidate data: $e');
+          rethrow;
+        }
+      }
+    }
+
+    // This should never be reached, but just in case
+    throw Exception('Unexpected error in candidate fetch retry logic');
+  }
+
+  /// Fetch user document with retry logic for transient Firestore errors
+  Future<DocumentSnapshot<Map<String, dynamic>>> _fetchUserDocWithRetry(String uid) async {
+    const maxRetries = 3;
+    const baseDelayMs = 1000; // 1 second initial delay
+
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Try server fetch first
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get(const GetOptions(source: Source.server))
+            .timeout(const Duration(seconds: 3));
+
+        AppLogger.common('✅ User data fetched successfully on attempt ${attempt + 1}');
+        return userDoc;
+      } catch (e) {
+        // Check if this is a retriable error
+        if (_isRetriableFirestoreError(e) && attempt < maxRetries) {
+          final delayMs = baseDelayMs * (1 << attempt); // Exponential backoff: 1s, 2s, 4s
+          AppLogger.common('⏳ Retriable Firestore error on attempt ${attempt + 1}, retrying in ${delayMs}ms: $e');
+          await Future.delayed(Duration(milliseconds: delayMs));
+          continue;
+        }
+
+        // If this is the last attempt or not retriable, try cache-only fallback
+        if (attempt == maxRetries || !_isRetriableFirestoreError(e)) {
+          try {
+            AppLogger.common('🔄 Attempting cache-only fallback after server failures');
+            final cachedDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .get(const GetOptions(source: Source.cache))
+                .timeout(const Duration(seconds: 2));
+
+            if (cachedDoc.exists) {
+              AppLogger.common('✅ Retrieved user data from cache as fallback');
+              return cachedDoc;
+            }
+          } catch (cacheError) {
+            AppLogger.common('❌ Cache fallback also failed: $cacheError');
+          }
+        }
+
+        // Re-throw the original error if we can't recover
+        AppLogger.common('❌ All retry attempts and fallback failed: $e');
+        rethrow;
+      }
+    }
+
+    // This should never be reached, but just in case
+    throw Exception('Unexpected error in fetch retry logic');
+  }
+
+  /// Check if a Firestore error is retriable (transient)
+  bool _isRetriableFirestoreError(dynamic error) {
+    if (error is FirebaseException) {
+      // UNAVAILABLE errors are transient and should be retried
+      // Other retriable codes: DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED (with backoff)
+      return error.code == 'unavailable' ||
+             error.code == 'deadline-exceeded' ||
+             error.code == 'resource-exhausted';
+    }
+
+    // Timeout exceptions are also retriable
+    if (error is TimeoutException) {
+      return true;
+    }
+
+    return false;
   }
 
   // Background refresh for cache updates

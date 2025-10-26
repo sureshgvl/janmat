@@ -8,7 +8,6 @@ import '../controllers/candidate_controller.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/view/basic_info/basic_info_tab_view.dart';
 import '../widgets/view/manifesto/manifesto_view.dart';
-import '../widgets/view/profile/profile_tab_view.dart';
 import '../widgets/view/media/media_view.dart';
 import '../widgets/view/contact/contact_tab_view.dart';
 import '../widgets/edit/achievements/achievements_edit.dart';

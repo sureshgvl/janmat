@@ -87,8 +87,11 @@ class HomeScreenStreamService {
       // Check for cached user routing data first
       final routingData = await MultiLevelCache().getUserRoutingData(userId);
 
-      if (routingData != null) {
-        // Emit partial data from routing cache
+      if (routingData != null && routingData['role'] == 'candidate') {
+        // For candidates, try to load cached candidate data for instant display
+        await _tryEmitCachedCandidateData(userId, routingData);
+      } else if (routingData != null) {
+        // For non-candidates, emit partial data from routing cache
         _dataController.add(HomeScreenData.partial(
           userId: userId,
           role: routingData['role'],
@@ -104,6 +107,47 @@ class HomeScreenStreamService {
       // Ignore cache errors, continue with fresh load
       AppLogger.common('⚠️ Could not load partial data: $e');
     }
+  }
+
+  /// Try to emit cached candidate data for instant display
+  Future<void> _tryEmitCachedCandidateData(String userId, Map<String, dynamic> routingData) async {
+    try {
+      // Try to get cached user and candidate data
+      final cacheKey = 'home_user_data_$userId';
+      final cachedHomeData = await MultiLevelCache().get<Map<String, dynamic>>(cacheKey);
+
+      if (cachedHomeData != null && cachedHomeData['user'] != null && cachedHomeData['candidate'] != null) {
+        // Convert cached data to models
+        final userModel = cachedHomeData['user'] is Map<String, dynamic>
+          ? UserModel.fromJson(cachedHomeData['user'] as Map<String, dynamic>)
+          : cachedHomeData['user'] as UserModel;
+
+        final candidateModel = cachedHomeData['candidate'] is Map<String, dynamic>
+          ? Candidate.fromJson(cachedHomeData['candidate'] as Map<String, dynamic>)
+          : cachedHomeData['candidate'] as Candidate;
+
+        // Emit cached candidate data state for instant UI
+        _dataController.add(HomeScreenData.cachedCandidate(
+          userId: userId,
+          userModel: userModel,
+          cachedCandidateModel: candidateModel,
+        ));
+
+        AppLogger.common('⚡ Emitted cached candidate data for instant display: $userId');
+        return;
+      }
+    } catch (e) {
+      AppLogger.common('⚠️ Could not load cached candidate data: $e');
+    }
+
+    // Fall back to partial data if cached candidate data not available
+    _dataController.add(HomeScreenData.partial(
+      userId: userId,
+      role: routingData['role'],
+      hasCompletedProfile: routingData['hasCompletedProfile'] ?? false,
+      hasSelectedRole: routingData['hasSelectedRole'] ?? false,
+    ));
+    AppLogger.common('⚠️ Fell back to partial data (no cached candidate data) for: $userId');
   }
 
   /// Load fresh data from services
@@ -198,6 +242,7 @@ class HomeScreenData {
   final String? userId;
   final UserModel? userModel;
   final dynamic candidateModel;
+  final dynamic cachedCandidateModel; // Cached candidate data for offline-first loading
   final String? errorMessage;
   final bool? hasCompletedProfile;
   final bool? hasSelectedRole;
@@ -208,6 +253,7 @@ class HomeScreenData {
     this.userId,
     this.userModel,
     this.candidateModel,
+    this.cachedCandidateModel,
     this.errorMessage,
     this.hasCompletedProfile,
     this.hasSelectedRole,
@@ -235,6 +281,17 @@ class HomeScreenData {
     hasCompletedProfile: hasCompletedProfile,
     hasSelectedRole: hasSelectedRole,
     role: role,
+  );
+
+  factory HomeScreenData.cachedCandidate({
+    required String userId,
+    required UserModel userModel,
+    required Candidate cachedCandidateModel,
+  }) => HomeScreenData._(
+    state: HomeScreenState.cachedCandidate,
+    userId: userId,
+    userModel: userModel,
+    cachedCandidateModel: cachedCandidateModel,
   );
 
   factory HomeScreenData.complete({
@@ -266,6 +323,7 @@ class HomeScreenData {
   bool get hasError => state == HomeScreenState.error;
   bool get hasPartialData => state == HomeScreenState.partial;
   bool get hasNoData => state == HomeScreenState.noData;
+  bool get hasCachedCandidate => state == HomeScreenState.cachedCandidate;
 
   bool get needsNavigation => isComplete && (
     !(userModel?.roleSelected ?? true) ||
@@ -282,8 +340,11 @@ class HomeScreenData {
   }
 
   // For voter mode
-  bool get isVoterMode => isComplete && userModel?.role != 'candidate';
-  bool get isCandidateMode => isComplete && userModel?.role == 'candidate';
+  bool get isVoterMode => (isComplete || hasCachedCandidate) && userModel?.role != 'candidate';
+  bool get isCandidateMode => (isComplete || hasCachedCandidate) && userModel?.role == 'candidate';
+
+  // Get the effective candidate model (from fresh data or cached)
+  Candidate? get effectiveCandidateModel => candidateModel ?? cachedCandidateModel;
 
   @override
   String toString() {
@@ -296,6 +357,7 @@ enum HomeScreenState {
   loading,
   signedOut,
   partial,
+  cachedCandidate, // Offline-first cached candidate data state
   complete,
   noData,
   error,
