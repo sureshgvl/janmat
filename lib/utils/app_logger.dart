@@ -2,6 +2,37 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+/// Log levels for controlling verbosity
+enum LogLevel {
+  none(0),
+  fatal(1),
+  error(2),
+  warning(3),
+  info(4),
+  debug(5),
+  verbose(6);
+
+  const LogLevel(this.priority);
+
+  final int priority;
+
+  bool shouldLog(LogLevel currentLevel) => priority <= currentLevel.priority;
+
+  static LogLevel fromString(String level) {
+    switch (level.toLowerCase()) {
+      case 'none': return LogLevel.none;
+      case 'fatal': return LogLevel.fatal;
+      case 'error': return LogLevel.error;
+      case 'warning': case 'warn': return LogLevel.warning;
+      case 'info': return LogLevel.info;
+      case 'debug': return LogLevel.debug;
+      case 'verbose': case 'all': return LogLevel.verbose;
+      default: return kReleaseMode ? LogLevel.warning : LogLevel.debug;
+    }
+  }
+}
 
 /// Custom logging utility for filtering and controlling app logs
 class AppLogger {
@@ -16,6 +47,28 @@ class AppLogger {
     ),
     level: kDebugMode ? Level.verbose : Level.warning,
   );
+
+  // Environment-based global log level (overrides individual flags)
+  static LogLevel? _globalLogLevel;
+
+  // Load configuration from environment variables
+  static void loadFromEnvironment() {
+    try {
+      // Load global log level from .env
+      final logLevelStr = dotenv.get('LOG_LEVEL', fallback: '');
+      if (logLevelStr.isNotEmpty) {
+        _globalLogLevel = LogLevel.fromString(logLevelStr);
+        AppLogger.common('🎛️ Global log level set to: $_globalLogLevel');
+      }
+
+      // If a global log level is set, disable all categorical logs
+      if (_globalLogLevel != null && _globalLogLevel != LogLevel.verbose) {
+        disableAllLogs();
+      }
+    } catch (e) {
+      AppLogger.common('⚠️ Failed to load logging config from environment: $e');
+    }
+  }
 
   // File logging
   static RandomAccessFile? _logFile;

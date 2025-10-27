@@ -55,10 +55,10 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-XXXXXXXXXX~XXXXXXXXXX"/>
 
-        <!-- Firebase Auth - Force reCAPTCHA for development -->
+        <!-- Firebase Auth - Enable automated verification for production -->
         <meta-data
             android:name="firebase_auth_force_recaptcha_flow"
-            android:value="true" />
+            android:value="false" />
 
         <!-- Disable automatic AdMob initialization to prevent early WebView loading -->
         <provider

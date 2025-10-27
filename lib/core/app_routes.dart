@@ -16,34 +16,35 @@ import '../features/settings/screens/device_management_screen.dart';
 import '../features/notifications/screens/notification_center_screen.dart';
 import '../features/notifications/screens/notification_preferences_screen.dart';
 import '../screens/main_tab_navigation.dart';
+import 'app_route_names.dart';
 
 class AppRoutes {
   static List<GetPage> getPages = [
     GetPage(
-      name: '/language-selection',
+      name: AppRouteNames.languageSelection,
       page: () => const LanguageSelectionScreen(),
     ),
     GetPage(
-      name: '/onboarding',
+      name: AppRouteNames.onboarding,
       page: () => const OnboardingScreen(),
     ),
-    GetPage(name: '/login', page: () => const LoginScreen()),
+    GetPage(name: AppRouteNames.login, page: () => const LoginScreen()),
     GetPage(
-      name: '/role-selection',
+      name: AppRouteNames.roleSelection,
       page: () => const RoleSelectionScreen(),
     ),
-    GetPage(name: '/home', page: () => const MainTabNavigation()),
-    GetPage(name: '/profile', page: () => const ProfileScreen()),
+    GetPage(name: AppRouteNames.home, page: () => const MainTabNavigation()),
+    GetPage(name: AppRouteNames.profile, page: () => const ProfileScreen()),
     GetPage(
-      name: '/profile-completion',
+      name: AppRouteNames.profileCompletion,
       page: () => const ProfileCompletionScreen(),
     ),
     GetPage(
-      name: '/candidate-profile',
+      name: AppRouteNames.candidateProfile,
       page: () => const CandidateProfileScreen(),
     ),
     GetPage(
-      name: '/change-party-symbol',
+      name: AppRouteNames.changePartySymbol,
       page: () {
         final candidate = Get.arguments as Candidate?;
         final currentUser = FirebaseAuth.instance.currentUser;
@@ -52,24 +53,23 @@ class AppRoutes {
         );
       },
     ),
-    GetPage(name: '/chat', page: () => const ChatListScreen()),
+    GetPage(name: AppRouteNames.chat, page: () => const ChatListScreen()),
     GetPage(
-      name: '/monetization',
+      name: AppRouteNames.monetization,
       page: () => const MonetizationScreen(),
     ),
-    GetPage(name: '/settings', page: () => const SettingsScreen()),
+    GetPage(name: AppRouteNames.settings, page: () => const SettingsScreen()),
     GetPage(
-      name: '/device-management',
+      name: AppRouteNames.deviceManagement,
       page: () => const DeviceManagementScreen(),
     ),
     GetPage(
-      name: '/notifications',
+      name: AppRouteNames.notifications,
       page: () => const NotificationCenterScreen(),
     ),
     GetPage(
-      name: '/notification-preferences',
+      name: AppRouteNames.notificationPreferences,
       page: () => const NotificationPreferencesScreen(),
     ),
   ];
 }
-

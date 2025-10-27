@@ -33,6 +33,10 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Environment files with secrets (templates can be committed)
+.env.local
+.env.*.local
+
 # Symbolication related
 app.*.symbols
 

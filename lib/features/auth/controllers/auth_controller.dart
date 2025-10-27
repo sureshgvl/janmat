@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
@@ -202,7 +203,7 @@ class AuthController extends GetxController {
     }
   }
 
-  // GOOGLE LOGIN - SIMPLE
+  // GOOGLE LOGIN - WITH DETAILED ERROR LOGGING
   Future<void> signInWithGoogle({bool forceAccountPicker = false}) async {
     isLoading.value = true;
 
@@ -221,24 +222,44 @@ class AuthController extends GetxController {
     );
 
     try {
+      AppLogger.auth('🔄 [DEBUG] Starting Google sign-in process...');
       final userCredential = await _authRepository.signInWithGoogle(forceAccountPicker: forceAccountPicker);
 
       if (Get.isDialogOpen ?? false) Get.back();
 
       if (userCredential == null || userCredential.user == null) {
+        AppLogger.auth('⚠️ [DEBUG] User cancelled Google sign-in');
         Get.snackbar('Cancelled', 'Google sign-in was cancelled');
         return;
       }
 
-      AppLogger.auth('Google login successful: ${userCredential.user!.uid}');
+      AppLogger.auth('✅ [DEBUG] Google login successful: ${userCredential.user!.uid}');
       await _authRepository.createOrUpdateUser(userCredential.user!);
       Get.snackbar('Success', 'Google sign-in successful');
       Get.offAllNamed('/home');
 
     } catch (e) {
-      AppLogger.authError('Google sign-in failed', error: e);
+      // FORCE SHOW BUG: Everything gets caught in AuthRepository - let's see what we actually get
+      final actualError = e;
+      final errorStr = e.toString();
+
+      AppLogger.auth('🔥 [LAST RESORT] ACTUAL ERROR RECEIVED: $actualError');
+      AppLogger.auth('🔥 [LAST RESORT] ERROR STRING: $errorStr');
+      AppLogger.auth('🔥 [LAST RESORT] ERROR TYPE: ${e.runtimeType}');
+
       if (Get.isDialogOpen ?? false) Get.back();
-      Get.snackbar('Error', 'Google sign-in failed: ${e.toString()}');
+
+      // FORCE DISPLAY RAW ERROR - bypass all categorization
+      Get.snackbar(
+        '🔥 RAW FIREBASE ERROR',
+        'ERROR: $errorStr\nTYPE: ${e.runtimeType}',
+        duration: const Duration(seconds: 20), // Max visibility
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
+
+      AppLogger.authError('RAW ERROR DISPLAY: $errorStr (${e.runtimeType})', error: e);
     } finally {
       isLoading.value = false;
     }
