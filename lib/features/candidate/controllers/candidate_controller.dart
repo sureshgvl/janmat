@@ -452,7 +452,20 @@ class CandidateController extends GetxController {
     update();
 
     try {
-      await _followRepository.unfollowCandidate(userId, candidateId);
+      // Get candidate location from the candidates list
+      final candidate = candidates.firstWhere(
+        (c) => c.candidateId == candidateId,
+        orElse: () => throw Exception('Candidate not found in list'),
+      );
+      final location = candidate.location;
+      await _followRepository.unfollowCandidate(
+        userId,
+        candidateId,
+        stateId: location.stateId,
+        districtId: location.districtId,
+        bodyId: location.bodyId,
+        wardId: location.wardId,
+      );
       followStatus[candidateId] = false;
 
       // Invalidate session cache since follow relationships changed
@@ -535,10 +548,20 @@ class CandidateController extends GetxController {
     bool notificationsEnabled,
   ) async {
     try {
+      // Get candidate location from the candidates list
+      final candidate = candidates.firstWhere(
+        (c) => c.candidateId == candidateId,
+        orElse: () => throw Exception('Candidate not found in list'),
+      );
+      final location = candidate.location;
       await _followRepository.updateFollowNotificationSettings(
         userId,
         candidateId,
         notificationsEnabled,
+        stateId: location.stateId,
+        districtId: location.districtId,
+        bodyId: location.bodyId,
+        wardId: location.wardId,
       );
 
       // Notify chat controller to refresh cache since follow relationship changed
@@ -564,7 +587,18 @@ class CandidateController extends GetxController {
     String candidateId,
   ) async {
     try {
-      return await _followRepository.getCandidateFollowers(candidateId);
+      // Get candidate location from the candidates list
+      final candidate = candidates.firstWhere(
+        (c) => c.candidateId == candidateId,
+        orElse: () => throw Exception('Candidate not found in list'),
+      );
+      final location = candidate.location;
+      return await _followRepository.getCandidateFollowers(candidateId,
+        stateId: location.stateId,
+        districtId: location.districtId,
+        bodyId: location.bodyId,
+        wardId: location.wardId,
+      );
     } catch (e) {
       AppLogger.candidateError('Failed to get followers: $e');
       errorMessage = 'Failed to get followers: $e';

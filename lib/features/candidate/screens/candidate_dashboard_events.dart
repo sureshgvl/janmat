@@ -102,10 +102,9 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
 
                           // Then save the events data using events controller
                           final eventsController = Get.find<EventsController>();
-                          final success = await eventsController.saveEventsTabWithCandidate(
-                            candidateId: controller.candidateData.value!.candidateId,
+                          final success = await eventsController.saveEventsTab(
+                            candidate: controller.candidateData.value!,
                             events: controller.candidateData.value!.events ?? [],
-                            candidate: controller.candidateData.value,
                             onProgress: (message) => messageController.add(message),
                           );
 

@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../models/contact_model.dart';
+import '../models/candidate_model.dart';
 
 abstract class IContactRepository {
-  Future<ContactModel?> getContact(String candidateId);
-  Future<bool> updateContact(String candidateId, ContactModel contact);
-  Future<bool> updateContactFields(String candidateId, Map<String, dynamic> updates);
-  Future<void> updateContactFast(String candidateId, Map<String, dynamic> updateData);
+  Future<ContactModel?> getContact(Candidate candidate);
+  Future<bool> updateContact(Candidate candidate, ContactModel contact);
+  Future<bool> updateContactFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<void> updateContactFast(Candidate candidate, Map<String, dynamic> updateData);
 }
 
 class ContactRepository implements IContactRepository {
@@ -16,25 +17,21 @@ class ContactRepository implements IContactRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Future<ContactModel?> getContact(String candidateId) async {
+  Future<ContactModel?> getContact(Candidate candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Fetching contact for candidate: $candidateId', tag: 'CONTACT_REPO');
 
-      // Get candidate location from index first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId', tag: 'CONTACT_REPO');
-        return null;
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
-
-      // Get candidate document from hierarchical path
+      // Get candidate document from hierarchical path - using states path to match other repos
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -67,27 +64,25 @@ class ContactRepository implements IContactRepository {
   }
 
   @override
-  Future<bool> updateContact(String candidateId, ContactModel contact) async {
+  Future<bool> updateContact(Candidate candidate, ContactModel contact) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Updating contact for candidate: $candidateId', tag: 'CONTACT_REPO');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final updates = {
         'extra_info.contact': contact.toJson(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -95,8 +90,19 @@ class ContactRepository implements IContactRepository {
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
-          .doc(candidateId)
-          .update(updates);
+          .doc(candidateId);
+
+      // Check if document exists first, create if not
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        await candidateRef.set({
+          ...updates,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(updates);
+      }
 
       AppLogger.database('Contact updated successfully', tag: 'CONTACT_REPO');
       return true;
@@ -107,20 +113,16 @@ class ContactRepository implements IContactRepository {
   }
 
   @override
-  Future<bool> updateContactFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateContactFields(Candidate candidate, Map<String, dynamic> updates) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Updating contact fields for candidate: $candidateId', tag: 'CONTACT_REPO');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final fieldUpdates = <String, dynamic>{};
 
@@ -131,7 +133,9 @@ class ContactRepository implements IContactRepository {
 
       fieldUpdates['updatedAt'] = FieldValue.serverTimestamp();
 
-      await _firestore
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -139,8 +143,20 @@ class ContactRepository implements IContactRepository {
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
-          .doc(candidateId)
-          .update(fieldUpdates);
+          .doc(candidateId);
+
+      // Check if document exists first, like other repos do
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        AppLogger.database('Document does not exist, creating new document', tag: 'CONTACT_REPO');
+        await candidateRef.set({
+          ...fieldUpdates,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(fieldUpdates);
+      }
 
       AppLogger.database('Contact fields updated successfully', tag: 'CONTACT_REPO');
       return true;
@@ -151,23 +167,21 @@ class ContactRepository implements IContactRepository {
   }
 
   @override
-  Future<void> updateContactFast(String candidateId, Map<String, dynamic> updateData) async {
+  Future<void> updateContactFast(Candidate candidate, Map<String, dynamic> updateData) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST UPDATE: Contact for $candidateId', tag: 'CONTACT_FAST');
       AppLogger.database('   Update data keys: ${updateData.keys.toList()}', tag: 'CONTACT_FAST');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -177,6 +191,35 @@ class ContactRepository implements IContactRepository {
           .collection('candidates')
           .doc(candidateId);
 
+      // Check if candidate document exists first
+      final candidateDoc = await candidateRef.get();
+      final documentExists = candidateDoc.exists;
+
+      AppLogger.database('   Candidate document exists: $documentExists', tag: 'CONTACT_FAST');
+
+      if (!documentExists) {
+        AppLogger.database('❌ CANDIDATE DOCUMENT NOT FOUND - Creating new document', tag: 'CONTACT_FAST');
+
+        // Create the candidate document with the contact data
+        final Map<String, dynamic> candidateData = {
+          'candidateId': candidateId,
+          'userId': candidate.candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'status': 'active',
+          'approved': false,
+          'sponsored': false,
+          ...updateData,
+        };
+
+        AppLogger.database('   Creating document with data: $candidateData', tag: 'CONTACT_FAST');
+        await candidateRef.set(candidateData);
+
+        AppLogger.database('✅ CANDIDATE DOCUMENT CREATED with contact data', tag: 'CONTACT_FAST');
+        return;
+      }
+
+      // Document exists, update it
       // Ensure the data is properly structured for extra_info.contact
       final structuredUpdateData = <String, dynamic>{};
 
@@ -197,7 +240,7 @@ class ContactRepository implements IContactRepository {
         }
       });
 
-      AppLogger.database('   Structured update data: $structuredUpdateData', tag: 'CONTACT_FAST');
+      AppLogger.database('   Final structured update data: $structuredUpdateData', tag: 'CONTACT_FAST');
 
       await candidateRef.update(structuredUpdateData);
 

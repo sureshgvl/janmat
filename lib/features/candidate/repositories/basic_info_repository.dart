@@ -4,7 +4,7 @@ import '../models/basic_info_model.dart';
 import '../models/candidate_model.dart';
 
 abstract class IBasicInfoRepository {
-  Future<BasicInfoModel?> getBasicInfo(String candidateId);
+  Future<BasicInfoModel?> getBasicInfo(Candidate candidate);
   Future<bool> updateBasicInfoWithCandidate(String candidateId, BasicInfoModel basicInfo, Candidate candidate);
 }
 
@@ -15,28 +15,23 @@ class BasicInfoRepository implements IBasicInfoRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Future<BasicInfoModel?> getBasicInfo(String candidateId) async {
+  Future<BasicInfoModel?> getBasicInfo(Candidate candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Fetching basic info for candidate: $candidateId', tag: 'BASIC_INFO_REPO');
 
-      // Get candidate location from index first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId', tag: 'BASIC_INFO_REPO');
-        return null;
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
-      
+      AppLogger.database('Candidate location from object: state=$stateId, district=$districtId, body=$bodyId, ward=$wardId', tag: 'BASIC_INFO_REPO');
 
       // Get candidate document from hierarchical path
       final candidateDoc = await _firestore
           .collection('states')
-          .doc(indexData['stateId'] ?? 'maharashtra')  // Use stateId from index
+          .doc(stateId)  // Use stateId from candidate.location
           .collection('districts')
           .doc(districtId)
           .collection('bodies')

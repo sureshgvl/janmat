@@ -388,7 +388,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
 
       // Save using the events controller
       final success = await _eventsController.saveEventsTab(
-        candidateId: data.userId ?? '',
+        candidate: data,
         events: events,
         candidateName: data.name,
         photoUrl: data.photo,

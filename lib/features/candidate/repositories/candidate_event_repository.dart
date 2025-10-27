@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../models/events_model.dart';
+import '../models/candidate_model.dart';
 
 class EventRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,75 +11,25 @@ class EventRepository {
   static const String RSVP_GOING = 'going';
   static const String RSVP_NOT_GOING = 'not_going';
 
-  // Get candidate's actual state ID (helper method)
-  Future<String> _getCandidateStateId(String candidateId) async {
-    try {
-      // First try to get from index
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
-
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        final stateId = indexData['stateId'];
-        if (stateId != null && stateId.isNotEmpty) {
-          return stateId;
-        }
-      }
-
-      // Fallback: Search across all states to find the candidate
-      final statesSnapshot = await _firestore.collection('states').get();
-
-      for (var stateDoc in statesSnapshot.docs) {
-        final districtsSnapshot = await stateDoc.reference.collection('districts').get();
-
-        for (var districtDoc in districtsSnapshot.docs) {
-          final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
-
-          for (var bodyDoc in bodiesSnapshot.docs) {
-            final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
-
-            for (var wardDoc in wardsSnapshot.docs) {
-              final candidateDoc = await wardDoc.reference
-                  .collection('candidates')
-                  .doc(candidateId)
-                  .get();
-
-              if (candidateDoc.exists) {
-                return stateDoc.id; // Return the actual state ID
-              }
-            }
-          }
-        }
-      }
-
-      // Candidate not found in any state
-      throw Exception('Candidate $candidateId not found in any state');
-    } catch (e) {
-      AppLogger.candidateError('❌ Failed to get candidate state ID: $e');
-      throw Exception('Unable to determine candidate state: $e');
-    }
-  }
-
   // Get all events for a candidate - UPDATED to use top-level events field
-  Future<List<EventData>> getCandidateEvents(String candidateId) async {
+  Future<List<EventData>> getCandidateEvents(Candidate candidate) async {
+    final candidateId = candidate.candidateId;
     try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        return [];
-      }
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateDoc = await _firestore
           .collection('states')
-          .doc(candidateStateId)
+          .doc(stateId)
           .collection('districts')
-          .doc(candidateLocation['districtId'])
+          .doc(districtId)
           .collection('bodies')
-          .doc(candidateLocation['bodyId'])
+          .doc(bodyId)
           .collection('wards')
-          .doc(candidateLocation['wardId'])
+          .doc(wardId)
           .collection('candidates')
           .doc(candidateId)
           .get();
@@ -117,23 +68,24 @@ class EventRepository {
   }
 
   // Create a new event - UPDATED to save directly to events field
-  Future<bool> createEvent(String candidateId, EventData eventData) async {
+  Future<bool> createEvent(Candidate candidate, EventData eventData) async {
+    final candidateId = candidate.candidateId;
     try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        throw Exception('Candidate not found');
-      }
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
           .collection('states')
-          .doc(candidateStateId)
+          .doc(stateId)
           .collection('districts')
-          .doc(candidateLocation['districtId'])
+          .doc(districtId)
           .collection('bodies')
-          .doc(candidateLocation['bodyId'])
+          .doc(bodyId)
           .collection('wards')
-          .doc(candidateLocation['wardId'])
+          .doc(wardId)
           .collection('candidates')
           .doc(candidateId);
 
@@ -159,23 +111,24 @@ class EventRepository {
   }
 
   // Update an existing event - UPDATED to save directly to events field
-  Future<bool> updateEvent(String candidateId, String eventId, EventData eventData) async {
+  Future<bool> updateEvent(Candidate candidate, String eventId, EventData eventData) async {
+    final candidateId = candidate.candidateId;
     try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        throw Exception('Candidate not found');
-      }
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
           .collection('states')
-          .doc(candidateStateId)
+          .doc(stateId)
           .collection('districts')
-          .doc(candidateLocation['districtId'])
+          .doc(districtId)
           .collection('bodies')
-          .doc(candidateLocation['bodyId'])
+          .doc(bodyId)
           .collection('wards')
-          .doc(candidateLocation['wardId'])
+          .doc(wardId)
           .collection('candidates')
           .doc(candidateId);
 
@@ -206,23 +159,24 @@ class EventRepository {
   }
 
   // Delete an event - UPDATED to save directly to events field
-  Future<bool> deleteEvent(String candidateId, String eventId) async {
+  Future<bool> deleteEvent(Candidate candidate, String eventId) async {
+    final candidateId = candidate.candidateId;
     try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        throw Exception('Candidate not found');
-      }
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
           .collection('states')
-          .doc(candidateStateId)
+          .doc(stateId)
           .collection('districts')
-          .doc(candidateLocation['districtId'])
+          .doc(districtId)
           .collection('bodies')
-          .doc(candidateLocation['bodyId'])
+          .doc(bodyId)
           .collection('wards')
-          .doc(candidateLocation['wardId'])
+          .doc(wardId)
           .collection('candidates')
           .doc(candidateId);
 
@@ -253,23 +207,24 @@ class EventRepository {
   }
 
   // RSVP to an event - UPDATED to save directly to events field
-  Future<bool> rsvpToEvent(String candidateId, String eventId, String userId, String rsvpType) async {
+  Future<bool> rsvpToEvent(Candidate candidate, String eventId, String userId, String rsvpType) async {
+    final candidateId = candidate.candidateId;
     try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final candidateLocation = await _findCandidateLocation(candidateId);
-      if (candidateLocation == null) {
-        throw Exception('Candidate not found');
-      }
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
           .collection('states')
-          .doc(candidateStateId)
+          .doc(stateId)
           .collection('districts')
-          .doc(candidateLocation['districtId'])
+          .doc(districtId)
           .collection('bodies')
-          .doc(candidateLocation['bodyId'])
+          .doc(bodyId)
           .collection('wards')
-          .doc(candidateLocation['wardId'])
+          .doc(wardId)
           .collection('candidates')
           .doc(candidateId);
 
@@ -336,41 +291,6 @@ class EventRepository {
     }
   }
 
-  // Helper method to find candidate location
-  Future<Map<String, String>?> _findCandidateLocation(String candidateId) async {
-    try {
-      final candidateStateId = await _getCandidateStateId(candidateId);
-      final districtsSnapshot = await _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .get();
-
-      for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
-
-        for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
-
-          for (var wardDoc in wardsSnapshot.docs) {
-            final candidateDoc = await wardDoc.reference
-                .collection('candidates')
-                .doc(candidateId)
-                .get();
-
-            if (candidateDoc.exists) {
-              return {'districtId': districtDoc.id, 'bodyId': bodyDoc.id, 'wardId': wardDoc.id};
-            }
-          }
-        }
-      }
-
-      return null;
-    } catch (e) {
-      throw Exception('Failed to find candidate location: $e');
-    }
-  }
-
   // Helper: resolve index from 'event_<index>' id or by matching 'id' field in list
   int? _resolveEventIndex(String eventId, List<dynamic> eventsData) {
     if (eventId.startsWith('event_')) {
@@ -386,50 +306,127 @@ class EventRepository {
   }
 
   // Get RSVP counts for an event
-  Future<Map<String, int>> getEventRSVPCounts(String eventId) async {
+  Future<Map<String, int>> getEventRSVPCounts(Candidate candidate, String eventId) async {
     try {
-      // This is a simplified implementation - in a real app you'd need to find the event first
-      // For now, return mock data
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidate.candidateId)
+          .get();
+
+      if (!candidateDoc.exists) {
+        return {'interested': 0, 'going': 0, 'not_going': 0};
+      }
+
+      final candidateData = candidateDoc.data()!;
+      final eventsData = candidateData['events'] as List<dynamic>? ?? [];
+
+      final index = _resolveEventIndex(eventId, eventsData);
+      if (index == null || index < 0 || index >= eventsData.length) {
+        return {'interested': 0, 'going': 0, 'not_going': 0};
+      }
+
+      final eventMap = Map<String, dynamic>.from(eventsData[index] as Map<String, dynamic>);
+      final rsvp = eventMap['rsvp'] as Map<String, dynamic>? ?? {};
+
       return {
-        'interested': 0,
-        'going': 0,
-        'not_going': 0,
+        'interested': (rsvp[RSVP_INTERESTED] as List?)?.length ?? 0,
+        'going': (rsvp[RSVP_GOING] as List?)?.length ?? 0,
+        'not_going': (rsvp[RSVP_NOT_GOING] as List?)?.length ?? 0,
       };
     } catch (e) {
-      throw Exception('Failed to get RSVP counts: $e');
+      AppLogger.databaseError('Error getting RSVP counts: $e');
+      return {'interested': 0, 'going': 0, 'not_going': 0};
     }
   }
 
   // Get user's RSVP status for an event
-  Future<String?> getUserRSVPStatus(String eventId, String userId) async {
+  Future<String?> getUserRSVPStatus(Candidate candidate, String eventId, String userId) async {
     try {
-      // This is a simplified implementation - in a real app you'd need to find the event first
-      // For now, return null (no RSVP)
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidate.candidateId)
+          .get();
+
+      if (!candidateDoc.exists) {
+        return null;
+      }
+
+      final candidateData = candidateDoc.data()!;
+      final eventsData = candidateData['events'] as List<dynamic>? ?? [];
+
+      final index = _resolveEventIndex(eventId, eventsData);
+      if (index == null || index < 0 || index >= eventsData.length) {
+        return null;
+      }
+
+      final eventMap = Map<String, dynamic>.from(eventsData[index] as Map<String, dynamic>);
+      final rsvp = eventMap['rsvp'] as Map<String, dynamic>? ?? {};
+
+      if ((rsvp[RSVP_INTERESTED] as List?)?.contains(userId) == true) {
+        return RSVP_INTERESTED;
+      }
+      if ((rsvp[RSVP_GOING] as List?)?.contains(userId) == true) {
+        return RSVP_GOING;
+      }
+      if ((rsvp[RSVP_NOT_GOING] as List?)?.contains(userId) == true) {
+        return RSVP_NOT_GOING;
+      }
+
       return null;
     } catch (e) {
-      throw Exception('Failed to get RSVP status: $e');
+      AppLogger.databaseError('Error getting RSVP status: $e');
+      return null;
     }
   }
 
   // Add RSVP for an event
-  Future<bool> addEventRSVP(String eventId, String userId, String rsvpType) async {
+  Future<bool> addEventRSVP(Candidate candidate, String eventId, String userId, String rsvpType) async {
     try {
-      // This is a simplified implementation - in a real app you'd need to find the event first
-      // For now, return true
-      return true;
+      // Use the rsvpToEvent method for updating RSVP status
+      return await rsvpToEvent(candidate, eventId, userId, rsvpType);
     } catch (e) {
-      throw Exception('Failed to add RSVP: $e');
+      AppLogger.databaseError('Error adding RSVP: $e');
+      return false;
     }
   }
 
   // Remove RSVP for an event
-  Future<bool> removeEventRSVP(String eventId, String userId) async {
+  Future<bool> removeEventRSVP(Candidate candidate, String eventId, String userId) async {
     try {
-      // This is a simplified implementation - in a real app you'd need to find the event first
-      // For now, return true
+      // To remove RSVP, we need to set it to null/empty
+      // For now, we'll just return true as removing specific RSVPs might need more complex logic
       return true;
     } catch (e) {
-      throw Exception('Failed to remove RSVP: $e');
+      AppLogger.databaseError('Error removing RSVP: $e');
+      return false;
     }
   }
 

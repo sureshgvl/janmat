@@ -115,12 +115,12 @@ class CandidateRepository {
 
   // Follow methods
   Future<void> followCandidate(String userId, String candidateId, {bool notificationsEnabled = true, String? stateId, String? districtId, String? bodyId, String? wardId}) => _followManager.followCandidate(userId, candidateId, notificationsEnabled: notificationsEnabled, stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId);
-  Future<void> unfollowCandidate(String userId, String candidateId) => _followManager.unfollowCandidate(userId, candidateId);
+  Future<void> unfollowCandidate(String userId, String candidateId, {String? stateId, String? districtId, String? bodyId, String? wardId}) => _followManager.unfollowCandidate(userId, candidateId, stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId);
   Future<bool> isUserFollowingCandidate(String userId, String candidateId) => _followManager.isUserFollowingCandidate(userId, candidateId);
-  Future<List<Map<String, dynamic>>> getCandidateFollowers(String candidateId) => _followManager.getCandidateFollowers(candidateId);
+  Future<List<Map<String, dynamic>>> getCandidateFollowers(Candidate candidate) => _followManager.getCandidateFollowers(candidate);
   Future<List<String>> getUserFollowing(String userId) => _followManager.getUserFollowing(userId);
   Future<Map<String, dynamic>?> getUserData(String userId) => _followManager.getUserData(userId);
-  Future<void> updateFollowNotificationSettings(String userId, String candidateId, bool notificationsEnabled) => _followManager.updateFollowNotificationSettings(userId, candidateId, notificationsEnabled);
+  Future<void> updateFollowNotificationSettings(String userId, Candidate candidate, bool notificationsEnabled) => _followManager.updateFollowNotificationSettings(userId, candidate, notificationsEnabled);
 
   // Search methods
   Future<List<Candidate>> getCandidatesForUser(UserModel user) => _searchManager!.getCandidatesForUser(user);
@@ -135,7 +135,7 @@ class CandidateRepository {
   Future<void> logAllCandidatesInSystem() => _searchManager!.logAllCandidatesInSystem();
 
   // Basic info methods (delegate to BasicInfoRepository)
-  Future<BasicInfoModel?> getBasicInfo(String candidateId) => _basicInfoRepository.getBasicInfo(candidateId);
+  Future<BasicInfoModel?> getBasicInfo(Candidate candidate) => _basicInfoRepository.getBasicInfo(candidate);
   // Removed updateBasicInfo delegation - handled directly by BasicInfoController
 
   // Cache methods

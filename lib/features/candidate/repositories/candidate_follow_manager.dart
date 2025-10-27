@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
+import '../models/candidate_model.dart';
 import 'candidate_cache_manager.dart';
 import 'candidate_state_manager.dart';
 
@@ -24,29 +25,6 @@ class CandidateFollowManager {
   void _cacheData(String cacheKey, dynamic data) =>
       _cacheManager.cacheData(cacheKey, data);
 
-  // Helper method for updating candidate index
-  Future<void> _updateCandidateIndex(
-    String candidateId,
-    String stateId,
-    String districtId,
-    String bodyId,
-    String wardId,
-  ) async {
-    try {
-      await _firestore.collection('candidate_index').doc(candidateId).set({
-        'stateId': stateId,
-        'districtId': districtId,
-        'bodyId': bodyId,
-        'wardId': wardId,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      AppLogger.candidate('⚠️ Failed to update candidate index: $e');
-      // Don't throw - this is not critical
-    }
-  }
-
-  // Follow a candidate - Optimized version with location parameters
   Future<void> followCandidate(
     String userId,
     String candidateId, {
@@ -57,86 +35,15 @@ class CandidateFollowManager {
     String? wardId,
   }) async {
     try {
-      // Use provided location parameters if available, otherwise search
-      String? candidateStateId = stateId;
-      String? candidateDistrictId = districtId;
-      String? candidateBodyId = bodyId;
-      String? candidateWardId = wardId;
+      // Use provided location IDs or defaults
+      final candidateStateId = stateId ?? 'maharashtra';
+      final candidateDistrictId = districtId!;
+      final candidateBodyId = bodyId!;
+      final candidateWardId = wardId!;
 
-      // If location not provided, try to get from index or search
-      if (candidateStateId == null ||
-          candidateDistrictId == null ||
-          candidateBodyId == null ||
-          candidateWardId == null) {
-        // First try to get location from index
-        final indexDoc = await _firestore
-            .collection('candidate_index')
-            .doc(candidateId)
-            .get();
-
-        if (indexDoc.exists) {
-          final indexData = indexDoc.data()!;
-          candidateStateId ??= indexData['stateId'];
-          candidateDistrictId ??= indexData['districtId'];
-          candidateBodyId ??= indexData['bodyId'];
-          candidateWardId ??= indexData['wardId'];
-
-          AppLogger.candidate(
-            '🎯 Using indexed location for follow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
-          );
-        } else {
-          // Fallback: Search across all states to find the candidate
-          AppLogger.candidate(
-            '🔄 Index not found, searching across all states for candidate',
-          );
-          final statesSnapshot = await _firestore.collection('states').get();
-
-          for (var stateDoc in statesSnapshot.docs) {
-            final districtsSnapshot = await stateDoc.reference
-                .collection('districts')
-                .get();
-
-            for (var districtDoc in districtsSnapshot.docs) {
-              final bodiesSnapshot = await districtDoc.reference
-                  .collection('bodies')
-                  .get();
-
-              for (var bodyDoc in bodiesSnapshot.docs) {
-                final wardsSnapshot = await bodyDoc.reference
-                    .collection('wards')
-                    .get();
-
-                for (var wardDoc in wardsSnapshot.docs) {
-                  final candidateDoc = await wardDoc.reference
-                      .collection('candidates')
-                      .doc(candidateId)
-                      .get();
-
-                  if (candidateDoc.exists) {
-                    candidateStateId = stateDoc.id;
-                    candidateDistrictId = districtDoc.id;
-                    candidateBodyId = bodyDoc.id;
-                    candidateWardId = wardDoc.id;
-
-                    // Update index for future queries
-                    await _updateCandidateIndex(
-                      candidateId,
-                      stateDoc.id,
-                      districtDoc.id,
-                      bodyDoc.id,
-                      wardDoc.id,
-                    );
-                    break;
-                  }
-                }
-                if (candidateDistrictId != null) break;
-              }
-              if (candidateDistrictId != null) break;
-            }
-            if (candidateDistrictId != null) break;
-          }
-        }
-      }
+      AppLogger.candidate(
+        '🎯 Using provided location for follow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
+      );
 
       final batch = _firestore.batch();
 
@@ -228,86 +135,24 @@ class CandidateFollowManager {
     }
   }
 
-  // Unfollow a candidate
-  Future<void> unfollowCandidate(String userId, String candidateId) async {
+  Future<void> unfollowCandidate(String userId, String candidateId, {
+    String? stateId,
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+  }) async {
     try {
-      // First try to get location from index
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
-      String? candidateStateId;
-      String? candidateDistrictId;
-      String? candidateBodyId;
-      String? candidateWardId;
+      // Use provided location IDs or defaults
+      final candidateStateId = stateId ?? 'maharashtra';
+      final candidateDistrictId = districtId!;
+      final candidateBodyId = bodyId!;
+      final candidateWardId = wardId!;
 
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        candidateStateId = indexData['stateId']; // Get actual state ID
-        if (candidateStateId == null) {
-          throw Exception(
-            'Candidate $candidateId not found in index or missing state information',
-          );
-        }
-        candidateDistrictId = indexData['districtId'];
-        candidateBodyId = indexData['bodyId'];
-        candidateWardId = indexData['wardId'];
-        AppLogger.candidate(
-          '🎯 Using indexed location for unfollow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
-        );
-      } else {
-        // Fallback: Search across all states to find the candidate
-        AppLogger.candidate(
-          '🔄 Index not found, searching across all states for candidate',
-        );
-        final statesSnapshot = await _firestore.collection('states').get();
+      AppLogger.candidate(
+        '🎯 Using provided location for unfollow: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
+      );
 
-        for (var stateDoc in statesSnapshot.docs) {
-          final districtsSnapshot = await stateDoc.reference
-              .collection('districts')
-              .get();
-
-          for (var districtDoc in districtsSnapshot.docs) {
-            final bodiesSnapshot = await districtDoc.reference
-                .collection('bodies')
-                .get();
-
-            for (var bodyDoc in bodiesSnapshot.docs) {
-              final wardsSnapshot = await bodyDoc.reference
-                  .collection('wards')
-                  .get();
-
-              for (var wardDoc in wardsSnapshot.docs) {
-                final candidateDoc = await wardDoc.reference
-                    .collection('candidates')
-                    .doc(candidateId)
-                    .get();
-
-                if (candidateDoc.exists) {
-                  candidateStateId = stateDoc.id; // Get actual state ID
-                  candidateDistrictId = districtDoc.id;
-                  candidateBodyId = bodyDoc.id;
-                  candidateWardId = wardDoc.id;
-
-                  // Update index for future queries
-                  await _updateCandidateIndex(
-                    candidateId,
-                    stateDoc.id,
-                    districtDoc.id,
-                    bodyDoc.id,
-                    wardDoc.id,
-                  );
-                  break;
-                }
-              }
-              if (candidateDistrictId != null) break;
-            }
-            if (candidateDistrictId != null) break;
-          }
-          if (candidateDistrictId != null) break;
-        }
-      }
-
+      // Now use the location we found above to create the batch operations
       final batch = _firestore.batch();
 
       if (candidateDistrictId != null &&
@@ -395,105 +240,21 @@ class CandidateFollowManager {
     }
   }
 
-  // Get followers list for a candidate
+  // Get followers list for a candidate - Now uses candidate.location directly!
   Future<List<Map<String, dynamic>>> getCandidateFollowers(
-    String candidateId,
+    Candidate candidate,
   ) async {
+    final candidateId = candidate.candidateId;
     try {
-      // First find the candidate's location in the new state/district/body/ward structure
-      // Get candidate's state first
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
-      String? candidateStateId;
+      // Get location directly from candidate object (no more searching!)
+      final candidateStateId = candidate.location.stateId ?? 'maharashtra';
+      final candidateDistrictId = candidate.location.districtId!;
+      final candidateBodyId = candidate.location.bodyId!;
+      final candidateWardId = candidate.location.wardId!;
 
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        candidateStateId = indexData['stateId'];
-      }
-
-      if (candidateStateId == null) {
-        // Fallback: Search across all states to find the candidate
-        final statesSnapshot = await _firestore.collection('states').get();
-
-        for (var stateDoc in statesSnapshot.docs) {
-          final districtsSnapshot = await stateDoc.reference
-              .collection('districts')
-              .get();
-
-          for (var districtDoc in districtsSnapshot.docs) {
-            final bodiesSnapshot = await districtDoc.reference
-                .collection('bodies')
-                .get();
-
-            for (var bodyDoc in bodiesSnapshot.docs) {
-              final wardsSnapshot = await bodyDoc.reference
-                  .collection('wards')
-                  .get();
-
-              for (var wardDoc in wardsSnapshot.docs) {
-                final candidateDoc = await wardDoc.reference
-                    .collection('candidates')
-                    .doc(candidateId)
-                    .get();
-
-                if (candidateDoc.exists) {
-                  candidateStateId = stateDoc.id;
-                  break;
-                }
-              }
-              if (candidateStateId != null) break;
-            }
-            if (candidateStateId != null) break;
-          }
-          if (candidateStateId != null) break;
-        }
-      }
-
-      if (candidateStateId == null) {
-        AppLogger.candidate(
-          '⚠️ Candidate not found in any state - followers not available',
-        );
-        return [];
-      }
-
-      final districtsSnapshot = await _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .get();
-      String? candidateDistrictId;
-      String? candidateBodyId;
-      String? candidateWardId;
-
-      for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference
-            .collection('bodies')
-            .get();
-
-        for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference
-              .collection('wards')
-              .get();
-
-          for (var wardDoc in wardsSnapshot.docs) {
-            final candidateDoc = await wardDoc.reference
-                .collection('candidates')
-                .doc(candidateId)
-                .get();
-
-            if (candidateDoc.exists) {
-              candidateDistrictId = districtDoc.id;
-              candidateBodyId = bodyDoc.id;
-              candidateWardId = wardDoc.id;
-              break;
-            }
-          }
-          if (candidateDistrictId != null) break;
-        }
-        if (candidateDistrictId != null) break;
-      }
+      AppLogger.candidate(
+        '🎯 Using candidate.location for followers: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
+      );
 
       if (candidateDistrictId != null &&
           candidateBodyId != null &&
@@ -583,110 +344,23 @@ class CandidateFollowManager {
     }
   }
 
-  // Update notification settings for a follow relationship
+  // Update notification settings for a follow relationship - Now uses candidate.location directly!
   Future<void> updateFollowNotificationSettings(
     String userId,
-    String candidateId,
+    Candidate candidate,
     bool notificationsEnabled,
   ) async {
+    final candidateId = candidate.candidateId;
     try {
-      // First find the candidate's location in the new state/district/body/ward structure
-      // Get candidate's state first
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
-      String? candidateStateId;
+      // Get location directly from candidate object (no more expensive lookups!)
+      final candidateStateId = candidate.location.stateId ?? 'maharashtra';
+      final candidateDistrictId = candidate.location.districtId!;
+      final candidateBodyId = candidate.location.bodyId!;
+      final candidateWardId = candidate.location.wardId!;
 
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        candidateStateId = indexData['stateId'];
-      }
-
-      if (candidateStateId == null) {
-        // Fallback: Search across all states to find the candidate
-        final statesSnapshot = await _firestore.collection('states').get();
-
-        for (var stateDoc in statesSnapshot.docs) {
-          final districtsSnapshot = await stateDoc.reference
-              .collection('districts')
-              .get();
-
-          for (var districtDoc in districtsSnapshot.docs) {
-            final bodiesSnapshot = await districtDoc.reference
-                .collection('bodies')
-                .get();
-
-            for (var bodyDoc in bodiesSnapshot.docs) {
-              final wardsSnapshot = await bodyDoc.reference
-                  .collection('wards')
-                  .get();
-
-              for (var wardDoc in wardsSnapshot.docs) {
-                final candidateDoc = await wardDoc.reference
-                    .collection('candidates')
-                    .doc(candidateId)
-                    .get();
-
-                if (candidateDoc.exists) {
-                  candidateStateId = stateDoc.id;
-                  break;
-                }
-              }
-              if (candidateStateId != null) break;
-            }
-            if (candidateStateId != null) break;
-          }
-          if (candidateStateId != null) break;
-        }
-      }
-
-      if (candidateStateId == null) {
-        throw Exception('Candidate not found');
-      }
-
-      final districtsSnapshot = await _firestore
-          .collection('states')
-          .doc(candidateStateId)
-          .collection('districts')
-          .get();
-      String? candidateDistrictId;
-      String? candidateBodyId;
-      String? candidateWardId;
-
-      for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference
-            .collection('bodies')
-            .get();
-
-        for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference
-              .collection('wards')
-              .get();
-
-          for (var wardDoc in wardsSnapshot.docs) {
-            final candidateDoc = await wardDoc.reference
-                .collection('candidates')
-                .doc(candidateId)
-                .get();
-
-            if (candidateDoc.exists) {
-              candidateDistrictId = districtDoc.id;
-              candidateBodyId = bodyDoc.id;
-              candidateWardId = wardDoc.id;
-              break;
-            }
-          }
-          if (candidateDistrictId != null) break;
-        }
-        if (candidateDistrictId != null) break;
-      }
-
-      if (candidateDistrictId == null ||
-          candidateBodyId == null ||
-          candidateWardId == null) {
-        throw Exception('Candidate not found');
-      }
+      AppLogger.candidate(
+        '🎯 Using candidate.location for notification settings: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
+      );
 
       final batch = _firestore.batch();
 

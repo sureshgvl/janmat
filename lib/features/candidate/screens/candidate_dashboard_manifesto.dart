@@ -112,16 +112,6 @@ class _CandidateDashboardManifestoState
                         );
 
                         try {
-                          AppLogger.candidate(
-                            '🔄 [MANIFESTO_SAVE] Starting manifesto save operation',
-                            tag: 'DASHBOARD_SAVE_MANIFESTO',
-                          );
-
-                          // Upload any pending files FIRST (must complete before getting manifesto data)
-                          AppLogger.candidate(
-                            '📤 [MANIFESTO_SAVE] Uploading pending files first...',
-                            tag: 'DASHBOARD_SAVE_MANIFESTO',
-                          );
                           final uploadSuccess = await _manifestoSectionKey.currentState!.uploadPendingFiles();
                           if (!uploadSuccess) {
                             AppLogger.candidate(
@@ -239,7 +229,7 @@ class _CandidateDashboardManifestoState
                           // Clean up the stream controller
                           await messageController.close();
                         }
-                      },
+                      }, //onpress
                       backgroundColor: Colors.green,
                       tooltip: 'Save Manifesto',
                       child: const Icon(Icons.save, size: 28),

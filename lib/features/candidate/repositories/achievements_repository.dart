@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../models/achievements_model.dart';
+import '../models/candidate_model.dart';
 
 abstract class IAchievementsRepository {
-  Future<AchievementsModel?> getAchievements(String candidateId);
-  Future<bool> updateAchievements(String candidateId, AchievementsModel achievements);
-  Future<bool> updateAchievementsFields(String candidateId, Map<String, dynamic> updates);
-  Future<void> updateAchievementsFast(String candidateId, Map<String, dynamic> updateData);
+  Future<AchievementsModel?> getAchievements(Candidate candidate);
+  Future<bool> updateAchievements(String candidateId, AchievementsModel achievements, Candidate candidate);
+  Future<bool> updateAchievementsFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<void> updateAchievementsFast(Candidate candidate, Map<String, dynamic> updateData);
 }
 
 class AchievementsRepository implements IAchievementsRepository {
@@ -16,25 +17,23 @@ class AchievementsRepository implements IAchievementsRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Future<AchievementsModel?> getAchievements(String candidateId) async {
+  Future<AchievementsModel?> getAchievements(Candidate candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Fetching achievements for candidate: $candidateId', tag: 'ACHIEVEMENTS_REPO');
 
-      // Get candidate location from index first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId', tag: 'ACHIEVEMENTS_REPO');
-        return null;
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      AppLogger.database('Candidate location from object: state=$stateId, district=$districtId, body=$bodyId, ward=$wardId', tag: 'ACHIEVEMENTS_REPO');
 
       // Get candidate document from hierarchical path
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)  // Use stateId from candidate.location
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -66,27 +65,50 @@ class AchievementsRepository implements IAchievementsRepository {
   }
 
   @override
-  Future<bool> updateAchievements(String candidateId, AchievementsModel achievements) async {
+  Future<bool> updateAchievements(String candidateId, AchievementsModel achievements, Candidate candidate) async {
     try {
       AppLogger.database('Updating achievements for candidate: $candidateId', tag: 'ACHIEVEMENTS_REPO');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
+      // Get candidate location from candidate object (following basic info pattern)
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      AppLogger.database('Candidate location from object: state=$stateId, district=$districtId, body=$bodyId, ward=$wardId', tag: 'ACHIEVEMENTS_REPO');
+
+      // 🔧 🏗️ REPOSITORY-LEVEL CLEANUP: Final defense against local paths
+      final rawAchievements = achievements.toJson()['achievements'] as List<dynamic>;
+
+      // Clean each achievement to ensure no local paths reach database
+      final cleanedAchievements = rawAchievements.map((achievement) {
+        final Map<String, dynamic> achMap = Map.from(achievement as Map);
+
+        // Check and clean photoUrl if it's a local path
+        if (achMap['photoUrl'] != null &&
+            achMap['photoUrl'] is String &&
+            achMap['photoUrl'].startsWith('local:')) {
+          AppLogger.database('✅ REPO CLEANUP: Removed local photo path for ${achMap['title'] ?? 'Unknown'}', tag: 'ACHIEVEMENTS_REPO');
+          achMap['photoUrl'] = null;
+        }
+
+        return achMap;
+      }).toList();
 
       final updates = {
-        'achievements': achievements.toJson()['achievements'],
+        'achievements': cleanedAchievements,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
+      AppLogger.database('📝 REPO: Final cleaned achievements count: ${cleanedAchievements.length}', tag: 'ACHIEVEMENTS_REPO');
+      for (int i = 0; i < cleanedAchievements.length; i++) {
+        final ach = cleanedAchievements[i] as Map<String, dynamic>;
+        AppLogger.database('📝 REPO: Saved item $i: ${ach['title']} photoUrl: ${ach['photoUrl']}', tag: 'ACHIEVEMENTS_REPO');
+      }
+
       await _firestore
+          .collection('states')
+          .doc('maharashtra')
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -106,20 +128,18 @@ class AchievementsRepository implements IAchievementsRepository {
   }
 
   @override
-  Future<bool> updateAchievementsFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateAchievementsFields(Candidate candidate, Map<String, dynamic> updates) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Updating achievements fields for candidate: $candidateId', tag: 'ACHIEVEMENTS_REPO');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      AppLogger.database('Candidate location from object: state=$stateId, district=$districtId, body=$bodyId, ward=$wardId', tag: 'ACHIEVEMENTS_REPO');
 
       final fieldUpdates = <String, dynamic>{};
 
@@ -131,6 +151,8 @@ class AchievementsRepository implements IAchievementsRepository {
       fieldUpdates['updatedAt'] = FieldValue.serverTimestamp();
 
       await _firestore
+          .collection('states')
+          .doc(stateId)  // Use stateId from candidate.location
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -150,23 +172,21 @@ class AchievementsRepository implements IAchievementsRepository {
   }
 
   @override
-  Future<void> updateAchievementsFast(String candidateId, Map<String, dynamic> updateData) async {
+  Future<void> updateAchievementsFast(Candidate candidate, Map<String, dynamic> updateData) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST UPDATE: Achievements for $candidateId', tag: 'ACHIEVEMENTS_FAST');
       AppLogger.database('   Update data keys: ${updateData.keys.toList()}', tag: 'ACHIEVEMENTS_FAST');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)  // Use stateId from candidate.location
           .collection('districts')
           .doc(districtId)
           .collection('bodies')

@@ -36,7 +36,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
       });
 
       final events = await _eventRepository.getCandidateEvents(
-        widget.candidateData.candidateId,
+        widget.candidateData,
       );
       final counts = <String, Map<String, int>>{};
 
@@ -45,7 +45,7 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
 
       for (final event in events) {
         if (event.id != null) {
-          final eventCounts = await _eventRepository.getEventRSVPCounts(event.id!);
+          final eventCounts = await _eventRepository.getEventRSVPCounts(widget.candidateData, event.id!);
           counts[event.id!] = eventCounts;
           totalInterested += (eventCounts['interested'] as num?)?.toInt() ?? 0;
           totalGoing += (eventCounts['going'] as num?)?.toInt() ?? 0;
@@ -437,4 +437,3 @@ class _EventsAnalyticsSectionState extends State<EventsAnalyticsSection> {
     return 'Limited';
   }
 }
-

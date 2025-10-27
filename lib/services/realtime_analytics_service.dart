@@ -190,26 +190,17 @@ class RealtimeAnalyticsService {
     });
   }
 
-  /// Get candidate location (state, district, body, ward)
+  /// Get candidate location (state, district, body, ward) using candidate.location
   Future<Map<String, String>?> _getCandidateLocation(String candidateId) async {
     try {
-      // First try to get from index
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
+      // First try to use candidate's embedded location data
+      // Get candidate document directly - we assume it's in the correct location
+      // For analytics, we need the location info embedded in the candidate document
 
-      if (indexDoc.exists) {
-        final data = indexDoc.data()!;
-        return {
-          'stateId': data['stateId'],
-          'districtId': data['districtId'],
-          'bodyId': data['bodyId'],
-          'wardId': data['wardId'],
-        };
-      }
+      // Strategy: Get the candidate document first, then extract location from embedded data
+      // Since analytics runs frequently, we need an efficient way to get location
 
-      // Fallback: Search across all states
+      // Try to find the candidate document by searching in structured way
       final statesSnapshot = await _firestore.collection('states').get();
 
       for (var stateDoc in statesSnapshot.docs) {
@@ -228,12 +219,27 @@ class RealtimeAnalyticsService {
                   .get();
 
               if (candidateDoc.exists) {
-                return {
-                  'stateId': stateDoc.id,
-                  'districtId': districtDoc.id,
-                  'bodyId': bodyDoc.id,
-                  'wardId': wardDoc.id,
-                };
+                // Found the candidate! Extract location from candidate's embedded data
+                final candidateData = candidateDoc.data() as Map<String, dynamic>;
+
+                // Extract location from the candidate's embedded location data
+                final location = candidateData['location'] as Map<String, dynamic>?;
+                if (location != null) {
+                  return {
+                    'stateId': location['stateId'] ?? stateDoc.id,
+                    'districtId': location['districtId'] ?? districtDoc.id,
+                    'bodyId': location['bodyId'] ?? bodyDoc.id,
+                    'wardId': location['wardId'] ?? wardDoc.id,
+                  };
+                } else {
+                  // Fallback: Use the path structure if embedded location is missing
+                  return {
+                    'stateId': stateDoc.id,
+                    'districtId': districtDoc.id,
+                    'bodyId': bodyDoc.id,
+                    'wardId': wardDoc.id,
+                  };
+                }
               }
             }
           }

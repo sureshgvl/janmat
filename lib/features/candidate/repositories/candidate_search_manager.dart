@@ -510,10 +510,10 @@ class CandidateSearchManager {
     return result['candidates'] as List<Candidate>;
   }
 
-  // Batch: Get multiple candidates by IDs
+  // Batch: Get multiple candidates by IDs using embedded location data
   Future<List<Candidate?>> getCandidatesByIds(List<String> candidateIds) async {
     try {
-      AppLogger.candidate('📦 BATCH: Fetching ${candidateIds.length} candidates by IDs');
+      AppLogger.candidate('📦 BATCH: Fetching ${candidateIds.length} candidates by IDs using embedded location');
 
       final candidates = <Candidate?>[];
       final batchSize = 10; // Firestore limit for 'in' queries
@@ -527,24 +527,66 @@ class CandidateSearchManager {
               : i + batchSize,
         );
 
-        // Try to get from index first
-        final indexResults = await Future.wait(
-          batchIds.map(
-            (id) => _firestore.collection('candidate_index').doc(id).get(),
-          ),
-        );
-
+        
         final locationMap = <String, Map<String, dynamic>>{};
         final missingIds = <String>[];
 
-        for (var j = 0; j < batchIds.length; j++) {
-          final id = batchIds[j];
-          final indexDoc = indexResults[j];
+        // For each batch, search through the structured hierarchy
+        final statesSnapshot = await _firestore.collection('states').get();
 
-          if (indexDoc.exists) {
-            locationMap[id] = indexDoc.data()!;
-          } else {
-            missingIds.add(id);
+        for (final candidateId in batchIds) {
+          bool found = false;
+
+          for (final stateDoc in statesSnapshot.docs) {
+            final districtsSnapshot = await stateDoc.reference.collection('districts').get();
+
+            for (final districtDoc in districtsSnapshot.docs) {
+              final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+
+              for (final bodyDoc in bodiesSnapshot.docs) {
+                final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+
+                for (final wardDoc in wardsSnapshot.docs) {
+                  final candidateDoc = await wardDoc.reference
+                      .collection('candidates')
+                      .doc(candidateId)
+                      .get();
+
+                  if (candidateDoc.exists) {
+                    // Found candidate! Extract embedded location data
+                    final candidateData = candidateDoc.data() as Map<String, dynamic>;
+                    final location = candidateData['location'] as Map<String, dynamic>?;
+
+                    if (location != null) {
+                      locationMap[candidateId] = {
+                        'stateId': location['stateId'] ?? stateDoc.id,
+                        'districtId': location['districtId'] ?? districtDoc.id,
+                        'bodyId': location['bodyId'] ?? bodyDoc.id,
+                        'wardId': location['wardId'] ?? wardDoc.id,
+                      };
+                    } else {
+                      // Fallback to path structure if location data missing
+                      locationMap[candidateId] = {
+                        'stateId': stateDoc.id,
+                        'districtId': districtDoc.id,
+                        'bodyId': bodyDoc.id,
+                        'wardId': wardDoc.id,
+                      };
+                    }
+
+                    found = true;
+                    break;
+                  }
+                }
+                if (found) break;
+              }
+              if (found) break;
+            }
+            if (found) break;
+          }
+
+          if (!found) {
+            missingIds.add(candidateId);
           }
         }
 
@@ -552,7 +594,7 @@ class CandidateSearchManager {
         if (locationMap.isNotEmpty) {
           final batchReads = locationMap.entries.map((entry) async {
             final location = entry.value;
-            final stateId = location['stateId'] ?? DEFAULT_STATE_ID; // Use dynamic state ID
+            final stateId = location['stateId'] ?? DEFAULT_STATE_ID;
             final candidateDoc = await _firestore
                 .collection('states')
                 .doc(stateId)
@@ -579,7 +621,7 @@ class CandidateSearchManager {
           candidates.addAll(batchResults);
         }
 
-        // Handle missing IDs with optimized search
+        // Handle missing IDs (shouldn't happen with embedded location, but fallback)
         for (final id in missingIds) {
           final candidate = await getCandidateDataById(id);
           candidates.add(candidate);
@@ -587,7 +629,7 @@ class CandidateSearchManager {
       }
 
       AppLogger.candidate(
-        '✅ BATCH: Retrieved ${candidates.where((c) => c != null).length}/${candidateIds.length} candidates',
+        '✅ BATCH: Retrieved ${candidates.where((c) => c != null).length}/${candidateIds.length} candidates using embedded location',
       );
       return candidates;
     } catch (e) {
@@ -596,54 +638,98 @@ class CandidateSearchManager {
     }
   }
 
-  // Batch: Update multiple candidates with same field updates
+  // Batch: Update multiple candidates with same field updates using embedded location
   Future<void> batchUpdateCandidates(
     List<String> candidateIds,
     Map<String, dynamic> fieldUpdates,
   ) async {
     try {
       AppLogger.candidate(
-        '📦 BATCH: Updating ${candidateIds.length} candidates with ${fieldUpdates.length} fields',
+        '📦 BATCH: Updating ${candidateIds.length} candidates with ${fieldUpdates.length} fields using embedded location',
       );
 
       final batch = _firestore.batch();
       var updateCount = 0;
 
+      // First, find all candidates and extract their embedded location data
+      final statesSnapshot = await _firestore.collection('states').get();
+
       for (final candidateId in candidateIds) {
-        // Get location from index
-        final indexDoc = await _firestore
-            .collection('candidate_index')
-            .doc(candidateId)
-            .get();
+        bool found = false;
 
-        if (indexDoc.exists) {
-          final location = indexDoc.data()!;
-          final stateId = location['stateId'] ?? DEFAULT_STATE_ID; // Use dynamic state ID
-          final candidateRef = _firestore
-              .collection('states')
-              .doc(stateId)
-              .collection('districts')
-              .doc(location['districtId'])
-              .collection('bodies')
-              .doc(location['bodyId'])
-              .collection('wards')
-              .doc(location['wardId'])
-              .collection('candidates')
-              .doc(candidateId);
+        // Search for the candidate to get their embedded location
+        for (final stateDoc in statesSnapshot.docs) {
+          final districtsSnapshot = await stateDoc.reference.collection('districts').get();
 
-          batch.update(candidateRef, fieldUpdates);
-          updateCount++;
+          for (final districtDoc in districtsSnapshot.docs) {
+            final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-          // Invalidate cache for this candidate
-          invalidateCache(
-            'candidates_${stateId}_${location['districtId']}_${location['bodyId']}_${location['wardId']}',
-          );
+            for (final bodyDoc in bodiesSnapshot.docs) {
+              final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+
+              for (final wardDoc in wardsSnapshot.docs) {
+                final candidateDoc = await wardDoc.reference
+                    .collection('candidates')
+                    .doc(candidateId)
+                    .get();
+
+                if (candidateDoc.exists) {
+                  // Found candidate! Get embedded location data
+                  final candidateData = candidateDoc.data() as Map<String, dynamic>;
+                  final location = candidateData['location'] as Map<String, dynamic>?;
+
+                  String stateId = DEFAULT_STATE_ID;
+                  String districtId = districtDoc.id;
+                  String bodyId = bodyDoc.id;
+                  String wardId = wardDoc.id;
+
+                  // Use embedded location if available, otherwise path structure
+                  if (location != null) {
+                    stateId = location['stateId'] ?? stateDoc.id;
+                    districtId = location['districtId'] ?? districtDoc.id;
+                    bodyId = location['bodyId'] ?? bodyDoc.id;
+                    wardId = location['wardId'] ?? wardDoc.id;
+                  }
+
+                  final candidateRef = _firestore
+                      .collection('states')
+                      .doc(stateId)
+                      .collection('districts')
+                      .doc(districtId)
+                      .collection('bodies')
+                      .doc(bodyId)
+                      .collection('wards')
+                      .doc(wardId)
+                      .collection('candidates')
+                      .doc(candidateId);
+
+                  batch.update(candidateRef, fieldUpdates);
+                  updateCount++;
+                  found = true;
+
+                  // Invalidate cache for this candidate
+                  invalidateCache(
+                    'candidates_${stateId}_${districtId}_${bodyId}_${wardId}',
+                  );
+
+                  break;
+                }
+              }
+              if (found) break;
+            }
+            if (found) break;
+          }
+          if (found) break;
+        }
+
+        if (!found) {
+          AppLogger.candidate('⚠️ BATCH: Candidate $candidateId not found for update');
         }
       }
 
       if (updateCount > 0) {
         await batch.commit();
-        AppLogger.candidate('✅ BATCH: Successfully updated $updateCount candidates');
+        AppLogger.candidate('✅ BATCH: Successfully updated $updateCount candidates using embedded location');
       } else {
         AppLogger.candidate('⚠️ BATCH: No candidates found to update');
       }
@@ -782,4 +868,3 @@ class CandidateSearchManager {
     }
   }
 }
-

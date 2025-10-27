@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../models/media_model.dart';
+import '../models/candidate_model.dart';
 
 abstract class IMediaRepository {
-  Future<List<Media>?> getMedia(String candidateId);
-  Future<bool> updateMedia(String candidateId, List<Media> media);
-  Future<bool> updateMediaFields(String candidateId, Map<String, dynamic> updates);
-  Future<void> updateMediaFast(String candidateId, Map<String, dynamic> updateData);
+  Future<List<Media>?> getMedia(Candidate candidate);
+  Future<bool> updateMedia(String candidateId, List<Media> media, Candidate candidate);
+  Future<bool> updateMediaWithCandidate(String candidateId, List<Media> media, Candidate candidate);
+  Future<bool> updateMediaFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<void> updateMediaFast(Candidate candidate, Map<String, dynamic> updateData);
 }
 
 class MediaRepository implements IMediaRepository {
@@ -16,25 +18,23 @@ class MediaRepository implements IMediaRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Future<List<Media>?> getMedia(String candidateId) async {
+  Future<List<Media>?> getMedia(Candidate candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Fetching media for candidate: $candidateId', tag: 'MEDIA_REPO');
 
-      // Get candidate location from index first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId', tag: 'MEDIA_REPO');
-        return null;
-      }
+      AppLogger.database('Candidate location from object: state=$stateId, district=$districtId, body=$bodyId, ward=$wardId', tag: 'MEDIA_REPO');
 
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
-
-      // Get candidate document from hierarchical path
+      // Get candidate document from hierarchical path - using states path to match other repos
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -66,20 +66,15 @@ class MediaRepository implements IMediaRepository {
   }
 
   @override
-  Future<bool> updateMedia(String candidateId, List<Media> media) async {
+  Future<bool> updateMedia(String candidateId, List<Media> media, Candidate candidate) async {
     try {
       AppLogger.database('Updating media for candidate: $candidateId', tag: 'MEDIA_REPO');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final updates = {
         'media': media.map((item) => item.toJson()).toList(),
@@ -87,6 +82,8 @@ class MediaRepository implements IMediaRepository {
       };
 
       await _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -106,20 +103,21 @@ class MediaRepository implements IMediaRepository {
   }
 
   @override
-  Future<bool> updateMediaFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateMediaWithCandidate(String candidateId, List<Media> media, Candidate candidate) async {
+    return updateMedia(candidateId, media, candidate);
+  }
+
+  @override
+  Future<bool> updateMediaFields(Candidate candidate, Map<String, dynamic> updates) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Updating media fields for candidate: $candidateId', tag: 'MEDIA_REPO');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final fieldUpdates = <String, dynamic>{};
 
@@ -130,7 +128,9 @@ class MediaRepository implements IMediaRepository {
 
       fieldUpdates['updatedAt'] = FieldValue.serverTimestamp();
 
-      await _firestore
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -138,8 +138,20 @@ class MediaRepository implements IMediaRepository {
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
-          .doc(candidateId)
-          .update(fieldUpdates);
+          .doc(candidateId);
+
+      // Check if document exists first, like other repos do
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        AppLogger.database('Document does not exist, creating new document', tag: 'MEDIA_REPO');
+        await candidateRef.set({
+          ...fieldUpdates,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(fieldUpdates);
+      }
 
       AppLogger.database('Media fields updated successfully', tag: 'MEDIA_REPO');
       return true;
@@ -150,23 +162,21 @@ class MediaRepository implements IMediaRepository {
   }
 
   @override
-  Future<void> updateMediaFast(String candidateId, Map<String, dynamic> updateData) async {
+  Future<void> updateMediaFast(Candidate candidate, Map<String, dynamic> updateData) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST UPDATE: Media for $candidateId', tag: 'MEDIA_FAST');
       AppLogger.database('   Update data keys: ${updateData.keys.toList()}', tag: 'MEDIA_FAST');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        throw Exception('Candidate index not found: $candidateId');
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -176,18 +186,49 @@ class MediaRepository implements IMediaRepository {
           .collection('candidates')
           .doc(candidateId);
 
-      // Ensure the data is properly structured for extra_info.media
+      // Check if candidate document exists first
+      final candidateDoc = await candidateRef.get();
+      final documentExists = candidateDoc.exists;
+
+      AppLogger.database('   Candidate document exists: $documentExists', tag: 'MEDIA_FAST');
+
+      if (!documentExists) {
+        AppLogger.database('❌ CANDIDATE DOCUMENT NOT FOUND - Creating new document', tag: 'MEDIA_FAST');
+
+        // Create the candidate document with the media data
+        final Map<String, dynamic> candidateData = {
+          'candidateId': candidateId,
+          'userId': candidate.candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'status': 'active',
+          'approved': false,
+          'sponsored': false,
+          ...updateData,
+        };
+
+        AppLogger.database('   Creating document with data: $candidateData', tag: 'MEDIA_FAST');
+        await candidateRef.set(candidateData);
+
+        AppLogger.database('✅ CANDIDATE DOCUMENT CREATED with media data', tag: 'MEDIA_FAST');
+        return;
+      }
+
+      // Document exists, update it
+      // Ensure the data is properly structured for media
       final structuredUpdateData = <String, dynamic>{};
 
       updateData.forEach((key, value) {
         if (key == 'media') {
           // If it's already structured as a map, merge each field
           if (value is Map<String, dynamic>) {
+            AppLogger.database('   Processing media map with keys: ${value.keys.toList()}', tag: 'MEDIA_FAST');
             value.forEach((fieldKey, fieldValue) {
               structuredUpdateData['media.$fieldKey'] = fieldValue;
             });
           } else {
             // If it's not a map, store it as-is (fallback)
+            AppLogger.database('   Media data is not a map, storing as-is', tag: 'MEDIA_FAST');
             structuredUpdateData[key] = value;
           }
         } else {
@@ -196,7 +237,8 @@ class MediaRepository implements IMediaRepository {
         }
       });
 
-      AppLogger.database('   Structured update data: $structuredUpdateData', tag: 'MEDIA_FAST');
+      AppLogger.database('   Final structured update data: $structuredUpdateData', tag: 'MEDIA_FAST');
+      AppLogger.database('   Attempting Firestore update...', tag: 'MEDIA_FAST');
 
       await candidateRef.update(structuredUpdateData);
 

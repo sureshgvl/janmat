@@ -339,7 +339,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
       final controller = Get.find<ManifestoController>();
       final success = await controller.updateManifestoUrls(
-        widget.candidateData.candidateId,
+        widget.candidateData,
         pdfUrl: uploadedUrls['pdf'],
         imageUrl: uploadedUrls['image'],
         videoUrl: uploadedUrls['video'],

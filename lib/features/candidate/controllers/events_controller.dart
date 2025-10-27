@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
 import '../models/events_model.dart';
+import '../models/candidate_model.dart';
 import '../repositories/candidate_event_repository.dart';
 
 class EventsController extends GetxController {
@@ -18,7 +19,7 @@ class EventsController extends GetxController {
   }
 
   /// Fetch events for the current candidate with caching
-  Future<void> fetchEvents(String candidateId, {bool forceRefresh = false}) async {
+  Future<void> fetchEvents(Candidate candidate, {bool forceRefresh = false}) async {
     // Check if we have recent data and don't need to refresh
     if (!forceRefresh &&
         eventsLastFetched.value != null &&
@@ -30,7 +31,7 @@ class EventsController extends GetxController {
 
     isLoading.value = true;
     try {
-      final fetchedEvents = await _eventRepository.getCandidateEvents(candidateId);
+      final fetchedEvents = await _eventRepository.getCandidateEvents(candidate);
       events.assignAll(fetchedEvents);
       eventsLastFetched.value = DateTime.now();
     } catch (e) {
@@ -46,14 +47,14 @@ class EventsController extends GetxController {
   }
 
   /// Refresh events data (force reload from server)
-  Future<void> refreshEvents(String candidateId) async {
-    await fetchEvents(candidateId, forceRefresh: true);
+  Future<void> refreshEvents(Candidate candidate) async {
+    await fetchEvents(candidate, forceRefresh: true);
   }
 
   /// Get events data (ensures data is loaded if not already)
-  Future<List<EventData>> getEventsData(String candidateId) async {
+  Future<List<EventData>> getEventsData(Candidate candidate) async {
     if (events.isEmpty && !isLoading.value) {
-      await fetchEvents(candidateId);
+      await fetchEvents(candidate);
     }
     return events.toList();
   }
@@ -71,10 +72,11 @@ class EventsController extends GetxController {
   }
 
   /// Create a new event
-  Future<bool> createEvent(String candidateId, EventData eventData) async {
+  Future<bool> createEvent(Candidate candidate, EventData eventData) async {
+    final candidateId = candidate.candidateId;
     try {
-      await _eventRepository.createEvent(candidateId, eventData);
-      await refreshEvents(candidateId); // Refresh the list
+      await _eventRepository.createEvent(candidate, eventData);
+      await refreshEvents(candidate); // Refresh the list
       return true;
     } catch (e) {
       Get.snackbar('Error', 'Failed to create event: $e');
@@ -83,10 +85,11 @@ class EventsController extends GetxController {
   }
 
   /// Update an existing event
-  Future<bool> updateEvent(String candidateId, String eventId, EventData eventData) async {
+  Future<bool> updateEvent(Candidate candidate, String eventId, EventData eventData) async {
+    final candidateId = candidate.candidateId;
     try {
-      await _eventRepository.updateEvent(candidateId, eventId, eventData);
-      await refreshEvents(candidateId); // Refresh the list
+      await _eventRepository.updateEvent(candidate, eventId, eventData);
+      await refreshEvents(candidate); // Refresh the list
       return true;
     } catch (e) {
       Get.snackbar('Error', 'Failed to update event: $e');
@@ -95,10 +98,11 @@ class EventsController extends GetxController {
   }
 
   /// Delete an event
-  Future<bool> deleteEvent(String candidateId, String eventId) async {
+  Future<bool> deleteEvent(Candidate candidate, String eventId) async {
+    final candidateId = candidate.candidateId;
     try {
-      await _eventRepository.deleteEvent(candidateId, eventId);
-      await refreshEvents(candidateId); // Refresh the list
+      await _eventRepository.deleteEvent(candidate, eventId);
+      await refreshEvents(candidate); // Refresh the list
       return true;
     } catch (e) {
       Get.snackbar('Error', 'Failed to delete event: $e');
@@ -107,10 +111,11 @@ class EventsController extends GetxController {
   }
 
   /// RSVP to an event
-  Future<bool> rsvpToEvent(String candidateId, String eventId, String userId, String rsvpType) async {
+  Future<bool> rsvpToEvent(Candidate candidate, String eventId, String userId, String rsvpType) async {
+    final candidateId = candidate.candidateId;
     try {
-      await _eventRepository.rsvpToEvent(candidateId, eventId, userId, rsvpType);
-      await refreshEvents(candidateId); // Refresh to get updated RSVP counts
+      await _eventRepository.rsvpToEvent(candidate, eventId, userId, rsvpType);
+      await refreshEvents(candidate); // Refresh to get updated RSVP counts
       return true;
     } catch (e) {
       Get.snackbar('Error', 'Failed to RSVP: $e');
@@ -133,15 +138,17 @@ class EventsController extends GetxController {
     eventsLastFetched.value = DateTime.now();
   }
 
+  @override
   /// TAB-SPECIFIC SAVE: Direct events tab save method
   /// Handles all events operations for the tab independently
   Future<bool> saveEventsTab({
-    required String candidateId,
+    required Candidate candidate,
     required List<EventData> events,
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🎪 TAB SAVE: Events tab for $candidateId', tag: 'EVENTS_TAB');
 
@@ -165,11 +172,11 @@ class EventsController extends GetxController {
   /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct events tab save method with candidate context
   /// Handles all events operations for the tab independently with full candidate data
   Future<bool> saveEventsTabWithCandidate({
-    required String candidateId,
+    required Candidate candidate,
     required List<EventData> events,
-    required dynamic candidate,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🎪 TAB SAVE: Events tab with candidate for $candidateId', tag: 'EVENTS_TAB');
 
@@ -190,15 +197,17 @@ class EventsController extends GetxController {
     }
   }
 
+  @override
   /// FAST SAVE: Direct events update for simple field changes
   /// Main save is fast, but triggers essential background operations
   Future<bool> saveEventsFast(
-    String candidateId,
+    Candidate candidate,
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST SAVE: Events for $candidateId', tag: 'EVENTS_FAST');
 

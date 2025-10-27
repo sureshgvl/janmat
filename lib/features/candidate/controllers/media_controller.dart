@@ -3,17 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../models/media_model.dart';
+import '../models/candidate_model.dart';
 import '../repositories/media_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IMediaController {
-  Future<List<Media>?> getMedia(String candidateId);
-  Future<bool> saveMedia(String candidateId, List<Media> media);
-  Future<bool> updateMediaFields(String candidateId, Map<String, dynamic> updates);
-  Future<bool> saveMediaTab({required String candidateId, required List<Media> media, String? candidateName, String? photoUrl, Function(String)? onProgress});
-  Future<bool> saveMediaFast(String candidateId, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<List<Media>?> getMedia(Candidate candidate);
+  Future<bool> saveMedia(Candidate candidate, List<Media> media);
+  Future<bool> updateMediaFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<bool> saveMediaTab({required Candidate candidate, required List<Media> media, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveMediaTabWithCandidate({String? candidateId, Candidate? candidate, List<Media>? media, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveMediaFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
   List<Media> getUpdatedMedia(List<Media> current, String field, dynamic value);
 }
 
@@ -24,10 +26,11 @@ class MediaController extends GetxController implements IMediaController {
       : _repository = repository ?? MediaRepository();
 
   @override
-  Future<List<Media>?> getMedia(String candidateId) async {
+  Future<List<Media>?> getMedia(Candidate candidate) async {
     try {
+      final candidateId = candidate.candidateId;
       AppLogger.database('MediaController: Fetching media for $candidateId', tag: 'MEDIA_CTRL');
-      return await _repository.getMedia(candidateId);
+      return await _repository.getMedia(candidate);
     } catch (e) {
       AppLogger.databaseError('MediaController: Error fetching media', tag: 'MEDIA_CTRL', error: e);
       throw Exception('Failed to fetch media: $e');
@@ -35,10 +38,10 @@ class MediaController extends GetxController implements IMediaController {
   }
 
   @override
-  Future<bool> saveMedia(String candidateId, List<Media> media) async {
+  Future<bool> saveMedia(Candidate candidate, List<Media> media) async {
     try {
-      AppLogger.database('MediaController: Saving media for $candidateId', tag: 'MEDIA_CTRL');
-      return await _repository.updateMedia(candidateId, media);
+      AppLogger.database('MediaController: Saving media for ${candidate.candidateId}', tag: 'MEDIA_CTRL');
+      return await _repository.updateMedia(candidate.candidateId, media, candidate);
     } catch (e) {
       AppLogger.databaseError('MediaController: Error saving media', tag: 'MEDIA_CTRL', error: e);
       throw Exception('Failed to save media: $e');
@@ -46,10 +49,11 @@ class MediaController extends GetxController implements IMediaController {
   }
 
   @override
-  Future<bool> updateMediaFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateMediaFields(Candidate candidate, Map<String, dynamic> updates) async {
     try {
+      final candidateId = candidate.candidateId;
       AppLogger.database('MediaController: Updating media fields for $candidateId', tag: 'MEDIA_CTRL');
-      return await _repository.updateMediaFields(candidateId, updates);
+      return await _repository.updateMediaFields(candidate, updates);
     } catch (e) {
       AppLogger.databaseError('MediaController: Error updating media fields', tag: 'MEDIA_CTRL', error: e);
       throw Exception('Failed to update media fields: $e');
@@ -101,27 +105,29 @@ class MediaController extends GetxController implements IMediaController {
     // Implementation will be handled by the calling controller
   }
 
+  @override
   /// TAB-SPECIFIC SAVE: Direct media tab save method
   /// Handles all media operations for the tab independently
   Future<bool> saveMediaTab({
-    required String candidateId,
+    required Candidate candidate,
     required List<Media> media,
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🎬 TAB SAVE: Media tab for $candidateId', tag: 'MEDIA_TAB');
 
       onProgress?.call('Saving media...');
 
       // Save using the repository
-      final success = await _repository.updateMedia(candidateId, media);
+      final success = await _repository.updateMedia(candidateId, media, candidate);
 
       if (success) {
         onProgress?.call('Media saved successfully!');
 
-        // 🔄 BACKGROUND OPERATIONS (fire-and-for-get, don't block UI)
+        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
         _runBackgroundSyncOperations(candidateId, candidateName, photoUrl, {'media': media.map((m) => m.toJson()).toList()});
 
         AppLogger.database('✅ TAB SAVE: Media completed successfully', tag: 'MEDIA_TAB');
@@ -136,59 +142,22 @@ class MediaController extends GetxController implements IMediaController {
     }
   }
 
-  /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct media tab save method with candidate context
-  /// Handles all media operations for the tab independently with full candidate data
-  Future<bool> saveMediaTabWithCandidate({
-    required String candidateId,
-    required List<Media> media,
-    required dynamic candidate,
-    Function(String)? onProgress
-  }) async {
-    try {
-      AppLogger.database('🎬 TAB SAVE: Media tab with candidate for $candidateId', tag: 'MEDIA_TAB');
-
-      onProgress?.call('Saving media...');
-
-      // Save using the repository
-      final success = await _repository.updateMedia(candidateId, media);
-
-      if (success) {
-        onProgress?.call('Media saved successfully!');
-
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(candidateId, candidate?.basicInfo?.fullName, candidate?.basicInfo?.photo, {'media': media.map((m) => m.toJson()).toList()});
-
-        AppLogger.database('✅ TAB SAVE: Media completed successfully', tag: 'MEDIA_TAB');
-        return true;
-      } else {
-        AppLogger.databaseError('❌ TAB SAVE: Media save failed', tag: 'MEDIA_TAB');
-        return false;
-      }
-    } catch (e) {
-      AppLogger.databaseError('❌ TAB SAVE: Media tab save failed', tag: 'MEDIA_TAB', error: e);
-      return false;
-    }
-  }
-
+  @override
   /// FAST SAVE: Direct media update for simple field changes
   /// Main save is fast, but triggers essential background operations
   Future<bool> saveMediaFast(
-    String candidateId,
+    Candidate candidate,
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST SAVE: Media for $candidateId', tag: 'MEDIA_FAST');
 
       // Direct Firestore update - NO batch operations, NO parallel ops
-      final updateData = {
-        'media': updates,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      await _repository.updateMediaFast(candidateId, updateData);
+      await _repository.updateMediaFast(candidate, updates);
 
       // ✅ MAIN SAVE COMPLETE - UI can update immediately
 
@@ -304,5 +273,13 @@ class MediaController extends GetxController implements IMediaController {
     } catch (e) {
       AppLogger.databaseError('⚠️ BACKGROUND: Cache update failed', tag: 'MEDIA_FAST', error: e);
     }
+  }
+
+  @override
+  Future<bool> saveMediaTabWithCandidate({String? candidateId, Candidate? candidate, List<Media>? media, String? candidateName, String? photoUrl, Function(String)? onProgress}) async {
+    if (candidate != null && media != null) {
+      return saveMediaTab(candidate: candidate, media: media, candidateName: candidateName, photoUrl: photoUrl, onProgress: onProgress);
+    }
+    return false;
   }
 }

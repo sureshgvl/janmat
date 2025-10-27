@@ -10,7 +10,7 @@ import '../widgets/view/basic_info/basic_info_tab_view.dart';
 import '../widgets/view/manifesto/manifesto_view.dart';
 import '../widgets/view/media/media_view.dart';
 import '../widgets/view/contact/contact_tab_view.dart';
-import '../widgets/edit/achievements/achievements_edit.dart';
+import '../widgets/view/achievements/achievements_tab_view.dart';
 import '../widgets/edit/events/events_edit.dart';
 import '../widgets/view/events/events_tab_view.dart';
 import '../widgets/view/followers_analytics_tab_view.dart';
@@ -467,11 +467,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       ),
 
       // Achievements Tab
-      AchievementsSection(
-        candidateData: candidate!,
-        editedData: null,
-        isEditing: false,
-        onAchievementsChange: (value) {},
+      AchievementsTabView(
+        candidate: candidate!,
       ),
 
       // Media Tab

@@ -1,30 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../models/highlights_model.dart';
+import '../models/candidate_model.dart';
 
 class HighlightsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Get highlights for a specific candidate
-  Future<HighlightsModel?> getCandidateHighlights(String candidateId) async {
+  Future<HighlightsModel?> getCandidateHighlights(Candidate candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Fetching highlights for candidate: $candidateId');
 
-      // Get candidate location from index first
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId');
-        return HighlightsModel(highlights: []);
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
-
-      // Get candidate document from hierarchical path
+      // Get candidate document from hierarchical path - using states path to match other repos
       final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -60,28 +57,24 @@ class HighlightsRepository {
   }
 
   /// Update highlight for a candidate
-  Future<bool> updateCandidateHighlight(String candidateId, HighlightData highlightData) async {
+  Future<bool> updateCandidateHighlight(String candidateId, HighlightData highlightData, Candidate candidate) async {
     try {
       AppLogger.database('Updating highlight for candidate: $candidateId');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId');
-        return false;
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final updateData = {
         'highlights': [highlightData.toJson()],
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -89,8 +82,19 @@ class HighlightsRepository {
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
-          .doc(candidateId)
-          .update(updateData);
+          .doc(candidateId);
+
+      // Check if document exists, create if not
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        await candidateRef.set({
+          ...updateData,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(updateData);
+      }
 
       AppLogger.database('Highlight updated successfully for candidate: $candidateId');
       return true;
@@ -101,28 +105,24 @@ class HighlightsRepository {
   }
 
   /// Delete highlight for a candidate
-  Future<bool> deleteCandidateHighlight(String candidateId) async {
+  Future<bool> deleteCandidateHighlight(String candidateId, Candidate candidate) async {
     try {
       AppLogger.database('Deleting highlight for candidate: $candidateId');
 
-      // Get candidate location from index
-      final indexDoc = await _firestore.collection('candidate_index').doc(candidateId).get();
-      if (!indexDoc.exists) {
-        AppLogger.database('Candidate index not found: $candidateId');
-        return false;
-      }
-
-      final indexData = indexDoc.data()!;
-      final districtId = indexData['districtId'];
-      final bodyId = indexData['bodyId'];
-      final wardId = indexData['wardId'];
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
 
       final updateData = {
         'highlights': [],
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -130,13 +130,122 @@ class HighlightsRepository {
           .collection('wards')
           .doc(wardId)
           .collection('candidates')
-          .doc(candidateId)
-          .update(updateData);
+          .doc(candidateId);
+
+      // Check if document exists, create if not
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        await candidateRef.set({
+          ...updateData,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(updateData);
+      }
 
       AppLogger.database('Highlight deleted successfully for candidate: $candidateId');
       return true;
     } catch (e) {
       AppLogger.databaseError('Error deleting candidate highlight: $e');
+      return false;
+    }
+  }
+
+  /// Save highlights for a candidate (full save)
+  Future<bool> saveHighlights(Candidate candidate, HighlightsModel highlights) async {
+    try {
+      final candidateId = candidate.candidateId;
+      AppLogger.database('Saving highlights for candidate: $candidateId');
+
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final updateData = {
+        'highlights': highlights.highlights?.map((h) => h.toJson()).toList() ?? [],
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId);
+
+      // Check if document exists, create if not
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        await candidateRef.set({
+          ...updateData,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(updateData);
+      }
+
+      AppLogger.database('Highlights saved successfully for candidate: $candidateId');
+      return true;
+    } catch (e) {
+      AppLogger.databaseError('Error saving highlights: $e');
+      return false;
+    }
+  }
+
+  /// Update highlights fields for a candidate
+  Future<bool> updateHighlightsFields(Candidate candidate, Map<String, dynamic> updates) async {
+    try {
+      final candidateId = candidate.candidateId;
+      AppLogger.database('Updating highlights fields for candidate: $candidateId');
+
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final updateData = {
+        ...updates,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId);
+
+      // Check if document exists, create if not
+      final docSnapshot = await candidateRef.get();
+      if (!docSnapshot.exists) {
+        await candidateRef.set({
+          ...updateData,
+          'candidateId': candidateId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await candidateRef.update(updateData);
+      }
+
+      AppLogger.database('Highlights fields updated successfully for candidate: $candidateId');
+      return true;
+    } catch (e) {
+      AppLogger.databaseError('Error updating highlights fields: $e');
       return false;
     }
   }

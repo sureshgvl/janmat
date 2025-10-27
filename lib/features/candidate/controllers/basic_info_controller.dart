@@ -9,7 +9,7 @@ import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IBasicInfoController {
-  Future<BasicInfoModel?> getBasicInfo(String candidateId);
+  Future<BasicInfoModel?> getBasicInfo(dynamic candidate); // Accept candidate object
   Future<bool> saveBasicInfoTabWithCandidate({
     required String candidateId,
     required BasicInfoModel basicInfo,
@@ -27,10 +27,11 @@ class BasicInfoController extends GetxController implements IBasicInfoController
       : _repository = repository ?? BasicInfoRepository();
 
   @override
-  Future<BasicInfoModel?> getBasicInfo(String candidateId) async {
+  Future<BasicInfoModel?> getBasicInfo(dynamic candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('BasicInfoController: Fetching basic info for $candidateId', tag: 'BASIC_INFO_CTRL');
-      return await _repository.getBasicInfo(candidateId);
+      return await _repository.getBasicInfo(candidate);
     } catch (e) {
       AppLogger.databaseError('BasicInfoController: Error fetching basic info', tag: 'BASIC_INFO_CTRL', error: e);
       throw Exception('Failed to fetch basic info: $e');

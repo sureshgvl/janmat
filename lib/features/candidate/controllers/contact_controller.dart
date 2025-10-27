@@ -3,17 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../models/contact_model.dart';
+import '../models/candidate_model.dart';
 import '../repositories/contact_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IContactController {
-  Future<ContactModel?> getContact(String candidateId);
-  Future<bool> saveContact(String candidateId, ContactModel contact);
-  Future<bool> updateContactFields(String candidateId, Map<String, dynamic> updates);
-  Future<bool> saveContactTab({required String candidateId, required ContactModel contact, String? candidateName, String? photoUrl, Function(String)? onProgress});
-  Future<bool> saveContactFast(String candidateId, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<ContactModel?> getContact(Candidate candidate);
+  Future<bool> saveContact(Candidate candidate, ContactModel contact);
+  Future<bool> updateContactFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<bool> saveContactTab({required Candidate candidate, required ContactModel contact, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveContactFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
   ContactModel getUpdatedCandidate(ContactModel current, String field, dynamic value);
 }
 
@@ -24,10 +25,10 @@ class ContactController extends GetxController implements IContactController {
       : _repository = repository ?? ContactRepository();
 
   @override
-  Future<ContactModel?> getContact(String candidateId) async {
+  Future<ContactModel?> getContact(Candidate candidate) async {
     try {
-      AppLogger.database('ContactController: Fetching contact for $candidateId', tag: 'CONTACT_CTRL');
-      return await _repository.getContact(candidateId);
+      AppLogger.database('ContactController: Fetching contact for ${candidate.candidateId}', tag: 'CONTACT_CTRL');
+      return await _repository.getContact(candidate);
     } catch (e) {
       AppLogger.databaseError('ContactController: Error fetching contact', tag: 'CONTACT_CTRL', error: e);
       throw Exception('Failed to fetch contact: $e');
@@ -35,10 +36,10 @@ class ContactController extends GetxController implements IContactController {
   }
 
   @override
-  Future<bool> saveContact(String candidateId, ContactModel contact) async {
+  Future<bool> saveContact(Candidate candidate, ContactModel contact) async {
     try {
-      AppLogger.database('ContactController: Saving contact for $candidateId', tag: 'CONTACT_CTRL');
-      return await _repository.updateContact(candidateId, contact);
+      AppLogger.database('ContactController: Saving contact for ${candidate.candidateId}', tag: 'CONTACT_CTRL');
+      return await _repository.updateContact(candidate, contact);
     } catch (e) {
       AppLogger.databaseError('ContactController: Error saving contact', tag: 'CONTACT_CTRL', error: e);
       throw Exception('Failed to save contact: $e');
@@ -46,10 +47,10 @@ class ContactController extends GetxController implements IContactController {
   }
 
   @override
-  Future<bool> updateContactFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateContactFields(Candidate candidate, Map<String, dynamic> updates) async {
     try {
-      AppLogger.database('ContactController: Updating contact fields for $candidateId', tag: 'CONTACT_CTRL');
-      return await _repository.updateContactFields(candidateId, updates);
+      AppLogger.database('ContactController: Updating contact fields for ${candidate.candidateId}', tag: 'CONTACT_CTRL');
+      return await _repository.updateContactFields(candidate, updates);
     } catch (e) {
       AppLogger.databaseError('ContactController: Error updating contact fields', tag: 'CONTACT_CTRL', error: e);
       throw Exception('Failed to update contact fields: $e');
@@ -86,22 +87,24 @@ class ContactController extends GetxController implements IContactController {
     // Implementation will be handled by the calling controller
   }
 
+  @override
   /// TAB-SPECIFIC SAVE: Direct contact tab save method
   /// Handles all contact operations for the tab independently
   Future<bool> saveContactTab({
-    required String candidateId,
+    required Candidate candidate,
     required ContactModel contact,
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('📞 TAB SAVE: Contact tab for $candidateId', tag: 'CONTACT_TAB');
 
       onProgress?.call('Saving contact information...');
 
       // Direct save using the repository
-      final success = await _repository.updateContact(candidateId, contact);
+      final success = await _repository.updateContact(candidate, contact);
 
       if (success) {
         onProgress?.call('Contact information saved successfully!');
@@ -121,15 +124,17 @@ class ContactController extends GetxController implements IContactController {
     }
   }
 
+  @override
   /// FAST SAVE: Direct contact update for simple field changes
   /// Main save is fast, but triggers essential background operations
   Future<bool> saveContactFast(
-    String candidateId,
+    Candidate candidate,
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST SAVE: Contact for $candidateId', tag: 'CONTACT_FAST');
 
@@ -139,7 +144,7 @@ class ContactController extends GetxController implements IContactController {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _repository.updateContactFast(candidateId, updateData);
+      await _repository.updateContactFast(candidate, updateData);
 
       // ✅ MAIN SAVE COMPLETE - UI can update immediately
 

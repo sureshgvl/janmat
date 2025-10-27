@@ -681,7 +681,7 @@ class MediaTabEditState extends State<MediaTabEdit> {
 
       // Save using the controller
       final success = await _mediaController.saveMediaTab(
-        candidateId: data.userId ?? '',
+        candidate: data,
         media: mediaList,
         candidateName: data.name,
         photoUrl: data.photo,

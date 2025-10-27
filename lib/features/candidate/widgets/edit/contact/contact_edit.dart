@@ -503,7 +503,7 @@ class _ContactSectionState extends State<ContactSection> {
 
       // Save using the controller
       final success = await _contactController.saveContactTab(
-        candidateId: data.userId ?? '',
+        candidate: data,
         contact: contact,
         candidateName: data.name,
         photoUrl: data.photo,

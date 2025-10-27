@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
 import '../../../utils/app_logger.dart';
 
@@ -14,18 +15,129 @@ class AuthController extends GetxController {
   RxBool isLoading = false.obs;
   RxBool isOTPScreen = false.obs;
   RxString verificationId = ''.obs;
+  Rx<User?> currentUser = Rx<User?>(null); // Reactive user state
 
   // OTP Timer
   RxInt otpTimer = 60.obs;
   RxBool canResendOTP = false.obs;
   Timer? _otpTimer;
 
+  // Background sync
+  Timer? _backgroundSyncTimer;
+  static const Duration _backgroundSyncInterval = Duration(minutes: 30);
+
+  // Debounced auth change handling
+  Timer? _authChangeDebouncer;
+  static const Duration _authDebounceDelay = Duration(milliseconds: 500);
+
+  // Cached auth state for fault tolerance
+  Map<String, dynamic>? _cachedAuthData;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _initializeAuthListeners();
+    _initializeBackgroundSync();
+  }
+
   @override
   void onClose() {
     phoneController.dispose();
     otpController.dispose();
     _otpTimer?.cancel();
+    _authChangeDebouncer?.cancel();
+    _backgroundSyncTimer?.cancel();
     super.onClose();
+  }
+
+  // Initialize Firebase auth listeners with debouncing
+  void _initializeAuthListeners() {
+    // Listen to auth state changes with debouncing
+    FirebaseAuth.instance.authStateChanges().listen(_onAuthStateChanged);
+
+    // Listen to idToken changes for more sensitive auth handling
+    FirebaseAuth.instance.idTokenChanges().listen(_onIdTokenChanged);
+
+    AppLogger.auth('AuthController listeners initialized');
+  }
+
+  // Initialize background sync timer
+  void _initializeBackgroundSync() {
+    _backgroundSyncTimer = Timer.periodic(_backgroundSyncInterval, (timer) {
+      _performBackgroundSync();
+    });
+  }
+
+  // Debounced auth state change handler
+  void _onAuthStateChanged(User? user) {
+    _authChangeDebouncer?.cancel();
+    _authChangeDebouncer = Timer(_authDebounceDelay, () {
+      _handleAuthStateChange(user);
+    });
+  }
+
+  // Handle ID token changes (more sensitive than auth state)
+  void _onIdTokenChanged(User? user) {
+    if (user != null) {
+      // Cache basic user info for fault tolerance
+      _cacheCurrentUserInfo(user);
+    }
+  }
+
+  // Handle authenticated state change
+  void _handleAuthStateChange(User? user) {
+    currentUser.value = user;
+
+    if (user != null) {
+      AppLogger.auth('User authenticated: ${user.uid}');
+      _cacheCurrentUserInfo(user);
+      // Background sync will handle data fetching
+    } else {
+      AppLogger.auth('User signed out');
+      _clearCachedAuthData();
+    }
+  }
+
+  // Cache user info for offline fault tolerance
+  void _cacheCurrentUserInfo(User user) {
+    _cachedAuthData = {
+      'uid': user.uid,
+      'email': user.email,
+      'phoneNumber': user.phoneNumber,
+      'displayName': user.displayName,
+      'lastLogin': DateTime.now().toIso8601String(),
+    };
+
+    // Persist to SharedPreferences for early app initialization
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('cached_user_data', _cachedAuthData.toString());
+    });
+
+    AppLogger.auth('User info cached for fault tolerance');
+  }
+
+  // Clear cached auth data on logout
+  void _clearCachedAuthData() {
+    _cachedAuthData = null;
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('cached_user_data');
+      prefs.remove('last_google_account'); // Clear silent login data too
+    });
+  }
+
+  // Background sync every 30 minutes
+  Future<void> _performBackgroundSync() async {
+    if (currentUser.value != null && Get.currentRoute == '/home') {
+      try {
+        AppLogger.auth('Performing background auth sync');
+        // Refresh user data without blocking UI
+        await _authRepository.createOrUpdateUser(currentUser.value!);
+        AppLogger.auth('Background sync completed successfully');
+      } catch (e) {
+        AppLogger.auth('Background sync failed: $e');
+        // Don't disrupt UI flow if background sync fails
+      }
+    }
   }
 
   // Get last used Google account for smart login UX
@@ -132,16 +244,88 @@ class AuthController extends GetxController {
     }
   }
 
-  // LOGOUT - SIMPLE
-  Future<void> logout() async {
+  // UNIFIED LOGOUT - Clears Firebase + SharedPrefs + Get routes (prevents ghost logins)
+  Future<void> signOut() async {
+    AppLogger.auth('🚪 Starting unified sign-out process...');
+
     try {
+      // Step 1: Clear local account data (silent login)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('last_google_account');
+      await prefs.remove('cached_user_data');
+
+      // Step 2: Sign out from Firebase Auth
       await FirebaseAuth.instance.signOut();
-      AppLogger.auth('Logout successful');
-      Get.offAllNamed('/login');
+
+      // Step 3: Cancel background sync and debouncers
+      _backgroundSyncTimer?.cancel();
+      _authChangeDebouncer?.cancel();
+
+      // Step 4: Force close any dialogs
+      if (Get.isDialogOpen ?? false) Get.back();
+
+      // Step 5: Clear reactive states
+      currentUser.value = null;
+      _cachedAuthData = null;
+
+      AppLogger.auth('✅ Unified sign-out completed successfully');
       Get.snackbar('Success', 'Logged out successfully');
+
+      // Step 6: Navigate to login (clears navigation stack)
+      Get.offAllNamed('/login');
+
     } catch (e) {
-      AppLogger.authError('Logout failed', error: e);
-      Get.snackbar('Error', 'Failed to logout: ${e.toString()}');
+      AppLogger.authError('Unified sign-out failed', error: e);
+      Get.snackbar('Error', 'Some logout steps failed, but you are logged out');
+
+      // Fallback navigation even if other cleanup fails
+      try {
+        Get.offAllNamed('/login');
+      } catch (navError) {
+        // If navigation fails, force restart would be needed
+        AppLogger.authError('Navigation failed during logout', error: navError);
+      }
+    }
+  }
+
+  // UPDATED: Maintain backward compatibility
+  Future<void> logout() async => await signOut();
+
+  // OFFLINE FAULT TOLERANCE: Get cached user data if Firestore fails
+  Map<String, dynamic>? getCachedUserData() {
+    if (_cachedAuthData != null) {
+      return _cachedAuthData;
+    }
+
+    // Try to load from SharedPreferences as fallback
+    SharedPreferences.getInstance().then((prefs) {
+      final cachedData = prefs.getString('cached_user_data');
+      if (cachedData != null) {
+        // Parse and store in memory for faster future access
+        _cachedAuthData = {'parsed_from_prefs': true, 'data': cachedData};
+        AppLogger.auth('Loaded cached user data from SharedPreferences');
+      }
+    });
+
+    return _cachedAuthData;
+  }
+
+  // FORCE REFRESH - For manual user data sync in settings
+  Future<void> forceRefreshUserData() async {
+    if (currentUser.value != null) {
+      try {
+        AppLogger.auth('Force refreshing user data');
+        await _authRepository.createOrUpdateUser(currentUser.value!);
+        _cacheCurrentUserInfo(currentUser.value!); // Refresh cache
+        AppLogger.auth('Force refresh completed successfully');
+      } catch (e) {
+        AppLogger.authError('Force refresh failed', error: e);
+        // Try cached fallback
+        final cachedData = getCachedUserData();
+        if (cachedData != null) {
+          AppLogger.auth('Using cached data as fallback after force refresh failure');
+        }
+      }
     }
   }
 

@@ -94,17 +94,9 @@ class CandidateOperations {
       final firestoreSaveTime = DateTime.now().difference(firestoreSaveStartTime).inMilliseconds;
       AppLogger.candidate('✅ Candidate document created successfully with ID: ${docRef.id} (saved in ${firestoreSaveTime}ms)');
 
-      // Update candidate index for faster lookups with correct state ID
-      final indexUpdateStartTime = DateTime.now();
-      await _updateCandidateIndex(
-        docRef.id,
-        finalStateId, // Use actual state ID instead of hardcoded value
-        candidate.location.districtId ?? '',
-        candidate.location.bodyId ?? '',
-        candidate.location.wardId ?? '',
-      );
-      final indexUpdateTime = DateTime.now().difference(indexUpdateStartTime).inMilliseconds;
-      AppLogger.candidate('📇 Candidate index updated in ${indexUpdateTime}ms');
+      // CANDIDATE_INDEX ELIMINATION: Location data is now embedded in the Candidate object
+      // No index update needed - all location access now uses candidate.location embedded data
+      AppLogger.candidate('ℹ️ Candidate creation complete - location embedded in candidate object');
 
       // Invalidate relevant caches with correct state ID
       invalidateCache(
@@ -310,6 +302,17 @@ class CandidateOperations {
           final candidateData = Map<String, dynamic>.from(data);
           candidateData['candidateId'] = doc.id;
 
+          // DEBUG: Log achievements data specifically
+          AppLogger.candidate('🏆 [ACHIEVEMENTS_DATA] Raw achievements from Firebase:');
+          final achievementsRaw = data['achievements'];
+          AppLogger.candidate('   achievements field: ${achievementsRaw.runtimeType}');
+          AppLogger.candidate('   achievements is list: ${achievementsRaw is List}');
+          AppLogger.candidate('   achievements length: ${(achievementsRaw as List?)?.length ?? "null"}');
+
+          if (achievementsRaw is List && achievementsRaw.isNotEmpty) {
+            AppLogger.candidate('   First achievement title: ${(achievementsRaw[0] as Map?)?['title'] ?? "unknown"}');
+          }
+
           AppLogger.candidate('📄 Raw candidate data from DB:');
           final extraInfo = data['extra_info'] as Map<String, dynamic>?;
           AppLogger.candidate('   extra_info keys: ${extraInfo?.keys.toList() ?? 'null'}');
@@ -318,10 +321,13 @@ class CandidateOperations {
             '   education value: ${extraInfo != null && extraInfo.containsKey('education') ? extraInfo['education'] : 'not found'}',
           );
 
+          final candidate = Candidate.fromJson(candidateData);
+          AppLogger.candidate('🏆 [ACHIEVEMENTS_DATA] Final candidate achievements count: ${candidate.achievements?.length ?? "null"}');
+
           AppLogger.candidate(
             '✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})',
           );
-          return Candidate.fromJson(candidateData);
+          return candidate;
         }
 
         AppLogger.candidate(
@@ -623,14 +629,8 @@ class CandidateOperations {
               wardId: wardDoc.id,
             );
 
-            // Update candidate index with correct state ID
-            await _updateCandidateIndex(
-              doc.id,
-              stateId,
-              districtId,
-              bodyDoc.id,
-              wardDoc.id,
-            );
+            // CANDIDATE_INDEX ELIMINATION: Location data is embedded in candidate object
+            // No longer updating candidate_index - location is already available
 
             AppLogger.candidate('✅ Found candidate in specific district: ${candidateData['name']} (ID: ${doc.id}) in $districtId/${bodyDoc.id}/${wardDoc.id}');
             return Candidate.fromJson(candidateData);
@@ -649,59 +649,15 @@ class CandidateOperations {
     return null;
   }
 
-  // Get candidate data by candidateId (not userId) - Optimized version
+  // Get candidate data by candidateId (not userId) - Using embedded location data
   Future<Candidate?> getCandidateDataById(String candidateId) async {
     try {
       AppLogger.candidate(
-        '🔍 Candidate Repository: Searching for candidate data by candidateId: $candidateId',
+        '🔍 Candidate Repository: Searching for candidate data by candidateId: $candidateId using embedded location',
       );
 
-      // First, try to get location metadata from candidate index (if exists)
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
-
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        final stateId = indexData['stateId']; // Use dynamic state ID
-        if (stateId == null) {
-          throw Exception('Candidate $candidateId not found in index or missing state information');
-        }
-        final districtId = indexData['districtId'];
-        final bodyId = indexData['bodyId'];
-        final wardId = indexData['wardId'];
-
-        AppLogger.candidate('🎯 Found location metadata: $stateId/$districtId/$bodyId/$wardId');
-
-        // Direct query using location metadata
-        final candidateDoc = await _firestore
-            .collection('states')
-            .doc(stateId)
-            .collection('districts')
-            .doc(districtId)
-            .collection('bodies')
-            .doc(bodyId)
-            .collection('wards')
-            .doc(wardId)
-            .collection('candidates')
-            .doc(candidateId)
-            .get();
-
-        if (candidateDoc.exists) {
-          final data = candidateDoc.data()!;
-          final candidateData = Map<String, dynamic>.from(data);
-          candidateData['candidateId'] = candidateDoc.id;
-
-          AppLogger.candidate(
-            '✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id})',
-          );
-          return Candidate.fromJson(candidateData);
-        }
-      }
-
-      // Fallback: Search across all states to find the candidate
-      AppLogger.candidate('🔄 Index not found, searching across all states for candidate');
+      // CANDIDATE_INDEX ELIMINATION: No longer using candidate_index collection
+      // Search across all states to find the candidate and extract embedded location data
       final statesSnapshot = await _firestore.collection('states').get();
 
       for (var stateDoc in statesSnapshot.docs) {
@@ -728,17 +684,8 @@ class CandidateOperations {
                 final candidateData = Map<String, dynamic>.from(data);
                 candidateData['candidateId'] = candidateDoc.id;
 
-                // Update index for future queries
-                await _updateCandidateIndex(
-                  candidateId,
-                  stateDoc.id, // Use actual state ID
-                  districtDoc.id,
-                  bodyDoc.id,
-                  wardDoc.id,
-                );
-
                 AppLogger.candidate(
-                  '✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}',
+                  '✅ Found candidate: ${candidateData['name']} (ID: ${candidateDoc.id}) in ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id} using embedded location data',
                 );
                 return Candidate.fromJson(candidateData);
               }
@@ -755,24 +702,11 @@ class CandidateOperations {
     }
   }
 
-  // Get candidate's actual state ID (helper method)
+  // Get candidate's actual state ID (helper method) - Using embedded location data
   Future<String> _getCandidateStateId(String candidateId) async {
     try {
-      // First try to get from index
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
-
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        final stateId = indexData['stateId'];
-        if (stateId != null && stateId.isNotEmpty) {
-          return stateId;
-        }
-      }
-
-      // Fallback: Search across all states to find the candidate
+      // CANDIDATE_INDEX ELIMINATION: Search across all states to find the candidate
+      // No longer using candidate_index - we'll find the candidate and determine state
       final statesSnapshot = await _firestore.collection('states').get();
 
       for (var stateDoc in statesSnapshot.docs) {
@@ -791,6 +725,7 @@ class CandidateOperations {
                   .get();
 
               if (candidateDoc.exists) {
+                AppLogger.candidate('🎯 Found candidate $candidateId in state: ${stateDoc.id}');
                 return stateDoc.id; // Return the actual state ID
               }
             }
@@ -806,7 +741,7 @@ class CandidateOperations {
     }
   }
 
-  // Update candidate index for faster lookups
+  // Update candidate index for faster lookups - ELIMINATED: No longer needed with embedded location data
   Future<void> _updateCandidateIndex(
     String candidateId,
     String stateId,
@@ -814,18 +749,9 @@ class CandidateOperations {
     String bodyId,
     String wardId,
   ) async {
-    try {
-      await _firestore.collection('candidate_index').doc(candidateId).set({
-        'stateId': stateId,
-        'districtId': districtId,
-        'bodyId': bodyId,
-        'wardId': wardId,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      AppLogger.candidate('⚠️ Failed to update candidate index: $e');
-      // Don't throw - this is not critical
-    }
+    // CANDIDATE_INDEX ELIMINATION: This method is now obsolete since location data is embedded in the Candidate object
+    // No longer updating candidate_index collection - all location access now uses candidate.location embedded data
+    AppLogger.candidate('ℹ️ Candidate index update skipped - using embedded location data instead');
   }
 
   // Create or update user document with basic info
@@ -995,133 +921,68 @@ class CandidateOperations {
     }
   }
 
-  // Update specific fields only (optimized field-level updates)
+  // Update specific fields only (optimized field-level updates) - Using embedded location data
   Future<bool> updateCandidateFields(
     String candidateId,
     Map<String, dynamic> fieldUpdates,
   ) async {
     try {
-      AppLogger.candidate('🔄 updateCandidateFields - Updating candidate: $candidateId with fields: $fieldUpdates');
+      AppLogger.candidate('🔄 updateCandidateFields - Updating candidate: $candidateId with fields: $fieldUpdates using embedded location data');
 
-      // Get the actual state ID for this candidate first
-      final stateId = await _getCandidateStateId(candidateId);
-      AppLogger.candidate('🎯 Using state ID for field update: $stateId');
+      // CANDIDATE_INDEX ELIMINATION: Find candidate by searching through hierarchical structure
+      // No longer using candidate_index collection - searching to find and update directly
 
-      // First, try to get location from index
-      final indexDoc = await _firestore
-          .collection('candidate_index')
-          .doc(candidateId)
-          .get();
+      final statesSnapshot = await _firestore.collection('states').get();
 
-      if (indexDoc.exists) {
-        final indexData = indexDoc.data()!;
-        final districtId = indexData['districtId'];
-        final bodyId = indexData['bodyId'];
-        final wardId = indexData['wardId'];
+      for (var stateDoc in statesSnapshot.docs) {
+        final districtsSnapshot = await stateDoc.reference.collection('districts').get();
 
-        AppLogger.candidate(
-          '🎯 Using indexed location for update: $districtId/$bodyId/$wardId',
-        );
+        for (var districtDoc in districtsSnapshot.docs) {
+          final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
 
-        // Direct update using location metadata
-        try {
-          // Process Achievement objects in fieldUpdates if present
-          final processedUpdates = _processFieldUpdatesForFirestore(fieldUpdates);
- 
-          await _firestore
-              .collection('states')
-              .doc(stateId)
-              .collection('districts')
-              .doc(districtId)
-              .collection('bodies')
-              .doc(bodyId)
-              .collection('wards')
-              .doc(wardId)
-              .collection('candidates')
-              .doc(candidateId)
-              .update(processedUpdates);
- 
-          AppLogger.candidate('✅ Successfully updated candidate fields in new structure');
-          // Invalidate cache for this candidate
-          invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
- 
-          return true;
-        } catch (updateError) {
-          AppLogger.candidateError('❌ Failed to update candidate fields in new structure: $updateError');
-          // Check if it's a permission error
-          if (updateError.toString().contains('permission-denied') ||
-              updateError.toString().contains('PERMISSION_DENIED')) {
-            AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document in new structure. Check Firestore rules.');
-          }
-          throw updateError; // Re-throw to be caught by outer catch
-        }
-      }
+          for (var bodyDoc in bodiesSnapshot.docs) {
+            final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
 
-      // Fallback: Optimized brute force search
-      AppLogger.candidate(
-        '🔄 Index not found, using optimized brute force search for update',
-      );
-      final districtsSnapshot = await _firestore
-          .collection('states')
-          .doc(stateId)
-          .collection('districts')
-          .get();
+            for (var wardDoc in wardsSnapshot.docs) {
+              final candidateDoc = await wardDoc.reference
+                  .collection('candidates')
+                  .doc(candidateId)
+                  .get();
 
-      for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference
-            .collection('bodies')
-            .get();
+              if (candidateDoc.exists) {
+                AppLogger.candidate('🎯 Found candidate for field update: ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
 
-        for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference
-              .collection('wards')
-              .get();
+                // Found the candidate, update only specified fields
+                try {
+                  // Process Achievement objects in fieldUpdates if present
+                  final processedUpdates = _processFieldUpdatesForFirestore(fieldUpdates);
 
-          for (var wardDoc in wardsSnapshot.docs) {
-            final candidateDoc = await wardDoc.reference
-                .collection('candidates')
-                .doc(candidateId)
-                .get();
+                  await wardDoc.reference
+                      .collection('candidates')
+                      .doc(candidateId)
+                      .update(processedUpdates);
 
-            if (candidateDoc.exists) {
-              AppLogger.candidate('🎯 Found candidate via brute force: ${districtDoc.id}/${bodyDoc.id}/${wardDoc.id}');
+                  AppLogger.candidate('✅ Successfully updated candidate fields using embedded location data');
+                  // Invalidate cache for this candidate
+                  invalidateCache('candidates_${stateDoc.id}_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}');
 
-              // Found the candidate, update only specified fields
-              try {
-                await wardDoc.reference
-                    .collection('candidates')
-                    .doc(candidateId)
-                    .update(fieldUpdates);
-
-                AppLogger.candidate('✅ Successfully updated candidate fields via brute force');
-                // Update index and invalidate cache
-                await _updateCandidateIndex(
-                  candidateId,
-                  stateId,
-                  districtDoc.id,
-                  bodyDoc.id,
-                  wardDoc.id,
-                );
-                invalidateCache(
-                  'candidates_${stateId}_${districtDoc.id}_${bodyDoc.id}_${wardDoc.id}',
-                );
-
-                return true;
-              } catch (bruteForceUpdateError) {
-                AppLogger.candidateError('❌ Failed to update candidate fields via brute force: $bruteForceUpdateError');
-                // Check if it's a permission error
-                if (bruteForceUpdateError.toString().contains('permission-denied') ||
-                    bruteForceUpdateError.toString().contains('PERMISSION_DENIED')) {
-                  AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document via brute force. Check Firestore rules.');
+                  return true;
+                } catch (updateError) {
+                  AppLogger.candidateError('❌ Failed to update candidate fields: $updateError');
+                  // Check if it's a permission error
+                  if (updateError.toString().contains('permission-denied') ||
+                      updateError.toString().contains('PERMISSION_DENIED')) {
+                    AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document. Check Firestore rules.');
+                  }
+                  throw updateError; // Re-throw to be caught by outer catch
                 }
-                throw bruteForceUpdateError; // Re-throw to be caught by outer catch
               }
             }
           }
         }
       }
 
-      // If not found in new structure, try legacy collection
+      // Fallback: Try legacy collection
       AppLogger.candidate('🔄 Candidate not found in new structure, trying legacy collection');
       final legacyDocRef = _firestore.collection('candidates').doc(candidateId);
       final legacyDoc = await legacyDocRef.get();

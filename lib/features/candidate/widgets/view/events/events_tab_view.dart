@@ -60,11 +60,11 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
       for (final event in candidateEvents) {
         if (event.id != null && _currentUserId != null) {
-          rsvpStatuses[event.id!] = await _eventRepository.getUserRSVPStatus(event.id!, _currentUserId);
+          rsvpStatuses[event.id!] = await _eventRepository.getUserRSVPStatus(widget.candidateData, event.id!, _currentUserId);
         }
 
         if (event.id != null) {
-          rsvpCounts[event.id!] = await _eventRepository.getEventRSVPCounts(event.id!);
+          rsvpCounts[event.id!] = await _eventRepository.getEventRSVPCounts(widget.candidateData, event.id!);
         }
       }
 
@@ -92,7 +92,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     }
 
     try {
-      final success = await _eventRepository.addEventRSVP(eventId, _currentUserId, rsvpType);
+      final success = await _eventRepository.addEventRSVP(widget.candidateData, eventId, _currentUserId, rsvpType);
 
       if (success) {
         // Update local state
@@ -101,7 +101,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         });
 
         // Reload RSVP counts
-        final counts = await _eventRepository.getEventRSVPCounts(eventId);
+        final counts = await _eventRepository.getEventRSVPCounts(widget.candidateData, eventId);
         setState(() {
           _rsvpCounts[eventId] = counts;
         });
@@ -155,7 +155,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     if (_currentUserId == null) return;
 
     try {
-      final success = await _eventRepository.removeEventRSVP(eventId, _currentUserId);
+      final success = await _eventRepository.removeEventRSVP(widget.candidateData, eventId, _currentUserId);
 
       if (success) {
         // Update local state
@@ -164,7 +164,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         });
 
         // Reload RSVP counts
-        final counts = await _eventRepository.getEventRSVPCounts(eventId);
+        final counts = await _eventRepository.getEventRSVPCounts(widget.candidateData, eventId);
         setState(() {
           _rsvpCounts[eventId] = counts;
         });
@@ -454,4 +454,3 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     }
   }
 }
-

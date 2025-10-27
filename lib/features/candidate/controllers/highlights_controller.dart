@@ -4,7 +4,19 @@ import '../models/highlights_model.dart';
 import '../models/candidate_model.dart';
 import '../repositories/highlights_repository.dart';
 
-class HighlightsController extends GetxController {
+abstract class IHighlightsController {
+  Future<HighlightsModel?> getHighlights(Candidate candidate);
+  Future<bool> saveHighlights(Candidate candidate, HighlightsModel highlights);
+  Future<bool> updateHighlightsFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<bool> saveHighlightsTab({required Candidate candidate, required HighlightData? highlight, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveHighlightsTabWithCandidate({required Candidate candidate, required HighlightData? highlight, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveHighlightsFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> updateCandidateHighlight(Candidate candidate, String highlightId, HighlightData highlightData);
+  Future<bool> deleteCandidateHighlight(Candidate candidate, String highlightId);
+  void updateHighlightLocal(dynamic value);
+}
+
+class HighlightsController extends GetxController implements IHighlightsController {
   final HighlightsRepository _highlightsRepository = HighlightsRepository();
 
   var highlights = Rx<HighlightsModel?>(null);
@@ -16,64 +28,65 @@ class HighlightsController extends GetxController {
     AppLogger.candidate('HighlightsController initialized');
   }
 
-  Future<void> loadHighlights(String candidateId) async {
+  @override
+  Future<HighlightsModel?> getHighlights(Candidate candidate) async {
     try {
       isLoading.value = true;
-      AppLogger.candidate('Loading highlights for candidate: $candidateId');
+      AppLogger.candidate('Loading highlights for candidate: ${candidate.candidateId}');
 
-      final highlightsModel = await _highlightsRepository.getCandidateHighlights(candidateId);
+      final highlightsModel = await _highlightsRepository.getCandidateHighlights(candidate);
       highlights.value = highlightsModel ?? HighlightsModel(highlights: []);
       AppLogger.candidate('Loaded ${highlights.value?.length ?? 0} highlights');
+      return highlights.value;
     } catch (e) {
       AppLogger.candidateError('Error loading highlights: $e');
       highlights.value = HighlightsModel(highlights: []);
+      return HighlightsModel(highlights: []);
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<bool> updateHighlight(String candidateId, HighlightData highlightData) async {
+  @override
+  Future<bool> saveHighlights(Candidate candidate, HighlightsModel highlights) async {
     try {
-      AppLogger.candidate('Updating highlight for candidate: $candidateId');
+      AppLogger.candidate('Saving highlights for candidate: ${candidate.candidateId}');
+      return await _highlightsRepository.saveHighlights(candidate, highlights);
+    } catch (e) {
+      AppLogger.candidateError('Error saving highlights: $e');
+      return false;
+    }
+  }
 
-      // Update the candidate's highlights with the new highlight
-      final updateData = {
-        'highlights': [highlightData.toJson()],
-      };
+  @override
+  Future<bool> updateHighlightsFields(Candidate candidate, Map<String, dynamic> updates) async {
+    try {
+      AppLogger.candidate('Updating highlights fields for candidate: ${candidate.candidateId}');
+      return await _highlightsRepository.updateHighlightsFields(candidate, updates);
+    } catch (e) {
+      AppLogger.candidateError('Error updating highlights fields: $e');
+      return false;
+    }
+  }
 
-      final success = await _highlightsRepository.updateCandidateHighlight(candidateId, highlightData);
-
-      if (success) {
-        // Update local state
-        highlights.value = HighlightsModel(highlights: [highlightData]);
-        AppLogger.candidate('Highlight updated successfully');
-      }
-
-      return success;
+  @override
+  Future<bool> updateCandidateHighlight(Candidate candidate, String highlightId, HighlightData highlightData) async {
+    try {
+      AppLogger.candidate('Updating highlight for candidate: ${candidate.candidateId}');
+      return await _highlightsRepository.updateCandidateHighlight(
+          candidate.candidateId, highlightData, candidate);
     } catch (e) {
       AppLogger.candidateError('Error updating highlight: $e');
       return false;
     }
   }
 
-  Future<bool> deleteHighlight(String candidateId) async {
+  @override
+  Future<bool> deleteCandidateHighlight(Candidate candidate, String highlightId) async {
     try {
-      AppLogger.candidate('Deleting highlight for candidate: $candidateId');
-
-      // Remove the highlight from candidate's highlights
-      final updateData = {
-        'highlights': [],
-      };
-
-      final success = await _highlightsRepository.deleteCandidateHighlight(candidateId);
-
-      if (success) {
-        // Update local state
-        highlights.value = HighlightsModel(highlights: []);
-        AppLogger.candidate('Highlight deleted successfully');
-      }
-
-      return success;
+      AppLogger.candidate('Deleting highlight for candidate: ${candidate.candidateId}');
+      return await _highlightsRepository.deleteCandidateHighlight(
+          candidate.candidateId, candidate);
     } catch (e) {
       AppLogger.candidateError('Error deleting highlight: $e');
       return false;
@@ -99,68 +112,28 @@ class HighlightsController extends GetxController {
     }
   }
 
+  @override
   /// TAB-SPECIFIC SAVE: Direct highlights tab save method
   /// Handles all highlights operations for the tab independently
   Future<bool> saveHighlightsTab({
-    required String candidateId,
+    required Candidate candidate,
     required HighlightData? highlight,
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
     try {
-      AppLogger.candidate('🎯 TAB SAVE: Highlights tab for $candidateId');
+      AppLogger.candidate('🎯 TAB SAVE: Highlights tab for ${candidate.candidateId}');
 
       onProgress?.call('Saving highlights...');
 
       // For highlights tab, we save the highlight data
       bool success;
       if (highlight != null) {
-        success = await updateHighlight(candidateId, highlight);
+        success = await updateCandidateHighlight(candidate, 'dummy', highlight);
       } else {
         // If no highlight, delete existing one
-        success = await deleteHighlight(candidateId);
-      }
-
-      if (success) {
-        onProgress?.call('Highlights saved successfully!');
-
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        // Highlights don't typically need additional background operations
-        // like notifications or cache updates since they're profile-specific
-
-        AppLogger.candidate('✅ TAB SAVE: Highlights completed successfully');
-        return true;
-      } else {
-        AppLogger.candidateError('❌ TAB SAVE: Highlights save failed');
-        return false;
-      }
-    } catch (e) {
-      AppLogger.candidateError('❌ TAB SAVE: Highlights tab save failed', error: e);
-      return false;
-    }
-  }
-
-  /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct highlights tab save method with candidate context
-  /// Handles all highlights operations for the tab independently with full candidate data
-  Future<bool> saveHighlightsTabWithCandidate({
-    required String candidateId,
-    required dynamic candidate,
-    required HighlightData? highlight,
-    Function(String)? onProgress
-  }) async {
-    try {
-      AppLogger.candidate('🎯 TAB SAVE: Highlights tab with candidate for $candidateId');
-
-      onProgress?.call('Saving highlights...');
-
-      // For highlights tab, we save the highlight data
-      bool success;
-      if (highlight != null) {
-        success = await updateHighlight(candidateId, highlight);
-      } else {
-        // If no highlight, delete existing one
-        success = await deleteHighlight(candidateId);
+        success = await deleteCandidateHighlight(candidate, 'dummy');
       }
 
       if (success) {
@@ -184,15 +157,16 @@ class HighlightsController extends GetxController {
 
   /// FAST SAVE: Direct highlights update for simple field changes
   /// Main save is fast, but triggers essential background operations
+  @override
   Future<bool> saveHighlightsFast(
-    String candidateId,
+    Candidate candidate,
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
     try {
-      AppLogger.candidate('🚀 FAST SAVE: Highlights for $candidateId');
+      AppLogger.candidate('🚀 FAST SAVE: Highlights for ${candidate.candidateId}');
 
       // For highlights, we typically don't do direct field updates like other tabs
       // Highlights are managed through specific update operations
@@ -207,5 +181,13 @@ class HighlightsController extends GetxController {
       AppLogger.candidateError('❌ FAST SAVE: Highlights failed', error: e);
       return false;
     }
+  }
+
+  @override
+  Future<bool> saveHighlightsTabWithCandidate({String? candidateId, Candidate? candidate, HighlightData? highlight, String? candidateName, String? photoUrl, Function(String)? onProgress}) async {
+    if (candidate != null) {
+      return saveHighlightsTab(candidate: candidate, highlight: highlight, candidateName: candidateName, photoUrl: photoUrl, onProgress: onProgress);
+    }
+    return false;
   }
 }

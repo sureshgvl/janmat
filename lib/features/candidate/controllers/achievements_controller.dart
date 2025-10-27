@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../models/achievements_model.dart';
+import '../models/candidate_model.dart';
 import '../repositories/achievements_repository.dart';
 import '../repositories/candidate_operations.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -10,12 +11,11 @@ import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IAchievementsController {
-  Future<AchievementsModel?> getAchievements(String candidateId);
-  Future<bool> saveAchievements(String candidateId, AchievementsModel achievements);
-  Future<bool> updateAchievementsFields(String candidateId, Map<String, dynamic> updates);
-  Future<bool> saveAchievementsTab({required String candidateId, required AchievementsModel achievements, String? candidateName, String? photoUrl, Function(String)? onProgress});
-  Future<bool> saveAchievementsTabWithCandidate({required String candidateId, required AchievementsModel achievements, required dynamic candidate, Function(String)? onProgress});
-  Future<bool> saveAchievementsFast(String candidateId, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<AchievementsModel?> getAchievements(Candidate candidate);
+  Future<bool> saveAchievements(Candidate candidate, AchievementsModel achievements);
+  Future<bool> updateAchievementsFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<bool> saveAchievementsTab({required Candidate candidate, required AchievementsModel achievements, String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveAchievementsFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
   AchievementsModel getUpdatedCandidate(AchievementsModel current, String field, dynamic value);
 }
 
@@ -26,10 +26,10 @@ class AchievementsController extends GetxController implements IAchievementsCont
       : _repository = repository ?? AchievementsRepository();
 
   @override
-  Future<AchievementsModel?> getAchievements(String candidateId) async {
+  Future<AchievementsModel?> getAchievements(Candidate candidate) async {
     try {
-      AppLogger.database('AchievementsController: Fetching achievements for $candidateId', tag: 'ACHIEVEMENTS_CTRL');
-      return await _repository.getAchievements(candidateId);
+      AppLogger.database('AchievementsController: Fetching achievements for ${candidate.candidateId}', tag: 'ACHIEVEMENTS_CTRL');
+      return await _repository.getAchievements(candidate);
     } catch (e) {
       AppLogger.databaseError('AchievementsController: Error fetching achievements', tag: 'ACHIEVEMENTS_CTRL', error: e);
       throw Exception('Failed to fetch achievements: $e');
@@ -37,10 +37,10 @@ class AchievementsController extends GetxController implements IAchievementsCont
   }
 
   @override
-  Future<bool> saveAchievements(String candidateId, AchievementsModel achievements) async {
+  Future<bool> saveAchievements(Candidate candidate, AchievementsModel achievements) async {
     try {
-      AppLogger.database('AchievementsController: Saving achievements for $candidateId', tag: 'ACHIEVEMENTS_CTRL');
-      return await _repository.updateAchievements(candidateId, achievements);
+      AppLogger.database('AchievementsController: Saving achievements for ${candidate.candidateId}', tag: 'ACHIEVEMENTS_CTRL');
+      return await _repository.updateAchievements(candidate.candidateId, achievements, candidate);
     } catch (e) {
       AppLogger.databaseError('AchievementsController: Error saving achievements', tag: 'ACHIEVEMENTS_CTRL', error: e);
       throw Exception('Failed to save achievements: $e');
@@ -48,10 +48,10 @@ class AchievementsController extends GetxController implements IAchievementsCont
   }
 
   @override
-  Future<bool> updateAchievementsFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateAchievementsFields(Candidate candidate, Map<String, dynamic> updates) async {
     try {
-      AppLogger.database('AchievementsController: Updating achievements fields for $candidateId', tag: 'ACHIEVEMENTS_CTRL');
-      return await _repository.updateAchievementsFields(candidateId, updates);
+      AppLogger.database('AchievementsController: Updating achievements fields for ${candidate.candidateId}', tag: 'ACHIEVEMENTS_CTRL');
+      return await _repository.updateAchievementsFields(candidate, updates);
     } catch (e) {
       AppLogger.databaseError('AchievementsController: Error updating achievements fields', tag: 'ACHIEVEMENTS_CTRL', error: e);
       throw Exception('Failed to update achievements fields: $e');
@@ -71,70 +71,27 @@ class AchievementsController extends GetxController implements IAchievementsCont
     }
   }
 
-  void updateAchievements(dynamic value) {
-    // This method is called from candidate_data_controller to update the local state
-    // The actual saving happens through updateAchievementsFields
-    AppLogger.database('AchievementsController: updateAchievements called with $value', tag: 'ACHIEVEMENTS_CTRL');
-    // Implementation will be handled by the calling controller
-  }
-
   /// TAB-SPECIFIC SAVE: Direct achievements tab save method
   /// Handles all achievements operations for the tab independently
+  @override
   Future<bool> saveAchievementsTab({
-    required String candidateId,
+    required Candidate candidate,
     required AchievementsModel achievements,
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🏆 TAB SAVE: Achievements tab for $candidateId', tag: 'ACHIEVEMENTS_TAB');
 
       onProgress?.call('Saving achievements...');
 
-      // Save using the repository
-      final success = await _repository.updateAchievements(candidateId, achievements);
-
-      if (success) {
-        onProgress?.call('Achievements saved successfully!');
-
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(candidateId, candidateName, photoUrl, achievements.toJson());
-
-        AppLogger.database('✅ TAB SAVE: Achievements completed successfully', tag: 'ACHIEVEMENTS_TAB');
-        return true;
-      } else {
-        AppLogger.databaseError('❌ TAB SAVE: Achievements save failed', tag: 'ACHIEVEMENTS_TAB');
-        return false;
-      }
-    } catch (e) {
-      AppLogger.databaseError('❌ TAB SAVE: Achievements tab save failed', tag: 'ACHIEVEMENTS_TAB', error: e);
-      return false;
-    }
-  }
-
-  /// TAB-SPECIFIC SAVE WITH CANDIDATE: Direct achievements tab save method with candidate context
-  /// Handles all achievements operations for the tab independently with full candidate data
-  Future<bool> saveAchievementsTabWithCandidate({
-    required String candidateId,
-    required AchievementsModel achievements,
-    required dynamic candidate,
-    Function(String)? onProgress
-  }) async {
-    try {
-      AppLogger.database('🏆 TAB SAVE: Achievements tab with candidate for $candidateId', tag: 'ACHIEVEMENTS_TAB');
-
-      onProgress?.call('Saving achievements...');
-
       // Direct save using the repository
-      final success = await _repository.updateAchievements(candidateId, achievements);
-      AppLogger.database('🏆 TAB SAVE: Repository result: $success', tag: 'ACHIEVEMENTS_TAB');
+      final success = await _repository.updateAchievements(candidateId, achievements, candidate);
 
       if (success) {
         onProgress?.call('Achievements saved successfully!');
-
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(candidateId, candidate?.basicInfo?.fullName, candidate?.basicInfo?.photo, achievements.toJson());
 
         AppLogger.database('✅ TAB SAVE: Achievements completed successfully', tag: 'ACHIEVEMENTS_TAB');
         return true;
@@ -148,30 +105,27 @@ class AchievementsController extends GetxController implements IAchievementsCont
     }
   }
 
+  @override
   /// FAST SAVE: Direct achievements update for simple field changes
   /// Main save is fast, but triggers essential background operations
   Future<bool> saveAchievementsFast(
-    String candidateId,
+    Candidate candidate,
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST SAVE: Achievements for $candidateId', tag: 'ACHIEVEMENTS_FAST');
 
-      // Convert Achievement objects to JSON if needed
-      final processedUpdates = _processAchievementsForFirestore(updates);
-
       // Direct Firestore update - NO batch operations, NO parallel ops
       final updateData = {
-        'achievements': processedUpdates['achievements'],
+        'achievements': updates,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Use the candidate operations repository to handle the update properly
-      final candidateOperations = Get.find<CandidateOperations>();
-      await candidateOperations.updateCandidateFields(candidateId, updateData);
+      await _repository.updateAchievementsFast(candidate, updateData);
 
       // ✅ MAIN SAVE COMPLETE - UI can update immediately
 
@@ -199,15 +153,15 @@ class AchievementsController extends GetxController implements IAchievementsCont
       // These operations run in parallel but don't block the main save
       List<Future> backgroundOperations = [];
 
-      // 1. Update user document if name/photo changed
+// 1. Update user document if name/photo changed
       if (candidateName != null || photoUrl != null) {
         backgroundOperations.add(_syncUserDocument(candidateName, photoUrl));
       }
 
-      // 2. Send achievements update notification
+// 2. Send achievements update notification
       backgroundOperations.add(_sendAchievementsUpdateNotification(candidateId, updates));
 
-      // 3. Update caches
+// 3. Update caches
       backgroundOperations.add(_updateCaches(candidateId, candidateName, photoUrl));
 
       // Run all background operations in parallel (fire-and-forget)
@@ -287,29 +241,5 @@ class AchievementsController extends GetxController implements IAchievementsCont
     } catch (e) {
       AppLogger.databaseError('⚠️ BACKGROUND: Cache update failed', tag: 'ACHIEVEMENTS_FAST', error: e);
     }
-  }
-
-  /// Process achievements data for Firestore storage
-  Map<String, dynamic> _processAchievementsForFirestore(Map<String, dynamic> updates) {
-    if (updates.containsKey('achievements') && updates['achievements'] is List) {
-      final achievements = updates['achievements'] as List;
-      final processedAchievements = achievements.map((item) {
-        if (item is Achievement) {
-          return item.toJson();
-        } else if (item is Map<String, dynamic>) {
-          return item;
-        } else {
-          AppLogger.database('Invalid achievement data type: ${item.runtimeType}, converting to string');
-          return item.toString();
-        }
-      }).toList();
-
-      // Return the processed achievements wrapped in a map for extra_info.achievements
-      return {
-        'achievements': processedAchievements,
-      };
-    }
-
-    return updates;
   }
 }

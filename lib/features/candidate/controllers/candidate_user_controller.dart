@@ -139,6 +139,13 @@ class CandidateUserController extends GetxController {
       }
       if (candidate.value != null) {
         AppLogger.common('👥 Candidate: ${candidate.value!.name} (${candidate.value!.party ?? 'No Party'})');
+        AppLogger.common('🏆 Achievements: ${candidate.value!.achievements?.length ?? 0} items');
+        if (candidate.value!.achievements != null && candidate.value!.achievements!.isNotEmpty) {
+          for (int i = 0; i < candidate.value!.achievements!.length; i++) {
+            final achievement = candidate.value!.achievements![i];
+            AppLogger.common('   Achievement $i: ${achievement.title} (photo: ${achievement.photoUrl == null ? 'none' : (achievement.photoUrl!.startsWith('http') ? 'firebase' : 'local')})');
+          }
+        }
       } else {
         AppLogger.common('⚠️ Candidate data is null after loading - check Firebase database');
       }
@@ -165,15 +172,27 @@ class CandidateUserController extends GetxController {
 
   /// Refresh candidate data only
   Future<void> refreshCandidateData() async {
-    if (user.value?.role != 'candidate') return;
+    if (user.value?.role != 'candidate' && FirebaseAuth.instance.currentUser?.uid != null) return;
+
+    final uid = user.value?.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
     try {
-      AppLogger.common('🔄 Refreshing candidate data for user: ${user.value!.uid}');
-      candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
+      AppLogger.common('🔄 Refreshing candidate data for user: $uid');
+      candidate.value = await _candidateRepository.getCandidateData(uid);
       if (candidate.value != null) {
         AppLogger.common('✅ Candidate data refreshed: ${candidate.value!.name} (${candidate.value!.candidateId})');
+
+        // DEBUG: Check achievements count after refresh
+        AppLogger.common('🏆 [REFRESH] Achievements count after refresh: ${candidate.value!.achievements?.length ?? "null"}');
+        if (candidate.value!.achievements != null && candidate.value!.achievements!.isNotEmpty) {
+          for (int i = 0; i < candidate.value!.achievements!.length; i++) {
+            final achievement = candidate.value!.achievements![i];
+            AppLogger.common('   [REFRESH] Achievement $i: ${achievement.title}');
+          }
+        }
       } else {
-        AppLogger.common('⚠️ No candidate data found during refresh for user: ${user.value!.uid}');
+        AppLogger.common('⚠️ No candidate data found during refresh for user: $uid');
       }
     } catch (e) {
       AppLogger.commonError('❌ Failed to refresh candidate data', error: e);

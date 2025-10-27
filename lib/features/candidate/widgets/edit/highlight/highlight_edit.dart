@@ -145,7 +145,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
 
       // Save using the highlights controller
       final success = await _highlightsController.saveHighlightsTab(
-        candidateId: data.userId ?? '',
+        candidate: data,
         highlight: highlightData,
         candidateName: data.name,
         photoUrl: data.photo,
@@ -1114,4 +1114,3 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
     );
   }
 }
-

@@ -3,16 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../models/analytics_model.dart';
+import '../models/candidate_model.dart';
 import '../repositories/analytics_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IAnalyticsController {
-  Future<AnalyticsModel?> getAnalytics(String candidateId);
-  Future<bool> saveAnalytics(String candidateId, AnalyticsModel analytics);
-  Future<bool> updateAnalyticsFields(String candidateId, Map<String, dynamic> updates);
-  Future<bool> saveAnalyticsFast(String candidateId, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<AnalyticsModel?> getAnalytics(Candidate candidate);
+  Future<bool> saveAnalytics(Candidate candidate, AnalyticsModel analytics);
+  Future<bool> updateAnalyticsFields(Candidate candidate, Map<String, dynamic> updates);
+  Future<bool> saveAnalyticsFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
   AnalyticsModel getUpdatedCandidate(AnalyticsModel current, String field, dynamic value);
 }
 
@@ -23,10 +24,10 @@ class AnalyticsController extends GetxController implements IAnalyticsController
       : _repository = repository ?? AnalyticsRepository();
 
   @override
-  Future<AnalyticsModel?> getAnalytics(String candidateId) async {
+  Future<AnalyticsModel?> getAnalytics(Candidate candidate) async {
     try {
-      AppLogger.database('AnalyticsController: Fetching analytics for $candidateId', tag: 'ANALYTICS_CTRL');
-      return await _repository.getAnalytics(candidateId);
+      AppLogger.database('AnalyticsController: Fetching analytics for ${candidate.candidateId}', tag: 'ANALYTICS_CTRL');
+      return await _repository.getAnalytics(candidate);
     } catch (e) {
       AppLogger.databaseError('AnalyticsController: Error fetching analytics', tag: 'ANALYTICS_CTRL', error: e);
       throw Exception('Failed to fetch analytics: $e');
@@ -34,10 +35,10 @@ class AnalyticsController extends GetxController implements IAnalyticsController
   }
 
   @override
-  Future<bool> saveAnalytics(String candidateId, AnalyticsModel analytics) async {
+  Future<bool> saveAnalytics(Candidate candidate, AnalyticsModel analytics) async {
     try {
-      AppLogger.database('AnalyticsController: Saving analytics for $candidateId', tag: 'ANALYTICS_CTRL');
-      return await _repository.updateAnalytics(candidateId, analytics);
+      AppLogger.database('AnalyticsController: Saving analytics for ${candidate.candidateId}', tag: 'ANALYTICS_CTRL');
+      return await _repository.updateAnalytics(candidate, analytics);
     } catch (e) {
       AppLogger.databaseError('AnalyticsController: Error saving analytics', tag: 'ANALYTICS_CTRL', error: e);
       throw Exception('Failed to save analytics: $e');
@@ -45,10 +46,10 @@ class AnalyticsController extends GetxController implements IAnalyticsController
   }
 
   @override
-  Future<bool> updateAnalyticsFields(String candidateId, Map<String, dynamic> updates) async {
+  Future<bool> updateAnalyticsFields(Candidate candidate, Map<String, dynamic> updates) async {
     try {
-      AppLogger.database('AnalyticsController: Updating analytics fields for $candidateId', tag: 'ANALYTICS_CTRL');
-      return await _repository.updateAnalyticsFields(candidateId, updates);
+      AppLogger.database('AnalyticsController: Updating analytics fields for ${candidate.candidateId}', tag: 'ANALYTICS_CTRL');
+      return await _repository.updateAnalyticsFields(candidate, updates);
     } catch (e) {
       AppLogger.databaseError('AnalyticsController: Error updating analytics fields', tag: 'ANALYTICS_CTRL', error: e);
       throw Exception('Failed to update analytics fields: $e');
@@ -87,13 +88,15 @@ class AnalyticsController extends GetxController implements IAnalyticsController
 
   /// FAST SAVE: Direct analytics update for simple field changes
   /// Main save is fast, but triggers essential background operations
+  @override
   Future<bool> saveAnalyticsFast(
-    String candidateId,
+    Candidate candidate,
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
     Function(String)? onProgress
   }) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('🚀 FAST SAVE: Analytics for $candidateId', tag: 'ANALYTICS_FAST');
 
@@ -103,7 +106,7 @@ class AnalyticsController extends GetxController implements IAnalyticsController
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _repository.updateAnalyticsFast(candidateId, updateData);
+      await _repository.updateAnalyticsFast(candidate, updateData);
 
       // ✅ MAIN SAVE COMPLETE - UI can update immediately
 

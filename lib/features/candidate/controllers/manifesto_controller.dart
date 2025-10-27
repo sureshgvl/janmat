@@ -11,9 +11,9 @@ import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IManifestoController {
-  Future<ManifestoModel?> getManifesto(String candidateId);
+  Future<ManifestoModel?> getManifesto(dynamic candidate);
   Future<bool> saveManifestoTab({required String candidateId, required Candidate candidate, required ManifestoModel manifesto, Function(String)? onProgress});
-  Future<bool> updateManifestoUrls(String candidateId, {String? pdfUrl, String? imageUrl, String? videoUrl});
+  Future<bool> updateManifestoUrls(Candidate candidate, {String? pdfUrl, String? imageUrl, String? videoUrl});
   ManifestoModel getUpdatedCandidate(ManifestoModel current, String field, dynamic value);
 }
 
@@ -24,10 +24,11 @@ class ManifestoController extends GetxController implements IManifestoController
       : _repository = repository ?? ManifestoRepository();
 
   @override
-  Future<ManifestoModel?> getManifesto(String candidateId) async {
+  Future<ManifestoModel?> getManifesto(dynamic candidate) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('ManifestoController: Fetching manifesto for $candidateId', tag: 'MANIFESTO_CTRL');
-      return await _repository.getManifesto(candidateId);
+      return await _repository.getManifesto(candidate);
     } catch (e) {
       AppLogger.databaseError('ManifestoController: Error fetching manifesto', tag: 'MANIFESTO_CTRL', error: e);
       throw Exception('Failed to fetch manifesto: $e');
@@ -204,7 +205,8 @@ class ManifestoController extends GetxController implements IManifestoController
 
   /// Update manifesto URLs atomically (for batch updates)
   @override
-  Future<bool> updateManifestoUrls(String candidateId, {String? pdfUrl, String? imageUrl, String? videoUrl}) async {
+  Future<bool> updateManifestoUrls(Candidate candidate, {String? pdfUrl, String? imageUrl, String? videoUrl}) async {
+    final candidateId = candidate.candidateId;
     try {
       AppLogger.database('Updating manifesto URLs for $candidateId: pdf=$pdfUrl, image=$imageUrl, video=$videoUrl', tag: 'MANIFESTO_URLS');
 
@@ -219,8 +221,8 @@ class ManifestoController extends GetxController implements IManifestoController
         return true;
       }
 
-      // Use the repository method that already handles location lookup
-      final success = await _repository.updateManifestoFields(candidateId, fieldUpdates);
+  // Use the repository method that already handles location lookup
+      final success = await _repository.updateManifestoFields(candidate, fieldUpdates);
 
       if (success) {
         AppLogger.database('✅ Manifesto URLs updated successfully', tag: 'MANIFESTO_URLS');

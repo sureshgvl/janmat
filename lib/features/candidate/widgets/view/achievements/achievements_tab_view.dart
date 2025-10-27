@@ -1,5 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
+import 'package:janmat/features/candidate/models/achievements_model.dart';
+import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/services/file_upload_service.dart';
+import 'package:janmat/features/common/reusable_image_widget.dart';
+import 'package:janmat/services/share_service.dart';
 
 
 class AchievementsTabView extends StatefulWidget {
@@ -24,6 +30,7 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
   // Like and share state for each achievement
   final Map<int, bool> _likedAchievements = {};
   final Map<int, int> _achievementLikes = {};
+  final Map<int, bool> _sharingAchievements = {};
 
   @override
   void initState() {
@@ -56,25 +63,49 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
     );
   }
 
-  void _shareAchievement(int index) {
+  void _shareAchievement(int index) async {
     final achievement = widget.candidate.achievements?[index];
-    final achievementText =
-        '''
-Check out this achievement by ${widget.candidate.name}!
+    if (achievement == null) return;
 
-"${achievement?.title ?? 'Achievement'}" (${achievement?.year ?? 'N/A'})
+    // Set loading state
+    setState(() {
+      _sharingAchievements[index] = true;
+    });
 
-${achievement?.description ?? ''}
+    try {
+      await ShareService.shareAchievement(
+        achievement: achievement,
+        candidate: widget.candidate,
+        context: context,
+      );
 
-View their complete profile and achievements at: [Your App URL]
-''';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share functionality would open native share dialog'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Achievement shared successfully!'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share achievement: $e'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      // Clear loading state
+      if (mounted) {
+        setState(() {
+          _sharingAchievements[index] = false;
+        });
+      }
+    }
   }
 
   @override
@@ -82,6 +113,28 @@ View their complete profile and achievements at: [Your App URL]
     super.build(context);
 
     final achievements = widget.candidate.achievements ?? [];
+
+    // DEBUG: Force some achievements to test UI
+    final debugAchievements = achievements.isNotEmpty ? achievements : [
+      Achievement(
+        id: 'debug1',
+        title: 'स्वच्छ पाणी प्रकल्प',
+        description: 'DEBUG: This achievement is loaded from Firebase but exists in app data',
+        date: DateTime(2025, 10, 26),
+      ),
+      Achievement(
+        id: 'debug2',
+        title: 'Test Achievement 2',
+        description: 'DEBUG: If you see this, the UI works correctly',
+        date: DateTime(2024, 1, 1),
+      ),
+    ];
+
+    // Use debug achievements if real ones are empty
+    final displayAchievements = achievements.isNotEmpty ? achievements : debugAchievements;
+
+    AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Widget called with candidate: ${widget.candidate.name}');
+    AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Achievements in candidate data: ${widget.candidate.achievements?.length ?? "null"}');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -266,6 +319,21 @@ View their complete profile and achievements at: [Your App URL]
                       ),
                     ],
 
+                    // Photo Display - only if photo exists
+                    if (achievement.photoUrl != null &&
+                        achievement.photoUrl!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      ReusableImageWidget(
+                        imageUrl: achievement.photoUrl!,
+                        isLocal: FileUploadService().isLocalPath(achievement.photoUrl!),
+                        fit: BoxFit.contain,
+                        minHeight: 150,
+                        maxHeight: 300,
+                        borderColor: Colors.grey.shade300,
+                        fullScreenTitle: 'Achievement Photo',
+                      ),
+                    ],
+
                     // Like and Share buttons
                     const SizedBox(height: 16),
                     Row(
@@ -315,27 +383,44 @@ View their complete profile and achievements at: [Your App URL]
                         const SizedBox(width: 12),
                         // Share Button
                         GestureDetector(
-                          onTap: () => _shareAchievement(index),
+                          onTap: (_sharingAchievements[index] ?? false) ? null : () => _shareAchievement(index),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color: (_sharingAchievements[index] ?? false)
+                                  ? Colors.grey.shade100
+                                  : Colors.blue.shade50,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.blue.shade200),
+                              border: Border.all(
+                                color: (_sharingAchievements[index] ?? false)
+                                    ? Colors.grey.shade300
+                                    : Colors.blue.shade200,
+                              ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.share, size: 16, color: Colors.blue),
-                                SizedBox(width: 6),
+                                (_sharingAchievements[index] ?? false)
+                                    ? SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+                                        ),
+                                      )
+                                    : const Icon(Icons.share, size: 16, color: Colors.blue),
+                                const SizedBox(width: 6),
                                 Text(
-                                  'Share',
+                                  (_sharingAchievements[index] ?? false) ? 'Sharing...' : 'Share',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.blue,
+                                    color: (_sharingAchievements[index] ?? false)
+                                        ? Colors.grey.shade600
+                                        : Colors.blue,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -394,10 +479,22 @@ View their complete profile and achievements at: [Your App URL]
             ),
           ],
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 120), // Added 100px bottom padding
         ],
       ),
     );
+  }
+
+  // Check if a local file is missing
+  bool _isLocalFileMissing(String photoUrl) {
+    try {
+      final actualPath = photoUrl.replaceFirst('local:', '');
+      final file = File(actualPath);
+      return !file.existsSync();
+    } catch (e) {
+      // If there's an error checking, assume it's missing
+      return true;
+    }
   }
 
   String _formatDate(String dateString) {
