@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
 import '../../../utils/app_logger.dart';
+import '../../../services/user_token_manager.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -92,6 +93,10 @@ class AuthController extends GetxController {
     if (user != null) {
       AppLogger.auth('User authenticated: ${user.uid}');
       _cacheCurrentUserInfo(user);
+
+      // Update FCM tokens for authenticated user
+      UserTokenManager().onUserAuthenticated();
+
       // Background sync will handle data fetching
     } else {
       AppLogger.auth('User signed out');

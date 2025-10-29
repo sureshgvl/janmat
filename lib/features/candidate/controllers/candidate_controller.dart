@@ -403,23 +403,34 @@ class CandidateController extends GetxController {
         AppLogger.candidate('Follower ID: $userId');
         AppLogger.candidate('Candidate ID: $candidateId');
 
-        // Get candidate info for notification
-        final candidate = await _repository.getCandidateDataById(candidateId);
-        if (candidate != null) {
-          AppLogger.candidate('Candidate found: ${candidate.basicInfo!.fullName} (${candidate.userId})');
+        // Use candidate data from existing list instead of fetching again
+        final existingCandidate = candidates.firstWhereOrNull(
+          (c) => c.candidateId == candidateId,
+        );
+
+        // OPTIMIZED: Get follower name from UserController and follower count from candidate
+        final followerName = UserController.to.user.value?.name ?? 'Someone';
+        final followerCount = existingCandidate?.followersCount ?? 0;
+
+        if (existingCandidate != null) {
+          AppLogger.candidate('Using cached candidate data: ${existingCandidate.basicInfo!.fullName} (${existingCandidate.userId})');
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
-            candidateName: candidate.basicInfo!.fullName,
-            candidateUserId: candidate.userId,
+            candidateName: existingCandidate.basicInfo!.fullName,
+            candidateUserId: existingCandidate.userId,
+            followerName: followerName,                    // OPTIMIZED: Pass follower name
+            followerCount: followerCount,                  // OPTIMIZED: Pass current follower count
+            fcmToken: existingCandidate.fcmToken,          // OPTIMIZED: Pass cached FCM token
           );
           AppLogger.candidate('New follower notification sent successfully');
         } else {
-          AppLogger.candidate('Candidate data not found, sending basic notification');
-          // Fallback without candidate info
+          AppLogger.candidate('Candidate data not found in cache, sending basic notification');
+          // Fallback without candidate info but with follower name
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
+            followerName: followerName,      // OPTIMIZED: Still pass follower name
           );
           AppLogger.candidate('Basic new follower notification sent');
         }
@@ -444,7 +455,7 @@ class CandidateController extends GetxController {
     update();
   }
 
-  // Unfollow a candidate
+  // Unfollow a candidate - OPTIMIZED for performance
   Future<void> unfollowCandidate(String userId, String candidateId) async {
     if (followLoading[candidateId] == true) return;
 
@@ -452,12 +463,21 @@ class CandidateController extends GetxController {
     update();
 
     try {
-      // Get candidate location from the candidates list
-      final candidate = candidates.firstWhere(
+      AppLogger.candidate('🚀 [OPTIMIZED] Starting unfollow operation: $userId → $candidateId');
+
+      // Get candidate location from the cached candidates list (already loaded)
+      final existingCandidate = candidates.firstWhereOrNull(
         (c) => c.candidateId == candidateId,
-        orElse: () => throw Exception('Candidate not found in list'),
       );
-      final location = candidate.location;
+
+      if (existingCandidate == null) {
+        throw Exception('Candidate $candidateId not found in cached list');
+      }
+
+      AppLogger.candidate('✅ Using cached candidate: ${existingCandidate.basicInfo!.fullName}');
+
+      // Execute unfollow operation with cached location data
+      final location = existingCandidate.location;
       await _followRepository.unfollowCandidate(
         userId,
         candidateId,
@@ -466,55 +486,51 @@ class CandidateController extends GetxController {
         bodyId: location.bodyId,
         wardId: location.wardId,
       );
-      followStatus[candidateId] = false;
 
-      // Invalidate session cache since follow relationships changed
+      // Update local state immediately
+      followStatus[candidateId] = false;
       _invalidateFollowStatusCache();
 
-      // Update candidate's followers count in the list
-      final candidateIndex = candidates.indexWhere(
-        (c) => c.candidateId == candidateId,
-      );
+      // Update candidate's followers count immediately (no server fetch)
+      final candidateIndex = candidates.indexWhere((c) => c.candidateId == candidateId);
       if (candidateIndex != -1) {
         final updatedCandidate = candidates[candidateIndex].copyWith(
           followersCount: candidates[candidateIndex].followersCount - 1,
         );
         candidates[candidateIndex] = updatedCandidate;
+        AppLogger.candidate('📊 Updated local follower count to: ${updatedCandidate.followersCount}');
       }
 
-      AppLogger.candidate(
-        'Successfully unfollowed candidate: $candidateId',
-      );
+      AppLogger.candidate('🏆 Successfully unfollowed candidate: $candidateId');
 
-      // Send unfollow notification to candidate
+      // Send unfollow notification - OPTIMIZED: Use cached data, no repository fetch
       try {
-        // Get candidate info for notification
-        final candidate = await _repository.getCandidateDataById(candidateId);
-        if (candidate != null) {
-          await CandidateFollowingNotifications().sendUnfollowNotification(
-            candidateId: candidateId,
-            unfollowerId: userId,
-          );
-        } else {
-          // Fallback without candidate info
-          await CandidateFollowingNotifications().sendUnfollowNotification(
-            candidateId: candidateId,
-            unfollowerId: userId,
-          );
-        }
+        AppLogger.candidate('📤 Sending unfollow notification...');
+
+        // OPTIMIZED: No need to refetch candidate data - we already have it cached
+        // Use the same cached candidate data that we validated above
+        await CandidateFollowingNotifications().sendUnfollowNotification(
+          candidateId: candidateId,
+          unfollowerId: userId,
+        );
+
+        AppLogger.candidate('✅ Unfollow notification sent successfully');
       } catch (e) {
-        AppLogger.candidate('Could not send unfollow notification: $e');
+        AppLogger.candidateError('⚠️ Failed to send unfollow notification: $e');
+        // Don't fail the unfollow operation if notification fails
       }
 
-      // Notify chat controller to refresh cache since followed candidates changed
+      // Notify chat controller (non-blocking)
       try {
         final chatController = Get.find<ChatController>();
         chatController.invalidateUserCache(userId);
+        AppLogger.candidate('💬 Chat cache invalidated');
       } catch (e) {
-        AppLogger.candidate('Could not notify chat controller: $e');
+        AppLogger.candidate('⚠️ Could not notify chat controller: $e');
       }
+
     } catch (e) {
-      AppLogger.candidateError('Failed to unfollow candidate: $e');
+      AppLogger.candidateError('❌ Failed to unfollow candidate: $e');
       errorMessage = 'Failed to unfollow candidate: $e';
     }
 
@@ -541,18 +557,22 @@ class CandidateController extends GetxController {
     }
   }
 
-  // Update notification settings for a follow relationship
+  // Update notification settings for a follow relationship - OPTIMIZED
   Future<void> updateFollowNotificationSettings(
     String userId,
     String candidateId,
     bool notificationsEnabled,
   ) async {
     try {
-      // Get candidate location from the candidates list
-      final candidate = candidates.firstWhere(
+      // OPTIMIZED: Use cached candidate data from memory instead of lookup
+      final candidate = candidates.firstWhereOrNull(
         (c) => c.candidateId == candidateId,
-        orElse: () => throw Exception('Candidate not found in list'),
       );
+
+      if (candidate == null) {
+        throw Exception('Candidate $candidateId not found in cached list');
+      }
+
       final location = candidate.location;
       await _followRepository.updateFollowNotificationSettings(
         userId,
@@ -564,19 +584,17 @@ class CandidateController extends GetxController {
         wardId: location.wardId,
       );
 
-      // Notify chat controller to refresh cache since follow relationship changed
+      // OPTIMIZED: Non-blocking chat cache invalidation
       try {
         final chatController = Get.find<ChatController>();
         chatController.invalidateUserCache(userId);
       } catch (e) {
-        AppLogger.candidate('Could not notify chat controller: $e');
+        AppLogger.candidate('⚠️ Could not notify chat controller: $e');
       }
 
-      AppLogger.candidate(
-        'Updated notification settings for candidate: $candidateId',
-      );
+      AppLogger.candidate('✅ Updated notification settings for candidate: $candidateId');
     } catch (e) {
-      AppLogger.candidateError('Failed to update notification settings: $e');
+      AppLogger.candidateError('❌ Failed to update notification settings: $e');
       errorMessage = 'Failed to update notification settings: $e';
       update();
     }

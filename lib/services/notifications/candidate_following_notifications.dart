@@ -17,54 +17,46 @@ class CandidateFollowingNotifications {
     required String followerId,
     String? candidateName,
     String? candidateUserId,
+    String? followerName,  // OPTIMIZED: Pass follower name to avoid fetch
+    int? followerCount,    // OPTIMIZED: Pass follower count to avoid fetch
+    String? fcmToken,      // OPTIMIZED: Pass FCM token from candidate model
   }) async {
     final startTime = DateTime.now();
     AppLogger.notifications('🚀 [FollowerNotification] Starting new follower notification process...');
 
     try {
-      // OPTIMIZED: Use UserController instead of direct Firebase call for follower data
-      // Get follower details
-      final followerData = await _candidateRepository.getUserData(followerId);
-      final followerName = followerData?['name'] ?? 'Someone';
+      // OPTIMIZED: Use passed follower name or default
+      final finalFollowerName = followerName ?? 'Someone';
 
-      // Use provided candidate info or try to get it
-      String? finalCandidateName = candidateName;
-      String? finalCandidateUserId = candidateUserId;
-
-      if (finalCandidateUserId == null) {
-        // Try to get candidate data with fallback method
-        final candidateData = await _getCandidateDataWithFallback(candidateId);
-        if (candidateData != null) {
-          finalCandidateName = candidateData['name'] as String?;
-          finalCandidateUserId = candidateData['userId'] as String?;
-        }
-      }
+      // Use provided candidate info
+      final finalCandidateName = candidateName;
+      final finalCandidateUserId = candidateUserId;
 
       if (finalCandidateUserId == null) {
         AppLogger.notifications('❌ [FollowerNotification] No candidate userId available for notification: $candidateId');
         return;
       }
 
-      // Get candidate's FCM token
-      final candidateToken = await _getUserFCMToken(finalCandidateUserId);
+      // OPTIMIZED: Use passed FCM token or fallback to fetch
+      final candidateToken = fcmToken ?? await _getUserFCMToken(finalCandidateUserId);
       if (candidateToken == null) {
         AppLogger.notifications('❌ [FollowerNotification] No FCM token found for candidate: $finalCandidateUserId');
         return;
       }
 
-      // Get current follower count
-      final followerCount = await _getCandidateFollowerCount(candidateId);
+      // OPTIMIZED: Use passed follower count or candidate data
+      final currentFollowerCount = followerCount ?? 0;
 
       // Create notification message
       final title = 'New Follower!';
-      final body = '$followerName started following you. You now have ${followerCount + 1} followers!';
+      final body = '$finalFollowerName started following you. You now have ${currentFollowerCount + 1} followers!';
 
       final notificationData = {
         'type': 'new_follower',
         'candidateId': candidateId,
         'followerId': followerId,
-        'followerName': followerName,
-        'followerCount': (followerCount + 1).toString(),
+        'followerName': finalFollowerName,
+        'followerCount': (currentFollowerCount + 1).toString(),
       };
 
       // Send push notification
@@ -74,7 +66,7 @@ class CandidateFollowingNotifications {
       await _storeNotification(finalCandidateUserId, title, body, notificationData);
 
       // Check for follower milestones
-      await _checkAndSendFollowerMilestoneNotification(candidateId, followerCount + 1);
+      await _checkAndSendFollowerMilestoneNotification(candidateId, currentFollowerCount + 1);
 
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
       AppLogger.notifications('🎉 [FollowerNotification] New follower notification completed successfully (${totalTime}ms)');

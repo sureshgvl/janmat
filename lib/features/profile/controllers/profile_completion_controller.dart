@@ -1020,6 +1020,15 @@ class ProfileCompletionController extends GetxController {
         }
       }
 
+      // Get FCM token from user profile if available
+      String? userFcmToken;
+      try {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUserUid).get();
+        userFcmToken = userDoc.data()?['fcmToken'] as String?;
+      } catch (e) {
+        AppLogger.common('⚠️ Could not fetch FCM token during candidate creation: $e');
+      }
+
       final candidate = Candidate(
         candidateId: 'temp_$currentUserUid',
         userId: currentUserUid,
@@ -1043,6 +1052,7 @@ class ProfileCompletionController extends GetxController {
           age: age,
           gender: selectedGender,
         ),
+        fcmToken: userFcmToken, // Include FCM token if available
       );
 
       AppLogger.common('🏗️ Profile Completion: Creating candidate record for ${candidate.basicInfo!.fullName}');

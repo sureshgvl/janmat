@@ -9,6 +9,7 @@ import 'events_model.dart';
 import 'highlights_model.dart';
 import 'manifesto_model.dart';
 import 'media_model.dart';
+import 'follower_model.dart';
 
 class Candidate {
   final String candidateId;
@@ -34,6 +35,8 @@ class Candidate {
 
   final int followersCount;
   final int followingCount;
+  final List<Follower>? followers; // Optional: loaded on demand for analytics/admin views
+  final String? fcmToken; // For push notifications - cached from user profile
   final bool? approved; // Admin approval status
   final String? status; // "pending_election" or "finalized"
 
@@ -58,6 +61,8 @@ class Candidate {
     this.media,
     this.followersCount = 0,
     this.followingCount = 0,
+    this.followers,
+    this.fcmToken,
     this.approved,
     this.status,
   });
@@ -127,6 +132,7 @@ class Candidate {
       media: _parseMediaData(json['media']),
       followersCount: json['followersCount']?.toInt() ?? 0,
       followingCount: json['followingCount']?.toInt() ?? 0,
+      fcmToken: json['fcmToken'],
       approved: json['approved'],
       status: json['status'],
     );
@@ -166,6 +172,7 @@ class Candidate {
       'media': media,
       'followersCount': followersCount,
       'followingCount': followingCount,
+      'fcmToken': fcmToken,
       'approved': approved,
       'status': status,
     };
@@ -192,6 +199,8 @@ class Candidate {
     List<dynamic>? media,
     int? followersCount,
     int? followingCount,
+    List<Follower>? followers,
+    String? fcmToken,
     bool? approved,
     String? status,
   }) {
@@ -216,6 +225,8 @@ class Candidate {
       media: media ?? this.media,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
+      followers: followers ?? this.followers,
+      fcmToken: fcmToken ?? this.fcmToken,
       approved: approved ?? this.approved,
       status: status ?? this.status,
     );

@@ -9,6 +9,7 @@ import 'dart:io';
 import '../../../firebase_options.dart';
 import '../../../utils/app_logger.dart';
 import '../../services/background_initializer.dart';
+import '../../services/user_token_manager.dart';
 
 
 /// Service responsible for app initialization and startup configuration
@@ -19,6 +20,7 @@ class AppStartupService {
   /// Main initialization method called from main()
   Future<void> initialize() async {
     await _initializeFirebase();
+    await _initializeTokenManagement();
     await _configureLogging();
     await _setupBackgroundServices();
     await _setupLocalizations();
@@ -167,6 +169,18 @@ class AppStartupService {
         AppLogger.core('⚠️ Background services initialization failed: $e');
       }
     });
+  }
+
+  /// Initialize FCM token management
+  Future<void> _initializeTokenManagement() async {
+    try {
+      AppLogger.core('🔄 Initializing FCM token management...');
+      await UserTokenManager().initialize();
+      AppLogger.core('✅ FCM token management initialized successfully');
+    } catch (e) {
+      AppLogger.core('❌ FCM token management initialization failed: $e');
+      // Don't rethrow - FCM token issues shouldn't block app startup
+    }
   }
 
   /// Can be extended later for localization pre-loading if needed
