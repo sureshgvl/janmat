@@ -174,7 +174,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
       }
 
       AppLogger.candidate(
-        '✅ Found candidate: ${candidate.name} (ID: ${candidate.candidateId})',
+        '✅ Found candidate: ${candidate.basicInfo!.fullName} (ID: ${candidate.candidateId})',
       );
 
       // Update events directly

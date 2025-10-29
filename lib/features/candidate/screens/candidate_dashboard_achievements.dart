@@ -66,7 +66,7 @@ class _CandidateDashboardAchievementsState
 
       // DEBUG: Show what's actually in the candidate data
       AppLogger.common('🔍 [DASHBOARD_ACHIEVEMENTS] Existing candidate data:');
-      AppLogger.common('   Name: ${controller.candidateData.value?.name ?? "null"}');
+      AppLogger.common('   Name: ${controller.candidateData.value?.basicInfo!.fullName ?? "null"}');
       AppLogger.common('   ID: ${controller.candidateData.value?.candidateId ?? "null"}');
       AppLogger.common('   Achievements count: ${controller.candidateData.value?.achievements?.length ?? "null"}');
 

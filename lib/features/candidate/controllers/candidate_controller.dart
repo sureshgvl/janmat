@@ -406,11 +406,11 @@ class CandidateController extends GetxController {
         // Get candidate info for notification
         final candidate = await _repository.getCandidateDataById(candidateId);
         if (candidate != null) {
-          AppLogger.candidate('Candidate found: ${candidate.name} (${candidate.userId})');
+          AppLogger.candidate('Candidate found: ${candidate.basicInfo!.fullName} (${candidate.userId})');
           await CandidateFollowingNotifications().sendNewFollowerNotification(
             candidateId: candidateId,
             followerId: userId,
-            candidateName: candidate.name,
+            candidateName: candidate.basicInfo!.fullName,
             candidateUserId: candidate.userId,
           );
           AppLogger.candidate('New follower notification sent successfully');
@@ -668,7 +668,7 @@ class CandidateController extends GetxController {
       AppLogger.candidate('CACHE HIT - Loaded ${candidates.length} candidates from SQLite');
       AppLogger.candidate('Ward: $wardId');
       AppLogger.candidate('Load time: ${loadTime}ms');
-      AppLogger.candidate('Sample candidates: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
+      AppLogger.candidate('Sample candidates: ${candidates.take(2).map((c) => '${c.candidateId}:${c.basicInfo!.fullName}').join(', ')}');
 
       return candidates;
     } catch (e) {

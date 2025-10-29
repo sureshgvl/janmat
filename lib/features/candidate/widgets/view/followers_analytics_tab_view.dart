@@ -139,7 +139,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
                   Get.to(
                     () => FollowersListScreen(
                       candidateId: widget.candidateData.candidateId,
-                      candidateName: widget.candidateData.name,
+                      candidateName: widget.candidateData.basicInfo!.fullName!,
                     ),
                   );
                 },

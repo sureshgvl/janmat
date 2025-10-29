@@ -498,7 +498,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
         // For now, filter locally. In production, you might want to search server-side
         final allCandidates = controller.candidates;
         final filteredCandidates = allCandidates.where((candidate) {
-          final nameMatch = candidate.name.toLowerCase().contains(
+          final nameMatch = candidate.basicInfo!.fullName!.toLowerCase().contains(
             query.toLowerCase(),
           );
           final partyMatch = candidate.party.toLowerCase().contains(

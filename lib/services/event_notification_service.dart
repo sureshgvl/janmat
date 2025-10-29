@@ -35,7 +35,7 @@ class EventNotificationService {
       // Create notification message
       final title = 'RSVP Confirmed!';
       final body =
-          'You are $rsvpType for "${event.title}" by ${candidate.name}';
+          'You are $rsvpType for "${event.title}" by ${candidate.basicInfo!.fullName}';
 
       // Send push notification
       await _sendPushNotification(userToken, title, body, {
@@ -52,7 +52,7 @@ class EventNotificationService {
         'candidateId': candidateId,
         'rsvpType': rsvpType,
         'eventTitle': event.title,
-        'candidateName': candidate.name,
+        'candidateName': candidate.basicInfo!.fullName,
       });
     } catch (e) {
       AppLogger.common('Error sending RSVP notification: $e');
@@ -83,7 +83,7 @@ class EventNotificationService {
       // Create notification message
       final title = 'Event Reminder';
       final body =
-          'Don\'t forget: "${event.title}" by ${candidate.name} is tomorrow!';
+          'Don\'t forget: "${event.title}" by ${candidate.basicInfo!.fullName} is tomorrow!';
 
       // Send push notification
       await _sendPushNotification(userToken, title, body, {
@@ -98,7 +98,7 @@ class EventNotificationService {
         'eventId': eventId,
         'candidateId': candidateId,
         'eventTitle': event.title,
-        'candidateName': candidate.name,
+        'candidateName': candidate.basicInfo!.fullName,
       });
     } catch (e) {
       AppLogger.common('Error sending event reminder: $e');

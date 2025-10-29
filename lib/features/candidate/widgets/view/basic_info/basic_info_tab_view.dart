@@ -13,7 +13,7 @@ class BasicInfoTabView extends StatelessWidget {
   final String? wardName;
   final String? districtName;
   final String? bodyName;
-  final String? displayName; // Optional display name to override candidate.name
+  final String? displayName; // Optional display name to override candidate fullName
 
   const BasicInfoTabView({
     super.key,
@@ -435,7 +435,7 @@ class BasicInfoTabView extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          displayName ?? candidate.basicInfo?.fullName ?? candidate.name,
+                          displayName ?? candidate.basicInfo?.fullName ?? "candidate ",
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

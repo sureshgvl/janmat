@@ -55,6 +55,20 @@ service firebase.storage {
       allow delete: if request.auth != null; // Allow all authenticated users to delete
     }
 
+    // Media files (images, videos for candidate media gallery)
+    match /media/{allPaths=**} {
+      allow read: if true; // Public read for media files
+      allow write: if request.auth != null; // Allow all authenticated users to write
+      allow delete: if request.auth != null; // Allow all authenticated users to delete
+    }
+
+    // Candidate symbol images (for independent candidates)
+    match /candidate_symbols/{allPaths=**} {
+      allow read: if true; // Public read for symbol images
+      allow write: if request.auth != null; // Allow all authenticated users to upload symbols
+      allow delete: if request.auth != null; // Allow all authenticated users to delete symbols
+    }
+
     // Highlight banner images
     match /highlight_banners/{candidateId}/{allPaths=**} {
       allow read: if true; // Public read for highlight banner images

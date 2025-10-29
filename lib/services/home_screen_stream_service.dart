@@ -186,14 +186,23 @@ class HomeScreenStreamService {
         if (userModel.role == 'candidate') {
           try {
             final candidateController = Get.find<CandidateUserController>();
-            // Ensure controller has the candidate data synchronized
-            if (candidateModel != null && candidateController.candidate.value == null) {
+            // CRITICAL FIX: Always set user first, then set candidate data if available
+            candidateController.user.value = userModel; // Set the correct user data FIRST
+            AppLogger.common('👤 Candidate controller user role: ${candidateController.user.value?.role}', tag: 'HOME_CHECK');
+
+            if (candidateModel != null) {
               candidateController.candidate.value = candidateModel;
               candidateController.isInitialized.value = true;
               AppLogger.common('✅ Synchronized candidate data to controller for user: $userId');
+            } else {
+              // Only set initialized to true if we actually have candidate data
+              // Otherwise leave it false so initializeForCandidate() will load fresh data
+              candidateController.isInitialized.value = false;
+              AppLogger.common('⚠️ No candidate data available, will load via initializeForCandidate()', tag: 'HOME_CHECK');
             }
+
             candidateController.initializeForCandidate();
-            AppLogger.common('✅ Candidate controller initialized for user: $userId');
+            AppLogger.common('✅ Candidate controller initialization triggered for user: $userId');
           } catch (e) {
             AppLogger.commonError('❌ Failed to initialize candidate controller', error: e);
           }

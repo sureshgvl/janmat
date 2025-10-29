@@ -67,7 +67,7 @@ class CandidateDataService {
         final userCacheService = UserCacheService();
         await userCacheService.updateCachedUserData({
           'uid': userData['uid'] ?? '',
-          'name': data.name ?? userData['name'] ?? 'Unknown Candidate',
+          'name': data.basicInfo!.fullName ?? userData['name'] ?? 'Unknown Candidate',
           'email': userData['email'],
           'photoURL': data.photo ?? userData['photo'],
           'party': data.party ?? userData['party'] ?? 'independent',
@@ -197,7 +197,7 @@ class CandidateDataService {
 
       AppLogger.database('CACHE HIT - Loaded candidate data from SQLite', tag: 'CANDIDATE_DATA_SERVICE');
       AppLogger.database('  User: $userId', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Name: ${candidate.name}', tag: 'CANDIDATE_DATA_SERVICE');
+      AppLogger.database('  Name: ${candidate.basicInfo!.fullName}', tag: 'CANDIDATE_DATA_SERVICE');
       AppLogger.database('  Party: ${candidate.party}', tag: 'CANDIDATE_DATA_SERVICE');
 
       return candidate;
@@ -222,7 +222,7 @@ class CandidateDataService {
         'bodyId': candidate.location.bodyId ?? 'unknown',
         'stateId': 'maharashtra',
         'userId': candidate.userId,
-        'name': candidate.name ?? 'Unknown',
+        'name': candidate.basicInfo!.fullName ?? 'Unknown',
         'party': candidate.party ?? 'independent',
         'photo': candidate.photo,
         'followersCount': 0, // Not relevant for user's own data
@@ -275,7 +275,6 @@ class CandidateDataService {
       final fallbackCandidate = Candidate(
         candidateId: userData['uid'] ?? '',
         userId: userData['uid'] ?? '',
-        name: userData['name'] ?? 'Unknown Candidate',
         party: userData['party'] ?? 'independent',
         photo: userData['photo'],
         location: LocationModel(
@@ -291,7 +290,7 @@ class CandidateDataService {
       );
 
       AppLogger.database('Fallback candidate data loaded successfully', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Name: ${fallbackCandidate.name}', tag: 'CANDIDATE_DATA_SERVICE');
+      AppLogger.database('  Name: ${fallbackCandidate.basicInfo!.fullName}', tag: 'CANDIDATE_DATA_SERVICE');
       AppLogger.database('  Party: ${fallbackCandidate.party}', tag: 'CANDIDATE_DATA_SERVICE');
       AppLogger.database('  District: ${fallbackCandidate.location.districtId}', tag: 'CANDIDATE_DATA_SERVICE');
 

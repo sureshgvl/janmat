@@ -87,7 +87,7 @@ class FollowStatsWidget extends StatelessWidget {
                 Get.to(
                   () => FollowersListScreen(
                     candidateId: candidate.candidateId,
-                    candidateName: candidate.name,
+                    candidateName: candidate.basicInfo!.fullName!,
                   ),
                 );
               },
@@ -146,7 +146,7 @@ class FollowStatsWidget extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Current Candidate: ${candidate.name}',
+                                'Current Candidate: ${candidate.basicInfo!.fullName}',
                               ),
                               Text(
                                 'Party: ${candidate.party}',

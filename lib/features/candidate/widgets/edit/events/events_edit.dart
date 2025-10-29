@@ -390,7 +390,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
       final success = await _eventsController.saveEventsTab(
         candidate: data,
         events: events,
-        candidateName: data.name,
+        candidateName: data.basicInfo!.fullName,
         photoUrl: data.photo,
         onProgress: (message) {
           ScaffoldMessenger.of(context).showSnackBar(

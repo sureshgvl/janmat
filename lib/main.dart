@@ -32,6 +32,7 @@ import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
 import 'controllers/language_controller.dart';
+import 'features/candidate/controllers/candidate_user_controller.dart';
 
 /// Extension to handle Locale serialization/deserialization for JSON
 extension LocaleJsonExtension on Locale {

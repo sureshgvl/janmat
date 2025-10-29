@@ -145,29 +145,13 @@ class SymbolUploadSection extends StatelessWidget {
                                 ),
                               ),
                             )
-                          : controller.symbolImageUrl.value != null
+                          : controller.selectedSymbolImage.value != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(6),
-                                  child: Image.network(
-                                    controller.symbolImageUrl.value!,
+                                  child: Image.file(
+                                    controller.selectedSymbolImage.value!,
                                     fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                      if (loadingProgress == null) {
-                                        return child;
-                                      }
-                                      return const Center(
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder:
-                                        (context, error, stackTrace) {
+                                    errorBuilder: (context, error, stackTrace) {
                                       return const Icon(
                                         Icons.broken_image,
                                         color: Colors.grey,
@@ -176,14 +160,43 @@ class SymbolUploadSection extends StatelessWidget {
                                     },
                                   ),
                                 )
-                              : Container(
-                                  color: Colors.grey.shade100,
-                                  child: const Icon(
-                                    Icons.image,
-                                    color: Colors.grey,
-                                    size: 30,
-                                  ),
-                                )),
+                              : controller.symbolImageUrl.value != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Image.network(
+                                        controller.symbolImageUrl.value!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) {
+                                            return child;
+                                          }
+                                          return const Center(
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(
+                                            Icons.broken_image,
+                                            color: Colors.grey,
+                                            size: 30,
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Icon(
+                                        Icons.image,
+                                        color: Colors.grey,
+                                        size: 30,
+                                      ),
+                                    )),
                     ),
                     const SizedBox(width: 16),
                     // Upload Button

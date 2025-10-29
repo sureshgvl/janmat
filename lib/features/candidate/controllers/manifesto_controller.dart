@@ -85,7 +85,7 @@ class ManifestoController extends GetxController implements IManifestoController
         onProgress?.call('Manifesto saved successfully!');
 
         // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(candidateId, candidate.name, candidate.photo, manifesto.toJson());
+        _runBackgroundSyncOperations(candidateId, candidate.basicInfo!.fullName, candidate.photo, manifesto.toJson());
 
         AppLogger.database('✅ TAB SAVE: Manifesto completed successfully', tag: 'MANIFESTO_TAB');
         return true;

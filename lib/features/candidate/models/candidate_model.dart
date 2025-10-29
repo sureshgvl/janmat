@@ -13,7 +13,6 @@ import 'media_model.dart';
 class Candidate {
   final String candidateId;
   final String? userId; // User who registered this candidate
-  final String name;
   final String party;
   final String? symbolUrl;
   final String? symbolName;
@@ -31,7 +30,7 @@ class Candidate {
   final List<EventData>? events;
   final List<HighlightData>? highlights;
   final ManifestoModel? manifestoData;
-  final List<Media>? media;
+  final List<dynamic>? media;
 
   final int followersCount;
   final int followingCount;
@@ -41,7 +40,6 @@ class Candidate {
   Candidate({
     required this.candidateId,
     this.userId,
-    required this.name,
     required this.party,
     this.symbolUrl,
     this.symbolName,
@@ -81,7 +79,6 @@ class Candidate {
     return Candidate(
       candidateId: json['candidateId'] ?? '',
       userId: json['userId'],
-      name: json['name'] ?? '',
       party: json['party'] ?? '',
       symbolUrl: json['symbol'],
       symbolName: json['symbolName'],
@@ -127,11 +124,7 @@ class Candidate {
       manifestoData: json['manifesto_data'] != null
           ? ManifestoModel.fromJson(json['manifesto_data'])
           : null,
-      media: json['media'] != null
-          ? (json['media'] as List<dynamic>)
-                .map((item) => Media.fromJson(item as Map<String, dynamic>))
-                .toList()
-          : null,
+      media: _parseMediaData(json['media']),
       followersCount: json['followersCount']?.toInt() ?? 0,
       followingCount: json['followingCount']?.toInt() ?? 0,
       approved: json['approved'],
@@ -139,11 +132,22 @@ class Candidate {
     );
   }
 
+  /// Helper method to parse media data - stores raw Firebase data as Maps for grouped format
+  static List<dynamic>? _parseMediaData(dynamic mediaData) {
+    if (mediaData == null) return null;
+
+    if (mediaData is! List) return null;
+
+    final List<dynamic> mediaList = List<dynamic>.from(mediaData);
+    return mediaList.isEmpty ? [] : mediaList;
+  }
+
+
+
   Map<String, dynamic> toJson() {
     return {
       'candidateId': candidateId,
       'userId': userId,
-      'name': name,
       'party': party,
       'symbol': symbolUrl,
       'symbolName': symbolName,
@@ -159,7 +163,7 @@ class Candidate {
       'events': events?.map((e) => e.toJson()).toList(),
       'highlights': highlights?.map((h) => h.toJson()).toList(),
       'manifesto_data': manifestoData?.toJson(),
-      'media': media?.map((m) => m.toJson()).toList(),
+      'media': media,
       'followersCount': followersCount,
       'followingCount': followingCount,
       'approved': approved,
@@ -170,7 +174,6 @@ class Candidate {
   Candidate copyWith({
     String? candidateId,
     String? userId,
-    String? name,
     String? party,
     String? symbolUrl,
     String? symbolName,
@@ -186,7 +189,7 @@ class Candidate {
     List<EventData>? events,
     List<HighlightData>? highlights,
     ManifestoModel? manifestoData,
-    List<Media>? media,
+    List<dynamic>? media,
     int? followersCount,
     int? followingCount,
     bool? approved,
@@ -195,7 +198,6 @@ class Candidate {
     return Candidate(
       candidateId: candidateId ?? this.candidateId,
       userId: userId ?? this.userId,
-      name: name ?? this.name,
       party: party ?? this.party,
       symbolUrl: symbolUrl ?? this.symbolUrl,
       symbolName: symbolName ?? this.symbolName,

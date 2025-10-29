@@ -23,7 +23,7 @@ class AnalyticsExportService {
       final buffer = StringBuffer();
 
       // Add header
-      buffer.writeln('Analytics Report for ${candidate.name}');
+      buffer.writeln('Analytics Report for ${candidate.basicInfo!.fullName}');
       buffer.writeln('Generated on: ${DateTime.now().toString()}');
       buffer.writeln('');
 
@@ -110,7 +110,6 @@ class AnalyticsExportService {
       final exportData = {
         'candidate': {
           'id': candidate.candidateId,
-          'name': candidate.name,
           'party': candidate.party,
           'district': candidate.location.districtId,
           'state': candidate.location.stateId,
@@ -161,8 +160,8 @@ class AnalyticsExportService {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        subject: 'Analytics Report - ${candidate.name}',
-        text: 'Analytics data export for ${candidate.name}',
+        subject: 'Analytics Report - ${candidate.basicInfo!.fullName}',
+        text: 'Analytics data export for ${candidate.basicInfo!.fullName}',
       );
 
       // Clean up temporary file
@@ -180,14 +179,14 @@ class AnalyticsExportService {
     try {
       final analytics = candidate.analytics;
       if (analytics == null) {
-        return 'No analytics data available for ${candidate.name}';
+        return 'No analytics data available for ${candidate.basicInfo!.fullName}';
       }
 
       final buffer = StringBuffer();
       buffer.writeln('📊 ANALYTICS SUMMARY REPORT');
       buffer.writeln('===========================');
       buffer.writeln('');
-      buffer.writeln('Candidate: ${candidate.name}');
+      buffer.writeln('Candidate: ${candidate.basicInfo!.fullName}');
       buffer.writeln('Party: ${candidate.party}');
       buffer.writeln('Location: ${candidate.location.districtId}, ${candidate.location.stateId ?? 'India'}');
       buffer.writeln('Report Generated: ${DateTime.now().toString()}');

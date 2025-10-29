@@ -13,7 +13,7 @@ class BannerSyncService {
     Candidate candidate,
   ) async {
     try {
-      AppLogger.database('Syncing banner to highlights collection for ${candidate.name}', tag: 'BANNER_SYNC_SERVICE');
+      AppLogger.database('Syncing banner to highlights collection for ${candidate.basicInfo!.fullName}', tag: 'BANNER_SYNC_SERVICE');
 
       // Check if highlight already exists in hierarchical structure
       final existingHighlights = await FirebaseFirestore.instance
@@ -84,7 +84,7 @@ class BannerSyncService {
           'views': 0,
           'clicks': 0,
           'imageUrl': highlightData.imageUrl ?? candidate.photo,
-          'candidateName': candidate.name ?? 'Candidate',
+          'candidateName': candidate.basicInfo!.fullName ?? 'Candidate',
           'party': candidate.party ?? 'Party',
           'createdAt': FieldValue.serverTimestamp(),
           // Banner configuration

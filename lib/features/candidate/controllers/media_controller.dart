@@ -11,11 +11,14 @@ import '../../../services/notifications/constituency_notifications.dart';
 
 abstract class IMediaController {
   Future<List<Media>?> getMedia(Candidate candidate);
+  Future<List<Map<String, dynamic>>?> getMediaGrouped(Candidate candidate);
   Future<bool> saveMedia(Candidate candidate, List<Media> media);
   Future<bool> updateMediaFields(Candidate candidate, Map<String, dynamic> updates);
   Future<bool> saveMediaTab({required Candidate candidate, required List<Media> media, String? candidateName, String? photoUrl, Function(String)? onProgress});
   Future<bool> saveMediaTabWithCandidate({String? candidateId, Candidate? candidate, List<Media>? media, String? candidateName, String? photoUrl, Function(String)? onProgress});
   Future<bool> saveMediaFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
+  Future<bool> saveMediaGrouped(Candidate candidate, List<Map<String, dynamic>> groupedMedia);
+  Future<bool> updateMediaLike(Candidate candidate, MediaItem item, String mediaKey, int likes);
   List<Media> getUpdatedMedia(List<Media> current, String field, dynamic value);
 }
 
@@ -276,10 +279,85 @@ class MediaController extends GetxController implements IMediaController {
   }
 
   @override
+  Future<List<Map<String, dynamic>>?> getMediaGrouped(Candidate candidate) async {
+    try {
+      final candidateId = candidate.candidateId;
+      AppLogger.database('MediaController: Fetching grouped media for $candidateId', tag: 'MEDIA_CTRL');
+      return await _repository.getMediaGrouped(candidate);
+    } catch (e) {
+      AppLogger.databaseError('MediaController: Error fetching grouped media', tag: 'MEDIA_CTRL', error: e);
+      throw Exception('Failed to fetch grouped media: $e');
+    }
+  }
+
+  @override
+  Future<bool> saveMediaGrouped(Candidate candidate, List<Map<String, dynamic>> groupedMedia) async {
+    try {
+      AppLogger.database('MediaController: Saving grouped media for ${candidate.candidateId}', tag: 'MEDIA_CTRL');
+      return await _repository.updateMediaGrouped(candidate.candidateId, groupedMedia, candidate);
+    } catch (e) {
+      AppLogger.databaseError('MediaController: Error saving grouped media', tag: 'MEDIA_CTRL', error: e);
+      throw Exception('Failed to save grouped media: $e');
+    }
+  }
+
+  @override
   Future<bool> saveMediaTabWithCandidate({String? candidateId, Candidate? candidate, List<Media>? media, String? candidateName, String? photoUrl, Function(String)? onProgress}) async {
     if (candidate != null && media != null) {
       return saveMediaTab(candidate: candidate, media: media, candidateName: candidateName, photoUrl: photoUrl, onProgress: onProgress);
     }
     return false;
+  }
+
+  @override
+  Future<bool> updateMediaLike(Candidate candidate, MediaItem item, String mediaKey, int likes) async {
+    try {
+      AppLogger.database('MediaController: Updating like for ${candidate.candidateId}, key: $mediaKey, likes: $likes', tag: 'MEDIA_LIKE');
+
+      // Get the current grouped media
+      final currentGroupedMedia = await getMediaGrouped(candidate);
+      if (currentGroupedMedia == null) return false;
+
+      // Find and update the specific item
+      MediaItem? targetItem;
+      int itemIndex = -1;
+
+      for (int i = 0; i < currentGroupedMedia.length; i++) {
+        final mediaData = currentGroupedMedia[i];
+        final parsedItem = MediaItem.fromJson(mediaData);
+
+        // Compare by title and date to find the matching item
+        if (parsedItem.title == item.title && parsedItem.date == item.date) {
+          targetItem = parsedItem;
+          itemIndex = i;
+          break;
+        }
+      }
+
+      if (targetItem == null || itemIndex == -1) {
+        AppLogger.databaseError('MediaController: Could not find target media item for like update', tag: 'MEDIA_LIKE');
+        return false;
+      }
+
+      // Update the likes for this item
+      targetItem.likes[mediaKey] = likes;
+
+      // Update the grouped media array
+      currentGroupedMedia[itemIndex] = targetItem.toJson();
+
+      // Save the updated grouped media
+      final success = await saveMediaGrouped(candidate, currentGroupedMedia);
+
+      if (success) {
+        AppLogger.database('✅ MediaController: Like updated successfully for ${candidate.candidateId}', tag: 'MEDIA_LIKE');
+      } else {
+        AppLogger.databaseError('❌ MediaController: Failed to save like update', tag: 'MEDIA_LIKE');
+      }
+
+      return success;
+    } catch (e) {
+      AppLogger.databaseError('MediaController: Error updating like', tag: 'MEDIA_LIKE', error: e);
+      return false;
+    }
   }
 }

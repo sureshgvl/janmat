@@ -304,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          candidateModel?.name ?? 'Loading...',
+                          candidateModel?.basicInfo!.fullName ?? 'Loading...',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 4),

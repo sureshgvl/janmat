@@ -7,35 +7,34 @@ import 'dart:io';
 import '../../../l10n/app_localizations.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_party_model.dart';
-import '../models/media_model.dart';
 import '../repositories/candidate_repository.dart';
-import '../repositories/candidate_party_repository.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/candidate_data_manager.dart';
+
 
 class ChangePartySymbolController extends GetxController {
   final candidateRepository = CandidateRepository();
-  final partyRepository = PartyRepository();
-
-  // State
-  final RxBool isLoading = false.obs;
-  final RxBool isLoadingParties = true.obs;
-  final RxBool isUploadingImage = false.obs;
-  final RxBool isIndependent = false.obs;
 
   // Data
-  final RxList<Party> parties = <Party>[].obs;
+  final RxList<Party> parties = RxList<Party>();
   final Rx<Party?> selectedParty = Rx<Party?>(null);
-  final Rx<String?> symbolImageUrl = Rx<String?>(null);
-  final Rx<Candidate?> currentCandidate = Rx<Candidate?>(null);
+  final Rx<Candidate?> candidate = Rx<Candidate?>(null);
+  final RxBool isLoading = false.obs;
 
-  // Controllers
-  final symbolNameController = TextEditingController();
+  // Backward compatibility properties
+  final RxBool isLoadingParties = false.obs; // Always false since we use static data
+  final RxBool isIndependent = false.obs; // Tracks if current selected party is independent
+  final RxBool isUploadingImage = false.obs; // Upload progress indicator
+  final Rx<String?> symbolImageUrl = Rx<String?>(null); // Firebase Storage URL when uploaded
+  final Rx<File?> selectedSymbolImage = Rx<File?>(null); // Local image file before upload
+  final symbolNameController = TextEditingController(); // Symbol name input
 
   @override
   void onInit() {
     super.onInit();
-    loadParties();
+    parties.assignAll(SymbolUtils.getAllParties());
+    initializeWithCandidate(candidate.value);
   }
 
   @override
@@ -44,79 +43,132 @@ class ChangePartySymbolController extends GetxController {
     super.onClose();
   }
 
-  void initializeWithCandidate(Candidate? candidate) {
-    currentCandidate.value = candidate;
-    _loadCurrentData();
-  }
+  // Using the global CandidateDataManager for consistent data updates
+  final _candidateDataManager = CandidateDataManager();
 
-  Future<void> loadParties() async {
-    try {
-      AppLogger.candidate('🚀 ChangePartySymbolController: Starting to load parties...');
-      final fetchedParties = await partyRepository.getActiveParties();
-      AppLogger.candidate(
-        '📦 ChangePartySymbolController: Received ${fetchedParties.length} parties',
+  void initializeWithCandidate(Candidate? candidate) {
+    this.candidate.value = candidate;
+    if (candidate != null && parties.isNotEmpty) {
+      selectedParty.value = parties.firstWhere(
+        (party) => party.id == candidate.party,
+        orElse: () => parties.first,
       );
 
-      parties.assignAll(fetchedParties);
-      isLoadingParties.value = false;
-      _loadCurrentData();
-    } catch (e) {
-      AppLogger.candidateError('❌ ChangePartySymbolController: Error loading parties: $e');
-      isLoadingParties.value = false;
+      // Load existing symbol data for independent candidates
+      isIndependent.value = candidate.party.toLowerCase().contains('independent');
+      if (isIndependent.value) {
+        symbolNameController.text = candidate.symbolName ?? '';
+        symbolImageUrl.value = candidate.symbolUrl;
+      } else {
+        symbolNameController.clear();
+        symbolImageUrl.value = null;
+      }
     }
   }
 
-  void _loadCurrentData() {
-    AppLogger.candidate('📋 ChangePartySymbolController: Loading current candidate data');
-    final candidate = currentCandidate.value;
-    if (candidate != null) {
-      AppLogger.candidate('   Candidate: ${candidate.name}');
-      AppLogger.candidate('   Current party: ${candidate.party}');
-      AppLogger.candidate(
-        '   Current symbol: ${candidate.symbolName ?? 'none'}',
-      );
+  Future<void> changeParty(Party newParty) async {
+    if (candidate.value == null) return;
 
-      // Find current party
-      if (parties.isNotEmpty) {
-        selectedParty.value = parties.firstWhere(
-          (party) => party.id == candidate.party,
-          orElse: () => parties.first,
-        );
-        AppLogger.candidate('   Selected party: ${selectedParty.value?.name ?? 'none'}');
-      }
+    isLoading.value = true;
+    try {
+      // Determine if this is an independent candidate
+      final isIndependentParty = newParty.id.toLowerCase().contains('independent');
 
-      // Load symbol data
-      if (candidate.symbolName != null) {
-        symbolNameController.text = candidate.symbolName!;
-        AppLogger.candidate('   Symbol name loaded: ${candidate.symbolName}');
-      }
-
-      // Load existing symbol image URL from media
-      if (candidate.media != null &&
-          candidate.media!.isNotEmpty) {
-        final symbolImageItem = candidate.media!
-            .firstWhere(
-              (item) => item.type == 'symbolImage',
-              orElse: () => Media(url: '', type: ''),
-            );
-        if (symbolImageItem.url.isNotEmpty) {
-          symbolImageUrl.value = symbolImageItem.url;
-          AppLogger.candidate('   Symbol image URL loaded: ${symbolImageUrl.value ?? 'none'}');
+      // For independent candidates, upload local image to Firebase first
+      String? firebaseUrl;
+      if (isIndependentParty && selectedSymbolImage.value != null) {
+        AppLogger.candidate('📤 ChangePartySymbolController: Uploading symbol image for independent candidate');
+        firebaseUrl = await _uploadSymbolImageToFirebase();
+        if (firebaseUrl != null) {
+          symbolImageUrl.value = firebaseUrl; // Update the uploaded URL
+          AppLogger.candidate('✅ ChangePartySymbolController: Symbol image uploaded to Firebase: $firebaseUrl');
+        } else {
+          AppLogger.candidateError('❌ ChangePartySymbolController: Failed to upload symbol image');
+          throw Exception('Symbol image upload failed');
         }
       }
 
-      isIndependent.value = candidate.party.toLowerCase().contains('independent');
-      AppLogger.candidate('   Is independent: ${isIndependent.value}');
-    } else {
-      AppLogger.candidate('   No candidate data available');
+      // For independent candidates, include symbol data if available
+      final updatedCandidate = candidate.value!.copyWith(
+        party: newParty.id,
+        symbolUrl: isIndependentParty ? symbolImageUrl.value : null,
+        symbolName: isIndependentParty ? symbolNameController.text.trim() : SymbolUtils.getPartySymbolNameLocal(newParty.id, Get.locale?.languageCode ?? 'en'),
+      );
+
+      // Update only party, symbol, and symbol name in Firebase database
+      await candidateRepository.updateCandidateExtraInfo(updatedCandidate);
+
+      // Update local cache using the manager
+      _candidateDataManager.updateCandidateInLocalCache(updatedCandidate);
+
+      // Update this controller's local candidate as well
+      this.candidate.value = updatedCandidate;
+      selectedParty.value = newParty;
+
+      AppLogger.candidate('✅ Party, Symbol, and Symbol Name updated successfully');
+
+      // Update independent flag for UI
+      isIndependent.value = isIndependentParty;
+
+      Get.snackbar(
+        AppLocalizations.of(Get.context!)?.success ?? 'Success',
+        AppLocalizations.of(Get.context!)?.partyUpdateSuccess ?? 'Party updated successfully',
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      AppLogger.candidateError('Error updating party: $e');
+      Get.snackbar(
+        AppLocalizations.of(Get.context!)?.error ?? 'Error',
+        AppLocalizations.of(Get.context!)?.partyUpdateError(e.toString()) ?? 'Failed to update party',
+      );
+    } finally {
+      isLoading.value = false;
     }
   }
 
+  // Backward compatibility methods
+  Rx<Candidate?> get currentCandidate => candidate;
+
+  Future<bool> updatePartyAndSymbol(BuildContext context) async {
+    if (selectedParty.value == null) return false;
+    await changeParty(selectedParty.value!);
+    return true;
+  }
+
+  void selectParty(Party party) {
+    selectedParty.value = party;
+
+    // Update independent flag for UI - this triggers showing/hiding symbol fields
+    isIndependent.value = party.id.toLowerCase().contains('independent');
+    AppLogger.candidate('Party selected: ${party.name}, isIndependent: ${isIndependent.value}');
+  }
+
+  String getCurrentPartyDisplayName(BuildContext context) {
+    if (candidate.value == null) return '';
+
+    final currentParty = parties.firstWhere(
+      (party) => party.id == candidate.value!.party,
+      orElse: () => Party(
+        id: 'unknown',
+        name: candidate.value!.party,
+        nameMr: candidate.value!.party,
+        abbreviation: '',
+      ),
+    );
+
+    return currentParty.getDisplayName(Localizations.localeOf(context).languageCode);
+  }
+
+  String getCurrentSymbolDisplayName() {
+    return candidate.value?.symbolName ?? '';
+  }
+
+  // Local image selection for independent candidates (upload happens on save)
   Future<void> pickSymbolImage(BuildContext context) async {
     final localizations = AppLocalizations.of(context)!;
 
-    AppLogger.candidate('📸 ChangePartySymbolController: Starting image upload process');
-    isUploadingImage.value = true;
+    AppLogger.candidate('📸 ChangePartySymbolController: Starting local image selection');
+    isUploadingImage.value = true; // Using this to show loading during selection
 
     try {
       final ImagePicker picker = ImagePicker();
@@ -140,7 +192,7 @@ class ChangePartySymbolController extends GetxController {
 
         if (fileSize > maxSizeInBytes) {
           AppLogger.candidate(
-            '❌ ChangePartySymbolController: File too large - rejecting upload',
+            '❌ ChangePartySymbolController: File too large - rejecting selection',
           );
           Get.snackbar(
             localizations.error,
@@ -152,62 +204,15 @@ class ChangePartySymbolController extends GetxController {
 
         AppLogger.candidate('✅ ChangePartySymbolController: File size validation passed');
 
-        // Upload to Firebase Storage
-        final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser == null) {
-          AppLogger.candidate('❌ ChangePartySymbolController: No authenticated user found');
-          isUploadingImage.value = false;
-          return;
-        }
+        // Store locally - will upload to Firebase on save
+        selectedSymbolImage.value = file;
+        AppLogger.candidate('🎯 ChangePartySymbolController: Image stored locally for upload on save');
 
-        final fileName =
-            '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        AppLogger.candidate(
-          '📤 ChangePartySymbolController: Preparing upload - User: ${currentUser.uid}, File: $fileName',
-        );
-        AppLogger.candidate(
-          '📂 ChangePartySymbolController: Firebase Storage path: candidate_symbols/$fileName',
-        );
-
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('candidate_symbols')
-            .child(fileName);
-
-        AppLogger.candidate(
-          '📤 ChangePartySymbolController: Starting Firebase Storage upload',
-        );
-        final uploadTask = storageRef.putFile(File(image.path));
-
-        // Monitor upload progress
-        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          final progress =
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          AppLogger.candidate(
-            '📊 ChangePartySymbolController: Upload progress: ${progress.toStringAsFixed(1)}%',
-          );
-        });
-
-        final snapshot = await uploadTask.whenComplete(() => null);
-        AppLogger.candidate('✅ ChangePartySymbolController: Upload completed successfully');
-
-        final downloadUrl = await snapshot.ref.getDownloadURL();
-        AppLogger.candidate(
-          '🔗 ChangePartySymbolController: Download URL obtained: ${downloadUrl.substring(0, 50)}...',
-        );
-        AppLogger.candidate(
-          '📍 ChangePartySymbolController: Firebase Console path: candidate_symbols/ → $fileName',
-        );
-
-        symbolImageUrl.value = downloadUrl;
         isUploadingImage.value = false;
 
-        AppLogger.candidate(
-          '🎉 ChangePartySymbolController: Image upload process completed successfully',
-        );
         Get.snackbar(
-          localizations.success,
-          localizations.symbolUploadSuccess,
+          localizations.success ?? 'Success',
+          localizations.symbolUploadSuccess ?? 'Symbol image selected successfully',
           backgroundColor: Colors.green.shade100,
           colorText: Colors.green.shade800,
         );
@@ -216,7 +221,7 @@ class ChangePartySymbolController extends GetxController {
         isUploadingImage.value = false;
       }
     } catch (e) {
-      AppLogger.candidateError('💥 ChangePartySymbolController: Error during image upload: $e');
+      AppLogger.candidateError('💥 ChangePartySymbolController: Error during image selection: $e');
       isUploadingImage.value = false;
       Get.snackbar(
         localizations.error,
@@ -225,174 +230,40 @@ class ChangePartySymbolController extends GetxController {
     }
   }
 
-  Future<bool> updatePartyAndSymbol(BuildContext context) async {
-    final localizations = AppLocalizations.of(context)!;
+  // Upload local image to Firebase Storage (called during party update)
+  Future<String?> _uploadSymbolImageToFirebase() async {
+    if (selectedSymbolImage.value == null) return null;
 
-    AppLogger.candidate(
-      '📝 ChangePartySymbolController: Starting party and symbol update process',
-    );
-
-    if (selectedParty.value == null) {
-      AppLogger.candidate('❌ ChangePartySymbolController: No party selected');
-      Get.snackbar(localizations.error, localizations.selectPartyValidation);
-      return false;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      AppLogger.candidate('❌ ChangePartySymbolController: No authenticated user for upload');
+      return null;
     }
-
-    AppLogger.candidate('✅ ChangePartySymbolController: Form validation passed');
-    AppLogger.candidate('   Selected party: ${selectedParty.value!.name}');
-    AppLogger.candidate('   Is independent: ${isIndependent.value}');
-    AppLogger.candidate(
-      '   Symbol name: ${isIndependent.value ? symbolNameController.text.trim() : 'N/A'}',
-    );
-    AppLogger.candidate('   Symbol image URL: ${symbolImageUrl.value ?? 'none'}');
-
-    isLoading.value = true;
 
     try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        AppLogger.candidate('❌ ChangePartySymbolController: User not authenticated');
-        throw Exception('User not authenticated');
-      }
+      AppLogger.candidate('📤 ChangePartySymbolController: Starting Firebase upload for selected image');
 
-      final candidate = currentCandidate.value;
-      if (candidate == null) {
-        AppLogger.candidate('❌ ChangePartySymbolController: Candidate data not found');
-        throw Exception('Candidate data not found');
-      }
+      final fileName = '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      AppLogger.candidate('� ChangePartySymbolController: Firebase Storage path: candidate_symbols/$fileName');
 
-      AppLogger.candidate(
-        '👤 ChangePartySymbolController: Authenticated user: ${currentUser.uid}',
-      );
-      AppLogger.candidate(
-        '👤 ChangePartySymbolController: Updating candidate: ${candidate.candidateId}',
-      );
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('candidate_symbols')
+          .child(fileName);
 
-      // Update candidate with new party and symbol
-      final currentMedia = candidate.media ?? [];
-      final updatedMedia = currentMedia.map((media) => media.toJson()).toList();
+      // Upload the local file
+      final snapshot = await storageRef.putFile(selectedSymbolImage.value!);
+      final downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // Remove existing symbol image if present
-      updatedMedia.removeWhere((item) => item['type'] == 'symbolImage');
+      AppLogger.candidate('✅ ChangePartySymbolController: Firebase upload completed');
 
-      // Add new symbol image if provided
-      if (symbolImageUrl.value != null) {
-        updatedMedia.add({
-          'type': 'symbolImage',
-          'url': symbolImageUrl.value!,
-          'title': 'Party Symbol',
-          'uploadedAt': DateTime.now().toIso8601String(),
-        });
-      }
+      // Clear local storage now that it's uploaded
+      selectedSymbolImage.value = null;
 
-      final updatedCandidate = candidate.copyWith(
-        party: selectedParty.value!.id, // Use party key instead of full name for proper symbol resolution
-        symbolUrl: isIndependent.value ? symbolImageUrl.value : null,
-        symbolName: isIndependent.value ? symbolNameController.text.trim() : SymbolUtils.getPartySymbolNameLocal(selectedParty.value!.id, Localizations.localeOf(context).languageCode),
-        media: updatedMedia.map((json) => Media.fromJson(json)).toList(),
-      );
-
-      AppLogger.candidate('💾 ChangePartySymbolController: Data to be saved:');
-      AppLogger.candidate('   Party: ${updatedCandidate.party}');
-      AppLogger.candidate('   Symbol Name: ${updatedCandidate.symbolName}');
-      AppLogger.candidate('   Symbol URL: ${updatedCandidate.symbolUrl}');
-      AppLogger.candidate('   Symbol Image URL: ${updatedCandidate.media}');
-
-      AppLogger.candidate('📤 ChangePartySymbolController: Sending update to database...');
-      // Update candidate in database
-      await candidateRepository.updateCandidateExtraInfo(updatedCandidate);
-      AppLogger.candidate('✅ ChangePartySymbolController: Database update successful');
-
-      // Update the local candidate data to reflect changes immediately
-      currentCandidate.value = updatedCandidate;
-      isLoading.value = false;
-
-      AppLogger.candidate(
-        '🎉 ChangePartySymbolController: Party and symbol update completed successfully',
-      );
-
-      // Show success message
-      Get.snackbar(
-        localizations.success,
-        localizations.partyUpdateSuccess,
-        duration: const Duration(seconds: 2),
-      );
-
-      return true;
+      return downloadUrl;
     } catch (e) {
-      AppLogger.candidateError(
-        '💥 ChangePartySymbolController: Error updating party and symbol: $e',
-      );
-      isLoading.value = false;
-      Get.snackbar(
-        localizations.error,
-        localizations.partyUpdateError(e.toString()),
-      );
-      return false;
+      AppLogger.candidateError('💥 ChangePartySymbolController: Firebase upload failed: $e');
+      return null;
     }
-  }
-
-  void selectParty(Party party) {
-    AppLogger.candidate(
-      '🎯 ChangePartySymbolController: Party selected',
-    );
-    AppLogger.candidate('   Selected party: ${party.name}');
-    selectedParty.value = party;
-    isIndependent.value = party.name.toLowerCase().contains('independent');
-    AppLogger.candidate('   Is independent: ${isIndependent.value}');
-    if (!isIndependent.value) {
-      symbolNameController.clear();
-      symbolImageUrl.value = null;
-      AppLogger.candidate(
-        '   Cleared symbol data for non-independent party',
-      );
-    } else {
-      // Load existing symbol image URL for independent candidates
-      final candidate = currentCandidate.value;
-      if (candidate!.media != null &&
-          candidate.media!.isNotEmpty) {
-        final symbolImageItem = candidate.media!
-            .firstWhere(
-              (item) => item.type == 'symbolImage',
-              orElse: () => Media(url: '', type: ''),
-            );
-        if (symbolImageItem.url.isNotEmpty) {
-          symbolImageUrl.value = symbolImageItem.url;
-          AppLogger.candidate(
-            '   Loaded existing symbol image URL for independent party',
-          );
-        }
-      }
-    }
-  }
-
-  String getCurrentPartyDisplayName(BuildContext context) {
-    final candidate = currentCandidate.value;
-    if (candidate == null) return '';
-
-    // Find the party object from the parties list
-    final currentParty = parties.firstWhere(
-      (party) => party.name == candidate.party,
-      orElse: () => Party(
-        id: 'unknown',
-        name: candidate.party,
-        nameMr: candidate.party,
-        abbreviation: '',
-      ),
-    );
-
-    // Return the display name based on current locale
-    return currentParty.getDisplayName(
-      Localizations.localeOf(context).languageCode,
-    );
-  }
-
-  String getCurrentSymbolDisplayName() {
-    final candidate = currentCandidate.value;
-    if (candidate == null || candidate.symbolName == null) {
-      return '';
-    }
-
-    return candidate.symbolName!;
   }
 }

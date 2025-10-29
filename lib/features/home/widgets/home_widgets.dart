@@ -13,84 +13,153 @@ import '../screens/home_navigation.dart';
 
 class HomeWidgets {
   // Welcome Section Widget
-  static Widget buildWelcomeSection(BuildContext context, UserModel? userModel, User? currentUser) {
+  static Widget buildWelcomeSection(
+    BuildContext context,
+    UserModel? userModel,
+    User? currentUser,
+  ) {
     final theme = Theme.of(context);
     final onSurfaceColor = theme.colorScheme.onSurface;
 
-    // For candidates, use reactive widget
+    // For candidates, use reactive widget - but only if controller is initialized
     if (userModel?.role == 'candidate') {
       return GetBuilder<CandidateUserController>(
         builder: (candidateController) {
-          final candidateModel = candidateController.candidate.value;
-          // Debug: Log candidate data status
-          AppLogger.common('🏠 Welcome Section - CandidateUserController Status:', tag: 'HOME');
-          AppLogger.common('  👤 User Role: ${candidateController.user.value?.role ?? 'No user'}', tag: 'HOME');
-          AppLogger.common('  🎯 Candidate Available: ${candidateModel != null}', tag: 'HOME');
-          if (candidateModel != null) {
-            AppLogger.common('  👥 Candidate Name: ${candidateModel.name}', tag: 'HOME');
-            AppLogger.common('  🎭 Candidate Party: ${candidateModel.party}', tag: 'HOME');
-          }
+          // Use Obx for reactive variables, and GetBuilder for controller level changes
+          return Obx(() {
+            final candidateModel = candidateController.candidate.value;
+            final controllerUserModel = candidateController.user.value;
+            final isInitialized = candidateController.isInitialized.value;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+            // Debug: Log candidate data status
+            AppLogger.common(
+              '🏠 Welcome Section - CandidateUserController Status:',
+              tag: 'HOME',
+            );
+            AppLogger.common(
+              '  👤 Controller User Role: ${controllerUserModel?.role ?? 'No user'}',
+              tag: 'HOME',
+            );
+            AppLogger.common(
+              '  🎯 Is Initialized: $isInitialized',
+              tag: 'HOME',
+            );
+            AppLogger.common(
+              '  🎯 Candidate Available: ${candidateModel != null}',
+              tag: 'HOME',
+            );
+
+            // Only show candidate-specific UI if controller is properly initialized
+            if (isInitialized && candidateModel != null) {
+              AppLogger.common(
+                '  👥 Candidate Name: ${candidateModel.basicInfo!.fullName}',
+                tag: 'HOME',
+              );
+              AppLogger.common(
+                '  🎭 Candidate Party: ${candidateModel.party}',
+                tag: 'HOME',
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      '${userModel?.role == 'candidate' && candidateModel != null ? (candidateModel.basicInfo?.fullName ?? candidateModel.name ?? userModel?.name ?? currentUser?.displayName ?? 'User') : userModel?.name ?? currentUser?.displayName ?? 'User'}!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: onSurfaceColor,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (candidateModel != null) ...[
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300, width: 1),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(7),
-                        child: Image(
-                          image: SymbolUtils.getSymbolImageProvider(
-                            SymbolUtils.getPartySymbolPath(
-                              candidateModel.party,
-                              candidate: candidateModel,
-                            ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${candidateModel.basicInfo?.fullName}',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: onSurfaceColor,
                           ),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
-                              'assets/symbols/default.png',
-                              fit: BoxFit.cover,
-                            );
-                          },
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (candidateModel != null) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 150,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(7),
+                            child: Image(
+                              image: SymbolUtils.getSymbolImageProvider(
+                                SymbolUtils.getPartySymbolPath(
+                                  candidateModel.party,
+                                  candidate: candidateModel,
+                                ),
+                              ),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/symbols/default.png',
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.manageYourCampaignAndConnectWithVoters,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: onSurfaceColor.withValues(alpha: 0.6),
                     ),
-                  ],
+                  ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                userModel?.role == 'candidate'
-                    ? AppLocalizations.of(context)!.manageYourCampaignAndConnectWithVoters
-                    : AppLocalizations.of(context)!.stayInformedAboutYourLocalCandidates,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: onSurfaceColor.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          );
+              );
+            } else {
+              // Controller not initialized or no candidate data - show basic user info
+              AppLogger.common(
+                '  ⚠️ Showing basic UI - controller not ready yet',
+                tag: 'HOME',
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${controllerUserModel?.name ?? currentUser?.displayName ?? 'User'}!',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: onSurfaceColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Loading candidate information...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: onSurfaceColor.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              );
+            }
+          });
         },
       );
     }
@@ -145,10 +214,7 @@ class HomeWidgets {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                primaryColor.withValues(alpha: 0.8),
-                primaryColor,
-              ],
+              colors: [primaryColor.withValues(alpha: 0.8), primaryColor],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -174,7 +240,9 @@ class HomeWidgets {
                     Text(
                       daysRemaining == 1
                           ? AppLocalizations.of(context)!.oneDayRemainingUpgrade
-                          : AppLocalizations.of(context)!.daysRemainingInTrial(daysRemaining.toString()),
+                          : AppLocalizations.of(
+                              context,
+                            )!.daysRemainingInTrial(daysRemaining.toString()),
                       style: TextStyle(color: onPrimaryColor, fontSize: 14),
                     ),
                   ],
@@ -186,7 +254,11 @@ class HomeWidgets {
                     // TODO: Navigate to premium upgrade screen
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(AppLocalizations.of(context)!.premiumUpgradeFeatureComingSoon),
+                        content: Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.premiumUpgradeFeatureComingSoon,
+                        ),
                       ),
                     );
                   },
@@ -245,9 +317,15 @@ class HomeWidgets {
                         Text(
                           userModel?.role == 'candidate'
                               ? (userModel?.isTrialActive == true
-                                  ? AppLocalizations.of(context)!.enjoyFullPremiumFeaturesDuringTrial
-                                  : AppLocalizations.of(context)!.getPremiumVisibilityAndAnalytics)
-                              : AppLocalizations.of(context)!.accessExclusiveContentAndFeatures,
+                                    ? AppLocalizations.of(
+                                        context,
+                                      )!.enjoyFullPremiumFeaturesDuringTrial
+                                    : AppLocalizations.of(
+                                        context,
+                                      )!.getPremiumVisibilityAndAnalytics)
+                              : AppLocalizations.of(
+                                  context,
+                                )!.accessExclusiveContentAndFeatures,
                           style: TextStyle(
                             color: onPrimaryColor.withValues(alpha: 0.9),
                             fontSize: 14,
@@ -262,7 +340,8 @@ class HomeWidgets {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => HomeNavigation.toRightToLeft(const MonetizationScreen()),
+                  onPressed: () =>
+                      HomeNavigation.toRightToLeft(const MonetizationScreen()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: onPrimaryColor,
                     foregroundColor: primaryColor,

@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../utils/app_logger.dart';
+import '../../services/media_cache_service.dart';
 import 'whatsapp_image_viewer.dart';
 
 /// A reusable widget for displaying images with proper aspect ratio handling and WhatsApp-style full-screen viewer
@@ -83,9 +85,23 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
           aspectRatio = decodedImage.width / decodedImage.height;
         }
       } else {
-        // For network images, we could implement caching here
-        // For now, use default aspect ratio
-        aspectRatio = 4 / 3;
+        // PHASE 4 INTEGRATION: Check cache first for network images
+        final cacheService = Get.find<MediaCacheService>();
+        final cachedFile = cacheService.getFile(widget.imageUrl);
+
+        if (cachedFile != null) {
+          // Use cached file for dimensions and loading
+          AppLogger.ui('✅ [Image Cache] Using cached file for ${widget.imageUrl}', tag: 'CACHE');
+          final bytes = await cachedFile.readAsBytes();
+          final decodedImage = await decodeImageFromList(bytes);
+          aspectRatio = decodedImage.width / decodedImage.height;
+        } else {
+          // For uncached images, use default aspect ratio and note for future background caching
+          AppLogger.ui('⚠️ [Image Cache] Image not cached: ${widget.imageUrl} - will load from network', tag: 'CACHE');
+
+          // Use default aspect ratio for uncached images
+          aspectRatio = 4 / 3;
+        }
       }
 
       if (mounted) {

@@ -1,10 +1,24 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:get/get.dart';
 import '../utils/app_logger.dart';
+import 'media_cache_service.dart';
+
+/// Defines different image usage purposes for optimization
+enum ImagePurpose {
+  profilePhoto,
+  candidatePhoto,
+  thumbnail,
+  achievement,
+  upload,
+}
 
 class FileUploadService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -135,8 +149,11 @@ class FileUploadService {
         // Could show a warning dialog here, but for now just log it
       }
 
-      // Optimize the image if needed
-      final optimizedImage = await _optimizeImageForStorage(image);
+      // PHASE 3 INTEGRATION: Use advanced smart optimization instead of basic
+      final optimizedImage = await optimizeImageSmartly(image, purpose: ImagePurpose.achievement);
+
+      // Use optimized image or fall back to original
+      final fileToUpload = optimizedImage ?? image;
 
       final sanitizedTitle = achievementTitle
           .replaceAll(RegExp(r'[^\w\s]'), '')
@@ -146,7 +163,7 @@ class FileUploadService {
       final storageRef = _storage.ref().child('achievement_photos/$fileName');
 
       final uploadTask = storageRef.putFile(
-        File(optimizedImage.path),
+        File(fileToUpload.path),
         SettableMetadata(contentType: 'image/jpeg'),
       );
 
@@ -154,7 +171,7 @@ class FileUploadService {
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
       // Clean up the temporary optimized file if different from original
-      if (optimizedImage.path != image.path) {
+      if (optimizedImage != null && optimizedImage.path != image.path) {
         try {
           await File(optimizedImage.path).delete();
         } catch (e) {
@@ -426,7 +443,7 @@ class FileUploadService {
     }
   }
 
-  // Upload local photo to Firebase Storage
+  // Upload local photo to Firebase Storage with cache integration
   Future<String?> uploadLocalPhotoToFirebase(String localPath) async {
     try {
       // Remove the 'local:' prefix to get the actual file path
@@ -449,9 +466,20 @@ class FileUploadService {
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // Delete the local temporary file after successful upload
+      // PHASE 4 INTEGRATION: Add uploaded file to cache for instant future access
+      try {
+        final cacheService = Get.find<MediaCacheService>();
+        await cacheService.putFile(downloadUrl, file, mediaType: 'upload');
+        AppLogger.common('💾 [Cache Integration] Cached uploaded image: ${fileName}', tag: 'CACHE');
+      } catch (cacheError) {
+        AppLogger.common('⚠️ [Cache Integration] Failed to cache uploaded image, continuing...', tag: 'CACHE');
+        // Continue with upload even if caching fails
+      }
+
+      // Delete the local temporary file after successful upload AND caching
       await file.delete();
 
+      AppLogger.common('📤 [Upload Complete] Successfully uploaded and cached: $fileName', tag: 'UPLOAD');
       return downloadUrl;
     } catch (e) {
       AppLogger.commonError('Error uploading local photo to Firebase', error: e);
@@ -595,6 +623,178 @@ class FileUploadService {
       );
     }
   }
+
+  // =================== ADVANCED IMAGE OPTIMIZATION METHODS (PHASE 3) ===================
+
+  /// Advanced image compression with flutter_image_compress for professional quality
+  Future<XFile?> compressImageWithQuality(
+    XFile sourceImage, {
+    int quality = 85,
+    int? maxWidth,
+    int? maxHeight,
+    bool autoCorrectOrientation = true,
+  }) async {
+    try {
+      final sourceFile = File(sourceImage.path);
+      final originalSize = await sourceFile.length();
+      final originalSizeMB = originalSize / (1024 * 1024);
+      AppLogger.common('🔧 [Image Optim] Starting advanced compression...', tag: 'MEDIA_OPTIM');
+
+      final dir = await getTemporaryDirectory();
+      final compressedFile = File('${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      final compressedBytes = await FlutterImageCompress.compressWithFile(
+        sourceImage.path,
+        minWidth: maxWidth ?? 1920,
+        minHeight: maxHeight ?? 1080,
+        quality: quality,
+        autoCorrectionAngle: autoCorrectOrientation,
+      );
+
+      if (compressedBytes != null) {
+        await compressedFile.writeAsBytes(compressedBytes);
+
+        final compressedSize = await compressedFile.length();
+        final compressedSizeMB = compressedSize / (1024 * 1024);
+        final compressionRatio = ((originalSize - compressedSize) / originalSize * 100);
+
+        AppLogger.common('✅ [Image Optim] Compressed: ${originalSizeMB.toStringAsFixed(2)}MB → ${compressedSizeMB.toStringAsFixed(2)}MB (${compressionRatio.toStringAsFixed(1)}% reduction)', tag: 'MEDIA_OPTIM');
+
+        return XFile(compressedFile.path);
+      } else {
+        AppLogger.common('⚠️ [Image Optim] Compression failed, using original', tag: 'MEDIA_OPTIM');
+        return sourceImage;
+      }
+    } catch (e) {
+      AppLogger.commonError('❌ [Image Optim] Compression error', error: e, tag: 'MEDIA_OPTIM');
+      return sourceImage; // Return original if compression fails
+    }
+  }
+
+  /// Intelligent compression based on image size and purpose
+  Future<XFile?> optimizeImageSmartly(
+    XFile sourceImage, {
+    ImagePurpose purpose = ImagePurpose.thumbnail, // Default to thumbnail for performance
+  }) async {
+    try {
+      final sourceFile = File(sourceImage.path);
+      final originalSize = await sourceFile.length();
+      final originalSizeMB = originalSize / (1024 * 1024);
+
+      AppLogger.common('🧠 [Smart Optim] Analyzing image for purpose: $purpose', tag: 'MEDIA_OPTIM');
+
+      // Configure optimization based on purpose
+      late int quality;
+      late int maxWidth;
+      late int maxHeight;
+
+      switch (purpose) {
+        case ImagePurpose.profilePhoto:
+          quality = 90; // High quality for profile
+          maxWidth = 512;
+          maxHeight = 512;
+          break;
+
+        case ImagePurpose.candidatePhoto:
+          quality = 85; // Good quality for candidate display
+          maxWidth = 800;
+          maxHeight = 800;
+          break;
+
+        case ImagePurpose.thumbnail:
+          quality = 70; // Lower quality for lists/grids
+          maxWidth = 300;
+          maxHeight = 300;
+          break;
+
+        case ImagePurpose.achievement:
+          quality = 80; // Balanced for achievements
+          maxWidth = 1200;
+          maxHeight = 800;
+          break;
+
+        case ImagePurpose.upload:
+          // Adaptive based on file size
+          if (originalSizeMB > 15.0) {
+            quality = 60; // Very aggressive for very large files
+            maxWidth = 1600;
+            maxHeight = 1200;
+          } else if (originalSizeMB > 8.0) {
+            quality = 70; // Moderate for large files
+            maxWidth = 1800;
+            maxHeight = 1350;
+          } else if (originalSizeMB > 3.0) {
+            quality = 80; // Light optimization for medium files
+            maxWidth = 2000;
+            maxHeight = 1500;
+          } else {
+            quality = 90; // Minimal optimization for small files
+            maxWidth = 2500;
+            maxHeight = 1800;
+          }
+          break;
+      }
+
+      // Apply compression
+      final optimizedImage = await compressImageWithQuality(
+        sourceImage,
+        quality: quality,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+      );
+
+      if (optimizedImage != null && optimizedImage.path != sourceImage.path) {
+        final optimizedSize = await File(optimizedImage.path).length();
+        final optimizedSizeMB = optimizedSize / (1024 * 1024);
+        AppLogger.common('✅ [Smart Optim] Optimized for $purpose: ${originalSizeMB.toStringAsFixed(2)}MB → ${optimizedSizeMB.toStringAsFixed(2)}MB', tag: 'MEDIA_OPTIM');
+        return optimizedImage;
+      }
+
+      return sourceImage;
+    } catch (e) {
+      AppLogger.commonError('❌ [Smart Optim] Error', error: e, tag: 'MEDIA_OPTIM');
+      return sourceImage;
+    }
+  }
+
+  /// Batch optimize multiple images
+  Future<List<XFile?>> optimizeMultipleImages(
+    List<XFile> images, {
+    ImagePurpose purpose = ImagePurpose.thumbnail,
+  }) async {
+    AppLogger.common('🔄 [Batch Optim] Processing ${images.length} images', tag: 'MEDIA_OPTIM');
+
+    final optimizedImages = <XFile?>[];
+    for (int i = 0; i < images.length; i++) {
+      final optimized = await optimizeImageSmartly(images[i], purpose: purpose);
+      optimizedImages.add(optimized);
+    }
+
+    final successCount = optimizedImages.where((img) => img != null).length;
+    AppLogger.common('✅ [Batch Optim] Completed: $successCount/${images.length} successful', tag: 'MEDIA_OPTIM');
+
+    return optimizedImages;
+  }
+
+  /// Calculate and display optimization statistics
+  Future<String> generateOptimizationReport(XFile original, XFile? optimized) async {
+    if (optimized == null) {
+      return 'Optimization failed - keeping original';
+    }
+
+    try {
+      final originalSize = await File(original.path).length();
+      final optimizedSize = await File(optimized.path).length();
+      final reductionBytes = originalSize - optimizedSize;
+      final reductionPercent = (reductionBytes / originalSize * 100);
+
+      return 'Size reduced: ${(originalSize / (1024 * 1024)).toStringAsFixed(2)}MB → ${(optimizedSize / (1024 * 1024)).toStringAsFixed(2)}MB (${reductionPercent.toStringAsFixed(1)}% saved)';
+    } catch (e) {
+      return 'Could not generate report: $e';
+    }
+  }
+
+  // =================== BACKWARD COMPATIBILITY METHODS ===================
 
   // Save existing file to local storage (for media tab)
   Future<String?> saveExistingFileLocally(

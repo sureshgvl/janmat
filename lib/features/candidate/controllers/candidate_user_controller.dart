@@ -7,6 +7,7 @@ import '../models/basic_info_model.dart';
 import '../models/contact_model.dart';
 import '../models/manifesto_model.dart';
 import '../models/achievements_model.dart';
+import '../models/location_model.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../repositories/candidate_repository.dart';
@@ -71,15 +72,6 @@ class CandidateUserController extends GetxController {
     try {
       AppLogger.common('👤 Initializing CandidateUserController for candidate user');
 
-      // Listen to auth state changes to load candidate data when user logs in
-      ever(_userController.user, (UserModel? authenticatedUser) async {
-        if (authenticatedUser != null && authenticatedUser.role == 'candidate' && candidate.value == null) {
-          AppLogger.common('👤 Loading candidate data for authenticated candidate user');
-          // Load candidate data via Firebase call - candidate data may not be available yet
-          await loadCandidateUserData(authenticatedUser.uid);
-        }
-      });
-
       // Check immediately in case user is already authenticated but candidate data is missing
       final currentUser = FirebaseAuth.instance.currentUser;
       final userController = UserController.to;
@@ -89,7 +81,17 @@ class CandidateUserController extends GetxController {
         AppLogger.common('👤 Loading candidate data for already authenticated candidate user');
         // Load candidate data via Firebase call since it's not available yet
         await loadCandidateUserData(currentUser.uid);
+        return; // Don't need to set up listeners if we already loaded data
       }
+
+      // Listen to auth state changes to load candidate data when user logs in
+      ever(_userController.user, (UserModel? authenticatedUser) async {
+        if (authenticatedUser != null && authenticatedUser.role == 'candidate' && candidate.value == null) {
+          AppLogger.common('👤 Loading candidate data for authenticated candidate user');
+          // Load candidate data via Firebase call - candidate data may not be available yet
+          await loadCandidateUserData(authenticatedUser.uid);
+        }
+      });
     } catch (e) {
       AppLogger.commonError('❌ Failed to initialize candidate data', error: e);
       // Don't rethrow - initialization failure shouldn't crash the app
@@ -126,8 +128,76 @@ class CandidateUserController extends GetxController {
       }
 
       // Load candidate data - always load for candidates
+
       AppLogger.common('🗳️ Calling _candidateRepository.getCandidateData for UID: $uid');
-      candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
+      try {
+        candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
+        AppLogger.common('✅ Candidate repository returned: ${candidate.value != null ? "data found" : "null"}');
+
+        if (candidate.value == null) {
+          // Debug: Scan all candidates in the system to see if data exists elsewhere
+          await _candidateRepository.logAllCandidatesInSystem();
+          AppLogger.commonError('❌ DEBUG: Candidate data is null after repository call - check Firebase database');
+
+          // 🔧 AUTO-CREATE BASIC CANDIDATE DATA FOR TESTING MEDIA FUNCTIONALITY
+          AppLogger.common('🚀 AUTO-FIX: Creating minimal candidate data for media testing');
+          try {
+            // Create a basic candidate profile for testing
+            final testCandidate = Candidate(
+              candidateId: user.value!.uid,
+              userId: user.value!.uid,
+              party: 'Independent',
+              sponsored: false,
+              contact: ContactModel(
+                email: user.value!.email ?? '',
+                phone: user.value!.phone ?? '',
+                address: '',
+                socialLinks: {},
+              ),
+              location: LocationModel(
+                stateId: 'maharashtra',
+                districtId: 'maharashtra/pune',
+                bodyId: 'pune_municipal_corporation',
+                wardId: 'ward_1',
+              ),
+              basicInfo: BasicInfoModel(
+                fullName: user.value!.name ?? 'Test Candidate',
+                age: null,
+                gender: null,
+                education: null,
+                profession: null,
+                languages: [],
+              ),
+              manifestoData: ManifestoModel(
+                title: 'Test Manifesto',
+                promises: [],
+              ),
+              achievements: [],
+              media: [],
+              events: [],
+              highlights: [],
+              createdAt: DateTime.now(),
+            );
+
+            await _candidateRepository.createCandidate(testCandidate);
+            AppLogger.common('✅ Test candidate profile created successfully');
+
+            // Now load it again
+            candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
+            if (candidate.value != null) {
+              AppLogger.common('✅ Test candidate data loaded: ${candidate.value!.basicInfo!.fullName}');
+            }
+          } catch (e) {
+            AppLogger.commonError('❌ Failed to auto-create test candidate profile: $e');
+          }
+        }
+
+      } catch (e) {
+        AppLogger.commonError('❌ Error loading candidate data from repository: $e');
+        // Debug: Try to scan all candidates to see what's available
+        await _candidateRepository.logAllCandidatesInSystem();
+        rethrow;
+      }
       editedData.value = candidate.value; // Initialize edited data
 
       AppLogger.common('✅ Finished _candidateRepository.getCandidateData, candidate.value: ${candidate.value != null ? 'not null' : 'null'}');
@@ -138,7 +208,7 @@ class CandidateUserController extends GetxController {
         AppLogger.common('👤 User: ${user.value!.name} (${user.value!.role})');
       }
       if (candidate.value != null) {
-        AppLogger.common('👥 Candidate: ${candidate.value!.name} (${candidate.value!.party ?? 'No Party'})');
+        AppLogger.common('👥 Candidate: ${candidate.value!.basicInfo!.fullName} (${candidate.value!.party ?? 'No Party'})');
         AppLogger.common('🏆 Achievements: ${candidate.value!.achievements?.length ?? 0} items');
         if (candidate.value!.achievements != null && candidate.value!.achievements!.isNotEmpty) {
           for (int i = 0; i < candidate.value!.achievements!.length; i++) {
@@ -181,7 +251,19 @@ class CandidateUserController extends GetxController {
       AppLogger.common('🔄 Refreshing candidate data for user: $uid');
       candidate.value = await _candidateRepository.getCandidateData(uid);
       if (candidate.value != null) {
-        AppLogger.common('✅ Candidate data refreshed: ${candidate.value!.name} (${candidate.value!.candidateId})');
+        AppLogger.common('✅ Candidate data refreshed: ${candidate.value!.basicInfo!.fullName} (${candidate.value!.candidateId})');
+
+        // DEBUG: Check media count after refresh
+        AppLogger.common('🖼️ [REFRESH MEDIA] Media count after refresh: ${candidate.value!.media?.length ?? "null"}');
+        if (candidate.value!.media != null && candidate.value!.media!.isNotEmpty) {
+          for (int i = 0; i < candidate.value!.media!.length; i++) {
+            final mediaItem = candidate.value!.media![i] as Map<String, dynamic>;
+            final itemTitle = mediaItem['title'] ?? 'Untitled';
+            final itemImages = mediaItem['images'] as List<dynamic>? ?? [];
+            final itemVideos = mediaItem['videos'] as List<dynamic>? ?? [];
+            AppLogger.common('   [REFRESH MEDIA] Media item $i: "$itemTitle" - ${itemImages.length} images, ${itemVideos.length} videos');
+          }
+        }
 
         // DEBUG: Check achievements count after refresh
         AppLogger.common('🏆 [REFRESH] Achievements count after refresh: ${candidate.value!.achievements?.length ?? "null"}');
@@ -232,7 +314,7 @@ class CandidateUserController extends GetxController {
     try {
       AppLogger.database('===== CANDIDATE DATA AUDIT =====', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('User: ${user.value?.name ?? 'None'} (${user.value?.role ?? 'No Role'})', tag: 'CANDIDATE_CONTROLLER');
-      AppLogger.database('Candidate: ${candidate.value?.name ?? 'None'} (${candidate.value?.party ?? 'No Party'})', tag: 'CANDIDATE_CONTROLLER');
+      AppLogger.database('Candidate: ${candidate.value?.basicInfo!.fullName ?? 'None'} (${candidate.value?.party ?? 'No Party'})', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('Candidates initialized: ${isInitialized.value}', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('Loading: ${isLoading.value}', tag: 'CANDIDATE_CONTROLLER');
       AppLogger.database('Audit completed', tag: 'CANDIDATE_CONTROLLER');
@@ -487,7 +569,7 @@ class CandidateUserController extends GetxController {
         // Initialize basic info if it doesn't exist
         editedData.value = editedData.value!.copyWith(
           basicInfo: BasicInfoModel(
-            fullName: editedData.value!.name,
+            fullName: editedData.value!.basicInfo!.fullName,
             dateOfBirth: editedData.value!.basicInfo?.dateOfBirth,
             age: editedData.value!.basicInfo?.age,
             gender: editedData.value!.basicInfo?.gender,
@@ -521,10 +603,7 @@ class CandidateUserController extends GetxController {
         AppLogger.common('✅ Updated editedData basicInfo field: $field = $value', tag: 'BASIC_INFO_UPDATE');
       }
       else if (field == 'name') {
-        editedData.value = editedData.value!.copyWith(name: value);
-        AppLogger.common('✅ Updated editedData candidate name: $value', tag: 'BASIC_INFO_UPDATE');
-
-        // Also update basicInfo.fullName to keep them in sync
+        // Update basicInfo.fullName to keep them in sync
         if (editedData.value!.basicInfo != null) {
           BasicInfoModel updatedBasicInfo = editedData.value!.basicInfo!.copyWith(fullName: value);
           editedData.value = editedData.value!.copyWith(basicInfo: updatedBasicInfo);

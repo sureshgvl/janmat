@@ -1,11 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/app_logger.dart';
 import '../controllers/candidate_user_controller.dart';
-import '../controllers/media_controller.dart';
-import '../widgets/edit/media/media_edit.dart';
 import '../widgets/view/media/media_view.dart';
-import '../../../widgets/loading_overlay.dart';
 
 class CandidateDashboardMedia extends StatefulWidget {
   const CandidateDashboardMedia({super.key});
@@ -17,11 +14,6 @@ class CandidateDashboardMedia extends StatefulWidget {
 
 class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
   final CandidateUserController controller = CandidateUserController.to;
-  bool isEditing = false;
-
-  // Global key to access media section for file uploads
-  final GlobalKey<MediaTabEditState> _mediaSectionKey =
-      GlobalKey<MediaTabEditState>();
 
   @override
   Widget build(BuildContext context) {
@@ -35,129 +27,10 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
       }
 
       return Scaffold(
-        body: isEditing
-            ? SingleChildScrollView(
-                child: MediaTabEdit(
-                  key: _mediaSectionKey,
-                  candidateData: controller.candidateData.value!,
-                  editedData: controller.editedData.value,
-                  isEditing: isEditing,
-                  onMediaChange: (media) =>
-                      controller.updateMediaInfo('media', media),
-                ),
-              )
-            : Obx(() => MediaTabView(
-                candidate: controller.candidateData.value!,
-                isOwnProfile: false,
-              )),
-        floatingActionButton: isEditing
-            ? Padding(
-                padding: const EdgeInsets.only(bottom: 20, right: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    FloatingActionButton(
-                      heroTag: 'save_media',
-                      onPressed: () async {
-                        // Create a stream controller for progress updates
-                        final messageController = StreamController<String>();
-                        messageController.add('Preparing to save media...');
-
-                        // Show loading dialog with message stream
-                        LoadingDialog.show(
-                          context,
-                          initialMessage: 'Preparing to save media...',
-                          messageStream: messageController.stream,
-                        );
-
-                        try {
-                          // First, upload any pending local files to Firebase
-                          final mediaSectionState =
-                              _mediaSectionKey.currentState;
-                          if (mediaSectionState != null) {
-                            messageController.add(
-                              'Uploading files to cloud...',
-                            );
-                            await mediaSectionState.uploadPendingFiles();
-                          }
-
-                          // Then save the media data using media controller
-                          final mediaController = Get.find<MediaController>();
-                          final mediaData = controller.candidateData.value!.media ?? [];
-                          final success = await mediaController.saveMediaTabWithCandidate(
-                            candidateId: controller.candidateData.value!.candidateId,
-                            media: mediaData,
-                            candidate: controller.candidateData.value,
-                            onProgress: (message) => messageController.add(message),
-                          );
-
-                          if (success) {
-                            // Update progress: Success
-                            messageController.add('Media saved successfully!');
-
-                            // Wait a moment to show success message
-                            await Future.delayed(
-                              const Duration(milliseconds: 800),
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              setState(() => isEditing = false);
-                              Get.snackbar(
-                                'Success',
-                                'Media updated successfully',
-                                backgroundColor: Colors.green,
-                                colorText: Colors.white,
-                              );
-                            }
-                          } else {
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              Get.snackbar('Error', 'Failed to update media');
-                            }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar('Error', 'An error occurred: $e');
-                          }
-                        } finally {
-                          // Clean up the stream controller
-                          await messageController.close();
-                        }
-                      },
-                      backgroundColor: Colors.green,
-                      tooltip: 'Save Changes',
-                      child: const Icon(Icons.save, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    FloatingActionButton(
-                      heroTag: 'cancel_media',
-                      onPressed: () {
-                        controller.resetEditedData();
-                        setState(() => isEditing = false);
-                      },
-                      backgroundColor: Colors.red,
-                      tooltip: 'Cancel',
-                      child: const Icon(Icons.cancel, size: 28),
-                    ),
-                  ],
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.only(bottom: 20, right: 16),
-                child: FloatingActionButton(
-                  heroTag: 'edit_media',
-                  onPressed: () => setState(() => isEditing = true),
-                  backgroundColor: Colors.blue,
-                  tooltip: 'Edit Media',
-                  child: const Icon(Icons.edit, size: 28),
-                ),
-              ),
+        body: MediaTabView(
+          candidate: controller.candidateData.value!,
+          isOwnProfile: true, // This is the candidate's own profile/dashboard
+        ),
       );
     });
   }

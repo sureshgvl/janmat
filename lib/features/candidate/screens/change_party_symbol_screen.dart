@@ -6,15 +6,12 @@ import '../controllers/change_party_symbol_controller.dart';
 import '../widgets/current_party_display.dart';
 import '../widgets/party_selector.dart';
 import '../widgets/symbol_upload_section.dart';
-import '../widgets/update_button.dart';
+import '../widgets/update_party_button.dart';
 
 class ChangePartySymbolScreen extends StatefulWidget {
   final Candidate? currentCandidate;
 
-  const ChangePartySymbolScreen({
-    super.key,
-    required this.currentCandidate,
-  });
+  const ChangePartySymbolScreen({super.key, required this.currentCandidate});
 
   @override
   State<ChangePartySymbolScreen> createState() =>
@@ -42,33 +39,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.changePartySymbolTitle),
-        // actions: [
-        //   TextButton(
-        //     onPressed: controller.isLoading.value
-        //         ? null
-        //         : () async {
-        //             if (_formKey.currentState!.validate()) {
-        //               final success = await controller.updatePartyAndSymbol(context);
-        //               if (success) {
-        //                 Get.back(result: controller.currentCandidate.value);
-        //               }
-        //             }
-        //           },
-        //     child: Obx(() => controller.isLoading.value
-        //         ? const SizedBox(
-        //             width: 20,
-        //             height: 20,
-        //             child: CircularProgressIndicator(strokeWidth: 2),
-        //           )
-        //         : Text(
-        //             localizations.updateButton,
-        //             style: const TextStyle(color: Colors.white),
-        //           )),
-        //   ),
-        // ],
-      ),
+      appBar: AppBar(title: Text(localizations.changePartySymbolTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -77,20 +48,6 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                // Text(
-                //   localizations.updatePartyAffiliationHeader,
-                //   style: const TextStyle(
-                //     fontSize: 24,
-                //     fontWeight: FontWeight.bold,
-                //     color: Colors.black87,
-                //   ),
-                // ),
-                // const SizedBox(height: 8),
-                // Text(
-                //   localizations.updatePartyAffiliationSubtitle,
-                //   style: const TextStyle(fontSize: 16, color: Colors.black54),
-                // ),
                 const SizedBox(height: 70),
 
                 // Current Party Display
@@ -102,10 +59,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                 const SizedBox(height: 24),
 
                 // Independent Symbol Fields
-                SymbolUploadSection(
-                  controller: controller,
-                  formKey: _formKey,
-                ),
+                SymbolUploadSection(controller: controller, formKey: _formKey),
                 const SizedBox(height: 24),
 
                 // Warning Text
@@ -148,10 +102,7 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
                 const SizedBox(height: 32),
 
                 // Update Button
-                UpdateButton(
-                  controller: controller,
-                  formKey: _formKey,
-                ),
+                UpdatePartyButton(controller: controller, formKey: _formKey),
 
                 // Additional Info Text
                 const SizedBox(height: 16),

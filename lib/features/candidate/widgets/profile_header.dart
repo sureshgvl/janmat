@@ -154,7 +154,7 @@ class ProfileHeader extends StatelessWidget {
                                       return CircleAvatar(
                                         backgroundColor: partyColors[1],
                                         child: Text(
-                                          candidate.name[0].toUpperCase(),
+                                          candidate.basicInfo!.fullName![0].toUpperCase(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 60,
@@ -167,7 +167,7 @@ class ProfileHeader extends StatelessWidget {
                                 : CircleAvatar(
                                     backgroundColor: partyColors[1],
                                     child: Text(
-                                      candidate.name[0].toUpperCase(),
+                                      candidate.basicInfo!.fullName![0].toUpperCase(),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 60,
@@ -252,7 +252,7 @@ class ProfileHeader extends StatelessWidget {
                   children: [
                     // Candidate Name
                     Text(
-                      candidate.name,
+                      candidate.basicInfo!.fullName!,
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 24,

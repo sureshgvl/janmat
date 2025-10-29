@@ -245,12 +245,20 @@ class UserModel {
       areas = _migrateFromOldStructure(json);
     }
 
+    // CRITICAL SAFETY CHECK: A user document should NEVER be without a role
+    // If role is missing, this indicates a data corruption issue
+    if (!json.containsKey('role') || json['role'] == null || json['role'].toString().trim().isEmpty) {
+      // Log the critical data integrity issue - this should never happen for valid users
+      print('🚨 CRITICAL DATA CORRUPTION: User document ${json['uid']} is missing role field! This indicates background operations are corrupting user data.');
+      // Default to empty string to force role re-selection rather than assume 'voter'
+    }
+
     return UserModel(
       uid: json['uid'] ?? '',
       name: json['name'] ?? '',
       phone: json['phone'] ?? '',
       email: json['email'],
-      role: json['role'] ?? 'voter',
+      role: json['role'] ?? '',
       roleSelected: json['roleSelected'] ?? false,
       profileCompleted: json['profileCompleted'] ?? false,
       location: json['location'] != null

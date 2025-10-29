@@ -505,7 +505,7 @@ class _ContactSectionState extends State<ContactSection> {
       final success = await _contactController.saveContactTab(
         candidate: data,
         contact: contact,
-        candidateName: data.name,
+        candidateName: data.basicInfo!.fullName,
         photoUrl: data.photo,
         onProgress: (message) {
           ScaffoldMessenger.of(context).showSnackBar(

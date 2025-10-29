@@ -195,7 +195,7 @@ class _PreviewSectionState extends State<PreviewSection> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  widget.candidate.name ?? 'Candidate Name',
+                                  widget.candidate.basicInfo!.fullName ?? 'Candidate Name',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 20,

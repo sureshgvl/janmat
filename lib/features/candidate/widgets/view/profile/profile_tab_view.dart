@@ -292,7 +292,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
                                   ),
                                   child: Center(
                                     child: Text(
-                                      widget.candidate.name[0].toUpperCase(),
+                                      widget.candidate.basicInfo!.fullName![0].toUpperCase(),
                                       style: const TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold,

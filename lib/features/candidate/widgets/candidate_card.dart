@@ -26,7 +26,7 @@ class CandidateCard extends StatelessWidget {
 
     // Get age from basic info
     final age = candidate.basicInfo?.age;
-    final displayName = age != null ? '${candidate.name}, $age' : candidate.name;
+    final displayName = age != null ? '${candidate.basicInfo!.fullName}, $age' : candidate.basicInfo!.fullName;
 
     // Get education
     final education = candidate.basicInfo?.education;
@@ -113,7 +113,7 @@ class CandidateCard extends StatelessWidget {
                     child: candidate.photo == null || candidate.photo!.isEmpty
                         ? Center(
                             child: Text(
-                              candidate.name[0].toUpperCase(),
+                              candidate.basicInfo!.fullName![0].toUpperCase(),
                               style: AppTypography.labelLarge.copyWith(
                                 color: isPremiumCandidate
                                     ? Colors.amber.shade800
@@ -138,7 +138,7 @@ class CandidateCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              displayName,
+                              displayName!,
                               style: AppTypography.bodyLarge.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,

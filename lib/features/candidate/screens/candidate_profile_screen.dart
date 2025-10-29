@@ -62,15 +62,48 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     // Check if arguments are provided
     if (Get.arguments == null) {
       // Handle the case where no candidate data is provided
-      // You might want to show an error or navigate back
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar(
-          AppLocalizations.of(context)!.error,
-          CandidateLocalizations.of(context)?.candidateDataNotFound ??
-              'Candidate data not found',
-        );
-        Get.back();
-      });
+      // First try to get candidate data from the controller for own profile
+      if (currentUserId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            await dataController.loadCandidateUserData(currentUserId!);
+            if (dataController.candidate.value != null) {
+              AppLogger.candidate('✅ Retrieved candidate data for own profile: ${dataController.candidate.value!.basicInfo!.fullName}');
+              setState(() {
+                candidate = dataController.candidate.value;
+                _isOwnProfile = true;
+              });
+
+              // Initialize TabController after getting candidate data
+              _tabController?.dispose();
+              _tabController = TabController(length: _isOwnProfile ? 7 : 6, vsync: this);
+              _tabController?.addListener(_onTabChanged);
+              _loadPlanFeatures();
+              _loadLocationData();
+              return;
+            }
+          } catch (e) {
+            AppLogger.candidateError('❌ Failed to load candidate data for own profile: $e');
+          }
+
+          // If we still don't have candidate data, show error
+          Get.snackbar(
+            AppLocalizations.of(context)!.error,
+            CandidateLocalizations.of(context)?.candidateDataNotFound ??
+                'Candidate data not found',
+          );
+          Get.back();
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.snackbar(
+            AppLocalizations.of(context)!.error,
+            CandidateLocalizations.of(context)?.candidateDataNotFound ??
+                'Candidate data not found',
+          );
+          Get.back();
+        });
+      }
       return;
     }
 

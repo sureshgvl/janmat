@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/models/candidate_party_model.dart';
-import '../features/candidate/models/media_model.dart';
 import './app_logger.dart';
 
 /// Centralized utility for party symbol path resolution
@@ -181,16 +180,6 @@ class SymbolUtils {
       "image": "pwp.jpg",
       "party_symbolEn": "Whistle",
       "party_symbolMr": "शिट्टी",
-    },
-    {
-      "key": "abs",
-      "shortNameEn": "ABS",
-      "shortNameMr": "अखिबासे",
-      "nameEn": "Akhil Bharatiya Sena",
-      "nameMr": "अखिल भारतीय सेना",
-      "image": "default.png",
-      "party_symbolEn": "Unknown",
-      "party_symbolMr": "अज्ञात",
     },
     {
       "key": "independent",
@@ -387,6 +376,20 @@ class SymbolUtils {
     return parties.map((party) => party['shortNameEn']!).toList();
   }
 
+  /// Get all parties as Party objects
+  static List<Party> getAllParties() {
+    return parties.map((party) {
+      return Party(
+        id: party['key']!,
+        name: party['nameEn']!,
+        nameMr: party['nameMr']!,
+        abbreviation: party['shortNameEn']!,
+        symbolPath: party['image'] != null ? 'assets/symbols/${party['image']}' : null,
+        isActive: true,
+      );
+    }).toList();
+  }
+
   /// Get party symbol path with support for independent candidate symbol images
   /// Optimized: Only caches for independent candidates, direct lookup for parties
   static String getPartySymbolPath(String party, {Candidate? candidate}) {
@@ -419,12 +422,12 @@ class SymbolUtils {
         // Fallback: Check for uploaded symbol image URL in media
         if (candidate.media != null &&
             candidate.media!.isNotEmpty) {
-          final symbolImageItem = candidate.media!.firstWhere(
-            (item) => item.type == 'symbolImage',
-            orElse: () => Media(url: '', type: ''),
+          final foundSymbolMedia = candidate.media!.cast<Map<String, dynamic>>().firstWhere(
+            (item) => item['type'] == 'symbolImage',
+            orElse: () => <String, dynamic>{},
           );
-          if (symbolImageItem.url.isNotEmpty) {
-            final symbolImageUrl = symbolImageItem.url;
+          if (foundSymbolMedia.isNotEmpty && foundSymbolMedia.containsKey('url')) {
+            final symbolImageUrl = foundSymbolMedia['url'] as String;
             if (symbolImageUrl.isNotEmpty &&
                 symbolImageUrl.startsWith('http')) {
               AppLogger.common(
@@ -502,7 +505,7 @@ class SymbolUtils {
     }
 
     AppLogger.common(
-      '🔍 [SymbolUtils] For party: ${party.name}, Candidate: ${candidate?.name ?? 'null'}',
+      '🔍 [SymbolUtils] For party: ${party.name}, Candidate: ${candidate?.basicInfo!.fullName ?? 'null'}',
     );
 
     // First check if candidate data exists for independent candidates
@@ -525,12 +528,12 @@ class SymbolUtils {
       // Fallback: Check for uploaded symbol image URL in media
       if (candidate.media != null &&
           candidate.media!.isNotEmpty) {
-        final symbolImageItem = candidate.media!.firstWhere(
-          (item) => item.type == 'symbolImage',
-          orElse: () => Media(url: '', type: ''),
+        final foundSymbolMedia = candidate.media!.cast<Map<String, dynamic>>().firstWhere(
+          (item) => item['type'] == 'symbolImage',
+          orElse: () => <String, dynamic>{},
         );
-        if (symbolImageItem.url.isNotEmpty) {
-          final symbolImageUrl = symbolImageItem.url;
+        if (foundSymbolMedia.isNotEmpty && foundSymbolMedia.containsKey('url')) {
+          final symbolImageUrl = foundSymbolMedia['url'] as String;
           if (symbolImageUrl.isNotEmpty &&
               symbolImageUrl.startsWith('http')) {
             AppLogger.common(

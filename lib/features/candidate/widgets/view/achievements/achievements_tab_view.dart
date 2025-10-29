@@ -5,6 +5,8 @@ import 'package:janmat/features/candidate/models/achievements_model.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/common/reusable_image_widget.dart';
+import 'package:janmat/features/common/lazy_loading_media_widget.dart';
+import 'package:janmat/features/common/whatsapp_image_viewer.dart';
 import 'package:janmat/services/share_service.dart';
 
 
@@ -41,6 +43,17 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
       _likedAchievements[i] = false;
       _achievementLikes[i] = (i + 1) * 3; // Mock data
     }
+  }
+
+  void _viewAchievementImage(String imageUrl, String achievementTitle) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => WhatsAppImageViewer(
+          imageUrl: imageUrl,
+          title: achievementTitle,
+        ),
+      ),
+    );
   }
 
   void _toggleAchievementLike(int index) {
@@ -133,7 +146,7 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
     // Use debug achievements if real ones are empty
     final displayAchievements = achievements.isNotEmpty ? achievements : debugAchievements;
 
-    AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Widget called with candidate: ${widget.candidate.name}');
+    AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Widget called with candidate: ${widget.candidate.basicInfo!.fullName}');
     AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Achievements in candidate data: ${widget.candidate.achievements?.length ?? "null"}');
 
     return SingleChildScrollView(
@@ -319,18 +332,50 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
                       ),
                     ],
 
-                    // Photo Display - only if photo exists
+                    // Photo Display - only if photo exists (PHASE 3: Lazy Loading Integration)
                     if (achievement.photoUrl != null &&
                         achievement.photoUrl!.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      ReusableImageWidget(
-                        imageUrl: achievement.photoUrl!,
-                        isLocal: FileUploadService().isLocalPath(achievement.photoUrl!),
-                        fit: BoxFit.contain,
-                        minHeight: 150,
-                        maxHeight: 300,
-                        borderColor: Colors.grey.shade300,
-                        fullScreenTitle: 'Achievement Photo',
+                      GestureDetector(
+                        onTap: () => _viewAchievementImage(
+                          achievement.photoUrl!,
+                          achievement.title.isNotEmpty ? achievement.title : 'Achievement',
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            LazyLoadingMediaWidget(
+                              mediaUrl: achievement.photoUrl!,
+                              mediaType: MediaType.image,
+                              config: const LazyLoadingConfig(
+                                enablePreloading: true,
+                              ),
+                              enableCache: true,
+                              minHeight: 150,
+                              maxHeight: 300,
+                              borderColor: Colors.grey.shade300,
+                              onMediaLoaded: () {
+                                AppLogger.ui('✅ [LAZY_LOADING] Achievement photo loaded successfully', tag: 'GALLERY');
+                              },
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.fullscreen,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
 

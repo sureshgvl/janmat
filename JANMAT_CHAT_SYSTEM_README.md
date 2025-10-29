@@ -364,7 +364,7 @@ class RoomCreationManager {
 
     return await ChatRepository.createChatRoom(ChatRoom(
       roomId: 'candidate_${candidate.uid}',
-      title: 'Chat with ${candidate.name}',
+      title: 'Chat with ${candidate.basicInfo.fullName}',
       type: 'candidate',
       // Leadership notification settings
     ));

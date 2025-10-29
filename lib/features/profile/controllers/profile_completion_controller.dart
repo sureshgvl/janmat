@@ -1023,7 +1023,6 @@ class ProfileCompletionController extends GetxController {
       final candidate = Candidate(
         candidateId: 'temp_$currentUserUid',
         userId: currentUserUid,
-        name: nameController.text.trim(),
         party: selectedPartyId ?? 'independent',
         location: LocationModel(
           stateId: selectedStateId,
@@ -1046,7 +1045,7 @@ class ProfileCompletionController extends GetxController {
         ),
       );
 
-      AppLogger.common('🏗️ Profile Completion: Creating candidate record for ${candidate.name}');
+      AppLogger.common('🏗️ Profile Completion: Creating candidate record for ${candidate.basicInfo!.fullName}');
       // 🚀 OPTIMIZATION: Pass stateId directly instead of making it search for it
       final actualCandidateId = await candidateRepository.createCandidate(candidate, stateId: selectedStateId);
 

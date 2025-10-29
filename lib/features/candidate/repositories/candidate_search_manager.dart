@@ -476,7 +476,7 @@ class CandidateSearchManager {
       final filteredCandidates = candidates
           .where(
             (candidate) =>
-                candidate.name.toLowerCase().contains(query.toLowerCase()),
+                candidate.basicInfo!.fullName!.toLowerCase().contains(query.toLowerCase()),
           )
           .toList();
 

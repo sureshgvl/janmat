@@ -78,9 +78,6 @@ dependencies:
   # Environment Configuration
   flutter_dotenv: ^5.1.0
 
-  # Advanced Flavor Management
-  flutter_flavorizr: ^2.2.3
-
   # Chat and Media
   image_picker: ^1.0.7
   image_cropper: ^8.0.0
@@ -142,31 +139,6 @@ flutter_launcher_icons:
   ios: false
   image_path: "assets/images/app-icon.png"
 
-# Build flavors for different environments
-# Run with: flutter run --flavor development
-# Build with: flutter build apk --flavor production --target-platform android-arm64
-flavors:
-  development:
-    app:
-      name: "JanMat Dev"
-    android:
-      applicationId: "com.janmat.app.dev"
-    ios:
-      bundleId: "com.janmat.app.dev"
-  staging:
-    app:
-      name: "JanMat Staging"
-    android:
-      applicationId: "com.janmat.app.staging"
-    ios:
-      bundleId: "com.janmat.app.staging"
-  production:
-    app:
-      name: "JanMat"
-    android:
-      applicationId: "com.janmat.app"
-    ios:
-      bundleId: "com.janmat.app"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -192,9 +164,6 @@ flutter:
     - lib/l10n/features/notifications/
     - lib/l10n/features/settings/
     - .env
-    - .env.development
-    - .env.staging
-    - .env.production
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

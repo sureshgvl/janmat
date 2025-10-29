@@ -7,6 +7,13 @@ import '../features/candidate/controllers/manifesto_controller.dart';
 import '../features/candidate/controllers/media_controller.dart';
 import '../features/candidate/controllers/achievements_controller.dart';
 import '../features/candidate/controllers/contact_controller.dart';
+import '../features/candidate/controllers/highlights_controller.dart';
+import '../features/candidate/controllers/events_controller.dart';
+import '../features/candidate/controllers/analytics_controller.dart';
+import '../features/candidate/controllers/save_all_coordinator.dart';
+import '../services/offline_drafts_service.dart';
+import '../services/media_cache_service.dart';
+import '../features/candidate/repositories/media_repository.dart';
 
 import '../services/admob_service.dart';
 import '../services/razorpay_service.dart';
@@ -45,9 +52,16 @@ class AppBindings extends Bindings {
     Get.put<ChatController>(ChatController());
     Get.put<CandidateController>(CandidateController()); // Eagerly load since used in profile screens
     Get.put<MediaController>(MediaController());
+    Get.put<MediaRepository>(MediaRepository());
     Get.put<AchievementsController>(AchievementsController());
     Get.put<ManifestoController>(ManifestoController());
     Get.put<ContactController>(ContactController());
+    // Add the SaveAllCoordinator for universal save operations
+    Get.put<SaveAllCoordinator>(SaveAllCoordinator());
+    // Add the OfflineDraftsService for draft management
+    Get.put<OfflineDraftsService>(OfflineDraftsService());
+    // Initialize media cache service for optimized media loading
+    Get.putAsync<MediaCacheService>(() => MediaCacheService.getInstance());
     Get.put<DeviceInfoController>(DeviceInfoController());
     Get.put<NotificationSettingsController>(NotificationSettingsController());
     AppLogger.common('✅ NotificationSettingsController put in bindings');

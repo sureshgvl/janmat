@@ -109,11 +109,12 @@ class ShareService {
         });
       }
 
-      // Share the image file with text
+      // Share the image file with text - Use proper display name
+      final candidateDisplayName = candidate.basicInfo?.fullName ?? candidate.basicInfo!.fullName;
       await Share.shareXFiles(
         [XFile(imageFile!.path)],
         text: shareText,
-        subject: '🏆 ${candidate.name} - ${achievement.title}',
+        subject: '🏆 ${candidateDisplayName} - ${achievement.title}',
       );
 
     } catch (e) {
@@ -131,7 +132,7 @@ class ShareService {
     final StringBuffer buffer = StringBuffer();
 
     // Use localized manifesto text and display full name
-    final candidateDisplayName = candidate.basicInfo?.fullName ?? candidate.name;
+    final candidateDisplayName = candidate.basicInfo?.fullName ?? 'candidate ';
     buffer.writeln('📋 $candidateDisplayName - ${localizations.manifesto}');
 
     // Use SymbolUtils to get full localized party name
@@ -187,7 +188,7 @@ class ShareService {
   static String _generateProfileShareText(Candidate candidate) {
     final StringBuffer buffer = StringBuffer();
 
-    buffer.writeln('👤 ${candidate.name}');
+    buffer.writeln('👤 ${candidate.basicInfo!.fullName}');
     buffer.writeln('🏛️ Party: ${candidate.party}');
 
     if (candidate.location.districtId?.isNotEmpty == true) {
@@ -209,8 +210,9 @@ class ShareService {
   static String _generateAchievementShareText(Achievement achievement, Candidate candidate) {
     final StringBuffer buffer = StringBuffer();
 
-    // Achievement header
-    buffer.writeln('🏆 Achievement by ${candidate.name}');
+    // Achievement header - Use proper display name (fullName or fallback to name)
+    final candidateDisplayName = candidate.basicInfo?.fullName ?? 'candidate ';
+    buffer.writeln('🏆 Achievement by ${candidateDisplayName}');
 
     // Achievement details
     if (achievement.title.isNotEmpty) {

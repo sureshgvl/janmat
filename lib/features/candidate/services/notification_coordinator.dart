@@ -192,7 +192,7 @@ class NotificationCoordinator {
     Map<String, dynamic> changedExtraInfoFields,
   ) async {
     final profileData = {
-      'name': candidate.name,
+      'name': candidate.basicInfo!.fullName,
       'party': candidate.party,
       'photo': candidate.photo,
       'achievements': candidate.achievements?.map((a) => a.toJson()).toList(),

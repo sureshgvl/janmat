@@ -545,7 +545,7 @@ class LocalDatabaseService {
         'bodyId': candidate.location.bodyId,
         'stateId': candidate.location.stateId ?? 'maharashtra',
         'userId': candidate.userId ?? '',
-        'name': candidate.name,
+        'name': candidate.basicInfo!.fullName,
         'party': candidate.party,
         'photo': candidate.photo,
         'followersCount': candidate.followersCount,
@@ -616,7 +616,7 @@ class LocalDatabaseService {
 
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
 
-      AppLogger.common('✅ [SQLite:Candidates] Successfully loaded candidates from cache - Ward: $wardId, Candidates: ${candidates.length}, Parse time: ${parseTime}ms, Total time: ${totalTime}ms, Sample: ${candidates.take(2).map((c) => '${c.candidateId}:${c.name}').join(', ')}');
+      AppLogger.common('✅ [SQLite:Candidates] Successfully loaded candidates from cache - Ward: $wardId, Candidates: ${candidates.length}, Parse time: ${parseTime}ms, Total time: ${totalTime}ms, Sample: ${candidates.take(2).map((c) => '${c.candidateId}:${c.basicInfo!.fullName}').join(', ')}');
 
       return candidates;
     } catch (e) {

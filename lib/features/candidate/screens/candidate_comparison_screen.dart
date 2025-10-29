@@ -41,7 +41,7 @@ class CandidateComparisonScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Comparing ${candidate1.name} vs ${candidate2.name}',
+                      'Comparing ${candidate1.basicInfo!.fullName} vs ${candidate2.basicInfo!.fullName}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -86,7 +86,7 @@ class CandidateComparisonScreen extends StatelessWidget {
                         ),
                         Expanded(
                           child: Text(
-                            candidate1.name,
+                            candidate1.basicInfo!.fullName!,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue.shade700,
@@ -96,7 +96,7 @@ class CandidateComparisonScreen extends StatelessWidget {
                         ),
                         Expanded(
                           child: Text(
-                            candidate2.name,
+                            candidate2.basicInfo!.fullName!,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.green.shade700,
@@ -119,12 +119,12 @@ class CandidateComparisonScreen extends StatelessWidget {
                   _buildComparisonRow(
                     'Name',
                     Text(
-                      candidate1.name,
+                      candidate1.basicInfo!.fullName!,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      candidate2.name,
+                      candidate2.basicInfo!.fullName!,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                       textAlign: TextAlign.center,
                     ),
@@ -246,7 +246,7 @@ class CandidateComparisonScreen extends StatelessWidget {
                       Get.toNamed('/candidate-profile', arguments: candidate1);
                     },
                     icon: const Icon(Icons.person),
-                    label: Text('View ${candidate1.name}'),
+                    label: Text('View ${candidate1.basicInfo!.fullName}'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
@@ -261,7 +261,7 @@ class CandidateComparisonScreen extends StatelessWidget {
                       Get.toNamed('/candidate-profile', arguments: candidate2);
                     },
                     icon: const Icon(Icons.person),
-                    label: Text('View ${candidate2.name}'),
+                    label: Text('View ${candidate2.basicInfo!.fullName}'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
@@ -329,7 +329,7 @@ class CandidateComparisonScreen extends StatelessWidget {
                   return CircleAvatar(
                     backgroundColor: Colors.blue.shade100,
                     child: Text(
-                      candidate.name[0].toUpperCase(),
+                      candidate.basicInfo!.fullName![0].toUpperCase(),
                       style: const TextStyle(
                         color: Colors.blue,
                         fontWeight: FontWeight.bold,
@@ -342,7 +342,7 @@ class CandidateComparisonScreen extends StatelessWidget {
             : CircleAvatar(
                 backgroundColor: Colors.blue.shade100,
                 child: Text(
-                  candidate.name[0].toUpperCase(),
+                  candidate.basicInfo!.fullName![0].toUpperCase(),
                   style: const TextStyle(
                     color: Colors.blue,
                     fontWeight: FontWeight.bold,

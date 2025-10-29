@@ -62,14 +62,14 @@ class HomeServices {
             final candidateUserController = CandidateUserController.to;
             if (candidateUserController.candidate.value != null) {
               candidateModel = candidateUserController.candidate.value;
-              AppLogger.common('🎯 Using centralized CandidateUserController data: ${candidateModel?.name}');
+              AppLogger.common('🎯 Using centralized CandidateUserController data: ${candidateModel?.basicInfo!.fullName}');
             } else {
               // Load via centralized controller
               AppLogger.common('📥 Calling loadCandidateUserData for ${userModel.uid}');
               await candidateUserController.loadCandidateUserData(userModel.uid);
               candidateModel = candidateUserController.candidate.value;
               if (candidateModel != null) {
-                AppLogger.common('📥 Loaded candidate data via CandidateUserController: ${candidateModel.name}');
+                AppLogger.common('📥 Loaded candidate data via CandidateUserController: ${candidateModel.basicInfo!.fullName}');
               } else {
                 AppLogger.common('⚠️ CandidateUserController.loadCandidateUserData returned null');
               }

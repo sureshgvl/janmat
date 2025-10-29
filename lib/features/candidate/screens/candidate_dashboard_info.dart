@@ -286,7 +286,6 @@ class _CandidateDashboardBasicInfoState
                     districtName: _districtName,
                     wardName: _wardName,
                     bodyName: _bodyName,
-                    // Remove displayName to let it use candidate.basicInfo?.fullName ?? candidate.name
                   );
                   },
                 ),

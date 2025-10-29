@@ -62,7 +62,7 @@ class FollowButton extends StatelessWidget {
                           context: context,
                           builder: (context) => NotificationSettingsDialog(
                             candidateId: candidateId,
-                            candidateName: candidate?.name ?? 'Candidate',
+                            candidateName: candidate?.basicInfo!.fullName ?? 'Candidate',
                             userId: userId,
                             currentNotificationsEnabled: true,
                           ),

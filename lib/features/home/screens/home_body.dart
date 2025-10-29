@@ -12,9 +12,9 @@ class HomeBody extends StatelessWidget {
 
    const HomeBody({
      super.key,
-     required this.userModel,
-     required this.candidateModel,
-     required this.currentUser,
+     this.userModel,
+     this.candidateModel,
+     this.currentUser,
    });
 
    @override
@@ -26,4 +26,3 @@ class HomeBody extends StatelessWidget {
      );
    }
 }
-

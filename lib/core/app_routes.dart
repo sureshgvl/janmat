@@ -8,7 +8,9 @@ import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/profile_completion_screen.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
 import '../features/candidate/screens/change_party_symbol_screen.dart';
+import '../features/candidate/screens/media_add_post_screen.dart';
 import '../features/candidate/models/candidate_model.dart';
+import '../features/candidate/models/media_model.dart';
 import '../features/chat/screens/chat_list_screen.dart';
 import '../features/monetization/screens/monetization_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
@@ -70,6 +72,24 @@ class AppRoutes {
     GetPage(
       name: AppRouteNames.notificationPreferences,
       page: () => const NotificationPreferencesScreen(),
+    ),
+
+    // Candidate Media routes
+    GetPage(
+      name: AppRouteNames.candidateMediaAdd,
+      page: () {
+        final candidate = Get.arguments as Candidate?;
+        return MediaAddPostScreen(candidate: candidate);
+      },
+    ),
+    GetPage(
+      name: AppRouteNames.candidateMediaEdit,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>?;
+        final existingItem = args?['item'] as MediaItem?;
+        final candidate = args?['candidate'] as Candidate?;
+        return MediaAddPostScreen(existingItem: existingItem, candidate: candidate);
+      },
     ),
   ];
 }

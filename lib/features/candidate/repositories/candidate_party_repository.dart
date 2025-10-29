@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/symbol_utils.dart';
 import '../models/candidate_party_model.dart';
 
 class PartyRepository {
@@ -19,17 +20,26 @@ class PartyRepository {
     }
   }
 
-  // Fetch all active parties - Using static Maharashtra parties data
+  // Fetch all active parties - Using centralized party data from SymbolUtils
   Future<List<Party>> getActiveParties() async {
-    AppLogger.candidate('📋 PartyRepository: Returning static Maharashtra parties data');
+    AppLogger.candidate('📋 PartyRepository: Returning centralized party data from SymbolUtils');
 
-    // Return the static Maharashtra parties data
-    final parties = _getMaharashtraParties();
+    // Convert SymbolUtils.parties to List<Party>
+    final parties = SymbolUtils.parties.map((partyMap) {
+      return Party(
+        id: partyMap['key']!,
+        name: partyMap['nameEn']!,
+        nameMr: partyMap['nameMr'] ?? '',
+        abbreviation: partyMap['shortNameEn'] ?? '',
+        symbolPath: 'assets/symbols/${partyMap['image']}',
+        isActive: true,
+      );
+    }).toList();
 
     // Sort by name for consistent ordering
     parties.sort((a, b) => a.name.compareTo(b.name));
 
-    AppLogger.candidate('✅ PartyRepository: Loaded ${parties.length} Maharashtra parties');
+    AppLogger.candidate('✅ PartyRepository: Loaded ${parties.length} parties from SymbolUtils');
     AppLogger.candidate(
       '📝 PartyRepository: Party names: ${parties.map((p) => p.name).join(', ')}',
     );
@@ -37,141 +47,6 @@ class PartyRepository {
     return parties;
   }
 
-  // Get static Maharashtra parties data
-  List<Party> _getMaharashtraParties() {
-    AppLogger.candidate('📋 PartyRepository: Returning static Maharashtra parties data');
-    return [
-      Party(
-        id: 'bjp',
-        name: 'Bharatiya Janata Party',
-        nameMr: 'भारतीय जनता पक्ष',
-        abbreviation: 'BJP',
-        symbolPath: 'assets/symbols/bjp.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'inc',
-        name: 'Indian National Congress',
-        nameMr: 'भारतीय राष्ट्रीय काँग्रेस',
-        abbreviation: 'INC',
-        symbolPath: 'assets/symbols/inc.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'ss_ubt',
-        name: 'Shiv Sena (Uddhav Balasaheb Thackeray)',
-        nameMr: 'शिवसेना (उद्धव बाळासाहेब ठाकरे)',
-        abbreviation: 'Shiv Sena (UBT)',
-        symbolPath: 'assets/symbols/shiv_sena_ubt.jpeg',
-        isActive: true,
-      ),
-      Party(
-        id: 'ss_shinde',
-        name: 'Balasahebanchi Shiv Sena (Shinde)',
-        nameMr: 'बाळासाहेबांची शिवसेना',
-        abbreviation: 'Shiv Sena (Shinde)',
-        symbolPath: 'assets/symbols/shiv_sena_shinde.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'ncp_ajit',
-        name: 'Nationalist Congress Party (Ajit Pawar)',
-        nameMr: 'राष्ट्रवादी काँग्रेस पक्ष (अजित पवार)',
-        abbreviation: 'NCP (Ajit Pawar)',
-        symbolPath: 'assets/symbols/ncp_ajit.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'ncp_sp',
-        name: 'Nationalist Congress Party (Sharad Pawar)',
-        nameMr: 'राष्ट्रवादी काँग्रेस पक्ष (शरदचंद्र पवार)',
-        abbreviation: 'NCP (Sharad Pawar)',
-        symbolPath: 'assets/symbols/ncp_sp.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'mns',
-        name: 'Maharashtra Navnirman Sena',
-        nameMr: 'महाराष्ट्र नवनिर्माण सेना',
-        abbreviation: 'MNS',
-        symbolPath: 'assets/symbols/mns.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'pwpi',
-        name: 'Peasants and Workers Party of India',
-        nameMr: 'शेतकरी कामगार पक्ष',
-        abbreviation: 'PWP',
-        symbolPath: 'assets/symbols/pwp.jpg',
-        isActive: true,
-      ),
-      Party(
-        id: 'cpi_m',
-        name: 'Communist Party of India (Marxist)',
-        nameMr: 'भारतीय कम्युनिस्ट पक्ष (मार्क्सवादी)',
-        abbreviation: 'CPI(M)',
-        symbolPath: 'assets/symbols/cpi_m.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'rsp',
-        name: 'Rashtriya Samaj Paksha',
-        nameMr: 'राष्ट्रीय समाज पक्ष',
-        abbreviation: 'RSP',
-        symbolPath: 'assets/symbols/default.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'sp',
-        name: 'Samajwadi Party',
-        nameMr: 'समाजवादी पक्ष',
-        abbreviation: 'SP',
-        symbolPath: 'assets/symbols/sp.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'bsp',
-        name: 'Bahujan Samaj Party',
-        nameMr: 'बहुजन समाज पार्टी',
-        abbreviation: 'BSP',
-        symbolPath: 'assets/symbols/bsp.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'bva',
-        name: 'Bahujan Vikas Aaghadi',
-        nameMr: 'बहुजन विकास आघाडी',
-        abbreviation: 'BVA',
-        symbolPath: 'assets/symbols/default.png',
-        isActive: true,
-      ),
-      //Party(id: 'republican_sena', name: 'Republican Sena', nameMr: 'रिपब्लिकन सेना', abbreviation: 'Republican Sena', symbolPath: 'assets/symbols/default.png', isActive: true),
-      Party(
-        id: 'abs',
-        name: 'Akhil Bharatiya Sena',
-        nameMr: 'अखिल भारतीय सेना',
-        abbreviation: 'ABS',
-        symbolPath: 'assets/symbols/default.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'vba',
-        name: 'Vanchit Bahujan Aghadi',
-        nameMr: 'वंचित बहुजन आघाडी',
-        abbreviation: 'VBA',
-        symbolPath: 'assets/symbols/vba.png',
-        isActive: true,
-      ),
-      Party(
-        id: 'independent',
-        name: 'Independent',
-        nameMr: 'अपक्ष',
-        abbreviation: 'IND',
-        symbolPath: 'assets/symbols/independent.png',
-        isActive: true,
-      ),
-    ];
-  }
+
 
 }
-

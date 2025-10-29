@@ -81,10 +81,11 @@ class FCMService {
   // Update FCM token in user's document
   Future<void> updateUserFCMToken(String userId, String? token) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
+      // CRITICAL FIX: Use set() with merge instead of update() to prevent removing other fields like 'role'
+      await _firestore.collection('users').doc(userId).set({
         'fcmToken': token,
         'lastTokenUpdate': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true)); // Merge preserves existing fields, preventing data corruption
       AppLogger.fcm('💾 Updated FCM token for user: $userId');
     } catch (e) {
       AppLogger.fcmError('❌ Error updating FCM token', error: e);
@@ -129,10 +130,11 @@ class FCMService {
 
           // Update each user document with the new token
           for (final doc in usersSnapshot.docs) {
-            await doc.reference.update({
+            // CRITICAL FIX: Use set() with merge instead of update() to prevent removing other fields like 'role'
+            await doc.reference.set({
               'fcmToken': newToken,
               'lastTokenUpdate': FieldValue.serverTimestamp(),
-            });
+            }, SetOptions(merge: true)); // Merge preserves existing fields, preventing data corruption
           }
 
           AppLogger.fcm('✅ Token updated for ${usersSnapshot.docs.length} users');

@@ -338,7 +338,7 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
                   pdfUrl: widget.candidate.manifestoData?.pdfUrl,
                   imageUrl: widget.candidate.manifestoData?.image,
                   videoUrl: widget.candidate.manifestoData?.videoUrl,
-                  candidateName: widget.candidate.basicInfo?.fullName ?? widget.candidate.name, // Pass proper candidate name for PDF sharing
+                  candidateName: widget.candidate.basicInfo?.fullName ?? 'candidate ', // Pass proper candidate name for PDF sharing
                 ),
 
                 // Voter Interactions (if enabled)

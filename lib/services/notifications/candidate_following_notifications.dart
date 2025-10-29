@@ -213,7 +213,7 @@ class CandidateFollowingNotifications {
       if (tokens.isEmpty) return;
 
       // Create notification message
-      final title = 'New Post from ${candidate.name}';
+      final title = 'New Post from ${candidate.basicInfo!.fullName}';
       final body = postTitle;
 
       // Send push notifications to all followers
@@ -221,7 +221,7 @@ class CandidateFollowingNotifications {
         await _sendPushNotification(token, title, body, {
           'type': 'new_post',
           'candidateId': candidateId,
-          'candidateName': candidate.name,
+          'candidateName': candidate.basicInfo!.fullName,
           'postId': postId,
           'postTitle': postTitle,
           'postType': postType,
@@ -234,7 +234,7 @@ class CandidateFollowingNotifications {
           await _storeNotification(follower['userId'], title, body, {
             'type': 'new_post',
             'candidateId': candidateId,
-            'candidateName': candidate.name,
+            'candidateName': candidate.basicInfo!.fullName,
             'postId': postId,
             'postTitle': postTitle,
             'postType': postType,
@@ -337,7 +337,7 @@ class CandidateFollowingNotifications {
       if (candidate != null) {
         return {
           'candidateId': candidate.candidateId,
-          'name': candidate.name,
+          'name': candidate.basicInfo!.fullName,
           'userId': candidate.userId,
           'followersCount': candidate.followersCount,
         };

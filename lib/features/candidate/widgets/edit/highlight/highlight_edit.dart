@@ -147,7 +147,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       final success = await _highlightsController.saveHighlightsTab(
         candidate: data,
         highlight: highlightData,
-        candidateName: data.name,
+        candidateName: data.basicInfo!.fullName,
         photoUrl: data.photo,
         onProgress: (message) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -870,7 +870,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
 
                         // Candidate info
                         Text(
-                          widget.candidateData.name ?? 'Candidate Name',
+                          widget.candidateData.basicInfo!.fullName ?? 'Candidate Name',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
