@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../models/events_model.dart';
+import '../models/candidate_model.dart';
 import '../controllers/candidate_user_controller.dart';
-import '../repositories/candidate_repository.dart';
+import '../controllers/events_controller.dart';
 import '../../../utils/app_logger.dart';
 
 class EventCreationDialog extends StatefulWidget {
@@ -24,9 +25,6 @@ class EventCreationDialog extends StatefulWidget {
 
 class _EventCreationDialogState extends State<EventCreationDialog> {
   final _formKey = GlobalKey<FormState>();
-  final CandidateRepository _candidateRepository = CandidateRepository();
-  final CandidateUserController _controller =
-      CandidateUserController.to;
 
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
@@ -122,84 +120,38 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     });
 
     try {
-      AppLogger.candidate(
-        '🎪 Event Creation: Starting save process for candidateId: ${widget.candidateId}',
-      );
-
       final eventData = EventData(
-        id:
-            widget.eventToEdit?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.eventToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
         description: _descriptionController.text.isNotEmpty
             ? _descriptionController.text.trim()
             : null,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
         time: _timeController.text.isNotEmpty ? _timeController.text : null,
-        venue: _venueController.text.isNotEmpty
-            ? _venueController.text.trim()
-            : null,
-        mapLink: _mapLinkController.text.isNotEmpty
-            ? _mapLinkController.text.trim()
-            : null,
+        venue: _venueController.text.isNotEmpty ? _venueController.text.trim() : null,
+        mapLink: _mapLinkController.text.isNotEmpty ? _mapLinkController.text.trim() : null,
         type: 'public_event',
         status: 'upcoming',
-        rsvp:
-            widget.eventToEdit?.rsvp ??
-            {'interested': [], 'going': [], 'not_going': []},
+        rsvp: widget.eventToEdit?.rsvp ?? {'interested': [], 'going': [], 'not_going': []},
       );
 
-      AppLogger.candidate(
-        '📝 Event Data Created: ${eventData.title} on ${eventData.date}',
-      );
+      AppLogger.candidate('📝 Event Data Created: ${eventData.title} on ${eventData.date}');
 
-      // Ensure user document exists before proceeding
-      AppLogger.candidate('🔧 Ensuring user document exists for: ${widget.candidateId}');
-      await _candidateRepository.ensureUserDocumentExists(widget.candidateId);
+      // Get candidate data from the controller
+      final eventsController = Get.find<EventsController>();
+      final candidateData = Get.find<CandidateUserController>().candidateData.value;
 
-      // Get current candidate data by candidateId
-      AppLogger.candidate(
-        '🔍 Getting candidate data for candidateId: ${widget.candidateId}',
-      );
-      final candidate = await _candidateRepository.getCandidateDataById(
-        widget.candidateId,
-      );
-      if (candidate == null) {
-        AppLogger.candidate(
-          '❌ Candidate lookup failed for candidateId: ${widget.candidateId}',
-        );
-        throw Exception(
-          'Unable to load candidate data. Please ensure your profile is complete and try again.',
-        );
+      if (candidateData == null) {
+        throw Exception('Unable to load candidate data. Please ensure your profile is complete and try again.');
       }
 
-      AppLogger.candidate(
-        '✅ Found candidate: ${candidate.basicInfo!.fullName} (ID: ${candidate.candidateId})',
-      );
-
-      // Update events directly
-      final currentEvents = candidate.events ?? [];
-      final updatedEvents = List<EventData>.from(currentEvents);
-
-      // Remove existing event if editing
-      if (widget.eventToEdit != null) {
-        updatedEvents.removeWhere((e) => e.id == widget.eventToEdit!.id);
-      }
-
-      // Add/update the event
-      updatedEvents.add(eventData);
-
-      final updatedCandidate = candidate.copyWith(events: updatedEvents);
-
-      final success = await _candidateRepository.updateCandidateFields(
-        widget.candidateId,
-        updatedCandidate.toJson(),
-      );
+      // Add/update the event using events controller
+      final success = widget.eventToEdit != null
+          ? await eventsController.updateEvent(candidateData, eventData.id!, eventData)
+          : await eventsController.createEvent(candidateData, eventData);
 
       if (success) {
-        // Refresh the controller's events cache
-        await _controller.refreshEvents();
-
+        // Pass the event back to the parent widget
         widget.onEventSaved(eventData);
         Get.back();
         Get.snackbar(
@@ -209,7 +161,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
               : 'Event created successfully',
         );
       } else {
-        throw Exception('Failed to save event');
+        throw Exception('Failed to save event to database');
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to save event: $e');

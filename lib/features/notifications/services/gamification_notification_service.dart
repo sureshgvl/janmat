@@ -14,6 +14,11 @@ class GamificationNotificationService {
   // Get gamification service when needed to avoid circular dependency
   GamificationService get _gamificationService => Get.find<GamificationService>();
 
+  /// Initialize the service (called by dependency injection)
+  Future<void> initialize() async {
+    AppLogger.common('🏆 GamificationNotificationService initialized');
+  }
+
   /// Send level up notification when user reaches a new level
   Future<void> sendLevelUpNotification({
     required String userId,

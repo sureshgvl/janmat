@@ -5,6 +5,7 @@ import 'package:janmat/features/candidate/controllers/candidate_user_controller.
 import 'package:janmat/features/candidate/controllers/events_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/events_model.dart';
+import 'package:janmat/features/candidate/repositories/candidate_repository.dart';
 import 'package:janmat/features/candidate/widgets/event_creation_dialog.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -386,17 +387,14 @@ class EventsTabEditState extends State<EventsTabEdit> {
       final data = widget.editedData ?? widget.candidateData;
       final events = _controller.events.toList();
 
-      // Save using the events controller
-      final success = await _eventsController.saveEventsTab(
-        candidate: data,
-        events: events,
-        candidateName: data.basicInfo!.fullName,
-        photoUrl: data.photo,
-        onProgress: (message) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
-        },
+      // Update the candidate document with current events
+      final updatedCandidate = data.copyWith(events: events);
+
+      // Save using the candidate repository (bulk update)
+      final candidateRepository = Get.find<CandidateRepository>();
+      final success = await candidateRepository.updateCandidateFields(
+        data.candidateId,
+        updatedCandidate.toJson(),
       );
 
       if (success) {

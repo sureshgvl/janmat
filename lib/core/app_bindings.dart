@@ -56,6 +56,9 @@ class AppBindings extends Bindings {
     Get.put<AchievementsController>(AchievementsController());
     Get.put<ManifestoController>(ManifestoController());
     Get.put<ContactController>(ContactController());
+    Get.put<EventsController>(EventsController());
+    Get.put<AnalyticsController>(AnalyticsController());
+    Get.put<HighlightsController>(HighlightsController());
     // Add the SaveAllCoordinator for universal save operations
     Get.put<SaveAllCoordinator>(SaveAllCoordinator());
     // Add the OfflineDraftsService for draft management
@@ -71,8 +74,8 @@ class AppBindings extends Bindings {
     Get.lazyPut<AdMobService>(() => AdMobService());
     Get.lazyPut<RazorpayService>(() => RazorpayService());
 
-    // Register gamification services for dependency injection
-    Get.lazyPut<GamificationNotificationService>(() => GamificationNotificationService());
+    // Register gamification services for dependency injection (eager to avoid circular deps)
+    Get.put<GamificationNotificationService>(GamificationNotificationService());
     Get.lazyPut<GamificationService>(() => GamificationService());
 
     // Initialize background location sync service

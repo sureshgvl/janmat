@@ -154,10 +154,9 @@ class EventsController extends GetxController {
 
       onProgress?.call('Saving events...');
 
-      // For events tab, we don't actually save events data to the candidate document
-      // Events are managed separately through the event repository
-      // This method is here for consistency with other tabs
-      // In practice, events are created/updated/deleted through specific methods
+      // For events tab, individual events are saved immediately when created/edited
+      // This method is here for consistency with other tabs - bulk save happens in the edit widget
+      // Events are managed through individual CRUD operations: createEvent, updateEvent, deleteEvent
 
       onProgress?.call('Events saved successfully!');
 
