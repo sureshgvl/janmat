@@ -40,6 +40,9 @@ class Candidate {
   final bool? approved; // Admin approval status
   final String? status; // "pending_election" or "finalized"
 
+  // Deferred delete pattern: Storage paths waiting for cleanup by Cloud Function
+  final List<String>? deleteStorage;
+
   Candidate({
     required this.candidateId,
     this.userId,
@@ -65,6 +68,7 @@ class Candidate {
     this.fcmToken,
     this.approved,
     this.status,
+    this.deleteStorage,
   });
 
   factory Candidate.fromJson(Map<String, dynamic> json) {
@@ -135,6 +139,9 @@ class Candidate {
       fcmToken: json['fcmToken'],
       approved: json['approved'],
       status: json['status'],
+      deleteStorage: json['deleteStorage'] != null
+          ? List<String>.from(json['deleteStorage'] as List<dynamic>)
+          : null,
     );
   }
 
@@ -175,6 +182,7 @@ class Candidate {
       'fcmToken': fcmToken,
       'approved': approved,
       'status': status,
+      'deleteStorage': deleteStorage,
     };
   }
 
@@ -203,6 +211,7 @@ class Candidate {
     String? fcmToken,
     bool? approved,
     String? status,
+    List<String>? deleteStorage,
   }) {
     return Candidate(
       candidateId: candidateId ?? this.candidateId,
@@ -229,6 +238,7 @@ class Candidate {
       fcmToken: fcmToken ?? this.fcmToken,
       approved: approved ?? this.approved,
       status: status ?? this.status,
+      deleteStorage: deleteStorage ?? this.deleteStorage,
     );
   }
 }

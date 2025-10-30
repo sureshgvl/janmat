@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/media_model.dart';
@@ -12,6 +13,194 @@ import 'package:janmat/features/common/reusable_video_widget.dart';
 import 'package:janmat/features/candidate/controllers/media_controller.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 import 'package:janmat/core/app_route_names.dart';
+
+// Image Gallery Viewer Widget for swipeable image viewing
+class ImageGalleryViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+  final bool Function(int) isLocal;
+
+  const ImageGalleryViewer({
+    super.key,
+    required this.images,
+    required this.initialIndex,
+    required this.isLocal,
+  });
+
+  @override
+  State<ImageGalleryViewer> createState() => _ImageGalleryViewerState();
+}
+
+class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text('${_currentIndex + 1} / ${widget.images.length}'),
+        centerTitle: true,
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        itemCount: widget.images.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: ReusableImageWidget(
+                  imageUrl: widget.images[index],
+                  isLocal: widget.isLocal(index),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Upload Progress Dialog Widget
+class UploadProgressDialog extends StatefulWidget {
+  final String initialMessage;
+  final int initialCurrentFile;
+  final int initialTotalFiles;
+
+  const UploadProgressDialog({
+    super.key,
+    required this.initialMessage,
+    required this.initialCurrentFile,
+    required this.initialTotalFiles,
+  });
+
+  @override
+  State<UploadProgressDialog> createState() => _UploadProgressDialogState();
+}
+
+class _UploadProgressDialogState extends State<UploadProgressDialog> {
+  late String message;
+  late int currentFile;
+  late int totalFiles;
+
+  @override
+  void initState() {
+    super.initState();
+    message = widget.initialMessage;
+    currentFile = widget.initialCurrentFile;
+    totalFiles = widget.initialTotalFiles;
+  }
+
+  // Method to update the message and progress - called from parent via GlobalKey
+  void updateProgress({required String message, int? currentFile, int? totalFiles}) {
+    if (mounted) {
+      setState(() {
+        this.message = message;
+        if (currentFile != null) this.currentFile = currentFile;
+        if (totalFiles != null) this.totalFiles = totalFiles;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = totalFiles > 0 ? currentFile / totalFiles : 0.0;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: Row(
+        children: [
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Text(
+              'Uploading Files',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          if (totalFiles > 1) ...[
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$currentFile / $totalFiles files',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: null, // No actions - user cannot dismiss
+    );
+  }
+}
 
 class MediaAddPostScreen extends StatefulWidget {
   final MediaItem? existingItem;
@@ -252,79 +441,105 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Selected Media (${allMedia.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 12,
+          runSpacing: 12,
           children: allMedia.map((media) {
             final index = allMedia.indexOf(media);
-            return Stack(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(7),
-                    child: media['type'] == 'image'
-                        ? ReusableImageWidget(
-                            imageUrl: media['url']!,
-                            isLocal: _fileUploadService.isLocalPath(media['url']!),
-                            fit: BoxFit.cover,
-                          )
-                        : Center(
-                            child: Icon(
-                              Icons.videocam,
-                              color: Colors.grey.shade600,
-                              size: 32,
+            return GestureDetector(
+              onTap: media['type'] == 'image'
+                  ? () => _viewImageInGallery(index, allMedia.where((m) => m['type'] == 'image').toList())
+                  : null,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: media['type'] == 'image'
+                          ? ReusableImageWidget(
+                              imageUrl: media['url']!,
+                              isLocal: _fileUploadService.isLocalPath(media['url']!),
+                              fit: BoxFit.cover,
+                            )
+                          : Center(
+                              child: Icon(
+                                Icons.videocam,
+                                color: Colors.grey.shade600,
+                                size: 32,
+                              ),
                             ),
-                          ),
-                  ),
-                ),
-                Positioned(
-                  top: -5,
-                  right: -5,
-                  child: GestureDetector(
-                    onTap: () => _removeMedia(media['type']!, media['url']!),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 12,
-                      ),
                     ),
                   ),
-                ),
-                if (media['type'] == 'video')
+                  // Close button - positioned better with shadow for visibility
                   Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow,
-                        color: Colors.white,
-                        size: 12,
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _removeMedia(media['type']!, media['url']!),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade600,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 2,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                       ),
                     ),
                   ),
-              ],
+                  if (media['type'] == 'video')
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             );
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // View image in gallery with swipe functionality
+  void _viewImageInGallery(int initialIndex, List<Map<String, String?>> images) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ImageGalleryViewer(
+          images: images.map((img) => img['url']!).toList(),
+          initialIndex: initialIndex,
+          isLocal: (index) => _fileUploadService.isLocalPath(images[index]['url']!),
+        ),
+      ),
     );
   }
 
@@ -569,19 +784,99 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
     });
   }
 
-  // Upload all local files to Firebase Storage and return Firebase URLs
-  Future<List<String>> _uploadLocalFilesToFirebase(List<String> localPaths, String fileType) async {
+  // Schedule cleanup of files that are being removed during edit operation (deferred delete pattern)
+  Future<void> _cleanupDeletedFiles() async {
+    if (widget.existingItem == null) return; // Only for edit operations
+
+    try {
+      AppLogger.candidate('🧹 [Cleanup] Starting deferred cleanup of deleted files from edit operation');
+
+      // Get original files from existing item
+      final originalImages = widget.existingItem!.images.where((url) => !_fileUploadService.isLocalPath(url)).toList();
+      final originalVideos = widget.existingItem!.videos.where((url) => !_fileUploadService.isLocalPath(url)).toList();
+
+      // Get current selection (only Firebase URLs, not local paths)
+      final currentImages = _selectedImages.where((url) => !_fileUploadService.isLocalPath(url)).toList();
+      final currentVideos = _selectedVideos.where((url) => !_fileUploadService.isLocalPath(url)).toList();
+
+      // Find files that are in original but not in current selection
+      final deletedImages = originalImages.where((url) => !currentImages.contains(url)).toList();
+      final deletedVideos = originalVideos.where((url) => !currentVideos.contains(url)).toList();
+
+      // Convert Firebase URLs to storage paths for deferred cleanup
+      final storagePathsToDelete = [
+        ...deletedImages.map(_extractStoragePath),
+        ...deletedVideos.map(_extractStoragePath),
+      ];
+
+      AppLogger.candidate('🧹 [Cleanup] Found ${storagePathsToDelete.length} files to schedule for deferred deletion');
+
+      if (storagePathsToDelete.isNotEmpty) {
+        // Non-blocking operation - add paths to candidate's deleteStorage array
+        Future.microtask(() async {
+          try {
+            // Build correct hierarchical path for candidate
+            final candidateRef = FirebaseFirestore.instance
+                .collection('states')
+                .doc(_candidate?.location.stateId)
+                .collection('districts')
+                .doc(_candidate?.location.districtId)
+                .collection('bodies')
+                .doc(_candidate?.location.bodyId)
+                .collection('wards')
+                .doc(_candidate?.location.wardId)
+                .collection('candidates')
+                .doc(_candidate?.candidateId);
+
+            await candidateRef.update({
+              'deleteStorage': FieldValue.arrayUnion(storagePathsToDelete),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+            AppLogger.candidate('📋 Scheduled ${storagePathsToDelete.length} files for background cleanup (hierarchical path)');
+          } catch (e) {
+            AppLogger.candidateError('Failed to schedule background cleanup: $e');
+          }
+        });
+      }
+
+      AppLogger.candidate('🧹 [Cleanup] Finished scheduling deferred cleanup of files');
+    } catch (e) {
+      AppLogger.candidateError('❌ [Cleanup] Error during deferred cleanup scheduling: $e');
+    }
+  }
+
+  // Extract storage path from Firebase URL for deferred cleanup
+  String _extractStoragePath(String firebaseUrl) {
+    try {
+      // Firebase URL format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{storagePath}?...
+      final uri = Uri.parse(firebaseUrl);
+      final path = uri.pathSegments.skip(3).join('/'); // Skip v0/b/bucket/o/ parts
+      return Uri.decodeComponent(path); // Decode URL encoding
+    } catch (e) {
+      AppLogger.candidateError('Failed to extract storage path from: $firebaseUrl');
+      return firebaseUrl; // Fallback to original URL if parsing fails
+    }
+  }
+
+  // Upload all local files to Firebase Storage and return Firebase URLs with progress tracking
+  Future<List<String>> _uploadLocalFilesToFirebase(List<String> localPaths, String fileType, Function(String) onProgressUpdate) async {
     final firebaseUrls = <String>[];
 
     for (final localPath in localPaths) {
       try {
         if (_fileUploadService.isLocalPath(localPath)) {
+          // Update progress before upload
+          onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} files...');
+
           // Upload local file to Firebase Storage
           final firebaseUrl = await _fileUploadService.uploadLocalPhotoToFirebase(localPath);
 
           if (firebaseUrl != null) {
             firebaseUrls.add(firebaseUrl);
             AppLogger.candidate('✅ Uploaded $fileType to Firebase: $firebaseUrl');
+
+            // Update progress after successful upload
+            onProgressUpdate('Uploading ${firebaseUrls.length}/${localPaths.length} files...');
           } else {
             AppLogger.candidateError('⚠️ Failed to upload $fileType, skipping: $localPath');
             // Keep the original if upload fails (for compatibility)
@@ -595,10 +890,67 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         AppLogger.candidateError('Error uploading $fileType: $e');
         // Keep the original if upload fails
         firebaseUrls.add(localPath);
+
+        // Continue with next file
+        onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} files...');
       }
     }
 
+    // Final completion message
+    onProgressUpdate('Upload completed successfully!');
+
     return firebaseUrls;
+  }
+
+  GlobalKey<_UploadProgressDialogState>? _progressDialogKey;
+  int _totalFilesToUpload = 0;
+  int _currentUploadedCount = 0;
+
+  // Show upload progress dialog
+  void _showUploadProgressDialog(int totalFiles) {
+    _totalFilesToUpload = totalFiles;
+    _currentUploadedCount = 0;
+    _progressDialogKey = GlobalKey<_UploadProgressDialogState>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return UploadProgressDialog(
+          key: _progressDialogKey,
+          initialMessage: 'Starting upload...',
+          initialCurrentFile: 0,
+          initialTotalFiles: totalFiles,
+        );
+      },
+    );
+  }
+
+  // Update upload progress dialog message
+  void _updateUploadProgress(String message) {
+    if (message == 'Upload completed successfully!') {
+      // Close the progress dialog when upload completes
+      if (mounted) {
+        Navigator.of(context).pop(); // Close progress dialog
+      }
+      return;
+    }
+
+    if (_progressDialogKey?.currentState != null) {
+      // Extract count from message like "Uploading 2/5 files..."
+      final regex = RegExp(r'Uploading (\d+)/(\d+)');
+      final match = regex.firstMatch(message);
+
+      if (match != null) {
+        _currentUploadedCount = int.parse(match.group(1)!);
+      }
+
+      _progressDialogKey!.currentState!.updateProgress(
+        message: message,
+        currentFile: _currentUploadedCount,
+        totalFiles: _totalFilesToUpload,
+      );
+    }
   }
 
   Future<void> _savePost() async {
@@ -645,14 +997,29 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       return;
     }
 
+    // Calculate total files to upload
+    final totalLocalImages = _selectedImages.where((url) => _fileUploadService.isLocalPath(url)).length;
+    final totalLocalVideos = _selectedVideos.where((url) => _fileUploadService.isLocalPath(url)).length;
+    final totalFilesToUpload = totalLocalImages + totalLocalVideos;
+
+    // Show upload progress dialog if there are files to upload
+    if (totalFilesToUpload > 0) {
+      _showUploadProgressDialog(totalFilesToUpload);
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Upload all local files to Firebase Storage and get Firebase URLs
-      final firebaseImages = await _uploadLocalFilesToFirebase(_selectedImages, 'image');
-      final firebaseVideos = await _uploadLocalFilesToFirebase(_selectedVideos, 'video');
+      // For EDIT MODE: Clean up files that are being removed
+      if (widget.existingItem != null) {
+        await _cleanupDeletedFiles();
+      }
+
+      // Upload all local files to Firebase Storage and get Firebase URLs with progress tracking
+      final firebaseImages = await _uploadLocalFilesToFirebase(_selectedImages, 'image', _updateUploadProgress);
+      final firebaseVideos = await _uploadLocalFilesToFirebase(_selectedVideos, 'video', _updateUploadProgress);
 
       final String postDate = widget.existingItem != null
           ? widget.existingItem!.date ?? DateTime.now().toIso8601String().split('T')[0]
@@ -742,26 +1109,28 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         try {
           final candidateController = Get.find<CandidateUserController>();
           await candidateController.refreshCandidateData();
+
+          // Force reactive update to trigger UI rebuild
+          candidateController.update();
+
+          AppLogger.candidate('✅ Successfully refreshed candidate data after posting');
         } catch (e) {
-          AppLogger.candidateError('Error refreshing candidate data after post: $e');
+          AppLogger.candidateError('❌ Error refreshing candidate data after post: $e');
         }
 
         // Call callbacks for backward compatibility
         if (widget.existingItem != null) {
           widget.onPostUpdated?.call(widget.existingItem!, newMediaItem);
-
-          // Force UI refresh for edit operations since the post stays on screen
-          try {
-            // Try to refresh the media tab view if it's on the navigation stack
-            Get.find<CandidateUserController>().refreshCandidateData();
-          } catch (e) {
-            AppLogger.candidate('Could not refresh media tab after edit: $e');
-          }
         } else {
           widget.onPostCreated?.call(newMediaItem);
         }
 
-        Navigator.of(context).pop();
+        // Navigate back after a short delay to ensure refresh completes
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to create post. Please try again.')),

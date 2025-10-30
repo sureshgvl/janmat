@@ -118,6 +118,9 @@ dependencies:
   # PDF Viewer
   webview_flutter: ^4.8.0
 
+  # Image Viewer
+  photo_view: ^0.15.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

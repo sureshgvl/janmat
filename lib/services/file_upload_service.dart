@@ -454,13 +454,23 @@ class FileUploadService {
         throw Exception('Local file not found: $actualPath');
       }
 
-      // Generate Firebase storage path - use manifesto_files for manifesto uploads
+      // Generate Firebase storage path - use media folder for media uploads
       final fileName = path.basename(actualPath).replaceFirst('temp_', '');
-      final storageRef = _storage.ref().child('manifesto_files/$fileName');
+
+      // Determine if this is an image or video based on the filename
+      final isVideo = fileName.contains('media_video');
+
+      // Choose the appropriate folder and content type
+      final storagePath = isVideo ? 'media/videos/$fileName' : 'media/images/$fileName';
+      final contentType = isVideo ? 'video/mp4' : 'image/jpeg';
+
+      final storageRef = _storage.ref().child(storagePath);
+
+      AppLogger.common('📤 [Media Upload] Uploading ${isVideo ? 'video' : 'image'} to Firebase Storage: $storagePath', tag: 'UPLOAD');
 
       final uploadTask = storageRef.putFile(
         file,
-        SettableMetadata(contentType: 'image/jpeg'),
+        SettableMetadata(contentType: contentType),
       );
 
       final snapshot = await uploadTask.whenComplete(() {});
@@ -470,16 +480,17 @@ class FileUploadService {
       try {
         final cacheService = Get.find<MediaCacheService>();
         await cacheService.putFile(downloadUrl, file, mediaType: 'upload');
-        AppLogger.common('💾 [Cache Integration] Cached uploaded image: ${fileName}', tag: 'CACHE');
+        AppLogger.common('💾 [Cache Integration] Cached uploaded ${isVideo ? 'video' : 'image'}: ${fileName}', tag: 'CACHE');
       } catch (cacheError) {
-        AppLogger.common('⚠️ [Cache Integration] Failed to cache uploaded image, continuing...', tag: 'CACHE');
+        AppLogger.common('⚠️ [Cache Integration] Failed to cache uploaded file, continuing...', tag: 'CACHE');
         // Continue with upload even if caching fails
       }
 
       // Delete the local temporary file after successful upload AND caching
       await file.delete();
 
-      AppLogger.common('📤 [Upload Complete] Successfully uploaded and cached: $fileName', tag: 'UPLOAD');
+      AppLogger.common('📤 [Upload Complete] Successfully uploaded to $storagePath and cached: $fileName', tag: 'UPLOAD');
+      AppLogger.common('🔗 [Firebase URL] File accessible at: $downloadUrl', tag: 'UPLOAD');
       return downloadUrl;
     } catch (e) {
       AppLogger.commonError('Error uploading local photo to Firebase', error: e);

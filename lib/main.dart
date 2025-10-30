@@ -1,26 +1,18 @@
 // ignore_for_file: dead_code
 
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
-import 'firebase_options.dart';
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
 import 'core/app_initializer.dart';
-import 'core/app_theme.dart';
 import 'core/app_routes.dart';
 import 'core/app_route_names.dart';
-import 'core/initial_app_data_service.dart';
 import 'core/services/app_startup_service.dart';
 import 'services/background_initializer.dart';
-import 'services/language_service.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
@@ -32,7 +24,6 @@ import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
 import 'controllers/language_controller.dart';
-import 'features/candidate/controllers/candidate_user_controller.dart';
 
 /// Extension to handle Locale serialization/deserialization for JSON
 extension LocaleJsonExtension on Locale {

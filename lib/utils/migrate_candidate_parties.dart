@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../features/candidate/models/candidate_model.dart';
 import 'symbol_utils.dart';
 import 'app_logger.dart';
 

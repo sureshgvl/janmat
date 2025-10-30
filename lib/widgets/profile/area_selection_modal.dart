@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/body_model.dart';
-import '../../utils/maharashtra_utils.dart';
 
 class AreaSelectionModal extends StatefulWidget {
    final List<Body> bodies;
