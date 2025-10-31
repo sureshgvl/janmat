@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../models/highlight_model.dart' as highlight_model;
+import '../../highlight/models/highlight_model.dart' as highlight_model;
 import '../../../services/highlight_service.dart';
 
 import '../../../utils/app_logger.dart';
@@ -81,12 +81,14 @@ class _WelcomeContentPreviewState extends State<WelcomeContentPreview>
       }
 
       final primaryArea = electionAreas[0] as Map<String, dynamic>;
+      final stateId = primaryArea['stateId'] as String;
       final bodyId = primaryArea['bodyId'] as String;
       final wardId = primaryArea['wardId'] as String;
       final districtId = userData['districtId'] as String;
 
       // Try to find the platinum highlight
       final highlight = await HighlightService.getPlatinumBanner(
+        stateId,
         districtId,
         bodyId,
         wardId,

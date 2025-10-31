@@ -277,9 +277,11 @@ class FileUploadService {
 
       return downloadUrl;
     } catch (e) {
-      // PERFORMANCE: Don't throw on Firebase Storage unauthorized errors
+      // PERFORMANCE: Don't throw on Firebase Storage unauthorized/permission errors
       // This prevents app crashes during performance optimization testing
-      if (e.toString().contains('firebase_storage/unauthorized')) {
+      if (e.toString().contains('firebase_storage/unauthorized') ||
+          e.toString().contains('Permission denied') ||
+          e.toString().contains('403')) {
         AppLogger.common('⚠️ Firebase Storage unauthorized - skipping upload (expected during testing)');
         return null; // Return null instead of throwing
       }

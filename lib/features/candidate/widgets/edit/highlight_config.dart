@@ -11,6 +11,7 @@ class HighlightConfig {
   bool showAnalytics;
   String customMessage;
   String title;
+  DateTime? endDate;
 
   HighlightConfig({
     this.enabled = false,
@@ -22,6 +23,7 @@ class HighlightConfig {
     this.showAnalytics = false,
     this.customMessage = '',
     this.title = '',
+    this.endDate,
   });
 
   Map<String, dynamic> toJson() {
@@ -35,6 +37,7 @@ class HighlightConfig {
       'showAnalytics': showAnalytics,
       'message': customMessage,
       'title': title,
+      'endDate': endDate?.toIso8601String(),
     };
   }
 
@@ -50,6 +53,7 @@ class HighlightConfig {
       showAnalytics: json['showAnalytics'] ?? false,
       customMessage: json['customMessage'] ?? json['message'] ?? '',
       title: json['title'] ?? '',
+      endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
     );
   }
 
@@ -63,6 +67,7 @@ class HighlightConfig {
     bool? showAnalytics,
     String? customMessage,
     String? title,
+    DateTime? endDate,
   }) {
     return HighlightConfig(
       enabled: enabled ?? this.enabled,
@@ -74,7 +79,7 @@ class HighlightConfig {
       showAnalytics: showAnalytics ?? this.showAnalytics,
       customMessage: customMessage ?? this.customMessage,
       title: title ?? this.title,
+      endDate: endDate ?? this.endDate,
     );
   }
 }
-

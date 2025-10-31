@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:janmat/features/candidate/screens/highlight/candidate_dashboard_highlight_screen.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
@@ -13,7 +14,7 @@ import 'candidate_dashboard_contact.dart';
 import 'candidate_dashboard_media.dart';
 import 'candidate_dashboard_events.dart';
 import 'candidate_dashboard_analytics.dart';
-import 'candidate_dashboard_highlight.dart';
+
 
 class CandidateDashboardScreen extends StatefulWidget {
   const CandidateDashboardScreen({super.key});

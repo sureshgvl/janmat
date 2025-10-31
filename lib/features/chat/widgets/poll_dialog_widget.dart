@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../models/chat_model.dart';
+import 'package:janmat/features/chat/models/poll.dart';
 import '../../../utils/app_logger.dart';
 import '../repositories/chat_repository.dart';
 import '../../../l10n/app_localizations.dart';

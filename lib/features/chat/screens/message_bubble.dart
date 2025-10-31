@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:janmat/features/chat/models/chat_message.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:just_audio/just_audio.dart';
-import '../../../models/chat_model.dart';
 import '../../../utils/app_logger.dart';
 import '../controllers/chat_controller.dart';
 import '../../common/reusable_image_widget.dart';

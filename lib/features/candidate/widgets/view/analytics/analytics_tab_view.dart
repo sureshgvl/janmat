@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/candidate_model.dart';
-import '../../../../services/manifesto_likes_service.dart';
-import '../../../../services/manifesto_poll_service.dart';
-import '../../../../services/analytics_export_service.dart';
-import '../../../../widgets/charts/follower_growth_chart.dart';
+import 'package:janmat/features/candidate/models/candidate_model.dart';
+import 'package:janmat/services/analytics_export_service.dart';
+import 'package:janmat/services/manifesto_likes_service.dart';
+import 'package:janmat/services/manifesto_poll_service.dart';
+import 'package:janmat/widgets/charts/follower_growth_chart.dart';
+
 
 class AnalyticsTabView extends StatefulWidget {
   final Candidate candidate;

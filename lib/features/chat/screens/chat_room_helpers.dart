@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../models/chat_model.dart';
+import 'package:janmat/features/chat/models/chat_message.dart';
+import 'package:janmat/features/chat/models/chat_room.dart';
+
 
 class ChatRoomHelpers {
   // Get room color based on type

@@ -1,165 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/app_logger.dart';
+import '../features/highlight/models/highlight_model.dart';
+import '../models/push_feed_model.dart';
 import '../features/candidate/models/location_model.dart';
 import 'highlight_session_service.dart';
 
-class Highlight {
-  final String id;
-  final String candidateId;
-  final LocationModel location; // Unified location model with stateId
-  final String locationKey; // Composite key: district_body_ward
-  final String package;
-  final List<String> placement;
-  final int priority;
-  final DateTime startDate;
-  final DateTime endDate;
-  final bool active;
-  final bool exclusive;
-  final bool rotation;
-  final DateTime? lastShown;
-  final int views;
-  final int clicks;
-  final String? imageUrl;
-  final String? candidateName;
-  final String? party;
-  final DateTime createdAt;
-
-  Highlight({
-    required this.id,
-    required this.candidateId,
-    required this.location,
-    required this.locationKey,
-    required this.package,
-    required this.placement,
-    required this.priority,
-    required this.startDate,
-    required this.endDate,
-    required this.active,
-    required this.exclusive,
-    required this.rotation,
-    this.lastShown,
-    required this.views,
-    required this.clicks,
-    this.imageUrl,
-    this.candidateName,
-    this.party,
-    required this.createdAt,
-  });
-
-  // Backward compatibility getters
-  String get wardId => location.wardId ?? '';
-  String get districtId => location.districtId ?? '';
-  String get bodyId => location.bodyId ?? '';
-  String get stateId => location.stateId ?? 'maharashtra';
-
-  factory Highlight.fromJson(Map<String, dynamic> json) {
-    return Highlight(
-      id: json['highlightId'] ?? '',
-      candidateId: json['candidateId'] ?? '',
-      location: LocationModel.fromJson(json),
-      locationKey: json['locationKey'] ?? '',
-      package: json['package'] ?? '',
-      placement: List<String>.from(json['placement'] ?? []),
-      priority: json['priority'] ?? 1,
-      startDate: (json['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      endDate: (json['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      active: json['active'] ?? false,
-      exclusive: json['exclusive'] ?? false,
-      rotation: json['rotation'] ?? true,
-      lastShown: (json['lastShown'] as Timestamp?)?.toDate(),
-      views: json['views'] ?? 0,
-      clicks: json['clicks'] ?? 0,
-      imageUrl: json['imageUrl'],
-      candidateName: json['candidateName'],
-      party: json['party'],
-      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      // Location model fields
-      ...location.toJson(),
-      // Legacy fields for backward compatibility
-      'wardId': location.wardId,
-      'districtId': location.districtId,
-      'bodyId': location.bodyId,
-      // Other fields
-      'highlightId': id,
-      'candidateId': candidateId,
-      'locationKey': locationKey,
-      'package': package,
-      'placement': placement,
-      'priority': priority,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
-      'active': active,
-      'exclusive': exclusive,
-      'rotation': rotation,
-      'lastShown': lastShown != null ? Timestamp.fromDate(lastShown!) : null,
-      'views': views,
-      'clicks': clicks,
-      'imageUrl': imageUrl,
-      'candidateName': candidateName,
-      'party': party,
-      'createdAt': Timestamp.fromDate(createdAt),
-    };
-  }
-}
-
-class PushFeedItem {
-  final String id;
-  final String? highlightId;
-  final String candidateId;
-  final String wardId;
-  final String title;
-  final String message;
-  final String? imageUrl;
-  final DateTime timestamp;
-  final bool isSponsored;
-
-  PushFeedItem({
-    required this.id,
-    this.highlightId,
-    required this.candidateId,
-    required this.wardId,
-    required this.title,
-    required this.message,
-    this.imageUrl,
-    required this.timestamp,
-    required this.isSponsored,
-  });
-
-  factory PushFeedItem.fromJson(Map<String, dynamic> json) {
-    return PushFeedItem(
-      id: json['feedId'] ?? '',
-      highlightId: json['highlightId'],
-      candidateId: json['candidateId'] ?? '',
-      wardId: json['wardId'] ?? '',
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      imageUrl: json['imageUrl'],
-      timestamp: (json['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      isSponsored: json['isSponsored'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'feedId': id,
-      'highlightId': highlightId,
-      'candidateId': candidateId,
-      'wardId': wardId,
-      'title': title,
-      'message': message,
-      'imageUrl': imageUrl,
-      'timestamp': Timestamp.fromDate(timestamp),
-      'isSponsored': isSponsored,
-    };
-  }
-}
-
 class HighlightService {
+  static bool isShow = false;
+
   // Get active highlights for a specific district/body/ward combination
   static Future<List<Highlight>> getActiveHighlights(
     String stateId,
@@ -169,7 +17,10 @@ class HighlightService {
   ) async {
     try {
       // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
-      AppLogger.common('🎠 HighlightService: Fetching highlights for ward: $districtId/$bodyId/$wardId');
+      AppLogger.common(
+        '🎠 HighlightService: Fetching highlights for ward: $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
 
       final now = DateTime.now();
       final snapshot = await FirebaseFirestore.instance
@@ -186,7 +37,10 @@ class HighlightService {
           .limit(20) // Get more to allow sorting in memory
           .get();
 
-      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} potential highlights from query');
+      AppLogger.common(
+        '🎠 HighlightService: Found ${snapshot.docs.length} potential highlights from query',
+        isShow: isShow,
+      );
 
       // Convert to highlight objects and filter expired highlights manually
       final activeHighlights = snapshot.docs
@@ -194,7 +48,10 @@ class HighlightService {
           .where((highlight) => highlight.endDate.isAfter(now))
           .toList();
 
-      AppLogger.common('🎠 HighlightService: Found ${activeHighlights.length} active non-expired highlights');
+      AppLogger.common(
+        '🎠 HighlightService: Found ${activeHighlights.length} active non-expired highlights',
+        isShow: isShow,
+      );
 
       // Sort by priority in memory (can't use composite index with orderBy+where)
       activeHighlights.sort((a, b) => b.priority.compareTo(a.priority));
@@ -202,33 +59,47 @@ class HighlightService {
       // Take top 10
       final topHighlights = activeHighlights.take(10).toList();
 
-      AppLogger.common('🎠 HighlightService: Returning top ${topHighlights.length} highlights after priority sorting');
+      AppLogger.common(
+        '🎠 HighlightService: Returning top ${topHighlights.length} highlights after priority sorting',
+        isShow: isShow,
+      );
 
       if (topHighlights.isNotEmpty) {
-        AppLogger.common('🎠 HighlightService: Top highlight - ID: ${topHighlights.first.id}, Candidate: ${topHighlights.first.candidateName}, Priority: ${topHighlights.first.priority}');
+        AppLogger.common(
+          '🎠 HighlightService: Top highlight - ID: ${topHighlights.first.id}, Candidate: ${topHighlights.first.candidateName}, Priority: ${topHighlights.first.priority}',
+          isShow: isShow,
+        );
       }
 
       return topHighlights;
     } catch (e) {
-      AppLogger.commonError('❌ HighlightService: Error fetching highlights', error: e);
+      AppLogger.commonError(
+        '❌ HighlightService: Error fetching highlights',
+        error: e,
+        isShow: isShow,
+      );
       return [];
     }
   }
 
   // Get platinum banner for a specific district/body/ward combination
   static Future<Highlight?> getPlatinumBanner(
+    String stateId,
     String districtId,
     String bodyId,
     String wardId,
   ) async {
     try {
       // Use hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights
-      AppLogger.common('🏷️ HighlightService: Fetching platinum banner for ward: $districtId/$bodyId/$wardId');
+      AppLogger.common(
+        '🏷️ HighlightService: Fetching platinum banner for ward: $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
 
       final now = DateTime.now();
       final snapshot = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -241,7 +112,10 @@ class HighlightService {
           .limit(20) // Get more for priority sorting
           .get();
 
-      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} potential banners from query');
+      AppLogger.common(
+        '🏷️ HighlightService: Found ${snapshot.docs.length} potential banners from query',
+        isShow: isShow,
+      );
 
       // Convert and sort by priority in memory (can't use composite index with arrayContains)
       final activeBanners = snapshot.docs
@@ -249,7 +123,10 @@ class HighlightService {
           .where((highlight) => highlight.endDate.isAfter(now))
           .toList();
 
-      AppLogger.common('🏷️ HighlightService: Found ${activeBanners.length} active non-expired banners');
+      AppLogger.common(
+        '🏷️ HighlightService: Found ${activeBanners.length} active non-expired banners',
+        isShow: isShow,
+      );
 
       // Sort by priority (highest first)
       activeBanners.sort((a, b) => b.priority.compareTo(a.priority));
@@ -257,20 +134,31 @@ class HighlightService {
       // Return top banner
       if (activeBanners.isNotEmpty) {
         final highlight = activeBanners.first;
-        AppLogger.common('🏷️ HighlightService: Returning top banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}, Priority: ${highlight.priority}');
+        AppLogger.common(
+          '🏷️ HighlightService: Returning top banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}, Priority: ${highlight.priority}',
+          isShow: isShow,
+        );
         return highlight;
       }
 
-      AppLogger.common('🏷️ HighlightService: No premium platinum banner found for $districtId/$bodyId/$wardId');
+      AppLogger.common(
+        '🏷️ HighlightService: No premium platinum banner found for $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
       return null;
     } catch (e) {
-      AppLogger.commonError('❌ HighlightService: Error fetching platinum banner', error: e);
+      AppLogger.commonError(
+        '❌ HighlightService: Error fetching platinum banner',
+        error: e,
+        isShow: isShow,
+      );
       return null;
     }
   }
 
   // Track impression (view) - SESSION-BASED: Only track once per user session per highlight
-  static Future<void> trackImpression(String highlightId, {
+  static Future<void> trackImpression(
+    String highlightId, {
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -287,17 +175,28 @@ class HighlightService {
       );
 
       if (impressionTracked) {
-        AppLogger.common('📊 HighlightService: Impression tracked for $highlightId (session-based)');
+        AppLogger.common(
+          '📊 HighlightService: Impression tracked for $highlightId (session-based)',
+          isShow: isShow,
+        );
       } else {
-        AppLogger.common('⏭️ HighlightService: Impression skipped for $highlightId (already viewed in session)');
+        AppLogger.common(
+          '⏭️ HighlightService: Impression skipped for $highlightId (already viewed in session)',
+          isShow: isShow,
+        );
       }
     } catch (e) {
-      AppLogger.commonError('❌ HighlightService: Error in session-based impression tracking', error: e);
+      AppLogger.commonError(
+        '❌ HighlightService: Error in session-based impression tracking',
+        error: e,
+        isShow: isShow,
+      );
     }
   }
 
   // Track click
-  static Future<void> trackClick(String highlightId, {
+  static Future<void> trackClick(
+    String highlightId, {
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -325,7 +224,7 @@ class HighlightService {
             .update({'clicks': FieldValue.increment(1)});
       }
     } catch (e) {
-      AppLogger.commonError('Error tracking click', error: e);
+      AppLogger.commonError('Error tracking click', error: e, isShow: isShow);
     }
   }
 
@@ -396,7 +295,11 @@ class HighlightService {
 
       return highlightId;
     } catch (e) {
-      AppLogger.commonError('Error creating highlight', error: e);
+      AppLogger.commonError(
+        'Error creating highlight',
+        error: e,
+        isShow: isShow,
+      );
       return null;
     }
   }
@@ -418,7 +321,11 @@ class HighlightService {
           .map((doc) => PushFeedItem.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      AppLogger.commonError('Error fetching push feed', error: e);
+      AppLogger.commonError(
+        'Error fetching push feed',
+        error: e,
+        isShow: isShow,
+      );
       return [];
     }
   }
@@ -453,7 +360,11 @@ class HighlightService {
 
       return feedId;
     } catch (e) {
-      AppLogger.commonError('Error creating push feed item', error: e);
+      AppLogger.commonError(
+        'Error creating push feed item',
+        error: e,
+        isShow: isShow,
+      );
       return null;
     }
   }
@@ -489,7 +400,170 @@ class HighlightService {
             .update({'active': active});
       }
     } catch (e) {
-      AppLogger.commonError('Error updating highlight status', error: e);
+      AppLogger.commonError(
+        'Error updating highlight status',
+        error: e,
+        isShow: isShow,
+      );
+    }
+  }
+
+  // Update highlight status with lifecycle management
+  static Future<void> updateHighlightStatusWithLifecycle(
+    String highlightId,
+    String status, {
+    String? districtId,
+    String? bodyId,
+    String? wardId,
+    DateTime? expiredAt,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'status': status,
+        'active': status == 'active',
+      };
+
+      if (expiredAt != null && status == 'expired') {
+        updates['expiredAt'] = Timestamp.fromDate(expiredAt);
+      }
+
+      // If location info is provided, use hierarchical path
+      if (districtId != null && bodyId != null && wardId != null) {
+        await FirebaseFirestore.instance
+            .collection('states')
+            .doc('maharashtra') // TODO: Make dynamic
+            .collection('districts')
+            .doc(districtId)
+            .collection('bodies')
+            .doc(bodyId)
+            .collection('wards')
+            .doc(wardId)
+            .collection('highlights')
+            .doc(highlightId)
+            .update(updates);
+      } else {
+        // Fallback: try to find in old structure (for backward compatibility)
+        await FirebaseFirestore.instance
+            .collection('highlights')
+            .doc(highlightId)
+            .update(updates);
+      }
+
+      AppLogger.common(
+        '✅ HighlightService: Updated highlight $highlightId status to $status',
+        isShow: isShow,
+      );
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error updating highlight status with lifecycle',
+        error: e,
+        isShow: isShow,
+      );
+    }
+  }
+
+  // Get all highlights in a ward (for lifecycle management)
+  static Future<List<Highlight>> getAllHighlightsInWard(
+    String stateId,
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
+    try {
+      AppLogger.common(
+        '📋 HighlightService: Fetching ALL highlights for ward: $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('highlights')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final highlights = snapshot.docs
+          .map((doc) => Highlight.fromJson(doc.data()))
+          .toList();
+
+      AppLogger.common(
+        '📋 HighlightService: Found ${highlights.length} total highlights in ward',
+        isShow: isShow,
+      );
+
+      return highlights;
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error fetching all highlights in ward',
+        error: e,
+        isShow: isShow,
+      );
+      return [];
+    }
+  }
+
+  // Process expired highlights (call this periodically or via Cloud Function)
+  static Future<void> processExpiredHighlights(
+    String stateId,
+    String districtId,
+    String bodyId,
+    String wardId,
+  ) async {
+    try {
+      AppLogger.common(
+        '⏰ HighlightService: Processing expired highlights for ward: $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
+
+      final now = DateTime.now();
+      final allHighlights = await getAllHighlightsInWard(stateId, districtId, bodyId, wardId);
+
+      // Find highlights that should be expired
+      final expiredHighlights = allHighlights.where((highlight) =>
+        highlight.status == 'active' &&
+        highlight.endDate.isBefore(now)
+      ).toList();
+
+      if (expiredHighlights.isNotEmpty) {
+        AppLogger.common(
+          '⏰ HighlightService: Found ${expiredHighlights.length} highlights to expire',
+          isShow: isShow,
+        );
+
+        // Update each expired highlight
+        for (final highlight in expiredHighlights) {
+          await updateHighlightStatusWithLifecycle(
+            highlight.id,
+            'expired',
+            districtId: districtId,
+            bodyId: bodyId,
+            wardId: wardId,
+            expiredAt: now,
+          );
+        }
+
+        AppLogger.common(
+          '✅ HighlightService: Successfully expired ${expiredHighlights.length} highlights',
+          isShow: isShow,
+        );
+      } else {
+        AppLogger.common(
+          '⏰ HighlightService: No highlights to expire',
+          isShow: isShow,
+        );
+      }
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error processing expired highlights',
+        error: e,
+        isShow: isShow,
+      );
     }
   }
 
@@ -509,11 +583,14 @@ class HighlightService {
           .map((doc) => Highlight.fromJson(doc.data()))
           .toList();
     } catch (e) {
-      AppLogger.commonError('Error fetching candidate highlights', error: e);
+      AppLogger.commonError(
+        'Error fetching candidate highlights',
+        error: e,
+        isShow: isShow,
+      );
       return [];
     }
   }
-
 
   // Create Platinum highlight for real candidate
   static Future<String?> createPlatinumHighlight({
@@ -529,12 +606,18 @@ class HighlightService {
     String priorityLevel = 'normal',
     String? customMessage,
     int validityDays = 7, // Default to 7 days for highlight plans
-    List<String> placement = const ['top_banner'], // Default to banner only for highlight plans
+    List<String> placement = const [
+      'top_banner',
+    ], // Default to banner only for highlight plans
   }) async {
     try {
-      AppLogger.common('🏆 HighlightService: Creating Platinum highlight for $candidateName');
+      AppLogger.common(
+        '🏆 HighlightService: Creating Platinum highlight for $candidateName',
+        isShow: isShow,
+      );
 
-      final highlightId = 'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
+      final highlightId =
+          'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey = '${districtId}_${bodyId}_$wardId';
 
       // Calculate priority based on level
@@ -556,7 +639,9 @@ class HighlightService {
         placement: placement, // Use provided placement
         priority: priorityValue,
         startDate: DateTime.now().subtract(const Duration(days: 1)),
-        endDate: DateTime.now().add(Duration(days: validityDays)), // Use provided validity
+        endDate: DateTime.now().add(
+          Duration(days: validityDays),
+        ), // Use provided validity
         active: true,
         exclusive: priorityLevel == 'urgent', // Urgent gets exclusive placement
         rotation: priorityLevel != 'urgent', // Don't rotate urgent items
@@ -589,12 +674,25 @@ class HighlightService {
           .doc(highlightId)
           .set(enhancedData);
 
-      AppLogger.common('✅ HighlightService: Created Platinum highlight $highlightId for $candidateName');
-      AppLogger.common('   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)');
-      AppLogger.common('   Validity: $validityDays days, Placement: $placement');
+      AppLogger.common(
+        '✅ HighlightService: Created Platinum highlight $highlightId for $candidateName',
+        isShow: isShow,
+      );
+      AppLogger.common(
+        '   Location: $locationKey, Style: $bannerStyle, Priority: $priorityLevel ($priorityValue)',
+        isShow: isShow,
+      );
+      AppLogger.common(
+        '   Validity: $validityDays days, Placement: $placement',
+        isShow: isShow,
+      );
       return highlightId;
     } catch (e) {
-      AppLogger.commonError('❌ HighlightService: Error creating Platinum highlight', error: e);
+      AppLogger.commonError(
+        '❌ HighlightService: Error creating Platinum highlight',
+        error: e,
+        isShow: isShow,
+      );
       return null;
     }
   }
@@ -612,7 +710,10 @@ class HighlightService {
     bool? showAnalytics,
   }) async {
     try {
-      AppLogger.common('🔄 HighlightService: Updating highlight config for $highlightId');
+      AppLogger.common(
+        '🔄 HighlightService: Updating highlight config for $highlightId',
+        isShow: isShow,
+      );
 
       final updates = <String, dynamic>{};
       if (bannerStyle != null) updates['bannerStyle'] = bannerStyle;
@@ -649,19 +750,27 @@ class HighlightService {
               .update(updates);
         }
 
-        AppLogger.common('✅ HighlightService: Updated highlight $highlightId with ${updates.length} changes');
+        AppLogger.common(
+          '✅ HighlightService: Updated highlight $highlightId with ${updates.length} changes',
+          isShow: isShow,
+        );
         return true;
       }
 
       return false;
     } catch (e) {
-      AppLogger.commonError('❌ HighlightService: Error updating highlight config', error: e);
+      AppLogger.commonError(
+        '❌ HighlightService: Error updating highlight config',
+        error: e,
+        isShow: isShow,
+      );
       return false;
     }
   }
 
   // Get highlight configuration for editing
-  static Future<Map<String, dynamic>?> getHighlightConfig(String highlightId, {
+  static Future<Map<String, dynamic>?> getHighlightConfig(
+    String highlightId, {
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -698,7 +807,11 @@ class HighlightService {
       }
       return null;
     } catch (e) {
-      AppLogger.commonError('❌ HighlightService: Error getting highlight config', error: e);
+      AppLogger.commonError(
+        '❌ HighlightService: Error getting highlight config',
+        error: e,
+        isShow: isShow,
+      );
       return null;
     }
   }

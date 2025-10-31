@@ -250,4 +250,111 @@ class HighlightsRepository {
     }
   }
 
+  /// Get candidate symbol for independent candidates
+  Future<String?> getCandidateSymbol(Candidate candidate) async {
+    try {
+      final candidateId = candidate.candidateId;
+      AppLogger.database('Getting symbol for candidate: $candidateId');
+
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final candidateDoc = await _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId)
+          .get();
+
+      if (candidateDoc.exists && candidateDoc.data() != null) {
+        final candidateData = candidateDoc.data()!;
+        return candidateData['symbol'] as String?;
+      }
+
+      return null;
+    } catch (e) {
+      AppLogger.databaseError('Error getting candidate symbol: $e');
+      return null;
+    }
+  }
+
+  /// Update highlight image URL
+  Future<bool> updateHighlightImageUrl(Candidate candidate, String highlightId, String imageUrl) async {
+    try {
+      final candidateId = candidate.candidateId;
+      AppLogger.database('Updating highlight image URL for candidate: $candidateId');
+
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final highlightRef = _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('highlights')
+          .doc(highlightId);
+
+      await highlightRef.update({'imageUrl': imageUrl});
+
+      AppLogger.database('Highlight image URL updated successfully');
+      return true;
+    } catch (e) {
+      AppLogger.databaseError('Error updating highlight image URL: $e');
+      return false;
+    }
+  }
+
+  /// Add images to delete storage for a candidate
+  Future<bool> addImagesToDeleteStorage(Candidate candidate, List<String> imageUrls) async {
+    try {
+      final candidateId = candidate.candidateId;
+      AppLogger.database('Adding images to delete storage for candidate: $candidateId');
+
+      // Get candidate location from candidate object
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+      final districtId = candidate.location.districtId!;
+      final bodyId = candidate.location.bodyId!;
+      final wardId = candidate.location.wardId!;
+
+      final candidateRef = _firestore
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId);
+
+      await candidateRef.update({
+        'deleteStorage': FieldValue.arrayUnion(imageUrls),
+      });
+
+      AppLogger.database('Images added to delete storage successfully');
+      return true;
+    } catch (e) {
+      AppLogger.databaseError('Error adding images to delete storage: $e');
+      return false;
+    }
+  }
+
 }

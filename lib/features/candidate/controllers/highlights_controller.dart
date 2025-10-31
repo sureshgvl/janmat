@@ -13,6 +13,9 @@ abstract class IHighlightsController {
   Future<bool> saveHighlightsFast(Candidate candidate, Map<String, dynamic> updates, {String? candidateName, String? photoUrl, Function(String)? onProgress});
   Future<bool> updateCandidateHighlight(Candidate candidate, String highlightId, HighlightData highlightData);
   Future<bool> deleteCandidateHighlight(Candidate candidate, String highlightId);
+  Future<String?> getCandidateSymbol(Candidate candidate);
+  Future<bool> updateHighlightImageUrl(Candidate candidate, String highlightId, String imageUrl);
+  Future<bool> addImagesToDeleteStorage(Candidate candidate, List<String> imageUrls);
   void updateHighlightLocal(dynamic value);
 }
 
@@ -179,6 +182,39 @@ class HighlightsController extends GetxController implements IHighlightsControll
       return true;
     } catch (e) {
       AppLogger.candidateError('❌ FAST SAVE: Highlights failed', error: e);
+      return false;
+    }
+  }
+
+  @override
+  Future<String?> getCandidateSymbol(Candidate candidate) async {
+    try {
+      AppLogger.candidate('Getting candidate symbol for: ${candidate.candidateId}');
+      return await _highlightsRepository.getCandidateSymbol(candidate);
+    } catch (e) {
+      AppLogger.candidateError('Error getting candidate symbol: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> updateHighlightImageUrl(Candidate candidate, String highlightId, String imageUrl) async {
+    try {
+      AppLogger.candidate('Updating highlight image URL for candidate: ${candidate.candidateId}');
+      return await _highlightsRepository.updateHighlightImageUrl(candidate, highlightId, imageUrl);
+    } catch (e) {
+      AppLogger.candidateError('Error updating highlight image URL: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> addImagesToDeleteStorage(Candidate candidate, List<String> imageUrls) async {
+    try {
+      AppLogger.candidate('Adding images to delete storage for candidate: ${candidate.candidateId}');
+      return await _highlightsRepository.addImagesToDeleteStorage(candidate, imageUrls);
+    } catch (e) {
+      AppLogger.candidateError('Error adding images to delete storage: $e');
       return false;
     }
   }

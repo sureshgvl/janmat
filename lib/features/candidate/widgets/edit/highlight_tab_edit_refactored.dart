@@ -73,12 +73,20 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       if (newConfig.bannerStyle != oldConfig) {
         AppLogger.candidate('_loadHighlight - external data change detected, updating config');
         _config = newConfig;
+        // Load endDate from highlight data
+        if (highlightData?.expiresAt != null) {
+          _config = _config!.copyWith(endDate: DateTime.parse(highlightData!.expiresAt!));
+        }
       } else {
         AppLogger.candidate('_loadHighlight - no external changes, keeping current config');
       }
     } else {
       // First time loading or during our own updates
       _config = HighlightConfig.fromJson(highlightData?.toJson());
+      // Load endDate from highlight data
+      if (highlightData?.expiresAt != null) {
+        _config = _config!.copyWith(endDate: DateTime.parse(highlightData!.expiresAt!));
+      }
       AppLogger.candidate('_loadHighlight - initial load or during update, config: ${_config!.bannerStyle}');
     }
   }
@@ -187,12 +195,53 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
     }
 
     AppLogger.candidate('HighlightTabEdit - Build called with _config.bannerStyle: ${_config!.bannerStyle}');
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          // Tab Bar
+          Container(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: const TabBar(
+              tabs: [
+                Tab(
+                  icon: Icon(Icons.view_carousel),
+                  text: 'Highlight Banner',
+                ),
+                Tab(
+                  icon: Icon(Icons.grid_view),
+                  text: 'Carousel Cards',
+                ),
+              ],
+              labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: TextStyle(fontSize: 14),
+            ),
+          ),
+
+          // Tab Bar View
+          Expanded(
+            child: TabBarView(
+              children: [
+                // Highlight Banner Tab
+                _buildHighlightBannerTab(),
+
+                // Carousel Cards Tab
+                _buildCarouselCardsTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightBannerTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        // Header with Test Controls
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -201,61 +250,20 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '🏆 Premium Highlight Dashboard',
+                      '🏆 Highlight Banner Management',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF374151),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Customize your home screen banner to attract more voters',
+                      'Manage your home screen banner appearance and settings',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         color: Color(0xFF6B7280),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              // Test Controls for Highlight Management
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0), // Light orange color
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFFCC02)), // Orange border
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'TESTING',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFFF6B35), // Dark orange color
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
-                          tooltip: 'Add Same Candidate',
-                          onPressed: () => _addHighlightForSameCandidate(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
-                          tooltip: 'Add Dummy Candidate',
-                          onPressed: () => _addHighlightForDummyCandidate(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
-                          tooltip: 'Remove Test Highlight',
-                          onPressed: () => _removeTestHighlight(context),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -264,47 +272,103 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
           ),
           const SizedBox(height: 24),
 
-          // Enable/Disable Toggle
-          EnableSection(
-            key: const ValueKey('enable_section'),
-            config: _config!,
-            isEditing: widget.isEditing,
-            onEnabledChanged: (enabled) {
-              setState(() => _config = _config!.copyWith(enabled: enabled));
-              _isUpdatingConfig = true;
-              _updateHighlight();
-              _isUpdatingConfig = false;
-            },
+          // Active Status Toggle
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _config!.enabled ? Icons.visibility : Icons.visibility_off,
+                      color: _config!.enabled ? Colors.green : Colors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Banner Status',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: _config!.enabled,
+                      onChanged: (enabled) {
+                        setState(() => _config = _config!.copyWith(enabled: enabled));
+                        _isUpdatingConfig = true;
+                        _updateHighlight();
+                        _isUpdatingConfig = false;
+                      },
+                      activeColor: Colors.green,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _config!.enabled ? 'Banner is active and visible on home screen' : 'Banner is inactive and hidden from home screen',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           if (_config!.enabled) ...[
             const SizedBox(height: 24),
 
-            // Banner Style Customization
-            Builder(
-              builder: (context) {
-                AppLogger.candidate('Main widget - Building BannerStyleSection with config.bannerStyle: ${_config!.bannerStyle}');
-                return BannerStyleSection(
-                  key: ValueKey('banner_style_section_${_config!.bannerStyle}_${DateTime.now().millisecondsSinceEpoch}'),
-                  config: _config!,
-                  isEditing: widget.isEditing,
-                  onStyleChanged: (style) {
-                    AppLogger.candidate('Main widget - Banner style callback: $style, current config: ${_config!.bannerStyle}');
-                    setState(() {
-                      _config = _config!.copyWith(bannerStyle: style);
-                      AppLogger.candidate('Main widget - Inside setState, _config.bannerStyle: ${_config!.bannerStyle}');
-                    });
-                    AppLogger.candidate('Main widget - After setState, _config.bannerStyle: ${_config!.bannerStyle}');
-                    // Don't update controller for individual changes - only on save
-                    // This prevents the broken controller update from interfering with UI
-                  },
-                );
-              },
+            // End Date Display
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today, color: Colors.orange.shade700),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'End Date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF374151),
+                          ),
+                        ),
+                        Text(
+                          _config!.endDate != null
+                              ? '${_config!.endDate!.day}/${_config!.endDate!.month}/${_config!.endDate!.year}'
+                              : 'No end date set',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 24),
 
-            // Banner Image Upload
+            // Banner Image Section
             BannerImageSection(
               key: ValueKey('banner_image_section_${_config!.bannerImageUrl}_${DateTime.now().millisecondsSinceEpoch}'),
               config: _config!,
@@ -317,67 +381,145 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
 
             const SizedBox(height: 24),
 
-            // Call to Action
-            CallToActionSection(
-              key: ValueKey('call_to_action_section_${_config!.callToAction}_${DateTime.now().millisecondsSinceEpoch}'),
-              config: _config!,
-              isEditing: widget.isEditing,
-              onCallToActionChanged: (action) {
-                setState(() => _config = _config!.copyWith(callToAction: action));
-                // Local state only - sync on save
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Priority Level
-            PrioritySection(
-              key: ValueKey('priority_section_${_config!.priorityLevel}_${DateTime.now().millisecondsSinceEpoch}'),
-              config: _config!,
-              isEditing: widget.isEditing,
-              onPriorityChanged: (priority) {
-                AppLogger.candidate('Priority level selected: $priority');
-                setState(() => _config = _config!.copyWith(priorityLevel: priority));
-                // Local state only - sync on save
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Custom Message
-            CustomMessageSection(
-              key: ValueKey('custom_message_section_${_config!.customMessage.hashCode}_${DateTime.now().millisecondsSinceEpoch}'),
-              config: _config!,
-              isEditing: widget.isEditing,
-              onMessageChanged: (message) {
-                setState(() => _config = _config!.copyWith(customMessage: message));
-                // Local state only - sync on save
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Analytics Toggle
-            AnalyticsSection(
-              key: ValueKey('analytics_section_${_config!.showAnalytics}_${DateTime.now().millisecondsSinceEpoch}'),
-              config: _config!,
-              isEditing: widget.isEditing,
-              onAnalyticsChanged: (enabled) {
-                AppLogger.candidate('Analytics toggle changed: $enabled');
-                setState(() => _config = _config!.copyWith(showAnalytics: enabled));
-                // Local state only - sync on save
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Preview Section
-            PreviewSection(
-              key: ValueKey('preview_section_${_config!.bannerStyle}_${_config!.callToAction}_${_config!.priorityLevel}_${DateTime.now().millisecondsSinceEpoch}'),
-              config: _config!,
-              candidate: widget.candidateData,
+            // Banner Preview
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.preview, color: Colors.grey.shade700),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Banner Preview',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF374151),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: _config!.bannerImageUrl != null && _config!.bannerImageUrl!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              _config!.bannerImageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: Icon(Icons.image_not_supported, color: Colors.grey),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: Icon(Icons.image, color: Colors.grey),
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ],
+
+          // Add extra space to prevent overflow behind save button
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarouselCardsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🎠 Carousel Cards Management',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Configure carousel card appearance and behavior',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Placeholder content for carousel cards
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.grid_view,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Carousel Cards Configuration',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF374151),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Carousel card management features will be implemented here.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6B7280),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
 
           // Add extra space to prevent overflow behind save button
           const SizedBox(height: 80),

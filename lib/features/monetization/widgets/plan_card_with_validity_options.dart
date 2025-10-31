@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../common/allocated_seats_display.dart';
 
 class PlanCardWithValidityOptions extends StatefulWidget {
   final SubscriptionPlan plan;
@@ -467,13 +468,19 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               // Add allocated seats display for highlight plans
               if (widget.plan.type == 'highlight' && widget.plan.highlightFeatures != null) ...[
                 const SizedBox(height: 8),
-                _buildAllocatedSeatsDisplay(widget.plan.highlightFeatures!.maxHighlights),
+                AllocatedSeatsDisplay(
+                  maxHighlights: widget.plan.highlightFeatures!.maxHighlights,
+                  allocatedSeats: 0,
+                ),
               ],
 
               // Add allocated seats display for carousel plans
               if (widget.plan.type == 'carousel' && widget.plan.carouselFeatures != null) ...[
                 const SizedBox(height: 8),
-                _buildAllocatedSeatsDisplay(widget.plan.carouselFeatures!.maxCarouselSlots),
+                AllocatedSeatsDisplay(
+                  maxHighlights: widget.plan.carouselFeatures!.maxCarouselSlots,
+                  allocatedSeats: 0,
+                ),
               ],
 
               const SizedBox(height: 16),
@@ -700,62 +707,5 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
     );
   }
 
-  Widget _buildAllocatedSeatsDisplay(int maxHighlights) {
-    // Get current allocated seats count (for now, assume 0 - this will be implemented)
-    final allocatedSeats = _getCurrentAllocatedSeats();
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.amber[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.amber[200]!, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Allocated Seats',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              Text(
-                '$allocatedSeats/$maxHighlights',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: allocatedSeats == maxHighlights ? Colors.green : Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: List.generate(
-              maxHighlights,
-              (index) => Container(
-                margin: const EdgeInsets.only(right: 4),
-                child: Icon(
-                  index < allocatedSeats ? Icons.event_seat : Icons.event_seat_outlined,
-                  color: index < allocatedSeats ? Colors.green[600] : Colors.grey[400],
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  int _getCurrentAllocatedSeats() {
-    // Since highlight banner functionality has been removed, return 0
-    return 0;
-  }
 }

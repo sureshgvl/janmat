@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../utils/app_logger.dart';
-import '../../../models/chat_model.dart';
+import 'package:janmat/features/chat/models/chat_message.dart';
+import 'package:janmat/features/chat/models/chat_room.dart';
+import 'package:janmat/utils/app_logger.dart';
 
 class ChatInitializer {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

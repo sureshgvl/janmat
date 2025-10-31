@@ -17,6 +17,7 @@ import '../features/candidate/repositories/media_repository.dart';
 
 import '../services/admob_service.dart';
 import '../services/razorpay_service.dart';
+import '../services/file_upload_service.dart';
 import '../features/notifications/services/notification_manager.dart';
 import '../features/user/services/user_data_service.dart';
 import '../features/user/controllers/user_data_controller.dart';
@@ -32,6 +33,7 @@ import '../services/manifesto_sync_service.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
 import '../services/gamification_service.dart';
 import '../features/monetization/controllers/monetization_controller.dart';
+import '../services/screen_focus_service.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -47,6 +49,7 @@ class AppBindings extends Bindings {
     Get.put<UserController>(UserController());
     Get.put<CandidateUserController>(CandidateUserController());
     Get.put<LanguageController>(LanguageController());
+    Get.put<ScreenFocusController>(ScreenFocusController());
 
     // Lazy load feature-specific controllers to improve startup performance
     Get.put<ChatController>(ChatController());
@@ -79,6 +82,7 @@ class AppBindings extends Bindings {
     // Lazy load services that are only needed on specific screens
     Get.lazyPut<AdMobService>(() => AdMobService());
     Get.lazyPut<RazorpayService>(() => RazorpayService());
+    Get.lazyPut<FileUploadService>(() => FileUploadService());
 
     // Register gamification services for dependency injection (eager to avoid circular deps)
     Get.put<GamificationNotificationService>(GamificationNotificationService());

@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../../highlight/models/highlight_display_model.dart';
+import 'package:janmat/features/highlight/models/highlight_display_model.dart';
+
 
 class HighlightCarouselController {
   final List<HomeHighlight> highlights;
   final Duration rotationInterval;
   final VoidCallback onIndexChanged;
+  final void Function(HomeHighlight) onHighlightViewed;
 
   late Timer _timer;
   int _currentIndex = 0;

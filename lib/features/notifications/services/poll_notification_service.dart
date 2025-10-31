@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:janmat/features/chat/models/chat_room.dart';
 import '../../../utils/app_logger.dart';
-import '../../../models/chat_model.dart';
-import '../../../features/chat/models/poll.dart';
 import '../../../features/chat/repositories/chat_repository.dart';
 import '../models/notification_type.dart';
 import 'notification_manager.dart';

@@ -9,6 +9,7 @@ import 'home_drawer.dart';
 import 'home_body.dart';
 import '../../../services/district_spotlight_service.dart';
 import '../../../services/home_screen_stream_service.dart';
+import '../../../services/screen_focus_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Set home screen as focused when initialized
+    ScreenFocusService().setFocusedScreen('home');
     _initializeStreaming();
   }
 

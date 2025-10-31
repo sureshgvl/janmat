@@ -1,17 +1,19 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:janmat/features/chat/models/chat_message.dart';
+import 'package:janmat/features/chat/models/chat_room.dart';
+import 'package:janmat/features/chat/models/poll.dart';
+import 'package:janmat/features/chat/models/user_quota.dart';
 import 'package:janmat/features/user/controllers/user_data_controller.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:get/get.dart';
-import '../../../models/chat_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../notifications/services/poll_notification_service.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
 import '../../../utils/app_logger.dart';
-
 
 // WhatsApp-style Chat Metadata for efficient caching
 class ChatMetadata {
@@ -111,7 +113,9 @@ class ChatMetadata {
       type: json['type'],
       createdBy: json['createdBy'],
       createdAt: DateTime.parse(json['createdAt']),
-      lastMessageTime: json['lastMessageTime'] != null ? DateTime.parse(json['lastMessageTime']) : null,
+      lastMessageTime: json['lastMessageTime'] != null
+          ? DateTime.parse(json['lastMessageTime'])
+          : null,
       lastMessageText: json['lastMessageText'],
       lastMessageSender: json['lastMessageSender'],
       unreadCount: json['unreadCount'] ?? 0,
@@ -171,7 +175,11 @@ class ChatRepository {
   }
 
   // Update chat metadata (for new messages, etc.)
-  void updateChatMetadata(String cacheKey, String roomId, ChatMetadata updatedMetadata) {
+  void updateChatMetadata(
+    String cacheKey,
+    String roomId,
+    ChatMetadata updatedMetadata,
+  ) {
     final cached = _metadataCache[cacheKey];
     if (cached != null) {
       final index = cached.indexWhere((meta) => meta.roomId == roomId);
@@ -223,7 +231,10 @@ class ChatRepository {
           rooms.add(room);
         }
       } catch (e) {
-        AppLogger.database('Failed to convert metadata to room for ${meta.roomId}: $e', tag: 'CHAT');
+        AppLogger.database(
+          'Failed to convert metadata to room for ${meta.roomId}: $e',
+          tag: 'CHAT',
+        );
       }
     }
 
@@ -253,7 +264,16 @@ class ChatRepository {
           }
         }
 
-        return await _convertMetadataToRooms(metadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
+        return await _convertMetadataToRooms(
+          metadata,
+          userId,
+          userRole,
+          stateId,
+          districtId,
+          bodyId,
+          wardId,
+          area,
+        );
       }
     }
     return null;
@@ -349,13 +369,15 @@ class ChatRepository {
 
     // Old format for voters (without area)
     if (userRole == 'voter') {
-      final oldVoterKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}';
+      final oldVoterKey =
+          '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}';
       oldKeysToRemove.add(oldVoterKey);
     }
 
     // Old format for candidates (might have been different)
     if (userRole == 'candidate') {
-      final oldCandidateKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}';
+      final oldCandidateKey =
+          '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}';
       oldKeysToRemove.add(oldCandidateKey);
     }
 
@@ -385,7 +407,10 @@ class ChatRepository {
     }
 
     if (expiredKeys.isNotEmpty) {
-      AppLogger.database('Cleared ${expiredKeys.length} expired metadata cache entries', tag: 'CHAT');
+      AppLogger.database(
+        'Cleared ${expiredKeys.length} expired metadata cache entries',
+        tag: 'CHAT',
+      );
     }
   }
 
@@ -395,7 +420,10 @@ class ChatRepository {
     _metadataCache.clear();
     _metadataTimestamps.clear();
     _localStorage.clear();
-    AppLogger.database('Force cleared all $count metadata cache entries', tag: 'CHAT');
+    AppLogger.database(
+      'Force cleared all $count metadata cache entries',
+      tag: 'CHAT',
+    );
   }
 
   // Get cache statistics
@@ -405,7 +433,8 @@ class ChatRepository {
       'cache_size_mb':
           (_metadataCache.values
               .map(
-                (metadata) => metadata.length * 512, // Rough estimate: 512B per metadata
+                (metadata) =>
+                    metadata.length * 512, // Rough estimate: 512B per metadata
               )
               .fold(0, (a, b) => a + b) /
           (1024 * 1024)),
@@ -436,7 +465,8 @@ class ChatRepository {
     );
 
     // Create cache key based on user and parameters
-    final cacheKey = '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
+    final cacheKey =
+        '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
 
     // BREAKPOINT REPO-2: Cache check
     AppLogger.database('Cache key: $cacheKey', tag: 'CHAT');
@@ -449,7 +479,16 @@ class ChatRepository {
         tag: 'CHAT',
       );
       // Convert metadata back to ChatRoom objects for compatibility
-      final rooms = await _convertMetadataToRooms(cachedMetadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
+      final rooms = await _convertMetadataToRooms(
+        cachedMetadata,
+        userId,
+        userRole,
+        stateId,
+        districtId,
+        bodyId,
+        wardId,
+        area,
+      );
       return rooms;
     }
 
@@ -460,12 +499,29 @@ class ChatRepository {
         'LOCAL STORAGE HIT: Returning ${localMetadata.length} local metadata for $userRole',
         tag: 'CHAT',
       );
-      final rooms = await _convertMetadataToRooms(localMetadata, userId, userRole, stateId, districtId, bodyId, wardId, area);
+      final rooms = await _convertMetadataToRooms(
+        localMetadata,
+        userId,
+        userRole,
+        stateId,
+        districtId,
+        bodyId,
+        wardId,
+        area,
+      );
       return rooms;
     }
 
     // Clear old cache entries with different keys (for migration)
-    _clearOldCacheKeys(userId, userRole, stateId, districtId, bodyId, wardId, area);
+    _clearOldCacheKeys(
+      userId,
+      userRole,
+      stateId,
+      districtId,
+      bodyId,
+      wardId,
+      area,
+    );
 
     AppLogger.database(
       'REPOSITORY CACHE MISS: Fetching rooms from Firebase for $userRole',
@@ -480,7 +536,10 @@ class ChatRepository {
       );
 
       // If location data is not provided, try to get it from user profile
-      if (stateId == null || districtId == null || bodyId == null || wardId == null) {
+      if (stateId == null ||
+          districtId == null ||
+          bodyId == null ||
+          wardId == null) {
         AppLogger.database(
           'Fetching location data from user profile',
           tag: 'CHAT',
@@ -488,7 +547,8 @@ class ChatRepository {
 
         // OPTIMIZED: Use UserDataController for cached user data
         final userDataController = Get.find<UserDataController>();
-        if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
+        if (userDataController.isInitialized.value &&
+            userDataController.currentUser.value != null) {
           final userModel = userDataController.currentUser.value!;
           stateId = userModel.stateId;
           districtId = userModel.districtId;
@@ -502,7 +562,10 @@ class ChatRepository {
           );
         } else {
           // Fallback to fresh fetch if cache not available
-          final userDoc = await _firestore.collection('users').doc(userId).get();
+          final userDoc = await _firestore
+              .collection('users')
+              .doc(userId)
+              .get();
           if (userDoc.exists) {
             final userData = userDoc.data()!;
             final userModel = UserModel.fromJson(userData);
@@ -532,7 +595,10 @@ class ChatRepository {
 
       if (userRole == 'admin') {
         // BREAKPOINT REPO-6: Admin query - use collection group to get all rooms
-        AppLogger.database('Admin user - fetching all rooms from hierarchical structure', tag: 'CHAT');
+        AppLogger.database(
+          'Admin user - fetching all rooms from hierarchical structure',
+          tag: 'CHAT',
+        );
         final snapshot = await _firestore.collectionGroup('chats').get();
         allRooms = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
@@ -550,7 +616,15 @@ class ChatRepository {
         );
 
         // For non-admin users, query specific rooms directly instead of fetching everything
-        final targetedRooms = await _getTargetedRoomsForUser(userId, userRole, stateId, districtId, bodyId, wardId, area);
+        final targetedRooms = await _getTargetedRoomsForUser(
+          userId,
+          userRole,
+          stateId,
+          districtId,
+          bodyId,
+          wardId,
+          area,
+        );
         allRooms = targetedRooms;
         AppLogger.database(
           'Fetched ${allRooms.length} targeted rooms for $userRole',
@@ -573,23 +647,33 @@ class ChatRepository {
                 districtId != null &&
                 bodyId != null &&
                 wardId != null &&
-                room.roomId == 'ward_${stateId}_${districtId}_${bodyId}_$wardId';
+                room.roomId ==
+                    'ward_${stateId}_${districtId}_${bodyId}_$wardId';
             final isAreaRoom =
                 stateId != null &&
                 districtId != null &&
                 bodyId != null &&
                 wardId != null &&
-                room.roomId.startsWith('area_${stateId}_${districtId}_${bodyId}_${wardId}_');
+                room.roomId.startsWith(
+                  'area_${stateId}_${districtId}_${bodyId}_${wardId}_',
+                );
             final isCandidateRoom =
                 room.roomId.startsWith('candidate_') &&
                 room.createdBy == userId;
 
             // Include private chats where user is a member
-            final isPrivateChat = room.type == 'private' && room.members != null && room.members!.contains(userId);
+            final isPrivateChat =
+                room.type == 'private' &&
+                room.members != null &&
+                room.members!.contains(userId);
 
             // Include rooms that are relevant to this candidate's location or their own candidate room
             final shouldInclude =
-                isOwnRoom || isWardRoom || isAreaRoom || isCandidateRoom || isPrivateChat;
+                isOwnRoom ||
+                isWardRoom ||
+                isAreaRoom ||
+                isCandidateRoom ||
+                isPrivateChat;
 
             if (shouldInclude) {
               AppLogger.database(
@@ -607,8 +691,12 @@ class ChatRepository {
         } else {
           // BREAKPOINT REPO-9: Voter filtering
           AppLogger.chat('🔍 BREAKPOINT REPO-9: Filtering rooms for voter');
-          if (stateId != null && districtId != null && bodyId != null && wardId != null) {
-            final wardRoomId = 'ward_${stateId}_${districtId}_${bodyId}_$wardId';
+          if (stateId != null &&
+              districtId != null &&
+              bodyId != null &&
+              wardId != null) {
+            final wardRoomId =
+                'ward_${stateId}_${districtId}_${bodyId}_$wardId';
             final areaRoomId = area != null
                 ? 'area_${stateId}_${districtId}_${bodyId}_${wardId}_$area'
                 : null;
@@ -672,7 +760,9 @@ class ChatRepository {
               }
 
               // Include private chats where user is a member
-              if (room.type == 'private' && room.members != null && room.members!.contains(userId)) {
+              if (room.type == 'private' &&
+                  room.members != null &&
+                  room.members!.contains(userId)) {
                 AppLogger.chat(
                   '🔍 BREAKPOINT REPO-9: Including private chat: ${room.roomId}',
                 );
@@ -726,9 +816,14 @@ class ChatRepository {
       }
 
       // Cache the metadata results (WhatsApp style)
-      final metadata = allRooms.map((room) => ChatMetadata.fromChatRoom(room)).toList();
+      final metadata = allRooms
+          .map((room) => ChatMetadata.fromChatRoom(room))
+          .toList();
       _cacheMetadata(cacheKey, metadata);
-      AppLogger.database('Cached ${metadata.length} metadata entries for cache key: $cacheKey', tag: 'CHAT');
+      AppLogger.database(
+        'Cached ${metadata.length} metadata entries for cache key: $cacheKey',
+        tag: 'CHAT',
+      );
 
       // BREAKPOINT REPO-12: Returning result
       AppLogger.database(
@@ -753,7 +848,10 @@ class ChatRepository {
 
     try {
       // BREAKPOINT CREATE-2: Before Firestore operation
-      AppLogger.database('Setting room data in hierarchical structure', tag: 'CHAT');
+      AppLogger.database(
+        'Setting room data in hierarchical structure',
+        tag: 'CHAT',
+      );
       final roomPath = _getRoomPathFromId(chatRoom.roomId);
       final docRef = _firestore.doc(roomPath);
       await docRef.set(chatRoom.toJson());
@@ -767,7 +865,10 @@ class ChatRepository {
       // Invalidate cache for the creator and related users
       invalidateUserCache(chatRoom.createdBy);
       // Force refresh cache for the creator to see the new room immediately
-      forceRefreshUserCache(chatRoom.createdBy, 'candidate'); // Assume candidate for now
+      forceRefreshUserCache(
+        chatRoom.createdBy,
+        'candidate',
+      ); // Assume candidate for now
       AppLogger.database(
         'Invalidated and force refreshed cache for user ${chatRoom.createdBy} after room creation',
         tag: 'CHAT',
@@ -815,7 +916,10 @@ class ChatRepository {
         for (final memberId in memberIds) {
           if (memberId != chatRoom.createdBy) {
             invalidateUserCache(memberId);
-            AppLogger.database('Invalidated cache for member: $memberId', tag: 'CHAT');
+            AppLogger.database(
+              'Invalidated cache for member: $memberId',
+              tag: 'CHAT',
+            );
           }
         }
       }
@@ -901,7 +1005,9 @@ class ChatRepository {
             // Ensure status field exists, default to sent if missing
             if (!data.containsKey('status') || data['status'] == null) {
               data['status'] = 1; // MessageStatus.sent.index
-              AppLogger.chat('⚠️ Message ${doc.id} missing status field, defaulting to sent');
+              AppLogger.chat(
+                '⚠️ Message ${doc.id} missing status field, defaulting to sent',
+              );
             }
 
             return Message.fromJson(data);
@@ -929,20 +1035,27 @@ class ChatRepository {
 
       final snapshot = await query.get();
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>?;
-        if (data == null) return null;
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return null;
 
-        data['messageId'] = doc.id;
+            data['messageId'] = doc.id;
 
-        // Ensure status field exists, default to sent if missing
-        if (!data.containsKey('status') || data['status'] == null) {
-          data['status'] = 1; // MessageStatus.sent.index
-          AppLogger.database('Message ${doc.id} missing status field, defaulting to sent', tag: 'CHAT');
-        }
+            // Ensure status field exists, default to sent if missing
+            if (!data.containsKey('status') || data['status'] == null) {
+              data['status'] = 1; // MessageStatus.sent.index
+              AppLogger.database(
+                'Message ${doc.id} missing status field, defaulting to sent',
+                tag: 'CHAT',
+              );
+            }
 
-        return Message.fromJson(data);
-      }).where((message) => message != null).cast<Message>().toList();
+            return Message.fromJson(data);
+          })
+          .where((message) => message != null)
+          .cast<Message>()
+          .toList();
     } catch (e) {
       AppLogger.chat('❌ Error loading paginated messages: $e');
       return [];
@@ -1219,7 +1332,9 @@ class ChatRepository {
         quota = UserQuota.fromJson(data);
       }
 
-      AppLogger.chat('✅ BATCH: Retrieved user data and quota in single operation');
+      AppLogger.chat(
+        '✅ BATCH: Retrieved user data and quota in single operation',
+      );
       return {'user': user, 'quota': quota};
     } catch (e) {
       AppLogger.chat('❌ BATCH: Failed to get user data and quota: $e');
@@ -1281,7 +1396,9 @@ class ChatRepository {
       // Update poll index for faster lookups
       await _updatePollIndex(poll.pollId, roomId);
 
-      AppLogger.chat('✅ Poll created and indexed: ${poll.pollId} in room $roomId');
+      AppLogger.chat(
+        '✅ Poll created and indexed: ${poll.pollId} in room $roomId',
+      );
       return poll;
     } catch (e) {
       throw Exception('Failed to create poll: $e');
@@ -1564,18 +1681,23 @@ class ChatRepository {
       final wardId = parts.last;
       final districtId = parts[parts.length - 2];
       final stateId = parts[0];
-      final bodyId = parts.sublist(1, parts.length - 2).join('_'); // Everything between state and district
+      final bodyId = parts
+          .sublist(1, parts.length - 2)
+          .join('_'); // Everything between state and district
 
-      AppLogger.database('Ward parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId', tag: 'CHAT');
+      AppLogger.database(
+        'Ward parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId',
+        tag: 'CHAT',
+      );
       // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/chats/ward_discussion
       return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
-
     } else if (roomId.startsWith('area_')) {
       // Format: area_{stateId}_{districtId}_{bodyId}_{wardId}_{areaId}
       // Use a more robust parsing approach that doesn't rely on underscore counting
       final parts = roomId.split('_');
 
-      if (parts.length < 6) return 'chats/$roomId'; // Fallback - need at least area + 4 components + area name
+      if (parts.length < 6)
+        return 'chats/$roomId'; // Fallback - need at least area + 4 components + area name
 
       // Known positions: area(0), stateId(1), districtId(2), wardId is the one before last
       // Everything between districtId and wardId is bodyId (may contain underscores)
@@ -1587,7 +1709,8 @@ class ChatRepository {
       // Find the wardId by looking for the pattern "ward_" followed by digits
       int wardIndex = -1;
       for (int i = 3; i < parts.length; i++) {
-        if (parts[i].startsWith('ward') && RegExp(r'^\d+$').hasMatch(parts[i].substring(4))) {
+        if (parts[i].startsWith('ward') &&
+            RegExp(r'^\d+$').hasMatch(parts[i].substring(4))) {
           wardIndex = i;
           break;
         }
@@ -1602,7 +1725,10 @@ class ChatRepository {
       // Everything after wardId is areaId
       final areaId = parts.sublist(wardIndex + 1).join('_');
 
-      AppLogger.database('Area parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId, area: $areaId', tag: 'CHAT');
+      AppLogger.database(
+        'Area parsed - state: $stateId, district: $districtId, body: $bodyId, ward: $wardId, area: $areaId',
+        tag: 'CHAT',
+      );
       // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId}/chats/area_discussion
       return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$areaId/chats/area_discussion';
     }
@@ -1692,10 +1818,14 @@ class ChatRepository {
         AppLogger.chat('👤 Processing candidate rooms for user: $userId');
 
         // For candidates: query hierarchical structure for ward and area rooms
-        if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+        if (stateId != null &&
+            districtId != null &&
+            bodyId != null &&
+            wardId != null) {
           try {
             // Get ward room from hierarchical structure
-            final wardPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
+            final wardPath =
+                'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
             AppLogger.chat('🔍 Looking for ward room at: $wardPath');
 
             final wardDoc = await _firestore.doc(wardPath).get();
@@ -1703,7 +1833,9 @@ class ChatRepository {
               final data = wardDoc.data() as Map<String, dynamic>;
               final room = ChatRoom.fromJson(data);
               rooms.add(room);
-              AppLogger.chat('✅ Added ward room: ${room.title} (ID: ${room.roomId})');
+              AppLogger.chat(
+                '✅ Added ward room: ${room.title} (ID: ${room.roomId})',
+              );
             } else {
               AppLogger.chat('⚠️ Ward room not found at: $wardPath');
             }
@@ -1727,12 +1859,15 @@ class ChatRepository {
                 final wardData = wardDoc.data() as Map<String, dynamic>;
                 final areas = wardData['areas'] as List<dynamic>? ?? [];
 
-                AppLogger.chat('👤 Found ${areas.length} areas in ward document: $areas');
+                AppLogger.chat(
+                  '👤 Found ${areas.length} areas in ward document: $areas',
+                );
 
                 // Query for area rooms in hierarchical structure
                 for (final area in areas) {
                   if (area is String && area.isNotEmpty) {
-                    final areaPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
+                    final areaPath =
+                        'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
                     AppLogger.chat('🔍 Looking for area room at: $areaPath');
 
                     final areaDoc = await _firestore.doc(areaPath).get();
@@ -1740,7 +1875,9 @@ class ChatRepository {
                       final data = areaDoc.data() as Map<String, dynamic>;
                       final room = ChatRoom.fromJson(data);
                       rooms.add(room);
-                      AppLogger.chat('✅ Added area room: ${room.title} (ID: ${room.roomId})');
+                      AppLogger.chat(
+                        '✅ Added area room: ${room.title} (ID: ${room.roomId})',
+                      );
                     } else {
                       AppLogger.chat('ℹ️ Area room not created yet: $areaPath');
                     }
@@ -1770,20 +1907,26 @@ class ChatRepository {
             final data = doc.data();
             final room = ChatRoom.fromJson(data);
             rooms.add(room);
-            AppLogger.chat('✅ Added private room for candidate: ${room.title} (ID: ${room.roomId})');
+            AppLogger.chat(
+              '✅ Added private room for candidate: ${room.title} (ID: ${room.roomId})',
+            );
           }
-          AppLogger.chat('👤 Found ${privateRooms.docs.length} private rooms for candidate');
+          AppLogger.chat(
+            '👤 Found ${privateRooms.docs.length} private rooms for candidate',
+          );
         } catch (e) {
           AppLogger.chat('⚠️ Failed to get private rooms for candidate: $e');
         }
-
       } else if (userRole == 'voter') {
         AppLogger.chat('🗳️ Processing voter rooms for user: $userId');
         // For voters: get ward room + area room + followed candidate rooms
         final roomIds = <String>[];
 
         // Add ward and area rooms if location data is available
-        if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+        if (stateId != null &&
+            districtId != null &&
+            bodyId != null &&
+            wardId != null) {
           roomIds.add('ward_${districtId}_${bodyId}_$wardId');
 
           if (area != null && area.isNotEmpty) {
@@ -1791,10 +1934,17 @@ class ChatRepository {
           }
 
           // Get followed candidate rooms in the same ward
-          final followedCandidateIds = await _candidateRepository.getUserFollowing(userId);
+          final followedCandidateIds = await _candidateRepository
+              .getUserFollowing(userId);
           if (followedCandidateIds.isNotEmpty) {
-            final wardCandidateIds = await _getCandidateIdsInWard(districtId, bodyId, wardId);
-            final relevantCandidateIds = followedCandidateIds.where((id) => wardCandidateIds.contains(id)).toList();
+            final wardCandidateIds = await _getCandidateIdsInWard(
+              districtId,
+              bodyId,
+              wardId,
+            );
+            final relevantCandidateIds = followedCandidateIds
+                .where((id) => wardCandidateIds.contains(id))
+                .toList();
 
             for (final candidateId in relevantCandidateIds) {
               final candidateRooms = await _getCandidateRoomIds(candidateId);
@@ -1806,18 +1956,30 @@ class ChatRepository {
         AppLogger.chat('🗳️ Voter roomIds to query: $roomIds');
 
         // Query specific rooms from hierarchical structure
-        for (final roomId in roomIds.toSet()) { // Remove duplicates
+        for (final roomId in roomIds.toSet()) {
+          // Remove duplicates
           try {
             AppLogger.chat('🔍 Checking room: $roomId');
             ChatRoom? room;
 
             // Use location data to construct the correct hierarchical path
             String roomPath;
-            if (roomId.startsWith('ward_') && stateId != null && districtId != null && bodyId != null && wardId != null) {
-              roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
+            if (roomId.startsWith('ward_') &&
+                stateId != null &&
+                districtId != null &&
+                bodyId != null &&
+                wardId != null) {
+              roomPath =
+                  'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/ward_discussion';
               AppLogger.chat('🔍 Constructed ward path: $roomPath');
-            } else if (roomId.startsWith('area_') && stateId != null && districtId != null && bodyId != null && wardId != null && area != null) {
-              roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
+            } else if (roomId.startsWith('area_') &&
+                stateId != null &&
+                districtId != null &&
+                bodyId != null &&
+                wardId != null &&
+                area != null) {
+              roomPath =
+                  'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$area/chats/area_discussion';
               AppLogger.chat('🔍 Constructed area path: $roomPath');
             } else {
               AppLogger.chat('⚠️ Cannot construct path for roomId: $roomId');
@@ -1828,9 +1990,13 @@ class ChatRepository {
             if (hierarchicalDoc.exists) {
               final data = hierarchicalDoc.data() as Map<String, dynamic>;
               room = ChatRoom.fromJson(data);
-              AppLogger.chat('✅ Found room at hierarchical path: ${room?.title}');
+              AppLogger.chat(
+                '✅ Found room at hierarchical path: ${room?.title}',
+              );
             } else {
-              AppLogger.chat('⚠️ Room not found at hierarchical path: $roomPath');
+              AppLogger.chat(
+                '⚠️ Room not found at hierarchical path: $roomPath',
+              );
             }
 
             if (room != null) {
@@ -1855,9 +2021,13 @@ class ChatRepository {
             final data = doc.data();
             final room = ChatRoom.fromJson(data);
             rooms.add(room);
-            AppLogger.chat('✅ Added private room for voter: ${room.title} (ID: ${room.roomId})');
+            AppLogger.chat(
+              '✅ Added private room for voter: ${room.title} (ID: ${room.roomId})',
+            );
           }
-          AppLogger.chat('🗳️ Found ${privateRooms.docs.length} private rooms for voter');
+          AppLogger.chat(
+            '🗳️ Found ${privateRooms.docs.length} private rooms for voter',
+          );
         } catch (e) {
           AppLogger.chat('⚠️ Failed to get private rooms for voter: $e');
         }
@@ -1865,15 +2035,21 @@ class ChatRepository {
 
       // If no rooms found through targeted query, fall back to collection group query
       if (rooms.isEmpty) {
-        AppLogger.chat('⚠️ No rooms found through targeted query, falling back to collection group query');
-        final fallbackRooms = await _fallbackCollectionGroupQuery(userId, userRole);
+        AppLogger.chat(
+          '⚠️ No rooms found through targeted query, falling back to collection group query',
+        );
+        final fallbackRooms = await _fallbackCollectionGroupQuery(
+          userId,
+          userRole,
+        );
         rooms.addAll(fallbackRooms);
-        AppLogger.chat('✅ Added ${fallbackRooms.length} rooms from fallback query');
+        AppLogger.chat(
+          '✅ Added ${fallbackRooms.length} rooms from fallback query',
+        );
       }
 
       AppLogger.chat('✅ Targeted query returned ${rooms.length} rooms');
       return rooms;
-
     } catch (e) {
       AppLogger.chat('❌ Error in targeted room query: $e');
       // Fallback to old method if targeted query fails
@@ -1900,7 +2076,10 @@ class ChatRepository {
   }
 
   // Fallback method using collection group (for error recovery)
-  Future<List<ChatRoom>> _fallbackCollectionGroupQuery(String userId, String userRole) async {
+  Future<List<ChatRoom>> _fallbackCollectionGroupQuery(
+    String userId,
+    String userRole,
+  ) async {
     try {
       final allRoomsSnapshot = await _firestore.collectionGroup('chats').get();
       final roomsFromSnapshot = allRoomsSnapshot.docs.map((doc) {
@@ -1909,10 +2088,16 @@ class ChatRepository {
       }).toList();
 
       // Filter rooms client-side (no index required)
-      final publicRooms = roomsFromSnapshot.where((room) => room.type == 'public').toList();
-      final privateRooms = roomsFromSnapshot.where((room) =>
-        room.type == 'private' && (room.members?.contains(userId) ?? false)
-      ).toList();
+      final publicRooms = roomsFromSnapshot
+          .where((room) => room.type == 'public')
+          .toList();
+      final privateRooms = roomsFromSnapshot
+          .where(
+            (room) =>
+                room.type == 'private' &&
+                (room.members?.contains(userId) ?? false),
+          )
+          .toList();
 
       return [...publicRooms, ...privateRooms];
     } catch (e) {
@@ -2009,7 +2194,8 @@ class ChatRepository {
     String creatorId,
   ) async {
     try {
-      final areaRoomId = 'area_${stateId}_${districtId}_${bodyId}_${wardId}_$areaId';
+      final areaRoomId =
+          'area_${stateId}_${districtId}_${bodyId}_${wardId}_$areaId';
 
       // Check if room already exists
       if (await areaRoomExists(districtId, bodyId, wardId, areaId)) {
@@ -2203,9 +2389,16 @@ class ChatRepository {
   }
 
   // Typing status management
-  Future<void> updateTypingStatus(String roomId, String userId, String userName, bool isTyping) async {
+  Future<void> updateTypingStatus(
+    String roomId,
+    String userId,
+    String userName,
+    bool isTyping,
+  ) async {
     try {
-      final typingRef = _firestore.collection('typing_status').doc('${roomId}_$userId');
+      final typingRef = _firestore
+          .collection('typing_status')
+          .doc('${roomId}_$userId');
 
       if (isTyping) {
         await typingRef.set({
@@ -2233,7 +2426,9 @@ class ChatRepository {
           return snapshot.docs
               .map((doc) {
                 final data = doc.data();
-                data['timestamp'] = data['timestamp']?.toDate()?.toIso8601String() ?? now.toIso8601String();
+                data['timestamp'] =
+                    data['timestamp']?.toDate()?.toIso8601String() ??
+                    now.toIso8601String();
                 return TypingStatus.fromJson(data);
               })
               .where((status) => !status.isExpired)
@@ -2257,7 +2452,9 @@ class ChatRepository {
 
       if (expiredDocs.docs.isNotEmpty) {
         await batch.commit();
-        AppLogger.chat('Cleaned up ${expiredDocs.docs.length} expired typing statuses');
+        AppLogger.chat(
+          'Cleaned up ${expiredDocs.docs.length} expired typing statuses',
+        );
       }
     } catch (e) {
       AppLogger.chat('Error cleaning up typing statuses: $e');
@@ -2267,9 +2464,13 @@ class ChatRepository {
   // Clear typing status for a specific user in a room
   Future<void> clearTypingStatus(String roomId, String userId) async {
     try {
-      final typingRef = _firestore.collection('typing_status').doc('${roomId}_$userId');
+      final typingRef = _firestore
+          .collection('typing_status')
+          .doc('${roomId}_$userId');
       await typingRef.delete();
-      AppLogger.chat('🧹 Cleared typing status for user $userId in room $roomId');
+      AppLogger.chat(
+        '🧹 Cleared typing status for user $userId in room $roomId',
+      );
     } catch (e) {
       AppLogger.chat('Error clearing typing status: $e');
     }
@@ -2294,7 +2495,8 @@ class ChatRepository {
           area == null) {
         // OPTIMIZED: Use UserDataController for cached user data
         final userDataController = Get.find<UserDataController>();
-        if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
+        if (userDataController.isInitialized.value &&
+            userDataController.currentUser.value != null) {
           final userModel = userDataController.currentUser.value!;
           userRole ??= userModel.role ?? 'voter';
           stateId ??= userModel.stateId;
@@ -2304,7 +2506,10 @@ class ChatRepository {
           area ??= userModel.area;
         } else {
           // Fallback to fresh fetch if cache not available
-          final userDoc = await _firestore.collection('users').doc(userId).get();
+          final userDoc = await _firestore
+              .collection('users')
+              .doc(userId)
+              .get();
           if (userDoc.exists) {
             final userData = userDoc.data()!;
             userRole ??= userData['role'] ?? 'voter';
@@ -2370,20 +2575,27 @@ class ChatRepository {
       // Get sender info
       final userDataController = Get.find<UserDataController>();
       String senderName = 'Someone';
-      if (userDataController.isInitialized.value && userDataController.currentUser.value != null) {
+      if (userDataController.isInitialized.value &&
+          userDataController.currentUser.value != null) {
         final userModel = userDataController.currentUser.value!;
         if (userModel.uid == message.senderId) {
           senderName = userModel.name;
         } else {
           // Fallback to direct fetch for other users
-          final senderDoc = await _firestore.collection('users').doc(message.senderId).get();
+          final senderDoc = await _firestore
+              .collection('users')
+              .doc(message.senderId)
+              .get();
           senderName = senderDoc.exists
               ? (senderDoc.data()?['name'] ?? 'Someone')
               : 'Someone';
         }
       } else {
         // Fallback to direct fetch if cache not available
-        final senderDoc = await _firestore.collection('users').doc(message.senderId).get();
+        final senderDoc = await _firestore
+            .collection('users')
+            .doc(message.senderId)
+            .get();
         senderName = senderDoc.exists
             ? (senderDoc.data()?['name'] ?? 'Someone')
             : 'Someone';
@@ -2397,7 +2609,8 @@ class ChatRepository {
             await notificationManager.sendNotification(
               type: NotificationType.newMessage,
               title: 'New Message',
-              body: '$senderName: ${message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text}',
+              body:
+                  '$senderName: ${message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text}',
               data: {
                 'senderId': message.senderId,
                 'senderName': senderName,
@@ -2407,16 +2620,19 @@ class ChatRepository {
               },
             );
           } catch (e) {
-            AppLogger.chat('⚠️ Failed to send message notification to user $memberId: $e');
+            AppLogger.chat(
+              '⚠️ Failed to send message notification to user $memberId: $e',
+            );
           }
         }
       }
 
-      AppLogger.chat('✅ Sent message notifications to ${members.length - 1} room members');
+      AppLogger.chat(
+        '✅ Sent message notifications to ${members.length - 1} room members',
+      );
     } catch (e) {
       AppLogger.chat('⚠️ Failed to send message notifications: $e');
       // Don't throw - this shouldn't break message sending
     }
   }
 }
-

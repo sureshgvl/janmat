@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'device_service.dart';
+import 'screen_focus_service.dart';
 import '../utils/app_logger.dart';
 
 /// Represents an app session for highlight tracking
@@ -65,11 +66,17 @@ class HighlightSession {
 
 /// Service to manage highlight viewing sessions
 class HighlightSessionService {
+  static final HighlightSessionService _instance = HighlightSessionService._internal();
+  factory HighlightSessionService() => _instance;
+
+  HighlightSessionService._internal();
+
   static const String _sessionKey = 'highlight_session';
   static const int _sessionTimeoutMinutes = 30;
 
   final DeviceService _deviceService = DeviceService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ScreenFocusService _focusService = ScreenFocusService();
 
   HighlightSession? _currentSession;
 
@@ -115,15 +122,25 @@ class HighlightSessionService {
     String? bodyId,
     String? wardId,
   }) async {
-    final hasViewed = await hasViewedHighlightInSession(highlightId);
+    // Only track impressions when home screen is focused
+    if (!_focusService.isHomeScreenFocused) {
+      // Silently skip tracking without logging when not on home screen
+      return false;
+    }
+
+    final session = await getCurrentSession();
+    final hasViewed = session.hasViewedHighlight(highlightId);
 
     if (hasViewed) {
-      AppLogger.common('⏭️ Highlight $highlightId already viewed in current session, skipping impression');
+     // AppLogger.common('⏭️ Highlight $highlightId already viewed in current session, skipping impression');
       return false; // Already viewed, no impression tracked
     }
 
     // Mark as viewed first
-    await markHighlightViewed(highlightId);
+    session.markHighlightViewed(highlightId);
+    await _saveSessionToStorage(session);
+
+    AppLogger.common('👁️ Highlight $highlightId marked as viewed in session ${session.sessionId}');
 
     // Track the impression in Firestore
     try {

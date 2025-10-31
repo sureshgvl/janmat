@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:janmat/features/chat/models/chat_room.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/features/chat/chat_localizations.dart';
 import '../../controllers/chat_controller.dart';
-import '../../../../models/chat_model.dart';
 
 class ChatDialogs {
   static void showCreateRoomDialog(BuildContext context) {

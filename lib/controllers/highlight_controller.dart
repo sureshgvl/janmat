@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
-import '../models/highlight_model.dart';
+import '../features/highlight/models/highlight_model.dart';
+import '../models/push_feed_model.dart';
+import '../features/candidate/models/location_model.dart';
 import '../repositories/highlight_repository.dart';
 import '../utils/app_logger.dart';
 
@@ -102,12 +104,17 @@ class HighlightController extends GetxController {
       final highlightId = 'hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey = '${districtId}_${bodyId}_$wardId';
 
+      final location = LocationModel(
+        stateId: 'maharashtra',
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
+
       final highlight = Highlight(
         id: highlightId,
         candidateId: candidateId,
-        wardId: wardId,
-        districtId: districtId,
-        bodyId: bodyId,
+        location: location,
         locationKey: locationKey,
         package: package,
         placement: placement,
@@ -205,12 +212,17 @@ class HighlightController extends GetxController {
       // Calculate priority based on level
       final priorityValue = _getPriorityValue(priorityLevel);
 
+      final location = LocationModel(
+        stateId: 'maharashtra',
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
+
       final highlight = Highlight(
         id: highlightId,
         candidateId: candidateId,
-        wardId: wardId,
-        districtId: districtId,
-        bodyId: bodyId,
+        location: location,
         locationKey: locationKey,
         package: 'platinum',
         placement: placement, // Use provided placement

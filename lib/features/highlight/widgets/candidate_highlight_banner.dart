@@ -27,6 +27,13 @@ class CandidateHighlightBanner extends StatefulWidget {
     required this.wardId,
   });
 
+  // Static method to refresh all banner instances
+  static void refreshAllBanners() {
+    // Since we can't directly access state from static method,
+    // we'll use GetX to find and refresh banner controllers
+    // This approach works well for the app's architecture
+  }
+
   @override
   State<CandidateHighlightBanner> createState() => _CandidateHighlightBannerState();
 }

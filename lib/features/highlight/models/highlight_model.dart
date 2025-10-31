@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../utils/app_logger.dart';
+import '../../candidate/models/location_model.dart';
 
 class Highlight {
   final String id;
   final String candidateId;
-  final String wardId;
-  final String districtId;
-  final String bodyId; // Added for hierarchical targeting
+  final LocationModel location; // Unified location model with stateId
   final String locationKey; // Composite key: district_body_ward
   final String package;
   final List<String> placement;
@@ -22,13 +22,15 @@ class Highlight {
   final String? candidateName;
   final String? party;
   final DateTime createdAt;
+  final String status; // 'active', 'expired', 'inactive', 'pending'
+  final DateTime? expiredAt;
+  final int renewalCount;
+  final DateTime? lastRenewedAt;
 
   Highlight({
     required this.id,
     required this.candidateId,
-    required this.wardId,
-    required this.districtId,
-    required this.bodyId,
+    required this.location,
     required this.locationKey,
     required this.package,
     required this.placement,
@@ -45,15 +47,27 @@ class Highlight {
     this.candidateName,
     this.party,
     required this.createdAt,
+    this.status = 'active', // Default to active for backward compatibility
+    this.expiredAt,
+    this.renewalCount = 0,
+    this.lastRenewedAt,
   });
 
+  // Backward compatibility getters
+  String get wardId => location.wardId ?? '';
+  String get districtId => location.districtId ?? '';
+  String get bodyId => location.bodyId ?? '';
+  String get stateId => location.stateId ?? 'maharashtra';
+
   factory Highlight.fromJson(Map<String, dynamic> json) {
+    // Debug logging for active field
+    final activeValue = json['active'];
+    AppLogger.common('🔍 [Highlight.fromJson] Document ${json['highlightId']}: active field = $activeValue (type: ${activeValue?.runtimeType})');
+
     return Highlight(
       id: json['highlightId'] ?? '',
       candidateId: json['candidateId'] ?? '',
-      wardId: json['wardId'] ?? '',
-      districtId: json['districtId'] ?? '',
-      bodyId: json['bodyId'] ?? '',
+      location: LocationModel.fromJson(json),
       locationKey: json['locationKey'] ?? '',
       package: json['package'] ?? '',
       placement: List<String>.from(json['placement'] ?? []),
@@ -70,16 +84,24 @@ class Highlight {
       candidateName: json['candidateName'],
       party: json['party'],
       createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      status: json['status'] ?? 'active', // Default to active for backward compatibility
+      expiredAt: (json['expiredAt'] as Timestamp?)?.toDate(),
+      renewalCount: json['renewalCount'] ?? 0,
+      lastRenewedAt: (json['lastRenewedAt'] as Timestamp?)?.toDate(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      // Location model fields
+      ...location.toJson(),
+      // Legacy fields for backward compatibility
+      'wardId': location.wardId,
+      'districtId': location.districtId,
+      'bodyId': location.bodyId,
+      // Other fields
       'highlightId': id,
       'candidateId': candidateId,
-      'wardId': wardId,
-      'districtId': districtId,
-      'bodyId': bodyId,
       'locationKey': locationKey,
       'package': package,
       'placement': placement,
@@ -96,15 +118,18 @@ class Highlight {
       'candidateName': candidateName,
       'party': party,
       'createdAt': Timestamp.fromDate(createdAt),
+      // New lifecycle management fields
+      'status': status,
+      'expiredAt': expiredAt != null ? Timestamp.fromDate(expiredAt!) : null,
+      'renewalCount': renewalCount,
+      'lastRenewedAt': lastRenewedAt != null ? Timestamp.fromDate(lastRenewedAt!) : null,
     };
   }
 
   Highlight copyWith({
     String? id,
     String? candidateId,
-    String? wardId,
-    String? districtId,
-    String? bodyId,
+    LocationModel? location,
     String? locationKey,
     String? package,
     List<String>? placement,
@@ -121,13 +146,15 @@ class Highlight {
     String? candidateName,
     String? party,
     DateTime? createdAt,
+    String? status,
+    DateTime? expiredAt,
+    int? renewalCount,
+    DateTime? lastRenewedAt,
   }) {
     return Highlight(
       id: id ?? this.id,
       candidateId: candidateId ?? this.candidateId,
-      wardId: wardId ?? this.wardId,
-      districtId: districtId ?? this.districtId,
-      bodyId: bodyId ?? this.bodyId,
+      location: location ?? this.location,
       locationKey: locationKey ?? this.locationKey,
       package: package ?? this.package,
       placement: placement ?? this.placement,
@@ -144,58 +171,10 @@ class Highlight {
       candidateName: candidateName ?? this.candidateName,
       party: party ?? this.party,
       createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
+      expiredAt: expiredAt ?? this.expiredAt,
+      renewalCount: renewalCount ?? this.renewalCount,
+      lastRenewedAt: lastRenewedAt ?? this.lastRenewedAt,
     );
-  }
-}
-
-class PushFeedItem {
-  final String id;
-  final String? highlightId;
-  final String candidateId;
-  final String wardId;
-  final String title;
-  final String message;
-  final String? imageUrl;
-  final DateTime timestamp;
-  final bool isSponsored;
-
-  PushFeedItem({
-    required this.id,
-    this.highlightId,
-    required this.candidateId,
-    required this.wardId,
-    required this.title,
-    required this.message,
-    this.imageUrl,
-    required this.timestamp,
-    required this.isSponsored,
-  });
-
-  factory PushFeedItem.fromJson(Map<String, dynamic> json) {
-    return PushFeedItem(
-      id: json['feedId'] ?? '',
-      highlightId: json['highlightId'],
-      candidateId: json['candidateId'] ?? '',
-      wardId: json['wardId'] ?? '',
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      imageUrl: json['imageUrl'],
-      timestamp: (json['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      isSponsored: json['isSponsored'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'feedId': id,
-      'highlightId': highlightId,
-      'candidateId': candidateId,
-      'wardId': wardId,
-      'title': title,
-      'message': message,
-      'imageUrl': imageUrl,
-      'timestamp': Timestamp.fromDate(timestamp),
-      'isSponsored': isSponsored,
-    };
   }
 }
