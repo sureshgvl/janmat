@@ -9,7 +9,7 @@ import '../../../features/candidate/controllers/candidate_controller.dart';
 import '../../../features/candidate/screens/candidate_profile_screen.dart';
 import '../../../features/candidate/models/candidate_model.dart';
 import '../models/highlight_display_model.dart';
-import '../../../controllers/highlight_controller.dart' as hc;
+import '../controller/highlight_controller.dart' as hc;
 import '../../../features/monetization/controllers/monetization_controller.dart';
 import 'highlight_carousel_widget.dart';
 

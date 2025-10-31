@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../models/device_info_model.dart';
-import '../utils/app_logger.dart';
+import '../model/device_info_model.dart';
+import '../../../utils/app_logger.dart';
 
 /// Centralized controller for managing device information across the entire app.
 /// Eliminates redundant device info fetches by caching device data.

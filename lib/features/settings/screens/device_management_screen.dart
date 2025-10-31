@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../services/device_service.dart';
+import '../../deviceInfo/services/device_service.dart';
 import '../../../l10n/app_localizations.dart';
 
 class DeviceManagementScreen extends StatefulWidget {

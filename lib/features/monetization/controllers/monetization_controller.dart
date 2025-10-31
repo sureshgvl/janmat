@@ -9,7 +9,7 @@ import '../../../models/plan_model.dart';
 import '../../../models/body_model.dart';
 import '../../../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
-import '../../../controllers/highlight_controller.dart' as hc;
+import '../../highlight/controller/highlight_controller.dart' as hc;
 import '../../../features/candidate/controllers/candidate_controller.dart';
 import '../repositories/monetization_repository.dart';
 import '../widgets/plan_purchase_success_dialog.dart';

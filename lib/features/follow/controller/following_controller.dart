@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/following_model.dart';
-import '../utils/app_logger.dart';
+import '../model/following_model.dart';
+import '../../../utils/app_logger.dart';
 
 /// Centralized controller for managing user following relationships across the entire app.
 /// Eliminates redundant following data fetches by caching relationships.

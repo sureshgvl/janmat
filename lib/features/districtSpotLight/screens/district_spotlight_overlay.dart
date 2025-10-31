@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/district_spotlight_model.dart';
+import '../model/district_spotlight_model.dart';
 
 class DistrictSpotlightOverlay extends StatefulWidget {
   final DistrictSpotlight spotlight;

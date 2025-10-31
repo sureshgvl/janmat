@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
-import '../features/highlight/models/highlight_model.dart';
-import '../models/push_feed_model.dart';
-import '../features/candidate/models/location_model.dart';
-import '../repositories/highlight_repository.dart';
-import '../utils/app_logger.dart';
+import '../models/highlight_model.dart';
+import '../../../models/push_feed_model.dart';
+import '../../candidate/models/location_model.dart';
+import '../../../repositories/highlight_repository.dart';
+import '../../../utils/app_logger.dart';
 
 class HighlightController extends GetxController {
   final HighlightRepository _repository = HighlightRepository();

@@ -7,7 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../candidate/models/candidate_model.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
-import '../../../services/district_spotlight_service.dart';
+import '../../districtSpotLight/services/district_spotlight_service.dart';
 import '../../../services/home_screen_stream_service.dart';
 import '../../../services/screen_focus_service.dart';
 

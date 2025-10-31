@@ -46,11 +46,11 @@ class DeviceInfoModel {
   /// Create from device_info_plus AndroidDeviceInfo
   factory DeviceInfoModel.fromAndroidDeviceInfo(AndroidDeviceInfo info, String appVersion, String buildNumber) {
     return DeviceInfoModel(
-      deviceId: info.id ?? 'unknown',
-      deviceName: info.host ?? 'Unknown Device',
-      deviceModel: info.model ?? 'Unknown Model',
+      deviceId: info.id,
+      deviceName: info.host,
+      deviceModel: info.model,
       deviceType: 'android',
-      osVersion: info.version.release ?? 'Unknown',
+      osVersion: info.version.release,
       appVersion: appVersion,
       buildNumber: buildNumber,
       sdkVersion: info.version.sdkInt,
@@ -59,7 +59,7 @@ class DeviceInfoModel {
       product: info.product,
       device: info.device,
       hardware: info.hardware,
-      isPhysicalDevice: info.isPhysicalDevice ?? true,
+      isPhysicalDevice: info.isPhysicalDevice,
       lastUpdated: DateTime.now(),
     );
   }
@@ -68,10 +68,10 @@ class DeviceInfoModel {
   factory DeviceInfoModel.fromIosDeviceInfo(IosDeviceInfo info, String appVersion, String buildNumber) {
     return DeviceInfoModel(
       deviceId: info.identifierForVendor ?? 'unknown',
-      deviceName: info.name ?? 'Unknown Device',
-      deviceModel: info.model ?? 'Unknown Model',
+      deviceName: info.name,
+      deviceModel: info.model,
       deviceType: 'ios',
-      osVersion: info.systemVersion ?? 'Unknown',
+      osVersion: info.systemVersion,
       appVersion: appVersion,
       buildNumber: buildNumber,
       identifierForVendor: info.identifierForVendor,
@@ -86,7 +86,7 @@ class DeviceInfoModel {
   factory DeviceInfoModel.fromWebBrowserInfo(WebBrowserInfo info, String appVersion, String buildNumber) {
     return DeviceInfoModel(
       deviceId: info.userAgent ?? 'web_unknown',
-      deviceName: info.browserName.name ?? 'Web Browser',
+      deviceName: info.browserName.name,
       deviceModel: info.platform ?? 'Web',
       deviceType: 'web',
       osVersion: info.platform ?? 'Unknown',

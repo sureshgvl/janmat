@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../controllers/notification_settings_controller.dart';
+import '../../notificationSetting/controller/notification_settings_controller.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/features/notifications/notifications_localizations.dart';
 

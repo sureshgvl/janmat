@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/features/onboarding/onboarding_localizations.dart';
-import '../../../services/language_service.dart';
+import '../../language/services/language_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});

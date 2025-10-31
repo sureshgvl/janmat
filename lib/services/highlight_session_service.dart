@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'device_service.dart';
+import '../features/deviceInfo/services/device_service.dart';
 import 'screen_focus_service.dart';
 import '../utils/app_logger.dart';
 

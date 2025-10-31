@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../services/language_service.dart';
+import '../../language/services/language_service.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {

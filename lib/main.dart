@@ -25,7 +25,7 @@ import 'l10n/features/settings/settings_localizations.dart';
 import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
-import 'controllers/language_controller.dart';
+import 'features/language/controller/language_controller.dart';
 import 'services/home_screen_stream_service.dart';
 import 'services/highlight_session_service.dart';
 

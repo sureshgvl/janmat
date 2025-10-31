@@ -9,7 +9,7 @@ import '../models/district_model.dart';
 import '../models/state_model.dart' as state_model;
 import '../models/body_model.dart';
 import '../models/ward_model.dart';
-import '../models/district_spotlight_model.dart';
+import '../features/districtSpotLight/model/district_spotlight_model.dart';
 import '../features/candidate/models/candidate_model.dart';
 
 class LocalDatabaseService {

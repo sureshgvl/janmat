@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/user/models/user_model.dart';
-import '../services/language_service.dart';
+import '../features/language/services/language_service.dart';
 import '../utils/multi_level_cache.dart';
 import '../utils/app_logger.dart';
 import '../utils/performance_monitor.dart' as perf;

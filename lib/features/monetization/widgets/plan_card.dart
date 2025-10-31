@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/plan_model.dart';
-import '../../../controllers/highlight_controller.dart';
+import '../../highlight/controller/highlight_controller.dart';
 import '../controllers/monetization_controller.dart';
 
 class PlanCard extends StatelessWidget {

@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/district_spotlight_model.dart';
-import '../utils/app_logger.dart';
-import '../widgets/district_spotlight_overlay.dart';
-import '../services/local_database_service.dart';
+import '../model/district_spotlight_model.dart';
+import '../../../utils/app_logger.dart';
+import '../screens/district_spotlight_overlay.dart';
+import '../../../services/local_database_service.dart';
 
 class DistrictSpotlightService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
