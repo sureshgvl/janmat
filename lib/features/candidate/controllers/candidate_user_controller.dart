@@ -552,6 +552,7 @@ class CandidateUserController extends GetxController {
   }
 
   void updatePhoto(String photoUrl) {
+    AppLogger.candidate('🏠 CONTROLLER: updatePhoto called with: $photoUrl', tag: 'PHOTO_DEBUG');
     // Track the photo change for save operations
     trackExtraInfoFieldChange('photo', photoUrl);
 
@@ -577,8 +578,14 @@ class CandidateUserController extends GetxController {
         );
       }
 
+
       // Update the specific field in basicInfo
-      if (field == 'education' || field == 'profession' || field == 'languages') {
+      if (field == 'photo') {
+        BasicInfoModel updatedBasicInfo = editedData.value!.basicInfo!.copyWith(photo: value);
+        editedData.value = editedData.value!.copyWith(basicInfo: updatedBasicInfo);
+        AppLogger.common('✅ Updated editedData basicInfo photo field: $value', tag: 'BASIC_INFO_UPDATE');
+      }
+      else if (field == 'education' || field == 'profession' || field == 'languages') {
         BasicInfoModel updatedBasicInfo = editedData.value!.basicInfo!.copyWith(
           education: field == 'education' ? value : editedData.value!.basicInfo!.education,
           profession: field == 'profession' ? value : editedData.value!.basicInfo!.profession,

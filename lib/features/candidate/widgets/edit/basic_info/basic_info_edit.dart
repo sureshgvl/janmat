@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../../../../utils/app_logger.dart';
 import '../../../models/candidate_model.dart';
+import '../../../controllers/candidate_user_controller.dart';
 import 'photo_upload_handler.dart';
 import 'date_picker_handler.dart';
 import 'gender_selector.dart';
@@ -43,6 +46,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
   final PhotoUploadHandler _photoHandler = PhotoUploadHandler();
   final DatePickerHandler _dateHandler = DatePickerHandler();
   final GenderSelector _genderSelector = GenderSelector();
+
+  // Access controller directly for reactive photo updates
+  final CandidateUserController _controller = Get.find<CandidateUserController>();
 
   bool _isUploadingPhoto = false;
   late TextEditingController _nameController;
@@ -112,6 +118,7 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
   @override
   void didUpdateWidget(BasicInfoEdit oldWidget) {
     super.didUpdateWidget(oldWidget);
+    AppLogger.candidate('🔄 BasicInfoEdit didUpdateWidget called - old photo: ${oldWidget.editedData?.basicInfo?.photo}, new photo: ${widget.editedData?.basicInfo?.photo}');
     // Update controller text when external data changes (e.g., after data loads)
     if (widget.editedData != oldWidget.editedData) {
       final data = widget.editedData ?? widget.candidateData;
@@ -124,10 +131,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
         );
       }
     }
-    AppLogger.candidate('🔄 BasicInfoEdit didUpdateWidget called');
   }
 
-  Future<void> _pickAndUploadImage() async {
+  Future<void> _pickAndStoreImageLocally() async {
     setState(() {
       _isUploadingPhoto = true;
     });
@@ -135,15 +141,11 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     try {
       final imagePath = await _photoHandler.pickAndCropImage(context);
       if (imagePath != null) {
-        final userId = widget.candidateData.userId ?? '';
-        final photoUrl = await _photoHandler.uploadPhoto(
-          imagePath,
-          userId,
-          context,
-        );
-        if (photoUrl != null) {
-          widget.onPhotoChange(photoUrl);
-        }
+        // Store local image path instead of uploading
+        // We'll use a special identifier to indicate this is a local path pending upload
+        final localPhotoIdentifier = 'local:$imagePath';
+        widget.onPhotoChange(localPhotoIdentifier);
+        AppLogger.candidate('📸 Photo selected locally: $imagePath');
       }
     } finally {
       setState(() {
@@ -213,329 +215,349 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.editedData ?? widget.candidateData;
+    return Obx(() {
+      // Use controller's reactive data directly instead of widget parameters
+      final data = _controller.editedData.value ?? _controller.candidateData.value!;
 
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              CandidateLocalizations.of(context)!.personalInformation,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+      return Card(
+        margin: const EdgeInsets.all(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                CandidateLocalizations.of(context)!.personalInformation,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
 
-            // Photo and Name Section
-            Row(
-              children: [
-                // Profile Photo with Camera Overlay
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: data.photo != null
-                          ? NetworkImage(data.photo!)
-                          : null,
-                      child: data.photo == null
-                          ? Text(
-                              data.basicInfo?.fullName?.isNotEmpty == true
-                                  ? data.basicInfo!.fullName![0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(fontSize: 24),
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _isUploadingPhoto ? null : _pickAndUploadImage,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: _isUploadingPhoto
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: CandidateLocalizations.of(context)!.fullName,
-                      border: const OutlineInputBorder(),
-                    ),
-                    onChanged: widget.onNameChange,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+              // Photo and Name Section
+              Builder(
+                builder: (context) {
+                  final photoValue = data!.basicInfo!.photo;
+                  final isLocalPhoto = photoValue != null && photoValue.startsWith('local:');
+                  AppLogger.candidate(
+                    '🎨 BasicInfoEdit displaying photo - value: "$photoValue", isLocal: $isLocalPhoto',
+                    tag: 'PHOTO_DEBUG'
+                  );
+                  if (isLocalPhoto) {
+                    final localPath = photoValue!.substring(6);
+                    AppLogger.candidate('📁 Local file path: $localPath', tag: 'PHOTO_DEBUG');
+                  }
 
-            // Age field (editable text input with date picker option)
-            Row(
-              children: [
-                Expanded(
-                  child: Stack(
+                  return Row(
                     children: [
-                      TextFormField(
-                        controller: _ageController,
-                        decoration: InputDecoration(
-                          labelText: CandidateLocalizations.of(context)!.age,
-                          border: const OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) => widget.onBasicInfoChange(
-                          'age',
-                          int.tryParse(value) ?? 0,
-                        ),
-                      ),
-                      Positioned(
-                        right: 8,
-                        top: 12,
-                        child: GestureDetector(
-                          onTap: () => _selectBirthDate(context),
-                          child: Icon(
-                            Icons.calendar_today,
-                            color: Colors.grey.shade600,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _selectGender(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
+                      // Profile Photo with Camera Overlay
+                      Stack(
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  CandidateLocalizations.of(context)!.gender,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                Text(
-                                  _genderController.text.isNotEmpty
-                                      ? _genderController.text
-                                      : CandidateLocalizations.of(
-                                          context,
-                                        )!.tapToSelectGender,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: _genderController.text.isNotEmpty
-                                        ? Colors.black
-                                        : Colors.grey.shade500,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundImage: photoValue != null
+                                ? (isLocalPhoto
+                                    ? FileImage(File(photoValue.substring(6))) // Remove 'local:' prefix
+                                    : NetworkImage(photoValue))
+                                : null,
+                            child: photoValue == null
+                                ? Text(
+                                    data.basicInfo?.fullName?.isNotEmpty == true
+                                        ? data.basicInfo!.fullName![0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(fontSize: 24),
+                                  )
+                                : null,
                           ),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.grey.shade600,
-                            size: 20,
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _isUploadingPhoto ? null : _pickAndStoreImageLocally,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: _isUploadingPhoto
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Education field
-            _buildTextInputField(
-              controller: _educationController,
-              labelText: CandidateLocalizations.of(context)!.education,
-              onChanged: (value) {
-                AppLogger.candidate(
-                  '🎯 Education changed to: "$value"',
-                  tag: 'FORM_EDIT',
-                );
-                widget.onBasicInfoChange('education', value);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Profession field
-            TextFormField(
-              controller: _professionController,
-              decoration: InputDecoration(
-                labelText: CandidateLocalizations.of(context)!.profession,
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                AppLogger.candidate('🎯 Profession changed: $value');
-                AppLogger.candidate(
-                  '   📝 Profession controller text: "${_professionController.text}"',
-                );
-                widget.onBasicInfoChange('profession', value);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Languages field
-            TextFormField(
-              controller: _languagesController,
-              decoration: InputDecoration(
-                labelText: CandidateLocalizations.of(
-                  context,
-                )!.languagesCommaSeparated,
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                AppLogger.candidate('🎯 Languages changed: $value');
-                AppLogger.candidate(
-                  '   📝 Languages controller text: "${_languagesController.text}"',
-                );
-                widget.onBasicInfoChange(
-                  'languages',
-                  value.split(',').map((e) => e.trim()).toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Symbol Name field (only for independent candidates)
-            if (data.party.toLowerCase().contains('independent') ||
-                data.party.trim().isEmpty) ...[
-              const SizedBox(height: 16),
-              _buildTextInputField(
-                controller: _symbolNameController,
-                labelText: CandidateLocalizations.of(
-                  context,
-                )!.symbolNameForIndependent,
-                onChanged: (value) {
-                  AppLogger.candidate('🎯 Symbol Name changed: $value');
-                  widget.onBasicInfoChange('symbolName', value);
-                },
-              ),
-            ],
-
-            const SizedBox(height: 16),
-
-            // Address field
-            _buildTextInputField(
-              controller: _addressController,
-              labelText: CandidateLocalizations.of(context)!.address,
-              maxLines: 2,
-              onChanged: (value) => widget.onBasicInfoChange('address', value),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Demo Data Button
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _populateDemoData,
-                icon: const Icon(Icons.lightbulb),
-                label: Text(CandidateLocalizations.of(context)!.useDemoData),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // City and Ward fields (non-editable)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    CandidateLocalizations.of(context)!.locationNonEditable,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          CandidateLocalizations.of(context)!.districtLabel(
-                            district: data.location.districtId ?? '',
-                          ),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
-                          CandidateLocalizations.of(
-                            context,
-                          )!.wardLabel(ward: data.location.wardId ?? ''),
-                          style: const TextStyle(fontSize: 16),
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: CandidateLocalizations.of(context)!.fullName,
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: widget.onNameChange,
                         ),
                       ),
                     ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Age field
+              Row(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        TextFormField(
+                          controller: _ageController,
+                          decoration: InputDecoration(
+                            labelText: CandidateLocalizations.of(context)!.age,
+                            border: const OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) => widget.onBasicInfoChange(
+                            'age',
+                            int.tryParse(value) ?? 0,
+                          ),
+                        ),
+                        Positioned(
+                          right: 8,
+                          top: 12,
+                          child: GestureDetector(
+                            onTap: () => _selectBirthDate(context),
+                            child: Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _selectGender(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    CandidateLocalizations.of(context)!.gender,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    _genderController.text.isNotEmpty
+                                        ? _genderController.text
+                                        : CandidateLocalizations.of(
+                                            context,
+                                          )!.tapToSelectGender,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: _genderController.text.isNotEmpty
+                                          ? Colors.black
+                                          : Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              // Education field
+              _buildTextInputField(
+                controller: _educationController,
+                labelText: CandidateLocalizations.of(context)!.education,
+                onChanged: (value) {
+                  AppLogger.candidate(
+                    '🎯 Education changed to: "$value"',
+                    tag: 'FORM_EDIT',
+                  );
+                  widget.onBasicInfoChange('education', value);
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Profession field
+              TextFormField(
+                controller: _professionController,
+                decoration: InputDecoration(
+                  labelText: CandidateLocalizations.of(context)!.profession,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  AppLogger.candidate('🎯 Profession changed: $value');
+                  AppLogger.candidate(
+                    '   📝 Profession controller text: "${_professionController.text}"',
+                  );
+                  widget.onBasicInfoChange('profession', value);
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Languages field
+              TextFormField(
+                controller: _languagesController,
+                decoration: InputDecoration(
+                  labelText: CandidateLocalizations.of(
+                    context,
+                  )!.languagesCommaSeparated,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  AppLogger.candidate('🎯 Languages changed: $value');
+                  AppLogger.candidate(
+                    '   📝 Languages controller text: "${_languagesController.text}"',
+                  );
+                  widget.onBasicInfoChange(
+                    'languages',
+                    value.split(',').map((e) => e.trim()).toList(),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Symbol Name field (only for independent candidates)
+              if (data!.party.toLowerCase().contains('independent') ||
+                  data.party.trim().isEmpty) ...[
+                const SizedBox(height: 16),
+                _buildTextInputField(
+                  controller: _symbolNameController,
+                  labelText: CandidateLocalizations.of(
+                    context,
+                  )!.symbolNameForIndependent,
+                  onChanged: (value) {
+                    AppLogger.candidate('🎯 Symbol Name changed: $value');
+                    widget.onBasicInfoChange('symbolName', value);
+                  },
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Address field
+              _buildTextInputField(
+                controller: _addressController,
+                labelText: CandidateLocalizations.of(context)!.address,
+                maxLines: 2,
+                onChanged: (value) => widget.onBasicInfoChange('address', value),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Demo Data Button
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _populateDemoData,
+                  icon: const Icon(Icons.lightbulb),
+                  label: Text(CandidateLocalizations.of(context)!.useDemoData),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // City and Ward fields (non-editable)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      CandidateLocalizations.of(context)!.locationNonEditable,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            CandidateLocalizations.of(context)!.districtLabel(
+                              district: data.location.districtId ?? '',
+                            ),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            CandidateLocalizations.of(
+                              context,
+                            )!.wardLabel(ward: data.location.wardId ?? ''),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }

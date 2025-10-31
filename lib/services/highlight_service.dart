@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/app_logger.dart';
 import '../features/candidate/models/location_model.dart';
+import 'highlight_session_service.dart';
 
 class Highlight {
   final String id;
@@ -268,42 +269,30 @@ class HighlightService {
     }
   }
 
-  // Track impression (view)
+  // Track impression (view) - SESSION-BASED: Only track once per user session per highlight
   static Future<void> trackImpression(String highlightId, {
     String? districtId,
     String? bodyId,
     String? wardId,
   }) async {
     try {
-      // If location info is provided, use hierarchical path
-      if (districtId != null && bodyId != null && wardId != null) {
-        await FirebaseFirestore.instance
-            .collection('states')
-            .doc('maharashtra') // TODO: Make dynamic
-            .collection('districts')
-            .doc(districtId)
-            .collection('bodies')
-            .doc(bodyId)
-            .collection('wards')
-            .doc(wardId)
-            .collection('highlights')
-            .doc(highlightId)
-            .update({
-              'views': FieldValue.increment(1),
-              'lastShown': FieldValue.serverTimestamp(),
-            });
+      final sessionService = HighlightSessionService();
+
+      // Use session-based tracking: only increment if not viewed in current session
+      final impressionTracked = await sessionService.trackImpressionIfNotViewed(
+        highlightId: highlightId,
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
+
+      if (impressionTracked) {
+        AppLogger.common('📊 HighlightService: Impression tracked for $highlightId (session-based)');
       } else {
-        // Fallback: try to find in old structure (for backward compatibility)
-        await FirebaseFirestore.instance
-            .collection('highlights')
-            .doc(highlightId)
-            .update({
-              'views': FieldValue.increment(1),
-              'lastShown': FieldValue.serverTimestamp(),
-            });
+        AppLogger.common('⏭️ HighlightService: Impression skipped for $highlightId (already viewed in session)');
       }
     } catch (e) {
-      AppLogger.commonError('Error tracking impression', error: e);
+      AppLogger.commonError('❌ HighlightService: Error in session-based impression tracking', error: e);
     }
   }
 

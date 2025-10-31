@@ -39,6 +39,31 @@ class HomeScreenStreamService {
     AppLogger.common('✅ HomeScreen stream service initialized');
   }
 
+  /// 🚀 FAST STARTUP: Pre-load cached data for instant home access
+  void preloadWithCachedData(Map<String, dynamic> cachedData) {
+    try {
+      // Extract cached user routing data
+      final role = cachedData['role'];
+      final hasSelectedRole = cachedData['hasSelectedRole'] ?? false;
+
+      // 🚨 CRITICAL FIX: Don't trust cached profile completion status!
+      // Only use minimal cached data to show instant UI without navigation decisions
+      final cachedHomeData = HomeScreenData.partial(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        role: role,
+        hasCompletedProfile: null, // Null means "don't know yet"
+        hasSelectedRole: hasSelectedRole,
+      );
+
+      // Emit cached data immediately for instant UI
+      _dataController.add(cachedHomeData);
+      AppLogger.common('⚡ INSTANT HOME: Pre-loaded cached data safely (no profile navigation)');
+    } catch (e) {
+      AppLogger.common('⚠️ Failed to preload cached data: $e');
+      // Continue with normal loading
+    }
+  }
+
   /// Handle authentication state changes
   void _onAuthStateChanged(User? user) {
     final userId = user?.uid;
@@ -334,17 +359,18 @@ class HomeScreenData {
   bool get hasNoData => state == HomeScreenState.noData;
   bool get hasCachedCandidate => state == HomeScreenState.cachedCandidate;
 
+  // Only navigate if profile is NOT completed. Role selection can be ignored if profile is complete
   bool get needsNavigation => isComplete && (
-    !(userModel?.roleSelected ?? true) ||
     !(userModel?.profileCompleted ?? true)
   );
 
   String? get navigationRoute {
     if (!isComplete || userModel == null) return null;
 
-    if (!userModel!.roleSelected) return '/role-selection';
+    // If profile is not completed, go to profile completion
     if (!userModel!.profileCompleted) return '/profile-completion';
 
+    // Profile is completed, stay on home regardless of roleSelected status
     return null; // Stay on home
   }
 

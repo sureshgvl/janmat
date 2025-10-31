@@ -40,11 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentData = data;
       });
 
-      // Handle navigation when data is complete
-      if (data.needsNavigation && data.navigationRoute != null) {
-        AppLogger.common('🚀 Navigating to: ${data.navigationRoute}');
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
+      // ✅ SAFE NAVIGATION: Only navigate when complete data is available
+      // Wait a bit to ensure complete data is stable before navigating
+      if (data.isComplete && data.needsNavigation && data.navigationRoute != null) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _currentData?.isComplete == true && _currentData?.needsNavigation == true) {
+            AppLogger.common('🚀 Navigating to: ${data.navigationRoute} (confirmed complete data)');
             Get.offAllNamed(data.navigationRoute!);
           }
         });

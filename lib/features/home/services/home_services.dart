@@ -64,20 +64,40 @@ class HomeServices {
               candidateModel = candidateUserController.candidate.value;
               AppLogger.common('🎯 Using centralized CandidateUserController data: ${candidateModel?.basicInfo!.fullName}');
             } else {
-              // Load via centralized controller
+              // Load via centralized controller with timeout to prevent hanging
               AppLogger.common('📥 Calling loadCandidateUserData for ${userModel.uid}');
-              await candidateUserController.loadCandidateUserData(userModel.uid);
-              candidateModel = candidateUserController.candidate.value;
-              if (candidateModel != null) {
-                AppLogger.common('📥 Loaded candidate data via CandidateUserController: ${candidateModel.basicInfo!.fullName}');
-              } else {
-                AppLogger.common('⚠️ CandidateUserController.loadCandidateUserData returned null');
+              try {
+                await candidateUserController.loadCandidateUserData(userModel.uid)
+                  .timeout(const Duration(seconds: 10), onTimeout: () {
+                    AppLogger.common('⏰ Candidate data loading timed out after 10 seconds');
+                    return;
+                  });
+                candidateModel = candidateUserController.candidate.value;
+                if (candidateModel != null) {
+                  AppLogger.common('📥 Loaded candidate data via CandidateUserController: ${candidateModel.basicInfo!.fullName}');
+                } else {
+                  AppLogger.common('⚠️ CandidateUserController.loadCandidateUserData returned null');
+                }
+              } catch (timeoutError) {
+                AppLogger.common('⏰ Candidate data loading timed out or failed: $timeoutError');
+                try {
+                  // Try fallback direct load
+                  candidateModel = await _loadCandidateDataOptimized(userModel.uid);
+                } catch (fallbackError) {
+                  AppLogger.common('⚠️ Fallback candidate loading also failed: $fallbackError');
+                  // Continue without candidate data - home screen can handle partial data
+                }
               }
             }
           } catch (e) {
             AppLogger.common('⚠️ Centralized controller failed, using direct load: $e');
-            // Fallback to direct load
-            candidateModel = await _loadCandidateDataOptimized(userModel.uid);
+            try {
+              // Fallback to direct load
+              candidateModel = await _loadCandidateDataOptimized(userModel.uid);
+            } catch (fallbackError) {
+              AppLogger.common('⚠️ Fallback candidate loading also failed: $fallbackError');
+              // Continue without candidate data - home screen can handle partial data
+            }
           }
         } else {
           AppLogger.common('ℹ️ Skipping candidate data load - profileCompleted: ${userModel.profileCompleted}, role: ${userModel.role}');

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/multi_level_cache.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -1106,14 +1107,14 @@ class ProfileCompletionController extends GetxController {
     if (currentRole == 'candidate') {
       await _saveCandidateProfile(context, currentUser, localizations);
     } else {
-      await _saveVoterProfile(context, currentUser, localizations);
+      await _saveVoterProfile(context, currentUser, localizations, currentRole);
     }
 
     final totalTime = DateTime.now().difference(startTime).inMilliseconds;
     AppLogger.common('✅ [PROFILE_COMPLETION] Profile save completed successfully in ${totalTime}ms');
   }
 
-  Future<void> _saveVoterProfile(BuildContext context, User currentUser, ProfileLocalizations localizations) async {
+  Future<void> _saveVoterProfile(BuildContext context, User currentUser, ProfileLocalizations localizations, String currentRole) async {
     final voterStartTime = DateTime.now();
     AppLogger.common('🗳️ [PROFILE_COMPLETION] Starting voter profile save');
 
@@ -1168,6 +1169,30 @@ class ProfileCompletionController extends GetxController {
       await _saveUserData(updatedUser);
       final saveUserTime = DateTime.now().difference(saveUserStartTime).inMilliseconds;
       AppLogger.common('💾 [PROFILE_COMPLETION] User data saved in ${saveUserTime}ms');
+
+      // Clear cached user data to ensure fresh data is loaded on next home screen access
+      try {
+        await MultiLevelCache().set('home_user_data_${currentUser.uid}', null);
+        AppLogger.common('🧹 [PROFILE_COMPLETION] Cleared cached home user data for fresh reload');
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to clear cached user data after profile completion', error: e);
+      }
+
+      // Update cached routing data immediately to prevent navigation loops
+      final cacheUpdateStartTime = DateTime.now();
+      try {
+        final routingData = {
+          'hasCompletedProfile': true,
+          'hasSelectedRole': true,
+          'role': currentRole,
+          'lastLogin': DateTime.now().toIso8601String(),
+        };
+        await MultiLevelCache().setUserRoutingData(currentUser.uid, routingData);
+        final cacheUpdateTime = DateTime.now().difference(cacheUpdateStartTime).inMilliseconds;
+        AppLogger.common('💾 [PROFILE_COMPLETION] Routing cache updated in ${cacheUpdateTime}ms');
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to update routing cache after profile completion', error: e);
+      }
 
       // Refresh chat for voter
       final chatRefreshStartTime = DateTime.now();

@@ -9,6 +9,9 @@ class SymbolUtils {
   // Cache for symbol paths to avoid repeated computations
   static final Map<String, String> _symbolCache = {};
 
+  // Constant to control logging visibility
+  static const bool showLogs = false;
+
   /// Comprehensive party data with multilingual support
   static const List<Map<String, String>> parties = [
     {
@@ -201,7 +204,11 @@ class SymbolUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      AppLogger.symbolError('Error finding party by key $key', error: e);
+      AppLogger.symbolError(
+        'Error finding party by key $key',
+        error: e,
+        isShow: showLogs,
+      );
       return null;
     }
   }
@@ -218,7 +225,11 @@ class SymbolUtils {
         orElse: () => <String, String>{},
       );
     } catch (e) {
-      AppLogger.symbolError('Error finding party by name $name', error: e);
+      AppLogger.symbolError(
+        'Error finding party by name $name',
+        error: e,
+        isShow: showLogs,
+      );
       return null;
     }
   }
@@ -261,30 +272,54 @@ class SymbolUtils {
 
   /// Get party short name with locale
   static String getPartyShortNameLocal(String key, String locale) {
-    AppLogger.candidate('🔍 [SymbolUtils] getPartyShortNameLocal called:');
-    AppLogger.candidate('   key: "$key"');
-    AppLogger.candidate('   locale: "$locale"');
+    AppLogger.candidate(
+      '🔍 [SymbolUtils] getPartyShortNameLocal called:',
+      isShow: showLogs,
+    );
+    AppLogger.candidate('   key: "$key"', isShow: showLogs);
+    AppLogger.candidate('   locale: "$locale"', isShow: showLogs);
 
     final party = getPartyByKey(key);
-    AppLogger.candidate('   getPartyByKey result: ${party != null ? 'found' : 'null'}');
+    AppLogger.candidate(
+      '   getPartyByKey result: ${party != null ? 'found' : 'null'}',
+      isShow: showLogs,
+    );
 
     if (party == null) {
-      AppLogger.candidate('   Returning key (party not found): "$key"');
+      AppLogger.candidate(
+        '   Returning key (party not found): "$key"',
+        isShow: showLogs,
+      );
       return key;
     }
 
-    AppLogger.candidate('   party data: ${party.keys.join(', ')}');
-    AppLogger.candidate('   shortNameMr: "${party['shortNameMr']}"');
-    AppLogger.candidate('   shortNameEn: "${party['shortNameEn']}"');
-    AppLogger.candidate('   nameEn: "${party['nameEn']}"');
+    AppLogger.candidate(
+      '   party data: ${party.keys.join(', ')}',
+      isShow: showLogs,
+    );
+    AppLogger.candidate(
+      '   shortNameMr: "${party['shortNameMr']}"',
+      isShow: showLogs,
+    );
+    AppLogger.candidate(
+      '   shortNameEn: "${party['shortNameEn']}"',
+      isShow: showLogs,
+    );
+    AppLogger.candidate('   nameEn: "${party['nameEn']}"', isShow: showLogs);
 
     if (locale == 'mr' && party['shortNameMr'] != null) {
-      AppLogger.candidate('   Returning Marathi shortNameMr: "${party['shortNameMr']!}"');
+      AppLogger.candidate(
+        '   Returning Marathi shortNameMr: "${party['shortNameMr']!}"',
+        isShow: showLogs,
+      );
       return party['shortNameMr']!;
     }
 
     final result = party['shortNameEn'] ?? party['nameEn'] ?? key;
-    AppLogger.candidate('   Returning fallback result: "$result"');
+    AppLogger.candidate(
+      '   Returning fallback result: "$result"',
+      isShow: showLogs,
+    );
     return result;
   }
 
@@ -384,7 +419,9 @@ class SymbolUtils {
         name: party['nameEn']!,
         nameMr: party['nameMr']!,
         abbreviation: party['shortNameEn']!,
-        symbolPath: party['image'] != null ? 'assets/symbols/${party['image']}' : null,
+        symbolPath: party['image'] != null
+            ? 'assets/symbols/${party['image']}'
+            : null,
         isActive: true,
       );
     }).toList();
@@ -393,11 +430,17 @@ class SymbolUtils {
   /// Get party symbol path with support for independent candidate symbol images
   /// Optimized: Only caches for independent candidates, direct lookup for parties
   static String getPartySymbolPath(String party, {Candidate? candidate}) {
-    AppLogger.common('🔍 [SymbolUtils] Getting symbol for party: $party');
+    AppLogger.common(
+      '🔍 [SymbolUtils] Getting symbol for party: $party',
+      isShow: showLogs,
+    );
 
     // Handle independent candidates with potential caching
     if (party.toLowerCase().contains('independent') || party.trim().isEmpty) {
-      AppLogger.common('🎯 [SymbolUtils] Independent candidate detected');
+      AppLogger.common(
+        '🎯 [SymbolUtils] Independent candidate detected',
+        isShow: showLogs,
+      );
 
       // Only cache if we have candidate data
       if (candidate != null) {
@@ -414,24 +457,28 @@ class SymbolUtils {
             candidate.symbolUrl!.startsWith('http')) {
           AppLogger.common(
             '🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}',
+            isShow: showLogs,
           );
           _symbolCache[cacheKey] = candidate.symbolUrl!;
           return candidate.symbolUrl!;
         }
 
         // Fallback: Check for uploaded symbol image URL in media
-        if (candidate.media != null &&
-            candidate.media!.isNotEmpty) {
-          final foundSymbolMedia = candidate.media!.cast<Map<String, dynamic>>().firstWhere(
-            (item) => item['type'] == 'symbolImage',
-            orElse: () => <String, dynamic>{},
-          );
-          if (foundSymbolMedia.isNotEmpty && foundSymbolMedia.containsKey('url')) {
+        if (candidate.media != null && candidate.media!.isNotEmpty) {
+          final foundSymbolMedia = candidate.media!
+              .cast<Map<String, dynamic>>()
+              .firstWhere(
+                (item) => item['type'] == 'symbolImage',
+                orElse: () => <String, dynamic>{},
+              );
+          if (foundSymbolMedia.isNotEmpty &&
+              foundSymbolMedia.containsKey('url')) {
             final symbolImageUrl = foundSymbolMedia['url'] as String;
             if (symbolImageUrl.isNotEmpty &&
                 symbolImageUrl.startsWith('http')) {
               AppLogger.common(
                 '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',
+                isShow: showLogs,
               );
               _symbolCache[cacheKey] = symbolImageUrl;
               return symbolImageUrl;
@@ -441,12 +488,18 @@ class SymbolUtils {
       }
 
       // Fallback for independent candidates (no caching needed for static asset)
-      AppLogger.common('🎨 [SymbolUtils] Using default independent asset');
+      AppLogger.common(
+        '🎨 [SymbolUtils] Using default independent asset',
+        isShow: showLogs,
+      );
       return 'assets/symbols/independent.png';
     }
 
     // For regular parties - Direct lookup, no caching needed
-    AppLogger.common('🏛️ [SymbolUtils] Party-affiliated candidate detected');
+    AppLogger.common(
+      '🏛️ [SymbolUtils] Party-affiliated candidate detected',
+      isShow: showLogs,
+    );
 
     // First check if the party string is already a key
     Map<String, String>? partyData = getPartyByKey(party);
@@ -482,11 +535,14 @@ class SymbolUtils {
     // Return symbol path from party data
     if (partyData != null && partyData['image'] != null) {
       final result = 'assets/symbols/${partyData['image']!}';
-      AppLogger.common('🏛️ [SymbolUtils] Using party asset: $result');
+      AppLogger.common(
+        '🏛️ [SymbolUtils] Using party asset: $result',
+        isShow: showLogs,
+      );
       return result;
     }
 
-    AppLogger.common('🏛️ [SymbolUtils] Using default asset');
+    AppLogger.common('🏛️ [SymbolUtils] Using default asset', isShow: showLogs);
     return 'assets/symbols/default.png';
   }
 
@@ -506,13 +562,17 @@ class SymbolUtils {
 
     AppLogger.common(
       '🔍 [SymbolUtils] For party: ${party.name}, Candidate: ${candidate?.basicInfo!.fullName ?? 'null'}',
+      isShow: showLogs,
     );
 
     // First check if candidate data exists for independent candidates
     if (candidate != null &&
         (party.id == 'independent' ||
             party.name.toLowerCase().contains('independent'))) {
-      AppLogger.common('🎯 [SymbolUtils] Independent candidate detected');
+      AppLogger.common(
+        '🎯 [SymbolUtils] Independent candidate detected',
+        isShow: showLogs,
+      );
 
       // Check for symbolUrl in candidate data (primary source)
       if (candidate.symbolUrl != null &&
@@ -520,24 +580,27 @@ class SymbolUtils {
           candidate.symbolUrl!.startsWith('http')) {
         AppLogger.common(
           '🎨 [SymbolUtils] Using candidate.symbolUrl: ${candidate.symbolUrl}',
+          isShow: showLogs,
         );
         _symbolCache[cacheKey] = candidate.symbolUrl!;
         return candidate.symbolUrl!;
       }
 
       // Fallback: Check for uploaded symbol image URL in media
-      if (candidate.media != null &&
-          candidate.media!.isNotEmpty) {
-        final foundSymbolMedia = candidate.media!.cast<Map<String, dynamic>>().firstWhere(
-          (item) => item['type'] == 'symbolImage',
-          orElse: () => <String, dynamic>{},
-        );
-        if (foundSymbolMedia.isNotEmpty && foundSymbolMedia.containsKey('url')) {
+      if (candidate.media != null && candidate.media!.isNotEmpty) {
+        final foundSymbolMedia = candidate.media!
+            .cast<Map<String, dynamic>>()
+            .firstWhere(
+              (item) => item['type'] == 'symbolImage',
+              orElse: () => <String, dynamic>{},
+            );
+        if (foundSymbolMedia.isNotEmpty &&
+            foundSymbolMedia.containsKey('url')) {
           final symbolImageUrl = foundSymbolMedia['url'] as String;
-          if (symbolImageUrl.isNotEmpty &&
-              symbolImageUrl.startsWith('http')) {
+          if (symbolImageUrl.isNotEmpty && symbolImageUrl.startsWith('http')) {
             AppLogger.common(
               '🎨 [SymbolUtils] Using uploaded image URL from media: $symbolImageUrl',
+              isShow: showLogs,
             );
             _symbolCache[cacheKey] = symbolImageUrl;
             return symbolImageUrl; // Return the Firebase Storage URL
@@ -555,6 +618,7 @@ class SymbolUtils {
     if (party.symbolPath != null && party.symbolPath!.isNotEmpty) {
       AppLogger.common(
         '🏛️ [SymbolUtils] Using party model symbolPath: ${party.symbolPath}',
+        isShow: showLogs,
       );
       _symbolCache[cacheKey] = party.symbolPath!;
       return party.symbolPath!;
@@ -563,6 +627,7 @@ class SymbolUtils {
     // Fallback to the existing mapping logic
     AppLogger.common(
       '🏛️ [SymbolUtils] Falling back to legacy mapping for party: ${party.name}',
+      isShow: showLogs,
     );
     return getPartySymbolPath(party.name, candidate: candidate);
   }
@@ -580,7 +645,7 @@ class SymbolUtils {
   /// Clear the symbol cache (useful when candidate data changes)
   static void clearCache() {
     _symbolCache.clear();
-    AppLogger.common('🧹 [SymbolUtils] Symbol cache cleared');
+    AppLogger.common('🧹 [SymbolUtils] Symbol cache cleared', isShow: showLogs);
   }
 
   /// Get cache size for debugging

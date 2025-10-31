@@ -41,6 +41,13 @@ class _CandidateDashboardBasicInfoState
   String? _districtName;
   String? _bodyName;
 
+  // Stable callback to prevent repeated SymbolUtils calls
+  late final String Function(String) _getPartySymbolPath = (party) =>
+      SymbolUtils.getPartySymbolPath(
+        party,
+        candidate: candidateUserController.candidateData.value,
+      );
+
   @override
   void initState() {
     super.initState();
@@ -252,13 +259,11 @@ class _CandidateDashboardBasicInfoState
       return Scaffold(
         body: SingleChildScrollView(
           child: isEditing
-              ? BasicInfoEdit(
+            ? BasicInfoEdit(
                   candidateData: candidateUserController.candidateData.value!,
-                  editedData: candidateUserController.editedData.value,
-                  getPartySymbolPath: (party) => SymbolUtils.getPartySymbolPath(
-                    party,
-                    candidate: candidateUserController.candidateData.value,
-                  ),
+                  editedData: candidateUserController.editedData.value ??
+                      candidateUserController.candidateData.value!,
+                  getPartySymbolPath: _getPartySymbolPath,
                   onNameChange: (value) =>
                       candidateUserController.updateBasicInfo('name', value),
                   onCityChange: (value) => candidateUserController
@@ -267,8 +272,10 @@ class _CandidateDashboardBasicInfoState
                       candidateUserController.updateBasicInfo('wardId', value),
                   onPartyChange: (value) =>
                       candidateUserController.updateBasicInfo('party', value),
-                  onPhotoChange: (value) =>
-                      candidateUserController.updatePhoto(value),
+                  onPhotoChange: (value) {
+                    AppLogger.candidate('🏠 DASHBOARD SCREEN: Photo change callback with value: $value', tag: 'PHOTO_DEBUG');
+                    candidateUserController.updatePhoto(value);
+                  },
                   onBasicInfoChange: (field, value) =>
                       candidateUserController.updateBasicInfo(field, value),
                 )
@@ -276,12 +283,7 @@ class _CandidateDashboardBasicInfoState
                   builder: (context) {
                   return BasicInfoTabView(
                     candidate: candidateUserController.candidateData.value!,
-                    getPartySymbolPath: (party) =>
-                        SymbolUtils.getPartySymbolPath(
-                          party,
-                          candidate:
-                              candidateUserController.candidateData.value,
-                        ),
+                    getPartySymbolPath: _getPartySymbolPath,
                     formatDate: (date) => '${date.day}/${date.month}/${date.year}',
                     districtName: _districtName,
                     wardName: _wardName,
