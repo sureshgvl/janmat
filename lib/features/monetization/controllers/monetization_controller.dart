@@ -9,7 +9,8 @@ import '../../../models/plan_model.dart';
 import '../../../models/body_model.dart';
 import '../../../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
-import '../../../controllers/highlight_controller.dart';
+import '../../../controllers/highlight_controller.dart' as hc;
+import '../../../features/candidate/controllers/candidate_controller.dart';
 import '../repositories/monetization_repository.dart';
 import '../widgets/plan_purchase_success_dialog.dart';
 import '../widgets/plan_benefits_showcase.dart';
@@ -917,38 +918,39 @@ class MonetizationController extends GetxController {
   // Create welcome content for Platinum users
   Future<void> _createPlatinumWelcomeContent(String userId) async {
     try {
-      // Get candidate data
-      final candidateData = await _getCandidateDataForUser(userId);
-      if (candidateData == null) {
+      // Get candidate controller and retrieve candidate data directly
+      final candidateController = Get.find<CandidateController>();
+      final candidate = await candidateController.candidateRepository.getCandidateData(userId);
+      if (candidate == null) {
         AppLogger.monetization('❌ No candidate data found for user: $userId');
         return;
       }
 
-      AppLogger.monetization('✅ Found candidate data for Platinum content creation: ${candidateData['candidateId']}');
+      AppLogger.monetization('✅ Found candidate data for Platinum content creation: ${candidate.candidateId}');
 
       // Get highlight controller
-      final highlightController = Get.find<HighlightController>();
+      final highlightController = Get.find<hc.HighlightController>();
 
       // Create Platinum highlight - ensure we use the correct hierarchical path
-      AppLogger.monetization('🔥 Creating Platinum highlight for candidate: ${candidateData['candidateId']}');
+      AppLogger.monetization('🔥 Creating Platinum highlight for candidate: ${candidate.candidateId}');
       await highlightController.createPlatinumHighlight(
-        candidateId: candidateData['candidateId'],
-        districtId: candidateData['districtId'],
-        bodyId: candidateData['bodyId'],
-        wardId: candidateData['wardId'],
-        candidateName: candidateData['name'],
-        party: candidateData['party'] ?? 'Independent',
-        imageUrl: candidateData['photo'],
+        candidateId: candidate.candidateId,
+        districtId: candidate.location.districtId!,
+        bodyId: candidate.location.bodyId!,
+        wardId: candidate.location.wardId!,
+        candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
+        party: candidate.party,
+        imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
       );
 
       // Create welcome sponsored post
       await highlightController.createPushFeedItem(
-        candidateId: candidateData['candidateId'],
-        wardId: candidateData['wardId'],
+        candidateId: candidate.candidateId,
+        wardId: candidate.location.wardId!,
         title: '🎉 Platinum Plan Activated!',
         message:
-            '${candidateData['name']} is now a Platinum member with maximum visibility!',
-        imageUrl: candidateData['photo'],
+            '${candidate.basicInfo?.fullName ?? 'The candidate'} is now a Platinum member with maximum visibility!',
+        imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
       );
 
       AppLogger.monetization('✅ Platinum welcome content created successfully');
@@ -960,113 +962,66 @@ class MonetizationController extends GetxController {
   // Create content for highlight plans
   Future<void> _createHighlightPlanContent(String userId, String planId, String? electionType, int validityDays) async {
     try {
-      // Get candidate data
-      final candidateData = await _getCandidateDataForUser(userId);
-      if (candidateData == null) {
+      AppLogger.monetization('🎯 ======= CREATING HIGHLIGHT PLAN CONTENT =======');
+      AppLogger.monetization('🎯 User ID: $userId, Plan ID: $planId, Election Type: $electionType, Validity: $validityDays days');
+
+      // Get candidate controller and retrieve candidate data directly
+      final candidateController = Get.find<CandidateController>();
+      AppLogger.monetization('🎯 Getting candidate data for user: $userId');
+
+      final candidate = await candidateController.candidateRepository.getCandidateData(userId);
+      if (candidate == null) {
         AppLogger.monetization('❌ No candidate data found for user: $userId');
         return;
       }
 
-      AppLogger.monetization('✅ Found candidate data for highlight plan content creation: ${candidateData['candidateId']}');
+      AppLogger.monetization('✅ Found candidate data for highlight plan content creation: ${candidate.candidateId}');
+      AppLogger.monetization('📍 Candidate location: ${candidate.location.districtId}/${candidate.location.bodyId}/${candidate.location.wardId}');
 
       // Get highlight controller
-      final highlightController = Get.find<HighlightController>();
+      final highlightController = Get.find<hc.HighlightController>();
+      AppLogger.monetization('🎯 HighlightController found, starting highlight creation');
 
       // Create highlight based on plan type
       if (planId == 'highlight_plan') {
-        AppLogger.monetization('🔥 Creating highlight plan content for candidate: ${candidateData['candidateId']}');
-
-        // Get highlight config from candidate dashboard
-        Map<String, dynamic>? highlightConfig;
-        if (candidateData['extra_info'] != null &&
-            candidateData['extra_info']['highlight'] != null) {
-          highlightConfig = candidateData['extra_info']['highlight'] as Map<String, dynamic>;
-          AppLogger.monetization('📋 Found highlight config in candidate data: $highlightConfig');
-        }
+        AppLogger.monetization('🔥 Creating highlight plan content for candidate: ${candidate.candidateId}');
 
         await highlightController.createPlatinumHighlight(
-          candidateId: candidateData['candidateId'],
-          districtId: candidateData['districtId'],
-          bodyId: candidateData['bodyId'],
-          wardId: candidateData['wardId'],
-          candidateName: candidateData['name'],
-          party: candidateData['party'] ?? 'Independent',
-          imageUrl: candidateData['photo'],
+          candidateId: candidate.candidateId,
+          districtId: candidate.location.districtId!,
+          bodyId: candidate.location.bodyId!,
+          wardId: candidate.location.wardId!,
+          candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
+          party: candidate.party,
+          imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
           priorityLevel: 'normal', // Default priority for highlight plan
           validityDays: validityDays, // Use the purchased validity days
           placement: ['top_banner'], // Only banner for highlight plans
-          highlightConfig: highlightConfig, // Pass the config from dashboard
         );
 
         // Create welcome sponsored post
         await highlightController.createPushFeedItem(
-          candidateId: candidateData['candidateId'],
-          wardId: candidateData['wardId'],
+          candidateId: candidate.candidateId,
+          wardId: candidate.location.wardId!,
           title: '🎉 Highlight Plan Activated!',
           message:
-              '${candidateData['name']} is now visible in highlight banners!',
-          imageUrl: candidateData['photo'],
+              '${candidate.basicInfo?.fullName ?? 'The candidate'} is now visible in highlight banners!',
+          imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
         );
 
         AppLogger.monetization('✅ Highlight plan content created successfully');
+      } else {
+        AppLogger.monetization('⚠️ Unknown plan ID: $planId, no content created');
       }
+
+      AppLogger.monetization('🎯 ======= HIGHLIGHT PLAN CONTENT CREATION COMPLETED =======\n');
     } catch (e) {
       AppLogger.monetization('❌ Error creating highlight plan content: $e');
+      AppLogger.monetization('🎯 ======= HIGHLIGHT PLAN CONTENT CREATION FAILED =======\n');
     }
   }
 
-  // Get candidate data for a user
-  Future<Map<String, dynamic>?> _getCandidateDataForUser(String userId) async {
-    try {
-      // Get user document to find candidate location
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
 
-      if (!userDoc.exists) {
-        return null;
-      }
-
-      final userData = userDoc.data()!;
-      final electionAreas = userData['electionAreas'] as List<dynamic>?;
-
-      if (electionAreas == null || electionAreas.isEmpty) {
-        return null;
-      }
-
-      // Use first election area
-      final primaryArea = electionAreas[0] as Map<String, dynamic>;
-      final bodyId = primaryArea['bodyId'] as String;
-      final wardId = primaryArea['wardId'] as String;
-
-      // Get candidate data from the old structure (for now)
-      final candidateQuery = await FirebaseFirestore.instance
-          .collection('states')
-          .doc('maharashtra')
-          .collection('districts')
-          .doc(userData['districtId'])
-          .collection('bodies')
-          .doc(bodyId)
-          .collection('wards')
-          .doc(wardId)
-          .collection('candidates')
-          .where('userId', isEqualTo: userId)
-          .limit(1)
-          .get();
-
-      if (candidateQuery.docs.isEmpty) {
-        return null;
-      }
-
-      final candidateData = candidateQuery.docs.first.data();
-      candidateData['candidateId'] = candidateQuery.docs.first.id;
-
-      return candidateData;
-    } catch (e) {
-      return null;
-    }
-  }
 
   // Utility Methods
 
@@ -1274,6 +1229,17 @@ class MonetizationController extends GetxController {
   bool get showOnlyXPPlans {
     final user = currentUserModel.value;
     return user?.role == 'voter';
+  }
+
+  // Premium features visibility - only show for candidates
+  bool get showPremiumCard {
+    final user = currentUserModel.value;
+    return user?.role == 'candidate';
+  }
+
+  bool get showPremiumDrawerMenu {
+    final user = currentUserModel.value;
+    return user?.role == 'candidate';
   }
 
   String get plansTabText {

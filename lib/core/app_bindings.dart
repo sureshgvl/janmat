@@ -26,10 +26,12 @@ import '../controllers/device_info_controller.dart';
 import '../controllers/notification_settings_controller.dart';
 import '../controllers/following_controller.dart';
 import '../controllers/language_controller.dart';
+import '../controllers/highlight_controller.dart';
 import '../services/background_location_sync_service.dart';
 import '../services/manifesto_sync_service.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
 import '../services/gamification_service.dart';
+import '../features/monetization/controllers/monetization_controller.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -67,6 +69,12 @@ class AppBindings extends Bindings {
     Get.put<NotificationSettingsController>(NotificationSettingsController());
     AppLogger.common('✅ NotificationSettingsController put in bindings');
     Get.put<FollowingController>(FollowingController());
+
+    // Register HighlightController for monetization features
+    Get.put<HighlightController>(HighlightController());
+
+    // Register MonetizationController for premium features
+    Get.put<MonetizationController>(MonetizationController());
 
     // Lazy load services that are only needed on specific screens
     Get.lazyPut<AdMobService>(() => AdMobService());

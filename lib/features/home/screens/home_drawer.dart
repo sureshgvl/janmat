@@ -274,19 +274,22 @@ class HomeDrawer extends StatelessWidget {
               ); // Navigate to about screen
             },
           ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.star, color: Color(0xFFFF9933)),
-            title: Text(AppLocalizations.of(context)!.premiumFeatures),
-            subtitle: Text(
-              AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures,
+          // Premium Features - only show for candidates
+          if (userModel?.role == 'candidate') ...[
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.star, color: Color(0xFFFF9933)),
+              title: Text(AppLocalizations.of(context)!.premiumFeatures),
+              subtitle: Text(
+                AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures,
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                HomeNavigation.toRightToLeft(const MonetizationScreen());
+              },
             ),
-            onTap: () {
-              Navigator.pop(context); // Close drawer
-              HomeNavigation.toRightToLeft(const MonetizationScreen());
-            },
-          ),
-          const Divider(),
+            const Divider(),
+          ],
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.orange),
             title: Text(

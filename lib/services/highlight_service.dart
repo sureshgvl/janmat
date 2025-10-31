@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/app_logger.dart';
+import '../features/candidate/models/location_model.dart';
 
 class Highlight {
   final String id;
   final String candidateId;
-  final String wardId;
-  final String districtId;
-  final String bodyId; // Added for hierarchical targeting
+  final LocationModel location; // Unified location model with stateId
   final String locationKey; // Composite key: district_body_ward
   final String package;
   final List<String> placement;
@@ -27,9 +26,7 @@ class Highlight {
   Highlight({
     required this.id,
     required this.candidateId,
-    required this.wardId,
-    required this.districtId,
-    required this.bodyId,
+    required this.location,
     required this.locationKey,
     required this.package,
     required this.placement,
@@ -48,13 +45,17 @@ class Highlight {
     required this.createdAt,
   });
 
+  // Backward compatibility getters
+  String get wardId => location.wardId ?? '';
+  String get districtId => location.districtId ?? '';
+  String get bodyId => location.bodyId ?? '';
+  String get stateId => location.stateId ?? 'maharashtra';
+
   factory Highlight.fromJson(Map<String, dynamic> json) {
     return Highlight(
       id: json['highlightId'] ?? '',
       candidateId: json['candidateId'] ?? '',
-      wardId: json['wardId'] ?? '',
-      districtId: json['districtId'] ?? '',
-      bodyId: json['bodyId'] ?? '',
+      location: LocationModel.fromJson(json),
       locationKey: json['locationKey'] ?? '',
       package: json['package'] ?? '',
       placement: List<String>.from(json['placement'] ?? []),
@@ -76,11 +77,15 @@ class Highlight {
 
   Map<String, dynamic> toJson() {
     return {
+      // Location model fields
+      ...location.toJson(),
+      // Legacy fields for backward compatibility
+      'wardId': location.wardId,
+      'districtId': location.districtId,
+      'bodyId': location.bodyId,
+      // Other fields
       'highlightId': id,
       'candidateId': candidateId,
-      'wardId': wardId,
-      'districtId': districtId,
-      'bodyId': bodyId,
       'locationKey': locationKey,
       'package': package,
       'placement': placement,
@@ -156,6 +161,7 @@ class PushFeedItem {
 class HighlightService {
   // Get active highlights for a specific district/body/ward combination
   static Future<List<Highlight>> getActiveHighlights(
+    String stateId,
     String districtId,
     String bodyId,
     String wardId,
@@ -167,7 +173,7 @@ class HighlightService {
       final now = DateTime.now();
       final snapshot = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .doc(stateId) // Use the stateId parameter
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -176,25 +182,32 @@ class HighlightService {
           .doc(wardId)
           .collection('highlights')
           .where('active', isEqualTo: true)
-          .orderBy('priority', descending: true) // Single orderBy to avoid composite index
-          .limit(10) // Limit to 10 directly since all are premium
+          .limit(20) // Get more to allow sorting in memory
           .get();
 
-      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} potential highlights, filtering by expiry...');
+      AppLogger.common('🎠 HighlightService: Found ${snapshot.docs.length} potential highlights from query');
 
-      // Filter expired highlights manually (simpler than complex query)
-      final highlights = snapshot.docs
+      // Convert to highlight objects and filter expired highlights manually
+      final activeHighlights = snapshot.docs
           .map((doc) => Highlight.fromJson(doc.data()))
           .where((highlight) => highlight.endDate.isAfter(now))
           .toList();
 
-      AppLogger.common('🎠 HighlightService: Found ${highlights.length} active premium highlights after expiry filter');
+      AppLogger.common('🎠 HighlightService: Found ${activeHighlights.length} active non-expired highlights');
 
-      if (highlights.isNotEmpty) {
-        AppLogger.common('🎠 HighlightService: First highlight - ID: ${highlights.first.id}, Candidate: ${highlights.first.candidateName}');
+      // Sort by priority in memory (can't use composite index with orderBy+where)
+      activeHighlights.sort((a, b) => b.priority.compareTo(a.priority));
+
+      // Take top 10
+      final topHighlights = activeHighlights.take(10).toList();
+
+      AppLogger.common('🎠 HighlightService: Returning top ${topHighlights.length} highlights after priority sorting');
+
+      if (topHighlights.isNotEmpty) {
+        AppLogger.common('🎠 HighlightService: Top highlight - ID: ${topHighlights.first.id}, Candidate: ${topHighlights.first.candidateName}, Priority: ${topHighlights.first.priority}');
       }
 
-      return highlights;
+      return topHighlights;
     } catch (e) {
       AppLogger.commonError('❌ HighlightService: Error fetching highlights', error: e);
       return [];
@@ -224,24 +237,26 @@ class HighlightService {
           .collection('highlights')
           .where('active', isEqualTo: true)
           .where('placement', arrayContains: 'top_banner')
-          .orderBy('priority', descending: true) // Single orderBy to avoid composite index requirement
-          .limit(4) // Max 4 banners, rotate every 3 seconds
+          .limit(20) // Get more for priority sorting
           .get();
 
-      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} potential banners, filtering by expiry...');
+      AppLogger.common('🏷️ HighlightService: Found ${snapshot.docs.length} potential banners from query');
 
-      // Filter expired highlights manually (simpler than complex query)
-      final validBanners = snapshot.docs
+      // Convert and sort by priority in memory (can't use composite index with arrayContains)
+      final activeBanners = snapshot.docs
           .map((doc) => Highlight.fromJson(doc.data()))
           .where((highlight) => highlight.endDate.isAfter(now))
           .toList();
 
-      AppLogger.common('🏷️ HighlightService: Found ${validBanners.length} active premium banners after expiry filter');
+      AppLogger.common('🏷️ HighlightService: Found ${activeBanners.length} active non-expired banners');
 
-      if (validBanners.isNotEmpty) {
-        // Return first banner (they will rotate on frontend)
-        final highlight = validBanners.first;
-        AppLogger.common('🏷️ HighlightService: Returning banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}');
+      // Sort by priority (highest first)
+      activeBanners.sort((a, b) => b.priority.compareTo(a.priority));
+
+      // Return top banner
+      if (activeBanners.isNotEmpty) {
+        final highlight = activeBanners.first;
+        AppLogger.common('🏷️ HighlightService: Returning top banner - ID: ${highlight.id}, Candidate: ${highlight.candidateName}, Priority: ${highlight.priority}');
         return highlight;
       }
 
@@ -346,12 +361,17 @@ class HighlightService {
       final locationKey =
           '${districtId}_${bodyId}_$wardId'; // Keep for backward compatibility
 
+      final location = LocationModel(
+        stateId: 'maharashtra', // Default state
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
+
       final highlight = Highlight(
         id: highlightId,
         candidateId: candidateId,
-        wardId: wardId,
-        districtId: districtId,
-        bodyId: bodyId,
+        location: location,
         locationKey: locationKey,
         package: package,
         placement: placement,
@@ -531,12 +551,17 @@ class HighlightService {
       // Calculate priority based on level
       int priorityValue = _getPriorityValue(priorityLevel);
 
+      final location = LocationModel(
+        stateId: 'maharashtra', // Default state
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
+
       final highlight = Highlight(
         id: highlightId,
         candidateId: candidateId,
-        wardId: wardId,
-        districtId: districtId,
-        bodyId: bodyId,
+        location: location,
         locationKey: locationKey,
         package: 'platinum', // Platinum package
         placement: placement, // Use provided placement

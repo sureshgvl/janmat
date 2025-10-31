@@ -689,16 +689,16 @@ class CandidateOperations {
     try {
       final stateId = stateRef.id;
 
-      // Try to find in all districts for this state (limited search for performance)
-      final districtsSnapshot = await stateRef.collection('districts').limit(20).get();
+      // Try to find in all districts for this state (increased limits for comprehensive search)
+      final districtsSnapshot = await stateRef.collection('districts').limit(50).get();
 
       for (var districtDoc in districtsSnapshot.docs) {
         // For each district, try to find the candidate in all bodies
-        final bodiesSnapshot = await districtDoc.reference.collection('bodies').limit(20).get();
+        final bodiesSnapshot = await districtDoc.reference.collection('bodies').limit(50).get();
 
         for (var bodyDoc in bodiesSnapshot.docs) {
           // For each body, try to find the candidate in all wards
-          final wardsSnapshot = await bodyDoc.reference.collection('wards').limit(50).get();
+          final wardsSnapshot = await bodyDoc.reference.collection('wards').limit(100).get();
 
           for (var wardDoc in wardsSnapshot.docs) {
             final candidateDoc = await wardDoc.reference.collection('candidates').doc(candidateId).get();

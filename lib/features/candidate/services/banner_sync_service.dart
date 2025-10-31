@@ -15,10 +15,13 @@ class BannerSyncService {
     try {
       AppLogger.database('Syncing banner to highlights collection for ${candidate.basicInfo!.fullName}', tag: 'BANNER_SYNC_SERVICE');
 
+      // Get dynamic state ID from candidate location
+      final stateId = candidate.location.stateId ?? 'maharashtra';
+
       // Check if highlight already exists in hierarchical structure
       final existingHighlights = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra')
+          .doc(stateId)
           .collection('districts')
           .doc(candidate.location.districtId ?? 'unknown')
           .collection('bodies')
@@ -40,7 +43,7 @@ class BannerSyncService {
 
         await FirebaseFirestore.instance
             .collection('states')
-            .doc('maharashtra')
+            .doc(stateId)
             .collection('districts')
             .doc(candidate.location.districtId ?? 'unknown')
             .collection('bodies')
@@ -97,7 +100,7 @@ class BannerSyncService {
 
         await FirebaseFirestore.instance
             .collection('states')
-            .doc('maharashtra')
+            .doc(stateId)
             .collection('districts')
             .doc(candidate.location.districtId ?? 'unknown')
             .collection('bodies')
