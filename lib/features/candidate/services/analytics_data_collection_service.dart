@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../utils/app_logger.dart';
+import '../../../utils/app_logger.dart';
 
 /// Service for collecting and aggregating analytics data
 class AnalyticsDataCollectionService {

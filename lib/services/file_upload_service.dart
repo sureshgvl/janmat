@@ -9,7 +9,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import '../utils/app_logger.dart';
-import 'media_cache_service.dart';
+import '../features/candidate/services/media_cache_service.dart';
 
 /// Defines different image usage purposes for optimization
 enum ImagePurpose {

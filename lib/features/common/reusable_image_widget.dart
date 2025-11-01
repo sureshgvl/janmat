@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_logger.dart';
-import '../../services/media_cache_service.dart';
+import '../candidate/services/media_cache_service.dart';
 import 'whatsapp_image_viewer.dart';
 
 /// A reusable widget for displaying images with proper aspect ratio handling and WhatsApp-style full-screen viewer

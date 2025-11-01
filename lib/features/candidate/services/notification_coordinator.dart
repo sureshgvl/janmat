@@ -1,6 +1,6 @@
 import '../../../utils/app_logger.dart';
-import '../../../services/notifications/constituency_notifications.dart';
-import '../../../services/notifications/campaign_milestones_notifications.dart';
+import '../../notifications/services/constituency_notifications.dart';
+import '../../notifications/services/campaign_milestones_notifications.dart';
 import '../models/candidate_model.dart';
 
 /// Service responsible for coordinating all notification operations.

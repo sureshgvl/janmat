@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
-import 'package:janmat/services/analytics_export_service.dart';
-import 'package:janmat/services/manifesto_likes_service.dart';
-import 'package:janmat/services/manifesto_poll_service.dart';
+import 'package:janmat/features/candidate/services/analytics_export_service.dart';
+import 'package:janmat/features/candidate/services/manifesto_likes_service.dart';
+import 'package:janmat/features/candidate/services/manifesto_poll_service.dart';
 import 'package:janmat/widgets/charts/follower_growth_chart.dart';
 
 

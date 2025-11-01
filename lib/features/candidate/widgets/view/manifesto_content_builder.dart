@@ -3,12 +3,12 @@ import 'package:get/get.dart';
 import '../../models/candidate_model.dart';
 import '../../../../services/demo_data_service.dart';
 import '../../../../services/share_service.dart';
-import '../../../../services/notifications/constituency_notifications.dart';
+import '../../../notifications/services/constituency_notifications.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import 'manifesto_resources_section.dart';
 import 'manifesto_poll_section.dart';
-import '../../../../services/manifesto_likes_service.dart';
-import '../../../../services/analytics_data_collection_service.dart';
+import '../../services/manifesto_likes_service.dart';
+import '../../services/analytics_data_collection_service.dart';
 import '../../../../utils/advanced_analytics.dart' as analytics;
 
 class ManifestoContentBuilder extends StatefulWidget {

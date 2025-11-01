@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/connection_optimizer.dart';
-import '../utils/app_logger.dart';
+import '../../../utils/connection_optimizer.dart';
+import '../../../utils/app_logger.dart';
 
 /// Service for real-time analytics streaming
 class RealtimeAnalyticsService {

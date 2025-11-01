@@ -5,7 +5,7 @@ import '../../models/candidate_model.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../screens/followers_list_screen.dart';
 import '../../../../utils/app_logger.dart';
-import '../../../../services/realtime_analytics_service.dart';
+import '../../services/realtime_analytics_service.dart';
 
 class FollowersAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;

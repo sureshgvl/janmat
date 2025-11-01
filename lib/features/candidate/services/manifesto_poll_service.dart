@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/performance_monitor.dart';
-import '../utils/connection_optimizer.dart';
-import '../utils/app_logger.dart';
+import '../../../utils/performance_monitor.dart';
+import '../../../utils/connection_optimizer.dart';
+import '../../../utils/app_logger.dart';
 import 'manifesto_cache_service.dart';
-import '../features/notifications/services/poll_notification_service.dart';
+import '../../notifications/services/poll_notification_service.dart';
 
 class ManifestoPollService {
   static final PerformanceMonitor _monitor = PerformanceMonitor();

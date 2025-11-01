@@ -10,7 +10,7 @@ import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/memory_manager.dart';
-import '../../../services/notifications/candidate_following_notifications.dart';
+import '../../notifications/services/candidate_following_notifications.dart';
 import '../../../services/local_database_service.dart';
 import '../../../utils/app_logger.dart';
 

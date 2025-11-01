@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../utils/maharashtra_utils.dart';
-import '../../../widgets/profile/district_selection_modal.dart';
+import '../../../widgets/modals/district_selection_modal.dart';
 import '../controllers/profile_completion_controller.dart';
 
 class DistrictSelectionWidget extends StatelessWidget {

@@ -1,17 +1,105 @@
 import 'package:flutter/material.dart';
+import '../highlight/services/highlight_service.dart';
 
-class AllocatedSeatsDisplay extends StatelessWidget {
+class AllocatedSeatsDisplay extends StatefulWidget {
   final int maxHighlights;
-  final int allocatedSeats;
+  final String? stateId;
+  final String? districtId;
+  final String? bodyId;
+  final String? wardId;
 
   const AllocatedSeatsDisplay({
     required this.maxHighlights,
-    required this.allocatedSeats,
+    this.stateId,
+    this.districtId,
+    this.bodyId,
+    this.wardId,
     super.key,
   });
 
   @override
+  State<AllocatedSeatsDisplay> createState() => _AllocatedSeatsDisplayState();
+}
+
+class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
+  int allocatedSeats = 0;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllocatedSeats();
+  }
+
+  @override
+  void didUpdateWidget(AllocatedSeatsDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload if location parameters changed
+    if (oldWidget.stateId != widget.stateId ||
+        oldWidget.districtId != widget.districtId ||
+        oldWidget.bodyId != widget.bodyId ||
+        oldWidget.wardId != widget.wardId) {
+      _loadAllocatedSeats();
+    }
+  }
+
+  Future<void> _loadAllocatedSeats() async {
+    if (widget.stateId == null || widget.districtId == null ||
+        widget.bodyId == null || widget.wardId == null) {
+      setState(() {
+        allocatedSeats = 0;
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      setState(() => isLoading = true);
+
+      // Get all active highlights in the ward
+      final highlights = await HighlightService.getActiveHighlights(
+        widget.stateId!,
+        widget.districtId!,
+        widget.bodyId!,
+        widget.wardId!,
+      );
+
+      setState(() {
+        allocatedSeats = highlights.length;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        allocatedSeats = 0;
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.amber[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.amber[200]!, width: 1.5),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 8),
+            Text('Loading allocated seats...'),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -34,11 +122,11 @@ class AllocatedSeatsDisplay extends StatelessWidget {
                 ),
               ),
               Text(
-                '$allocatedSeats/$maxHighlights',
+                '$allocatedSeats/${widget.maxHighlights}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: allocatedSeats == maxHighlights ? Colors.green : Colors.grey[600],
+                  color: allocatedSeats == widget.maxHighlights ? Colors.green : Colors.grey[600],
                 ),
               ),
             ],
@@ -46,7 +134,7 @@ class AllocatedSeatsDisplay extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: List.generate(
-              maxHighlights,
+              widget.maxHighlights,
               (index) => Container(
                 margin: const EdgeInsets.only(right: 4),
                 child: Icon(

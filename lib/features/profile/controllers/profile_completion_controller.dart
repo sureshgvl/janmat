@@ -19,7 +19,7 @@ import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../../utils/add_sample_states.dart';
 import '../../../services/local_database_service.dart';
-import '../../../services/notifications/constituency_notifications.dart';
+import '../../notifications/services/constituency_notifications.dart';
 
 class ProfileCompletionController extends GetxController {
   // User data passed from main.dart to avoid duplicate Firebase call

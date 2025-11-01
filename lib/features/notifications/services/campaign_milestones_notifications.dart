@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../utils/app_logger.dart';
-import '../../features/notifications/models/notification_type.dart';
-import '../../features/notifications/services/notification_manager.dart';
+import '../../../../utils/app_logger.dart';
+import '../models/notification_type.dart';
+import 'notification_manager.dart';
 
 /// Service for handling campaign milestone notifications
 /// Celebrates candidate achievements and progress

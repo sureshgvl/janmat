@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
-import '../../../../services/manifesto_poll_service.dart';
+import '../../services/manifesto_poll_service.dart';
 import '../../../../utils/advanced_analytics.dart' as analytics;
 
 class ManifestoPollSection extends StatefulWidget {

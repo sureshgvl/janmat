@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/candidate_model.dart';
 import '../../../models/events_model.dart';
 import '../../../repositories/candidate_event_repository.dart';
-import '../../../../../services/event_notification_service.dart';
+import '../../../services/event_notification_service.dart';
 import '../../../../../services/gamification_service.dart';
 import '../../../../../utils/app_logger.dart';
 

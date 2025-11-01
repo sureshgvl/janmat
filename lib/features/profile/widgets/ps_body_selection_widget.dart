@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../models/body_model.dart';
 import '../../../utils/maharashtra_utils.dart';
-import '../../../widgets/profile/area_selection_modal.dart';
+import '../../../widgets/modals/area_selection_modal.dart';
 import '../controllers/profile_completion_controller.dart';
 
 class PSBodySelectionWidget extends StatelessWidget {

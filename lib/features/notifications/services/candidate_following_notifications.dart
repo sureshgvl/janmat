@@ -1,10 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/material.dart';
-import '../../../utils/app_logger.dart';
-import '../../features/candidate/repositories/candidate_repository.dart';
-import '../event_notification_service.dart';
+import '../../../../utils/app_logger.dart';
+import '../../candidate/repositories/candidate_repository.dart';
+
 
 class CandidateFollowingNotifications {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -29,7 +27,6 @@ class CandidateFollowingNotifications {
       final finalFollowerName = followerName ?? 'Someone';
 
       // Use provided candidate info
-      final finalCandidateName = candidateName;
       final finalCandidateUserId = candidateUserId;
 
       if (finalCandidateUserId == null) {
@@ -71,8 +68,7 @@ class CandidateFollowingNotifications {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
       AppLogger.notifications('🎉 [FollowerNotification] New follower notification completed successfully (${totalTime}ms)');
     } catch (e) {
-      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      AppLogger.notificationsError('❌ [FollowerNotification] Error sending new follower notification', error: e);
+        AppLogger.notificationsError('❌ [FollowerNotification] Error sending new follower notification', error: e);
     }
   }
 
@@ -494,7 +490,7 @@ class CandidateFollowingNotifications {
       try {
         final callable = _functions.httpsCallable('sendPushNotification');
 
-        final result = await callable.call({
+         await callable.call({
           'token': token,
           'title': title,
           'body': body,
@@ -520,7 +516,6 @@ class CandidateFollowingNotifications {
       // Don't throw - allow the app to continue even if push notifications fail
     }
   }
-
 
   // Helper method to store notification in database
   Future<void> _storeNotification(

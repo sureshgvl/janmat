@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 import 'package:janmat/features/candidate/widgets/view/manifesto_content_builder.dart';
-import 'package:janmat/services/analytics_data_collection_service.dart';
+import 'package:janmat/features/candidate/services/analytics_data_collection_service.dart';
 
 class ManifestoTabView extends StatefulWidget {
   final Candidate candidate;

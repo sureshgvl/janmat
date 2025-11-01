@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
-import '../../../../services/manifesto_likes_service.dart';
-import '../../../../services/manifesto_poll_service.dart';
+import '../../services/manifesto_likes_service.dart';
+import '../../services/manifesto_poll_service.dart';
 
 class ContentEngagementAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/app_logger.dart';
-import '../utils/connection_optimizer.dart';
+import '../../../utils/app_logger.dart';
+import '../../../utils/connection_optimizer.dart';
 import 'manifesto_cache_service.dart';
 
 class ManifestoSyncService {

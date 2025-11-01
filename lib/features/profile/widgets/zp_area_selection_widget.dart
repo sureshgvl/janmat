@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../../models/ward_model.dart';
-import '../../../widgets/profile/area_in_ward_selection_modal.dart';
+import '../../../widgets/modals/area_in_ward_selection_modal.dart';
 import '../controllers/profile_completion_controller.dart';
 
 class ZPAreaSelectionWidget extends StatelessWidget {

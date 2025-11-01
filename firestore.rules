@@ -492,5 +492,15 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
+
+    // Collection Group Rules for Highlights - CRITICAL!
+    // This allows collectionGroup('highlights') queries to work for checking existing highlights
+    match /{path=**}/highlights/{highlightId} {
+      allow read: if request.auth != null; // Allow authenticated users to query highlights across all paths
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.candidateId ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
   }
 }

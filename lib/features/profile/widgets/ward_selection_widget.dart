@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
-import '../../../widgets/profile/ward_selection_modal.dart';
+import '../../../widgets/modals/ward_selection_modal.dart';
 import '../controllers/profile_completion_controller.dart';
 
 class WardSelectionWidget extends StatelessWidget {

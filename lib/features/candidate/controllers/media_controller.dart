@@ -7,7 +7,7 @@ import '../models/candidate_model.dart';
 import '../repositories/media_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
-import '../../../services/notifications/constituency_notifications.dart';
+import '../../notifications/services/constituency_notifications.dart';
 
 abstract class IMediaController {
   Future<List<Media>?> getMedia(Candidate candidate);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
 import '../../models/analytics_model.dart';
-import '../../../../services/realtime_analytics_service.dart';
+import '../../services/realtime_analytics_service.dart';
 
 class ProfilePerformanceAnalyticsSection extends StatefulWidget {
   final Candidate candidateData;

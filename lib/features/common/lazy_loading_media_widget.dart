@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../services/media_cache_service.dart';
+import '../candidate/services/media_cache_service.dart';
 import '../../utils/app_logger.dart';
 
 /// Configuration for lazy loading behavior

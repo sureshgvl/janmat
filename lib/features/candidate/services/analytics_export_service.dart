@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../features/candidate/models/candidate_model.dart';
-import '../utils/app_logger.dart';
+import '../models/candidate_model.dart';
+import '../../../utils/app_logger.dart';
 
 /// Service for exporting analytics data
 class AnalyticsExportService {

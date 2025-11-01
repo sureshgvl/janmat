@@ -3,6 +3,7 @@ import '../models/highlight_model.dart';
 import '../../../models/push_feed_model.dart';
 import '../../candidate/models/location_model.dart';
 import '../../../repositories/highlight_repository.dart';
+import '../services/highlight_service.dart';
 import '../../../utils/app_logger.dart';
 
 class HighlightController extends GetxController {
@@ -22,35 +23,6 @@ class HighlightController extends GetxController {
   void onInit() {
     super.onInit();
     AppLogger.highlight('HighlightController: Initialized');
-  }
-
-  // Load active highlights for a specific location
-  Future<void> loadHighlights({
-    required String districtId,
-    required String bodyId,
-    required String wardId,
-  }) async {
-    try {
-      isLoading.value = true;
-      errorMessage.value = '';
-
-      AppLogger.highlight('Loading highlights for $districtId/$bodyId/$wardId');
-
-      final loadedHighlights = await _repository.getActiveHighlights(
-        districtId,
-        bodyId,
-        wardId,
-      );
-
-      highlights.value = loadedHighlights;
-      AppLogger.highlight('Loaded ${loadedHighlights.length} highlights');
-    } catch (e) {
-      AppLogger.highlightError('Error loading highlights', error: e);
-      errorMessage.value = 'Failed to load highlights: $e';
-      highlights.value = [];
-    } finally {
-      isLoading.value = false;
-    }
   }
 
   // Load platinum banners for a specific location (returns list for rotation)
@@ -138,14 +110,61 @@ class HighlightController extends GetxController {
 
       if (result != null) {
         AppLogger.highlight('Highlight created successfully: $highlightId');
-        // Optionally refresh highlights if we're in the same location
-        // await loadHighlights(districtId: districtId, bodyId: bodyId, wardId: wardId);
       }
 
       return result;
     } catch (e) {
       AppLogger.highlightError('Error creating highlight', error: e);
       errorMessage.value = 'Failed to create highlight: $e';
+      return null;
+    }
+  }
+
+  // Create or update Platinum highlight for real candidate
+  Future<String?> createOrUpdatePlatinumHighlight({
+    required String candidateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateName,
+    required String party,
+    String? imageUrl,
+    String bannerStyle = 'premium',
+    String callToAction = 'View Profile',
+    String priorityLevel = 'normal',
+    String? customMessage,
+    int validityDays = 7, // Default to 7 days for highlight plans
+    List<String> placement = const [
+      'top_banner',
+    ], // Default to banner only for highlight plans
+  }) async {
+    try {
+      AppLogger.highlight(
+        '🏆 HighlightController: Creating/Updating Platinum highlight for $candidateName',
+      );
+
+      // Use the service method that handles checking for existing highlights
+      return await HighlightService.createOrUpdatePlatinumHighlight(
+        candidateId: candidateId,
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+        candidateName: candidateName,
+        party: party,
+        imageUrl: imageUrl,
+        bannerStyle: bannerStyle,
+        callToAction: callToAction,
+        priorityLevel: priorityLevel,
+        customMessage: customMessage,
+        validityDays: validityDays,
+        placement: placement,
+      );
+    } catch (e) {
+      AppLogger.highlightError(
+        '❌ HighlightController: Error creating/updating Platinum highlight',
+        error: e,
+      );
+      errorMessage.value = 'Failed to create/update Platinum highlight: $e';
       return null;
     }
   }

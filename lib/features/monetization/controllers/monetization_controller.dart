@@ -10,6 +10,7 @@ import '../../../models/body_model.dart';
 import '../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../highlight/controller/highlight_controller.dart' as hc;
+import '../../highlight/services/highlight_service.dart';
 import '../../../features/candidate/controllers/candidate_controller.dart';
 import '../repositories/monetization_repository.dart';
 import '../widgets/plan_purchase_success_dialog.dart';
@@ -986,28 +987,66 @@ class MonetizationController extends GetxController {
       if (planId == 'highlight_plan') {
         AppLogger.monetization('🔥 Creating highlight plan content for candidate: ${candidate.candidateId}');
 
-        await highlightController.createPlatinumHighlight(
+        // Check if candidate already has an existing highlight in their ward
+        final existingHighlights = await HighlightService.getHighlightsByCandidateInWard(
           candidateId: candidate.candidateId,
           districtId: candidate.location.districtId!,
           bodyId: candidate.location.bodyId!,
           wardId: candidate.location.wardId!,
-          candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
-          party: candidate.party,
-          imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
-          priorityLevel: 'normal', // Default priority for highlight plan
-          validityDays: validityDays, // Use the purchased validity days
-          placement: ['top_banner'], // Only banner for highlight plans
         );
 
-        // Create welcome sponsored post
-        await highlightController.createPushFeedItem(
-          candidateId: candidate.candidateId,
-          wardId: candidate.location.wardId!,
-          title: '🎉 Highlight Plan Activated!',
-          message:
-              '${candidate.basicInfo?.fullName ?? 'The candidate'} is now visible in highlight banners!',
-          imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
-        );
+        final existingHighlight = existingHighlights.isNotEmpty ? existingHighlights.first : null;
+
+        if (existingHighlight != null) {
+          AppLogger.monetization('🔄 Found existing highlight ${existingHighlight.id} for candidate ${candidate.candidateId}, updating instead of creating new');
+
+          // Update existing highlight - preserve clicks and views, update everything else
+          await HighlightService.updateExistingHighlight(
+            existingHighlight: existingHighlight,
+            districtId: candidate.location.districtId!,
+            bodyId: candidate.location.bodyId!,
+            wardId: candidate.location.wardId!,
+            candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
+            party: candidate.party,
+            imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+            bannerStyle: 'premium',
+            callToAction: 'View Profile',
+            priorityLevel: 'normal',
+            customMessage: null,
+            validityDays: validityDays,
+            placement: ['top_banner'],
+          );
+
+          AppLogger.monetization('✅ Existing highlight updated successfully');
+        } else {
+          AppLogger.monetization('🆕 No existing highlight found, creating new one');
+
+          // Create new highlight
+          await highlightController.createOrUpdatePlatinumHighlight(
+            candidateId: candidate.candidateId,
+            districtId: candidate.location.districtId!,
+            bodyId: candidate.location.bodyId!,
+            wardId: candidate.location.wardId!,
+            candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
+            party: candidate.party,
+            imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+            priorityLevel: 'normal', // Default priority for highlight plan
+            validityDays: validityDays, // Use the purchased validity days
+            placement: ['top_banner'], // Only banner for highlight plans
+          );
+
+          // Create welcome sponsored post only for new highlights
+          await highlightController.createPushFeedItem(
+            candidateId: candidate.candidateId,
+            wardId: candidate.location.wardId!,
+            title: '🎉 Highlight Plan Activated!',
+            message:
+                '${candidate.basicInfo?.fullName ?? 'The candidate'} is now visible in highlight banners!',
+            imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+          );
+
+          AppLogger.monetization('✅ New highlight created successfully');
+        }
 
         AppLogger.monetization('✅ Highlight plan content created successfully');
       } else {

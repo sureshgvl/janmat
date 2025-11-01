@@ -592,8 +592,8 @@ class HighlightService {
     }
   }
 
-  // Create Platinum highlight for real candidate
-  static Future<String?> createPlatinumHighlight({
+  // Create or update Platinum highlight for real candidate
+  static Future<String?> createOrUpdatePlatinumHighlight({
     required String candidateId,
     required String districtId,
     required String bodyId,
@@ -612,10 +612,127 @@ class HighlightService {
   }) async {
     try {
       AppLogger.common(
-        '🏆 HighlightService: Creating Platinum highlight for $candidateName',
+        '🏆 HighlightService: Creating/Updating Platinum highlight for $candidateName',
         isShow: isShow,
       );
 
+      // Check if candidate already has an existing highlight in their specific ward
+      final existingHighlights = await getHighlightsByCandidateInWard(
+        candidateId: candidateId,
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      );
+      final existingHighlight = existingHighlights.isNotEmpty ? existingHighlights.first : null;
+
+      if (existingHighlight != null) {
+        AppLogger.common(
+          '🔄 HighlightService: Found existing highlight ${existingHighlight.id} for candidate $candidateId, updating instead of creating new',
+          isShow: isShow,
+        );
+
+        // Update existing highlight
+        return await updateExistingHighlight(
+          existingHighlight: existingHighlight,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+          candidateName: candidateName,
+          party: party,
+          imageUrl: imageUrl,
+          bannerStyle: bannerStyle,
+          callToAction: callToAction,
+          priorityLevel: priorityLevel,
+          customMessage: customMessage,
+          validityDays: validityDays,
+          placement: placement,
+        );
+      } else {
+        AppLogger.common(
+          '🆕 HighlightService: No existing highlight found for candidate $candidateId, creating new one',
+          isShow: isShow,
+        );
+
+        // Create new highlight
+        return await _createNewPlatinumHighlight(
+          candidateId: candidateId,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+          candidateName: candidateName,
+          party: party,
+          imageUrl: imageUrl,
+          bannerStyle: bannerStyle,
+          callToAction: callToAction,
+          priorityLevel: priorityLevel,
+          customMessage: customMessage,
+          validityDays: validityDays,
+          placement: placement,
+        );
+      }
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error creating/updating Platinum highlight',
+        error: e,
+        isShow: isShow,
+      );
+      return null;
+    }
+  }
+
+  // Create Platinum highlight for real candidate
+  static Future<String?> createPlatinumHighlight({
+    required String candidateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateName,
+    required String party,
+    String? imageUrl,
+    String bannerStyle = 'premium',
+    String callToAction = 'View Profile',
+    String priorityLevel = 'normal',
+    String? customMessage,
+    int validityDays = 7, // Default to 7 days for highlight plans
+    List<String> placement = const [
+      'top_banner',
+    ], // Default to banner only for highlight plans
+  }) async {
+    // For backward compatibility, delegate to the new method
+    return await createOrUpdatePlatinumHighlight(
+      candidateId: candidateId,
+      districtId: districtId,
+      bodyId: bodyId,
+      wardId: wardId,
+      candidateName: candidateName,
+      party: party,
+      imageUrl: imageUrl,
+      bannerStyle: bannerStyle,
+      callToAction: callToAction,
+      priorityLevel: priorityLevel,
+      customMessage: customMessage,
+      validityDays: validityDays,
+      placement: placement,
+    );
+  }
+
+  // Helper method to create new Platinum highlight
+  static Future<String?> _createNewPlatinumHighlight({
+    required String candidateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateName,
+    required String party,
+    String? imageUrl,
+    String bannerStyle = 'premium',
+    String callToAction = 'View Profile',
+    String priorityLevel = 'normal',
+    String? customMessage,
+    int validityDays = 7,
+    List<String> placement = const ['top_banner'],
+  }) async {
+    try {
       final highlightId =
           'platinum_hl_${DateTime.now().millisecondsSinceEpoch}';
       final locationKey = '${districtId}_${bodyId}_$wardId';
@@ -675,7 +792,7 @@ class HighlightService {
           .set(enhancedData);
 
       AppLogger.common(
-        '✅ HighlightService: Created Platinum highlight $highlightId for $candidateName',
+        '✅ HighlightService: Created new Platinum highlight $highlightId for $candidateName',
         isShow: isShow,
       );
       AppLogger.common(
@@ -689,7 +806,95 @@ class HighlightService {
       return highlightId;
     } catch (e) {
       AppLogger.commonError(
-        '❌ HighlightService: Error creating Platinum highlight',
+        '❌ HighlightService: Error creating new Platinum highlight',
+        error: e,
+        isShow: isShow,
+      );
+      return null;
+    }
+  }
+
+  // Helper method to update existing highlight
+  static Future<String?> updateExistingHighlight({
+    required Highlight existingHighlight,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateName,
+    required String party,
+    String? imageUrl,
+    String bannerStyle = 'premium',
+    String callToAction = 'View Profile',
+    String priorityLevel = 'normal',
+    String? customMessage,
+    int validityDays = 7,
+    List<String> placement = const ['top_banner'],
+  }) async {
+    try {
+      final now = DateTime.now();
+      final highlightId = existingHighlight.id;
+
+      // Calculate priority based on level
+      int priorityValue = _getPriorityValue(priorityLevel);
+
+      // Calculate new end date - extend from current end date if it's in the future, otherwise from now
+      final currentEndDate = existingHighlight.endDate;
+      final baseDate = currentEndDate.isAfter(now) ? currentEndDate : now;
+      final newEndDate = baseDate.add(Duration(days: validityDays));
+
+      final updates = <String, dynamic>{
+        'candidateName': candidateName,
+        'party': party,
+        'placement': placement,
+        'priority': priorityValue,
+        'endDate': Timestamp.fromDate(newEndDate),
+        'active': true,
+        'exclusive': priorityLevel == 'urgent',
+        'rotation': priorityLevel != 'urgent',
+        'status': 'active',
+        'updatedAt': Timestamp.fromDate(now),
+        // Enhanced metadata
+        'bannerStyle': bannerStyle,
+        'callToAction': callToAction,
+        'priorityLevel': priorityLevel,
+        'customMessage': customMessage,
+      };
+
+      // Update image URL if provided
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        updates['imageUrl'] = imageUrl;
+      }
+
+      // Update in hierarchical structure
+      await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('highlights')
+          .doc(highlightId)
+          .update(updates);
+
+      AppLogger.common(
+        '✅ HighlightService: Updated existing highlight $highlightId for $candidateName',
+        isShow: isShow,
+      );
+      AppLogger.common(
+        '   Extended end date from ${existingHighlight.endDate} to $newEndDate',
+        isShow: isShow,
+      );
+      AppLogger.common(
+        '   Priority: $priorityLevel ($priorityValue), Validity extension: $validityDays days',
+        isShow: isShow,
+      );
+      return highlightId;
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error updating existing highlight',
         error: e,
         isShow: isShow,
       );
@@ -813,6 +1018,55 @@ class HighlightService {
         isShow: isShow,
       );
       return null;
+    }
+  }
+
+  // Helper method to get highlights by candidate in a specific ward
+  static Future<List<Highlight>> getHighlightsByCandidateInWard({
+    required String candidateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+  }) async {
+    try {
+      AppLogger.common(
+        '🔍 HighlightService: Getting highlights for candidate $candidateId in ward $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('highlights')
+          .where('candidateId', isEqualTo: candidateId)
+          .get();
+
+      final highlights = snapshot.docs
+          .map((doc) => Highlight.fromJson(doc.data()))
+          .toList();
+
+      // Sort by createdAt descending in memory since we can't use orderBy with where clause
+      highlights.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      AppLogger.common(
+        '✅ HighlightService: Found ${highlights.length} highlights for candidate $candidateId in ward',
+        isShow: isShow,
+      );
+
+      return highlights;
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error getting highlights by candidate in ward',
+        error: e,
+        isShow: isShow,
+      );
+      return [];
     }
   }
 

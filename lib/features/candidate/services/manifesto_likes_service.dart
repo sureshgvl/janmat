@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/like_model.dart';
-import '../utils/performance_monitor.dart';
-import '../utils/connection_optimizer.dart';
-import '../utils/app_logger.dart';
+import '../../../models/like_model.dart';
+import '../../../utils/performance_monitor.dart';
+import '../../../utils/connection_optimizer.dart';
+import '../../../utils/app_logger.dart';
 import 'manifesto_cache_service.dart';
-import 'local_database_service.dart';
+import '../../../services/local_database_service.dart';
 
 class ManifestoLikesService {
   static final PerformanceMonitor _monitor = PerformanceMonitor();

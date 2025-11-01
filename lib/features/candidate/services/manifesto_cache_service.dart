@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
-import '../models/like_model.dart';
-import '../utils/app_logger.dart';
-import 'local_database_service.dart';
+import '../../../models/like_model.dart';
+import '../../../utils/app_logger.dart';
+import '../../../services/local_database_service.dart';
 
 class ManifestoCacheService {
   static final ManifestoCacheService _instance = ManifestoCacheService._internal();

@@ -12,7 +12,7 @@ import '../features/candidate/controllers/events_controller.dart';
 import '../features/candidate/controllers/analytics_controller.dart';
 import '../features/candidate/controllers/save_all_coordinator.dart';
 import '../services/offline_drafts_service.dart';
-import '../services/media_cache_service.dart';
+import '../features/candidate/services/media_cache_service.dart';
 import '../features/candidate/repositories/media_repository.dart';
 
 import '../services/admob_service.dart';
@@ -29,7 +29,7 @@ import '../features/follow/controller/following_controller.dart';
 import '../features/language/controller/language_controller.dart';
 import '../features/highlight/controller/highlight_controller.dart';
 import '../services/background_location_sync_service.dart';
-import '../services/manifesto_sync_service.dart';
+import '../features/candidate/services/manifesto_sync_service.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
 import '../services/gamification_service.dart';
 import '../features/monetization/controllers/monetization_controller.dart';

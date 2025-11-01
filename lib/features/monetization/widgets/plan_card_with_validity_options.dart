@@ -470,7 +470,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 const SizedBox(height: 8),
                 AllocatedSeatsDisplay(
                   maxHighlights: widget.plan.highlightFeatures!.maxHighlights,
-                  allocatedSeats: 0,
+                  stateId: 'maharashtra', // TODO: Make dynamic based on user location
+                  districtId: _getCurrentUserDistrict(),
+                  bodyId: _getCurrentUserBody(),
+                  wardId: _getCurrentUserWard(),
                 ),
               ],
 
@@ -479,7 +482,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 const SizedBox(height: 8),
                 AllocatedSeatsDisplay(
                   maxHighlights: widget.plan.carouselFeatures!.maxCarouselSlots,
-                  allocatedSeats: 0,
+                  stateId: 'maharashtra', // TODO: Make dynamic based on user location
+                  districtId: _getCurrentUserDistrict(),
+                  bodyId: _getCurrentUserBody(),
+                  wardId: _getCurrentUserWard(),
                 ),
               ],
 
@@ -705,6 +711,49 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
         style: const TextStyle(fontSize: 11, color: Colors.grey),
       ),
     );
+  }
+
+  // Helper methods to get current user location
+  String? _getCurrentUserDistrict() {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return null;
+
+      // For now, return a default district - this should be fetched from user profile
+      // TODO: Get actual user district from user profile/location data
+      return 'pune'; // Default for testing
+    } catch (e) {
+      AppLogger.monetization('Error getting current user district: $e');
+      return null;
+    }
+  }
+
+  String? _getCurrentUserBody() {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return null;
+
+      // For now, return a default body - this should be fetched from user profile
+      // TODO: Get actual user body from user profile/location data
+      return 'pune_m_cop'; // Default for testing
+    } catch (e) {
+      AppLogger.monetization('Error getting current user body: $e');
+      return null;
+    }
+  }
+
+  String? _getCurrentUserWard() {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return null;
+
+      // For now, return a default ward - this should be fetched from user profile
+      // TODO: Get actual user ward from user profile/location data
+      return 'ward_17'; // Default for testing
+    } catch (e) {
+      AppLogger.monetization('Error getting current user ward: $e');
+      return null;
+    }
   }
 
 

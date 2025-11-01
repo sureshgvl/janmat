@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
-import '../../../widgets/profile/state_selection_modal.dart';
+import '../../../widgets/modals/state_selection_modal.dart';
 import '../controllers/profile_completion_controller.dart';
 
 class StateSelectionWidget extends StatelessWidget {

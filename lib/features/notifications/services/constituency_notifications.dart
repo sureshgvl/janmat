@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/material.dart';
-import '../../../utils/app_logger.dart';
+import '../../../../utils/app_logger.dart';
 
 /// Service for sending notifications to users in the same constituency
 /// Follows Single Responsibility Principle - handles only constituency-based notifications

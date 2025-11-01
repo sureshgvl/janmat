@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import '../utils/app_logger.dart';
+import '../../../utils/app_logger.dart';
 
 /// Configuration for media caching strategy
 class MediaCacheConfig {
