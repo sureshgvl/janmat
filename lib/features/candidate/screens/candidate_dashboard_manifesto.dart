@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../controllers/manifesto_controller.dart';
-import '../../../services/plan_service.dart';
+import '../../monetization/services/plan_service.dart';
 import '../widgets/edit/manifesto/manifesto_edit.dart';
 import '../widgets/view/manifesto/manifesto_view.dart';
 import '../../../widgets/loading_overlay.dart';

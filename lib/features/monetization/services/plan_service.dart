@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/plan_model.dart'; // Import SubscriptionPlan
-import '../utils/app_logger.dart';
+import '../../../models/plan_model.dart'; // Import SubscriptionPlan
+import '../../../utils/app_logger.dart';
 
 // Use SubscriptionPlan instead of the old Plan class
 

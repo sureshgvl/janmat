@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../controllers/events_controller.dart';
-import '../../../services/plan_service.dart';
+import '../../monetization/services/plan_service.dart';
 import '../widgets/edit/events/events_edit.dart';
 import '../widgets/view/events/events_tab_view.dart';
 import '../models/events_model.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../utils/app_logger.dart';
-import '../../../../services/plan_service.dart';
+import '../../../monetization/services/plan_service.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 
 class PromiseManagementSection extends StatefulWidget {

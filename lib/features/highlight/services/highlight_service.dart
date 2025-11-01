@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/app_logger.dart';
-import '../features/highlight/models/highlight_model.dart';
-import '../models/push_feed_model.dart';
-import '../features/candidate/models/location_model.dart';
+import '../../../utils/app_logger.dart';
+import '../models/highlight_model.dart';
+import '../../../models/push_feed_model.dart';
+import '../../candidate/models/location_model.dart';
 import 'highlight_session_service.dart';
 
 class HighlightService {

@@ -4,12 +4,10 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/symbol_utils.dart';
-import '../../../services/highlight_service.dart';
-import '../../../features/candidate/controllers/candidate_controller.dart';
+import '../services/highlight_service.dart';
 import '../../../features/candidate/screens/candidate_profile_screen.dart';
 import '../../../features/candidate/models/candidate_model.dart';
 import '../models/highlight_display_model.dart';
-import '../controller/highlight_controller.dart' as hc;
 import '../../../features/monetization/controllers/monetization_controller.dart';
 import 'highlight_carousel_widget.dart';
 

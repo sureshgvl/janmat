@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../features/deviceInfo/services/device_service.dart';
-import 'screen_focus_service.dart';
-import '../utils/app_logger.dart';
+import '../../deviceInfo/services/device_service.dart';
+import '../../../services/screen_focus_service.dart';
+import '../../../utils/app_logger.dart';
 
 /// Represents an app session for highlight tracking
 class HighlightSession {

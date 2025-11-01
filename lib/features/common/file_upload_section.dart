@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/app_logger.dart';
 import '../candidate/models/candidate_model.dart';
-import '../../services/plan_service.dart';
+import '../monetization/services/plan_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/features/candidate/candidate_localizations.dart';
 

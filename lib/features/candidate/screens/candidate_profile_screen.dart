@@ -18,7 +18,7 @@ import '../widgets/profile_header_widget.dart';
 import '../widgets/follow_stats_widget.dart';
 import '../widgets/profile_tab_bar_widget.dart';
 import '../../../utils/symbol_utils.dart';
-import '../../../services/plan_service.dart';
+import '../../monetization/services/plan_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../../services/analytics_data_collection_service.dart';
 import '../../../utils/app_logger.dart';

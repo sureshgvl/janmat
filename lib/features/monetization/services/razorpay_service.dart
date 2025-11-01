@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../features/monetization/controllers/monetization_controller.dart';
-import '../utils/app_logger.dart';
+import '../controllers/monetization_controller.dart';
+import '../../../utils/app_logger.dart';
 
 class RazorpayService extends GetxService {
   late Razorpay _razorpay;

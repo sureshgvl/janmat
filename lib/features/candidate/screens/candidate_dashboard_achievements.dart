@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_user_controller.dart';
-import '../../../services/plan_service.dart';
+import '../../monetization/services/plan_service.dart';
 import '../widgets/edit/achievements/achievements_tab_edit.dart';
 import '../widgets/view/achievements/achievements_tab_view.dart';
 import '../models/achievements_model.dart';

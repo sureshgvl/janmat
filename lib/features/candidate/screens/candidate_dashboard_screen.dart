@@ -6,7 +6,7 @@ import 'package:janmat/features/candidate/screens/highlight/candidate_dashboard_
 import '../controllers/candidate_user_controller.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
-import '../../../services/plan_service.dart';
+import '../../monetization/services/plan_service.dart';
 import 'candidate_dashboard_info.dart';
 import 'candidate_dashboard_achievements.dart';
 import 'candidate_dashboard_manifesto.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/highlight/models/highlight_model.dart';
-import 'package:janmat/services/highlight_service.dart';
+import 'package:janmat/features/highlight/services/highlight_service.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/symbol_utils.dart';
 import '../../controllers/highlights_controller.dart';

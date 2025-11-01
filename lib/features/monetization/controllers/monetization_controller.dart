@@ -7,7 +7,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/plan_model.dart';
 import '../../../models/body_model.dart';
-import '../../../services/razorpay_service.dart';
+import '../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../highlight/controller/highlight_controller.dart' as hc;
 import '../../../features/candidate/controllers/candidate_controller.dart';

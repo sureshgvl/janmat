@@ -16,7 +16,7 @@ import '../services/media_cache_service.dart';
 import '../features/candidate/repositories/media_repository.dart';
 
 import '../services/admob_service.dart';
-import '../services/razorpay_service.dart';
+import '../features/monetization/services/razorpay_service.dart';
 import '../services/file_upload_service.dart';
 import '../features/notifications/services/notification_manager.dart';
 import '../features/user/services/user_data_service.dart';

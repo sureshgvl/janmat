@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../highlight/models/highlight_model.dart' as highlight_model;
-import '../../../services/highlight_service.dart';
+import '../../highlight/services/highlight_service.dart';
 
 import '../../../utils/app_logger.dart';
 

@@ -6,7 +6,7 @@ import '../../../features/candidate/controllers/candidate_controller.dart';
 import '../../../features/candidate/screens/candidate_profile_screen.dart';
 import '../../../features/candidate/models/candidate_model.dart';
 import '../models/highlight_display_model.dart';
-import '../../../services/highlight_service.dart';
+import '../services/highlight_service.dart';
 
 /// Widget for displaying horizontal scrolling highlight cards (Carousel Plan)
 class HighlightCarouselWidget extends StatefulWidget {
