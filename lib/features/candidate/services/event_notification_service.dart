@@ -1,7 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
-import '../models/candidate_model.dart';
 import '../models/events_model.dart';
 import '../repositories/candidate_repository.dart';
 

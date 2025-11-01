@@ -188,63 +188,62 @@ List<MediaItem> _simulateGetMediaItems(List<Media>? media) {
 
       // This would create MediaItem objects
       mediaItems = validItems.map((item) => MediaItem.fromJson(item)).toList();
-    } else if (firstItem is Media) {
-      print('Detected individual Media format - would convert to grouped');
-      // Convert individual Media objects to grouped format
-      final Map<String, List<Media>> groupedMedia = {};
-
-      for (final item in media) {
-        final mediaObj = item;
-        final title = mediaObj.title ?? 'Untitled';
-        final date = mediaObj.uploadedAt ?? DateTime.now().toIso8601String().split('T')[0];
-
-        final groupKey = '$title|$date';
-
-        if (!groupedMedia.containsKey(groupKey)) {
-          groupedMedia[groupKey] = [];
-        }
-        groupedMedia[groupKey]!.add(mediaObj);
-      }
-
-      print('Grouped into ${groupedMedia.length} groups');
-
-      // Convert grouped Media objects to MediaItem objects
-      for (final entry in groupedMedia.entries) {
-        final keyParts = entry.key.split('|');
-        final title = keyParts[0];
-        final date = keyParts[1];
-
-        final List<String> images = [];
-        final List<String> videos = [];
-        final List<String> youtubeLinks = [];
-
-        for (final mediaObj in entry.value) {
-          switch (mediaObj.type) {
-            case 'image':
-              images.add(mediaObj.url);
-              break;
-            case 'video':
-              videos.add(mediaObj.url);
-              break;
-            case 'youtube':
-              youtubeLinks.add(mediaObj.url);
-              break;
-          }
-        }
-
-        final likes = <String, int>{};
-        mediaItems.add(MediaItem(
-          title: title,
-          date: date,
-          images: images,
-          videos: videos,
-          youtubeLinks: youtubeLinks,
-          likes: likes,
-        ));
-      }
     } else {
-      print('❌ Unexpected media item format: ${firstItem.runtimeType}');
+      print('Detected individual Media format - would convert to grouped');
     }
+    // Convert individual Media objects to grouped format
+    final Map<String, List<Media>> groupedMedia = {};
+
+    for (final item in media) {
+      final mediaObj = item;
+      final title = mediaObj.title ?? 'Untitled';
+      final date = mediaObj.uploadedAt ?? DateTime.now().toIso8601String().split('T')[0];
+
+      final groupKey = '$title|$date';
+
+      if (!groupedMedia.containsKey(groupKey)) {
+        groupedMedia[groupKey] = [];
+      }
+      groupedMedia[groupKey]!.add(mediaObj);
+    }
+
+    print('Grouped into ${groupedMedia.length} groups');
+
+    // Convert grouped Media objects to MediaItem objects
+    for (final entry in groupedMedia.entries) {
+      final keyParts = entry.key.split('|');
+      final title = keyParts[0];
+      final date = keyParts[1];
+
+      final List<String> images = [];
+      final List<String> videos = [];
+      final List<String> youtubeLinks = [];
+
+      for (final mediaObj in entry.value) {
+        switch (mediaObj.type) {
+          case 'image':
+            images.add(mediaObj.url);
+            break;
+          case 'video':
+            videos.add(mediaObj.url);
+            break;
+          case 'youtube':
+            youtubeLinks.add(mediaObj.url);
+            break;
+        }
+      }
+
+      final likes = <String, int>{};
+      mediaItems.add(MediaItem(
+        title: title,
+        date: date,
+        images: images,
+        videos: videos,
+        youtubeLinks: youtubeLinks,
+        likes: likes,
+      ));
+    }
+  
   }
 
   return mediaItems;

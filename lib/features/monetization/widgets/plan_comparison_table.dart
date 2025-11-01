@@ -454,7 +454,7 @@ class PlanComparisonTable extends StatelessWidget {
                 return DataRow(
                   cells: [
                     DataCell(
-                      Container(
+                      SizedBox(
                         width: 120,
                         child: Text(
                           feature['name'] as String,

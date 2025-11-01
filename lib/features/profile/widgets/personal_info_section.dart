@@ -89,7 +89,7 @@ class PersonalInfoSection extends StatelessWidget {
 
         // Gender Selection
         DropdownButtonFormField<String>(
-          value: controller.selectedGender,
+          initialValue: controller.selectedGender,
           decoration: InputDecoration(
             labelText: localizations.genderRequired,
             border: OutlineInputBorder(),

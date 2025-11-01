@@ -4,7 +4,6 @@ import '../../../utils/error_recovery_manager.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../../utils/app_logger.dart';
-import '../models/candidate_model.dart';
 
 class CandidateFollowRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

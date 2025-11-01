@@ -367,7 +367,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                   setState(() => _config.enabled = value);
                   _updateHighlight();
                 },
-                activeColor: Colors.amber.shade600,
+                activeThumbColor: Colors.amber.shade600,
                 activeTrackColor: Colors.amber.shade200,
               )
             else
@@ -510,7 +510,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
             const SizedBox(height: 16),
             if (widget.isEditing)
               DropdownButtonFormField<String>(
-                value: _config.callToAction,
+                initialValue: _config.callToAction,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -741,7 +741,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                   setState(() => _config.showAnalytics = value);
                   _updateHighlight();
                 },
-                activeColor: Colors.indigo,
+                activeThumbColor: Colors.indigo,
               )
             else
               Container(

@@ -66,7 +66,7 @@ class EnableSection extends StatelessWidget {
                 ),
                 value: config.enabled,
                 onChanged: onEnabledChanged,
-                activeColor: Colors.amber.shade600,
+                activeThumbColor: Colors.amber.shade600,
                 activeTrackColor: Colors.amber.shade200,
               )
             else

@@ -4,7 +4,6 @@ import '../models/candidate_model.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/maharashtra_utils.dart';
 import '../../common/whatsapp_image_viewer.dart';
-import '../../../utils/app_logger.dart';
 
 class ProfileHeaderWidget extends StatelessWidget {
   final Candidate candidate;

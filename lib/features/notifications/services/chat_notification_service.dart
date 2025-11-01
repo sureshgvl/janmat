@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../chat/models/chat_message.dart';
 import '../../chat/models/chat_room.dart';
 import '../../chat/repositories/chat_repository.dart';
 import '../models/notification_type.dart';
-import '../models/notification_status.dart';
-import '../models/notification_model.dart';
 import '../../../utils/app_logger.dart';
 import 'notification_manager.dart';
 

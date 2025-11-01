@@ -102,7 +102,7 @@ class AchievementsRepository implements IAchievementsRepository {
 
       AppLogger.database('📝 REPO: Final cleaned achievements count: ${cleanedAchievements.length}', tag: 'ACHIEVEMENTS_REPO');
       for (int i = 0; i < cleanedAchievements.length; i++) {
-        final ach = cleanedAchievements[i] as Map<String, dynamic>;
+        final ach = cleanedAchievements[i];
         AppLogger.database('📝 REPO: Saved item $i: ${ach['title']} photoUrl: ${ach['photoUrl']}', tag: 'ACHIEVEMENTS_REPO');
       }
 

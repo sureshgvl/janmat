@@ -9,7 +9,6 @@ import '../repositories/basic_info_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../../notifications/services/constituency_notifications.dart';
-import '../widgets/edit/basic_info/photo_upload_handler.dart';
 
 abstract class IBasicInfoController {
   Future<BasicInfoModel?> getBasicInfo(dynamic candidate); // Accept candidate object

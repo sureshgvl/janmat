@@ -52,7 +52,7 @@ class HomeServices {
         final userData = userDoc.data() as Map<String, dynamic>;
         userModel = UserModel.fromJson(userData);
 
-        AppLogger.common('👤 User loaded: ${userModel!.name}, role: ${userModel.role}, profileCompleted: ${userModel.profileCompleted}, roleSelected: ${userModel.roleSelected}');
+        AppLogger.common('👤 User loaded: ${userModel.name}, role: ${userModel.role}, profileCompleted: ${userModel.profileCompleted}, roleSelected: ${userModel.roleSelected}');
 
         // Load candidate data for candidates - prioritizes controller first
         if (userModel.profileCompleted && userModel.role == 'candidate') {

@@ -67,7 +67,7 @@ class DistrictSpotlightService {
         debugPrint('🎯 Spotlight object: partyId=${spotlight.partyId}, fullImage=${spotlight.fullImage}, isActive=${spotlight.isActive}');
 
         // Check if image URL is valid
-        if (spotlight.fullImage == null || spotlight.fullImage.isEmpty) {
+        if (spotlight.fullImage.isEmpty) {
           AppLogger.common('⚠️ District spotlight has empty/null fullImage URL');
           _isSpotlightInProgress = false; // Reset progress flag
           return;

@@ -215,13 +215,13 @@ class ManifestoRepository implements IManifestoRepository {
 
       final candidateRef = _firestore
           .collection('states')
-          .doc(stateId!)
+          .doc(stateId)
           .collection('districts')
-          .doc(districtId!)
+          .doc(districtId)
           .collection('bodies')
-          .doc(bodyId!)
+          .doc(bodyId)
           .collection('wards')
-          .doc(wardId!)
+          .doc(wardId)
           .collection('candidates')
           .doc(candidateId);
 

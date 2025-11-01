@@ -321,7 +321,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
     _updateAchievements();
   }
 
-  List<Map<String, dynamic>> _localAchievementPhotos = []; // Similar to manifesto's _localFiles
+  final List<Map<String, dynamic>> _localAchievementPhotos = []; // Similar to manifesto's _localFiles
 
   Future<void> _uploadPhoto(int index) async {
     setState(() {
@@ -498,7 +498,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
         if (achievementIndex < _achievements.length) {
           final updatedAchievement = _achievements[achievementIndex].copyWith(photoUrl: firebaseUrl);
           _updateAchievement(achievementIndex, updatedAchievement);
-          AppLogger.candidate('✅ [Achievements] Updated achievement ${achievementIndex} with Firebase URL');
+          AppLogger.candidate('✅ [Achievements] Updated achievement $achievementIndex with Firebase URL');
         }
       }
     }
@@ -561,7 +561,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
         // Additional check: Are there any permissions issues or file size validation?
         try {
           final fileSize = await file.length();
-          AppLogger.candidate('📏 [FileExists] File size: ${fileSize} bytes');
+          AppLogger.candidate('📏 [FileExists] File size: $fileSize bytes');
 
           // File should be readable
           final readable = await file.stat().then((stat) => stat.type == FileSystemEntityType.file);
@@ -620,7 +620,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
       final achievements = achievementsModel.achievements ?? [];
       AppLogger.candidate('💾 [SAVE] ABSOLUTELY CLEANED achievements with ${achievements.length} items');
       for (int i = 0; i < achievements.length; i++) {
-        AppLogger.candidate('💾 [SAVE] Item ${i}: ${achievements[i].title} -> photoUrl: ${achievements[i].photoUrl}');
+        AppLogger.candidate('💾 [SAVE] Item $i: ${achievements[i].title} -> photoUrl: ${achievements[i].photoUrl}');
       }
 
       // Save using the controller - now follows basic info pattern with candidate

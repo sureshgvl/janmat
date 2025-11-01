@@ -4,7 +4,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../controllers/theme_controller.dart';
 import '../../language/controller/language_controller.dart';
-import '../../language/services/language_service.dart';
 import '../../notifications/screens/notification_preferences_screen.dart';
 
 class SettingsScreen extends StatelessWidget {

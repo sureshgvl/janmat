@@ -61,7 +61,7 @@ class HomeDrawer extends StatelessWidget {
                         backgroundImage:
                             currentCandidateModel?.photo != null &&
                                 currentCandidateModel!.photo!.isNotEmpty
-                            ? NetworkImage(currentCandidateModel!.photo!)
+                            ? NetworkImage(currentCandidateModel.photo!)
                             : userModel?.photoURL != null
                             ? NetworkImage(userModel!.photoURL!)
                             : currentUser?.photoURL != null
@@ -74,12 +74,12 @@ class HomeDrawer extends StatelessWidget {
                                 currentUser?.photoURL == null
                             ? Text(
                                 ((userModel?.role == 'candidate' && currentCandidateModel != null
-                                      ? (currentCandidateModel!.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
+                                      ? (currentCandidateModel.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
                                       : userModel?.name ?? currentUser?.displayName ?? 'U')
                                             .isEmpty
                                         ? 'U'
                                         : (userModel?.role == 'candidate' && currentCandidateModel != null
-                                            ? (currentCandidateModel!.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
+                                            ? (currentCandidateModel.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
                                             : userModel?.name ?? currentUser?.displayName ?? 'U')[0])
                                     .toUpperCase(),
                                 style: TextStyle(
@@ -98,7 +98,7 @@ class HomeDrawer extends StatelessWidget {
                           // Name
                           Text(
                             userModel?.role == 'candidate' && currentCandidateModel != null
-                                ? (currentCandidateModel!.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
+                                ? (currentCandidateModel.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
                                 : userModel?.name ?? currentUser?.displayName ?? 'User',
                             style: TextStyle(
                               fontSize: 18,

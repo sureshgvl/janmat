@@ -77,7 +77,7 @@ class ManifestoPollService {
             } catch (transactionError) {
               AppLogger.common('Transaction error: $transactionError');
               // Don't rethrow here, let outer catch handle it
-              throw transactionError;
+              rethrow;
             }
           });
 

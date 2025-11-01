@@ -101,6 +101,7 @@ class HighlightsController extends GetxController implements IHighlightsControll
     AppLogger.candidate('Highlights cleared');
   }
 
+  @override
   void updateHighlightLocal(dynamic value) {
     // This method is called from candidate_data_controller to update the local state
     // The actual saving happens through updateHighlight method

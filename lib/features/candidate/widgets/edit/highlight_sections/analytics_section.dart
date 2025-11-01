@@ -55,7 +55,7 @@ class AnalyticsSection extends StatelessWidget {
                   AppLogger.candidate('Analytics toggle changed: $value');
                   onAnalyticsChanged(value);
                 },
-                activeColor: Colors.indigo,
+                activeThumbColor: Colors.indigo,
               )
             else
               Container(

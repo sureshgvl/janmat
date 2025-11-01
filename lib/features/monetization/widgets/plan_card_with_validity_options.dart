@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
 import '../../../utils/app_logger.dart';
@@ -21,29 +20,38 @@ class PlanCardWithValidityOptions extends StatefulWidget {
   });
 
   @override
-  State<PlanCardWithValidityOptions> createState() => _PlanCardWithValidityOptionsState();
+  State<PlanCardWithValidityOptions> createState() =>
+      _PlanCardWithValidityOptionsState();
 }
 
-class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOptions> {
+class _PlanCardWithValidityOptionsState
+    extends State<PlanCardWithValidityOptions> {
   int? selectedValidityDays;
 
   @override
   Widget build(BuildContext context) {
     // Get election type if not provided (for compact mode)
-    final electionType = widget.electionType.isNotEmpty ? widget.electionType :
-      'municipal_corporation'; // Default fallback
+    final electionType = widget.electionType.isNotEmpty
+        ? widget.electionType
+        : 'municipal_corporation'; // Default fallback
 
     Map<int, int>? pricing = widget.plan.pricing[electionType];
     if (pricing == null || pricing.isEmpty) {
       // Debug logging to understand why plans are not showing
-      AppLogger.monetization('⚠️ [PlanCardWithValidityOptions] Plan "${widget.plan.name}" (${widget.plan.planId}) has no pricing for election type: $electionType');
-      AppLogger.monetization('   Available pricing keys: ${widget.plan.pricing.keys.toList()}');
+      AppLogger.monetization(
+        '⚠️ [PlanCardWithValidityOptions] Plan "${widget.plan.name}" (${widget.plan.planId}) has no pricing for election type: $electionType',
+      );
+      AppLogger.monetization(
+        '   Available pricing keys: ${widget.plan.pricing.keys.toList()}',
+      );
 
       // For highlight and carousel plans, try fallback to 'municipal_corporation' if election type is null or different
       if (widget.plan.type == 'highlight' || widget.plan.type == 'carousel') {
         pricing = widget.plan.pricing['municipal_corporation'];
         if (pricing != null && pricing.isNotEmpty) {
-          AppLogger.monetization('✅ [PlanCardWithValidityOptions] Using fallback pricing for ${widget.plan.type} plan');
+          AppLogger.monetization(
+            '✅ [PlanCardWithValidityOptions] Using fallback pricing for ${widget.plan.type} plan',
+          );
         } else {
           return const SizedBox.shrink(); // Don't show plans without pricing
         }
@@ -52,7 +60,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       }
     }
 
-    final validityOptions = pricing!.keys.toList()..sort();
+    final validityOptions = pricing.keys.toList()..sort();
     final hasSingleValidityOption = validityOptions.length == 1;
 
     // If only one validity option (like 30 days for gold/platinum), show simplified UI
@@ -65,10 +73,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -78,7 +83,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               // Plan Header with background
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
@@ -88,17 +96,26 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                     Expanded(
                       child: Text(
                         widget.plan.name,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     if (widget.plan.isActive)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10)),
+                        child: const Text(
+                          'ACTIVE',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                        ),
                       ),
                   ],
                 ),
@@ -107,7 +124,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               const SizedBox(height: 16),
 
               // Features List
-              const Text('Features:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Features:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               ..._buildFeaturesList(),
 
@@ -125,7 +145,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      AppLocalizations.of(context)!.priceForDays(singleValidityDays),
+                      AppLocalizations.of(
+                        context,
+                      )!.priceForDays(singleValidityDays),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -150,20 +172,30 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => widget.onPurchase(widget.plan, singleValidityDays),
+                  onPressed: () =>
+                      widget.onPurchase(widget.plan, singleValidityDays),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.shopping_cart, color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.shopping_cart,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Purchase plan for Rs $singlePrice',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -194,7 +226,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               ),
               if (widget.plan.isActive)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue,
                     borderRadius: BorderRadius.circular(10),
@@ -214,7 +249,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
           const SizedBox(height: 8),
 
           // Key Features - Compact version
-          const Text('Key Features:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const Text(
+            'Key Features:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           const SizedBox(height: 4),
           ..._buildCompactFeaturesList().take(3), // Show only top 3 features
 
@@ -233,7 +271,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    AppLocalizations.of(context)!.priceForDays(validityOptions.first),
+                    AppLocalizations.of(
+                      context,
+                    )!.priceForDays(validityOptions.first),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -273,7 +313,8 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 ],
               ),
               child: ElevatedButton(
-                onPressed: () => widget.onPurchase(widget.plan, validityOptions.first),
+                onPressed: () =>
+                    widget.onPurchase(widget.plan, validityOptions.first),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: Colors.transparent,
@@ -286,7 +327,11 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.shopping_cart, color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.shopping_cart,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Purchase plan for Rs ${pricing[validityOptions.first]!}',
@@ -302,7 +347,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
             ),
           ] else ...[
             // Validity Period Selection for multiple options
-            Text(AppLocalizations.of(context)!.selectValidityPeriod, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text(
+              AppLocalizations.of(context)!.selectValidityPeriod,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             const SizedBox(height: 8),
 
             // Validity Options - Compact version
@@ -311,7 +359,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               final isSelected = selectedValidityDays == days;
               final displayText = '$days Days - ₹$price';
 
-              AppLogger.common('📅 [PlanCardWithValidityOptions] Compact validity option: "$displayText"');
+              AppLogger.common(
+                '📅 [PlanCardWithValidityOptions] Compact validity option: "$displayText"',
+              );
 
               return GestureDetector(
                 onTap: () => setState(() => selectedValidityDays = days),
@@ -331,7 +381,8 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                       Radio<int>(
                         value: days,
                         groupValue: selectedValidityDays,
-                        onChanged: (value) => setState(() => selectedValidityDays = value),
+                        onChanged: (value) =>
+                            setState(() => selectedValidityDays = value),
                         activeColor: Colors.blue,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -358,27 +409,28 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: selectedValidityDays != null
-                  ? LinearGradient(
-                      colors: [Colors.blue.shade600, Colors.blue.shade800],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    )
-                  : null,
+                    ? LinearGradient(
+                        colors: [Colors.blue.shade600, Colors.blue.shade800],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      )
+                    : null,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: selectedValidityDays != null
-                  ? [
-                      BoxShadow(
-                        color: Colors.blue.shade300.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
+                    ? [
+                        BoxShadow(
+                          color: Colors.blue.shade300.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: ElevatedButton(
                 onPressed: selectedValidityDays != null
-                  ? () => widget.onPurchase(widget.plan, selectedValidityDays!)
-                  : null,
+                    ? () =>
+                          widget.onPurchase(widget.plan, selectedValidityDays!)
+                    : null,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: Colors.transparent,
@@ -392,13 +444,17 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (selectedValidityDays != null) ...[
-                      const Icon(Icons.shopping_cart, color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.shopping_cart,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       selectedValidityDays != null
-                        ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
-                        : AppLocalizations.of(context)!.selectValidityPeriod,
+                          ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
+                          : AppLocalizations.of(context)!.selectValidityPeriod,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -419,10 +475,7 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -432,7 +485,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               // Plan Header with background
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
@@ -442,17 +498,26 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                     Expanded(
                       child: Text(
                         widget.plan.name,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     if (widget.plan.isActive)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10)),
+                        child: const Text(
+                          'ACTIVE',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                        ),
                       ),
                   ],
                 ),
@@ -461,16 +526,21 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               const SizedBox(height: 16),
 
               // Features List
-              const Text('Features:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Features:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               ..._buildFeaturesList(),
 
               // Add allocated seats display for highlight plans
-              if (widget.plan.type == 'highlight' && widget.plan.highlightFeatures != null) ...[
+              if (widget.plan.type == 'highlight' &&
+                  widget.plan.highlightFeatures != null) ...[
                 const SizedBox(height: 8),
                 AllocatedSeatsDisplay(
                   maxHighlights: widget.plan.highlightFeatures!.maxHighlights,
-                  stateId: 'maharashtra', // TODO: Make dynamic based on user location
+                  stateId:
+                      'maharashtra', // TODO: Make dynamic based on user location
                   districtId: _getCurrentUserDistrict(),
                   bodyId: _getCurrentUserBody(),
                   wardId: _getCurrentUserWard(),
@@ -478,11 +548,13 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               ],
 
               // Add allocated seats display for carousel plans
-              if (widget.plan.type == 'carousel' && widget.plan.carouselFeatures != null) ...[
+              if (widget.plan.type == 'carousel' &&
+                  widget.plan.carouselFeatures != null) ...[
                 const SizedBox(height: 8),
                 AllocatedSeatsDisplay(
                   maxHighlights: widget.plan.carouselFeatures!.maxCarouselSlots,
-                  stateId: 'maharashtra', // TODO: Make dynamic based on user location
+                  stateId:
+                      'maharashtra', // TODO: Make dynamic based on user location
                   districtId: _getCurrentUserDistrict(),
                   bodyId: _getCurrentUserBody(),
                   wardId: _getCurrentUserWard(),
@@ -492,7 +564,10 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
               const SizedBox(height: 16),
 
               // Validity Period Selection
-              Text(AppLocalizations.of(context)!.selectValidityPeriod, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                AppLocalizations.of(context)!.selectValidityPeriod,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
 
               // Validity Options
@@ -501,9 +576,12 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                   final price = pricing![days]!;
                   final isSelected = selectedValidityDays == days;
                   final validityText = '$days Days';
-                  final expiryText = 'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}';
+                  final expiryText =
+                      'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}';
 
-                  AppLogger.common('📅 [PlanCardWithValidityOptions] Full validity option: "$validityText" - "$expiryText" - ₹$price');
+                  AppLogger.common(
+                    '📅 [PlanCardWithValidityOptions] Full validity option: "$validityText" - "$expiryText" - ₹$price',
+                  );
 
                   return GestureDetector(
                     onTap: () => setState(() => selectedValidityDays = days),
@@ -512,7 +590,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: isSelected ? Colors.blue : Colors.grey.shade300,
+                          color: isSelected
+                              ? Colors.blue
+                              : Colors.grey.shade300,
                           width: isSelected ? 2 : 1,
                         ),
                         borderRadius: BorderRadius.circular(8),
@@ -523,7 +603,8 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                           Radio<int>(
                             value: days,
                             groupValue: selectedValidityDays,
-                            onChanged: (value) => setState(() => selectedValidityDays = value),
+                            onChanged: (value) =>
+                                setState(() => selectedValidityDays = value),
                             activeColor: Colors.blue,
                           ),
                           Expanded(
@@ -535,12 +616,17 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: isSelected ? Colors.blue : Colors.black,
+                                    color: isSelected
+                                        ? Colors.blue
+                                        : Colors.black,
                                   ),
                                 ),
                                 Text(
                                   expiryText,
-                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -567,18 +653,28 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: selectedValidityDays != null
-                    ? () => widget.onPurchase(widget.plan, selectedValidityDays!)
-                    : null,
+                      ? () => widget.onPurchase(
+                          widget.plan,
+                          selectedValidityDays!,
+                        )
+                      : null,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: selectedValidityDays != null ? Colors.blue : Colors.grey,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    backgroundColor: selectedValidityDays != null
+                        ? Colors.blue
+                        : Colors.grey,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: Text(
                     selectedValidityDays != null
-                      ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
-                      : AppLocalizations.of(context)!.selectValidityPeriod,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
+                        : AppLocalizations.of(context)!.selectValidityPeriod,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -609,12 +705,18 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       }
 
       if (widget.plan.dashboardTabs!.achievements.enabled) {
-        final max = widget.plan.dashboardTabs!.achievements.maxAchievements == -1 ? 'Unlimited' : widget.plan.dashboardTabs!.achievements.maxAchievements.toString();
+        final max =
+            widget.plan.dashboardTabs!.achievements.maxAchievements == -1
+            ? 'Unlimited'
+            : widget.plan.dashboardTabs!.achievements.maxAchievements
+                  .toString();
         features.add(_buildFeatureItem('✓ Achievements ($max)'));
       }
 
       if (widget.plan.dashboardTabs!.media.enabled) {
-        final max = widget.plan.dashboardTabs!.media.maxMediaItems == -1 ? 'Unlimited' : widget.plan.dashboardTabs!.media.maxMediaItems.toString();
+        final max = widget.plan.dashboardTabs!.media.maxMediaItems == -1
+            ? 'Unlimited'
+            : widget.plan.dashboardTabs!.media.maxMediaItems.toString();
         features.add(_buildFeatureItem('✓ Media ($max items)'));
       }
 
@@ -623,7 +725,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       }
 
       if (widget.plan.dashboardTabs!.events.enabled) {
-        final max = widget.plan.dashboardTabs!.events.maxEvents == -1 ? 'Unlimited' : widget.plan.dashboardTabs!.events.maxEvents.toString();
+        final max = widget.plan.dashboardTabs!.events.maxEvents == -1
+            ? 'Unlimited'
+            : widget.plan.dashboardTabs!.events.maxEvents.toString();
         features.add(_buildFeatureItem('✓ Events ($max)'));
       }
 
@@ -697,7 +801,9 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
     }
 
     if (widget.plan.profileFeatures.highlightCarousel) {
-      features.add(_buildCompactFeatureItem('✓ Highlight Banner on Home Screen'));
+      features.add(
+        _buildCompactFeatureItem('✓ Highlight Banner on Home Screen'),
+      );
     }
 
     return features;
@@ -755,6 +861,4 @@ class _PlanCardWithValidityOptionsState extends State<PlanCardWithValidityOption
       return null;
     }
   }
-
-
 }

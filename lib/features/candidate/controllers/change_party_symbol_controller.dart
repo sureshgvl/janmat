@@ -102,7 +102,7 @@ class ChangePartySymbolController extends GetxController {
       _candidateDataManager.updateCandidateInLocalCache(updatedCandidate);
 
       // Update this controller's local candidate as well
-      this.candidate.value = updatedCandidate;
+      candidate.value = updatedCandidate;
       selectedParty.value = newParty;
 
       AppLogger.candidate('✅ Party, Symbol, and Symbol Name updated successfully');

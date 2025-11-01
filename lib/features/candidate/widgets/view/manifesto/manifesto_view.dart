@@ -48,7 +48,7 @@ class _ManifestoTabViewState extends State<ManifestoTabView>
 _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
 // Track manifesto view (only for other users, not the candidate themselves)
-if (!widget.isOwnProfile && widget.candidate.candidateId != null) {
+if (!widget.isOwnProfile) {
   _trackManifestoView();
 }
 
@@ -59,7 +59,7 @@ if (!widget.isOwnProfile && widget.candidate.candidateId != null) {
   Future<void> _trackManifestoView() async {
     try {
       await AnalyticsDataCollectionService().trackManifestoInteraction(
-        candidateId: widget.candidate.candidateId!,
+        candidateId: widget.candidate.candidateId,
         interactionType: 'view',
         userId: _currentUserId,
         section: 'full_manifesto',

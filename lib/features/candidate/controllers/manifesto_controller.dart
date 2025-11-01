@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -67,6 +66,7 @@ class ManifestoController extends GetxController implements IManifestoController
 
   /// TAB-SPECIFIC SAVE: Direct manifesto tab save method
   /// Handles all manifesto operations for the tab independently
+  @override
   Future<bool> saveManifestoTab({
     required String candidateId,
     required Candidate candidate,

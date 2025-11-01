@@ -165,7 +165,7 @@ class NotificationSettingsController extends GetxController {
       AppLogger.core('✅ Notification settings updated for ${newSettings.userId}');
     } catch (e) {
       AppLogger.coreError('❌ Failed to update notification settings', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -182,7 +182,7 @@ class NotificationSettingsController extends GetxController {
       await updateSettings(updatedSettings);
     } catch (e) {
       AppLogger.coreError('❌ Failed to update partial settings', error: e);
-      throw e;
+      rethrow;
     }
   }
 

@@ -732,7 +732,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
                   ],
 
                   // Address
-                  if (widget.candidate.contact?.address != null) ...[
+                  if (widget.candidate.contact.address != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -753,7 +753,7 @@ class _ProfileTabViewState extends State<ProfileTabView>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            widget.candidate.contact!.address!,
+                            widget.candidate.contact.address!,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

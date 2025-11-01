@@ -106,7 +106,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           'Purchase ${plan.name} for ${widget.electionType.replaceAll('_', ' ')} election?\n\n'
           'Validity: $validityDays days\n'
           'Expires: ${expiryDate.toString().split(' ')[0]}\n'
-          'Amount: ₹${price}\n\n'
+          'Amount: ₹$price\n\n'
           'You will be redirected to our secure payment gateway.',
         ),
         actions: [

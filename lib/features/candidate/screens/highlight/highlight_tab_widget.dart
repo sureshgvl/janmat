@@ -121,8 +121,8 @@ class HighlightTabState extends State<HighlightTab> {
           _imagesToDelete = []; // Reset delete list
         });
 
-        AppLogger.candidate('💾 [HighlightDashboard] Updated state: availableSeats=${_availableSeats}, candidateHighlights=${_candidateHighlights.length}');
-        AppLogger.candidate('🖼️ [HighlightDashboard] Original image URL: "${_originalImageUrl}"');
+        AppLogger.candidate('💾 [HighlightDashboard] Updated state: availableSeats=$_availableSeats, candidateHighlights=${_candidateHighlights.length}');
+        AppLogger.candidate('🖼️ [HighlightDashboard] Original image URL: "$_originalImageUrl"');
 
         // Load party symbol for the candidate's highlight if available
         if (currentCandidateHighlight != null) {

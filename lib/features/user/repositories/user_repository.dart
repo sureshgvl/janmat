@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/user_model.dart';
 
 /// Repository responsible for user data persistence operations.
 /// Handles all Firebase interactions related to user data.

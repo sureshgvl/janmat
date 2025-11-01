@@ -11,7 +11,7 @@ class NextStepsGuidance extends StatefulWidget {
   final VoidCallback? onViewAnalytics;
 
   const NextStepsGuidance({
-    Key? key,
+    super.key,
     required this.plan,
     required this.validityDays,
     this.onCompleteProfile,
@@ -19,7 +19,7 @@ class NextStepsGuidance extends StatefulWidget {
     this.onUploadMedia,
     this.onCreateHighlight,
     this.onViewAnalytics,
-  }) : super(key: key);
+  });
 
   @override
   State<NextStepsGuidance> createState() => _NextStepsGuidanceState();

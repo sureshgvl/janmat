@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -36,7 +35,7 @@ class FileUploadService {
 
       if (image == null) return null;
 
-      final fileName = 'profile_${userId}.jpg';
+      final fileName = 'profile_$userId.jpg';
       final storageRef = _storage.ref().child('profile_photos/$fileName');
 
       final uploadTask = storageRef.putFile(
@@ -482,7 +481,7 @@ class FileUploadService {
       try {
         final cacheService = Get.find<MediaCacheService>();
         await cacheService.putFile(downloadUrl, file, mediaType: 'upload');
-        AppLogger.common('💾 [Cache Integration] Cached uploaded ${isVideo ? 'video' : 'image'}: ${fileName}', tag: 'CACHE');
+        AppLogger.common('💾 [Cache Integration] Cached uploaded ${isVideo ? 'video' : 'image'}: $fileName', tag: 'CACHE');
       } catch (cacheError) {
         AppLogger.common('⚠️ [Cache Integration] Failed to cache uploaded file, continuing...', tag: 'CACHE');
         // Continue with upload even if caching fails

@@ -29,7 +29,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   int _previousMessageCount = 0;
 
   // Group messages by date for date separators
-  List<dynamic> _groupedMessages = [];
+  final List<dynamic> _groupedMessages = [];
 
   // Helper method to group messages by date
   void _groupMessagesByDate(List<Message> messages) {

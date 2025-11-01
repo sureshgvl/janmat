@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../utils/app_logger.dart';
 import 'location_model.dart';
 import 'contact_model.dart';
 import 'achievements_model.dart';
@@ -8,7 +7,6 @@ import 'analytics_model.dart';
 import 'events_model.dart';
 import 'highlights_model.dart';
 import 'manifesto_model.dart';
-import 'media_model.dart';
 import 'follower_model.dart';
 
 class Candidate {

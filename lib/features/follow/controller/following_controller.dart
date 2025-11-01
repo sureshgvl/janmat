@@ -147,7 +147,7 @@ class FollowingController extends GetxController {
       AppLogger.core('✅ User ${following.value!.userId} followed $targetId');
     } catch (e) {
       AppLogger.coreError('❌ Failed to follow $targetId', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -167,7 +167,7 @@ class FollowingController extends GetxController {
       AppLogger.core('✅ User ${following.value!.userId} unfollowed $targetId');
     } catch (e) {
       AppLogger.coreError('❌ Failed to unfollow $targetId', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -193,7 +193,7 @@ class FollowingController extends GetxController {
       AppLogger.core('✅ Updated following details for $targetId');
     } catch (e) {
       AppLogger.coreError('❌ Failed to update following details for $targetId', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -254,7 +254,7 @@ class FollowingController extends GetxController {
       AppLogger.core('✅ User ${following.value!.userId} followed ${targetIds.length} candidates');
     } catch (e) {
       AppLogger.coreError('❌ Failed to follow multiple candidates', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -281,7 +281,7 @@ class FollowingController extends GetxController {
       AppLogger.core('✅ User ${following.value!.userId} unfollowed ${targetIds.length} candidates');
     } catch (e) {
       AppLogger.coreError('❌ Failed to unfollow multiple candidates', error: e);
-      throw e;
+      rethrow;
     }
   }
 

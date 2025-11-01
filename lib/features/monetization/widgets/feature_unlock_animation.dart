@@ -7,11 +7,11 @@ class FeatureUnlockAnimation extends StatefulWidget {
   final VoidCallback? onAnimationComplete;
 
   const FeatureUnlockAnimation({
-    Key? key,
+    super.key,
     required this.plan,
     required this.unlockedFeatures,
     this.onAnimationComplete,
-  }) : super(key: key);
+  });
 
   @override
   State<FeatureUnlockAnimation> createState() => _FeatureUnlockAnimationState();

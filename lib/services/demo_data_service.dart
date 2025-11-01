@@ -1,5 +1,4 @@
 import '../features/candidate/models/achievements_model.dart';
-import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/models/events_model.dart';
 
 class DemoDataService {

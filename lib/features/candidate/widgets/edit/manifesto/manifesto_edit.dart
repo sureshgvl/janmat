@@ -53,7 +53,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   late List<Map<String, dynamic>> _promiseControllers;
   String? _originalText;
   List<Map<String, dynamic>> _localFiles = [];
-  bool _isSaving = false;
+  final bool _isSaving = false;
 
   // Files marked for deletion (will be deleted on save)
   final Map<String, bool> _filesMarkedForDeletion = {
@@ -299,7 +299,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       AppLogger.candidate('📄 [Firebase Upload] Uploading $type file: $fileName');
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final firebaseFileName = '${type}_${timestamp}.${_getFileExtension(type)}';
+      final firebaseFileName = '${type}_$timestamp.${_getFileExtension(type)}';
 
       final storagePath = 'manifesto_files/$firebaseFileName';
       final storageRef = FirebaseStorage.instance.ref().child(storagePath);
@@ -567,7 +567,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         );
       }
       // Re-throw to maintain error propagation
-      throw e;
+      rethrow;
     }
   }
 
@@ -690,7 +690,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       }
 
       // Re-throw to ensure calling code knows deletion failed
-      throw e;
+      rethrow;
     }
   }
 

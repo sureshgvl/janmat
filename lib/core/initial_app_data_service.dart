@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/user/models/user_model.dart';
 import '../features/language/services/language_service.dart';
 import '../utils/multi_level_cache.dart';
 import '../utils/app_logger.dart';
-import '../utils/performance_monitor.dart' as perf;
 
 /// Extension to handle Locale serialization/deserialization for JSON
 extension LocaleJsonExtension on Locale {
@@ -53,7 +51,7 @@ class InitialAppDataService {
     ]);
 
     final results = await languageChecks;
-    final storedLocale = results[0] as Locale?;
+    final storedLocale = results[0];
     final locale = storedLocale ?? const Locale('en');
 
     // SIMPLE: Wait for Firebase Auth state (no timeout like Facebook/Twitter)

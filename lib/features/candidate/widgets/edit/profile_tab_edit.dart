@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/candidate_model.dart';
-import '../demo_data_modal.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../utils/app_logger.dart';
 

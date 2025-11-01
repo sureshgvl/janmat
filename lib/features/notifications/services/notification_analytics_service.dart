@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
-import '../models/notification_model.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/notification_repository_impl.dart';
 

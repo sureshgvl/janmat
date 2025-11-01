@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../highlight/models/highlight_model.dart' as highlight_model;
 import '../../highlight/services/highlight_service.dart';
@@ -12,11 +11,11 @@ class WelcomeContentPreview extends StatefulWidget {
   final VoidCallback? onCreateMoreContent;
 
   const WelcomeContentPreview({
-    Key? key,
+    super.key,
     required this.userId,
     this.onViewFullContent,
     this.onCreateMoreContent,
-  }) : super(key: key);
+  });
 
   @override
   State<WelcomeContentPreview> createState() => _WelcomeContentPreviewState();
@@ -95,7 +94,7 @@ class _WelcomeContentPreviewState extends State<WelcomeContentPreview>
       );
 
       setState(() {
-        _platinumHighlight = highlight as highlight_model.Highlight?;
+        _platinumHighlight = highlight;
         _isLoading = false;
       });
 

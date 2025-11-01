@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../../../../utils/app_logger.dart';
 import '../models/notification_type.dart';
 import 'notification_manager.dart';
@@ -471,8 +470,9 @@ class CampaignMilestonesNotifications {
     final promises = manifestoData['promises'];
     if (promises is List && promises.isNotEmpty) {
       final promiseCount = promises.length;
-      if (promiseCount >= 5) score += 30;
-      else if (promiseCount >= 3) score += 20;
+      if (promiseCount >= 5) {
+        score += 30;
+      } else if (promiseCount >= 3) score += 20;
       else if (promiseCount >= 1) score += 10;
     }
 

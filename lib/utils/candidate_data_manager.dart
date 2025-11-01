@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 import '../features/candidate/models/candidate_model.dart';
-import '../features/candidate/models/candidate_party_model.dart';
 import '../features/candidate/repositories/candidate_repository.dart';
 import '../features/candidate/controllers/candidate_user_controller.dart';
 import 'symbol_utils.dart';

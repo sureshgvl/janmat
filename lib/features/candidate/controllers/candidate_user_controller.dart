@@ -11,7 +11,6 @@ import '../models/location_model.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../repositories/candidate_repository.dart';
-import '../controllers/achievements_controller.dart';
 import '../../../utils/app_logger.dart';
 
 /// Centralized controller for candidate role users.
@@ -517,10 +516,7 @@ class CandidateUserController extends GetxController {
     // Actually update the editedData object with the new manifesto values
     if (editedData.value != null) {
       var currentManifesto = editedData.value!.manifestoData;
-      if (currentManifesto == null) {
-        // Initialize manifesto data if it doesn't exist
-        currentManifesto = ManifestoModel(title: '', promises: []);
-      }
+      currentManifesto ??= ManifestoModel(title: '', promises: []);
 
       // Update the specific field in manifesto data
       ManifestoModel updatedManifesto;

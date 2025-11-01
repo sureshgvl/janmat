@@ -227,10 +227,8 @@ class ChatRepository {
           );
         }
 
-        if (room != null) {
-          rooms.add(room);
-        }
-      } catch (e) {
+        rooms.add(room);
+            } catch (e) {
         AppLogger.database(
           'Failed to convert metadata to room for ${meta.roomId}: $e',
           tag: 'CHAT',
@@ -601,7 +599,7 @@ class ChatRepository {
         );
         final snapshot = await _firestore.collectionGroup('chats').get();
         allRooms = snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
           return ChatRoom.fromJson(data);
         }).toList();
         AppLogger.database(
@@ -1696,8 +1694,9 @@ class ChatRepository {
       // Use a more robust parsing approach that doesn't rely on underscore counting
       final parts = roomId.split('_');
 
-      if (parts.length < 6)
+      if (parts.length < 6) {
         return 'chats/$roomId'; // Fallback - need at least area + 4 components + area name
+      }
 
       // Known positions: area(0), stateId(1), districtId(2), wardId is the one before last
       // Everything between districtId and wardId is bodyId (may contain underscores)
@@ -1991,7 +1990,7 @@ class ChatRepository {
               final data = hierarchicalDoc.data() as Map<String, dynamic>;
               room = ChatRoom.fromJson(data);
               AppLogger.chat(
-                '✅ Found room at hierarchical path: ${room?.title}',
+                '✅ Found room at hierarchical path: ${room.title}',
               );
             } else {
               AppLogger.chat(
@@ -2083,7 +2082,7 @@ class ChatRepository {
     try {
       final allRoomsSnapshot = await _firestore.collectionGroup('chats').get();
       final roomsFromSnapshot = allRoomsSnapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         return ChatRoom.fromJson(data);
       }).toList();
 
@@ -2610,7 +2609,7 @@ class ChatRepository {
               type: NotificationType.newMessage,
               title: 'New Message',
               body:
-                  '$senderName: ${message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text}',
+                  '$senderName: ${message.text.length > 50 ? '${message.text.substring(0, 50)}...' : message.text}',
               data: {
                 'senderId': message.senderId,
                 'senderName': senderName,

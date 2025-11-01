@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../../firebase_options.dart';
@@ -154,7 +152,7 @@ class AppStartupService {
     } catch (e) {
       // Original logging setup as fallback
       AppLogger.common('⚠️ File logging setup failed: $e');
-      throw e; // Re-throw to handle in main()
+      rethrow; // Re-throw to handle in main()
     }
   }
 

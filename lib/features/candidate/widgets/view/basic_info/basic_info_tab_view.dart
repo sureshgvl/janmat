@@ -353,7 +353,7 @@ class BasicInfoTabView extends StatelessWidget {
           if ((candidate.basicInfo?.age != null) ||
               (candidate.basicInfo?.gender != null) ||
               (candidate.basicInfo?.education != null) ||
-              (candidate.contact?.address != null)) ...[
+              (candidate.contact.address != null)) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(24),
@@ -771,7 +771,7 @@ class BasicInfoTabView extends StatelessWidget {
                     ),
                   ],
                   // Address
-                  if (candidate.contact?.address != null) ...[
+                  if (candidate.contact.address != null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -802,7 +802,7 @@ class BasicInfoTabView extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            candidate.contact!.address!,
+                            candidate.contact.address!,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

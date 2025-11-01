@@ -642,7 +642,7 @@ class MessageController extends GetxController {
     final contentKeyMap = <String, String>{}; // Map content key to message ID
 
     // Helper function to create content key for duplicate detection
-    String _createContentKey(Message msg) {
+    String createContentKey(Message msg) {
       // Use sender + text + timestamp (within 5 seconds) as duplicate key
       final timestampKey = (msg.createdAt.millisecondsSinceEpoch ~/ 5000).toString();
       return '${msg.senderId}_${msg.text}_$timestampKey';
@@ -650,10 +650,10 @@ class MessageController extends GetxController {
 
     // Add server messages first (they have the most up-to-date data)
     for (final message in serverMessages) {
-      final contentKey = _createContentKey(message);
+      final contentKey = createContentKey(message);
 
       // Ensure server message has a valid status (default to sent if missing)
-      final serverMessage = message.status != null ? message : message.copyWith(status: MessageStatus.sent);
+      final serverMessage = message;
 
       merged[message.messageId] = serverMessage;
       contentKeyMap[contentKey] = message.messageId;
@@ -663,7 +663,7 @@ class MessageController extends GetxController {
     // Add local messages only if they don't exist in server messages
     // Check both by ID and by content to prevent duplicates
     for (final message in localMessages) {
-      final contentKey = _createContentKey(message);
+      final contentKey = createContentKey(message);
 
       if (!merged.containsKey(message.messageId) && !contentKeyMap.containsKey(contentKey)) {
         merged[message.messageId] = message;
@@ -687,16 +687,16 @@ class MessageController extends GetxController {
           if (serverMessage.status == MessageStatus.sent || serverMessage.status == MessageStatus.failed) {
             // Server has final status, use it
             merged[existingId] = serverMessage;
-            AppLogger.chat('   Using server status (final) for message ${existingId}');
+            AppLogger.chat('   Using server status (final) for message $existingId');
           } else if ((message.status == MessageStatus.sent || message.status == MessageStatus.failed) &&
                      serverMessage.status == MessageStatus.sending) {
             // Local has final status but server doesn't, use local
             merged[existingId] = message;
-            AppLogger.chat('   Using local status (final) for message ${existingId}');
+            AppLogger.chat('   Using local status (final) for message $existingId');
           } else {
             // Both are sending or other cases, prefer server for consistency
             merged[existingId] = serverMessage;
-            AppLogger.chat('   Using server status (default) for message ${existingId}');
+            AppLogger.chat('   Using server status (default) for message $existingId');
           }
         }
       }

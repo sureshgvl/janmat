@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/achievements_model.dart';
 import 'package:janmat/utils/app_logger.dart';
-import 'package:janmat/services/file_upload_service.dart';
-import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/features/common/lazy_loading_media_widget.dart';
 import 'package:janmat/features/common/whatsapp_image_viewer.dart';
 import 'package:janmat/services/share_service.dart';

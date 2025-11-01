@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/features/candidate/screens/highlight/candidate_dashboard_highlight_screen.dart';
 import '../controllers/candidate_user_controller.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../monetization/services/plan_service.dart';
 import 'candidate_dashboard_info.dart';

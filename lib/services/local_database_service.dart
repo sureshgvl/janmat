@@ -801,7 +801,7 @@ class LocalDatabaseService {
   Future<void> insertDistrictSpotlight(DistrictSpotlight spotlight, String stateId, String districtId) async {
     final db = await database;
     final spotlightData = {
-      'id': spotlight.id ?? '${stateId}_${districtId}',
+      'id': spotlight.id ?? '${stateId}_$districtId',
       'stateId': stateId,
       'districtId': districtId,
       'partyId': spotlight.partyId,
@@ -820,7 +820,7 @@ class LocalDatabaseService {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
-    await updateCacheMetadata('district_spotlight_${stateId}_${districtId}');
+    await updateCacheMetadata('district_spotlight_${stateId}_$districtId');
     AppLogger.districtSpotlight('✅ [SQLite:DistrictSpotlight] Inserted district spotlight for $stateId/$districtId');
   }
 

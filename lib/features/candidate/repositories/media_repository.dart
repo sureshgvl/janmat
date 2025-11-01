@@ -116,6 +116,7 @@ class MediaRepository implements IMediaRepository {
   }
 
   /// Get grouped media data (List<Map<String, dynamic>>) - new method for view widget
+  @override
   Future<List<Map<String, dynamic>>?> getMediaGrouped(Candidate candidate) async {
     final candidateId = candidate.candidateId;
     try {
@@ -204,6 +205,7 @@ class MediaRepository implements IMediaRepository {
   }
 
   /// Update media using grouped format (List<Map<String, dynamic>>) instead of individual Media objects
+  @override
   Future<bool> updateMediaGrouped(String candidateId, List<Map<String, dynamic>> groupedMedia, Candidate candidate) async {
     try {
       AppLogger.database('Updating grouped media for candidate: $candidateId', tag: 'MEDIA_REPO');

@@ -60,7 +60,7 @@ class NotificationSchedulerService {
 
       // Store the scheduled notification in database
       final scheduledNotification = NotificationModel(
-        id: 'scheduled_${notificationId}',
+        id: 'scheduled_$notificationId',
         userId: userId,
         type: type,
         title: title,

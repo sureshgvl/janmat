@@ -15,7 +15,7 @@ class HighlightController extends GetxController {
   var errorMessage = ''.obs;
 
   // Cache for platinum banners (list for rotation)
-  List<Highlight> _platinumBanners = [];
+  final List<Highlight> _platinumBanners = [];
   List<Highlight> get platinumBanners => _platinumBanners;
   Highlight? get currentPlatinumBanner => _platinumBanners.isNotEmpty ? _platinumBanners.first : null;
 
@@ -23,101 +23,6 @@ class HighlightController extends GetxController {
   void onInit() {
     super.onInit();
     AppLogger.highlight('HighlightController: Initialized');
-  }
-
-  // Load platinum banners for a specific location (returns list for rotation)
-  Future<void> loadPlatinumBanners({
-    required String districtId,
-    required String bodyId,
-    required String wardId,
-  }) async {
-    try {
-      AppLogger.highlight(
-        'Loading platinum banners for $districtId/$bodyId/$wardId',
-      );
-
-      _platinumBanners = await HighlightRepository.getHighlightBanners(
-        stateId: 'maharashtra', // TODO: Make dynamic based on user location
-        districtId: districtId,
-        bodyId: bodyId,
-        wardId: wardId,
-      );
-
-      AppLogger.highlight(
-        'Platinum banners loaded: ${_platinumBanners.length} banners',
-      );
-      update(); // Notify listeners
-    } catch (e) {
-      AppLogger.highlightError('Error loading platinum banners', error: e);
-      _platinumBanners = [];
-      update();
-    }
-  }
-
-  // Create new highlight
-  Future<String?> createHighlight({
-    required String candidateId,
-    required String wardId,
-    required String districtId,
-    required String bodyId,
-    required String package,
-    required List<String> placement,
-    required DateTime startDate,
-    required DateTime endDate,
-    String? imageUrl,
-    String? candidateName,
-    String? party,
-    bool exclusive = false,
-    int priority = 1,
-  }) async {
-    try {
-      AppLogger.highlight('Creating highlight for candidate: $candidateId');
-
-      final highlightId = 'hl_${DateTime.now().millisecondsSinceEpoch}';
-      final locationKey = '${districtId}_${bodyId}_$wardId';
-
-      final location = LocationModel(
-        stateId: 'maharashtra',
-        districtId: districtId,
-        bodyId: bodyId,
-        wardId: wardId,
-      );
-
-      final highlight = Highlight(
-        id: highlightId,
-        candidateId: candidateId,
-        location: location,
-        locationKey: locationKey,
-        package: package,
-        placement: placement,
-        priority: priority,
-        startDate: startDate,
-        endDate: endDate,
-        active:
-            startDate.isBefore(DateTime.now()) &&
-            endDate.isAfter(DateTime.now()),
-        exclusive: exclusive,
-        rotation: !exclusive,
-        views: 0,
-        clicks: 0,
-        imageUrl: imageUrl,
-        candidateName: candidateName,
-        party: party,
-        createdAt: DateTime.now(),
-      );
-
-      final result = await _repository.createHighlight(highlight);
-
-      if (result != null) {
-        AppLogger.highlight('Highlight created successfully: $highlightId');
-      }
-
-      return result;
-    } catch (e) {
-      AppLogger.highlightError('Error creating highlight', error: e);
-      errorMessage.value = 'Failed to create highlight: $e';
-      return null;
-    }
   }
 
   // Create or update Platinum highlight for real candidate
@@ -341,55 +246,6 @@ class HighlightController extends GetxController {
       );
       errorMessage.value = 'Failed to create/update Platinum highlight: $e';
       return null;
-    }
-  }
-
-  // Track impression (view)
-  Future<void> trackImpression(String highlightId) async {
-    try {
-      await _repository.trackImpression(highlightId);
-      AppLogger.highlight('Tracked impression for highlight: $highlightId');
-    } catch (e) {
-      AppLogger.highlightError('Error tracking impression', error: e);
-    }
-  }
-
-  // Track click
-  Future<void> trackClick(
-    String highlightId, {
-    String? districtId,
-    String? bodyId,
-    String? wardId,
-  }) async {
-    try {
-      await _repository.trackClick(
-        highlightId,
-        districtId: districtId,
-        bodyId: bodyId,
-        wardId: wardId,
-      );
-      AppLogger.highlight('Tracked click for highlight: $highlightId');
-    } catch (e) {
-      AppLogger.highlightError('Error tracking click', error: e);
-    }
-  }
-
-  // Track carousel view for analytics
-  Future<void> trackCarouselView({
-    required String contentId,
-    required String userId,
-    required String candidateId,
-  }) async {
-    try {
-      await _repository.trackCarouselView(
-        sectionType: 'carousel',
-        contentId: contentId,
-        userId: userId,
-        candidateId: candidateId,
-      );
-      AppLogger.highlight('Tracked carousel view for: $contentId');
-    } catch (e) {
-      AppLogger.highlightError('Error tracking carousel view', error: e);
     }
   }
 

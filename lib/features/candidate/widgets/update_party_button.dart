@@ -31,7 +31,7 @@ class UpdatePartyButton extends StatelessWidget {
           controller.currentCandidate.value?.symbolName ?? '';
       final foundSymbolMedia = controller.currentCandidate.value?.media
           ?.cast<Map<String, dynamic>>()
-          ?.firstWhere(
+          .firstWhere(
             (item) => item['type'] == 'symbolImage',
             orElse: () => <String, dynamic>{},
           );

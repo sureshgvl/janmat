@@ -709,7 +709,7 @@ class CandidateSearchManager {
 
                   // Invalidate cache for this candidate
                   invalidateCache(
-                    'candidates_${stateId}_${districtId}_${bodyId}_${wardId}',
+                    'candidates_${stateId}_${districtId}_${bodyId}_$wardId',
                   );
 
                   break;

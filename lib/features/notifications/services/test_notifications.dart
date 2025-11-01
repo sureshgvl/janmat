@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../models/notification_type.dart';

@@ -9,10 +9,8 @@ import 'package:janmat/features/candidate/models/media_model.dart';
 import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/monetization/services/plan_service.dart';
 import 'package:janmat/features/common/reusable_image_widget.dart';
-import 'package:janmat/features/common/reusable_video_widget.dart';
 import 'package:janmat/features/candidate/controllers/media_controller.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
-import 'package:janmat/core/app_route_names.dart';
 
 // Image Gallery Viewer Widget for swipeable image viewing
 class ImageGalleryViewer extends StatefulWidget {

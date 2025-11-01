@@ -206,18 +206,14 @@ class ManifestoResourcesSection extends StatelessWidget {
       }
 
       // Fallback to external storage
-      if (downloadsDir == null) {
-        downloadsDir = await getExternalStorageDirectory();
-      }
+      downloadsDir ??= await getExternalStorageDirectory();
 
       // Last fallback to app documents
-      if (downloadsDir == null) {
-        downloadsDir = await getApplicationDocumentsDirectory();
-      }
+      downloadsDir ??= await getApplicationDocumentsDirectory();
 
       // Create file name
       final fileName = 'manifesto_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final filePath = path.join(downloadsDir!.path, fileName);
+      final filePath = path.join(downloadsDir.path, fileName);
 
       // Save file
       final file = File(filePath);
@@ -253,7 +249,7 @@ class ManifestoResourcesSection extends StatelessWidget {
       // Create file name with candidate name: "candidate_name_manifesto.pdf" or Marathi equivalent
       final safeName = _sanitizeFileName(candidateName ?? 'candidate');
       final manifestoText = CandidateTranslations.tr('manifesto'); // Localized manifesto text
-      final fileName = '${safeName}_${manifestoText}.pdf';
+      final fileName = '${safeName}_$manifestoText.pdf';
       final filePath = path.join(tempDir.path, fileName);
 
       // Save to temporary file
@@ -800,7 +796,7 @@ class _VideoThumbnailPreviewState extends State<VideoThumbnailPreview> {
         children: [
           // Video thumbnail with natural aspect ratio scaling
           if (_isThumbnailLoaded && _controller != null && _controller!.value.isInitialized)
-            Container(
+            SizedBox(
               width: double.infinity,
               height: double.infinity,
               child: FittedBox(
@@ -911,7 +907,7 @@ class _VideoThumbnailPreviewState extends State<VideoThumbnailPreview> {
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }
 

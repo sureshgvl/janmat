@@ -493,12 +493,12 @@ class _ContactSectionState extends State<ContactSection> {
 
       // Create ContactModel from current form data
       final contact = ContactModel(
-        phone: data.contact?.phone,
-        email: data.contact?.email,
-        address: data.contact?.address,
-        socialLinks: data.contact?.socialLinks ?? {},
-        officeAddress: data.contact?.officeAddress,
-        officeHours: data.contact?.officeHours,
+        phone: data.contact.phone,
+        email: data.contact.email,
+        address: data.contact.address,
+        socialLinks: data.contact.socialLinks ?? {},
+        officeAddress: data.contact.officeAddress,
+        officeHours: data.contact.officeHours,
       );
 
       // Save using the controller

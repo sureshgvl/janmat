@@ -48,7 +48,7 @@ class CallToActionSection extends StatelessWidget {
             const SizedBox(height: 16),
             if (isEditing)
               DropdownButtonFormField<String>(
-                value: config.callToAction,
+                initialValue: config.callToAction,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

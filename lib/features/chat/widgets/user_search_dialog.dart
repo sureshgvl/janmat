@@ -44,7 +44,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
       final snapshot1 = await _firestore
           .collection('users')
           .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .limit(10)
           .get();
 
@@ -53,7 +53,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
       final snapshot2 = await _firestore
           .collection('users')
           .where('name', isGreaterThanOrEqualTo: lowerQuery)
-          .where('name', isLessThanOrEqualTo: lowerQuery + '\uf8ff')
+          .where('name', isLessThanOrEqualTo: '$lowerQuery\uf8ff')
           .limit(10)
           .get();
 
@@ -62,7 +62,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
       final snapshot3 = await _firestore
           .collection('users')
           .where('name', isGreaterThanOrEqualTo: upperQuery)
-          .where('name', isLessThanOrEqualTo: upperQuery + '\uf8ff')
+          .where('name', isLessThanOrEqualTo: '$upperQuery\uf8ff')
           .limit(10)
           .get();
 
@@ -73,7 +73,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
       final snapshot4 = await _firestore
           .collection('users')
           .where('name', isGreaterThanOrEqualTo: titleQuery)
-          .where('name', isLessThanOrEqualTo: titleQuery + '\uf8ff')
+          .where('name', isLessThanOrEqualTo: '$titleQuery\uf8ff')
           .limit(10)
           .get();
 

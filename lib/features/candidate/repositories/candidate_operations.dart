@@ -890,7 +890,7 @@ class CandidateOperations {
             updateError.toString().contains('PERMISSION_DENIED')) {
           AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document. Check Firestore rules.');
         }
-        throw updateError; // Re-throw to be caught by outer catch
+        rethrow; // Re-throw to be caught by outer catch
       }
 
     } catch (e) {
@@ -954,7 +954,7 @@ class CandidateOperations {
 
         AppLogger.candidate('✅ Successfully updated candidate fields using embedded location data');
         // Invalidate cache for this candidate
-        invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_${wardId}');
+        invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
 
         return true;
 
@@ -965,7 +965,7 @@ class CandidateOperations {
             updateError.toString().contains('PERMISSION_DENIED')) {
           AppLogger.candidateError('🚫 PERMISSION DENIED: Cannot update candidate document. Check Firestore rules.');
         }
-        throw updateError; // Re-throw to be caught by outer catch
+        rethrow; // Re-throw to be caught by outer catch
       }
 
     } catch (e) {
@@ -1025,7 +1025,7 @@ class CandidateOperations {
 
       AppLogger.candidate('✅ Successfully batch updated candidate fields using embedded location data');
       // Invalidate cache for this candidate
-      invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_${wardId}');
+      invalidateCache('candidates_${stateId}_${districtId}_${bodyId}_$wardId');
       return true;
     } catch (e) {
       throw Exception('Failed to batch update candidate fields: $e');

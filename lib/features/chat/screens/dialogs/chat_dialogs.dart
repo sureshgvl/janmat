@@ -14,7 +14,7 @@ class ChatDialogs {
 
     Get.dialog(
       AlertDialog(
-        title: Text(ChatLocalizations.of(context)!.createNewChatRoom),
+        title: Text(ChatLocalizations.of(context).createNewChatRoom),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -22,18 +22,18 @@ class ChatDialogs {
               TextField(
                 controller: titleController,
                 decoration: InputDecoration(
-                  labelText: ChatLocalizations.of(context)!.roomTitle,
-                  hintText: ChatLocalizations.of(context)!.enterRoomName,
+                  labelText: ChatLocalizations.of(context).roomTitle,
+                  hintText: ChatLocalizations.of(context).enterRoomName,
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
                 decoration: InputDecoration(
-                  labelText: ChatLocalizations.of(context)!.descriptionOptional,
+                  labelText: ChatLocalizations.of(context).descriptionOptional,
                   hintText: ChatLocalizations.of(
                     context,
-                  )!.briefDescription,
+                  ).briefDescription,
                 ),
                 maxLines: 2,
               ),
@@ -41,7 +41,7 @@ class ChatDialogs {
               DropdownButtonFormField<String>(
                 initialValue: roomType,
                 decoration: InputDecoration(
-                  labelText: ChatLocalizations.of(context)!.roomType,
+                  labelText: ChatLocalizations.of(context).roomType,
                 ),
                 items: [
                   DropdownMenuItem(
@@ -65,7 +65,7 @@ class ChatDialogs {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text(ChatLocalizations.of(context)!.cancel),
+            child: Text(ChatLocalizations.of(context).cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -92,7 +92,7 @@ class ChatDialogs {
                 }
               }
             },
-            child: Text(ChatLocalizations.of(context)!.create),
+            child: Text(ChatLocalizations.of(context).create),
           ),
         ],
       ),

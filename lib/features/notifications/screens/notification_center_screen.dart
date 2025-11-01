@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/notification_model.dart';
-import '../models/notification_status.dart';
 import '../services/notification_manager.dart';
 import '../services/test_notifications.dart';
 import '../../../l10n/features/notifications/notifications_localizations.dart';
@@ -562,7 +561,7 @@ class NotificationCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: notification.isUnread ? 2 : 0,
       color: notification.isUnread
-          ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3)
+          ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
           : null,
       child: InkWell(
         onTap: onTap,

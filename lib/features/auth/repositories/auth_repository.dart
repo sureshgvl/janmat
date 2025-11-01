@@ -184,13 +184,6 @@ class AuthRepository {
       // Store account info for future logins
       await _storeLastGoogleAccount(googleUser);
 
-      if (googleUser == null) {
-        final totalDuration = DateTime.now().difference(startTime);
-        stopPerformanceTimer('google_signin_optimized');
-        AppLogger.auth('[GOOGLE_SIGNIN] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
-        return null; // User cancelled
-      }
-
       AppLogger.auth('✅ [GOOGLE_SIGNIN] Google account selected: ${googleUser.displayName} (ID: ${googleUser.id})');
 
       // Step 2: Parallel processing - Get tokens and prepare user data simultaneously

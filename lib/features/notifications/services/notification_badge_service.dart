@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../utils/app_logger.dart';
 import '../repositories/notification_repository.dart';

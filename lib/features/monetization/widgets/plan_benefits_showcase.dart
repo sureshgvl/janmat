@@ -7,11 +7,11 @@ class PlanBenefitsShowcase extends StatefulWidget {
   final VoidCallback? onGetStarted;
 
   const PlanBenefitsShowcase({
-    Key? key,
+    super.key,
     required this.plan,
     required this.validityDays,
     this.onGetStarted,
-  }) : super(key: key);
+  });
 
   @override
   State<PlanBenefitsShowcase> createState() => _PlanBenefitsShowcaseState();

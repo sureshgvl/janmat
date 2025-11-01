@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../../../widgets/loading_overlay.dart';
 import '../models/candidate_model.dart';

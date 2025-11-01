@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
 import '../../../services/file_upload_service.dart';
 import '../models/highlights_model.dart';

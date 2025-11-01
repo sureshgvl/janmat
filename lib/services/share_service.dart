@@ -101,7 +101,7 @@ class ShareService {
         Future.delayed(const Duration(seconds: 30), () async {
           try {
             if (await imageFile!.exists()) {
-              await imageFile!.delete();
+              await imageFile.delete();
             }
           } catch (e) {
             // Ignore cleanup errors
@@ -112,9 +112,9 @@ class ShareService {
       // Share the image file with text - Use proper display name
       final candidateDisplayName = candidate.basicInfo?.fullName ?? candidate.basicInfo!.fullName;
       await Share.shareXFiles(
-        [XFile(imageFile!.path)],
+        [XFile(imageFile.path)],
         text: shareText,
-        subject: '🏆 ${candidateDisplayName} - ${achievement.title}',
+        subject: '🏆 $candidateDisplayName - ${achievement.title}',
       );
 
     } catch (e) {
@@ -212,7 +212,7 @@ class ShareService {
 
     // Achievement header - Use proper display name (fullName or fallback to name)
     final candidateDisplayName = candidate.basicInfo?.fullName ?? 'candidate ';
-    buffer.writeln('🏆 Achievement by ${candidateDisplayName}');
+    buffer.writeln('🏆 Achievement by $candidateDisplayName');
 
     // Achievement details
     if (achievement.title.isNotEmpty) {

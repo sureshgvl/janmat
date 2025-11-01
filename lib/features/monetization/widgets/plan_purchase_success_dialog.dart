@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
-import '../../../utils/app_logger.dart';
 import '../../../utils/theme_constants.dart';
 import '../../../controllers/theme_controller.dart';
 
@@ -14,17 +13,18 @@ class PlanPurchaseSuccessDialog extends StatefulWidget {
   final VoidCallback? onViewBenefits;
 
   const PlanPurchaseSuccessDialog({
-    Key? key,
+    super.key,
     required this.plan,
     required this.validityDays,
     required this.amountPaid,
     this.electionType,
     this.onContinue,
     this.onViewBenefits,
-  }) : super(key: key);
+  });
 
   @override
-  State<PlanPurchaseSuccessDialog> createState() => _PlanPurchaseSuccessDialogState();
+  State<PlanPurchaseSuccessDialog> createState() =>
+      _PlanPurchaseSuccessDialogState();
 }
 
 class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
@@ -77,9 +77,7 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppBorderRadius.xl),
-                  boxShadow: [
-                    AppShadows.medium,
-                  ],
+                  boxShadow: [AppShadows.medium],
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -100,9 +98,6 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
   }
 
   Widget _buildHeader() {
-    final themeController = Get.find<ThemeController>();
-    final primaryColor = themeController.getThemePrimaryColor(themeController.currentThemeType.value);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -125,17 +120,13 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
               children: [
                 Text(
                   'Purchase Successful!',
-                  style: AppTypography.heading4.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: AppTypography.heading4.copyWith(color: Colors.white),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${widget.plan.name} Plan Activated',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: AppTypography.bodyMedium.copyWith(color: Colors.white),
                 ),
               ],
             ),
@@ -154,7 +145,8 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
           _buildPlanDetails(),
           const SizedBox(height: 16),
           _buildBenefitsPreview(),
-          if (widget.plan.type == 'candidate' && widget.plan.planId == 'platinum_plan') ...[
+          if (widget.plan.type == 'candidate' &&
+              widget.plan.planId == 'platinum_plan') ...[
             const SizedBox(height: 16),
             _buildWelcomeContentNotice(),
           ],
@@ -203,7 +195,10 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
           Row(
             children: [
               Expanded(
-                child: _buildDetailRow('Validity', '${widget.validityDays} days'),
+                child: _buildDetailRow(
+                  'Validity',
+                  '${widget.validityDays} days',
+                ),
               ),
             ],
           ),
@@ -211,7 +206,10 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
             Row(
               children: [
                 Expanded(
-                  child: _buildDetailRow('Election Type', widget.electionType!.replaceAll('_', ' ').toUpperCase()),
+                  child: _buildDetailRow(
+                    'Election Type',
+                    widget.electionType!.replaceAll('_', ' ').toUpperCase(),
+                  ),
                 ),
               ],
             ),
@@ -274,32 +272,30 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
       children: [
         Text(
           'What You\'ve Unlocked',
-          style: AppTypography.heading4.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
-        ...benefits.take(3).map((benefit) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: _getPlanColor(),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  benefit,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+        ...benefits
+            .take(3)
+            .map(
+              (benefit) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: _getPlanColor(), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        benefit,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        )),
+            ),
         if (benefits.length > 3)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -326,11 +322,7 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.star,
-            color: Colors.amber[600],
-            size: 24,
-          ),
+          Icon(Icons.star, color: Colors.amber[600], size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -346,10 +338,7 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
                 ),
                 Text(
                   'Your Platinum highlight banner is now live!',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.amber[700],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.amber[700]),
                 ),
               ],
             ),
@@ -361,7 +350,9 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
 
   Widget _buildActions() {
     final themeController = Get.find<ThemeController>();
-    final primaryColor = themeController.getThemePrimaryColor(themeController.currentThemeType.value);
+    final primaryColor = themeController.getThemePrimaryColor(
+      themeController.currentThemeType.value,
+    );
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -387,9 +378,7 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
         ),
         child: Text(
           'Continue',
-          style: AppTypography.labelLarge.copyWith(
-            color: Colors.white,
-          ),
+          style: AppTypography.labelLarge.copyWith(color: Colors.white),
         ),
       ),
     );
@@ -437,7 +426,9 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
 
   Color _getPlanColor() {
     final themeController = Get.find<ThemeController>();
-    final primaryColor = themeController.getThemePrimaryColor(themeController.currentThemeType.value);
+    final primaryColor = themeController.getThemePrimaryColor(
+      themeController.currentThemeType.value,
+    );
 
     // Use theme primary color for all plans to maintain consistency
     return primaryColor;
@@ -445,24 +436,20 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
 
   List<Color> _getPlanGradientColors() {
     final themeController = Get.find<ThemeController>();
-    final primaryColor = themeController.getThemePrimaryColor(themeController.currentThemeType.value);
-    final secondaryColor = themeController.getThemeSecondaryColor(themeController.currentThemeType.value);
+    final primaryColor = themeController.getThemePrimaryColor(
+      themeController.currentThemeType.value,
+    );
+    final secondaryColor = themeController.getThemeSecondaryColor(
+      themeController.currentThemeType.value,
+    );
 
     // Use theme colors for gradient
-    return [primaryColor, secondaryColor != Colors.white ? secondaryColor : primaryColor.withOpacity(0.8)];
-  }
-
-  IconData _getPlanIcon() {
-    switch (widget.plan.type) {
-      case 'candidate':
-        return widget.plan.planId == 'platinum_plan' ? Icons.diamond : Icons.star;
-      case 'highlight':
-        return Icons.flag;
-      case 'carousel':
-        return Icons.view_carousel;
-      default:
-        return Icons.check_circle;
-    }
+    return [
+      primaryColor,
+      secondaryColor != Colors.white
+          ? secondaryColor
+          : primaryColor.withOpacity(0.8),
+    ];
   }
 
   String _calculateExpiryDate() {

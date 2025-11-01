@@ -191,7 +191,7 @@ class UserDataService extends GetxService {
 
     } catch (e) {
       AppLogger.coreError('❌ Failed to update user data', error: e);
-      throw e;
+      rethrow;
     }
   }
 

@@ -46,7 +46,7 @@ class LazyLoadingMediaWidget extends StatefulWidget {
   final VoidCallback? onMediaError;
 
   const LazyLoadingMediaWidget({
-    Key? key,
+    super.key,
     required this.mediaUrl,
     required this.mediaType,
     this.config = const LazyLoadingConfig(),
@@ -59,7 +59,7 @@ class LazyLoadingMediaWidget extends StatefulWidget {
     this.enableCache = true,
     this.onMediaLoaded,
     this.onMediaError,
-  }) : super(key: key);
+  });
 
   @override
   State<LazyLoadingMediaWidget> createState() => _LazyLoadingMediaWidgetState();

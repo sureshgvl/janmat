@@ -47,53 +47,49 @@ class CandidateFollowManager {
 
       final batch = _firestore.batch();
 
-      if (candidateDistrictId != null &&
-          candidateBodyId != null &&
-          candidateWardId != null) {
-        // Found in new structure - use new structure paths
-        try {
-          // Add to candidate's followers subcollection
-          final candidateFollowersRef = _firestore
-              .collection('states')
-              .doc(candidateStateId)
-              .collection('districts')
-              .doc(candidateDistrictId)
-              .collection('bodies')
-              .doc(candidateBodyId)
-              .collection('wards')
-              .doc(candidateWardId)
-              .collection('candidates')
-              .doc(candidateId)
-              .collection('followers')
-              .doc(userId);
+      // Found in new structure - use new structure paths
+      try {
+        // Add to candidate's followers subcollection
+        final candidateFollowersRef = _firestore
+            .collection('states')
+            .doc(candidateStateId)
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId)
+            .collection('followers')
+            .doc(userId);
 
-          batch.set(candidateFollowersRef, {
-            'followedAt': FieldValue.serverTimestamp(),
-            'notificationsEnabled': notificationsEnabled,
-          });
+        batch.set(candidateFollowersRef, {
+          'followedAt': FieldValue.serverTimestamp(),
+          'notificationsEnabled': notificationsEnabled,
+        });
 
-          // Update candidate's followers count
-          final candidateRef = _firestore
-              .collection('states')
-              .doc(candidateStateId)
-              .collection('districts')
-              .doc(candidateDistrictId)
-              .collection('bodies')
-              .doc(candidateBodyId)
-              .collection('wards')
-              .doc(candidateWardId)
-              .collection('candidates')
-              .doc(candidateId);
+        // Update candidate's followers count
+        final candidateRef = _firestore
+            .collection('states')
+            .doc(candidateStateId)
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId);
 
-          batch.update(candidateRef, {
-            'followersCount': FieldValue.increment(1),
-          });
-        } catch (e) {
-          AppLogger.candidate('⚠️ Failed to update candidate in new structure: $e');
-          AppLogger.candidate('🔄 Falling back to legacy candidate structure');
-        }
+        batch.update(candidateRef, {
+          'followersCount': FieldValue.increment(1),
+        });
+      } catch (e) {
+        AppLogger.candidate('⚠️ Failed to update candidate in new structure: $e');
+        AppLogger.candidate('🔄 Falling back to legacy candidate structure');
       }
-
+    
       // Note: Legacy structure fallback removed - using new state-based structure only
       // Candidates are now stored in states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId}
 
@@ -125,12 +121,10 @@ class CandidateFollowManager {
 
       // Invalidate relevant caches
       invalidateCache('following_$userId');
-      if (candidateStateId != null) {
-        invalidateCache(
-          'candidates_${candidateStateId}_${candidateDistrictId}_${candidateBodyId}_$candidateWardId',
-        );
-      }
-    } catch (e) {
+      invalidateCache(
+        'candidates_${candidateStateId}_${candidateDistrictId}_${candidateBodyId}_$candidateWardId',
+      );
+        } catch (e) {
       throw Exception('Failed to follow candidate: $e');
     }
   }
@@ -155,50 +149,46 @@ class CandidateFollowManager {
       // Now use the location we found above to create the batch operations
       final batch = _firestore.batch();
 
-      if (candidateDistrictId != null &&
-          candidateBodyId != null &&
-          candidateWardId != null) {
-        // Found in new structure - use new structure paths
-        try {
-          // Remove from candidate's followers subcollection
-          final candidateFollowersRef = _firestore
-              .collection('states')
-              .doc(candidateStateId)
-              .collection('districts')
-              .doc(candidateDistrictId)
-              .collection('bodies')
-              .doc(candidateBodyId)
-              .collection('wards')
-              .doc(candidateWardId)
-              .collection('candidates')
-              .doc(candidateId)
-              .collection('followers')
-              .doc(userId);
+      // Found in new structure - use new structure paths
+      try {
+        // Remove from candidate's followers subcollection
+        final candidateFollowersRef = _firestore
+            .collection('states')
+            .doc(candidateStateId)
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId)
+            .collection('followers')
+            .doc(userId);
 
-          batch.delete(candidateFollowersRef);
+        batch.delete(candidateFollowersRef);
 
-          // Update candidate's followers count
-          final candidateRef = _firestore
-              .collection('states')
-              .doc(candidateStateId)
-              .collection('districts')
-              .doc(candidateDistrictId)
-              .collection('bodies')
-              .doc(candidateBodyId)
-              .collection('wards')
-              .doc(candidateWardId)
-              .collection('candidates')
-              .doc(candidateId);
+        // Update candidate's followers count
+        final candidateRef = _firestore
+            .collection('states')
+            .doc(candidateStateId)
+            .collection('districts')
+            .doc(candidateDistrictId)
+            .collection('bodies')
+            .doc(candidateBodyId)
+            .collection('wards')
+            .doc(candidateWardId)
+            .collection('candidates')
+            .doc(candidateId);
 
-          batch.update(candidateRef, {
-            'followersCount': FieldValue.increment(-1),
-          });
-        } catch (e) {
-          AppLogger.candidate('⚠️ Failed to update candidate in new structure: $e');
-          AppLogger.candidate('🔄 Falling back to legacy candidate structure');
-        }
+        batch.update(candidateRef, {
+          'followersCount': FieldValue.increment(-1),
+        });
+      } catch (e) {
+        AppLogger.candidate('⚠️ Failed to update candidate in new structure: $e');
+        AppLogger.candidate('🔄 Falling back to legacy candidate structure');
       }
-
+    
       // Note: Legacy structure fallback removed - using new state-based structure only
       // Candidates are now stored in states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId}
 
@@ -256,32 +246,28 @@ class CandidateFollowManager {
         '🎯 Using candidate.location for followers: $candidateStateId/$candidateDistrictId/$candidateBodyId/$candidateWardId',
       );
 
-      if (candidateDistrictId != null &&
-          candidateBodyId != null &&
-          candidateWardId != null) {
-        // Found in new structure
-        final snapshot = await _firestore
-            .collection('states')
-            .doc(candidateStateId)
-            .collection('districts')
-            .doc(candidateDistrictId)
-            .collection('bodies')
-            .doc(candidateBodyId)
-            .collection('wards')
-            .doc(candidateWardId)
-            .collection('candidates')
-            .doc(candidateId)
-            .collection('followers')
-            .orderBy('followedAt', descending: true)
-            .get();
+      // Found in new structure
+      final snapshot = await _firestore
+          .collection('states')
+          .doc(candidateStateId)
+          .collection('districts')
+          .doc(candidateDistrictId)
+          .collection('bodies')
+          .doc(candidateBodyId)
+          .collection('wards')
+          .doc(candidateWardId)
+          .collection('candidates')
+          .doc(candidateId)
+          .collection('followers')
+          .orderBy('followedAt', descending: true)
+          .get();
 
-        return snapshot.docs.map((doc) {
-          final data = doc.data();
-          data['userId'] = doc.id;
-          return data;
-        }).toList();
-      }
-
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['userId'] = doc.id;
+        return data;
+      }).toList();
+    
       // Candidate not in new structure - followers functionality may not be available
       AppLogger.candidate(
         '⚠️ Candidate not found in new structure - followers not available',

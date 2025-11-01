@@ -50,7 +50,7 @@ class PremiumPlansTab extends StatelessWidget {
                       SizedBox(height: 16),
                       Text(
                         'Loading premium plans...',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.grey,
                           fontSize: 14,
                         ),
@@ -78,7 +78,7 @@ class PremiumPlansTab extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Text(
                     'No premium plans available at the moment.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.grey,
                       fontSize: 14,
                     ),
@@ -137,50 +137,6 @@ class PremiumPlansTab extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Widget _buildDebugInfo() {
-    return Obx(() {
-      final allPlans = controller.plans.toList();
-
-      // Debug section (only in debug mode)
-      Widget debugWidget = const SizedBox.shrink();
-      assert(() {
-        debugWidget = Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(top: 16),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '🔍 Debug Info',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Text('Total Plans: ${allPlans.length}', style: const TextStyle(fontSize: 12)),
-              Text('Election Type: $userElectionType', style: const TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              const Text('Plan Details:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              ...allPlans.map((plan) => Padding(
-                padding: const EdgeInsets.only(left: 8, top: 2),
-                child: Text(
-                  '• ${plan.name} (${plan.planId}) - ${plan.type}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              )),
-            ],
-          ),
-        );
-        return true;
-      }());
-
-      return debugWidget;
-    });
   }
 
   void _handlePurchaseWithValidity(BuildContext context, dynamic plan, int validityDays) {
@@ -242,7 +198,7 @@ class PremiumPlansTab extends StatelessWidget {
 
     if (confirmed == true) {
       // Start the payment process with election type and validity days
-      AppLogger.monetization('💳 Starting payment process for plan: ${plan.planId}, election: ${userElectionType}, validity: $validityDays');
+      AppLogger.monetization('💳 Starting payment process for plan: ${plan.planId}, election: $userElectionType, validity: $validityDays');
       final success = await controller.processPaymentWithElection(plan.planId, userElectionType ?? 'municipal_corporation', validityDays);
 
       if (success) {

@@ -5,7 +5,6 @@ import '../../../utils/app_logger.dart';
 import '../models/achievements_model.dart';
 import '../models/candidate_model.dart';
 import '../repositories/achievements_repository.dart';
-import '../repositories/candidate_operations.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../../notifications/services/constituency_notifications.dart';

@@ -235,14 +235,14 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
               // Photo and Name Section
               Builder(
                 builder: (context) {
-                  final photoValue = data!.basicInfo!.photo;
+                  final photoValue = data.basicInfo!.photo;
                   final isLocalPhoto = photoValue != null && photoValue.startsWith('local:');
                   AppLogger.candidate(
                     '🎨 BasicInfoEdit displaying photo - value: "$photoValue", isLocal: $isLocalPhoto',
                     tag: 'PHOTO_DEBUG'
                   );
                   if (isLocalPhoto) {
-                    final localPath = photoValue!.substring(6);
+                    final localPath = photoValue.substring(6);
                     AppLogger.candidate('📁 Local file path: $localPath', tag: 'PHOTO_DEBUG');
                   }
 
@@ -468,7 +468,7 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
               const SizedBox(height: 16),
 
               // Symbol Name field (only for independent candidates)
-              if (data!.party.toLowerCase().contains('independent') ||
+              if (data.party.toLowerCase().contains('independent') ||
                   data.party.trim().isEmpty) ...[
                 const SizedBox(height: 16),
                 _buildTextInputField(

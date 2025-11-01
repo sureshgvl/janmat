@@ -1,22 +1,19 @@
 import 'package:equatable/equatable.dart';
 
 class ExtendedContact extends ContactModel {
+  @override
   final String? officeAddress;
+  @override
   final String? officeHours;
 
   const ExtendedContact({
-    String? phone,
-    String? email,
-    String? address,
-    Map<String, String>? socialLinks,
+    super.phone,
+    super.email,
+    super.address,
+    super.socialLinks,
     this.officeAddress,
     this.officeHours,
-  }) : super(
-          phone: phone,
-          email: email,
-          address: address,
-          socialLinks: socialLinks,
-        );
+  });
 
   factory ExtendedContact.fromJson(Map<String, dynamic> json) {
     return ExtendedContact(

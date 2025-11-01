@@ -86,7 +86,7 @@ class HighlightBannerSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${availableSeats} seats left',
+                        '$availableSeats seats left',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,

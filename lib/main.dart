@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
@@ -89,7 +88,7 @@ Future<Map<String, dynamic>> _getSmartStartupData() async {
 /// Get cached user routing data for instant access
 Future<Map<String, dynamic>?> _getCachedUserData() async {
   try {
-    final prefs = await Get.find<SharedPreferences>();
+    final prefs = Get.find<SharedPreferences>();
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (userId.isEmpty) return null;
 

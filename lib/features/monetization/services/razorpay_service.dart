@@ -196,7 +196,7 @@ class RazorpayService extends GetxService {
     return {
       'initialized': true,
       'testMode': isTestMode(),
-      'keyId': razorpayKeyId.substring(0, 10) + '...', // Partial key for security
+      'keyId': '${razorpayKeyId.substring(0, 10)}...', // Partial key for security
     };
   }
 }

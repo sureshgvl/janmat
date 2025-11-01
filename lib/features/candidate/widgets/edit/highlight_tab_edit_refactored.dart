@@ -2,14 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import 'highlight_config.dart';
-import 'highlight_sections/enable_section.dart';
-import 'highlight_sections/banner_style_section.dart';
 import 'highlight_sections/banner_image_section.dart';
-import 'highlight_sections/call_to_action_section.dart';
-import 'highlight_sections/priority_section.dart';
-import 'highlight_sections/custom_message_section.dart';
-import 'highlight_sections/analytics_section.dart';
-import 'highlight_sections/preview_section.dart';
 
 // Main HighlightTabEdit Widget - Refactored for SOLID principles
 // Follows Single Responsibility Principle - orchestrates highlight editing UI
@@ -307,7 +300,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                         _updateHighlight();
                         _isUpdatingConfig = false;
                       },
-                      activeColor: Colors.green,
+                      activeThumbColor: Colors.green,
                     ),
                   ],
                 ),
@@ -414,11 +407,11 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
                       color: Colors.white,
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    child: _config!.bannerImageUrl != null && _config!.bannerImageUrl!.isNotEmpty
+                    child: _config!.bannerImageUrl.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              _config!.bannerImageUrl!,
+                              _config!.bannerImageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Container(
                                 color: Colors.grey.shade200,

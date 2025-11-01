@@ -668,7 +668,7 @@ class PlanCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Warning: You will lose all premium features and may lose access to paid content.',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFFB91C1C),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,

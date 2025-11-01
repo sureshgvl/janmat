@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/media_model.dart';
 import 'package:janmat/utils/app_logger.dart';
@@ -75,7 +73,7 @@ class _MediaTabViewState extends State<MediaTabView>
           mediaItems = validItems
               .map((item) {
                 try {
-                  final itemMap = item as Map<String, dynamic>;
+                  final itemMap = item;
                   AppLogger.candidate(
                     '📱 [MEDIA_VIEW] Parsing item ${itemIndex++}: ${itemMap.keys.toList()}',
                   );
@@ -213,12 +211,12 @@ class _MediaTabViewState extends State<MediaTabView>
 
     // Sort by most recent first
     mediaItems.sort((a, b) {
-      if (a.date == null || a.date!.isEmpty) return 1;
-      if (b.date == null || b.date!.isEmpty) return -1;
+      if (a.date.isEmpty) return 1;
+      if (b.date.isEmpty) return -1;
 
       try {
-        final dateA = DateTime.parse(a.date!);
-        final dateB = DateTime.parse(b.date!);
+        final dateA = DateTime.parse(a.date);
+        final dateB = DateTime.parse(b.date);
         return dateB.compareTo(dateA); // Most recent first
       } catch (e) {
         return 0;
@@ -884,7 +882,7 @@ class _MediaTabViewState extends State<MediaTabView>
       }
 
       // Add date
-      if (item.date != null && item.date!.isNotEmpty) {
+      if (item.date.isNotEmpty) {
         buffer.writeln('📅 Posted on ${_formatDate(item.date)}');
       }
 

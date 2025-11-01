@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../candidate/models/candidate_model.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
 import '../../districtSpotLight/services/district_spotlight_service.dart';
@@ -182,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Build main screen based on data state
   Widget _buildMainScreen(BuildContext context, HomeScreenData data) {
     final userModel = data.userModel;
-    final candidateModel = data.effectiveCandidateModel as Candidate?;
+    final candidateModel = data.effectiveCandidateModel;
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
@@ -206,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       return HomeDrawer(
         userModel: data.userModel!,
-        candidateModel: data.effectiveCandidateModel as Candidate?,
+        candidateModel: data.effectiveCandidateModel,
         currentUser: currentUser!,
       );
     } else if (data.hasPartialData || data.isComplete) {
@@ -225,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       return HomeBody(
         userModel: data.userModel!,
-        candidateModel: data.effectiveCandidateModel as Candidate?,
+        candidateModel: data.effectiveCandidateModel,
         currentUser: currentUser!,
       );
     } else if ((data.hasPartialData || data.hasCachedCandidate) && data.role == 'candidate') {
@@ -263,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build candidate-specific placeholder body
   Widget _buildCandidatePlaceholderBody(BuildContext context, HomeScreenData data) {
-    final candidateModel = data.effectiveCandidateModel as Candidate?;
+    final candidateModel = data.effectiveCandidateModel;
     final isUsingCachedData = data.hasCachedCandidate;
 
     return SingleChildScrollView(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../utils/app_logger.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/view/media/media_view.dart';
 

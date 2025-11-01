@@ -12,11 +12,6 @@ class EventsController extends GetxController {
   var isLoading = false.obs;
   var eventsLastFetched = Rx<DateTime?>(null);
 
-  @override
-  void onInit() {
-    super.onInit();
-    // Events are loaded on-demand by the main controller
-  }
 
   /// Fetch events for the current candidate with caching
   Future<void> fetchEvents(Candidate candidate, {bool forceRefresh = false}) async {

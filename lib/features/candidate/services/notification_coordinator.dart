@@ -198,7 +198,7 @@ class NotificationCoordinator {
       'achievements': candidate.achievements?.map((a) => a.toJson()).toList(),
       'basic_info': candidate.basicInfo?.toJson(),
       'manifesto_data': candidate.manifestoData?.toJson(),
-      'contact': candidate.contact?.toJson(),
+      'contact': candidate.contact.toJson(),
       'events': candidate.events?.map((e) => e.toJson()).toList(),
       'highlights': candidate.highlights?.map((h) => h.toJson()).toList(),
       'media': candidate.media?.map((m) => m.toJson()).toList(),
