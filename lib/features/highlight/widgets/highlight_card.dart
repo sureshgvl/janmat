@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import '../../../utils/app_logger.dart';
 import '../../../features/candidate/screens/candidate_profile_screen.dart';
 import '../../../features/candidate/models/candidate_model.dart';
@@ -113,23 +114,26 @@ class _HighlightCarouselWidgetState extends State<HighlightCarouselWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          height: 200, // Height for card carousel
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: widget.highlights.length,
-            itemBuilder: (context, index) {
-              final highlight = widget.highlights[index];
-              return HighlightCard(
-                highlight: highlight,
-                districtId: widget.districtId,
-                bodyId: widget.bodyId,
-                wardId: widget.wardId,
-                onTap: () => _onHighlightTap(highlight),
-              );
-            },
+        CarouselSlider(
+          options: CarouselOptions(
+            height: 200, // Height for card carousel
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 3),
+            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+            autoPlayCurve: Curves.fastOutSlowIn,
+            enlargeCenterPage: false,
+            viewportFraction: 0.4, // Show multiple cards
+            padEnds: false,
           ),
+          items: widget.highlights.map((highlight) {
+            return HighlightCard(
+              highlight: highlight,
+              districtId: widget.districtId,
+              bodyId: widget.bodyId,
+              wardId: widget.wardId,
+              onTap: () => _onHighlightTap(highlight),
+            );
+          }).toList(),
         ),
       ],
     );

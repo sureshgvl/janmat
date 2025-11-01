@@ -44,10 +44,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // ✅ SAFE NAVIGATION: Only navigate when complete data is available
       // Wait a bit to ensure complete data is stable before navigating
-      if (data.isComplete && data.needsNavigation && data.navigationRoute != null) {
+      if (data.isComplete &&
+          data.needsNavigation &&
+          data.navigationRoute != null) {
         Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && _currentData?.isComplete == true && _currentData?.needsNavigation == true) {
-            AppLogger.common('🚀 Navigating to: ${data.navigationRoute} (confirmed complete data)');
+          if (mounted &&
+              _currentData?.isComplete == true &&
+              _currentData?.needsNavigation == true) {
+            AppLogger.common(
+              '🚀 Navigating to: ${data.navigationRoute} (confirmed complete data)',
+            );
             Get.offAllNamed(data.navigationRoute!);
           }
         });
@@ -64,7 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !DistrictSpotlightService.isSpotlightDismissedForSession) {
         // Show spotlight for Pune district
-        DistrictSpotlightService.showDistrictSpotlightIfAvailable('maharashtra', 'pune');
+        DistrictSpotlightService.showDistrictSpotlightIfAvailable(
+          'maharashtra',
+          'pune',
+        );
       }
     });
   }
@@ -86,13 +95,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _streamService.refreshData(forceRefresh: true);
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     // PERFORMANCE TRACKING: Log when home screen starts building
     final homeBuildStart = DateTime.now();
-    AppLogger.common('🏠 HOME SCREEN BUILD START: ${homeBuildStart.toIso8601String()}', tag: 'HOME_PERF');
+    AppLogger.common(
+      '🏠 HOME SCREEN BUILD START: ${homeBuildStart.toIso8601String()}',
+      tag: 'HOME_PERF',
+    );
 
     return StreamBuilder<HomeScreenData>(
       stream: _streamService.dataStream,
@@ -122,8 +132,13 @@ class _HomeScreenState extends State<HomeScreen> {
         // PERFORMANCE TRACKING: Log when home screen is being rendered
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final homeRendered = DateTime.now();
-          final renderTime = homeRendered.difference(homeBuildStart).inMilliseconds;
-          AppLogger.common('🎨 HOME SCREEN RENDERED: ${homeRendered.toIso8601String()} (${renderTime}ms from build start)', tag: 'HOME_PERF');
+          final renderTime = homeRendered
+              .difference(homeBuildStart)
+              .inMilliseconds;
+          AppLogger.common(
+            '🎨 HOME SCREEN RENDERED: ${homeRendered.toIso8601String()} (${renderTime}ms from build start)',
+            tag: 'HOME_PERF',
+          );
         });
 
         return _buildMainScreen(context, data);
@@ -134,9 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Build loading screen with placeholders
   Widget _buildLoadingScreen(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.home ?? 'Home'),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.home)),
       drawer: _buildPlaceholderDrawer(context),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
@@ -144,9 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _streamService.refreshData(forceRefresh: false);
           await Future.delayed(const Duration(milliseconds: 300));
         },
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       ),
     );
   }
@@ -154,9 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Build error screen
   Widget _buildErrorScreen(BuildContext context, String? errorMessage) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.home ?? 'Home'),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.home)),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -180,14 +189,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build main screen based on data state
   Widget _buildMainScreen(BuildContext context, HomeScreenData data) {
-    final userModel = data.userModel;
-    final candidateModel = data.effectiveCandidateModel;
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.home ?? 'Home'),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.home)),
       drawer: _buildDrawer(context, data, currentUser),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
@@ -201,7 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build drawer with appropriate placeholders
-  Widget _buildDrawer(BuildContext context, HomeScreenData data, User? currentUser) {
+  Widget _buildDrawer(
+    BuildContext context,
+    HomeScreenData data,
+    User? currentUser,
+  ) {
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       return HomeDrawer(
         userModel: data.userModel!,
@@ -220,14 +229,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build body with appropriate placeholders
-  Widget _buildBody(BuildContext context, HomeScreenData data, User? currentUser) {
+  Widget _buildBody(
+    BuildContext context,
+    HomeScreenData data,
+    User? currentUser,
+  ) {
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       return HomeBody(
         userModel: data.userModel!,
         candidateModel: data.effectiveCandidateModel,
         currentUser: currentUser!,
       );
-    } else if ((data.hasPartialData || data.hasCachedCandidate) && data.role == 'candidate') {
+    } else if ((data.hasPartialData || data.hasCachedCandidate) &&
+        data.role == 'candidate') {
       return _buildCandidatePlaceholderBody(context, data);
     } else {
       return HomeBody(
@@ -245,9 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           const DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue,
-            ),
+            decoration: BoxDecoration(color: Colors.blue),
             child: Text('Loading...'),
           ),
           ListTile(
@@ -261,7 +273,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build candidate-specific placeholder body
-  Widget _buildCandidatePlaceholderBody(BuildContext context, HomeScreenData data) {
+  Widget _buildCandidatePlaceholderBody(
+    BuildContext context,
+    HomeScreenData data,
+  ) {
     final candidateModel = data.effectiveCandidateModel;
     final isUsingCachedData = data.hasCachedCandidate;
 
@@ -292,13 +307,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: candidateModel?.photo != null
-                      ? Image.network(
-                          candidateModel!.photo!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                            Icon(Icons.account_circle, size: 40, color: Colors.grey),
-                        )
-                      : Icon(Icons.account_circle, size: 40, color: Colors.grey),
+                        ? Image.network(
+                            candidateModel!.photo!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.account_circle,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          )
+                        : Icon(
+                            Icons.account_circle,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
                   ),
                   const SizedBox(width: 16),
                   // Candidate info
@@ -313,9 +335,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 4),
                         Text(
                           candidateModel?.party ?? '',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey[600]),
                         ),
                       ],
                     ),
@@ -328,10 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
 
           // Actions section
-          Text(
-            'Quick Actions',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 16),
 
           // Action buttons placeholder or actual buttons
@@ -341,7 +359,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: isUsingCachedData ? Colors.blue[50] : Colors.grey[300],
+                    color: isUsingCachedData
+                        ? Colors.blue[50]
+                        : Colors.grey[300],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -401,19 +421,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: const Column(
                   children: [
-                    Icon(
-                      Icons.cloud_done,
-                      color: Colors.blue,
-                      size: 32,
-                    ),
+                    Icon(Icons.cloud_done, color: Colors.blue, size: 32),
                     SizedBox(height: 8),
                     Text(
                       'Using cached data\nSyncing in background...',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.blue, fontSize: 12),
                     ),
                   ],
                 ),

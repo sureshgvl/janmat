@@ -78,37 +78,37 @@ class HomeWidgets {
                         ),
                       ),
                       ...[
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(7),
-                          child: Image(
-                            image: SymbolUtils.getSymbolImageProvider(
-                              SymbolUtils.getPartySymbolPath(
-                                candidateModel.party,
-                                candidate: candidateModel,
-                              ),
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 150,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
                             ),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                'assets/symbols/default.png',
-                                fit: BoxFit.cover,
-                              );
-                            },
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(7),
+                            child: Image(
+                              image: SymbolUtils.getSymbolImageProvider(
+                                SymbolUtils.getPartySymbolPath(
+                                  candidateModel.party,
+                                  candidate: candidateModel,
+                                ),
+                              ),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/symbols/default.png',
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),

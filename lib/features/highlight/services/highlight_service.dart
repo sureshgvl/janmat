@@ -699,4 +699,59 @@ class HighlightService {
         return 5;
     }
   }
+
+  // Get candidate symbol URL for independent candidates
+  static Future<String?> getCandidateSymbolUrl({
+    required String stateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateId,
+  }) async {
+    try {
+      AppLogger.common(
+        '🎨 HighlightService: Fetching candidate symbol for $candidateId in $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
+
+      final candidateDoc = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId)
+          .get();
+
+      if (candidateDoc.exists && candidateDoc.data() != null) {
+        final candidateData = candidateDoc.data()!;
+        final symbolUrl = candidateData['symbol'] as String?;
+
+        if (symbolUrl != null && symbolUrl.isNotEmpty && symbolUrl.startsWith('http')) {
+          AppLogger.common(
+            '✅ HighlightService: Found custom symbol URL: $symbolUrl',
+            isShow: isShow,
+          );
+          return symbolUrl;
+        }
+      }
+
+      AppLogger.common(
+        '❌ HighlightService: No custom symbol found for candidate $candidateId',
+        isShow: isShow,
+      );
+      return null;
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error fetching candidate symbol',
+        error: e,
+        isShow: isShow,
+      );
+      return null;
+    }
+  }
 }

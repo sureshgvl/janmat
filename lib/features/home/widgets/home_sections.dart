@@ -8,32 +8,33 @@ import '../../../features/highlight/widgets/candidate_highlight_banner.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
 import 'home_widgets.dart';
 import 'feed_widgets.dart';
+
 class HomeSections {
   // Main Home Body Widget
   static Widget buildHomeBody({
-     required UserModel? userModel,
-     required Candidate? candidateModel,
-     required User? currentUser,
-   }) {
-     return HomeBodyContent(
-       userModel: userModel,
-       candidateModel: candidateModel,
-       currentUser: currentUser,
-     );
-   }
+    required UserModel? userModel,
+    required Candidate? candidateModel,
+    required User? currentUser,
+  }) {
+    return HomeBodyContent(
+      userModel: userModel,
+      candidateModel: candidateModel,
+      currentUser: currentUser,
+    );
+  }
 }
 
 class HomeBodyContent extends StatefulWidget {
-   final UserModel? userModel;
-   final Candidate? candidateModel;
-   final User? currentUser;
+  final UserModel? userModel;
+  final Candidate? candidateModel;
+  final User? currentUser;
 
-   const HomeBodyContent({
-     super.key,
-     required this.userModel,
-     required this.candidateModel,
-     required this.currentUser,
-   });
+  const HomeBodyContent({
+    super.key,
+    required this.userModel,
+    required this.candidateModel,
+    required this.currentUser,
+  });
 
   @override
   _HomeBodyContentState createState() => _HomeBodyContentState();
@@ -46,19 +47,22 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
   @override
   Widget build(BuildContext context) {
     // Start performance timing for entire home screen build
-    final homeBuildTimer = AppLogger.startSectionTimer('Home Screen Build', tag: 'HOME_PERF');
+    final homeBuildTimer = AppLogger.startSectionTimer(
+      'Home Screen Build',
+      tag: 'HOME_PERF',
+    );
 
     // Get location data for highlights
     final locationData = _getLocationData();
-    AppLogger.ui('HomeBodyContent: Using location - ${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}', tag: 'HOME');
+    AppLogger.ui(
+      'HomeBodyContent: Using location - ${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}',
+      tag: 'HOME',
+    );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-
           // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
           // Start Feed Section
           Builder(
@@ -69,150 +73,190 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
             },
           ),
 
-          // SECTION 2.5: CANDIDATE HIGHLIGHT BANNER
+          // CANDIDATE HIGHLIGHT BANNER (Full width - no padding)
           Builder(
             builder: (context) {
-              AppLogger.common('🎯 Loading Candidate Highlight Banner...', tag: 'FEED_SECTION');
-              AppLogger.common('🎯 Banner location data: ${locationData['stateId']}/${locationData['districtId']}/${locationData['bodyId']}/${locationData['wardId']}', tag: 'FEED_SECTION');
-              AppLogger.common('🎯 User role for banner: ${widget.userModel?.role}', tag: 'FEED_SECTION');
-
               final bannerWidget = CandidateHighlightBanner(
                 stateId: locationData['stateId'] ?? 'maharashtra',
                 districtId: locationData['districtId'] ?? 'pune',
                 bodyId: locationData['bodyId'] ?? 'pune_m_cop',
                 wardId: locationData['wardId'] ?? 'ward_17',
               );
-
-              AppLogger.common('🎯 CandidateHighlightBanner widget created successfully', tag: 'FEED_SECTION');
               return bannerWidget;
             },
           ),
 
-          // SECTION 3: PUSH FEED CARDS
-          Builder(
-            builder: (context) {
-              AppLogger.common('Loading Push Feed Cards...', tag: 'FEED_SECTION');
-              return _feedWidgets.buildPushFeedSection(
-                context,
-                widget.userModel,
-                widget.candidateModel,
-                locationData,
-                _showCreatePostDialog,
-              );
-            },
-          ),
+          // Add padding container for sections below
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // SECTION 3: PUSH FEED CARDS
+                Builder(
+                  builder: (context) {
+                    AppLogger.common(
+                      'Loading Push Feed Cards...',
+                      tag: 'FEED_SECTION',
+                    );
+                    return _feedWidgets.buildPushFeedSection(
+                      context,
+                      widget.userModel,
+                      widget.candidateModel,
+                      locationData,
+                      _showCreatePostDialog,
+                    );
+                  },
+                ),
 
-          // SECTION 4: NORMAL FEED
-          Builder(
-            builder: (context) {
-              AppLogger.common('Loading Normal Feed...', tag: 'FEED_SECTION');
-              return _feedWidgets.buildNormalFeedSection(
-                context,
-                locationData,
-                _showCreatePostDialog,
-              );
-            },
-          ),
+                // SECTION 4: NORMAL FEED
+                Builder(
+                  builder: (context) {
+                    AppLogger.common(
+                      'Loading Normal Feed...',
+                      tag: 'FEED_SECTION',
+                    );
+                    return _feedWidgets.buildNormalFeedSection(
+                      context,
+                      locationData,
+                      _showCreatePostDialog,
+                    );
+                  },
+                ),
 
-          Builder(
-            builder: (context) {
-              AppLogger.common('End Feed Section', tag: 'FEED_SECTION');
-              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'FEED_SECTION');
-              return const SizedBox.shrink();
-            },
-          ),
+                Builder(
+                  builder: (context) {
+                    AppLogger.common('End Feed Section', tag: 'FEED_SECTION');
+                    AppLogger.common(
+                      '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+                      tag: 'FEED_SECTION',
+                    );
+                    return const SizedBox.shrink();
+                  },
+                ),
 
-          // SECTION 5: EVENT CARD
-          //EventPollWidgets.buildEventCard(context),
+                // SECTION 5: EVENT CARD
+                //EventPollWidgets.buildEventCard(context),
 
-          // SECTION 6: POLL CARD
-          //EventPollWidgets.buildPollCard(context),
+                // SECTION 6: POLL CARD
+                //EventPollWidgets.buildPollCard(context),
 
-          // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
-          // Start Static Sections
-          Builder(
-            builder: (context) {
-              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'STATIC_SECTIONS');
-              AppLogger.common('Start Static Sections', tag: 'STATIC_SECTIONS');
-              return const SizedBox.shrink();
-            },
-          ),
+                // ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+                // Start Static Sections
+                Builder(
+                  builder: (context) {
+                    AppLogger.common(
+                      '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+                      tag: 'STATIC_SECTIONS',
+                    );
+                    AppLogger.common(
+                      'Start Static Sections',
+                      tag: 'STATIC_SECTIONS',
+                    );
+                    return const SizedBox.shrink();
+                  },
+                ),
 
-          // ===== EXISTING SECTIONS =====
-          // Welcome Section
-          Builder(
-            builder: (context) {
-              AppLogger.common('Loading Welcome Section...', tag: 'STATIC_SECTIONS');
-              return HomeWidgets.buildWelcomeSection(
-                context,
-                widget.userModel,
-                widget.currentUser,
-              );
-            },
-          ),
+                // ===== EXISTING SECTIONS =====
+                // Welcome Section
+                Builder(
+                  builder: (context) {
+                    AppLogger.common(
+                      'Loading Welcome Section...',
+                      tag: 'STATIC_SECTIONS',
+                    );
+                    return HomeWidgets.buildWelcomeSection(
+                      context,
+                      widget.userModel,
+                      widget.currentUser,
+                    );
+                  },
+                ),
 
-          // Trial Status Banner (only for candidates with active trials)
-          if (widget.userModel?.role == 'candidate' &&
-              widget.userModel?.isTrialActive == true) ...[
-            Builder(
-              builder: (context) {
-                AppLogger.common('Loading Trial Status Banner...', tag: 'STATIC_SECTIONS');
-                return HomeWidgets.buildTrialBanner(context, widget.userModel!);
-              },
+                // Trial Status Banner (only for candidates with active trials)
+                if (widget.userModel?.role == 'candidate' &&
+                    widget.userModel?.isTrialActive == true) ...[
+                  Builder(
+                    builder: (context) {
+                      AppLogger.common(
+                        'Loading Trial Status Banner...',
+                        tag: 'STATIC_SECTIONS',
+                      );
+                      return HomeWidgets.buildTrialBanner(
+                        context,
+                        widget.userModel!,
+                      );
+                    },
+                  ),
+                ],
+
+                const SizedBox(height: 32),
+
+                // Premium Features Card - only show for candidates
+                if (widget.userModel?.role == 'candidate') ...[
+                  Builder(
+                    builder: (context) {
+                      AppLogger.common(
+                        'Loading Premium Features Card...',
+                        tag: 'STATIC_SECTIONS',
+                      );
+                      return HomeWidgets.buildPremiumCard(
+                        context,
+                        widget.userModel,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                const SizedBox(height: 32),
+
+                // Quick Actions
+                Builder(
+                  builder: (context) {
+                    AppLogger.common(
+                      'Loading Quick Actions...',
+                      tag: 'STATIC_SECTIONS',
+                    );
+                    return HomeWidgets.buildQuickActions(context);
+                  },
+                ),
+
+                Builder(
+                  builder: (context) {
+                    AppLogger.common(
+                      'End Static Sections',
+                      tag: 'STATIC_SECTIONS',
+                    );
+                    AppLogger.common(
+                      '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+                      tag: 'STATIC_SECTIONS',
+                    );
+                    return const SizedBox.shrink();
+                  },
+                ),
+
+                if (widget.userModel?.role == 'candidate') ...[
+                  const SizedBox(height: 32),
+                  Builder(
+                    builder: (context) {
+                      AppLogger.common(
+                        'Loading Candidate Dashboard...',
+                        tag: 'STATIC_SECTIONS',
+                      );
+                      return _buildCandidateDashboard(context);
+                    },
+                  ),
+                ],
+              ],
             ),
-          ],
-
-          const SizedBox(height: 32),
-
-          // Premium Features Card - only show for candidates
-          if (widget.userModel?.role == 'candidate') ...[
-            Builder(
-              builder: (context) {
-                AppLogger.common('Loading Premium Features Card...', tag: 'STATIC_SECTIONS');
-                return HomeWidgets.buildPremiumCard(context, widget.userModel);
-              },
-            ),
-            const SizedBox(height: 32),
-          ],
-
-          const SizedBox(height: 32),
-
-          // Quick Actions
-          Builder(
-            builder: (context) {
-              AppLogger.common('Loading Quick Actions...', tag: 'STATIC_SECTIONS');
-              return HomeWidgets.buildQuickActions(context);
-            },
           ),
-
-          Builder(
-            builder: (context) {
-              AppLogger.common('End Static Sections', tag: 'STATIC_SECTIONS');
-              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'STATIC_SECTIONS');
-              return const SizedBox.shrink();
-            },
-          ),
-
-          if (widget.userModel?.role == 'candidate') ...[
-            const SizedBox(height: 32),
-            Builder(
-              builder: (context) {
-                AppLogger.common('Loading Candidate Dashboard...', tag: 'STATIC_SECTIONS');
-                return _buildCandidateDashboard(context);
-              },
-            ),
-          ],
         ],
       ),
     );
-
-    // End performance timing
-    AppLogger.endSectionTimer('Home Screen Build', homeBuildTimer, tag: 'HOME_PERF');
   }
 
   Map<String, String> _getLocationData() {
-    AppLogger.ui('🏠 HomeSections: === GETTING LOCATION DATA START ===', tag: 'HOME');
-
     // Priority 1: Candidate's location data (for candidates)
     if (widget.candidateModel?.location.districtId != null &&
         widget.candidateModel!.location.districtId?.isNotEmpty == true &&
@@ -224,10 +268,6 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
         'bodyId': widget.candidateModel!.location.bodyId ?? '',
         'wardId': widget.candidateModel!.location.wardId ?? '',
       };
-      AppLogger.ui('🏠 HomeSections: Priority 1 - Using candidate location: ${location['stateId']}/${location['districtId']}/${location['bodyId']}/${location['wardId']}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: User role: ${widget.userModel?.role}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: Candidate ID: ${widget.candidateModel!.candidateId}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: === GETTING LOCATION DATA END ===\n', tag: 'HOME');
       return location;
     }
 
@@ -236,25 +276,24 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
         widget.userModel!.electionAreas.isNotEmpty) {
       final primaryArea = widget.userModel!.electionAreas.first;
       final districtId = widget.userModel!.districtId ?? 'pune';
-      final stateId = widget.userModel!.stateId ?? 'maharashtra'; // Assume Maharashtra for now
+      final stateId =
+          widget.userModel!.stateId ??
+          'maharashtra'; // Assume Maharashtra for now
       final location = {
         'stateId': stateId,
         'districtId': districtId,
         'bodyId': primaryArea.bodyId,
         'wardId': primaryArea.wardId,
       };
-      AppLogger.ui('🏠 HomeSections: Priority 2 - Using user election area: ${location['stateId']}/${location['districtId']}/${location['bodyId']}/${location['wardId']}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: User role: ${widget.userModel?.role}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: Election areas count: ${widget.userModel!.electionAreas.length}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: First area bodyId: ${primaryArea.bodyId}, wardId: ${primaryArea.wardId}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: === GETTING LOCATION DATA END ===\n', tag: 'HOME');
       return location;
     }
 
     // Priority 3: User's direct location fields (legacy support)
     if (widget.userModel?.districtId != null &&
         widget.userModel!.districtId!.isNotEmpty) {
-      final stateId = widget.userModel!.stateId ?? 'maharashtra'; // Assume Maharashtra for now
+      final stateId =
+          widget.userModel!.stateId ??
+          'maharashtra'; // Assume Maharashtra for now
       final districtId = widget.userModel!.districtId!;
       final bodyId = widget.userModel!.bodyId ?? 'pune_m_cop';
       final wardId = widget.userModel!.wardId ?? 'ward_17';
@@ -264,10 +303,22 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
         'bodyId': bodyId,
         'wardId': wardId,
       };
-      AppLogger.ui('🏠 HomeSections: Priority 3 - Using user direct location: ${location['stateId']}/${location['districtId']}/${location['bodyId']}/${location['wardId']}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: User role: ${widget.userModel?.role}', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: Direct location - stateId: $stateId, districtId: $districtId, bodyId: $bodyId, wardId: $wardId', tag: 'HOME');
-      AppLogger.ui('🏠 HomeSections: === GETTING LOCATION DATA END ===\n', tag: 'HOME');
+      AppLogger.ui(
+        '🏠 HomeSections: Priority 3 - Using user direct location: ${location['stateId']}/${location['districtId']}/${location['bodyId']}/${location['wardId']}',
+        tag: 'HOME',
+      );
+      AppLogger.ui(
+        '🏠 HomeSections: User role: ${widget.userModel?.role}',
+        tag: 'HOME',
+      );
+      AppLogger.ui(
+        '🏠 HomeSections: Direct location - stateId: $stateId, districtId: $districtId, bodyId: $bodyId, wardId: $wardId',
+        tag: 'HOME',
+      );
+      AppLogger.ui(
+        '🏠 HomeSections: === GETTING LOCATION DATA END ===\n',
+        tag: 'HOME',
+      );
       return location;
     }
 
@@ -278,10 +329,22 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
       'bodyId': 'pune_m_cop',
       'wardId': 'ward_17',
     };
-    AppLogger.ui('🏠 HomeSections: Fallback - Using default location: ${location['stateId']}/${location['districtId']}/${location['bodyId']}/${location['wardId']}', tag: 'HOME');
-    AppLogger.ui('🏠 HomeSections: User role: ${widget.userModel?.role}', tag: 'HOME');
-    AppLogger.ui('🏠 HomeSections: No location data found, using fallback', tag: 'HOME');
-    AppLogger.ui('🏠 HomeSections: === GETTING LOCATION DATA END ===\n', tag: 'HOME');
+    AppLogger.ui(
+      '🏠 HomeSections: Fallback - Using default location: ${location['stateId']}/${location['districtId']}/${location['bodyId']}/${location['wardId']}',
+      tag: 'HOME',
+    );
+    AppLogger.ui(
+      '🏠 HomeSections: User role: ${widget.userModel?.role}',
+      tag: 'HOME',
+    );
+    AppLogger.ui(
+      '🏠 HomeSections: No location data found, using fallback',
+      tag: 'HOME',
+    );
+    AppLogger.ui(
+      '🏠 HomeSections: === GETTING LOCATION DATA END ===\n',
+      tag: 'HOME',
+    );
     return location;
   }
 
@@ -291,7 +354,9 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
     // For now, just show a placeholder
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isSponsored ? 'Create Sponsored Post' : 'Create Community Post'),
+        content: Text(
+          isSponsored ? 'Create Sponsored Post' : 'Create Community Post',
+        ),
       ),
     );
   }
@@ -329,6 +394,4 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
       ],
     );
   }
-
-
 }
