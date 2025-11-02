@@ -546,15 +546,23 @@ async function performStorageCleanup(): Promise<CleanupResult> {
 
   try {
     // Step 1: Find all candidates with pending storage deletions
-    // Note: We use hasPendingDeletions flag for efficient querying since
-    // Firestore doesn't support inequality queries on arrays
+    // Note: collectionGroup doesn't support array inequality queries, so we get all candidates and filter in code
     const candidatesQuery = admin.firestore().collectionGroup('candidates');
     const candidatesSnapshot = await candidatesQuery.get();
 
     const candidateCount = candidatesSnapshot.size;
-    console.log(`🧹 [Cleanup] Found ${candidateCount} candidates with ${candidatesSnapshot.size} documents to process`);
+    console.log(`🧹 [Cleanup] Found ${candidateCount} total candidates, filtering for those with deleteStorage arrays...`);
 
-    if (candidateCount === 0) {
+    // Filter candidates that have deleteStorage arrays with items
+    const candidatesWithDeletions = candidatesSnapshot.docs.filter(doc => {
+      const data = doc.data();
+      const deleteStorage = data?.deleteStorage || [];
+      return deleteStorage.length > 0;
+    });
+
+    console.log(`🧹 [Cleanup] Found ${candidatesWithDeletions.length} candidates with pending deletions`);
+
+    if (candidatesWithDeletions.length === 0) {
       console.log('🧹 [Cleanup] No candidates with pending deletions. Exiting.');
       return {
         success: true,
@@ -571,7 +579,7 @@ async function performStorageCleanup(): Promise<CleanupResult> {
     let errors: ErrorDetails[] = [];
 
     // Step 2: Process each candidate's pending deletions
-    for (const docSnapshot of candidatesSnapshot.docs) {
+    for (const docSnapshot of candidatesWithDeletions) {
       try {
         const candidateId = docSnapshot.id;
         const candidateData = docSnapshot.data();

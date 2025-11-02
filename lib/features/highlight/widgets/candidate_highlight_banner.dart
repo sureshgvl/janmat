@@ -651,7 +651,7 @@ class _CandidateHighlightBannerState extends State<CandidateHighlightBanner> {
     final partyName = highlight.party ?? 'Independent';
     final partyKey =
         SymbolUtils.convertOldPartyNameToKey(partyName) ?? partyName;
-    final partyShortName = SymbolUtils.getPartySymbolNameLocal(partyKey, Get.locale?.languageCode ?? 'en'),//SymbolUtils.getPartyShortName(partyKey);
+    final partyShortName = SymbolUtils.getPartySymbolNameLocal(partyKey, Get.locale?.languageCode ?? 'en'); //SymbolUtils.getPartyShortName(partyKey);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -670,27 +670,27 @@ class _CandidateHighlightBannerState extends State<CandidateHighlightBanner> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Party symbol icon
-          Container(
-            width: 30,
-            height: 30,
-            margin: const EdgeInsets.only(right: 8),
-            child: ClipOval(child: _buildPartySymbolForInfo(highlight)),
-          ),
-
           // Candidate name and party short name
           Expanded(
             child: Text(
               '$candidateName - $partyShortName',
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+
+          //Party symbol icon
+          Container(
+            width: 30,
+            height: 30,
+            margin: const EdgeInsets.only(right: 8),
+            child: ClipOval(child: _buildPartySymbolForInfo(highlight)),
           ),
         ],
       ),

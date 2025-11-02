@@ -31,24 +31,7 @@ class HomeWidgets {
             final controllerUserModel = candidateController.user.value;
             final isInitialized = candidateController.isInitialized.value;
 
-            // Debug: Log candidate data status
-            AppLogger.common(
-              '🏠 Welcome Section - CandidateUserController Status:',
-              tag: 'HOME',
-            );
-            AppLogger.common(
-              '  👤 Controller User Role: ${controllerUserModel?.role ?? 'No user'}',
-              tag: 'HOME',
-            );
-            AppLogger.common(
-              '  🎯 Is Initialized: $isInitialized',
-              tag: 'HOME',
-            );
-            AppLogger.common(
-              '  🎯 Candidate Available: ${candidateModel != null}',
-              tag: 'HOME',
-            );
-
+            
             // Only show candidate-specific UI if controller is properly initialized
             if (isInitialized && candidateModel != null) {
               AppLogger.common(
@@ -71,7 +54,7 @@ class HomeWidgets {
                           '${candidateModel.basicInfo?.fullName}',
                           style: TextStyle(
                             fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                             color: onSurfaceColor,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -429,9 +412,9 @@ class HomeWidgets {
         return GestureDetector(
           onTap: () {
             if (page != null) {
-              // Navigate to page
+              Get.to(() => page);
             } else if (routeName != null) {
-              // Navigate to route
+              Get.toNamed(routeName);
             }
           },
           child: AnimatedContainer(

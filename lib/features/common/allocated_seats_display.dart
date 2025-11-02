@@ -56,7 +56,20 @@ class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
     try {
       setState(() => isLoading = true);
 
-      // Get all active highlights in the ward
+      // First, cleanup expired highlights in this ward (on-demand cleanup)
+      final cleanedCount = await HighlightService.cleanupExpiredHighlights(
+        stateId: widget.stateId!,
+        districtId: widget.districtId!,
+        bodyId: widget.bodyId!,
+        wardId: widget.wardId!,
+      );
+
+      if (cleanedCount > 0) {
+        // Log cleanup activity (using debug print for now, can be replaced with proper logging)
+        debugPrint('🧹 AllocatedSeatsDisplay: Cleaned up $cleanedCount expired highlights in ward ${widget.districtId}/${widget.bodyId}/${widget.wardId}');
+      }
+
+      // Then get all active highlights in the ward
       final highlights = await HighlightService.getActiveHighlights(
         widget.stateId!,
         widget.districtId!,

@@ -56,8 +56,10 @@ class HomeScreenStreamService {
       );
 
       // Emit cached data immediately for instant UI
-      _dataController.add(cachedHomeData);
-      AppLogger.common('⚡ INSTANT HOME: Pre-loaded cached data safely (no profile navigation)');
+      if (!_dataController.isClosed) {
+        _dataController.add(cachedHomeData);
+        AppLogger.common('⚡ INSTANT HOME: Pre-loaded cached data safely (no profile navigation)');
+      }
     } catch (e) {
       AppLogger.common('⚠️ Failed to preload cached data: $e');
       // Continue with normal loading
@@ -84,12 +86,16 @@ class HomeScreenStreamService {
 
   /// Emit loading state
   void _emitLoadingState(String userId) {
-    _dataController.add(HomeScreenData.loading(userId));
+    if (!_dataController.isClosed) {
+      _dataController.add(HomeScreenData.loading(userId));
+    }
   }
 
   /// Emit signed out state
   void _emitSignedOutState() {
-    _dataController.add(HomeScreenData.signedOut());
+    if (!_dataController.isClosed) {
+      _dataController.add(HomeScreenData.signedOut());
+    }
   }
 
   /// Load data for authenticated user
@@ -102,7 +108,9 @@ class HomeScreenStreamService {
       await _loadFreshData(userId);
     } catch (e) {
       AppLogger.commonError('❌ Error loading home data', error: e);
-      _dataController.add(HomeScreenData.error(e.toString(), userId));
+      if (!_dataController.isClosed) {
+        _dataController.add(HomeScreenData.error(e.toString(), userId));
+      }
     }
   }
 
@@ -117,13 +125,15 @@ class HomeScreenStreamService {
         await _tryEmitCachedCandidateData(userId, routingData);
       } else if (routingData != null) {
         // For non-candidates, emit partial data from routing cache
-        _dataController.add(HomeScreenData.partial(
-          userId: userId,
-          role: routingData['role'],
-          hasCompletedProfile: routingData['hasCompletedProfile'] ?? false,
-          hasSelectedRole: routingData['hasSelectedRole'] ?? false,
-        ));
-        AppLogger.common('⚡ Emitted partial data from routing cache for: $userId');
+        if (!_dataController.isClosed) {
+          _dataController.add(HomeScreenData.partial(
+            userId: userId,
+            role: routingData['role'],
+            hasCompletedProfile: routingData['hasCompletedProfile'] ?? false,
+            hasSelectedRole: routingData['hasSelectedRole'] ?? false,
+          ));
+          AppLogger.common('⚡ Emitted partial data from routing cache for: $userId');
+        }
       } else {
         // No routing data, keep loading
         _emitLoadingState(userId);
@@ -152,13 +162,14 @@ class HomeScreenStreamService {
           : cachedHomeData['candidate'] as Candidate;
 
         // Emit cached candidate data state for instant UI
-        _dataController.add(HomeScreenData.cachedCandidate(
-          userId: userId,
-          userModel: userModel,
-          cachedCandidateModel: candidateModel,
-        ));
-
-        AppLogger.common('⚡ Emitted cached candidate data for instant display: $userId');
+        if (!_dataController.isClosed) {
+          _dataController.add(HomeScreenData.cachedCandidate(
+            userId: userId,
+            userModel: userModel,
+            cachedCandidateModel: candidateModel,
+          ));
+          AppLogger.common('⚡ Emitted cached candidate data for instant display: $userId');
+        }
         return;
       }
     } catch (e) {
@@ -166,13 +177,15 @@ class HomeScreenStreamService {
     }
 
     // Fall back to partial data if cached candidate data not available
-    _dataController.add(HomeScreenData.partial(
-      userId: userId,
-      role: routingData['role'],
-      hasCompletedProfile: routingData['hasCompletedProfile'] ?? false,
-      hasSelectedRole: routingData['hasSelectedRole'] ?? false,
-    ));
-    AppLogger.common('⚠️ Fell back to partial data (no cached candidate data) for: $userId');
+    if (!_dataController.isClosed) {
+      _dataController.add(HomeScreenData.partial(
+        userId: userId,
+        role: routingData['role'],
+        hasCompletedProfile: routingData['hasCompletedProfile'] ?? false,
+        hasSelectedRole: routingData['hasSelectedRole'] ?? false,
+      ));
+      AppLogger.common('⚠️ Fell back to partial data (no cached candidate data) for: $userId');
+    }
   }
 
   /// Load fresh data from services
@@ -234,19 +247,24 @@ class HomeScreenStreamService {
         }
 
         // Emit complete data
-        _dataController.add(HomeScreenData.complete(
-          userId: userId,
-          userModel: userModel,
-          candidateModel: candidateModel,
-        ));
-
-        AppLogger.common('✅ Fresh home data loaded for: $userId');
+        if (!_dataController.isClosed) {
+          _dataController.add(HomeScreenData.complete(
+            userId: userId,
+            userModel: userModel,
+            candidateModel: candidateModel,
+          ));
+          AppLogger.common('✅ Fresh home data loaded for: $userId');
+        }
       } else {
-        _dataController.add(HomeScreenData.noData(userId));
+        if (!_dataController.isClosed) {
+          _dataController.add(HomeScreenData.noData(userId));
+        }
       }
     } catch (e) {
       AppLogger.commonError('❌ Error loading fresh home data', error: e);
-      _dataController.add(HomeScreenData.error(e.toString(), userId));
+      if (!_dataController.isClosed) {
+        _dataController.add(HomeScreenData.error(e.toString(), userId));
+      }
     }
   }
 
@@ -257,6 +275,21 @@ class HomeScreenStreamService {
         _emitLoadingState(_currentUserId!);
       }
       await _loadFreshData(_currentUserId!);
+    }
+  }
+
+  /// Re-emit current data (useful when screen comes back into focus)
+  void reEmitCurrentData() {
+    if (_currentUserId != null) {
+      // Try to emit cached data first for instant UI
+      _emitCachedOrPartialData(_currentUserId!).then((_) {
+        // Then load fresh data in background
+        _loadFreshData(_currentUserId!);
+      }).catchError((e) {
+        AppLogger.common('⚠️ Could not re-emit cached data: $e');
+        // Fall back to loading fresh data
+        _loadFreshData(_currentUserId!);
+      });
     }
   }
 

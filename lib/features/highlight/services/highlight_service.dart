@@ -754,4 +754,100 @@ class HighlightService {
       return null;
     }
   }
+
+  // Cleanup expired highlights in a specific ward (on-demand cleanup)
+  static Future<int> cleanupExpiredHighlights({
+    required String stateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+  }) async {
+    try {
+      AppLogger.common(
+        '🧹 HighlightService: Starting cleanup of expired highlights for ward: $districtId/$bodyId/$wardId',
+        isShow: isShow,
+      );
+
+      final now = DateTime.now();
+      int cleanedCount = 0;
+
+      // Get all highlights in the ward (both active and inactive)
+      final snapshot = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('highlights')
+          .get();
+
+      AppLogger.common(
+        '🧹 HighlightService: Found ${snapshot.docs.length} total highlights to check for expiration',
+        isShow: isShow,
+      );
+
+      // Process each highlight document
+      for (final doc in snapshot.docs) {
+        try {
+          final highlight = Highlight.fromJson(doc.data());
+
+          // Check if highlight has expired
+          if (highlight.endDate.isBefore(now) && highlight.active) {
+            AppLogger.common(
+              '🧹 HighlightService: Found expired highlight ${highlight.id} for candidate ${highlight.candidateName} (expired: ${highlight.endDate})',
+              isShow: isShow,
+            );
+
+            // Mark as expired and inactive
+            await FirebaseFirestore.instance
+                .collection('states')
+                .doc(stateId)
+                .collection('districts')
+                .doc(districtId)
+                .collection('bodies')
+                .doc(bodyId)
+                .collection('wards')
+                .doc(wardId)
+                .collection('highlights')
+                .doc(highlight.id)
+                .update({
+                  'active': false,
+                  'status': 'expired',
+                  'expiredAt': Timestamp.fromDate(now),
+                  'updatedAt': Timestamp.fromDate(now),
+                });
+
+            cleanedCount++;
+            AppLogger.common(
+              '✅ HighlightService: Successfully cleaned up expired highlight ${highlight.id}',
+              isShow: isShow,
+            );
+          }
+        } catch (e) {
+          AppLogger.commonError(
+            '❌ HighlightService: Error processing highlight ${doc.id} during cleanup',
+            error: e,
+            isShow: isShow,
+          );
+        }
+      }
+
+      AppLogger.common(
+        '✅ HighlightService: Cleanup completed. Cleaned up $cleanedCount expired highlights',
+        isShow: isShow,
+      );
+
+      return cleanedCount;
+    } catch (e) {
+      AppLogger.commonError(
+        '❌ HighlightService: Error during highlight cleanup',
+        error: e,
+        isShow: isShow,
+      );
+      return 0;
+    }
+  }
 }

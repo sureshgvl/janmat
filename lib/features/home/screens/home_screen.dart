@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final HomeScreenStreamService _streamService = HomeScreenStreamService();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -29,7 +29,25 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Set home screen as focused when initialized
     ScreenFocusService().setFocusedScreen('home');
+    WidgetsBinding.instance.addObserver(this);
     _initializeStreaming();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Handle case when screen comes back into focus after navigation
+    // This ensures the stream service continues to work when returning to home
+    ScreenFocusService().setFocusedScreen('home');
+
+    // Force refresh data when returning to home screen to ensure it's up to date
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _streamService.refreshData(forceRefresh: false);
+        }
+      });
+    }
   }
 
   void _initializeStreaming() {
@@ -79,9 +97,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Handle app coming back to foreground
+    if (state == AppLifecycleState.resumed && mounted) {
+      // Refresh data when app comes back to foreground
+      _streamService.refreshData(forceRefresh: false);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _dataSubscription.cancel();
-    _streamService.dispose();
+    // Don't dispose the stream service here as it's a singleton
+    // and other screens might still be using it
     super.dispose();
   }
 

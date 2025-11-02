@@ -467,13 +467,19 @@ async function performStorageCleanup() {
     console.log('🧹 [Cleanup] Starting nightly storage cleanup...');
     try {
         // Step 1: Find all candidates with pending storage deletions
-        const candidatesSnapshot = await admin.firestore()
-            .collectionGroup('candidates')
-            .where('deleteStorage', '!=', [])
-            .get();
+        // Note: collectionGroup doesn't support array inequality queries, so we get all candidates and filter in code
+        const candidatesQuery = admin.firestore().collectionGroup('candidates');
+        const candidatesSnapshot = await candidatesQuery.get();
         const candidateCount = candidatesSnapshot.size;
-        console.log(`🧹 [Cleanup] Found ${candidateCount} candidates with ${candidatesSnapshot.size} documents to process`);
-        if (candidateCount === 0) {
+        console.log(`🧹 [Cleanup] Found ${candidateCount} total candidates, filtering for those with deleteStorage arrays...`);
+        // Filter candidates that have deleteStorage arrays with items
+        const candidatesWithDeletions = candidatesSnapshot.docs.filter(doc => {
+            const data = doc.data();
+            const deleteStorage = (data === null || data === void 0 ? void 0 : data.deleteStorage) || [];
+            return deleteStorage.length > 0;
+        });
+        console.log(`🧹 [Cleanup] Found ${candidatesWithDeletions.length} candidates with pending deletions`);
+        if (candidatesWithDeletions.length === 0) {
             console.log('🧹 [Cleanup] No candidates with pending deletions. Exiting.');
             return {
                 success: true,
@@ -488,11 +494,15 @@ async function performStorageCleanup() {
         let candidatesProcessed = 0;
         let errors = [];
         // Step 2: Process each candidate's pending deletions
-        for (const docSnapshot of candidatesSnapshot.docs) {
+        for (const docSnapshot of candidatesWithDeletions) {
             try {
                 const candidateId = docSnapshot.id;
                 const candidateData = docSnapshot.data();
                 const deleteStorage = (candidateData === null || candidateData === void 0 ? void 0 : candidateData.deleteStorage) || [];
+                // Skip candidates with no files to delete
+                if (!deleteStorage || deleteStorage.length === 0) {
+                    continue;
+                }
                 // Extract hierarchical location for logging
                 const pathSegments = docSnapshot.ref.path.split('/');
                 const stateId = pathSegments[1];
