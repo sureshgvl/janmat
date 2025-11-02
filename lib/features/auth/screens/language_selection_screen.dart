@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../language/services/language_service.dart';
+import '../../language/controller/language_controller.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
@@ -199,18 +200,22 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   }
 
   Future<void> _continueToLogin() async {
-    // Save selected language
+    // Save selected language using language service
     await _languageService.setLanguage(_selectedLanguage);
 
     // Mark first time as complete
     await _languageService.markFirstTimeComplete();
 
-    // Update app locale
-    final locale = Locale(_selectedLanguage);
-    Get.updateLocale(locale);
+    // Update language controller's reactive locale if available
+    try {
+      final languageController = Get.find<LanguageController>();
+      languageController.currentLocale.value = Locale(_selectedLanguage);
+    } catch (e) {
+      // Language controller not available, use Get.updateLocale as fallback
+      Get.updateLocale(Locale(_selectedLanguage));
+    }
 
     // Navigate to onboarding screen
     Get.offAllNamed('/onboarding');
   }
 }
-

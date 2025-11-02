@@ -49,7 +49,7 @@ extension LocaleJsonExtension on Locale {
   }
 }
 
-/// 🚀 SMART STARTUP: Get auth state and cached data simultaneously for instant home access
+/// 🚀 SMART STARTUP: Get auth state, cached data, and app setup state simultaneously for instant home access
 Future<Map<String, dynamic>> _getSmartStartupData() async {
   final stopwatch = Stopwatch()..start();
 
@@ -64,17 +64,25 @@ Future<Map<String, dynamic>> _getSmartStartupData() async {
       const Duration(milliseconds: 500),
       onTimeout: () => null,
     ),
+    // Get app setup state (language selection and onboarding)
+    _getAppSetupState().timeout(
+      const Duration(milliseconds: 500),
+      onTimeout: () => {'isLanguageSelected': false, 'isOnboardingCompleted': false},
+    ),
   ]);
 
   final user = results[0] as User?;
   final cachedData = results[1] as Map<String, dynamic>?;
+  final setupState = results[2] as Map<String, dynamic>;
 
   final isLoggedIn = user != null;
   final hasCachedData = cachedData != null && cachedData.isNotEmpty;
+  final isLanguageSelected = setupState['isLanguageSelected'] ?? false;
+  final isOnboardingCompleted = setupState['isOnboardingCompleted'] ?? false;
 
-  AppLogger.core('⚡ Smart startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, cached=$hasCachedData');
+  AppLogger.core('⚡ Smart startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted');
 
-        // � DISABLED: Complex pre-loading causing conflicts with HomeScreen stream
+        //  DISABLED: Complex pre-loading causing conflicts with HomeScreen stream
         // Let HomeScreen handle its own optimized loading without interference
 
   return {
@@ -82,6 +90,8 @@ Future<Map<String, dynamic>> _getSmartStartupData() async {
     'hasCachedData': hasCachedData,
     'user': user,
     'cachedData': cachedData,
+    'isLanguageSelected': isLanguageSelected,
+    'isOnboardingCompleted': isOnboardingCompleted,
   };
 }
 
@@ -102,6 +112,34 @@ Future<Map<String, dynamic>?> _getCachedUserData() async {
     AppLogger.core('⚠️ Failed to get cached user data: $e');
   }
   return null;
+}
+
+/// Get app setup state (language selection and onboarding completion)
+Future<Map<String, dynamic>> _getAppSetupState() async {
+  try {
+    final prefs = Get.find<SharedPreferences>();
+
+    // Check if language is selected (not first time user)
+    final isFirstTime = prefs.getBool('is_first_time') ?? true;
+    final isLanguageSelected = !isFirstTime;
+
+    // Check if onboarding is completed
+    final isOnboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+
+    AppLogger.core('📱 App setup state: language=$isLanguageSelected, onboarding=$isOnboardingCompleted');
+
+    return {
+      'isLanguageSelected': isLanguageSelected,
+      'isOnboardingCompleted': isOnboardingCompleted,
+    };
+  } catch (e) {
+    AppLogger.core('⚠️ Failed to get app setup state: $e');
+    // Default to not completed if there's an error
+    return {
+      'isLanguageSelected': false,
+      'isOnboardingCompleted': false,
+    };
+  }
 }
 
 /// Pre-load candidate home data in background for instant access
@@ -319,10 +357,21 @@ class MyAppContent extends StatelessWidget {
         final startupData = snapshot.data!;
         final isLoggedIn = startupData['isLoggedIn'] ?? false;
         final hasCachedData = startupData['hasCachedData'] ?? false;
+        final isLanguageSelected = startupData['isLanguageSelected'] ?? false;
+        final isOnboardingCompleted = startupData['isOnboardingCompleted'] ?? false;
         final user = startupData['user'] as User?;
 
-        final String initialRoute = isLoggedIn ? AppRouteNames.home : AppRouteNames.login;
-        AppLogger.core('🚀 FAST STARTUP COMPLETE: loggedIn=$isLoggedIn, cached=$hasCachedData → Route: $initialRoute');
+        // Determine initial route based on app setup state
+        String initialRoute;
+        if (!isLanguageSelected) {
+          initialRoute = AppRouteNames.languageSelection;
+        } else if (!isOnboardingCompleted) {
+          initialRoute = AppRouteNames.onboarding;
+        } else {
+          initialRoute = isLoggedIn ? AppRouteNames.home : AppRouteNames.login;
+        }
+
+        AppLogger.core('🚀 FAST STARTUP COMPLETE: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
 
         // 🔥 INSTANT HOME ACCESS: If logged in AND cached, pass cached data directly
         if (isLoggedIn && hasCachedData) {
@@ -336,7 +385,16 @@ class MyAppContent extends StatelessWidget {
             final streamUser = authSnapshot.data;
             final isStreamLoggedIn = streamUser != null;
 
-            final String streamRoute = isStreamLoggedIn ? AppRouteNames.home : AppRouteNames.login;
+            // Use same routing logic as above
+            String streamRoute;
+            if (!isLanguageSelected) {
+              streamRoute = AppRouteNames.languageSelection;
+            } else if (!isOnboardingCompleted) {
+              streamRoute = AppRouteNames.onboarding;
+            } else {
+              streamRoute = isStreamLoggedIn ? AppRouteNames.home : AppRouteNames.login;
+            }
+
             AppLogger.core('🔄 Auth stream: ${streamUser?.uid ?? 'null'} → Route: $streamRoute');
 
             return Obx(() {

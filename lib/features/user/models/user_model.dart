@@ -66,6 +66,26 @@ class UserModel {
   final bool profileCompleted;
   final LocationModel? location;
   final List<ElectionArea> electionAreas;
+  final int xpPoints;
+  final bool premium;
+  final String? subscriptionPlanId; // current active candidate subscription
+  final DateTime? subscriptionExpiresAt;
+  // Highlight plan fields
+  final String? highlightPlanId; // active highlight plan subscription
+  final DateTime? highlightPlanExpiresAt;
+  final int highlightSlotsUsed; // usage tracking for highlight slots
+  // Carousel plan fields
+  final String? carouselPlanId; // active carousel plan subscription
+  final DateTime? carouselPlanExpiresAt;
+  final int carouselSlotsUsed; // usage tracking for carousel slots
+  final DateTime createdAt;
+  // Trial fields for candidates
+  final DateTime? trialStartedAt;
+  final DateTime? trialExpiresAt;
+  final bool isTrialActive;
+  final bool hasConvertedFromTrial;
+  final String? photoURL;
+  final int followingCount;
 
   // Backward compatibility getters
   String? get stateId => location?.stateId;
@@ -127,26 +147,6 @@ class UserModel {
       return null;
     }
   }
-  final int xpPoints;
-  final bool premium;
-  final String? subscriptionPlanId; // current active candidate subscription
-  final DateTime? subscriptionExpiresAt;
-  // Highlight plan fields
-  final String? highlightPlanId; // active highlight plan subscription
-  final DateTime? highlightPlanExpiresAt;
-  final int highlightSlotsUsed; // usage tracking for highlight slots
-  // Carousel plan fields
-  final String? carouselPlanId; // active carousel plan subscription
-  final DateTime? carouselPlanExpiresAt;
-  final int carouselSlotsUsed; // usage tracking for carousel slots
-  final DateTime createdAt;
-  // Trial fields for candidates
-  final DateTime? trialStartedAt;
-  final DateTime? trialExpiresAt;
-  final bool isTrialActive;
-  final bool hasConvertedFromTrial;
-  final String? photoURL;
-  final int followingCount;
 
   // Getter to get primary ward ID (for backward compatibility)
   String get primaryWardId {

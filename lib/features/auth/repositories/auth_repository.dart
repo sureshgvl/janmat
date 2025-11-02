@@ -421,11 +421,15 @@ class AuthRepository {
       // This allows users to quickly sign back in with the same account
       AppLogger.auth('ℹ️ Stored Google account info preserved for quick re-login');
 
-      // Step 3: Clear session-specific cache and temporary files (but keep user preferences)
+      // Step 3: Clear app setup flags to force language selection and onboarding on next login
+      await clearAppSetupFlags();
+      AppLogger.auth('✅ App setup flags cleared (language selection and onboarding will be shown again)');
+
+      // Step 4: Clear session-specific cache and temporary files (but keep user preferences)
       await _clearLogoutCache();
       AppLogger.auth('✅ Session cache cleared');
 
-      // Step 4: Clear GetX controllers to reset app state
+      // Step 5: Clear all GetX controllers to reset app state
       await _clearAllControllers();
       AppLogger.auth('✅ App controllers reset');
 
@@ -436,13 +440,14 @@ class AuthRepository {
       try {
         await _firebaseAuth.signOut();
         await _googleSignIn.signOut();
-        // Keep stored account info in fallback for UX convenience
+        // Clear app setup flags even in fallback
+        await clearAppSetupFlags();
         await _clearLogoutCache();
         await _clearAllControllers();
         AppLogger.auth('⚠️ Fallback sign-out completed');
       } catch (fallbackError) {
         AppLogger.auth('Fallback sign-out also failed: $fallbackError');
-        // At minimum, try basic cleanup
+        // At minimum, try to clear controllers
         try {
           await _clearAllControllers();
         } catch (controllerError) {
@@ -1981,9 +1986,15 @@ class AuthRepository {
 
 
 
-  // Store last used Google account info for smart login UX
+  // Store last used Google account info for smart login UX - Enhanced Version
   Future<void> _storeLastGoogleAccount(GoogleSignInAccount account) async {
     try {
+      // Validate account data before storing
+      if (account.email == null || account.email.isEmpty) {
+        AppLogger.auth('⚠️ Cannot store Google account: email is null or empty');
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       final accountData = {
         'email': account.email,
@@ -1991,26 +2002,56 @@ class AuthRepository {
         'photoUrl': account.photoUrl,
         'id': account.id,
         'lastLogin': DateTime.now().toIso8601String(),
+        'serverAuthCode': account.serverAuthCode, // For enhanced security
+        'version': '2.0', // Version for future migrations
       };
 
-      // Properly encode as JSON string
+      // Properly encode as JSON string with error handling
       final accountJson = jsonEncode(accountData);
       await prefs.setString('last_google_account', accountJson);
-      AppLogger.auth('✅ Stored last Google account: ${account.email}');
+
+      // Also store backup copy for recovery
+      await prefs.setString('last_google_account_backup', accountJson);
+
+      AppLogger.auth('✅ Enhanced account storage: ${account.email} (v2.0 with backup)');
     } catch (e) {
       AppLogger.auth('⚠️ Error storing last Google account: $e');
+      // Try to store minimal data as fallback
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final minimalData = {
+          'email': account.email ?? 'unknown',
+          'displayName': account.displayName ?? 'User',
+          'lastLogin': DateTime.now().toIso8601String(),
+          'version': '1.0', // Fallback version
+        };
+        await prefs.setString('last_google_account', jsonEncode(minimalData));
+        AppLogger.auth('✅ Fallback account storage successful');
+      } catch (fallbackError) {
+        AppLogger.auth('⚠️ Fallback account storage also failed: $fallbackError');
+      }
     }
   }
 
-  // Get last used Google account info
+  // Get last used Google account info - Enhanced with recovery and validation
   Future<Map<String, dynamic>?> getLastGoogleAccount() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final accountData = prefs.getString('last_google_account');
+      String? accountData = prefs.getString('last_google_account');
 
+      // If primary data is missing, try backup
       if (accountData == null) {
-        AppLogger.auth('ℹ️ No stored Google account found');
-        return null;
+        AppLogger.auth('ℹ️ Primary account data not found, checking backup...');
+        accountData = prefs.getString('last_google_account_backup');
+
+        if (accountData == null) {
+          AppLogger.auth('ℹ️ No stored Google account found (primary or backup)');
+          return null;
+        } else {
+          AppLogger.auth('📋 Found backup Google account data, restoring...');
+          // Restore from backup to primary
+          await prefs.setString('last_google_account', accountData);
+        }
       }
 
       AppLogger.auth('📋 Found stored Google account data');
@@ -2018,7 +2059,33 @@ class AuthRepository {
       // Parse the stored JSON string
       final accountMap = jsonDecode(accountData) as Map<String, dynamic>;
 
-      AppLogger.auth('✅ Successfully parsed stored account: ${accountMap['displayName']} (${accountMap['email']})');
+      // Validate the account data structure
+      if (!_isValidAccountData(accountMap)) {
+        AppLogger.auth('⚠️ Invalid account data structure, clearing...');
+        await prefs.remove('last_google_account');
+        return null;
+      }
+
+      // Check if account data is too old (older than 30 days)
+      final lastLoginStr = accountMap['lastLogin'] as String?;
+      if (lastLoginStr != null) {
+        try {
+          final lastLogin = DateTime.parse(lastLoginStr);
+          final daysSinceLogin = DateTime.now().difference(lastLogin).inDays;
+
+          if (daysSinceLogin > 30) {
+            AppLogger.auth('⚠️ Account data is ${daysSinceLogin} days old, clearing for security');
+            await prefs.remove('last_google_account');
+            await prefs.remove('last_google_account_backup');
+            return null;
+          }
+        } catch (e) {
+          AppLogger.auth('⚠️ Could not parse last login date: $e');
+          // Continue with the data but log the issue
+        }
+      }
+
+      AppLogger.auth('✅ Successfully parsed and validated stored account: ${accountMap['displayName']} (${accountMap['email']})');
 
       return accountMap;
     } catch (e) {
@@ -2027,7 +2094,8 @@ class AuthRepository {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('last_google_account');
-        AppLogger.auth('🧹 Cleared corrupted account data');
+        await prefs.remove('last_google_account_backup');
+        AppLogger.auth('🧹 Cleared corrupted account data (primary and backup)');
       } catch (clearError) {
         AppLogger.auth('⚠️ Error clearing corrupted data: $clearError');
       }
@@ -2035,14 +2103,48 @@ class AuthRepository {
     }
   }
 
-  // Clear stored Google account info (on logout)
+  // Validate account data structure
+  bool _isValidAccountData(Map<String, dynamic> accountData) {
+    // Check for required fields
+    final requiredFields = ['email', 'displayName'];
+    for (final field in requiredFields) {
+      if (!accountData.containsKey(field) || accountData[field] == null) {
+        AppLogger.auth('⚠️ Missing required field: $field');
+        return false;
+      }
+    }
+
+    // Validate email format
+    final email = accountData['email'] as String;
+    if (!email.contains('@') || !email.contains('.')) {
+      AppLogger.auth('⚠️ Invalid email format: $email');
+      return false;
+    }
+
+    return true;
+  }
+
+  // Clear stored Google account info (on logout) - Enhanced to clear both primary and backup
   Future<void> clearLastGoogleAccount() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('last_google_account');
-      AppLogger.auth('✅ Cleared last Google account info');
+      await prefs.remove('last_google_account_backup');
+      AppLogger.auth('✅ Cleared last Google account info (primary and backup)');
     } catch (e) {
       AppLogger.auth('⚠️ Error clearing last Google account: $e');
+    }
+  }
+
+  // Clear all app setup flags (for complete reset)
+  Future<void> clearAppSetupFlags() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('is_first_time');
+      await prefs.remove('onboarding_completed');
+      AppLogger.auth('✅ Cleared app setup flags (language selection and onboarding)');
+    } catch (e) {
+      AppLogger.auth('⚠️ Error clearing app setup flags: $e');
     }
   }
 }
