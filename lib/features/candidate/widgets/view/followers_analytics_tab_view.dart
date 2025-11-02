@@ -54,6 +54,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
 
       followers = await controller.getCandidateFollowers(
         widget.candidateData.candidateId,
+        candidateData: widget.candidateData,
       );
 
       // Fetch user data for all followers
@@ -140,6 +141,7 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
                     () => FollowersListScreen(
                       candidateId: widget.candidateData.candidateId,
                       candidateName: widget.candidateData.basicInfo!.fullName!,
+                      candidateData: widget.candidateData,
                     ),
                   );
                 },
@@ -347,4 +349,3 @@ class _FollowersAnalyticsSectionState extends State<FollowersAnalyticsSection> {
     }
   }
 }
-

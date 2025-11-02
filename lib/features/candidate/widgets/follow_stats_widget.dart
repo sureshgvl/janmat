@@ -88,6 +88,7 @@ class FollowStatsWidget extends StatelessWidget {
                   () => FollowersListScreen(
                     candidateId: candidate.candidateId,
                     candidateName: candidate.basicInfo!.fullName!,
+                    candidateData: candidate,
                   ),
                 );
               },

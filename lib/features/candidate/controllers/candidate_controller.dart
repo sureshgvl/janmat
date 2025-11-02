@@ -602,21 +602,50 @@ class CandidateController extends GetxController {
 
   // Get followers list for a candidate
   Future<List<Map<String, dynamic>>> getCandidateFollowers(
-    String candidateId,
-  ) async {
+    String candidateId, {
+    Candidate? candidateData,
+  }) async {
     try {
-      // Get candidate location from the candidates list
-      final candidate = candidates.firstWhere(
+      // Try to get candidate location from provided data first
+      if (candidateData != null) {
+        final location = candidateData.location;
+        return await _followRepository.getCandidateFollowers(candidateId,
+          stateId: location.stateId,
+          districtId: location.districtId,
+          bodyId: location.bodyId,
+          wardId: location.wardId,
+        );
+      }
+
+      // Try to get candidate location from the cached candidates list
+      final cachedCandidate = candidates.firstWhereOrNull(
         (c) => c.candidateId == candidateId,
-        orElse: () => throw Exception('Candidate not found in list'),
       );
-      final location = candidate.location;
-      return await _followRepository.getCandidateFollowers(candidateId,
-        stateId: location.stateId,
-        districtId: location.districtId,
-        bodyId: location.bodyId,
-        wardId: location.wardId,
-      );
+
+      if (cachedCandidate != null) {
+        final location = cachedCandidate.location;
+        return await _followRepository.getCandidateFollowers(candidateId,
+          stateId: location.stateId,
+          districtId: location.districtId,
+          bodyId: location.bodyId,
+          wardId: location.wardId,
+        );
+      }
+
+      // If not in cache, fetch candidate data directly from repository
+      AppLogger.candidate('Candidate $candidateId not in cache, fetching directly');
+      final candidate = await _repository.getCandidateDataById(candidateId);
+      if (candidate != null) {
+        final location = candidate.location;
+        return await _followRepository.getCandidateFollowers(candidateId,
+          stateId: location.stateId,
+          districtId: location.districtId,
+          bodyId: location.bodyId,
+          wardId: location.wardId,
+        );
+      }
+
+      throw Exception('Candidate $candidateId not found');
     } catch (e) {
       AppLogger.candidateError('Failed to get followers: $e');
       errorMessage = 'Failed to get followers: $e';

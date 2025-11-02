@@ -3,15 +3,18 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../controllers/candidate_controller.dart';
 import '../repositories/candidate_repository.dart';
+import '../models/candidate_model.dart';
 
 class FollowersListScreen extends StatefulWidget {
   final String candidateId;
   final String candidateName;
+  final Candidate? candidateData;
 
   const FollowersListScreen({
     super.key,
     required this.candidateId,
     required this.candidateName,
+    this.candidateData,
   });
 
   @override
@@ -60,9 +63,10 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
       // Add timeout to prevent infinite loading
       final followersFuture = controller.getCandidateFollowers(
         widget.candidateId,
+        candidateData: widget.candidateData,
       );
       followers = await followersFuture.timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 15),
         onTimeout: () {
           throw Exception('Loading followers timed out. Please try again.');
         },
@@ -303,4 +307,3 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
     }
   }
 }
-
