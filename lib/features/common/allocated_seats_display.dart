@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../highlight/services/highlight_service.dart';
+import '../highlight/models/highlight_model.dart';
 
 class AllocatedSeatsDisplay extends StatefulWidget {
   final int maxHighlights;
@@ -22,13 +24,20 @@ class AllocatedSeatsDisplay extends StatefulWidget {
 }
 
 class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
-  int allocatedSeats = 0;
+  List<Highlight> allocatedHighlights = [];
   bool isLoading = true;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
     super.initState();
     _loadAllocatedSeats();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -47,7 +56,7 @@ class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
     if (widget.stateId == null || widget.districtId == null ||
         widget.bodyId == null || widget.wardId == null) {
       setState(() {
-        allocatedSeats = 0;
+        allocatedHighlights = [];
         isLoading = false;
       });
       return;
@@ -78,14 +87,65 @@ class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
       );
 
       setState(() {
-        allocatedSeats = highlights.length;
+        allocatedHighlights = highlights;
         isLoading = false;
+        _manageCountdownTimer();
       });
     } catch (e) {
       setState(() {
-        allocatedSeats = 0;
+        allocatedHighlights = [];
         isLoading = false;
+        _manageCountdownTimer();
       });
+    }
+  }
+
+  void _manageCountdownTimer() {
+    // Check if any highlight has less than 24 hours remaining
+    final hasCountdownHighlights = allocatedHighlights.any((highlight) {
+      final difference = highlight.endDate.difference(DateTime.now());
+      return !difference.isNegative && difference.inHours < 24;
+    });
+
+    if (hasCountdownHighlights && _countdownTimer == null) {
+      // Start countdown timer
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            // Force rebuild to update countdown
+          });
+        }
+      });
+    } else if (!hasCountdownHighlights && _countdownTimer != null) {
+      // Stop countdown timer
+      _countdownTimer?.cancel();
+      _countdownTimer = null;
+    }
+  }
+
+  String _formatRemainingTime(DateTime endDate) {
+    final now = DateTime.now();
+    final difference = endDate.difference(now);
+
+    if (difference.isNegative) {
+      return 'Expired';
+    }
+
+    final days = difference.inDays;
+    final hours = difference.inHours.remainder(24);
+    final minutes = difference.inMinutes.remainder(60);
+    final seconds = difference.inSeconds.remainder(60);
+
+    if (days > 1) {
+      return '$days days';
+    } else if (days == 1) {
+      return '1 day';
+    } else {
+      // Less than 1 day, show hours, minutes, seconds with labels (singular/plural)
+      final hourLabel = hours == 1 ? 'hr' : 'hrs';
+      final minuteLabel = minutes == 1 ? 'min' : 'mins';
+      final secondLabel = seconds == 1 ? 'sec' : 'secs';
+      return '${hours.toString().padLeft(2, '0')} $hourLabel, ${minutes.toString().padLeft(2, '0')} $minuteLabel, ${seconds.toString().padLeft(2, '0')} $secondLabel';
     }
   }
 
@@ -135,29 +195,52 @@ class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
                 ),
               ),
               Text(
-                '$allocatedSeats/${widget.maxHighlights}',
+                '${allocatedHighlights.length}/${widget.maxHighlights}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: allocatedSeats == widget.maxHighlights ? Colors.green : Colors.grey[600],
+                  color: allocatedHighlights.length == widget.maxHighlights ? Colors.green : Colors.grey[600],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
+          // Show all seats in one row (allocated filled, empty outlined)
           Row(
             children: List.generate(
               widget.maxHighlights,
               (index) => Container(
                 margin: const EdgeInsets.only(right: 4),
                 child: Icon(
-                  index < allocatedSeats ? Icons.event_seat : Icons.event_seat_outlined,
-                  color: index < allocatedSeats ? Colors.green[600] : Colors.grey[400],
+                  index < allocatedHighlights.length ? Icons.event_seat : Icons.event_seat_outlined,
+                  color: index < allocatedHighlights.length ? Colors.green[600] : Colors.grey[400],
                   size: 20,
                 ),
               ),
             ),
           ),
+          // Display individual allocated seats with candidate names and remaining time below
+          if (allocatedHighlights.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: allocatedHighlights.asMap().entries.map((entry) {
+                final index = entry.key + 1;
+                final highlight = entry.value;
+                final remainingTime = _formatRemainingTime(highlight.endDate);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '$index. ${highlight.candidateName ?? 'Unknown'} - $remainingTime',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black87,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );
