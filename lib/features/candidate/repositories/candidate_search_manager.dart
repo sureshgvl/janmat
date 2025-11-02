@@ -63,7 +63,7 @@ class CandidateSearchManager {
 
         try {
           final candidates = await getCandidatesByWard(
-            user.districtId ?? '',
+            user.location?.districtId ?? '',
             area.bodyId,
             area.wardId,
           );

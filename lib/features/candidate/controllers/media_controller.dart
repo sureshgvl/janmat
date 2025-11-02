@@ -188,11 +188,6 @@ class MediaController extends GetxController implements IMediaController {
       // These operations run in parallel but don't block the main save
       List<Future> backgroundOperations = [];
 
-      // 1. Update user document if name/photo changed
-      if (candidateName != null || photoUrl != null) {
-        backgroundOperations.add(_syncUserDocument(candidateName, photoUrl));
-      }
-
       // 2. Send media update notification
       backgroundOperations.add(_sendMediaUpdateNotification(candidateId, updates));
 
@@ -206,35 +201,6 @@ class MediaController extends GetxController implements IMediaController {
     } catch (e) {
       AppLogger.databaseError('⚠️ BACKGROUND: Some sync operations failed (non-critical)', tag: 'MEDIA_FAST', error: e);
       // Don't throw - background operations shouldn't affect save success
-    }
-  }
-
-  /// Sync user document in background
-  Future<void> _syncUserDocument(String? candidateName, String? photoUrl) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      Map<String, dynamic> userUpdates = {};
-
-      if (candidateName != null) {
-        userUpdates['name'] = candidateName;
-      }
-
-      if (photoUrl != null) {
-        userUpdates['photo'] = photoUrl;
-      }
-
-      if (userUpdates.isNotEmpty) {
-        await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update(userUpdates);
-
-        AppLogger.database('📝 BACKGROUND: User document synced', tag: 'MEDIA_FAST');
-      }
-    } catch (e) {
-      AppLogger.databaseError('⚠️ BACKGROUND: User document sync failed', tag: 'MEDIA_FAST', error: e);
     }
   }
 

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:janmat/features/user/models/user_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../repositories/candidate_repository.dart';
 import '../models/candidate_model.dart';
+import '../widgets/follower_card.dart';
 
 class FollowersListScreen extends StatefulWidget {
   final String candidateId;
@@ -25,7 +26,7 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
   final CandidateController controller = Get.find<CandidateController>();
   final CandidateRepository repository = CandidateRepository();
   List<Map<String, dynamic>> followers = [];
-  Map<String, Map<String, dynamic>?> userDataCache = {};
+  Map<String, UserModel?> userDataCache = {};
   bool isLoading = true;
   String? errorMessage;
   bool _isLoadingLong = false;
@@ -81,10 +82,13 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
           try {
             // Add timeout to prevent hanging
             final userDataFuture = repository.getUserData(userId);
-            userDataCache[userId] = await userDataFuture.timeout(
+            final userDataMap = await userDataFuture.timeout(
               const Duration(seconds: 5),
               onTimeout: () => null,
             );
+            userDataCache[userId] = userDataMap != null
+                ? UserModel.fromJson(userDataMap)
+                : null;
           } catch (e) {
             // If user data fetch fails, continue with null
             userDataCache[userId] = null;
@@ -195,115 +199,14 @@ class _FollowersListScreenState extends State<FollowersListScreen> {
                   final follower = followers[index];
                   final userId = follower['userId'] as String;
                   final userData = userDataCache[userId];
-                  final followedAt = follower['followedAt'] as Timestamp?;
-                  final notificationsEnabled =
-                      follower['notificationsEnabled'] as bool? ?? true;
-
-                  // Get user display name
-                  final displayName = userData != null
-                      ? (userData['name'] as String?) ?? 'Unknown User'
-                      : 'Loading...';
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.1),
-                        backgroundImage:
-                            userData != null && userData['photoURL'] != null
-                            ? NetworkImage(userData['photoURL'])
-                            : null,
-                        child: userData == null || userData['photoURL'] == null
-                            ? Icon(
-                                Icons.person,
-                                color: Theme.of(context).primaryColor,
-                              )
-                            : null,
-                      ),
-                      title: Text(
-                        displayName,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (followedAt != null)
-                            Text(
-                              'Followed ${_formatDate(followedAt.toDate())}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          if (notificationsEnabled)
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.notifications,
-                                  size: 14,
-                                  color: Colors.grey[600],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Notifications enabled',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Follower',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
+                  
+                  return FollowerCard(
+                    follower: follower,
+                    userData: userData,
                   );
                 },
               ),
             ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'today';
-    } else if (difference.inDays == 1) {
-      return 'yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return '$weeks week${weeks > 1 ? 's' : ''} ago';
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return '$months month${months > 1 ? 's' : ''} ago';
-    } else {
-      final years = (difference.inDays / 365).floor();
-      return '$years year${years > 1 ? 's' : ''} ago';
-    }
   }
 }

@@ -30,10 +30,10 @@ class UserDataController extends GetxController {
   String? get userName => currentUser.value?.name;
   String? get userEmail => currentUser.value?.email;
   String? get userRole => currentUser.value?.role;
-  String? get stateId => currentUser.value?.stateId;
-  String? get districtId => currentUser.value?.districtId;
-  String? get bodyId => currentUser.value?.bodyId;
-  String? get wardId => currentUser.value?.wardId;
+  String? get stateId => currentUser.value?.location?.stateId;
+  String? get districtId => currentUser.value?.location?.districtId;
+  String? get bodyId => currentUser.value?.location?.bodyId;
+  String? get wardId => currentUser.value?.location?.wardId;
   String? get area => currentUser.value?.area;
   bool get isProfileCompleted => currentUser.value?.profileCompleted ?? false;
   bool get isRoleSelected => currentUser.value?.roleSelected ?? false;

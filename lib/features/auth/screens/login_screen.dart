@@ -54,25 +54,6 @@ class LoginScreen extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      // Container(
-                      //   padding: const EdgeInsets.all(12),
-                      //   margin: const EdgeInsets.symmetric(horizontal: 20),
-                      //   decoration: BoxDecoration(
-                      //     color: Colors.blue[50],
-                      //     borderRadius: BorderRadius.circular(8),
-                      //     border: Border.all(color: Colors.blue[200]!),
-                      //   ),
-                      //   child: Text(
-                      //     authLocalizations.phoneVerificationNotice,
-                      //     style: TextStyle(
-                      //       fontSize: 14,
-                      //       color: Colors.blue[800],
-                      //       fontWeight: FontWeight.w500,
-                      //     ),
-                      //     textAlign: TextAlign.center,
-                      //   ),
-                      // ),
-                      // const SizedBox(height: 32),
                       Card(
                         elevation: 8,
                         shape: RoundedRectangleBorder(

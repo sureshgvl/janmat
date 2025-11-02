@@ -548,10 +548,10 @@ class ChatRepository {
         if (userDataController.isInitialized.value &&
             userDataController.currentUser.value != null) {
           final userModel = userDataController.currentUser.value!;
-          stateId = userModel.stateId;
-          districtId = userModel.districtId;
-          bodyId = userModel.bodyId;
-          wardId = userModel.wardId;
+          stateId = userModel.location?.stateId;
+          districtId = userModel.location?.districtId;
+          bodyId = userModel.location?.bodyId;
+          wardId = userModel.location?.wardId;
           area = userModel.area;
 
           AppLogger.database(
@@ -567,10 +567,10 @@ class ChatRepository {
           if (userDoc.exists) {
             final userData = userDoc.data()!;
             final userModel = UserModel.fromJson(userData);
-            stateId = userModel.stateId;
-            districtId = userModel.districtId;
-            bodyId = userModel.bodyId;
-            wardId = userModel.wardId;
+          stateId = userModel.location?.stateId;
+          districtId = userModel.location?.districtId;
+          bodyId = userModel.location?.bodyId;
+          wardId = userModel.location?.wardId;
             area = userModel.area;
 
             AppLogger.database(
@@ -1304,23 +1304,7 @@ class ChatRepository {
       UserModel? user;
       if (userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
-        user = UserModel(
-          uid: data['uid'] ?? userId,
-          name: data['name'] ?? 'Unknown',
-          phone: data['phone'] ?? '',
-          email: data['email'] ?? '',
-          role: data['role'] ?? 'voter',
-          roleSelected: data['roleSelected'] ?? false,
-          profileCompleted: data['profileCompleted'] ?? false,
-          electionAreas: [],
-          districtId: data['districtId'] ?? '',
-          xpPoints: data['xpPoints'] ?? 0,
-          premium: data['premium'] ?? false,
-          createdAt: data['createdAt'] != null
-              ? DateTime.parse(data['createdAt'])
-              : DateTime.now(),
-          photoURL: data['photoURL'],
-        );
+        user = UserModel.fromJson(data);
       }
 
       UserQuota? quota;

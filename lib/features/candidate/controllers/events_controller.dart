@@ -12,9 +12,11 @@ class EventsController extends GetxController {
   var isLoading = false.obs;
   var eventsLastFetched = Rx<DateTime?>(null);
 
-
   /// Fetch events for the current candidate with caching
-  Future<void> fetchEvents(Candidate candidate, {bool forceRefresh = false}) async {
+  Future<void> fetchEvents(
+    Candidate candidate, {
+    bool forceRefresh = false,
+  }) async {
     // Check if we have recent data and don't need to refresh
     if (!forceRefresh &&
         eventsLastFetched.value != null &&
@@ -26,7 +28,9 @@ class EventsController extends GetxController {
 
     isLoading.value = true;
     try {
-      final fetchedEvents = await _eventRepository.getCandidateEvents(candidate);
+      final fetchedEvents = await _eventRepository.getCandidateEvents(
+        candidate,
+      );
       events.assignAll(fetchedEvents);
       eventsLastFetched.value = DateTime.now();
     } catch (e) {
@@ -80,7 +84,11 @@ class EventsController extends GetxController {
   }
 
   /// Update an existing event
-  Future<bool> updateEvent(Candidate candidate, String eventId, EventData eventData) async {
+  Future<bool> updateEvent(
+    Candidate candidate,
+    String eventId,
+    EventData eventData,
+  ) async {
     final candidateId = candidate.candidateId;
     try {
       await _eventRepository.updateEvent(candidate, eventId, eventData);
@@ -106,7 +114,12 @@ class EventsController extends GetxController {
   }
 
   /// RSVP to an event
-  Future<bool> rsvpToEvent(Candidate candidate, String eventId, String userId, String rsvpType) async {
+  Future<bool> rsvpToEvent(
+    Candidate candidate,
+    String eventId,
+    String userId,
+    String rsvpType,
+  ) async {
     final candidateId = candidate.candidateId;
     try {
       await _eventRepository.rsvpToEvent(candidate, eventId, userId, rsvpType);
@@ -133,7 +146,6 @@ class EventsController extends GetxController {
     eventsLastFetched.value = DateTime.now();
   }
 
-  @override
   /// TAB-SPECIFIC SAVE: Direct events tab save method
   /// Handles all events operations for the tab independently
   Future<bool> saveEventsTab({
@@ -141,11 +153,14 @@ class EventsController extends GetxController {
     required List<EventData> events,
     String? candidateName,
     String? photoUrl,
-    Function(String)? onProgress
+    Function(String)? onProgress,
   }) async {
     final candidateId = candidate.candidateId;
     try {
-      AppLogger.database('🎪 TAB SAVE: Events tab for $candidateId', tag: 'EVENTS_TAB');
+      AppLogger.database(
+        '🎪 TAB SAVE: Events tab for $candidateId',
+        tag: 'EVENTS_TAB',
+      );
 
       onProgress?.call('Saving events...');
 
@@ -155,10 +170,17 @@ class EventsController extends GetxController {
 
       onProgress?.call('Events saved successfully!');
 
-      AppLogger.database('✅ TAB SAVE: Events completed successfully', tag: 'EVENTS_TAB');
+      AppLogger.database(
+        '✅ TAB SAVE: Events completed successfully',
+        tag: 'EVENTS_TAB',
+      );
       return true;
     } catch (e) {
-      AppLogger.databaseError('❌ TAB SAVE: Events tab save failed', tag: 'EVENTS_TAB', error: e);
+      AppLogger.databaseError(
+        '❌ TAB SAVE: Events tab save failed',
+        tag: 'EVENTS_TAB',
+        error: e,
+      );
       return false;
     }
   }
@@ -168,11 +190,14 @@ class EventsController extends GetxController {
   Future<bool> saveEventsTabWithCandidate({
     required Candidate candidate,
     required List<EventData> events,
-    Function(String)? onProgress
+    Function(String)? onProgress,
   }) async {
     final candidateId = candidate.candidateId;
     try {
-      AppLogger.database('🎪 TAB SAVE: Events tab with candidate for $candidateId', tag: 'EVENTS_TAB');
+      AppLogger.database(
+        '🎪 TAB SAVE: Events tab with candidate for $candidateId',
+        tag: 'EVENTS_TAB',
+      );
 
       onProgress?.call('Saving events...');
 
@@ -183,15 +208,21 @@ class EventsController extends GetxController {
 
       onProgress?.call('Events updated successfully!');
 
-      AppLogger.database('✅ TAB SAVE: Events completed successfully', tag: 'EVENTS_TAB');
+      AppLogger.database(
+        '✅ TAB SAVE: Events completed successfully',
+        tag: 'EVENTS_TAB',
+      );
       return true;
     } catch (e) {
-      AppLogger.databaseError('❌ TAB SAVE: Events tab save failed', tag: 'EVENTS_TAB', error: e);
+      AppLogger.databaseError(
+        '❌ TAB SAVE: Events tab save failed',
+        tag: 'EVENTS_TAB',
+        error: e,
+      );
       return false;
     }
   }
 
-  @override
   /// FAST SAVE: Direct events update for simple field changes
   /// Main save is fast, but triggers essential background operations
   Future<bool> saveEventsFast(
@@ -199,11 +230,14 @@ class EventsController extends GetxController {
     Map<String, dynamic> updates, {
     String? candidateName,
     String? photoUrl,
-    Function(String)? onProgress
+    Function(String)? onProgress,
   }) async {
     final candidateId = candidate.candidateId;
     try {
-      AppLogger.database('🚀 FAST SAVE: Events for $candidateId', tag: 'EVENTS_FAST');
+      AppLogger.database(
+        '🚀 FAST SAVE: Events for $candidateId',
+        tag: 'EVENTS_FAST',
+      );
 
       // For events, we typically don't do direct field updates like other tabs
       // Events are managed through specific CRUD operations
@@ -212,10 +246,17 @@ class EventsController extends GetxController {
 
       // For now, we'll treat this as a no-op since events don't have simple field updates
       // like basic info, manifesto, etc.
-      AppLogger.database('✅ FAST SAVE: Events fast save completed (no-op)', tag: 'EVENTS_FAST');
+      AppLogger.database(
+        '✅ FAST SAVE: Events fast save completed (no-op)',
+        tag: 'EVENTS_FAST',
+      );
       return true;
     } catch (e) {
-      AppLogger.databaseError('❌ FAST SAVE: Events failed', tag: 'EVENTS_FAST', error: e);
+      AppLogger.databaseError(
+        '❌ FAST SAVE: Events failed',
+        tag: 'EVENTS_FAST',
+        error: e,
+      );
       return false;
     }
   }

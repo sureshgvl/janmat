@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
@@ -80,7 +81,20 @@ Future<Map<String, dynamic>> _getSmartStartupData() async {
   final isLanguageSelected = setupState['isLanguageSelected'] ?? false;
   final isOnboardingCompleted = setupState['isOnboardingCompleted'] ?? false;
 
-  AppLogger.core('⚡ Smart startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted');
+  // Determine initial route based on app setup state
+  String initialRoute;
+  if (!isLanguageSelected) {
+    initialRoute = AppRouteNames.languageSelection;
+  } else if (!isOnboardingCompleted) {
+    initialRoute = AppRouteNames.onboarding;
+  } else if (!isLoggedIn) {
+    initialRoute = AppRouteNames.login;
+  } else {
+    // User is logged in, check role selection and profile completion
+    initialRoute = await _getUserFlowRoute(user);
+  }
+
+  AppLogger.core('⚡ Smart startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
 
         //  DISABLED: Complex pre-loading causing conflicts with HomeScreen stream
         // Let HomeScreen handle its own optimized loading without interference
@@ -92,6 +106,7 @@ Future<Map<String, dynamic>> _getSmartStartupData() async {
     'cachedData': cachedData,
     'isLanguageSelected': isLanguageSelected,
     'isOnboardingCompleted': isOnboardingCompleted,
+    'initialRoute': initialRoute,
   };
 }
 
@@ -150,6 +165,43 @@ Future<void> _preloadCandidateHomeData(String userId) async {
     // Implementation will be added there
   } catch (e) {
     AppLogger.core('⚠️ Pre-loading failed: $e');
+  }
+}
+
+/// Get the appropriate route for logged-in users based on role selection and profile completion
+Future<String> _getUserFlowRoute(User? user) async {
+  if (user == null) return AppRouteNames.login;
+
+  try {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (userDoc.exists) {
+      final userData = userDoc.data();
+      final role = userData?['role'] ?? '';
+      final roleSelected = userData?['roleSelected'] ?? false;
+      final profileCompleted = userData?['profileCompleted'] ?? false;
+
+      AppLogger.core('👤 User flow check: role="$role", roleSelected=$roleSelected, profileCompleted=$profileCompleted');
+
+      if (!roleSelected) {
+        return AppRouteNames.roleSelection;
+      } else if (!profileCompleted) {
+        return AppRouteNames.profileCompletion;
+      } else {
+        return AppRouteNames.home;
+      }
+    } else {
+      // New user, start with role selection
+      AppLogger.core('🆕 New user detected, starting with role selection');
+      return AppRouteNames.roleSelection;
+    }
+  } catch (e) {
+    AppLogger.core('⚠️ Error checking user flow state: $e');
+    // On error, default to role selection to be safe
+    return AppRouteNames.roleSelection;
   }
 }
 
@@ -359,17 +411,7 @@ class MyAppContent extends StatelessWidget {
         final hasCachedData = startupData['hasCachedData'] ?? false;
         final isLanguageSelected = startupData['isLanguageSelected'] ?? false;
         final isOnboardingCompleted = startupData['isOnboardingCompleted'] ?? false;
-        final user = startupData['user'] as User?;
-
-        // Determine initial route based on app setup state
-        String initialRoute;
-        if (!isLanguageSelected) {
-          initialRoute = AppRouteNames.languageSelection;
-        } else if (!isOnboardingCompleted) {
-          initialRoute = AppRouteNames.onboarding;
-        } else {
-          initialRoute = isLoggedIn ? AppRouteNames.home : AppRouteNames.login;
-        }
+        final initialRoute = startupData['initialRoute'] as String;
 
         AppLogger.core('🚀 FAST STARTUP COMPLETE: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
 
@@ -385,14 +427,18 @@ class MyAppContent extends StatelessWidget {
             final streamUser = authSnapshot.data;
             final isStreamLoggedIn = streamUser != null;
 
-            // Use same routing logic as above
+            // Use same routing logic as above, but for stream we need to handle async differently
             String streamRoute;
             if (!isLanguageSelected) {
               streamRoute = AppRouteNames.languageSelection;
             } else if (!isOnboardingCompleted) {
               streamRoute = AppRouteNames.onboarding;
+            } else if (!isStreamLoggedIn) {
+              streamRoute = AppRouteNames.login;
             } else {
-              streamRoute = isStreamLoggedIn ? AppRouteNames.home : AppRouteNames.login;
+              // For stream updates, we need to check user state dynamically
+              // Since we can't await here, we'll route to home and let HomeScreen handle navigation
+              streamRoute = AppRouteNames.home;
             }
 
             AppLogger.core('🔄 Auth stream: ${streamUser?.uid ?? 'null'} → Route: $streamRoute');

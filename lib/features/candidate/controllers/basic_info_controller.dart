@@ -48,17 +48,7 @@ class BasicInfoController extends GetxController implements IBasicInfoController
     Function(String)? onProgress
   }) async {
     try {
-      AppLogger.database('📝 TAB SAVE: Basic info tab with candidate for $candidateId', tag: 'BASIC_INFO_TAB');
-
-      // DEBUG: Check languages field specifically
-      AppLogger.database('📝 TAB SAVE: Languages debug - type: ${basicInfo.languages?.runtimeType}, value: ${basicInfo.languages}', tag: 'BASIC_INFO_TAB');
-      if (basicInfo.languages != null && basicInfo.languages!.isNotEmpty) {
-        AppLogger.database('📝 TAB SAVE: First language type: ${basicInfo.languages!.first.runtimeType}', tag: 'BASIC_INFO_TAB');
-      }
-
-      AppLogger.database('📝 TAB SAVE: BasicInfo data: ${basicInfo.toJson()}', tag: 'BASIC_INFO_TAB');
-      AppLogger.database('📝 TAB SAVE: Candidate location: districtId=${candidate.location.districtId}, bodyId=${candidate.location.bodyId}, wardId=${candidate.location.wardId}', tag: 'BASIC_INFO_TAB');
-
+      
       onProgress?.call('Saving basic info...');
 
       // Check if photo needs to be uploaded
@@ -102,12 +92,6 @@ class BasicInfoController extends GetxController implements IBasicInfoController
 
       // Create updated basicInfo with final photo URL
       final updatedBasicInfo = basicInfo.copyWith(photo: finalPhotoUrl);
-
-      // DEBUG: Check candidate fields
-      AppLogger.database('📝 TAB SAVE: Candidate debug - candidate.photo: ${candidate.photo}', tag: 'BASIC_INFO_TAB');
-      AppLogger.database('📝 TAB SAVE: Candidate debug - deleteStorage (original): ${candidate.deleteStorage}', tag: 'BASIC_INFO_TAB');
-      AppLogger.database('📝 TAB SAVE: Candidate debug - deleteStorage (updated): $updatedDeleteStorage', tag: 'BASIC_INFO_TAB');
-      AppLogger.database('📝 TAB SAVE: Candidate debug - deleteStorage types: ${updatedDeleteStorage.map((s) => s.runtimeType)}', tag: 'BASIC_INFO_TAB');
 
       // Create updated candidate with deleteStorage changes
       final updatedCandidate = candidate.copyWith(deleteStorage: updatedDeleteStorage);
@@ -212,7 +196,7 @@ class BasicInfoController extends GetxController implements IBasicInfoController
       }
 
       if (photoUrl != null) {
-        userUpdates['photo'] = photoUrl;
+        userUpdates['photoURL'] = photoUrl;
       }
 
       if (userUpdates.isNotEmpty) {

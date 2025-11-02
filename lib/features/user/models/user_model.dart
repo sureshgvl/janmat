@@ -87,11 +87,7 @@ class UserModel {
   final String? photoURL;
   final int followingCount;
 
-  // Backward compatibility getters
-  String? get stateId => location?.stateId;
-  String? get districtId => location?.districtId;
-  String? get bodyId => location?.bodyId;
-  String? get wardId => location?.wardId;
+
 
   String? get area {
     if (electionAreas.isNotEmpty) {
@@ -156,6 +152,12 @@ class UserModel {
     return ''; // fallback
   }
 
+  // Backward compatibility getters
+  String? get stateId => location?.stateId;
+  String? get districtId => location?.districtId;
+  String? get bodyId => location?.bodyId;
+  String? get wardId => location?.wardId;
+
   UserModel({
     required this.uid,
     required this.name,
@@ -185,8 +187,6 @@ class UserModel {
     this.trialExpiresAt,
     this.isTrialActive = false,
     this.hasConvertedFromTrial = false,
-    // Deprecated fields for backward compatibility
-    @Deprecated('Use location.districtId instead') String? districtId,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {

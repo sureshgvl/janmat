@@ -34,7 +34,7 @@ class UserSyncService {
 
       // Check if photo was changed
       if (candidatePhoto != originalPhoto) {
-        userUpdates['photo'] = candidatePhoto;
+        userUpdates['photoURL'] = candidatePhoto;
         AppLogger.database('Updating user photo: $candidatePhoto', tag: 'USER_SYNC_SERVICE');
       }
 

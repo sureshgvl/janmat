@@ -82,25 +82,7 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
 
       for (final doc in allDocs.take(20)) {
         final data = doc.data();
-        final user = UserModel(
-          uid: doc.id,
-          name: data['name'] ?? 'Unknown',
-          phone: data['phone'] ?? '',
-          email: data['email'],
-          role: data['role'] ?? 'voter',
-          roleSelected: data['roleSelected'] ?? false,
-          profileCompleted: data['profileCompleted'] ?? false,
-          electionAreas: [],
-          districtId: data['districtId'] ?? '',
-          xpPoints: data['xpPoints'] ?? 0,
-          premium: data['premium'] ?? false,
-          createdAt: data['createdAt'] != null
-              ? (data['createdAt'] is Timestamp
-                  ? data['createdAt'].toDate()
-                  : DateTime.parse(data['createdAt'].toString()))
-              : DateTime.now(),
-          photoURL: data['photoURL'],
-        );
+        final user = UserModel.fromJson(data);
         searchResults.add(user);
       }
 

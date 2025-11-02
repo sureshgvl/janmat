@@ -215,13 +215,6 @@ class CandidateOperations {
         '🔍 Candidate Repository: Searching for candidate data for userId: $userId',
       );
 
-      // Check if user is still authenticated before proceeding
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null || currentUser.uid != userId) {
-        AppLogger.candidate('🚫 User authentication lost during candidate data fetch, aborting');
-        return null;
-      }
-
       // Use retry logic for all Firestore operations
       return await _getCandidateDataWithRetry(userId);
     } catch (e) {
@@ -252,9 +245,9 @@ class CandidateOperations {
 
         final userData = userDoc.data()!;
         final userModel = UserModel.fromJson(userData);
-        String? districtId = userModel.districtId;
-        String? bodyId = userModel.bodyId;
-        String? wardId = userModel.wardId;
+        String? districtId = userModel.location?.districtId;
+        String? bodyId = userModel.location?.bodyId;
+        String? wardId = userModel.location?.wardId;
 
         if (districtId == null ||
             wardId == null ||

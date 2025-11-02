@@ -330,35 +330,7 @@ class _CandidateDashboardBasicInfoState
                                   .candidateData
                                   .value!
                                   .basicInfo!;
-
-                          // DEBUG: Log values before save
-                          // AppLogger.candidate('🔍 [BASIC_INFO_SAVE] ORIGINAL VALUES:', tag: 'DASHBOARD_SAVE');
-                          // if (candidateUserController.candidateData.value?.basicInfo != null) {
-                          //   final original = candidateUserController.candidateData.value!.basicInfo!;
-                          //   AppLogger.candidate('  📚 Original Education: "${original.education}"', tag: 'DASHBOARD_SAVE');
-                          //   AppLogger.candidate('  💼 Original Profession: "${original.profession}"', tag: 'DASHBOARD_SAVE');
-                          //   AppLogger.candidate('  🌐 Original Languages: ${original.languages}', tag: 'DASHBOARD_SAVE');
-                          // }
-
-                          // AppLogger.candidate('✅ [BASIC_INFO_SAVE] EDITED VALUES:', tag: 'DASHBOARD_SAVE');
-                          // AppLogger.candidate('  📚 Edited Education: "${basicInfo.education}"', tag: 'DASHBOARD_SAVE');
-                          // AppLogger.candidate('  💼 Edited Profession: "${basicInfo.profession}"', tag: 'DASHBOARD_SAVE');
-                          // AppLogger.candidate('  🌐 Edited Languages: ${basicInfo.languages}', tag: 'DASHBOARD_SAVE');
-                          // AppLogger.candidate('  📍 Edited Address: "${candidateUserController.editedData.value?.contact.address}"', tag: 'DASHBOARD_SAVE');
-                          // AppLogger.candidate('📦 [BASIC_INFO_SAVE] Complete basicInfo object: ${basicInfo.toJson()}', tag: 'DASHBOARD_SAVE');
-
-                          // // FINAL DEBUG: Log the exact BasicInfoModel being saved
-                          // AppLogger.candidate('🎯 FINAL SAVE - BasicInfoModel fields:', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   📧 fullName: "${basicInfo.fullName}"', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   📅 dateOfBirth: ${basicInfo.dateOfBirth}', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   🔢 age: ${basicInfo.age}', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   👥 gender: "${basicInfo.gender}"', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   🎓 education: "${basicInfo.education}"', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   💼 profession: "${basicInfo.profession}"', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   🌍 languages: ${basicInfo.languages}', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('   📸 photo: "${basicInfo.photo}"', tag: 'BASIC_INFO_SAVE');
-                          // AppLogger.candidate('🧬 Raw BasicInfoModel.toJson(): ${basicInfo.toJson()}', tag: 'BASIC_INFO_SAVE');
-
+                          
                           // Pass candidate object directly (cleaner architecture)
                           // Use editedData if available (contains photo updates), otherwise fallback to candidateData
                           final candidate =

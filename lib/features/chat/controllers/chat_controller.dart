@@ -158,8 +158,8 @@ class ChatController extends GetxController {
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
-        stateId: user.stateId,
-        districtId: user.districtId,
+        stateId: user.location?.stateId,
+        districtId: user.location?.districtId,
         bodyId: regularArea?.bodyId,
         wardId: regularArea?.wardId,
         area: regularArea?.area,
@@ -207,8 +207,8 @@ class ChatController extends GetxController {
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
-        stateId: user.stateId,
-        districtId: user.districtId,
+        stateId: user.location?.stateId,
+        districtId: user.location?.districtId,
         bodyId: regularArea?.bodyId,
         wardId: regularArea?.wardId,
         area: regularArea?.area,
@@ -561,8 +561,8 @@ class ChatController extends GetxController {
       await _roomController.loadChatRooms(
         user.uid,
         user.role,
-        stateId: user.stateId,
-        districtId: user.districtId,
+        stateId: user.location?.stateId,
+        districtId: user.location?.districtId,
         bodyId: regularArea?.bodyId,
         wardId: regularArea?.wardId,
         area: regularArea?.area,
