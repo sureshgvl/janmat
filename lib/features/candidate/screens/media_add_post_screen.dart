@@ -864,7 +864,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       try {
         if (_fileUploadService.isLocalPath(localPath)) {
           // Update progress before upload
-          onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} files...');
+          onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} $fileType(s)...');
 
           // Upload local file to Firebase Storage
           final firebaseUrl = await _fileUploadService.uploadLocalPhotoToFirebase(localPath);
@@ -874,7 +874,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
             AppLogger.candidate('✅ Uploaded $fileType to Firebase: $firebaseUrl');
 
             // Update progress after successful upload
-            onProgressUpdate('Uploading ${firebaseUrls.length}/${localPaths.length} files...');
+            onProgressUpdate('Uploaded ${firebaseUrls.length}/${localPaths.length} $fileType(s)');
           } else {
             AppLogger.candidateError('⚠️ Failed to upload $fileType, skipping: $localPath');
             // Keep the original if upload fails (for compatibility)
@@ -890,13 +890,11 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         firebaseUrls.add(localPath);
 
         // Continue with next file
-        onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} files...');
+        onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} $fileType(s)...');
       }
     }
 
-    // Final completion message
-    onProgressUpdate('Upload completed successfully!');
-
+    // Don't send completion message here - let the caller handle it
     return firebaseUrls;
   }
 
@@ -1005,9 +1003,11 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       _showUploadProgressDialog(totalFilesToUpload);
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       // For EDIT MODE: Clean up files that are being removed
@@ -1018,6 +1018,11 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       // Upload all local files to Firebase Storage and get Firebase URLs with progress tracking
       final firebaseImages = await _uploadLocalFilesToFirebase(_selectedImages, 'image', _updateUploadProgress);
       final firebaseVideos = await _uploadLocalFilesToFirebase(_selectedVideos, 'video', _updateUploadProgress);
+
+      // Close upload progress dialog after all uploads are complete
+      if (totalFilesToUpload > 0 && mounted) {
+        _updateUploadProgress('Upload completed successfully!');
+      }
 
       final String postDate = widget.existingItem != null
           ? widget.existingItem!.date ?? DateTime.now().toIso8601String().split('T')[0]
@@ -1041,9 +1046,11 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Maximum 5 posts allowed. Please delete some posts first.')),
         );
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
         return;
       }
 
@@ -1099,9 +1106,12 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       final success = await mediaController.saveMediaGrouped(_candidate!, allGroupedMedia);
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post created successfully!')),
-        );
+        // Show success message safely
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Post created successfully!')),
+          );
+        }
 
         // Refresh candidate data so media tab shows updated posts instantly
         try {
@@ -1123,26 +1133,30 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
           widget.onPostCreated?.call(newMediaItem);
         }
 
-        // Navigate back after a short delay to ensure refresh completes
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        });
+        // Navigate back immediately without delay to avoid context issues
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to create post. Please try again.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to create post. Please try again.')),
+          );
+        }
       }
     } catch (e) {
       AppLogger.candidateError('Error saving post: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save post: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save post: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

@@ -29,6 +29,7 @@ class _CandidateDashboardMediaState extends State<CandidateDashboardMedia> {
         body: MediaTabView(
           candidate: controller.candidateData.value!,
           isOwnProfile: true, // This is the candidate's own profile/dashboard
+          key: ValueKey(controller.candidateData.value!.media?.length ?? 0), // Force rebuild when media data changes
         ),
       );
     });

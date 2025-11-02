@@ -54,7 +54,7 @@ class MediaRepository implements IMediaRepository {
 
       final data = candidateDoc.data()!;
 
-      if (!data.containsKey('media')) {
+      if (!data.containsKey('media') || data['media'] == null) {
         AppLogger.database('No media found in candidate document', tag: 'MEDIA_REPO');
         return null;
       }
@@ -149,7 +149,7 @@ class MediaRepository implements IMediaRepository {
 
       final data = candidateDoc.data()!;
 
-      if (!data.containsKey('media')) {
+      if (!data.containsKey('media') || data['media'] == null) {
         AppLogger.database('No media found in candidate document', tag: 'MEDIA_REPO');
         return null;
       }
