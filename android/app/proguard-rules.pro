@@ -42,6 +42,12 @@
 -keep class com.google.firebase.messaging.** { *; }
 -keep class com.google.firebase.storage.** { *; }
 
+# Firebase App Check rules (critical for Play Integrity)
+-keep class com.google.firebase.appcheck.** { *; }
+-keep class com.google.android.gms.safetynet.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-keep class com.google.android.play.core.integrity.** { *; }
+
 # AdMob rules
 -keep class com.google.android.gms.ads.** { *; }
 -keep class com.google.ads.** { *; }

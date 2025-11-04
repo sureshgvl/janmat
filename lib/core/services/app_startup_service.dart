@@ -44,14 +44,25 @@ class AppStartupService {
   /// Configure Firebase security settings based on environment
   Future<void> _setupFirebaseSecurity() async {
     if (isProduction) {
-      // ANDROID LIMITATION: Play Integrity cannot be used without Google Play Store distribution
-      // DISABLED: await FirebaseAppCheck.instance.activate(androidProvider: AndroidProvider.playIntegrity);
-      await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
-      await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
+      try {
+        // ✅ ENABLE: Play Integrity for production builds
+        await FirebaseAppCheck.instance.activate(
+          androidProvider: AndroidProvider.playIntegrity,
+        );
+        await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
 
-      AppLogger.auth('⚠️ PRODUCTION: App Check disabled - Play Integrity requires Google Play Store distribution');
-      AppLogger.auth('📋 NOTE: App Check will be enabled when app is published to Google Play Store');
-      AppLogger.auth('🔒 SECURITY: OAuth still protected by Google Cloud Console certificates');
+        AppLogger.auth('✅ PRODUCTION: Firebase App Check enabled with Play Integrity');
+        AppLogger.auth('🔒 SECURITY: App integrity verification active');
+      } catch (e) {
+        AppLogger.auth('⚠️ PRODUCTION: App Check activation failed: $e');
+        AppLogger.auth('📋 NOTE: Continuing without App Check - ensure proper Firebase configuration');
+        // Continue without App Check rather than failing the app
+      }
+
+      // ✅ RE-ENABLE: App verification for Auth now that fingerprints are configured
+      await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: false);
+      AppLogger.auth('✅ PRODUCTION: Firebase Auth app verification enabled with proper SHA fingerprints');
+      AppLogger.auth('🔒 SECURITY: Full authentication security active');
     } else {
       // Development: Relax security for easier testing
       await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);

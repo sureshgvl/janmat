@@ -15,14 +15,20 @@ class MyAreaCandidatesScreen extends StatefulWidget {
 }
 
 class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
-  final CandidateController candidateController =
-      Get.find<CandidateController>();
+  CandidateController? candidateController;
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   UserModel? currentUser;
 
   @override
   void initState() {
     super.initState();
+    // Initialize controller first - ensure it exists
+    try {
+      candidateController = Get.find<CandidateController>();
+    } catch (e) {
+      // If not found, put it
+      candidateController = Get.put<CandidateController>(CandidateController());
+    }
     _loadUserDataAndCandidates();
   }
 
@@ -46,12 +52,19 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                 )
               : null;
 
-          if (regularArea != null) {
-            await candidateController.fetchCandidatesByWard(
+          // Validate required location data
+          if (regularArea != null &&
+              currentUser!.districtId != null &&
+              currentUser!.districtId!.isNotEmpty &&
+              regularArea.bodyId.isNotEmpty &&
+              regularArea.wardId.isNotEmpty) {
+            await candidateController!.fetchCandidatesByWard(
               currentUser!.districtId!,
               regularArea.bodyId,
               regularArea.wardId,
             );
+          } else {
+            AppLogger.candidateError('Missing required location data for user: districtId=${currentUser!.districtId}, bodyId=${regularArea?.bodyId}, wardId=${regularArea?.wardId}');
           }
 
           // If current user is a candidate, add them to the list
@@ -67,20 +80,42 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
   Future<void> _addCurrentUserToCandidatesList() async {
     try {
+      // Only proceed if current user data is available and they are a candidate
+      if (currentUser == null || currentUser!.role != 'candidate') {
+        return;
+      }
+
+      // Check if user has valid location data before attempting candidate lookup
+      final regularArea = currentUser!.electionAreas.isNotEmpty
+          ? currentUser!.electionAreas.firstWhere(
+              (area) => area.type == ElectionType.regular,
+              orElse: () => currentUser!.electionAreas.first,
+            )
+          : null;
+
+      if (regularArea == null ||
+          currentUser!.districtId == null ||
+          currentUser!.districtId!.isEmpty ||
+          regularArea.bodyId.isEmpty ||
+          regularArea.wardId.isEmpty) {
+        AppLogger.candidate('Skipping current user candidate lookup - incomplete location data');
+        return;
+      }
+
       // Get current user's candidate data using the repository method
-      final currentUserCandidate = await candidateController.candidateRepository
+      final currentUserCandidate = await candidateController!.candidateRepository
           .getCandidateData(currentUserId!);
 
       if (currentUserCandidate != null) {
         // Check if current user is already in the list (avoid duplicates)
-        final existingIndex = candidateController.candidates.indexWhere(
+        final existingIndex = candidateController!.candidates.indexWhere(
           (c) => c.candidateId == currentUserCandidate.candidateId,
         );
 
         if (existingIndex == -1) {
           // Add current user to the beginning of the list
-          candidateController.candidates.insert(0, currentUserCandidate);
-          candidateController.update();
+          candidateController!.candidates.insert(0, currentUserCandidate);
+          candidateController!.update();
         }
       }
     } catch (e) {
@@ -183,4 +218,3 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
 
 }
-

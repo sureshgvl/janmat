@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "231534632940-u4rj1i4ss8fc819hj32ng54di3mhlavj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sg.janmat",
+            "certificate_hash": "8eb8a0a657964d44745c9120b313c836ab275301"
+          }
+        },
+        {
           "client_id": "231534632940-h2r8727m8mvl2murtn8fqu4c6p57nqsp.apps.googleusercontent.com",
           "client_type": 3
         }

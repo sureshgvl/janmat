@@ -28,6 +28,9 @@ class HomeDataPreloader {
   Future<void> initializeWithAppStartup() async {
     AppLogger.common('🚀 Initializing home data preloader');
 
+    // 🚀 INSTANT PRE-CACHE: Pre-cache data immediately for current user
+    await _preCacheCurrentUserData();
+
     // Listen to authentication state changes
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (user != null) {
@@ -38,6 +41,89 @@ class HomeDataPreloader {
         clearPreloadedData();
       }
     });
+  }
+
+  /// 🚀 INSTANT PRE-CACHE: Pre-cache current user's home data immediately
+  Future<void> _preCacheCurrentUserData() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        AppLogger.common('⚠️ No current user for instant pre-cache');
+        return;
+      }
+
+      AppLogger.common('⚡ INSTANT PRE-CACHE: Starting for user ${currentUser.uid}');
+
+      // Pre-cache user routing data first (fast)
+      await _preCacheUserRoutingData(currentUser.uid);
+
+      // Pre-cache complete home data (user + candidate) for instant display
+      await _preCacheCompleteHomeData(currentUser.uid);
+
+      AppLogger.common('✅ INSTANT PRE-CACHE: Completed for user ${currentUser.uid}');
+    } catch (e) {
+      AppLogger.common('⚠️ Instant pre-cache failed: $e');
+      // Don't throw - this is optimization, not critical
+    }
+  }
+
+  /// Pre-cache user routing data for instant navigation decisions
+  Future<void> _preCacheUserRoutingData(String uid) async {
+    try {
+      final routingData = await _cache.getUserRoutingData(uid);
+      if (routingData == null) {
+        // Create minimal routing data if none exists
+        final defaultRoutingData = {
+          'hasCompletedProfile': false,
+          'hasSelectedRole': false,
+          'role': null,
+          'lastLogin': DateTime.now().toIso8601String(),
+        };
+        await _cache.setUserRoutingData(uid, defaultRoutingData);
+        AppLogger.common('⚡ Pre-cached default routing data for $uid');
+      }
+    } catch (e) {
+      AppLogger.common('⚠️ Failed to pre-cache routing data: $e');
+    }
+  }
+
+  /// Pre-cache complete home data (user + candidate) for instant display
+  Future<void> _preCacheCompleteHomeData(String uid) async {
+    try {
+      // Check if we already have cached home data
+      final cacheKey = 'home_user_data_$uid';
+      final existingData = await _cache.get<Map<String, dynamic>>(cacheKey);
+
+      if (existingData != null && existingData['user'] != null) {
+        AppLogger.common('⚡ Home data already cached for instant display: $uid');
+        return;
+      }
+
+      // Pre-load and cache complete home data
+      AppLogger.common('🔄 Pre-caching complete home data for instant display: $uid');
+
+      final result = await _homeServices.getUserData(uid, forceRefresh: false);
+
+      if (result['user'] != null) {
+        // Cache the complete home data for instant access
+        final homeData = {
+          'user': result['user'],
+          'candidate': result['candidate'],
+          'cachedAt': DateTime.now().toIso8601String(),
+        };
+
+        await _cache.set(
+          cacheKey,
+          homeData,
+          priority: CachePriority.high,
+          ttl: const Duration(hours: 24), // Cache for 24 hours
+        );
+
+        AppLogger.common('✅ Pre-cached complete home data for instant display: $uid');
+      }
+    } catch (e) {
+      AppLogger.common('⚠️ Failed to pre-cache complete home data: $e');
+    }
   }
 
   /// Preload home data for authenticated user

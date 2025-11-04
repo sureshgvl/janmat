@@ -50,38 +50,32 @@ extension LocaleJsonExtension on Locale {
   }
 }
 
-/// 🚀 SMART STARTUP: Get auth state, cached data, and app setup state simultaneously for instant home access
-Future<Map<String, dynamic>> _getSmartStartupData() async {
+/// 🚀 FAST STARTUP: Simplified startup data loading for instant app launch
+Future<Map<String, dynamic>> _getFastStartupData() async {
   final stopwatch = Stopwatch()..start();
 
+  // 🚀 OPTIMIZATION: Parallel load critical data only
   final results = await Future.wait([
-    // Get auth state
+    // Get auth state (fast)
     FirebaseAuth.instance.authStateChanges().first.timeout(
-      const Duration(seconds: 3),
+      const Duration(seconds: 2),
       onTimeout: () => null,
     ),
-    // Get cached user data (if available)
-    _getCachedUserData().timeout(
-      const Duration(milliseconds: 500),
-      onTimeout: () => null,
-    ),
-    // Get app setup state (language selection and onboarding)
+    // Get app setup state (fast)
     _getAppSetupState().timeout(
-      const Duration(milliseconds: 500),
+      const Duration(milliseconds: 300),
       onTimeout: () => {'isLanguageSelected': false, 'isOnboardingCompleted': false},
     ),
   ]);
 
   final user = results[0] as User?;
-  final cachedData = results[1] as Map<String, dynamic>?;
-  final setupState = results[2] as Map<String, dynamic>;
+  final setupState = results[1] as Map<String, dynamic>;
 
   final isLoggedIn = user != null;
-  final hasCachedData = cachedData != null && cachedData.isNotEmpty;
   final isLanguageSelected = setupState['isLanguageSelected'] ?? false;
   final isOnboardingCompleted = setupState['isOnboardingCompleted'] ?? false;
 
-  // Determine initial route based on app setup state
+  // 🚀 OPTIMIZATION: Simplified routing logic - let HomeScreen handle complex routing
   String initialRoute;
   if (!isLanguageSelected) {
     initialRoute = AppRouteNames.languageSelection;
@@ -90,20 +84,16 @@ Future<Map<String, dynamic>> _getSmartStartupData() async {
   } else if (!isLoggedIn) {
     initialRoute = AppRouteNames.login;
   } else {
-    // User is logged in, check role selection and profile completion
-    initialRoute = await _getUserFlowRoute(user);
+    // 🚀 INSTANT HOME: Always route to home for logged-in users
+    // HomeScreen will handle role/profile checks and navigation internally
+    initialRoute = AppRouteNames.home;
   }
 
-  AppLogger.core('⚡ Smart startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
-
-        //  DISABLED: Complex pre-loading causing conflicts with HomeScreen stream
-        // Let HomeScreen handle its own optimized loading without interference
+  AppLogger.core('⚡ Fast startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
 
   return {
     'isLoggedIn': isLoggedIn,
-    'hasCachedData': hasCachedData,
     'user': user,
-    'cachedData': cachedData,
     'isLanguageSelected': isLanguageSelected,
     'isOnboardingCompleted': isOnboardingCompleted,
     'initialRoute': initialRoute,
@@ -393,9 +383,9 @@ class MyAppContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🚀 SMART STARTUP: Show home immediately if cached data available, else quick splash
+    // 🚀 FAST STARTUP: Show home immediately if cached data available, else quick splash
     return FutureBuilder<Map<String, dynamic>>(
-      future: _getSmartStartupData(),
+      future: _getFastStartupData(),
       builder: (context, snapshot) {
         // Show brief splash while checking auth/cache state
         if (snapshot.connectionState != ConnectionState.done) {

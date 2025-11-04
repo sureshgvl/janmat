@@ -39,31 +39,69 @@ class HomeScreenStreamService {
     AppLogger.common('✅ HomeScreen stream service initialized');
   }
 
-  /// 🚀 FAST STARTUP: Pre-load cached data for instant home access
+  /// 🚀 INSTANT HOME: Pre-load cached data for immediate UI display
   void preloadWithCachedData(Map<String, dynamic> cachedData) {
     try {
-      // Extract cached user routing data
-      final role = cachedData['role'];
-      final hasSelectedRole = cachedData['hasSelectedRole'] ?? false;
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (userId.isEmpty) return;
 
-      // 🚨 CRITICAL FIX: Don't trust cached profile completion status!
-      // Only use minimal cached data to show instant UI without navigation decisions
-      final cachedHomeData = HomeScreenData.partial(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
-        role: role,
-        hasCompletedProfile: null, // Null means "don't know yet"
-        hasSelectedRole: hasSelectedRole,
-      );
+      // 🚀 INSTANT DISPLAY: Try to load cached candidate data first for immediate UI
+      _tryEmitInstantCachedData(userId).then((success) {
+        if (!success) {
+          // Fallback to routing data if no cached candidate data
+          final role = cachedData['role'];
+          final hasSelectedRole = cachedData['hasSelectedRole'] ?? false;
 
-      // Emit cached data immediately for instant UI
-      if (!_dataController.isClosed) {
-        _dataController.add(cachedHomeData);
-        AppLogger.common('⚡ INSTANT HOME: Pre-loaded cached data safely (no profile navigation)');
-      }
+          final cachedHomeData = HomeScreenData.partial(
+            userId: userId,
+            role: role,
+            hasCompletedProfile: null, // Null means "don't know yet"
+            hasSelectedRole: hasSelectedRole,
+          );
+
+          if (!_dataController.isClosed) {
+            _dataController.add(cachedHomeData);
+            AppLogger.common('⚡ INSTANT HOME: Pre-loaded partial cached data');
+          }
+        }
+      });
     } catch (e) {
       AppLogger.common('⚠️ Failed to preload cached data: $e');
-      // Continue with normal loading
     }
+  }
+
+  /// 🚀 INSTANT DISPLAY: Try to emit cached candidate data immediately
+  Future<bool> _tryEmitInstantCachedData(String userId) async {
+    try {
+      // Try to get cached user and candidate data for instant display
+      final cacheKey = 'home_user_data_$userId';
+      final cachedHomeData = await MultiLevelCache().get<Map<String, dynamic>>(cacheKey);
+
+      if (cachedHomeData != null && cachedHomeData['user'] != null && cachedHomeData['candidate'] != null) {
+        // Convert cached data to models
+        final userModel = cachedHomeData['user'] is Map<String, dynamic>
+          ? UserModel.fromJson(cachedHomeData['user'] as Map<String, dynamic>)
+          : cachedHomeData['user'] as UserModel;
+
+        final candidateModel = cachedHomeData['candidate'] is Map<String, dynamic>
+          ? Candidate.fromJson(cachedHomeData['candidate'] as Map<String, dynamic>)
+          : cachedHomeData['candidate'] as Candidate;
+
+        // 🚀 INSTANT UI: Emit cached candidate data immediately for instant display
+        if (!_dataController.isClosed) {
+          _dataController.add(HomeScreenData.cachedCandidate(
+            userId: userId,
+            userModel: userModel,
+            cachedCandidateModel: candidateModel,
+          ));
+          AppLogger.common('⚡ INSTANT HOME: Emitted cached candidate data immediately');
+          return true;
+        }
+      }
+    } catch (e) {
+      AppLogger.common('⚠️ Could not load instant cached data: $e');
+    }
+    return false;
   }
 
   /// Handle authentication state changes

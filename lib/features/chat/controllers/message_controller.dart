@@ -11,17 +11,21 @@ import '../services/local_message_service.dart';
 import '../services/media_service.dart';
 import '../services/offline_message_queue.dart';
 import '../services/private_chat_service.dart';
+import '../services/whatsapp_style_message_cache.dart';
 import '../repositories/chat_repository.dart';
 import 'room_controller.dart';
 
 class MessageController extends GetxController {
    final ChatRepository _repository = ChatRepository();
    final LocalMessageService _localMessageService = LocalMessageService();
+   final WhatsAppStyleMessageCache _messageCache = WhatsAppStyleMessageCache();
    final MediaService _mediaService = MediaService();
    final OfflineMessageQueue _offlineQueue = OfflineMessageQueue();
    final PrivateChatService _privateChatService = PrivateChatService();
    final AudioRecorder _audioRecorder = AudioRecorder();
-   final RoomController _roomController = Get.find<RoomController>();
+
+   // Lazy dependency to avoid initialization order issues
+   RoomController get _roomController => Get.find<RoomController>();
 
   // Voice recording state
   var isRecording = false.obs;
@@ -31,6 +35,7 @@ class MessageController extends GetxController {
   void onInit() {
     super.onInit();
     _localMessageService.initialize();
+    _messageCache.initialize();
     _offlineQueue.initialize();
     _loadUserQuota();
 
@@ -562,27 +567,37 @@ class MessageController extends GetxController {
     }
   }
 
-  // Load messages for room (initial load with pagination)
+  // Load messages for room with WhatsApp-style multi-level caching
   Future<void> loadMessagesForRoom(String roomId) async {
+    AppLogger.chat('🚀 MessageController: Loading messages for room $roomId with multi-level cache');
+
     // Reset pagination state
     hasMoreMessages.value = true;
     oldestMessageTimestamp.value = null;
 
-    // First load from local storage
-    final localMessages = _localMessageService.getMessagesForRoom(roomId);
-    if (localMessages.isNotEmpty) {
-      messages.assignAll(localMessages);
+    // Use WhatsApp-style message cache (3-tier: memory → disk → local storage)
+    final cachedMessages = await _messageCache.getMessagesForRoom(roomId);
+    if (cachedMessages.isNotEmpty) {
+      messages.assignAll(cachedMessages);
       // Set oldest timestamp for pagination
-      if (localMessages.isNotEmpty) {
-        oldestMessageTimestamp.value = localMessages.first.createdAt;
-      }
+      oldestMessageTimestamp.value = cachedMessages.first.createdAt;
+      AppLogger.chat('⚡ MessageController: Loaded ${cachedMessages.length} messages from cache instantly');
+    } else {
+      AppLogger.chat('📭 MessageController: No cached messages, will load from server');
     }
 
-    // Then listen to real-time updates (only recent messages)
+    // Listen to real-time updates (only recent messages)
     _repository.getMessagesForRoom(roomId).listen((serverMessages) {
-      // Merge with current messages (not just local messages)
+      AppLogger.chat('🔄 MessageController: Received ${serverMessages.length} messages from server');
+
+      // Merge with current messages using intelligent deduplication
       final mergedMessages = _mergeMessages(messages, serverMessages);
       messages.assignAll(mergedMessages);
+
+      // Cache the merged messages for future instant loading
+      if (mergedMessages.isNotEmpty) {
+        _messageCache.saveMessage(mergedMessages.last, roomId); // Cache latest for performance
+      }
 
       // Update room's last message info if we received new messages
       if (serverMessages.isNotEmpty) {
@@ -591,6 +606,7 @@ class MessageController extends GetxController {
       }
 
       update(); // Force UI update
+      AppLogger.chat('✅ MessageController: Messages updated, total: ${messages.length}');
     });
   }
 
@@ -768,4 +784,3 @@ class MessageController extends GetxController {
     super.onClose();
   }
 }
-

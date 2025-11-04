@@ -68,7 +68,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           try {
             await dataController.loadCandidateUserData(currentUserId!);
             if (dataController.candidate.value != null) {
-              AppLogger.candidate('✅ Retrieved candidate data for own profile: ${dataController.candidate.value!.basicInfo!.fullName}');
+              AppLogger.candidate(
+                '✅ Retrieved candidate data for own profile: ${dataController.candidate.value!.basicInfo!.fullName}',
+              );
               setState(() {
                 candidate = dataController.candidate.value;
                 _isOwnProfile = true;
@@ -76,14 +78,19 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
               // Initialize TabController after getting candidate data
               _tabController?.dispose();
-              _tabController = TabController(length: _isOwnProfile ? 7 : 6, vsync: this);
+              _tabController = TabController(
+                length: _isOwnProfile ? 7 : 6,
+                vsync: this,
+              );
               _tabController?.addListener(_onTabChanged);
               _loadPlanFeatures();
               _loadLocationData();
               return;
             }
           } catch (e) {
-            AppLogger.candidateError('❌ Failed to load candidate data for own profile: $e');
+            AppLogger.candidateError(
+              '❌ Failed to load candidate data for own profile: $e',
+            );
           }
 
           // If we still don't have candidate data, show error
@@ -115,10 +122,22 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         candidate != null &&
         currentUserId == candidate!.userId;
 
+    AppLogger.candidate(
+      '👤 Profile ownership check: currentUserId=$currentUserId, candidateUserId=${candidate!.userId}, isOwnProfile=$_isOwnProfile',
+    );
+
     // Initialize TabController after determining profile ownership
     // Length is 6 for non-own profiles (no analytics), 7 for own profile (with analytics)
     _tabController = TabController(length: _isOwnProfile ? 7 : 6, vsync: this);
     _tabController?.addListener(_onTabChanged);
+
+    // Always refresh candidate data to get latest following count for all profiles
+    // if (candidate != null) {
+    //   AppLogger.candidate('🔄 Calling _refreshCandidateFollowingData for all profiles');
+    //   WidgetsBinding.instance.addPostFrameCallback((_) async {
+    //     await _refreshCandidateFollowingData();
+    //   });
+    // }
 
     // Check follow status when screen loads
     if (currentUserId != null && candidate != null) {
@@ -211,6 +230,37 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       setState(() {
         candidate = dataController.candidateData.value;
       });
+    }
+  }
+
+  // Refresh candidate data with following count for non-own profiles
+  Future<void> _refreshCandidateFollowingData() async {
+    if (candidate == null) return;
+
+    try {
+      AppLogger.candidate(
+        '🔄 Refreshing candidate data with following count for profile: ${candidate!.candidateId}',
+      );
+
+      // Get fresh candidate data with following count populated
+      final freshCandidate = await candidateRepository.getCandidateDataById(
+        candidate!.candidateId,
+      );
+
+      if (freshCandidate != null && mounted) {
+        AppLogger.candidate(
+          '✅ Refreshed candidate data - following count: ${freshCandidate.followingCount}',
+        );
+        setState(() {
+          candidate = freshCandidate;
+        });
+      } else {
+        AppLogger.candidate('⚠️ Could not refresh candidate data');
+      }
+    } catch (e) {
+      AppLogger.candidateError(
+        '❌ Error refreshing candidate following data: $e',
+      );
     }
   }
 
@@ -500,9 +550,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       ),
 
       // Achievements Tab
-      AchievementsTabView(
-        candidate: candidate!,
-      ),
+      AchievementsTabView(candidate: candidate!),
 
       // Media Tab
       MediaTabView(candidate: candidate!, isOwnProfile: false),

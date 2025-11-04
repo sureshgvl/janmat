@@ -4,10 +4,12 @@ import '../../../utils/app_logger.dart';
 import '../models/chat_room.dart';
 import '../repositories/chat_repository.dart';
 import '../../auth/repositories/auth_repository.dart';
+import '../services/persistent_chat_room_cache.dart';
 
 class RoomController extends GetxController {
   final ChatRepository _repository = ChatRepository();
   final AuthRepository _authRepository = AuthRepository();
+  final PersistentChatRoomCache _persistentCache = PersistentChatRoomCache();
 
   // Room state
   var chatRooms = <ChatRoom>[].obs;
@@ -21,7 +23,7 @@ class RoomController extends GetxController {
   final Map<String, String> _lastMessagePreviews = {};
   final Map<String, String> _lastMessageSenders = {};
 
-  // Load chat rooms for user
+  // Load chat rooms for user with WhatsApp-style instant loading
   Future<void> loadChatRooms(
     String userId,
     String userRole, {
@@ -31,46 +33,69 @@ class RoomController extends GetxController {
     String? wardId,
     String? area,
   }) async {
-    // Check if we have cached data first
-    final cacheKey = userRole == 'voter'
-        ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
-        : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
+    AppLogger.chat('🚀 ROOM CONTROLLER: Loading chat rooms for user $userId');
 
-    final cachedRooms = await _repository.getCachedRooms(cacheKey);
+    // First, try persistent cache (WhatsApp-style instant loading)
+    final persistentRooms = await _persistentCache.getCachedChatRooms(userId);
 
-    if (cachedRooms != null && cachedRooms.isNotEmpty) {
-      // Show cached data immediately
-      AppLogger.chat('⚡ ROOM CONTROLLER: Showing ${cachedRooms.length} cached rooms immediately');
-      chatRooms.assignAll(cachedRooms);
-      await _calculateUnreadCounts(userId, cachedRooms);
+    if (persistentRooms != null && persistentRooms.isNotEmpty) {
+      // Show persistent cached data immediately (like WhatsApp)
+      AppLogger.chat('⚡ ROOM CONTROLLER: Instant loading ${persistentRooms.length} rooms from persistent cache');
+      chatRooms.assignAll(persistentRooms);
+      await _calculateUnreadCounts(userId, persistentRooms);
       _updateChatRoomDisplayInfos();
 
       // Then fetch fresh data in background
       isLoading.value = false; // Don't show loading since we have cached data
-      _loadFreshDataInBackground(userId, userRole, cacheKey, stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
+      _loadFreshDataInBackground(userId, userRole, '', stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
     } else {
-      // No cached data, show loading
-      isLoading.value = true;
-      try {
-        final rooms = await _repository.getChatRoomsForUser(
-          userId,
-          userRole,
-          stateId: stateId,
-          districtId: districtId,
-          bodyId: bodyId,
-          wardId: wardId,
-          area: area,
-        );
-        chatRooms.assignAll(rooms);
+      // Check repository cache as fallback
+      final cacheKey = userRole == 'voter'
+          ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
+          : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
 
-        // Calculate unread counts for each room
-        await _calculateUnreadCounts(userId, rooms);
+      final cachedRooms = await _repository.getCachedRooms(cacheKey);
 
+      if (cachedRooms != null && cachedRooms.isNotEmpty) {
+        // Show repository cached data immediately
+        AppLogger.chat('💾 ROOM CONTROLLER: Showing ${cachedRooms.length} repository cached rooms');
+        chatRooms.assignAll(cachedRooms);
+        await _calculateUnreadCounts(userId, cachedRooms);
         _updateChatRoomDisplayInfos();
-      } catch (e) {
-        AppLogger.chat('Error loading chat rooms: $e');
-      } finally {
+
+        // Cache persistently for next time and fetch fresh data
+        await _persistentCache.cacheChatRooms(userId, cachedRooms);
         isLoading.value = false;
+        _loadFreshDataInBackground(userId, userRole, cacheKey, stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
+      } else {
+        // No cached data at all, show loading and fetch from server
+        AppLogger.chat('🔄 ROOM CONTROLLER: No cache available, fetching from server');
+        isLoading.value = true;
+        try {
+          final rooms = await _repository.getChatRoomsForUser(
+            userId,
+            userRole,
+            stateId: stateId,
+            districtId: districtId,
+            bodyId: bodyId,
+            wardId: wardId,
+            area: area,
+          );
+          chatRooms.assignAll(rooms);
+
+          // Cache persistently for future instant loading
+          await _persistentCache.cacheChatRooms(userId, rooms);
+
+          // Calculate unread counts for each room
+          await _calculateUnreadCounts(userId, rooms);
+          _updateChatRoomDisplayInfos();
+
+          AppLogger.chat('✅ ROOM CONTROLLER: Loaded and cached ${rooms.length} rooms');
+        } catch (e) {
+          AppLogger.chat('❌ ROOM CONTROLLER: Error loading chat rooms: $e');
+        } finally {
+          isLoading.value = false;
+        }
       }
     }
   }
@@ -342,4 +367,3 @@ class RoomController extends GetxController {
     super.onClose();
   }
 }
-

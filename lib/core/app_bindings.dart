@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../features/auth/controllers/auth_controller.dart';
 import '../features/chat/controllers/chat_controller.dart';
+import '../features/chat/controllers/room_controller.dart';
+import '../features/chat/controllers/message_controller.dart';
 import '../features/candidate/controllers/candidate_controller.dart';
 import '../features/candidate/controllers/manifesto_controller.dart';
 import '../features/candidate/controllers/media_controller.dart';
@@ -34,15 +36,18 @@ import '../features/notifications/services/gamification_notification_service.dar
 import '../services/gamification_service.dart';
 import '../features/monetization/controllers/monetization_controller.dart';
 import '../services/screen_focus_service.dart';
+import '../features/chat/services/background_cache_warmer.dart';
+import '../features/chat/services/chat_performance_monitor.dart';
+import '../features/chat/services/whatsapp_style_message_cache.dart';
+import '../features/chat/services/persistent_chat_room_cache.dart';
+import '../features/chat/services/whatsapp_style_chat_cache.dart';
 
 class AppBindings extends Bindings {
   @override
   Future<void> dependencies() async {
-    AppLogger.common('🔧 AppBindings dependencies() called');
-    // PERFORMANCE OPTIMIZATION: Use lazyPut for feature-specific controllers
-    // to reduce main thread burden during app startup. Only critical controllers
-    // that are always needed are eagerly loaded.
-    // Eagerly load critical controllers that are always needed
+    AppLogger.common('🔧 AppBindings dependencies() called - LAZY LOADING OPTIMIZATION');
+
+    // 🚀 CRITICAL CONTROLLERS: Only load these immediately as they're needed for app startup
     Get.put<AuthController>(AuthController());
     Get.put<UserDataController>(UserDataController());
     Get.put<UserDataService>(UserDataService());
@@ -51,57 +56,115 @@ class AppBindings extends Bindings {
     Get.put<LanguageController>(LanguageController());
     Get.put<ScreenFocusController>(ScreenFocusController());
 
-    // Lazy load feature-specific controllers to improve startup performance
-    Get.put<ChatController>(ChatController());
-    Get.put<CandidateController>(CandidateController()); // Eagerly load since used in profile screens
-    Get.put<MediaController>(MediaController());
-    Get.put<MediaRepository>(MediaRepository());
-    Get.put<AchievementsController>(AchievementsController());
-    Get.put<ManifestoController>(ManifestoController());
-    Get.put<ContactController>(ContactController());
-    Get.put<EventsController>(EventsController());
-    Get.put<AnalyticsController>(AnalyticsController());
-    Get.put<HighlightsController>(HighlightsController());
-    // Add the SaveAllCoordinator for universal save operations
-    Get.put<SaveAllCoordinator>(SaveAllCoordinator());
-    // Add the OfflineDraftsService for draft management
-    Get.put<OfflineDraftsService>(OfflineDraftsService());
-    // Initialize media cache service for optimized media loading
-    Get.putAsync<MediaCacheService>(() => MediaCacheService.getInstance());
-    Get.put<DeviceInfoController>(DeviceInfoController());
-    Get.put<NotificationSettingsController>(NotificationSettingsController());
-    AppLogger.common('✅ NotificationSettingsController put in bindings');
-    Get.put<FollowingController>(FollowingController());
+    // 🎯 LAZY LOAD ALL FEATURE-SPECIFIC CONTROLLERS: Load only when screens are accessed
+    // Chat controllers: Hybrid approach - lazy load but ensure proper dependency order
+    Get.lazyPut<RoomController>(() => RoomController());
+    Get.lazyPut<MessageController>(() => MessageController(), fenix: true);
+    Get.lazyPut<ChatController>(() => ChatController(), fenix: true);
+    Get.lazyPut<CandidateController>(() => CandidateController());
+    Get.lazyPut<MediaController>(() => MediaController());
+    Get.lazyPut<MediaRepository>(() => MediaRepository());
+    Get.lazyPut<AchievementsController>(() => AchievementsController());
+    Get.lazyPut<ManifestoController>(() => ManifestoController());
+    Get.lazyPut<ContactController>(() => ContactController());
+    Get.lazyPut<EventsController>(() => EventsController());
+    Get.lazyPut<AnalyticsController>(() => AnalyticsController());
+    Get.lazyPut<HighlightsController>(() => HighlightsController());
+    Get.lazyPut<SaveAllCoordinator>(() => SaveAllCoordinator());
+    Get.lazyPut<OfflineDraftsService>(() => OfflineDraftsService());
+    Get.lazyPut<DeviceInfoController>(() => DeviceInfoController());
+    Get.lazyPut<NotificationSettingsController>(() => NotificationSettingsController());
+    Get.lazyPut<FollowingController>(() => FollowingController());
+    Get.lazyPut<HighlightController>(() => HighlightController());
+    Get.lazyPut<MonetizationController>(() => MonetizationController());
 
-    // Register HighlightController for monetization features
-    Get.put<HighlightController>(HighlightController());
-
-    // Register MonetizationController for premium features
-    Get.put<MonetizationController>(MonetizationController());
-
-    // Lazy load services that are only needed on specific screens
+    // 🎯 LAZY LOAD SERVICES: Only initialize when needed
     Get.lazyPut<AdMobService>(() => AdMobService());
     Get.lazyPut<RazorpayService>(() => RazorpayService());
     Get.lazyPut<FileUploadService>(() => FileUploadService());
-
-    // Register gamification services for dependency injection (eager to avoid circular deps)
-    Get.put<GamificationNotificationService>(GamificationNotificationService());
+    Get.lazyPut<GamificationNotificationService>(() => GamificationNotificationService());
     Get.lazyPut<GamificationService>(() => GamificationService());
 
-    // Initialize background location sync service
-    final backgroundLocationSync = BackgroundLocationSyncService.instance;
-    backgroundLocationSync.initialize();
+    // 🚀 ASYNC INITIALIZATION: Move heavy operations to background
+    // Initialize media cache service asynchronously
+    Get.putAsync<MediaCacheService>(() => MediaCacheService.getInstance());
 
-    // Initialize manifesto sync service (singleton, auto-initializes)
-    ManifestoSyncService();
+    // Initialize background services asynchronously (non-blocking)
+    Future.microtask(() async {
+      try {
+        // Initialize background location sync service
+        final backgroundLocationSync = BackgroundLocationSyncService.instance;
+        backgroundLocationSync.initialize();
 
-    // Initialize notification manager
-    try {
-      final notificationManager = NotificationManager();
-      await notificationManager.initialize();
-      AppLogger.common('✅ NotificationManager initialized successfully');
-    } catch (e) {
-      AppLogger.common('⚠️ Failed to initialize NotificationManager: $e');
-    }
+        // Initialize manifesto sync service (singleton, auto-initializes)
+        ManifestoSyncService();
+
+        // 🚀 LAZY NOTIFICATION MANAGER: Initialize in background, not blocking startup
+        _initializeNotificationManagerInBackground();
+
+        // 🔥 BACKGROUND CACHE WARMER: Initialize WhatsApp-style cache warming
+        _initializeBackgroundCacheWarmer();
+
+        // 📊 CHAT PERFORMANCE MONITOR: Initialize real-time performance monitoring
+        _initializeChatPerformanceMonitor();
+
+        AppLogger.common('✅ Background services initialized successfully');
+      } catch (e) {
+        AppLogger.common('⚠️ Background services initialization failed: $e');
+      }
+    });
+  }
+
+  /// 🚀 LAZY NOTIFICATION MANAGER: Initialize asynchronously in background
+  void _initializeNotificationManagerInBackground() {
+    Future.microtask(() async {
+      try {
+        final notificationManager = NotificationManager();
+        await notificationManager.initialize();
+        AppLogger.common('✅ NotificationManager initialized successfully (background)');
+      } catch (e) {
+        AppLogger.common('⚠️ Failed to initialize NotificationManager: $e');
+      }
+    });
+  }
+
+  /// 🔥 BACKGROUND CACHE WARMER: Initialize WhatsApp-style cache warming
+  void _initializeBackgroundCacheWarmer() {
+    Future.microtask(() async {
+      try {
+        final cacheWarmer = BackgroundCacheWarmer();
+        await cacheWarmer.initialize();
+        Get.put<BackgroundCacheWarmer>(cacheWarmer);
+        AppLogger.common('✅ BackgroundCacheWarmer initialized successfully (background)');
+      } catch (e) {
+        AppLogger.common('⚠️ Failed to initialize BackgroundCacheWarmer: $e');
+      }
+    });
+  }
+
+  /// 📊 CHAT PERFORMANCE MONITOR: Initialize real-time performance monitoring
+  void _initializeChatPerformanceMonitor() {
+    Future.microtask(() async {
+      try {
+        // Get dependencies (they should be initialized by now)
+        final messageCache = Get.find<WhatsAppStyleMessageCache>();
+        final roomCache = Get.find<PersistentChatRoomCache>();
+        final chatCache = Get.find<WhatsAppStyleChatCache>();
+        final cacheWarmer = Get.find<BackgroundCacheWarmer>();
+
+        final performanceMonitor = ChatPerformanceMonitor(
+          messageCache: messageCache,
+          roomCache: roomCache,
+          chatCache: chatCache,
+          cacheWarmer: cacheWarmer,
+        );
+
+        await performanceMonitor.initialize();
+        Get.put<ChatPerformanceMonitor>(performanceMonitor);
+        AppLogger.common('✅ ChatPerformanceMonitor initialized successfully (background)');
+      } catch (e) {
+        AppLogger.common('⚠️ Failed to initialize ChatPerformanceMonitor: $e');
+      }
+    });
   }
 }

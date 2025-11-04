@@ -91,6 +91,7 @@ dependencies:
   flutter_linkify: ^6.0.0
   timeago: ^3.6.1
   youtube_player_flutter: ^9.0.1
+  # gallery_saver: ^2.3.2  # Temporarily disabled due to http version conflict
 
   # Local Notifications
   flutter_local_notifications: ^17.2.2

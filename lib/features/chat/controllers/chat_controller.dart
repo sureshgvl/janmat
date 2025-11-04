@@ -22,9 +22,9 @@ import '../../notifications/services/poll_notification_service.dart';
 import '../../../utils/app_logger.dart';
 
 class ChatController extends GetxController {
-  // New controllers
-  final RoomController _roomController = Get.put(RoomController());
-  final MessageController _messageController = Get.put(MessageController());
+  // New controllers - now lazy loaded in bindings
+  late final RoomController _roomController;
+  late final MessageController _messageController;
   final AuthRepository _authRepository = AuthRepository();
   final ChatRepository _repository = ChatRepository();
   final PrivateChatService _privateChatService = PrivateChatService();
@@ -662,6 +662,11 @@ class ChatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Initialize controllers from bindings
+    _roomController = Get.find<RoomController>();
+    _messageController = Get.find<MessageController>();
+
     // Clean up expired repository cache on app start (fast operation)
     clearExpiredRepositoryCache();
 

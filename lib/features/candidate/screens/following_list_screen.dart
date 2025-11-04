@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../repositories/candidate_repository.dart';
@@ -76,41 +77,27 @@ class _FollowingListScreenState extends State<FollowingListScreen> {
       // Use the full following data directly (already contains userId, followedAt, notificationsEnabled)
       following = followingData;
 
-      // Fetch candidate data for all following with timeout
+      // Fetch user data for all following with timeout
       for (var follow in following) {
         if (!mounted) return; // Check if still mounted before continuing
 
         final userId = follow['userId'] as String;
         if (!userDataCache.containsKey(userId)) {
           try {
-            // Add timeout to prevent hanging
-            final candidateDataFuture = repository.getCandidateData(userId);
-            final candidateData = await candidateDataFuture.timeout(
-              const Duration(seconds: 5),
-              onTimeout: () => null,
-            );
+            // Add timeout to prevent hanging - fetch user data directly from Firestore
+            final userDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .get()
+                .timeout(const Duration(seconds: 5));
 
-            // Convert candidate data to UserModel format for FollowerCard
-            if (candidateData != null) {
-              userDataCache[userId] = UserModel(
-                uid: candidateData.userId ?? userId,
-                name: candidateData.basicInfo?.fullName ?? 'Unknown Candidate',
-                phone: '', // Not available in candidate data
-                email: null, // Not available in candidate data
-                role: 'candidate',
-                roleSelected: true,
-                profileCompleted: true,
-                xpPoints: 0,
-                premium: false,
-                createdAt: DateTime.now(),
-                photoURL: candidateData.basicInfo?.photo,
-                followingCount: 0,
-              );
+            if (userDoc.exists) {
+              userDataCache[userId] = UserModel.fromJson(userDoc.data()!);
             } else {
               userDataCache[userId] = null;
             }
           } catch (e) {
-            // If candidate data fetch fails, continue with null
+            // If user data fetch fails, continue with null
             userDataCache[userId] = null;
           }
         }

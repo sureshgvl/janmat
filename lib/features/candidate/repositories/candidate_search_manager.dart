@@ -176,18 +176,21 @@ class CandidateSearchManager {
         return Candidate.fromJson(candidateData);
       }).toList();
 
+      // Fetch following counts from user documents
+      final candidatesWithFollowingCount = await _populateFollowingCounts(candidates);
+
       // Cache in both systems
-      await _cache.set(cacheKey, candidates, ttl: Duration(minutes: 15));
-      _cacheData(cacheKey, candidates); // Legacy cache
+      await _cache.set(cacheKey, candidatesWithFollowingCount, ttl: Duration(minutes: 15));
+      _cacheData(cacheKey, candidatesWithFollowingCount); // Legacy cache
       AppLogger.candidate(
-        '💾 Cached ${candidates.length} candidates for ward $wardId in both cache systems',
+        '💾 Cached ${candidatesWithFollowingCount.length} candidates for ward $wardId in both cache systems',
       );
 
       monitor.stopTimer('getCandidatesByWard');
       AppLogger.candidate(
-        '✅ getCandidatesByWard: Successfully loaded ${candidates.length} candidates',
+        '✅ getCandidatesByWard: Successfully loaded ${candidatesWithFollowingCount.length} candidates',
       );
-      return candidates;
+      return candidatesWithFollowingCount;
     } catch (e) {
       // Track failed operation
       _analytics.trackFirebaseOperation(
@@ -628,6 +631,24 @@ class CandidateSearchManager {
         }
       }
 
+      // Populate following counts for the retrieved candidates
+      final validCandidates = candidates.where((c) => c != null).cast<Candidate>().toList();
+      if (validCandidates.isNotEmpty) {
+        final candidatesWithFollowingCount = await _populateFollowingCounts(validCandidates);
+
+        // Update the candidates list with populated following counts
+        for (var i = 0; i < candidates.length; i++) {
+          if (candidates[i] != null) {
+            final originalCandidate = candidates[i]!;
+            final updatedCandidate = candidatesWithFollowingCount.firstWhere(
+              (c) => c.candidateId == originalCandidate.candidateId,
+              orElse: () => originalCandidate,
+            );
+            candidates[i] = updatedCandidate;
+          }
+        }
+      }
+
       AppLogger.candidate(
         '✅ BATCH: Retrieved ${candidates.where((c) => c != null).length}/${candidateIds.length} candidates using embedded location',
       );
@@ -765,6 +786,75 @@ class CandidateSearchManager {
     } catch (e) {
       AppLogger.candidateError('Failed to get user data and following: $e');
       throw Exception('Failed to get user data and following: $e');
+    }
+  }
+
+  // Helper method to populate following counts from user documents
+  Future<List<Candidate>> _populateFollowingCounts(List<Candidate> candidates) async {
+    try {
+      AppLogger.candidate('🔄 Populating following counts for ${candidates.length} candidates');
+
+      // Extract user IDs from candidates - filter out null and empty strings
+      final userIds = candidates
+          .where((c) => c.userId != null && c.userId!.isNotEmpty)
+          .map((c) => c.userId!)
+          .toList();
+
+      if (userIds.isEmpty) {
+        AppLogger.candidate('⚠️ No valid user IDs found in candidates');
+        return candidates;
+      }
+
+      // Batch fetch user documents to get following counts
+      final userDocs = await _firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: userIds.take(10).toList()) // Firestore 'in' limit is 10
+          .get();
+
+      // Create a map of userId -> followingCount
+      final followingCountMap = <String, int>{};
+      for (var doc in userDocs.docs) {
+        final userData = doc.data();
+        final followingCount = userData['followingCount']?.toInt() ?? 0;
+        followingCountMap[doc.id] = followingCount;
+        AppLogger.candidate('👤 User ${doc.id}: followingCount = $followingCount');
+      }
+
+      // Handle remaining user IDs if more than 10 (process in batches)
+      final remainingUserIds = userIds.skip(10).toList();
+      if (remainingUserIds.isNotEmpty) {
+        for (var i = 0; i < remainingUserIds.length; i += 10) {
+          final batch = remainingUserIds.skip(i).take(10).toList();
+          final batchDocs = await _firestore
+              .collection('users')
+              .where(FieldPath.documentId, whereIn: batch)
+              .get();
+
+          for (var doc in batchDocs.docs) {
+            final userData = doc.data();
+            final followingCount = userData['followingCount']?.toInt() ?? 0;
+            followingCountMap[doc.id] = followingCount;
+            AppLogger.candidate('👤 User ${doc.id}: followingCount = $followingCount');
+          }
+        }
+      }
+
+      // Update candidates with following counts
+      final updatedCandidates = candidates.map((candidate) {
+        if (candidate.userId != null && followingCountMap.containsKey(candidate.userId)) {
+          final followingCount = followingCountMap[candidate.userId]!;
+          AppLogger.candidate('✅ Updated candidate ${candidate.candidateId} (${candidate.basicInfo?.fullName}): followingCount = $followingCount');
+          return candidate.copyWith(followingCount: followingCount);
+        }
+        return candidate;
+      }).toList();
+
+      AppLogger.candidate('✅ Successfully populated following counts for ${updatedCandidates.length} candidates');
+      return updatedCandidates;
+    } catch (e) {
+      AppLogger.candidateError('Failed to populate following counts: $e');
+      // Return original candidates if there's an error
+      return candidates;
     }
   }
 

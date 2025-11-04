@@ -125,49 +125,49 @@ class FollowStatsWidget extends StatelessWidget {
             ),
           ),
 
-          // Following Count (Clickable)
-          Expanded(
-            child: InkWell(
-              onTap: () {
-                Get.to(
-                  () => FollowingListScreen(
-                    candidateId: candidate.candidateId,
-                    candidateName: candidate.basicInfo!.fullName!,
-                    candidateData: candidate,
-                  ),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      formatNumber(
-                        candidate.followingCount.toString(),
-                      ),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    Text(
-                      CandidateTranslations.tr('following'),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          // Following Count (Hidden)
+          // Expanded(
+          //   child: InkWell(
+          //     onTap: () {
+          //       Get.to(
+          //         () => FollowingListScreen(
+          //           candidateId: candidate.candidateId,
+          //           candidateName: candidate.basicInfo!.fullName!,
+          //           candidateData: candidate,
+          //         ),
+          //       );
+          //     },
+          //     child: Container(
+          //       margin: const EdgeInsets.symmetric(
+          //         horizontal: 4,
+          //       ),
+          //       padding: const EdgeInsets.symmetric(
+          //         vertical: 8,
+          //       ),
+          //       child: Column(
+          //         children: [
+          //           Text(
+          //             formatNumber(
+          //               candidate.followingCount.toString(),
+          //             ),
+          //             style: const TextStyle(
+          //               fontSize: 18,
+          //               fontWeight: FontWeight.bold,
+          //               color: Colors.black,
+          //             ),
+          //           ),
+          //           Text(
+          //             CandidateTranslations.tr('following'),
+          //             style: const TextStyle(
+          //               fontSize: 12,
+          //               color: Colors.grey,
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );

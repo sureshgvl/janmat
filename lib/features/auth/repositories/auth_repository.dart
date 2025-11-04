@@ -107,156 +107,124 @@ class AuthRepository {
     }
   }
 
-  // Google Sign-In - Updated for v7.x API
+  // Google Sign-In - Optimized for Release Build Performance
   Future<UserCredential?> signInWithGoogle({bool forceAccountPicker = false}) async {
     final startTime = DateTime.now();
-    startPerformanceTimer('google_signin_simplified');
+    startPerformanceTimer('google_signin_release_optimized');
 
-    AppLogger.auth('Starting simplified Google Sign-In at ${startTime.toIso8601String()}');
+    AppLogger.auth('🚀 Starting RELEASE-OPTIMIZED Google Sign-In at ${startTime.toIso8601String()}');
 
     try {
-      // Step 0: Check network connectivity
-      AppLogger.auth('Checking network connectivity...');
-      final connectivityStart = DateTime.now();
-      final hasConnectivity = await _checkConnectivity();
-      final connectivityDuration = DateTime.now().difference(connectivityStart);
-
-      AppLogger.auth('Network connectivity check completed in ${connectivityDuration.inMilliseconds}ms - Connected: $hasConnectivity');
-
-      if (!hasConnectivity) {
-        AppLogger.auth('No internet connection detected');
-        throw Exception('No internet connection detected. Please check your network and try again.');
-      }
-
-      // Step 2: Account selection using v7.x API
-      AppLogger.auth('Starting Google Sign-In (${forceAccountPicker ? 'forced account picker' : 'smart mode'})...');
+      // RELEASE OPTIMIZATION: Skip connectivity check for faster startup
+      // App Check and Firebase will handle network issues
+      AppLogger.auth('⚡ [RELEASE_OPTIMIZED] Skipping connectivity check for speed');
 
       GoogleSignInAccount? googleUser;
 
+      // RELEASE OPTIMIZATION: Skip silent sign-in for first-time users
+      // Go directly to account picker for faster UX
       if (!forceAccountPicker) {
-        // Try silent sign-in first (5 second timeout for better success rate)
-        AppLogger.auth('🔍 [GOOGLE_SIGNIN] Attempting silent sign-in...');
+        // Try silent sign-in with shorter timeout (2s instead of 5s)
+        AppLogger.auth('🔍 [RELEASE_OPTIMIZED] Quick silent sign-in attempt...');
         try {
           googleUser = await _googleSignIn.signInSilently().timeout(
-            const Duration(seconds: 5), // Increased timeout for better success rate
+            const Duration(seconds: 2), // Reduced from 5s for faster UX
             onTimeout: () {
-              AppLogger.auth('⏰ [GOOGLE_SIGNIN] Silent sign-in timeout after 5s');
+              AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Silent sign-in timeout after 2s');
               return null;
             },
           );
           if (googleUser != null) {
-            AppLogger.auth('✅ [GOOGLE_SIGNIN] Silent sign-in successful: ${googleUser.displayName} (${googleUser.email})');
-          } else {
-            AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] Silent sign-in returned null');
+            AppLogger.auth('✅ [RELEASE_OPTIMIZED] Silent sign-in successful: ${googleUser.displayName}');
           }
         } catch (e) {
-          AppLogger.auth('ℹ️ [GOOGLE_SIGNIN] Silent sign-in failed: ${e.toString()}');
+          AppLogger.auth('ℹ️ [RELEASE_OPTIMIZED] Silent sign-in failed, proceeding to picker');
         }
       }
 
       // If silent failed or forced picker requested, show account picker
       if (googleUser == null) {
-        AppLogger.auth('📱 [GOOGLE_SIGNIN] Showing Google account picker...');
+        AppLogger.auth('📱 [RELEASE_OPTIMIZED] Showing Google account picker...');
 
         final signInStart = DateTime.now();
         googleUser = await _googleSignIn.signIn().timeout(
-          const Duration(seconds: 45), // Reduced from 60s for better UX
+          const Duration(seconds: 30), // Reduced from 45s for faster UX
           onTimeout: () {
             final timeoutDuration = DateTime.now().difference(signInStart);
-            AppLogger.auth('⏰ [GOOGLE_SIGNIN] Account picker timeout after ${timeoutDuration.inSeconds} seconds');
-            throw Exception('Google Sign-In timed out. Please ensure you have a stable internet connection and try selecting an account within 45 seconds.');
+            AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Account picker timeout after ${timeoutDuration.inSeconds}s');
+            throw Exception('Google Sign-In timed out. Please try again.');
           },
         );
 
         final signInDuration = DateTime.now().difference(signInStart);
-        AppLogger.auth('✅ [GOOGLE_SIGNIN] Account picker completed in ${signInDuration.inSeconds}s');
+        AppLogger.auth('✅ [RELEASE_OPTIMIZED] Account picker completed in ${signInDuration.inSeconds}s');
       }
 
       if (googleUser == null) {
         final totalDuration = DateTime.now().difference(startTime);
-        stopPerformanceTimer('google_signin_simplified');
-        AppLogger.auth('[GOOGLE_SIGNIN] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
-        return null; // User cancelled
+        stopPerformanceTimer('google_signin_release_optimized');
+        AppLogger.auth('[RELEASE_OPTIMIZED] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
+        return null;
       }
 
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] Google account selected: ${googleUser.displayName} (${googleUser.email})');
+      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Google account selected: ${googleUser.displayName}');
 
-      // Store account info for future logins
-      await _storeLastGoogleAccount(googleUser);
+      // RELEASE OPTIMIZATION: Store account info asynchronously (don't await)
+      _storeLastGoogleAccount(googleUser); // Fire-and-forget
 
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] Google account selected: ${googleUser.displayName} (ID: ${googleUser.id})');
-
-      // Step 2: Parallel processing - Get tokens and prepare user data simultaneously
-      AppLogger.auth('🔄 [GOOGLE_SIGNIN] Starting parallel authentication and data preparation...');
+      // RELEASE OPTIMIZATION: Get tokens and prepare data in parallel with reduced logging
       final parallelStart = DateTime.now();
 
       final tokenFuture = googleUser.authentication;
       final userDataPrepFuture = _prepareUserDataLocally(googleUser);
 
-      AppLogger.auth('⏳ [GOOGLE_SIGNIN] Awaiting parallel operations: token retrieval + user data preparation');
-
       final parallelResults = await Future.wait([tokenFuture, userDataPrepFuture]);
       final parallelDuration = DateTime.now().difference(parallelStart);
 
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
+      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
 
       final GoogleSignInAuthentication googleAuth = parallelResults[0] as GoogleSignInAuthentication;
-      AppLogger.auth('🔑 [GOOGLE_SIGNIN] Authentication tokens retrieved - AccessToken: ${googleAuth.accessToken != null ? 'Present' : 'Missing'}, IdToken: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
 
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        AppLogger.auth('[GOOGLE_SIGNIN] Failed to retrieve authentication tokens from Google');
         throw 'Failed to retrieve authentication tokens from Google';
       }
 
-      // Step 3: Create Firebase credential
-      AppLogger.auth('🔧 [GOOGLE_SIGNIN] Creating Firebase credential...');
-      final credentialStart = DateTime.now();
+      // Create Firebase credential
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken!,
         idToken: googleAuth.idToken!,
       );
-      final credentialDuration = DateTime.now().difference(credentialStart);
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] Firebase credential created in ${credentialDuration.inMilliseconds}ms');
 
-      // Step 4: Firebase authentication with optimized timeout
-      AppLogger.auth('🔐 [GOOGLE_SIGNIN] Authenticating with Firebase...');
+      // RELEASE OPTIMIZATION: Firebase auth with shorter timeout (30s instead of 45s)
       final firebaseStart = DateTime.now();
 
-      // Use reasonable timeout - Firebase auth can take time on slower networks
       final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential)
           .timeout(
-            const Duration(seconds: 45), // Increased timeout for Firebase auth on slower networks
+            const Duration(seconds: 30), // Reduced from 45s for faster UX
             onTimeout: () {
-              AppLogger.auth('⏰ [GOOGLE_SIGNIN] Firebase auth timeout after 45s');
-              throw Exception('Authentication is taking longer than expected. Please check your internet connection and try again.');
+              AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Firebase auth timeout after 30s');
+              throw Exception('Authentication is taking longer than expected. Please try again.');
             },
           );
 
       final firebaseDuration = DateTime.now().difference(firebaseStart);
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] Firebase authentication successful in ${firebaseDuration.inMilliseconds}ms for user: ${userCredential.user?.displayName} (UID: ${userCredential.user?.uid})');
+      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Firebase auth successful in ${firebaseDuration.inMilliseconds}ms');
 
-      // Step 5: Minimal user data creation (fast)
-      AppLogger.auth('👤 [GOOGLE_SIGNIN] Creating minimal user record...');
-      final userCreationStart = DateTime.now();
-      await _createOrUpdateUserMinimal(userCredential.user!);
-      final userCreationDuration = DateTime.now().difference(userCreationStart);
-      AppLogger.auth('✅ [GOOGLE_SIGNIN] Minimal user record created in ${userCreationDuration.inMilliseconds}ms');
+      // RELEASE OPTIMIZATION: Create minimal user record asynchronously for faster navigation
+      _createOrUpdateUserMinimal(userCredential.user!); // Fire-and-forget
 
-      // Step 6: Start background sync for heavy operations (fire-and-forget)
-      AppLogger.auth('🔄 [GOOGLE_SIGNIN] Starting background synchronization...');
-      _performBackgroundSetup(userCredential.user!);
-
-      // Step 7: Update FCM token for push notifications (fire-and-forget)
-      _updateUserFCMToken(userCredential.user!);
+      // RELEASE OPTIMIZATION: Move all background operations to true background
+      // Don't block navigation for any setup operations
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _performBackgroundSetup(userCredential.user!);
+        _updateUserFCMToken(userCredential.user!);
+      });
 
       final totalDuration = DateTime.now().difference(startTime);
-      stopPerformanceTimer('google_signin_simplified');
-      AppLogger.auth('🎉 [GOOGLE_SIGNIN] Simplified Google Sign-In completed successfully in ${totalDuration.inSeconds}s');
-      AppLogger.auth('📊 [GOOGLE_SIGNIN] Performance breakdown:');
-      AppLogger.auth('   - Connectivity check: ${connectivityDuration.inMilliseconds}ms');
-      AppLogger.auth('   - Parallel operations: ${parallelDuration.inMilliseconds}ms');
-      AppLogger.auth('   - Firebase auth: ${firebaseDuration.inMilliseconds}ms');
-      AppLogger.auth('   - User creation: ${userCreationDuration.inMilliseconds}ms');
+      stopPerformanceTimer('google_signin_release_optimized');
+
+      AppLogger.auth('🎉 [RELEASE_OPTIMIZED] Google Sign-In completed in ${totalDuration.inSeconds}s');
+      AppLogger.auth('📊 [RELEASE_OPTIMIZED] Breakdown: Parallel=${parallelDuration.inMilliseconds}ms, Firebase=${firebaseDuration.inMilliseconds}ms');
 
       return userCredential;
     } catch (e) {

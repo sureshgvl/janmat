@@ -327,10 +327,10 @@ class CandidateOperations {
           '❌ No candidate found in user\'s district/body/ward: $districtId/$bodyId/$wardId',
         );
 
-        // Fallback: Check legacy /candidates collection
+        // Fallback: Check legacy /candidates collection (limited scope for performance)
         AppLogger.candidate('🔄 Checking legacy /candidates collection for userId: $userId');
 
-        // First try exact match
+        // First try exact match with limited scope
         final legacyCandidateDoc = await _firestore
             .collection('candidates')
             .where('userId', isEqualTo: userId)
@@ -346,7 +346,6 @@ class CandidateOperations {
           AppLogger.candidate(
             '✅ Found candidate in legacy collection: ${candidateData['name']} (ID: ${doc.id})',
           );
-          AppLogger.candidate('   userId in doc: ${candidateData['userId']}');
 
           // Update user document with location info for future use
           await ensureUserDocumentExists(
@@ -359,17 +358,7 @@ class CandidateOperations {
           return Candidate.fromJson(candidateData);
         }
 
-        // If no exact match, try to find any candidate documents to debug
-        AppLogger.candidate('🔍 No exact match, checking all candidates in legacy collection...');
-        final allCandidates = await _firestore.collection('candidates').limit(10).get();
-        AppLogger.candidate('📊 Found ${allCandidates.docs.length} total candidates in legacy collection');
-
-        for (var doc in allCandidates.docs) {
-          final data = doc.data();
-          AppLogger.candidate('   Candidate ${doc.id}: userId=${data['userId']}, name=${data['name']}');
-        }
-
-        AppLogger.candidate('❌ No candidate found in legacy collection either');
+        AppLogger.candidate('❌ No candidate found in legacy collection');
         return null;
       } catch (error) {
         // Check if this is a retriable error
@@ -664,7 +653,25 @@ class CandidateOperations {
         if (result != null) {
           final candidateData = result;
           AppLogger.candidate('✅ Found candidate $candidateId in state: ${candidateData['stateId']}');
-          return Candidate.fromJson(candidateData);
+
+          final candidate = Candidate.fromJson(candidateData);
+
+          // Populate following count from user document
+          if (candidate.userId != null) {
+            try {
+              final userDoc = await _firestore.collection('users').doc(candidate.userId).get();
+              if (userDoc.exists) {
+                final userData = userDoc.data()!;
+                final followingCount = userData['followingCount']?.toInt() ?? 0;
+                AppLogger.candidate('👤 User ${candidate.userId}: followingCount = $followingCount');
+                return candidate.copyWith(followingCount: followingCount);
+              }
+            } catch (e) {
+              AppLogger.candidateError('Failed to populate following count for candidate $candidateId: $e');
+            }
+          }
+
+          return candidate;
         }
       }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
 import '../controllers/chat_controller.dart';
+import '../controllers/room_controller.dart';
+import '../controllers/message_controller.dart';
 import 'chat_room_card.dart';
 import 'dialogs/chat_dialogs.dart';
 import 'chat_helpers.dart';
@@ -15,11 +17,18 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final ChatController controller = Get.find<ChatController>();
+  late final ChatController controller;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize controller with proper dependency order
+    // This ensures RoomController and MessageController are created first
+    Get.lazyPut<RoomController>(() => RoomController());
+    Get.lazyPut<MessageController>(() => MessageController(), fenix: true);
+    controller = Get.put<ChatController>(ChatController(), permanent: true);
+
     // Initialize chat lazily when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await controller.initializeChatIfNeeded();
@@ -302,4 +311,3 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return null;
   }
 }
-
