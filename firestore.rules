@@ -390,7 +390,8 @@ service cloud.firestore {
 
     // User subcollections
     match /users/{userId}/following/{followingId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow authenticated users to read following lists
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // User following collection - for following relationships

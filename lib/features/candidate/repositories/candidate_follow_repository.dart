@@ -27,6 +27,7 @@ class CandidateFollowRepository {
     String? districtId,
     String? bodyId,
     String? wardId,
+    String? candidateUserId, // The candidate's userId for following collection
   }) async {
     try {
       // Use provided location IDs or defaults
@@ -77,11 +78,13 @@ class CandidateFollowRepository {
       batch.update(candidateRef, {'followersCount': FieldValue.increment(1)});
 
       // Add to user's following subcollection (always in users collection)
+      // Use candidateUserId as document ID so we can look up users later
+      final followingDocId = candidateUserId ?? candidateId;
       final userFollowingRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('following')
-          .doc(candidateId);
+          .doc(followingDocId);
 
       batch.set(userFollowingRef, {
         'followedAt': FieldValue.serverTimestamp(),
@@ -107,6 +110,7 @@ class CandidateFollowRepository {
     String? districtId,
     String? bodyId,
     String? wardId,
+    String? candidateUserId, // The candidate's userId for following collection
   }) async {
     try {
       // Use provided location IDs or defaults
@@ -154,13 +158,25 @@ class CandidateFollowRepository {
       batch.update(candidateRef, {'followersCount': FieldValue.increment(-1)});
 
       // Remove from user's following subcollection
-      final userFollowingRef = _firestore
+      // Try both candidateId (legacy) and candidateUserId (new) for backward compatibility
+      final userFollowingRef1 = _firestore
           .collection('users')
           .doc(userId)
           .collection('following')
           .doc(candidateId);
 
-      batch.delete(userFollowingRef);
+      final userFollowingRef2 = candidateUserId != null && candidateUserId != candidateId
+          ? _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('following')
+              .doc(candidateUserId)
+          : null;
+
+      batch.delete(userFollowingRef1);
+      if (userFollowingRef2 != null) {
+        batch.delete(userFollowingRef2);
+      }
 
       // Update user's following count
       final userRef = _firestore.collection('users').doc(userId);
@@ -240,15 +256,21 @@ class CandidateFollowRepository {
   }
 
   // Get following list for a user
-  Future<List<String>> getUserFollowing(String userId) async {
+  Future<List<Map<String, dynamic>>> getUserFollowing(String userId) async {
     try {
       final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('following')
+          .orderBy('followedAt', descending: true)
           .get();
 
-      final following = snapshot.docs.map((doc) => doc.id).toList();
+      final following = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['userId'] = doc.id; // The document ID is the candidate ID being followed
+        return data;
+      }).toList();
+
       AppLogger.candidate('Retrieved ${following.length} following for user $userId');
       return following;
     } catch (e) {

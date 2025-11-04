@@ -6,6 +6,7 @@ import '../models/candidate_model.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../controllers/candidate_controller.dart';
 import '../screens/followers_list_screen.dart';
+import '../screens/following_list_screen.dart';
 
 class FollowStatsWidget extends StatelessWidget {
   final Candidate candidate;
@@ -127,79 +128,14 @@ class FollowStatsWidget extends StatelessWidget {
           // Following Count (Clickable)
           Expanded(
             child: InkWell(
-              onTap: () async {
-                // Debug: Log all candidate data in system
-                try {
-                  final controller = CandidateUserController.to;
-                  await controller.logAllCandidateData();
-
-                  // Show detailed candidate info in a dialog
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text(
-                          'Candidate Data Audit',
-                        ),
-                        content: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Current Candidate: ${candidate.basicInfo!.fullName}',
-                              ),
-                              Text(
-                                'Party: ${candidate.party}',
-                              ),
-                              Text(
-                                'ID: ${candidate.candidateId}',
-                              ),
-                              Text(
-                                'User ID: ${candidate.userId}',
-                              ),
-                              Text(
-                                'District: ${candidate.location.districtId}',
-                              ),
-                              Text(
-                                'Ward: ${candidate.location.wardId}',
-                              ),
-                              Text(
-                                'Approved: ${candidate.approved}',
-                              ),
-                              Text(
-                                'Status: ${candidate.status}',
-                              ),
-                              Text(
-                                'Followers: ${candidate.followersCount}',
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                '📊 System audit completed! Check console logs for full details.',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                } catch (e) {
-                  Get.snackbar(
-                    'Debug Error',
-                    'Failed to log candidate data: $e',
-                    backgroundColor: Colors.red,
-                    colorText: Colors.white,
-                  );
-                }
+              onTap: () {
+                Get.to(
+                  () => FollowingListScreen(
+                    candidateId: candidate.candidateId,
+                    candidateName: candidate.basicInfo!.fullName!,
+                    candidateData: candidate,
+                  ),
+                );
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(

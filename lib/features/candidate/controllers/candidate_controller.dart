@@ -368,9 +368,24 @@ class CandidateController extends GetxController {
     update();
 
     try {
+      // Get the candidate's userId from the cached candidates list
+      final candidate = candidates.firstWhereOrNull(
+        (c) => c.candidateId == candidateId,
+      );
+
+      if (candidate == null) {
+        throw Exception('Candidate $candidateId not found in cached list');
+      }
+
+      final candidateUserId = candidate.userId;
+      if (candidateUserId == null || candidateUserId.isEmpty) {
+        throw Exception('Candidate $candidateId has no userId');
+      }
+
       await _followRepository.followCandidate(
         userId,
         candidateId,
+        candidateUserId: candidateUserId, // Pass the candidate's userId
         notificationsEnabled: notificationsEnabled,
         stateId: stateId,
         districtId: districtId,
@@ -474,6 +489,7 @@ class CandidateController extends GetxController {
         throw Exception('Candidate $candidateId not found in cached list');
       }
 
+      final candidateUserId = existingCandidate.userId;
       AppLogger.candidate('✅ Using cached candidate: ${existingCandidate.basicInfo!.fullName}');
 
       // Execute unfollow operation with cached location data
@@ -481,6 +497,7 @@ class CandidateController extends GetxController {
       await _followRepository.unfollowCandidate(
         userId,
         candidateId,
+        candidateUserId: candidateUserId, // Pass the candidate's userId
         stateId: location.stateId,
         districtId: location.districtId,
         bodyId: location.bodyId,
@@ -655,7 +672,7 @@ class CandidateController extends GetxController {
   }
 
   // Get following list for a user
-  Future<List<String>> getUserFollowing(String userId) async {
+  Future<List<Map<String, dynamic>>> getUserFollowing(String userId) async {
     try {
       return await _followRepository.getUserFollowing(userId);
     } catch (e) {
@@ -778,7 +795,8 @@ class CandidateController extends GetxController {
         // Fetch from Firebase and cache for session
         AppLogger.candidate('CACHE MISS - Fetching following IDs from Firebase');
         final fetchStartTime = DateTime.now();
-        followingIds = await getUserFollowing(currentUser.uid);
+        final followingData = await getUserFollowing(currentUser.uid);
+        followingIds = followingData.map((follow) => follow['userId'] as String).toList();
         final fetchTime = DateTime.now().difference(fetchStartTime).inMilliseconds;
 
         _cachedFollowingIds = followingIds;
@@ -790,7 +808,8 @@ class CandidateController extends GetxController {
       // Set follow status for all candidates
       int followedCount = 0;
       for (final candidate in candidates) {
-        final isFollowing = followingIds.contains(candidate.candidateId);
+        // Match by userId since following collection now stores userIds
+        final isFollowing = followingIds.contains(candidate.userId);
         followStatus[candidate.candidateId] = isFollowing;
         if (isFollowing) followedCount++;
       }
