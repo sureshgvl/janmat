@@ -39,7 +39,9 @@ class CandidateProfileScreen extends StatefulWidget {
 class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     with TickerProviderStateMixin {
   Candidate? candidate;
-  final CandidateController controller = Get.find<CandidateController>();
+  final CandidateController controller = Get.isRegistered<CandidateController>()
+      ? Get.find<CandidateController>()
+      : Get.put<CandidateController>(CandidateController());
   final CandidateUserController dataController = CandidateUserController.to;
   final CandidateRepository candidateRepository = CandidateRepository();
   final LocalDatabaseService _locationDatabase = LocalDatabaseService();

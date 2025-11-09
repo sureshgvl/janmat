@@ -66,12 +66,19 @@ Future<Map<String, dynamic>> _getFastStartupData() async {
       const Duration(milliseconds: 300),
       onTimeout: () => {'isLanguageSelected': false, 'isOnboardingCompleted': false},
     ),
+    // Get cached user data if available
+    _getCachedUserData().timeout(
+      const Duration(milliseconds: 300),
+      onTimeout: () => null,
+    ),
   ]);
 
   final user = results[0] as User?;
   final setupState = results[1] as Map<String, dynamic>;
+  final cachedData = results[2] as Map<String, dynamic>?;
 
   final isLoggedIn = user != null;
+  final hasCachedData = cachedData != null;
   final isLanguageSelected = setupState['isLanguageSelected'] ?? false;
   final isOnboardingCompleted = setupState['isOnboardingCompleted'] ?? false;
 
@@ -89,13 +96,15 @@ Future<Map<String, dynamic>> _getFastStartupData() async {
     initialRoute = AppRouteNames.home;
   }
 
-  AppLogger.core('⚡ Fast startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
+  AppLogger.core('⚡ Fast startup data ready in ${stopwatch.elapsedMilliseconds}ms: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
 
   return {
     'isLoggedIn': isLoggedIn,
     'user': user,
     'isLanguageSelected': isLanguageSelected,
     'isOnboardingCompleted': isOnboardingCompleted,
+    'hasCachedData': hasCachedData,
+    'cachedData': cachedData,
     'initialRoute': initialRoute,
   };
 }
@@ -147,16 +156,7 @@ Future<Map<String, dynamic>> _getAppSetupState() async {
   }
 }
 
-/// Pre-load candidate home data in background for instant access
-Future<void> _preloadCandidateHomeData(String userId) async {
-  try {
-    AppLogger.core('🔄 Pre-loading candidate home data for instant access...');
-    // This will trigger background loading in HomeScreenStreamService
-    // Implementation will be added there
-  } catch (e) {
-    AppLogger.core('⚠️ Pre-loading failed: $e');
-  }
-}
+
 
 /// Get the appropriate route for logged-in users based on role selection and profile completion
 Future<String> _getUserFlowRoute(User? user) async {
@@ -314,166 +314,150 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 }
 
-/// Build app with cached data for instant access
-Widget _buildAppWithCachedData(String initialRoute, Map<String, dynamic> startupData) {
-  final cachedData = startupData['cachedData'] as Map<String, dynamic>?;
 
-  return Obx(() {
-    final themeController = Get.find<ThemeController>();
-    final languageController = Get.find<LanguageController>();
-    final currentLocale = languageController.currentLocale.value;
 
-    // Smooth transition when language changes
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      child: GetMaterialApp(
-        key: ValueKey('${currentLocale.languageCode}_cached'), // Unique key for cached route
-        title: 'JanMat',
-        theme: themeController.currentTheme.value,
-        locale: currentLocale,
-        localizationsDelegates: [
-          ...AppLocalizations.localizationsDelegates,
-          CandidateLocalizations.delegate,
-          AuthLocalizations.delegate,
-          OnboardingLocalizations.delegate,
-          ProfileLocalizations.delegate,
-          NotificationsLocalizations.delegate,
-          SettingsLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        localeResolutionCallback: (locale, supportedLocales) {
-          for (var supported in supportedLocales) {
-            if (supported.languageCode == locale?.languageCode) {
-              return supported;
-            }
-          }
-          return const Locale('en'); // Fallback to English
-        },
-        initialBinding: AppBindings(), // Use standard bindings, let HomeScreen handle optimization
-        initialRoute: initialRoute,
-        getPages: AppRoutes.getPages,
-        debugShowCheckedModeBanner: false,
-      ),
-    );
-  });
-}
-
-/// Build initial binding with cached data pre-populated
-Bindings _buildCachedInitialBinding(Map<String, dynamic>? cachedData) {
-  return BindingsBuilder(() {
-    // Use full AppBindings but pre-populate with cached data
-    AppBindings().dependencies();
-
-    // Pre-populate cached data into services for instant access
-    if (cachedData != null) {
-      try {
-        final homeStreamService = Get.find<HomeScreenStreamService>();
-        // Pre-populate HomeScreenStreamService with cached data
-        homeStreamService.preloadWithCachedData(cachedData);
-        AppLogger.core('✅ Pre-populated HomeScreenStreamService with cached data');
-      } catch (e) {
-        AppLogger.core('⚠️ Failed to pre-populate cached data: $e');
-      }
-    }
-  });
-}
-
-class MyAppContent extends StatelessWidget {
+class MyAppContent extends StatefulWidget {
   const MyAppContent({super.key});
 
   @override
+  State<MyAppContent> createState() => _MyAppContentState();
+}
+
+class _MyAppContentState extends State<MyAppContent> {
+  late StreamSubscription<User?> _authSubscription;
+  late StreamSubscription<ThemeData> _themeSubscription;
+  late StreamSubscription<Locale> _localeSubscription;
+  String _currentRoute = AppRouteNames.home; // Default route
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Get initial startup data
+    final startupData = await _getFastStartupData();
+    final isLoggedIn = startupData['isLoggedIn'] ?? false;
+    final hasCachedData = startupData['hasCachedData'] ?? false;
+    final isLanguageSelected = startupData['isLanguageSelected'] ?? false;
+    final isOnboardingCompleted = startupData['isOnboardingCompleted'] ?? false;
+    final initialRoute = startupData['initialRoute'] as String;
+
+    AppLogger.core('🚀 FAST STARTUP COMPLETE: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
+
+    // Set initial route
+    setState(() {
+      _currentRoute = initialRoute;
+      _isInitialized = true;
+    });
+
+    // Pre-populate cached data if available
+    if (isLoggedIn && hasCachedData) {
+      final cachedData = startupData['cachedData'] as Map<String, dynamic>?;
+      if (cachedData != null) {
+        try {
+          final homeStreamService = Get.find<HomeScreenStreamService>();
+          homeStreamService.preloadWithCachedData(cachedData);
+          AppLogger.core('✅ Pre-populated HomeScreenStreamService with cached data');
+        } catch (e) {
+          AppLogger.core('⚠️ Failed to pre-populate cached data: $e');
+        }
+      }
+    }
+
+    // Listen to theme changes and update GetX theme
+    final themeController = Get.find<ThemeController>();
+    _themeSubscription = themeController.currentTheme.listen((theme) {
+      Get.changeTheme(theme);
+    });
+
+    // Listen to locale changes and update GetX locale
+    final languageController = Get.find<LanguageController>();
+    _localeSubscription = languageController.currentLocale.listen((locale) {
+      Get.updateLocale(locale);
+    });
+
+    // Listen to auth changes and navigate accordingly
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (!mounted) return;
+
+      final isStreamLoggedIn = user != null;
+      String newRoute;
+
+      if (!isLanguageSelected) {
+        newRoute = AppRouteNames.languageSelection;
+      } else if (!isOnboardingCompleted) {
+        newRoute = AppRouteNames.onboarding;
+      } else if (!isStreamLoggedIn) {
+        newRoute = AppRouteNames.login;
+      } else {
+        // For logged-in users, check user state and navigate appropriately
+        newRoute = await _getUserFlowRoute(user);
+      }
+
+      AppLogger.core('🔄 Auth change: ${user?.uid ?? 'null'} → Route: $newRoute');
+
+      // Navigate to new route if different from current
+      if (newRoute != _currentRoute) {
+        setState(() {
+          _currentRoute = newRoute;
+        });
+        // Use GetX navigation to change route
+        Get.offAllNamed(newRoute);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    _themeSubscription.cancel();
+    _localeSubscription.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 🚀 FAST STARTUP: Show home immediately if cached data available, else quick splash
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _getFastStartupData(),
-      builder: (context, snapshot) {
-        // Show brief splash while checking auth/cache state
-        if (snapshot.connectionState != ConnectionState.done) {
-          AppLogger.core('⚡ FAST STARTUP: Checking auth and cache state...');
-          return const MaterialApp(
-            home: AnimatedSplashScreen(),
-            debugShowCheckedModeBanner: false,
-          );
+    // Show splash screen while initializing
+    if (!_isInitialized) {
+      return const MaterialApp(
+        home: AnimatedSplashScreen(),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+
+    // Single GetMaterialApp for the entire app - use initial values, changes handled via Get.changeTheme/updateLocale
+    final themeController = Get.find<ThemeController>();
+    final languageController = Get.find<LanguageController>();
+
+    return GetMaterialApp(
+      title: 'JanMat',
+      theme: themeController.currentTheme.value,
+      locale: languageController.currentLocale.value,
+      localizationsDelegates: [
+        ...AppLocalizations.localizationsDelegates,
+        CandidateLocalizations.delegate,
+        AuthLocalizations.delegate,
+        OnboardingLocalizations.delegate,
+        ProfileLocalizations.delegate,
+        NotificationsLocalizations.delegate,
+        SettingsLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        for (var supported in supportedLocales) {
+          if (supported.languageCode == locale?.languageCode) {
+            return supported;
+          }
         }
-
-        final startupData = snapshot.data!;
-        final isLoggedIn = startupData['isLoggedIn'] ?? false;
-        final hasCachedData = startupData['hasCachedData'] ?? false;
-        final isLanguageSelected = startupData['isLanguageSelected'] ?? false;
-        final isOnboardingCompleted = startupData['isOnboardingCompleted'] ?? false;
-        final initialRoute = startupData['initialRoute'] as String;
-
-        AppLogger.core('🚀 FAST STARTUP COMPLETE: loggedIn=$isLoggedIn, cached=$hasCachedData, language=$isLanguageSelected, onboarding=$isOnboardingCompleted → Route: $initialRoute');
-
-        // 🔥 INSTANT HOME ACCESS: If logged in AND cached, pass cached data directly
-        if (isLoggedIn && hasCachedData) {
-          return _buildAppWithCachedData(initialRoute, startupData);
-        }
-
-        // REACTIVE AUTH STATE: Fallback to stream-based auth for non-cached users
-        return StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, authSnapshot) {
-            final streamUser = authSnapshot.data;
-            final isStreamLoggedIn = streamUser != null;
-
-            // Use same routing logic as above, but for stream we need to handle async differently
-            String streamRoute;
-            if (!isLanguageSelected) {
-              streamRoute = AppRouteNames.languageSelection;
-            } else if (!isOnboardingCompleted) {
-              streamRoute = AppRouteNames.onboarding;
-            } else if (!isStreamLoggedIn) {
-              streamRoute = AppRouteNames.login;
-            } else {
-              // For stream updates, we need to check user state dynamically
-              // Since we can't await here, we'll route to home and let HomeScreen handle navigation
-              streamRoute = AppRouteNames.home;
-            }
-
-            AppLogger.core('🔄 Auth stream: ${streamUser?.uid ?? 'null'} → Route: $streamRoute');
-
-            return Obx(() {
-              final themeController = Get.find<ThemeController>();
-              final languageController = Get.find<LanguageController>();
-              final currentLocale = languageController.currentLocale.value;
-
-              // Smooth transition when language changes
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: GetMaterialApp(
-                  key: ValueKey(currentLocale.languageCode), // Unique key for animation
-                  title: 'JanMat',
-                  theme: themeController.currentTheme.value,
-                  locale: currentLocale,  // Reactive locale binding
-                  localizationsDelegates: [
-                    ...AppLocalizations.localizationsDelegates,
-                    CandidateLocalizations.delegate,
-                    AuthLocalizations.delegate,
-                    OnboardingLocalizations.delegate,
-                    ProfileLocalizations.delegate,
-                    NotificationsLocalizations.delegate,
-                    SettingsLocalizations.delegate,
-                  ],
-                  supportedLocales: AppLocalizations.supportedLocales,
-                  localeResolutionCallback: (locale, supportedLocales) {
-                    for (var supported in supportedLocales) {
-                      if (supported.languageCode == locale?.languageCode) {
-                        return supported;
-                      }
-                    }
-                    return const Locale('en'); // Fallback to English
-                  },
-                  initialBinding: AppBindings(),
-                  initialRoute: initialRoute,
-                  getPages: AppRoutes.getPages,
-                  debugShowCheckedModeBanner: false,
-                ),
-              );
-            });
-          },
-        );
+        return const Locale('en'); // Fallback to English
       },
+      initialBinding: AppBindings(),
+      initialRoute: _currentRoute,
+      getPages: AppRoutes.getPages,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
