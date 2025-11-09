@@ -18,6 +18,7 @@ class EventsTabEdit extends StatefulWidget {
   final Candidate? editedData;
   final bool isEditing;
   final Function(List<Map<String, dynamic>>) onEventsChange;
+  final bool showSaveCancelButtons; // Control whether to show save/cancel buttons
 
   const EventsTabEdit({
     super.key,
@@ -25,6 +26,7 @@ class EventsTabEdit extends StatefulWidget {
     this.editedData,
     required this.isEditing,
     required this.onEventsChange,
+    this.showSaveCancelButtons = true, // Default to true for backward compatibility
   });
 
   @override
@@ -197,53 +199,58 @@ class EventsTabEditState extends State<EventsTabEdit> {
       );
     });
 
-    // Add Save and Cancel buttons at the bottom
-    return Stack(
-      children: [
-        card,
-        Positioned(
-          bottom: 16,
-          left: 16,
-          right: 16,
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _saveEvents,
-                  icon: _isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_isSaving ? 'Saving...' : 'Save Events'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+    // Only show Save and Cancel buttons when actually editing AND when showSaveCancelButtons is true
+    if (widget.isEditing && widget.showSaveCancelButtons) {
+      return Stack(
+        children: [
+          card,
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : _saveEvents,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(_isSaving ? 'Saving...' : 'Save Events'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.cancel),
-                  label: const Text('Cancel'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.cancel),
+                    label: const Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    } else {
+      // When not editing or when buttons are disabled, just return the card without buttons
+      return card;
+    }
   }
 
   Widget _buildEventCard(EventData event) {

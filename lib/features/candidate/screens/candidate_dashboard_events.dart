@@ -61,6 +61,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                   candidateData: controller.candidateData.value!,
                   editedData: controller.editedData.value,
                   isEditing: isEditing,
+                  showSaveCancelButtons: false, // Dashboard has its own FAB buttons
                   onEventsChange: (eventsJson) {
                     final events = eventsJson.map((e) => EventData.fromJson(e)).toList();
                     controller.updateEventsInfo(events);

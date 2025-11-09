@@ -36,7 +36,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     // Initialize services lazily to avoid circular dependencies
     _eventRepository = EventRepository();
     _notificationService = EventNotificationService();
-    _gamificationService = GamificationService();
+    _gamificationService = Get.find<GamificationService>();
     // Load RSVP data when widget initializes
     _loadRSVPData();
   }
