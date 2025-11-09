@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../../features/highlight/widgets/candidate_highlight_banner.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
@@ -352,12 +353,9 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
     final locationData = _getLocationData();
     // This would need to be implemented with the actual dialog
     // For now, just show a placeholder
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isSponsored ? 'Create Sponsored Post' : 'Create Community Post',
-        ),
-      ),
+    SnackbarUtils.showScaffoldInfo(
+      context,
+      isSponsored ? 'Create Sponsored Post' : 'Create Community Post',
     );
   }
 

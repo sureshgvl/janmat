@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/media_model.dart';
 import 'package:janmat/services/file_upload_service.dart';
@@ -283,11 +284,10 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         _maxVideos = 1; // Keep video limit as 1 for all plans
       }
     } catch (e) {
-      AppLogger.candidateError('Error loading plan limits: $e');
-      // Default fallback
-      _canUploadMedia = true;
-      _maxImages = 10;
-      _maxVideos = 1;
+      AppLogger.candidateError('Error saving post: $e');
+      if (mounted) {
+        SnackbarUtils.showError('Failed to save post: $e');
+      }
     }
   }
 
@@ -583,12 +583,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
 
   void _showAddMediaOptions(BuildContext context) {
     if (!_canUploadMedia) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Media upload is not available for your current plan'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      SnackbarUtils.showError('Media upload is not available for your current plan');
       return;
     }
 
@@ -641,9 +636,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
 
   void _showAddYoutubeDialog() {
     if (_selectedYoutubeLinks.length >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 5 YouTube links allowed')),
-      );
+      SnackbarUtils.showError('Maximum 5 YouTube links allowed');
       return;
     }
 
@@ -673,9 +666,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
                 _youtubeLinkController.clear();
                 Navigator.of(context).pop();
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid YouTube URL')),
-                );
+                SnackbarUtils.showError('Please enter a valid YouTube URL');
               }
             },
             child: const Text('Add'),
@@ -696,9 +687,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick images: $e')),
-      );
+      SnackbarUtils.showError('Failed to pick images: $e');
     }
   }
 
@@ -709,9 +698,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         await _saveVideoLocally(video.path);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick video: $e')),
-      );
+      SnackbarUtils.showError('Failed to pick video: $e');
     }
   }
 
@@ -722,9 +709,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         await _saveImageLocally(image.path);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to take photo: $e')),
-      );
+      SnackbarUtils.showError('Failed to take photo: $e');
     }
   }
 
@@ -884,14 +869,12 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
           // Already a Firebase URL, keep as-is
           firebaseUrls.add(localPath);
         }
-      } catch (e) {
-        AppLogger.candidateError('Error uploading $fileType: $e');
-        // Keep the original if upload fails
-        firebaseUrls.add(localPath);
-
-        // Continue with next file
-        onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} $fileType(s)...');
+    } catch (e) {
+      AppLogger.candidateError('Error saving post: $e');
+      if (mounted) {
+        SnackbarUtils.showError('Failed to save post: $e');
       }
+    }
     }
 
     // Don't send completion message here - let the caller handle it
@@ -951,45 +934,33 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
 
   Future<void> _savePost() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a title')),
-      );
+      SnackbarUtils.showError('Please enter a title');
       return;
     }
 
     if (_selectedImages.isEmpty && _selectedVideos.isEmpty && _selectedYoutubeLinks.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add some media or YouTube links')),
-      );
+      SnackbarUtils.showError('Please add some media or YouTube links');
       return;
     }
 
     if (_candidate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No candidate found - cannot save post')),
-      );
+      SnackbarUtils.showError('No candidate found - cannot save post');
       return;
     }
 
     // Check limits: max 5 images, 1 video, 5 YouTube links per post
     if (_selectedImages.length > 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 5 images allowed per post')),
-      );
+      SnackbarUtils.showError('Maximum 5 images allowed per post');
       return;
     }
 
     if (_selectedVideos.length > 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 1 video allowed per post')),
-      );
+      SnackbarUtils.showError('Maximum 1 video allowed per post');
       return;
     }
 
     if (_selectedYoutubeLinks.length > 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 5 YouTube links allowed per post')),
-      );
+      SnackbarUtils.showError('Maximum 5 YouTube links allowed per post');
       return;
     }
 
@@ -1043,9 +1014,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
 
       // Check total posts limit: max 5 posts
       if (existingMedia != null && existingMedia.length >= 5) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Maximum 5 posts allowed. Please delete some posts first.')),
-        );
+        SnackbarUtils.showError('Maximum 5 posts allowed. Please delete some posts first.');
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -1108,9 +1077,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       if (success) {
         // Show success message safely
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Post created successfully!')),
-          );
+          SnackbarUtils.showSuccess('Post created successfully!');
         }
 
         // Refresh candidate data so media tab shows updated posts instantly
@@ -1139,17 +1106,13 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to create post. Please try again.')),
-          );
+          SnackbarUtils.showError('Failed to create post. Please try again.');
         }
       }
     } catch (e) {
       AppLogger.candidateError('Error saving post: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save post: $e')),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to save post: $e');
       }
     } finally {
       if (mounted) {

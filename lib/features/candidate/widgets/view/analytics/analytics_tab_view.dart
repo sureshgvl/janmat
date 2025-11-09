@@ -4,6 +4,7 @@ import 'package:janmat/features/candidate/services/analytics_export_service.dart
 import 'package:janmat/features/candidate/services/manifesto_likes_service.dart';
 import 'package:janmat/features/candidate/services/manifesto_poll_service.dart';
 import 'package:janmat/widgets/charts/follower_growth_chart.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 
 class AnalyticsTabView extends StatefulWidget {
@@ -404,12 +405,7 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
     } catch (e) {
       // Show error snackbar
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to export analytics: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to export analytics: $e');
       }
     }
   }
@@ -485,4 +481,3 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
     );
   }
 }
-

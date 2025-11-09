@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../../utils/app_logger.dart';
+import '../../../../../../utils/snackbar_utils.dart';
 import '../../../models/candidate_model.dart';
 import '../../../controllers/candidate_user_controller.dart';
 import 'photo_upload_handler.dart';

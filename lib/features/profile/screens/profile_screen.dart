@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -155,20 +156,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await chatController.refreshUserDataAndChat();
 
         if (mounted) {
-          Get.snackbar(
-            successTitle,
-            successMessage,
-            duration: const Duration(seconds: 2),
-          );
+          SnackbarUtils.showSuccess(successMessage);
         }
       }
     } catch (e) {
       if (mounted) {
-        Get.snackbar(
-          errorTitle,
-          errorMessageTemplate + e.toString(),
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showError(errorMessageTemplate + e.toString());
       }
     } finally {
       if (mounted) {
@@ -307,19 +300,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await chatController.refreshUserDataAndChat();
 
       if (mounted) {
-        Get.snackbar(
-          successTitle,
-          successMessage,
-          duration: const Duration(seconds: 2),
-        );
+        SnackbarUtils.showSuccess(successMessage);
       }
     } catch (e) {
       if (mounted) {
-        Get.snackbar(
-          errorTitle,
-          errorMessageTemplate + e.toString(),
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showError(errorMessageTemplate + e.toString());
       }
     } finally {
       if (mounted) {
@@ -817,8 +802,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                         Get.offAllNamed('/login');
                       } catch (e) {
-                        Get.snackbar(
-                          ProfileLocalizations.of(context)?.translate('error') ?? 'Error',
+                        SnackbarUtils.showError(
                           ProfileLocalizations.of(context)?.translate('failedToLogout', args: {'error': e.toString()}) ??
                               'Failed to logout: $e',
                         );

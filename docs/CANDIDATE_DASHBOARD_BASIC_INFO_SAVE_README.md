@@ -150,13 +150,7 @@ try {
 } catch (e) {
   if (context.mounted) {
     Navigator.of(context).pop(); // Close loading dialog
-    Get.snackbar(
-      AppLocalizations.of(context)!.error,
-      'An error occurred: $e',
-      backgroundColor: Colors.red.shade600,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-    );
+    SnackbarUtils.showError('An error occurred: $e');
   }
 } finally {
   await messageController.close(); // Always clean up stream

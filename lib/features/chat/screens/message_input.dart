@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/chat_controller.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
 
@@ -641,13 +642,7 @@ class _MessageInputState extends State<MessageInput> {
   void _toggleVoiceRecording() async {
     // Check if user can send message before proceeding
     if (!widget.controller.canSendMessage) {
-      Get.snackbar(
-        ChatTranslations.cannotSendMessage,
-        ChatTranslations.noMessagesOrXP,
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 4),
-      );
+      SnackbarUtils.showError(ChatTranslations.noMessagesOrXP);
       return;
     }
 
@@ -664,23 +659,11 @@ class _MessageInputState extends State<MessageInput> {
           // Show preview interface
           _showRecordingPreviewInterface(recordingPath);
         } else {
-          Get.snackbar(
-            ChatTranslations.recordingError,
-            ChatTranslations.failedToSaveRecording,
-            backgroundColor: Colors.red.shade100,
-            colorText: Colors.red.shade800,
-            duration: const Duration(seconds: 3),
-          );
+          SnackbarUtils.showError(ChatTranslations.failedToSaveRecording);
         }
       } catch (e) {
         AppLogger.chat('❌ UI DEBUG: Failed to stop voice recording: $e');
-        Get.snackbar(
-          ChatTranslations.recordingError,
-          ChatTranslations.failedToStopRecording,
-          backgroundColor: Colors.red.shade100,
-          colorText: Colors.red.shade800,
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showError(ChatTranslations.failedToStopRecording);
       }
     } else {
       AppLogger.chat('🎙️ UI DEBUG: Starting voice recording...');
@@ -707,4 +690,3 @@ class _MessageInputState extends State<MessageInput> {
     }
   }
 }
-

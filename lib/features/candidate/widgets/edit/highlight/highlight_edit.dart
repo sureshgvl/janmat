@@ -4,6 +4,7 @@ import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/candidate/models/highlights_model.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 
 // Enhanced Highlight Configuration Model
@@ -150,35 +151,18 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
         candidateName: data.basicInfo!.fullName,
         photoUrl: data.photo,
         onProgress: (message) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          SnackbarUtils.showScaffoldInfo(context, message);
         },
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Highlights saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarUtils.showScaffoldSuccess(context, 'Highlights saved successfully!');
         Navigator.of(context).pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save highlights'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to save highlights');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving highlights: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error saving highlights: $e');
     } finally {
       setState(() {
         _isSaving = false;

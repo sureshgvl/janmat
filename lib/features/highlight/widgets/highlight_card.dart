@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../features/candidate/screens/candidate_profile_screen.dart';
 import '../../../features/candidate/models/candidate_model.dart';
 import '../models/highlight_display_model.dart';
@@ -76,17 +77,13 @@ class _HighlightCarouselWidgetState extends State<HighlightCarouselWidget> {
       } else {
         AppLogger.common('❌ HighlightCarousel: Candidate document not found');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Candidate profile not available')),
-          );
+          SnackbarUtils.showScaffoldError(context, 'Candidate profile not available');
         }
       }
     } catch (e) {
       AppLogger.commonError('❌ HighlightCarousel: Error fetching candidate data', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading candidate profile: ${e.toString()}')),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Error loading candidate profile: ${e.toString()}');
       }
     }
   }

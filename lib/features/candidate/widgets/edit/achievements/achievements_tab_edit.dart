@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/achievements_model.dart';
 import 'package:janmat/services/file_upload_service.dart';
@@ -342,13 +343,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
       final validation = await _fileUploadService.validateFileSize(localPath);
 
       if (!validation.isValid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(validation.message),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, validation.message);
         return;
       }
 
@@ -398,14 +393,9 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
       // The cleanup logic will remove this before saving to database to prevent null URLs
       _updateAchievement(index, achievement.copyWith(photoUrl: localPath));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Photo saved locally'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      SnackbarUtils.showScaffoldSuccess(context, 'Photo saved locally');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save photo: $e')));
+      SnackbarUtils.showScaffoldError(context, 'Failed to save photo: $e');
     } finally {
       setState(() {
         _uploadingPhotos[index] = false;
@@ -628,35 +618,18 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
         candidate: data,
         achievements: achievementsModel,
         onProgress: (message) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          SnackbarUtils.showScaffoldInfo(context, message);
         },
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Achievements saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarUtils.showScaffoldSuccess(context, 'Achievements saved successfully!');
         Navigator.of(context).pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save achievements'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to save achievements');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving achievements: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error saving achievements: $e');
     } finally {
       setState(() {
         _isSaving = false;

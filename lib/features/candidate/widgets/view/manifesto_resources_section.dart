@@ -9,6 +9,7 @@ import 'dart:io';
 import '../../../common/whatsapp_image_viewer.dart';
 import '../../../common/reusable_video_widget.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
+import '../../../../utils/snackbar_utils.dart';
 
 class ManifestoResourcesSection extends StatelessWidget {
   final String? pdfUrl;
@@ -152,9 +153,7 @@ class ManifestoResourcesSection extends StatelessWidget {
                     ),
                     onTap: () async {
                       // Show loading before dismissing sheet
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(CandidateTranslations.tr('preparingPdfForSharing'))),
-                      );
+                      SnackbarUtils.showScaffoldInfo(context, CandidateTranslations.tr('preparingPdfForSharing'));
                       Navigator.of(context).pop();
 
                       // Continue with share after sheet is dismissed
@@ -220,18 +219,9 @@ class ManifestoResourcesSection extends StatelessWidget {
       await file.writeAsBytes(response.bodyBytes);
 
       // Show success
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(CandidateTranslations.tr('pdfDownloadedSuccessfully')),
-        ),
-      );
+      SnackbarUtils.showScaffoldSuccess(context, CandidateTranslations.tr('pdfDownloadedSuccessfully'));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${CandidateTranslations.tr('downloadFailed')} ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, '${CandidateTranslations.tr('downloadFailed')} ${e.toString()}');
     }
   }
 
@@ -276,12 +266,7 @@ class ManifestoResourcesSection extends StatelessWidget {
       });
 
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${CandidateTranslations.tr('shareFailed')} ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, '${CandidateTranslations.tr('shareFailed')} ${e.toString()}');
     }
   }
 

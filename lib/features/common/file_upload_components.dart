@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/snackbar_utils.dart';
 
 /// Reusable file upload components for candidate profile editing
 class FileUploadComponents {
@@ -84,12 +85,7 @@ class FileUploadComponents {
           else
             OutlinedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('This feature requires premium subscription'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
+                SnackbarUtils.showScaffoldInfo(context, 'This feature requires premium subscription');
               },
               icon: const Icon(Icons.lock),
               label: const Text('Premium'),
@@ -198,4 +194,3 @@ enum FileType {
   video,
   custom, // For PDF and other custom file types
 }
-

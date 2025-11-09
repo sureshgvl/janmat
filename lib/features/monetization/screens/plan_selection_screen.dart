@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/plan_card_with_validity_options.dart';
 
@@ -75,24 +76,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   void _handlePurchase(SubscriptionPlan plan, int validityDays) async {
     final currentUser = _controller.currentFirebaseUser.value;
     if (currentUser == null) {
-      Get.snackbar(
-        'Error',
-        'Please login to make a purchase',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Please login to make a purchase');
       return;
     }
 
     // Get price from plan pricing
     final price = plan.pricing[widget.electionType]?[validityDays];
     if (price == null) {
-      Get.snackbar(
-        'Error',
-        'Invalid plan configuration',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Invalid plan configuration');
       return;
     }
 
@@ -133,16 +124,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         // Close this screen
         Navigator.of(context).pop();
       } else {
-        Get.snackbar(
-          'Payment Error',
+        SnackbarUtils.showError(
           _controller.errorMessage.value.isNotEmpty
               ? _controller.errorMessage.value
               : 'Failed to initiate payment. Please try again.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
         );
       }
     }
   }
 }
-

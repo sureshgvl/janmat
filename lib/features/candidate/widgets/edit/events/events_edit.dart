@@ -8,6 +8,7 @@ import 'package:janmat/features/candidate/models/events_model.dart';
 import 'package:janmat/features/candidate/repositories/candidate_repository.dart';
 import 'package:janmat/features/candidate/widgets/event_creation_dialog.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 
@@ -110,9 +111,9 @@ class EventsTabEditState extends State<EventsTabEdit> {
         // Update controller's cache
         _controller.updateEventsCache(updatedEvents);
 
-        Get.snackbar('Success', 'Event deleted successfully');
+        SnackbarUtils.showSuccess('Event deleted successfully');
       } catch (e) {
-        Get.snackbar('Error', 'Failed to delete event: $e');
+        SnackbarUtils.showError('Failed to delete event: $e');
       }
     }
   }
@@ -374,7 +375,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      Get.snackbar('Error', 'Could not open map link');
+      SnackbarUtils.showError('Could not open map link');
     }
   }
 
@@ -398,28 +399,13 @@ class EventsTabEditState extends State<EventsTabEdit> {
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Events saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarUtils.showSuccess('Events saved successfully!');
         Navigator.of(context).pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save events'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showError('Failed to save events');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving events: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error saving events: $e');
     } finally {
       setState(() {
         _isSaving = false;

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/multi_level_cache.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -282,7 +283,7 @@ class ProfileCompletionController extends GetxController {
       AppLogger.common('✅ Successfully loaded ${states.length} states');
     } catch (e) {
       AppLogger.commonError('❌ Failed to load states', error: e);
-      Get.snackbar('Error', 'Failed to load states: $e'); // TODO: Localize this
+      SnackbarUtils.showError('Failed to load states: $e'); // TODO: Localize this
       isLoadingStates = false;
       update();
     }
@@ -398,7 +399,7 @@ class ProfileCompletionController extends GetxController {
           await Future.delayed(Duration(seconds: retryCount * 2));
         } else {
           AppLogger.commonError('❌ All retry attempts failed for loading districts');
-          Get.snackbar('Error', 'Failed to load districts after $maxRetries attempts: $e');
+          SnackbarUtils.showError('Failed to load districts after $maxRetries attempts: $e');
           isLoadingDistricts = false;
           update();
         }
@@ -479,7 +480,7 @@ class ProfileCompletionController extends GetxController {
       AppLogger.common('✅ Successfully loaded ${districtBodies[districtId]!.length} bodies for district $districtId');
     } catch (e) {
       AppLogger.commonError('❌ Failed to load bodies for district $districtId', error: e);
-      Get.snackbar('Error', 'Failed to load bodies: $e');
+      SnackbarUtils.showError('Failed to load bodies: $e');
     }
   }
 
@@ -539,7 +540,7 @@ class ProfileCompletionController extends GetxController {
       AppLogger.common('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');
     } catch (e) {
       AppLogger.commonError('❌ Failed to load wards for body $bodyId', error: e);
-      Get.snackbar('Error', 'Failed to load wards: $e');
+      SnackbarUtils.showError('Failed to load wards: $e');
     }
   }
 
@@ -872,7 +873,7 @@ class ProfileCompletionController extends GetxController {
     if (!formKey.currentState!.validate()) return false;
 
     if (selectedStateId == null || selectedDistrictId == null || selectedGender == null) {
-      Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+      SnackbarUtils.showError(localizations.pleaseFillAllRequiredFields);
       return false;
     }
 
@@ -885,7 +886,7 @@ class ProfileCompletionController extends GetxController {
 
     // Voters cannot select individual ZP or PS (must use combined)
     if (selectedElectionType == 'zilla_parishad' || selectedElectionType == 'panchayat_samiti') {
-      Get.snackbar(localizations.error, 'Voters should select ZP+PS Combined for rural elections.');
+      SnackbarUtils.showError('Voters should select ZP+PS Combined for rural elections.');
       return false;
     }
 
@@ -898,12 +899,12 @@ class ProfileCompletionController extends GetxController {
     if (selectedElectionType == 'zp_ps_combined') {
       if (selectedZPBodyId == null || selectedZPWardId == null ||
           selectedPSBodyId == null || selectedPSWardId == null) {
-        Get.snackbar(localizations.error, 'Please select ZP body, ZP ward, PS body, and PS ward');
+        SnackbarUtils.showError('Please select ZP body, ZP ward, PS body, and PS ward');
         return false;
       }
     } else {
       if (selectedBodyId == null || selectedWard == null) {
-        Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+        SnackbarUtils.showError(localizations.pleaseFillAllRequiredFields);
         return false;
       }
     }
@@ -919,7 +920,7 @@ class ProfileCompletionController extends GetxController {
         selectedWard!.areas != null &&
         selectedWard!.areas!.isNotEmpty &&
         selectedArea == null) {
-      Get.snackbar(localizations.error, localizations.selectYourArea);
+      SnackbarUtils.showError(localizations.selectYourArea);
       return false;
     }
 
@@ -932,7 +933,7 @@ class ProfileCompletionController extends GetxController {
 
     // Candidates cannot select ZP+PS combined
     if (selectedElectionType == 'zp_ps_combined') {
-      Get.snackbar(localizations.error, 'Candidates can only select one election type. ZP+PS combined is only for voters.');
+      SnackbarUtils.showError('Candidates can only select one election type. ZP+PS combined is only for voters.');
       return false;
     }
 
@@ -944,7 +945,7 @@ class ProfileCompletionController extends GetxController {
 
     // Candidates can only have regular elections
     if (selectedBodyId == null || selectedWard == null) {
-      Get.snackbar(localizations.error, localizations.pleaseFillAllRequiredFields);
+      SnackbarUtils.showError(localizations.pleaseFillAllRequiredFields);
       return false;
     }
 
@@ -956,7 +957,7 @@ class ProfileCompletionController extends GetxController {
 
     // Party selection required for candidates
     if (selectedPartyId == null) {
-      Get.snackbar(localizations.error, 'Please select your political party');
+      SnackbarUtils.showError('Please select your political party');
       return false;
     }
 
@@ -1092,7 +1093,7 @@ class ProfileCompletionController extends GetxController {
     // Get user role to determine which save method to use
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      Get.snackbar(localizations.error, 'User not authenticated');
+      SnackbarUtils.showError('User not authenticated');
       final authTime = DateTime.now().difference(startTime).inMilliseconds;
       AppLogger.common('❌ [PROFILE_COMPLETION] User not authenticated after ${authTime}ms');
       return;
@@ -1207,18 +1208,14 @@ class ProfileCompletionController extends GetxController {
 
       // Navigate and show voter success message
       Get.offAllNamed('/home');
-      Get.snackbar(
-        localizations.success,
-        localizations.profileCompleted,
-        duration: const Duration(seconds: 4),
-      );
+      SnackbarUtils.showSuccess(localizations.profileCompleted);
 
       final totalVoterTime = DateTime.now().difference(voterStartTime).inMilliseconds;
       AppLogger.common('✅ [PROFILE_COMPLETION] Voter profile save completed in ${totalVoterTime}ms');
     } catch (e) {
       final errorTime = DateTime.now().difference(voterStartTime).inMilliseconds;
       AppLogger.commonError('❌ [PROFILE_COMPLETION] Voter profile save failed after ${errorTime}ms', error: e);
-      Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
+      SnackbarUtils.showError(localizations.failedToSaveProfile(e.toString()));
     }
 
     isLoading = false;
@@ -1333,18 +1330,14 @@ class ProfileCompletionController extends GetxController {
 
       // Navigate and show candidate success message
       Get.offAllNamed('/home');
-      Get.snackbar(
-        localizations.profileCompleted,
-        localizations.profileCompletedMessage,
-        duration: const Duration(seconds: 4),
-      );
+      SnackbarUtils.showSuccess(localizations.profileCompletedMessage);
 
       final totalCandidateTime = DateTime.now().difference(candidateStartTime).inMilliseconds;
       AppLogger.common('✅ [PROFILE_COMPLETION] Candidate profile save completed in ${totalCandidateTime}ms');
     } catch (e) {
       final errorTime = DateTime.now().difference(candidateStartTime).inMilliseconds;
       AppLogger.commonError('❌ [PROFILE_COMPLETION] Candidate profile save failed after ${errorTime}ms', error: e);
-      Get.snackbar(localizations.error, localizations.failedToSaveProfile(e.toString()));
+      SnackbarUtils.showError(localizations.failedToSaveProfile(e.toString()));
     }
 
     isLoading = false;

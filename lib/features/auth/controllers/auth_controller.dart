@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../services/user_token_manager.dart';
 
 class AuthController extends GetxController {
@@ -153,7 +154,7 @@ class AuthController extends GetxController {
   // OTP LOGIN - SIMPLE
   Future<void> sendOTP() async {
     if (phoneController.text.isEmpty || phoneController.text.length != 10) {
-      Get.snackbar('Error', 'Please enter a valid 10-digit phone number');
+      SnackbarUtils.showError('Please enter a valid 10-digit phone number');
       return;
     }
 
@@ -164,14 +165,14 @@ class AuthController extends GetxController {
         isOTPScreen.value = true;
         _startOTPTimer();
         if (Get.isDialogOpen ?? false) Get.back();
-        Get.snackbar('Success', 'OTP sent to +91${phoneController.text}');
+        SnackbarUtils.showSuccess('OTP sent to +91${phoneController.text}');
       });
 
       AppLogger.auth('OTP sent successfully');
     } catch (e) {
       AppLogger.authError('SendOTP failed', error: e);
       if (Get.isDialogOpen ?? false) Get.back();
-      Get.snackbar('Error', 'Failed to send OTP: ${e.toString()}');
+      SnackbarUtils.showError('Failed to send OTP: ${e.toString()}');
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
       isLoading.value = false;
@@ -181,7 +182,7 @@ class AuthController extends GetxController {
   // VERIFY OTP AND GO HOME
   Future<void> verifyOTP() async {
     if (otpController.text.isEmpty || otpController.text.length != 6) {
-      Get.snackbar('Error', 'Please enter a valid 6-digit OTP');
+      SnackbarUtils.showError('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -195,12 +196,12 @@ class AuthController extends GetxController {
       if (userCredential.user != null) {
         AppLogger.auth('OTP login successful: ${userCredential.user!.uid}');
         await _authRepository.createOrUpdateUser(userCredential.user!);
-        Get.snackbar('Success', 'Login successful');
+        SnackbarUtils.showSuccess('Login successful');
         Get.offAllNamed('/home');
       }
     } catch (e) {
       AppLogger.authError('OTP verification failed', error: e);
-      Get.snackbar('Error', 'Invalid OTP: ${e.toString()}');
+      SnackbarUtils.showError('Invalid OTP: ${e.toString()}');
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
       isLoading.value = false;
@@ -233,13 +234,13 @@ class AuthController extends GetxController {
 
       if (userCredential == null || userCredential.user == null) {
         AppLogger.auth('⚠️ [DEBUG] User cancelled Google sign-in');
-        Get.snackbar('Cancelled', 'Google sign-in was cancelled');
+        SnackbarUtils.showError('Google sign-in was cancelled');
         return;
       }
 
       AppLogger.auth('✅ [DEBUG] Google login successful: ${userCredential.user!.uid}');
       await _authRepository.createOrUpdateUser(userCredential.user!);
-      Get.snackbar('Success', 'Google sign-in successful');
+      SnackbarUtils.showSuccess('Google sign-in successful');
       Get.offAllNamed('/home');
 
     } catch (e) {
@@ -254,14 +255,7 @@ class AuthController extends GetxController {
       if (Get.isDialogOpen ?? false) Get.back();
 
       // FORCE DISPLAY RAW ERROR - bypass all categorization
-      Get.snackbar(
-        '🔥 RAW FIREBASE ERROR',
-        'ERROR: $errorStr\nTYPE: ${e.runtimeType}',
-        duration: const Duration(seconds: 20), // Max visibility
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+      SnackbarUtils.showError('Firebase Error: $errorStr (${e.runtimeType})');
 
       AppLogger.authError('RAW ERROR DISPLAY: $errorStr (${e.runtimeType})', error: e);
     } finally {
@@ -294,14 +288,14 @@ class AuthController extends GetxController {
       _cachedAuthData = null;
 
       AppLogger.auth('✅ Unified sign-out completed successfully');
-      Get.snackbar('Success', 'Logged out successfully');
+      SnackbarUtils.showSuccess('Logged out successfully');
 
       // Step 6: Navigate to login (clears navigation stack)
       Get.offAllNamed('/login');
 
     } catch (e) {
       AppLogger.authError('Unified sign-out failed', error: e);
-      Get.snackbar('Error', 'Some logout steps failed, but you are logged out');
+      SnackbarUtils.showError('Some logout steps failed, but you are logged out');
 
       // Fallback navigation even if other cleanup fails
       try {

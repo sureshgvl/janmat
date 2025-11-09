@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../controllers/manifesto_controller.dart';
@@ -120,13 +121,7 @@ class _CandidateDashboardManifestoState
                             );
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
-                              Get.snackbar(
-                                'Error',
-                                'Failed to upload files. Please try again.',
-                                backgroundColor: Colors.red.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                              );
+                              SnackbarUtils.showError('Failed to upload files. Please try again.');
                             }
                             return;
                           }
@@ -184,14 +179,7 @@ class _CandidateDashboardManifestoState
                               );
 
                               setState(() => isEditing = false);
-                              Get.snackbar(
-                                'Success',
-                                'Manifesto updated successfully',
-                                backgroundColor: Colors.green.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                                duration: const Duration(seconds: 3),
-                              );
+                              SnackbarUtils.showSuccess('Manifesto updated successfully');
                             }
                           } else {
                             AppLogger.candidate(
@@ -203,13 +191,7 @@ class _CandidateDashboardManifestoState
                               Navigator.of(
                                 context,
                               ).pop(); // Close loading dialog
-                              Get.snackbar(
-                                'Error',
-                                'Failed to update manifesto',
-                                backgroundColor: Colors.red.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                              );
+                              SnackbarUtils.showError('Failed to update manifesto');
                             }
                           }
                         } catch (e) {
@@ -217,13 +199,7 @@ class _CandidateDashboardManifestoState
                             tag: 'DASHBOARD_SAVE_MANIFESTO', error: e);
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar(
-                              'Error',
-                              'An error occurred: $e',
-                              backgroundColor: Colors.red.shade600,
-                              colorText: Colors.white,
-                              snackPosition: SnackPosition.TOP,
-                            );
+                            SnackbarUtils.showError('An error occurred: $e');
                           }
                         } finally {
                           // Clean up the stream controller

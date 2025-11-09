@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/chat/models/poll.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../repositories/chat_repository.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -88,24 +89,14 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         setState(() {
           _isLoading = false;
         });
-        Get.snackbar(
-          'Poll Not Found',
-          'This poll could not be loaded',
-          backgroundColor: Colors.red.shade100,
-          colorText: Colors.red.shade800,
-        );
+        SnackbarUtils.showError('This poll could not be loaded');
       }
     } catch (e) {
       AppLogger.chat('❌ Error loading poll data: $e');
       setState(() {
         _isLoading = false;
       });
-      Get.snackbar(
-        'Error',
-        'Failed to load poll data: ${e.toString()}',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('Failed to load poll data: ${e.toString()}');
     }
   }
 
@@ -133,13 +124,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         }
       });
 
-      Get.snackbar(
-        'Vote Recorded!',
-        'Your vote has been recorded',
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess('Your vote has been recorded');
 
       // Call the completion callback to notify parent (chat screen) to scroll
       widget.onVoteCompleted?.call();
@@ -151,12 +136,7 @@ class PollVotingDialogState extends State<PollVotingDialog> {
         }
       });
     } catch (e) {
-      Get.snackbar(
-        'Vote Failed',
-        'Failed to record your vote. Please try again.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('Failed to record your vote. Please try again.');
     }
   }
 
@@ -452,12 +432,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
         optionControllers.add(TextEditingController());
       });
     } else {
-      Get.snackbar(
-        'Maximum Options',
-        'You can add up to 10 options',
-        backgroundColor: Colors.orange.shade100,
-        colorText: Colors.orange.shade800,
-      );
+      SnackbarUtils.showInfo('You can add up to 10 options');
     }
   }
 
@@ -468,12 +443,7 @@ class CreatePollDialogState extends State<CreatePollDialog> {
         optionControllers.removeAt(index);
       });
     } else {
-      Get.snackbar(
-        'Minimum Options',
-        'You need at least 2 options',
-        backgroundColor: Colors.orange.shade100,
-        colorText: Colors.orange.shade800,
-      );
+      SnackbarUtils.showInfo('You need at least 2 options');
     }
   }
 
@@ -677,22 +647,12 @@ class CreatePollDialogState extends State<CreatePollDialog> {
                 .toList();
 
             if (question.isEmpty) {
-              Get.snackbar(
-                localizations.error,
-                localizations.pleaseEnterPollQuestion,
-                backgroundColor: Colors.orange.shade100,
-                colorText: Colors.orange.shade800,
-              );
+              SnackbarUtils.showInfo(localizations.pleaseEnterPollQuestion);
               return;
             }
 
             if (options.length < 2) {
-              Get.snackbar(
-                localizations.error,
-                localizations.pleaseAddAtLeast2Options,
-                backgroundColor: Colors.orange.shade100,
-                colorText: Colors.orange.shade800,
-              );
+              SnackbarUtils.showInfo(localizations.pleaseAddAtLeast2Options);
               return;
             }
 
@@ -712,4 +672,3 @@ class CreatePollDialogState extends State<CreatePollDialog> {
     );
   }
 }
-

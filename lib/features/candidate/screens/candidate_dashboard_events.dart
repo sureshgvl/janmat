@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../controllers/events_controller.dart';
 import '../../monetization/services/plan_service.dart';
@@ -122,25 +123,20 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                                 context,
                               ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar(
-                                'Success',
-                                'Events updated successfully',
-                                backgroundColor: Colors.green,
-                                colorText: Colors.white,
-                              );
+                              SnackbarUtils.showSuccess('Events updated successfully');
                             }
                           } else {
                             if (context.mounted) {
                               Navigator.of(
                                 context,
                               ).pop(); // Close loading dialog
-                              Get.snackbar('Error', 'Failed to update events');
+                              SnackbarUtils.showError('Failed to update events');
                             }
                           }
                         } catch (e) {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar('Error', 'An error occurred: $e');
+                            SnackbarUtils.showError('An error occurred: $e');
                           }
                         } finally {
                           // Clean up the stream controller

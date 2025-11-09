@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:janmat/features/user/models/user_model.dart';
+import '../../../utils/snackbar_utils.dart';
 import 'message_controller.dart';
 import 'room_controller.dart';
 import '../models/chat_message.dart';
@@ -338,12 +339,7 @@ class ChatController extends GetxController {
             TextButton(
               onPressed: () {
                 Get.back();
-                Get.snackbar(
-                  'Cancelled',
-                  'Ad loading cancelled',
-                  backgroundColor: Colors.grey.shade100,
-                  colorText: Colors.grey.shade800,
-                );
+                SnackbarUtils.showInfo('Ad loading cancelled');
               },
               child: const Text('Cancel'),
             ),
@@ -372,13 +368,7 @@ class ChatController extends GetxController {
 
       if (!adMobService.isAdAvailable) {
         AppLogger.ui('Ad still not ready after waiting', tag: 'CHAT');
-        Get.snackbar(
-          'Ad Not Ready',
-          'Ad failed to load. Please check your internet connection and try again.',
-          backgroundColor: Colors.orange.shade100,
-          colorText: Colors.orange.shade800,
-          duration: const Duration(seconds: 4),
-        );
+        SnackbarUtils.showWarning('Ad failed to load. Please check your internet connection and try again.');
         return;
       }
     }
@@ -462,21 +452,9 @@ class ChatController extends GetxController {
         final awardSuccess = await _awardExtraMessagesFromAd(10);
 
         if (awardSuccess) {
-          Get.snackbar(
-            '🎉 Reward Earned!',
-            'You earned 10 extra messages for watching the ad!',
-            backgroundColor: Colors.green.shade100,
-            colorText: Colors.green.shade800,
-            duration: const Duration(seconds: 4),
-          );
+          SnackbarUtils.showSuccess('You earned 10 extra messages for watching the ad!');
         } else {
-          Get.snackbar(
-            'Reward Error',
-            'Ad was watched but failed to award extra messages. Please contact support.',
-            backgroundColor: Colors.red.shade100,
-            colorText: Colors.red.shade800,
-            duration: const Duration(seconds: 4),
-          );
+          SnackbarUtils.showError('Ad was watched but failed to award extra messages. Please contact support.');
         }
       } else {
         AppLogger.ui(
@@ -490,22 +468,10 @@ class ChatController extends GetxController {
           final awardSuccess = await _awardExtraMessagesFromAd(10);
 
           if (awardSuccess) {
-            Get.snackbar(
-              '🎉 Test Reward Earned!',
-              'You earned 10 extra messages (test mode)!',
-              backgroundColor: Colors.blue.shade100,
-              colorText: Colors.blue.shade800,
-              duration: const Duration(seconds: 4),
-            );
+            SnackbarUtils.showSuccess('You earned 10 extra messages (test mode)!');
           }
         } else {
-          Get.snackbar(
-            'No Reward',
-            'Ad was shown but no reward was earned. Please try again.',
-            backgroundColor: Colors.orange.shade100,
-            colorText: Colors.orange.shade800,
-            duration: const Duration(seconds: 3),
-          );
+          SnackbarUtils.showWarning('Ad was shown but no reward was earned. Please try again.');
         }
       }
     } catch (e) {
@@ -516,13 +482,7 @@ class ChatController extends GetxController {
         Get.back();
       }
 
-      Get.snackbar(
-        'Ad Error',
-        'Failed to show ad. Please try again later.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Failed to show ad. Please try again later.');
     }
   }
 
@@ -732,13 +692,7 @@ class ChatController extends GetxController {
 
     // Check if user can send message
     if (!canSendMessage) {
-      Get.snackbar(
-        'Cannot Send Message',
-        'You have no remaining messages. Watch a rewarded ad to get 10 extra messages.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 4),
-      );
+      SnackbarUtils.showError('You have no remaining messages. Watch a rewarded ad to get 10 extra messages.');
       return;
     }
 
@@ -815,13 +769,7 @@ class ChatController extends GetxController {
         MessageStatus.failed,
       );
 
-      Get.snackbar(
-        'Message Failed',
-        'Failed to send message. Please try again.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Failed to send message. Please try again.');
     }
   }
 
@@ -886,25 +834,13 @@ class ChatController extends GetxController {
 
     if (user == null || room == null) {
       AppLogger.ui('Cannot create poll: user or room is null', tag: 'CHAT');
-      Get.snackbar(
-        'Cannot Create Poll',
-        'Please select a chat room first.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Please select a chat room first.');
       return;
     }
 
     if (question.trim().isEmpty || options.length < 2) {
       AppLogger.ui('Cannot create poll: invalid question or options', tag: 'CHAT');
-      Get.snackbar(
-        'Invalid Poll',
-        'Please provide a question and at least 2 options.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Please provide a question and at least 2 options.');
       return;
     }
 
@@ -962,22 +898,10 @@ class ChatController extends GetxController {
         // Don't fail the poll creation if notifications fail
       }
 
-      Get.snackbar(
-        'Poll Created',
-        'Your poll has been created successfully!',
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showSuccess('Your poll has been created successfully!');
     } catch (e) {
       AppLogger.ui('Failed to create poll: $e', tag: 'CHAT');
-      Get.snackbar(
-        'Poll Creation Failed',
-        'Failed to create poll. Please try again.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Failed to create poll. Please try again.');
     }
   }
 
@@ -1042,13 +966,7 @@ class ChatController extends GetxController {
       AppLogger.ui('Reaction added: $emoji to message $messageId in room ${room.roomId}', tag: 'CHAT');
     } catch (e) {
       AppLogger.ui('Failed to add reaction: $e', tag: 'CHAT');
-      Get.snackbar(
-        'Reaction Failed',
-        'Failed to add reaction. Please try again.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Failed to add reaction. Please try again.');
     }
   }
 
@@ -1073,22 +991,10 @@ class ChatController extends GetxController {
 
     try {
       await _repository.reportMessage(room.roomId, messageId, _cachedUser?.uid ?? '', reason);
-      Get.snackbar(
-        'Message Reported',
-        'Thank you for your report. We will review it.',
-        backgroundColor: Colors.blue.shade100,
-        colorText: Colors.blue.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showInfo('Thank you for your report. We will review it.');
     } catch (e) {
       AppLogger.ui('Failed to report message: $e', tag: 'CHAT');
-      Get.snackbar(
-        'Report Failed',
-        'Failed to report message. Please try again.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Failed to report message. Please try again.');
     }
   }
 
@@ -1101,22 +1007,10 @@ class ChatController extends GetxController {
 
     try {
       await _repository.deleteMessage(room.roomId, messageId);
-      Get.snackbar(
-        'Message Deleted',
-        'Message has been deleted successfully.',
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showSuccess('Message has been deleted successfully.');
     } catch (e) {
       AppLogger.ui('Failed to delete message: $e', tag: 'CHAT');
-      Get.snackbar(
-        'Delete Failed',
-        'Failed to delete message. Please try again.',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showError('Failed to delete message. Please try again.');
     }
   }
 
@@ -1126,12 +1020,6 @@ class ChatController extends GetxController {
   void forceReloadAds() {
     final adMobService = Get.find<AdMobService>();
     adMobService.reloadRewardedAd();
-    Get.snackbar(
-      'Ads Reloaded',
-      'Rewarded ads have been reloaded. Try watching an ad again.',
-      backgroundColor: Colors.blue.shade100,
-      colorText: Colors.blue.shade800,
-      duration: const Duration(seconds: 3),
-    );
+    SnackbarUtils.showInfo('Rewarded ads have been reloaded. Try watching an ad again.');
   }
 }

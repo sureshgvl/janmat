@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/snackbar_utils.dart';
 
 /// Reusable video player widget with WhatsApp-style UI
 class ReusableVideoWidget extends StatefulWidget {
@@ -117,12 +118,7 @@ class _ReusableVideoWidgetState extends State<ReusableVideoWidget> {
           _isLoading = false;
           _hasError = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load video: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to load video: ${e.toString()}');
       }
     }
   }

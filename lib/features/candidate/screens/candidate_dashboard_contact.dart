@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/contact/contact_edit.dart';
 import '../../../widgets/loading_overlay.dart';
@@ -83,25 +84,20 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                                 context,
                               ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar(
-                                'Success',
-                                'Contact updated successfully',
-                                backgroundColor: Colors.green,
-                                colorText: Colors.white,
-                              );
+                              SnackbarUtils.showSuccess('Contact updated successfully');
                             }
                           } else {
                             if (context.mounted) {
                               Navigator.of(
                                 context,
                               ).pop(); // Close loading dialog
-                              Get.snackbar('Error', 'Failed to update contact');
+                              SnackbarUtils.showError('Failed to update contact');
                             }
                           }
                         } catch (e) {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar('Error', 'An error occurred: $e');
+                            SnackbarUtils.showError('An error occurred: $e');
                           }
                         } finally {
                           // Clean up the stream controller

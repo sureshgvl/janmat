@@ -13,6 +13,7 @@ import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/l10n/app_localizations.dart';
 import 'package:janmat/services/video_processing_service.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 
 class ManifestoTabEdit extends StatefulWidget {
@@ -227,9 +228,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
           AppLogger.candidate('✅ [Sequential Upload] $type uploaded successfully');
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$type uploaded and ready!'), backgroundColor: Colors.green),
-            );
+            SnackbarUtils.showSuccess('$type uploaded and ready!');
           }
         } else {
           AppLogger.candidate('❌ [Sequential Upload] Failed to upload $type, skipping');
@@ -251,12 +250,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     } else {
       AppLogger.candidate('⚠️ [Sequential Upload] No files were successfully uploaded');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No files were uploaded successfully. Please try again.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        SnackbarUtils.showWarning('No files were uploaded successfully. Please try again.');
       }
     }
   }
@@ -266,9 +260,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       final videoService = VideoProcessingService();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Processing premium video with multi-resolution optimization...'), backgroundColor: Colors.purple),
-        );
+        SnackbarUtils.showInfo('Processing premium video with multi-resolution optimization...');
       }
 
       final processedVideo = await videoService.uploadAndProcessVideo(
@@ -279,12 +271,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       AppLogger.candidate('🎥 [Cloudinary Success] Video processed successfully');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Premium video processed and optimized! Available in ${processedVideo.resolutions.length} resolutions.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarUtils.showSuccess('Premium video processed and optimized! Available in ${processedVideo.resolutions.length} resolutions.');
       }
 
       return processedVideo.originalUrl;
@@ -364,17 +351,13 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       } else {
         AppLogger.candidate('❌ [Batch URL Update] Failed to update manifesto URLs');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Files uploaded but failed to save URLs'), backgroundColor: Colors.red),
-          );
+          SnackbarUtils.showError('Files uploaded but failed to save URLs');
         }
       }
     } catch (e) {
       AppLogger.candidateError('❌ [Batch URL Update] Exception: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving file URLs: $e'), backgroundColor: Colors.red),
-        );
+        SnackbarUtils.showError('Error saving file URLs: $e');
       }
     }
   }
@@ -562,9 +545,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     } catch (e) {
       AppLogger.candidate('❌ [DeleteFileOnly] Failed to delete $type file: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete $type file from storage. File may still exist.'), backgroundColor: Colors.orange),
-        );
+        SnackbarUtils.showWarning('Failed to delete $type file from storage. File may still exist.');
       }
       // Re-throw to maintain error propagation
       rethrow;
@@ -582,9 +563,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     } catch (e) {
       AppLogger.candidate('❌ [DeleteFile] Failed to delete $type file: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete $type file. It may still be referenced in your manifesto.'), backgroundColor: Colors.orange),
-        );
+        SnackbarUtils.showWarning('Failed to delete $type file. It may still be referenced in your manifesto.');
       }
     }
   }
@@ -649,9 +628,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
       AppLogger.candidate('✅ [Storage Delete] Successfully deleted $fileType from Firebase Storage');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$fileType deleted successfully from storage'), backgroundColor: Colors.green),
-        );
+        SnackbarUtils.showSuccess('$fileType deleted successfully from storage');
       }
     } catch (e) {
       String errorDetails = e.toString().toLowerCase();
@@ -661,31 +638,23 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         AppLogger.candidate('⚠️ [Storage Delete] $fileType file already deleted or never existed: $e');
         // This is actually okay - the file is already gone
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$fileType already removed from storage'), backgroundColor: Colors.blue),
-          );
+          SnackbarUtils.showInfo('$fileType already removed from storage');
         }
       } else if (errorDetails.contains('permission') || errorDetails.contains('unauthorized') ||
                  errorDetails.contains('forbidden') || errorDetails.contains('403')) {
         AppLogger.candidateError('🚫 [Storage Delete] Permission denied deleting $fileType: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Permission denied: cannot delete $fileType from storage'), backgroundColor: Colors.red),
-          );
+          SnackbarUtils.showError('Permission denied: cannot delete $fileType from storage');
         }
       } else if (errorDetails.contains('invalid') || errorDetails.contains('malformed')) {
         AppLogger.candidateError('❌ [Storage Delete] Invalid URL format for $fileType: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Invalid storage URL format for $fileType'), backgroundColor: Colors.red),
-          );
+          SnackbarUtils.showError('Invalid storage URL format for $fileType');
         }
       } else {
         AppLogger.candidateError('❌ [Storage Delete] Unknown error deleting $fileType from storage: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete $fileType from storage: ${e.toString()}'), backgroundColor: Colors.red),
-          );
+          SnackbarUtils.showError('Failed to delete $fileType from storage: ${e.toString()}');
         }
       }
 
@@ -893,9 +862,7 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
         setState(() => _filesMarkedForDeletion[type] = true);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(snackBarMessage), backgroundColor: Colors.orange),
-          );
+          SnackbarUtils.showWarning(snackBarMessage);
         }
       }
     } else {

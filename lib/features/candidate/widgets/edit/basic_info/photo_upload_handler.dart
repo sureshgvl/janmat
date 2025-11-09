@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../../utils/app_logger.dart';
+import '../../../../../utils/snackbar_utils.dart';
 
 /// PhotoUploadHandler - Handles photo upload functionality
 /// Follows Single Responsibility Principle: Only handles photo operations
@@ -110,20 +111,10 @@ class PhotoUploadHandler {
   }
 
   void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    SnackbarUtils.showScaffoldError(context, message);
   }
 
   void _showSuccessSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
+    SnackbarUtils.showScaffoldSuccess(context, message);
   }
 }

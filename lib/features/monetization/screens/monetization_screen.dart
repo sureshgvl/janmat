@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/premium_plans_tab.dart';
 import '../utils/purchase_handlers.dart';
@@ -126,21 +127,10 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
       await _loadUserData();
 
       AppLogger.monetization('✅ REFRESH COMPLETED SUCCESSFULLY');
-      Get.snackbar(
-        'Success',
-        'Premium plans refreshed successfully!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showSuccess('Premium plans refreshed successfully!');
     } catch (e) {
       AppLogger.monetization('❌ REFRESH FAILED: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to refresh plans: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Failed to refresh plans: $e');
     }
   }
 }
-

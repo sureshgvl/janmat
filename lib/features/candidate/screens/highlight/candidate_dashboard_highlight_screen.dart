@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/candidate/controllers/highlights_controller.dart';
 import 'package:janmat/widgets/loading_overlay.dart';
+import '../../../../utils/snackbar_utils.dart';
 import '../../controllers/candidate_user_controller.dart';
 import 'highlight_tab_widget.dart';
 
@@ -116,23 +117,18 @@ class _CandidateDashboardHighlightState
 
                   if (context.mounted) {
                     Navigator.of(context).pop(); // Close loading dialog
-                    Get.snackbar(
-                      'Success',
-                      'Highlight updated successfully',
-                      backgroundColor: Colors.green.shade100,
-                      colorText: Colors.green.shade800,
-                    );
+                    SnackbarUtils.showSuccess('Highlight updated successfully');
                   }
                 } else {
                   if (context.mounted) {
                     Navigator.of(context).pop(); // Close loading dialog
-                    Get.snackbar('Error', 'Failed to update highlight');
+                    SnackbarUtils.showError('Failed to update highlight');
                   }
                 }
               } catch (e) {
                 if (context.mounted) {
                   Navigator.of(context).pop(); // Close loading dialog
-                  Get.snackbar('Error', 'An error occurred: $e');
+                  SnackbarUtils.showError('An error occurred: $e');
                 }
               } finally {
                 await messageController.close();

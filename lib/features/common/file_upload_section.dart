@@ -5,10 +5,28 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/snackbar_utils.dart';
 import '../candidate/models/candidate_model.dart';
 import '../monetization/services/plan_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/features/candidate/candidate_localizations.dart';
+
+// File size validation result class
+class FileSizeValidation {
+  final bool isValid;
+  final double fileSizeMB;
+  final String message;
+  final String? recommendation;
+  final bool warning;
+
+  FileSizeValidation({
+    required this.isValid,
+    required this.fileSizeMB,
+    required this.message,
+    this.recommendation,
+    this.warning = false,
+  });
+}
 
 class FileUploadSection extends StatefulWidget {
   final Candidate candidateData;
@@ -79,13 +97,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         AppLogger.candidate(
           '📄 [PDF Upload] File too large: ${fileSizeMB.toStringAsFixed(1)}MB > 20MB limit',
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-            ),
-            backgroundColor: Colors.orange,
-          ),
+        SnackbarUtils.showScaffoldWarning(
+          context,
+          'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
         );
         setState(() {
           _isUploadingPdf = false;
@@ -139,22 +153,13 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       AppLogger.candidate('📄 [PDF Upload] PDF saved locally and added to display list');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'PDF selected and ready for upload. Press Save to upload to server.',
-          ),
-          backgroundColor: Colors.blue,
-        ),
+      SnackbarUtils.showScaffoldInfo(
+        context,
+        'PDF selected and ready for upload. Press Save to upload to server.',
       );
     } catch (e) {
       AppLogger.candidate('📄 [PDF Upload] Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to select PDF: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Failed to select PDF: ${e.toString()}');
     } finally {
       setState(() {
         _isUploadingPdf = false;
@@ -211,13 +216,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       if (!validation.isValid) {
         AppLogger.candidate('🖼️ [Image Upload] File too large after optimization');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(validation.message),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, validation.message);
         setState(() {
           _isUploadingImage = false;
         });
@@ -274,22 +273,13 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         '🖼️ [Image Upload] Optimized image saved locally and added to display list',
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
-          ),
-          backgroundColor: Colors.blue,
-        ),
+      SnackbarUtils.showScaffoldInfo(
+        context,
+        'Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
       );
     } catch (e) {
       AppLogger.candidate('🖼️ [Image Upload] Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to select image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Failed to select image: ${e.toString()}');
     } finally {
       setState(() {
         _isUploadingImage = false;
@@ -311,18 +301,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         if (!canUploadVideo) {
           // Show upgrade message using snackbar
           final candidateLocalizations = CandidateLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(candidateLocalizations?.translate('videoUploadNotAvailableMessage') ?? 'Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.'),
-              action: SnackBarAction(
-                label: candidateLocalizations?.translate('upgradeToGold') ?? 'Upgrade to Gold',
-                onPressed: () {
-                  // TODO: Navigate to monetization screen
-                  // Get.to(() => const MonetizationScreen());
-                },
-              ),
-              duration: const Duration(seconds: 5),
-            ),
+          SnackbarUtils.showScaffoldWarning(
+            context,
+            candidateLocalizations?.translate('videoUploadNotAvailableMessage') ?? 'Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.',
           );
           return;
         }
@@ -362,13 +343,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       if (!validation.isValid) {
         AppLogger.candidate('🎥 [Video Upload] File too large');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(validation.message),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, validation.message);
         setState(() {
           _isUploadingVideo = false;
         });
@@ -424,22 +399,10 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         '🎥 [Video Upload] Video saved locally and added to display list',
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
-          ),
-          backgroundColor: Colors.blue,
-        ),
-      );
+      SnackbarUtils.showScaffoldInfo(context, 'Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.');
     } catch (e) {
       AppLogger.candidate('🎥 [Video Upload] Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to select video: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Failed to select video: ${e.toString()}');
     } finally {
       setState(() {
         _isUploadingVideo = false;
@@ -648,11 +611,12 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         recommendation: null,
       );
     } catch (e) {
+      AppLogger.candidate('📏 [File Size Validation] Error: $e');
       return FileSizeValidation(
         isValid: false,
-        fileSizeMB: 0,
-        message: 'Unable to validate file size: $e',
-        recommendation: 'Please try again or choose a different file.',
+        fileSizeMB: 0.0,
+        message: 'Failed to validate file size: ${e.toString()}',
+        recommendation: 'Please try selecting the file again.',
       );
     }
   }
@@ -1120,14 +1084,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                               widget.onLocalFilesUpdate(_localFiles);
                               // Clean up the local file
                               _cleanupLocalFile(localPath);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    '$fileName removed from upload queue',
-                                  ),
-                                  backgroundColor: Colors.blue,
-                                ),
-                              );
+                              SnackbarUtils.showScaffoldInfo(context, '$fileName removed from upload queue');
                             },
                             tooltip: 'Remove from upload queue',
                           ),
@@ -1143,21 +1100,4 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       ],
     );
   }
-}
-
-// File size validation result class
-class FileSizeValidation {
-  final bool isValid;
-  final double fileSizeMB;
-  final String message;
-  final String? recommendation;
-  final bool warning;
-
-  FileSizeValidation({
-    required this.isValid,
-    required this.fileSizeMB,
-    required this.message,
-    this.recommendation,
-    this.warning = false,
-  });
 }

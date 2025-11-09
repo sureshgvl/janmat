@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_controller.dart';
 
 class NotificationSettingsDialog extends StatefulWidget {
@@ -86,23 +87,11 @@ class _NotificationSettingsDialogState
                       notificationsEnabled,
                     );
 
-                    Get.snackbar(
-                      'Success',
-                      'Notification settings updated',
-                      snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: Colors.green,
-                      colorText: Colors.white,
-                    );
+                    SnackbarUtils.showSuccess('Notification settings updated');
 
                     Navigator.of(context).pop();
                   } catch (e) {
-                    Get.snackbar(
-                      'Error',
-                      'Failed to update settings: $e',
-                      snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                    );
+                    SnackbarUtils.showError('Failed to update settings: $e');
                   }
 
                   setState(() {
@@ -124,4 +113,3 @@ class _NotificationSettingsDialogState
     );
   }
 }
-

@@ -9,6 +9,7 @@ import '../../../../../services/share_service.dart';
 import '../../../../../models/district_model.dart';
 import '../../../../../models/ward_model.dart';
 import '../../../../../utils/app_logger.dart';
+import '../../../../../utils/snackbar_utils.dart';
 
 class ProfileTabView extends StatefulWidget {
   final Candidate candidate;
@@ -165,34 +166,17 @@ class _ProfileTabViewState extends State<ProfileTabView>
       _profileLikes += _isProfileLiked ? 1 : -1;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isProfileLiked
-            ? AppLocalizations.of(context)!.profileLiked
-            : AppLocalizations.of(context)!.profileUnliked),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    SnackbarUtils.showScaffoldInfo(context, _isProfileLiked
+        ? AppLocalizations.of(context)!.profileLiked
+        : AppLocalizations.of(context)!.profileUnliked);
   }
 
   void _shareProfile() async {
     try {
       await ShareService.shareCandidateProfile(widget.candidate);
-      Get.snackbar(
-        'share'.tr,
-        'Profile shared successfully!',
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-      );
+      SnackbarUtils.showSuccess('Profile shared successfully!');
     } catch (e) {
-      Get.snackbar(
-        'share'.tr,
-        'Failed to share profile. Please try again.',
-        duration: const Duration(seconds: 3),
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('Failed to share profile. Please try again.');
     }
   }
 

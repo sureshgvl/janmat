@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../services/language_service.dart';
 
 class LanguageController extends GetxController {
@@ -40,25 +41,12 @@ class LanguageController extends GetxController {
       print('⚡ MaterialApp rebuilds instantly (no app restart needed)');
 
       // Show brief success message
-      Get.snackbar(
-        'Language Changed',
-        languageCode == 'en' ? 'Switched to English' : 'मराठीमध्ये बदलले',
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        icon: const Icon(Icons.language, color: Colors.green),
-      );
+      SnackbarUtils.showSuccess(languageCode == 'en' ? 'Switched to English' : 'मराठीमध्ये बदलले');
 
       return true;
     } catch (e) {
       print('❌ Language change failed: $e');
-      Get.snackbar(
-        'Error',
-        languageCode == 'en' ? 'Failed to change language' : 'भाषा बदलण्यात अयशस्वी',
-        duration: const Duration(seconds: 3),
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError(languageCode == 'en' ? 'Failed to change language' : 'भाषा बदलण्यात अयशस्वी');
       return false;
     }
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../common/confirmation_dialog.dart';
 
@@ -54,13 +55,7 @@ class HomeActions {
 
       // Show success message after navigation using WidgetsBinding to ensure context is ready
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar(
-          localizations.success,
-          localizations.accountDeletedSuccessfully,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showSuccess(localizations.accountDeletedSuccessfully);
       });
     } catch (e) {
       // Note: Dialog will be automatically dismissed by Get.offAllNamed clearing all routes
@@ -70,13 +65,7 @@ class HomeActions {
           !e.toString().contains('failed-precondition') &&
           !e.toString().contains('permission-denied')) {
         // Show error message immediately since we're not navigating
-        Get.snackbar(
-          localizations.error,
-          localizations.failedToDeleteAccount(e.toString()),
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 5),
-        );
+        SnackbarUtils.showError(localizations.failedToDeleteAccount(e.toString()));
       } else {
         // For expected errors, still show success since account was deleted
         // Navigate first, then show success message to avoid context issues
@@ -84,16 +73,9 @@ class HomeActions {
 
         // Show success message after navigation using WidgetsBinding to ensure context is ready
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Get.snackbar(
-            localizations.success,
-            localizations.accountDeletedSuccessfully,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 3),
-          );
+          SnackbarUtils.showSuccess(localizations.accountDeletedSuccessfully);
         });
       }
     }
   }
 }
-

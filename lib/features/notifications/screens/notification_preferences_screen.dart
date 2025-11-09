@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../notificationSetting/controller/notification_settings_controller.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../l10n/features/notifications/notifications_localizations.dart';
 
 class NotificationPreferencesScreen extends StatefulWidget {
@@ -383,11 +384,7 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
             onPressed: () async {
               Get.back();
               await controller.resetToDefaults();
-              Get.snackbar(
-                NotificationsLocalizations.of(Get.context!)?.translate('success') ?? 'Success',
-                NotificationsLocalizations.of(Get.context!)?.translate('settingsResetToDefaults') ?? 'Settings reset to defaults',
-                snackPosition: SnackPosition.BOTTOM,
-              );
+              SnackbarUtils.showSuccess(NotificationsLocalizations.of(Get.context!)?.translate('settingsResetToDefaults') ?? 'Settings reset to defaults');
             },
             child: Text(NotificationsLocalizations.of(Get.context!)?.translate('resetToDefaults') ?? 'Reset', style: TextStyle(color: Colors.red)),
           ),

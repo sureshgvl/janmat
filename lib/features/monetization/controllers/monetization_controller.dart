@@ -7,6 +7,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/plan_model.dart';
 import '../../../models/body_model.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
 import '../../highlight/controller/highlight_controller.dart' as hc;
@@ -487,14 +488,7 @@ class MonetizationController extends GetxController {
       // Check if using mock payment or real Razorpay
       if (useMockPayment.value) {
         // Show payment processing message
-        Get.snackbar(
-          'Processing Payment',
-          'Please wait while we process your payment...',
-          backgroundColor: Colors.blue,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
-          showProgressIndicator: true,
-        );
+        SnackbarUtils.showInfo('Please wait while we process your payment...');
 
         // Simulate payment processing time
         await Future.delayed(const Duration(seconds: 3));
@@ -585,14 +579,7 @@ class MonetizationController extends GetxController {
       // Check if using mock payment or real Razorpay
       if (useMockPayment.value) {
         // Show payment processing message
-        Get.snackbar(
-          'Processing Payment',
-          'Please wait while we process your payment...',
-          backgroundColor: Colors.blue,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
-          showProgressIndicator: true,
-        );
+        SnackbarUtils.showInfo('Please wait while we process your payment...');
 
         // Simulate payment processing time
         await Future.delayed(const Duration(seconds: 3));
@@ -661,24 +648,14 @@ class MonetizationController extends GetxController {
       }
     }
 
-    Get.snackbar(
-      'Success',
-      'Payment completed successfully!',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
+    SnackbarUtils.showSuccess('Payment completed successfully!');
   }
 
   // Handle payment error
   void handlePaymentError(PaymentFailureResponse response) {
     errorMessage.value = response.message ?? 'Payment failed';
 
-    Get.snackbar(
-      'Payment Failed',
-      response.message ?? 'Unknown error occurred',
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
+    SnackbarUtils.showError(response.message ?? 'Unknown error occurred');
   }
 
   // Handle mock payment success
@@ -695,13 +672,7 @@ class MonetizationController extends GetxController {
       _completePurchaseAfterPayment(currentUser.uid, planId);
     }
 
-    Get.snackbar(
-      'Payment Successful!',
-      'Your payment has been processed successfully.',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-    );
+    SnackbarUtils.showSuccess('Your payment has been processed successfully.');
   }
 
   // Handle mock payment success with election data
@@ -725,13 +696,7 @@ class MonetizationController extends GetxController {
       );
     }
 
-    Get.snackbar(
-      'Payment Successful!',
-      'Your payment has been processed successfully.',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-    );
+    SnackbarUtils.showSuccess('Your payment has been processed successfully.');
   }
 
   // Complete purchase after successful payment
@@ -1374,13 +1339,7 @@ class MonetizationController extends GetxController {
     update();
 
     // Show expiration notification
-    Get.snackbar(
-      '$planType Expired',
-      message,
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 5),
-    );
+    SnackbarUtils.showWarning('$planType Expired: $message');
   }
 
   void _checkForUpcomingExpiries(UserModel user) {
@@ -1391,13 +1350,7 @@ class MonetizationController extends GetxController {
     if (user.subscriptionExpiresAt != null && user.premium == true) {
       final daysUntilExpiry = user.subscriptionExpiresAt!.difference(now).inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
-        Get.snackbar(
-          'Plan Expiring Soon',
-          'Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.',
-          backgroundColor: Colors.amber,
-          colorText: Colors.black,
-          duration: const Duration(seconds: 4),
-        );
+        SnackbarUtils.showWarning('Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.');
       }
     }
 
@@ -1405,13 +1358,7 @@ class MonetizationController extends GetxController {
     if (user.highlightPlanExpiresAt != null && user.highlightPlanId != null) {
       final daysUntilExpiry = user.highlightPlanExpiresAt!.difference(now).inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
-        Get.snackbar(
-          'Highlight Banner Expiring',
-          'Your highlight banner expires in $daysUntilExpiry days.',
-          backgroundColor: Colors.amber,
-          colorText: Colors.black,
-          duration: const Duration(seconds: 4),
-        );
+        SnackbarUtils.showWarning('Your highlight banner expires in $daysUntilExpiry days.');
       }
     }
 
@@ -1419,13 +1366,7 @@ class MonetizationController extends GetxController {
     if (user.carouselPlanExpiresAt != null && user.carouselPlanId != null) {
       final daysUntilExpiry = user.carouselPlanExpiresAt!.difference(now).inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
-        Get.snackbar(
-          'Carousel Plan Expiring',
-          'Your carousel plan expires in $daysUntilExpiry days.',
-          backgroundColor: Colors.amber,
-          colorText: Colors.black,
-          duration: const Duration(seconds: 4),
-        );
+        SnackbarUtils.showWarning('Your carousel plan expires in $daysUntilExpiry days.');
       }
     }
   }

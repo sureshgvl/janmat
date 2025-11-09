@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../../utils/snackbar_utils.dart';
 
 /// WhatsApp-style full-screen image viewer with interactive features
 class WhatsAppImageViewer extends StatefulWidget {
@@ -67,12 +68,7 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
   Future<void> _shareImage() async {
     try {
       // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preparing image for sharing...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      SnackbarUtils.showScaffoldInfo(context, 'Preparing image for sharing...');
 
       // Download the image to a temporary file
       final response = await http.get(Uri.parse(widget.imageUrl));
@@ -101,12 +97,7 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
       }
 
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to share image: ${e.toString()}'),
-          backgroundColor: Colors.red.shade800,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Failed to share image: ${e.toString()}');
     }
   }
 
@@ -330,4 +321,3 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
     );
   }
 }
-

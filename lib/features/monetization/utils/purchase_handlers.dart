@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../models/plan_model.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/monetization_controller.dart';
 
 class PurchaseHandlers {
@@ -24,12 +25,7 @@ class PurchaseHandlers {
   Future<void> handlePurchase(BuildContext context, SubscriptionPlan plan) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      Get.snackbar(
-        'Error',
-        'Please login to make a purchase',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Please login to make a purchase');
       return;
     }
 
@@ -65,13 +61,10 @@ class PurchaseHandlers {
         // Payment initiated successfully - result will be handled by callbacks
         AppLogger.monetization('✅ Payment process initiated successfully');
       } else {
-        Get.snackbar(
-          'Payment Error',
+        SnackbarUtils.showError(
           _controller.errorMessage.value.isNotEmpty
               ? _controller.errorMessage.value
               : 'Failed to initiate payment. Please try again.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
         );
       }
     }
@@ -80,24 +73,14 @@ class PurchaseHandlers {
   Future<void> handlePurchaseWithValidity(BuildContext context, SubscriptionPlan plan, int validityDays) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      Get.snackbar(
-        'Error',
-        'Please login to make a purchase',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Please login to make a purchase');
       return;
     }
 
     // Get price from plan pricing
     final price = plan.pricing[_userElectionType]?[validityDays];
     if (price == null) {
-      Get.snackbar(
-        'Error',
-        'Invalid plan configuration',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Invalid plan configuration');
       return;
     }
 
@@ -137,16 +120,12 @@ class PurchaseHandlers {
         // Payment initiated successfully - result will be handled by callbacks
         AppLogger.monetization('✅ Payment process initiated successfully');
       } else {
-        Get.snackbar(
-          'Payment Error',
+        SnackbarUtils.showError(
           _controller.errorMessage.value.isNotEmpty
               ? _controller.errorMessage.value
               : 'Failed to initiate payment. Please try again.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
         );
       }
     }
   }
 }
-

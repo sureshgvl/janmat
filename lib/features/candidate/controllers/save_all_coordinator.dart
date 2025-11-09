@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/loading_overlay.dart';
 import '../models/candidate_model.dart';
 import '../models/achievements_model.dart';
@@ -110,7 +111,7 @@ class SaveAllCoordinator extends GetxController {
 
     final candidate = _candidateController.candidateData.value;
     if (candidate == null) {
-      Get.snackbar('Error', 'No candidate data available');
+      SnackbarUtils.showError('No candidate data available');
       return false;
     }
 
@@ -157,13 +158,7 @@ class SaveAllCoordinator extends GetxController {
           Navigator.of(context).pop(); // Close the loading dialog
         }
 
-        Get.snackbar(
-          'Success',
-          'All changes saved successfully',
-          backgroundColor: Colors.green.shade600,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showSuccess('All changes saved successfully');
 
         // Reset unsaved changes tracking
         hasUnsavedChanges.value = false;
@@ -175,13 +170,7 @@ class SaveAllCoordinator extends GetxController {
           Navigator.of(context).pop(); // Close the loading dialog
         }
 
-        Get.snackbar(
-          'Partial Success',
-          'Some sections saved, others failed. Check details.',
-          backgroundColor: Colors.orange.shade600,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 4),
-        );
+        SnackbarUtils.showWarning('Some sections saved, others failed. Check details.');
       }
 
       // Close dialog and cleanup
@@ -192,13 +181,7 @@ class SaveAllCoordinator extends GetxController {
     } catch (e, stackTrace) {
       AppLogger.candidateError('SaveAll: Critical error during save operation', error: e, stackTrace: stackTrace);
 
-      Get.snackbar(
-        'Error',
-        'Failed to save changes: $e',
-        backgroundColor: Colors.red.shade600,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-      );
+      SnackbarUtils.showError('Failed to save changes: $e');
 
       return false;
     } finally {

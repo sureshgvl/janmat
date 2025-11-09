@@ -9,6 +9,7 @@ import '../../../repositories/candidate_event_repository.dart';
 import '../../../services/event_notification_service.dart';
 import '../../../../../services/gamification_service.dart';
 import '../../../../../utils/app_logger.dart';
+import '../../../../../utils/snackbar_utils.dart';
 
 class VoterEventsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -87,7 +88,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
   Future<void> _handleRSVP(String eventId, String rsvpType) async {
     if (_currentUserId == null) {
-      Get.snackbar('Error', 'Please login to RSVP to events');
+      SnackbarUtils.showError('Please login to RSVP to events');
       return;
     }
 
@@ -141,13 +142,10 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           AppLogger.candidateError('Gamification error: $gamificationError');
         }
 
-        Get.snackbar(
-          'Success',
-          'RSVP updated successfully! You earned points!',
-        );
+        SnackbarUtils.showSuccess('RSVP updated successfully! You earned points!');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update RSVP: $e');
+      SnackbarUtils.showError('Failed to update RSVP: $e');
     }
   }
 
@@ -181,7 +179,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         }
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to remove RSVP: $e');
+      SnackbarUtils.showError('Failed to remove RSVP: $e');
     }
   }
 
@@ -450,7 +448,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      Get.snackbar('Error', 'Could not open map link');
+      SnackbarUtils.showError('Could not open map link');
     }
   }
 }

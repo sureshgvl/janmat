@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../utils/symbol_utils.dart';
 import '../services/highlight_service.dart';
 import '../../../features/candidate/screens/candidate_profile_screen.dart';
@@ -294,9 +295,7 @@ class _CandidateHighlightBannerState extends State<CandidateHighlightBanner> {
       } else {
         AppLogger.common('❌ HighlightBanner: Candidate document not found');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Candidate profile not available')),
-          );
+          SnackbarUtils.showScaffoldError(context, 'Candidate profile not available');
         }
       }
     } catch (e) {
@@ -305,11 +304,7 @@ class _CandidateHighlightBannerState extends State<CandidateHighlightBanner> {
         error: e,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading candidate profile: ${e.toString()}'),
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Error loading candidate profile: ${e.toString()}');
       }
     }
   }

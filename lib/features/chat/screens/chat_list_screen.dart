@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/room_controller.dart';
 import '../controllers/message_controller.dart';
@@ -68,13 +69,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 tooltip: 'refreshChatRooms'.tr,
                 onPressed: () async {
                   await controller.refreshChatRooms();
-                  Get.snackbar(
-                    'refreshed'.tr,
-                    'chatRoomsUpdated'.tr,
-                    backgroundColor: Colors.green.shade100,
-                    colorText: Colors.green.shade800,
-                    duration: const Duration(seconds: 2),
-                  );
+                  SnackbarUtils.showSuccess('chatRoomsUpdated'.tr);
                 },
               ),
 

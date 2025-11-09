@@ -6,6 +6,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/message_controller.dart';
 import 'message_bubble.dart';
@@ -583,13 +584,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           Navigator.of(context).pop(); // Close the poll creation dialog
 
           // Show success message
-          Get.snackbar(
-            'pollCreated'.tr,
-            'pollSharedInChat'.tr,
-            backgroundColor: Colors.green.shade100,
-            colorText: Colors.green.shade800,
-            duration: const Duration(seconds: 3),
-          );
+          SnackbarUtils.showSuccess('pollSharedInChat'.tr);
         },
       ),
     );
@@ -790,4 +785,3 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return null;
   }
 }
-

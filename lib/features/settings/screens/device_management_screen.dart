@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../deviceInfo/services/device_service.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -34,7 +35,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      Get.snackbar('Error', 'Failed to load devices: ${e.toString()}');
+      SnackbarUtils.showError('Failed to load devices: ${e.toString()}');
     }
   }
 
@@ -61,9 +62,9 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       try {
         await _deviceService.signOutDevice(currentUserId, deviceId);
         await _loadDevices(); // Refresh the list
-        Get.snackbar('Success', 'Device signed out successfully');
+        SnackbarUtils.showSuccess('Device signed out successfully');
       } catch (e) {
-        Get.snackbar('Error', 'Failed to sign out device: ${e.toString()}');
+        SnackbarUtils.showError('Failed to sign out device: ${e.toString()}');
       }
     }
   }
@@ -299,4 +300,3 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
     }
   }
 }
-

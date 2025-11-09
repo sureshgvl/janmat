@@ -10,6 +10,7 @@ import '../models/candidate_party_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../utils/candidate_data_manager.dart';
 
 
@@ -110,17 +111,10 @@ class ChangePartySymbolController extends GetxController {
       // Update independent flag for UI
       isIndependent.value = isIndependentParty;
 
-      Get.snackbar(
-        AppLocalizations.of(Get.context!)?.success ?? 'Success',
-        AppLocalizations.of(Get.context!)?.partyUpdateSuccess ?? 'Party updated successfully',
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess(AppLocalizations.of(Get.context!)?.partyUpdateSuccess ?? 'Party updated successfully');
     } catch (e) {
       AppLogger.candidateError('Error updating party: $e');
-      Get.snackbar(
-        AppLocalizations.of(Get.context!)?.error ?? 'Error',
-        AppLocalizations.of(Get.context!)?.partyUpdateError(e.toString()) ?? 'Failed to update party',
-      );
+      SnackbarUtils.showError(AppLocalizations.of(Get.context!)?.partyUpdateError(e.toString()) ?? 'Failed to update party');
     } finally {
       isLoading.value = false;
     }
@@ -194,10 +188,7 @@ class ChangePartySymbolController extends GetxController {
           AppLogger.candidate(
             '❌ ChangePartySymbolController: File too large - rejecting selection',
           );
-          Get.snackbar(
-            localizations.error,
-            localizations.symbolImageSizeLimitError,
-          );
+          SnackbarUtils.showError(localizations.symbolImageSizeLimitError);
           isUploadingImage.value = false;
           return;
         }
@@ -210,12 +201,7 @@ class ChangePartySymbolController extends GetxController {
 
         isUploadingImage.value = false;
 
-        Get.snackbar(
-          localizations.success ?? 'Success',
-          localizations.symbolUploadSuccess ?? 'Symbol image selected successfully',
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade800,
-        );
+        SnackbarUtils.showSuccess(localizations.symbolUploadSuccess ?? 'Symbol image selected successfully');
       } else {
         AppLogger.candidate('❌ ChangePartySymbolController: No image selected by user');
         isUploadingImage.value = false;
@@ -223,10 +209,7 @@ class ChangePartySymbolController extends GetxController {
     } catch (e) {
       AppLogger.candidateError('💥 ChangePartySymbolController: Error during image selection: $e');
       isUploadingImage.value = false;
-      Get.snackbar(
-        localizations.error,
-        localizations.symbolUploadError(e.toString()),
-      );
+      SnackbarUtils.showError(localizations.symbolUploadError(e.toString()));
     }
   }
 

@@ -3,6 +3,7 @@ import '../../../../utils/app_logger.dart';
 import '../../models/candidate_model.dart';
 import 'highlight_config.dart';
 import 'highlight_sections/banner_image_section.dart';
+import '../../../../utils/snackbar_utils.dart';
 
 // Main HighlightTabEdit Widget - Refactored for SOLID principles
 // Follows Single Responsibility Principle - orchestrates highlight editing UI
@@ -107,24 +108,14 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       AppLogger.candidate('🧪 [TEST] Adding highlight for same candidate: ${widget.candidateData.candidateId}');
 
       // Show snackbar to confirm
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Adding highlight for same candidate (Test Mode)'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      SnackbarUtils.showScaffoldInfo(context, 'Adding highlight for same candidate (Test Mode)');
 
       // Note: Actual implementation would call highlight service to create highlight
       // This is just for testing the UI
 
     } catch (e) {
       AppLogger.candidate('❌ [TEST] Error adding highlight for same candidate: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error: $e');
     }
   }
 
@@ -133,24 +124,14 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       AppLogger.candidate('🧪 [TEST] Adding highlight for dummy candidate');
 
       // Show snackbar to confirm
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Adding highlight for dummy candidate (Test Mode)'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      SnackbarUtils.showScaffoldInfo(context, 'Adding highlight for dummy candidate (Test Mode)');
 
       // Note: Actual implementation would create a dummy candidate highlight
       // This is just for testing the UI
 
     } catch (e) {
       AppLogger.candidate('❌ [TEST] Error adding highlight for dummy candidate: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error: $e');
     }
   }
 
@@ -159,24 +140,14 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
       AppLogger.candidate('🧪 [TEST] Removing test highlight');
 
       // Show snackbar to confirm
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Removing test highlight (Test Mode)'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      SnackbarUtils.showScaffoldInfo(context, 'Removing test highlight (Test Mode)');
 
       // Note: Actual implementation would remove the test highlight
       // This is just for testing the UI
 
     } catch (e) {
       AppLogger.candidate('❌ [TEST] Error removing test highlight: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error: $e');
     }
   }
 

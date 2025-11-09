@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../candidate/controllers/candidate_user_controller.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
@@ -235,14 +236,9 @@ class HomeWidgets {
                 ElevatedButton(
                   onPressed: () {
                     // TODO: Navigate to premium upgrade screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(
-                            context,
-                          )!.premiumUpgradeFeatureComingSoon,
-                        ),
-                      ),
+                    SnackbarUtils.showScaffoldInfo(
+                      context,
+                      AppLocalizations.of(context)!.premiumUpgradeFeatureComingSoon,
                     );
                   },
                   style: ElevatedButton.styleFrom(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/profile_tab_edit.dart';
 
@@ -36,14 +37,9 @@ class _CandidateProfileEditScreenState
                       final success = await controller.saveExtraInfo();
                       if (success) {
                         Get.back();
-                        Get.snackbar(
-                          'Success',
-                          'Profile updated successfully',
-                          backgroundColor: Colors.green.shade100,
-                          colorText: Colors.green.shade800,
-                        );
+                        SnackbarUtils.showSuccess('Profile updated successfully');
                       } else {
-                        Get.snackbar('Error', 'Failed to update profile');
+                        SnackbarUtils.showError('Failed to update profile');
                       }
                     },
                   ),

@@ -5,6 +5,7 @@ import '../../user/models/user_model.dart';
 import '../../../core/app_route_names.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../services/location_data_service.dart';
+import '../../../utils/snackbar_utils.dart';
 
 class FollowerCard extends StatelessWidget {
   final Map<String, dynamic> follower;
@@ -287,12 +288,7 @@ class FollowerCard extends StatelessWidget {
         if (candidate != null) {
           Get.toNamed(AppRouteNames.candidateProfile, arguments: candidate);
         } else {
-          Get.snackbar(
-            'Error',
-            'Candidate profile not found',
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
+          SnackbarUtils.showError('Candidate profile not found');
         }
       } catch (e) {
         // Close loading dialog if open
@@ -300,12 +296,7 @@ class FollowerCard extends StatelessWidget {
           Get.back();
         }
 
-        Get.snackbar(
-          'Error',
-          'Failed to load candidate profile: $e',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        SnackbarUtils.showError('Failed to load candidate profile: $e');
       }
     } else {
       Get.toNamed(AppRouteNames.profile, arguments: user.uid);

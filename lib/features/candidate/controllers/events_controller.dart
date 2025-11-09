@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../models/events_model.dart';
 import '../models/candidate_model.dart';
 import '../repositories/candidate_event_repository.dart';
@@ -38,7 +39,7 @@ class EventsController extends GetxController {
       eventsLastFetched.value = null;
       // Don't show error snackbar for missing candidate data - this is expected
       if (!e.toString().contains('No candidate found')) {
-        Get.snackbar('Error', 'Failed to load events: $e');
+        SnackbarUtils.showError('Failed to load events: $e');
       }
     } finally {
       isLoading.value = false;
@@ -78,7 +79,7 @@ class EventsController extends GetxController {
       await refreshEvents(candidate); // Refresh the list
       return true;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create event: $e');
+      SnackbarUtils.showError('Failed to create event: $e');
       return false;
     }
   }
@@ -95,7 +96,7 @@ class EventsController extends GetxController {
       await refreshEvents(candidate); // Refresh the list
       return true;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update event: $e');
+      SnackbarUtils.showError('Failed to update event: $e');
       return false;
     }
   }
@@ -108,7 +109,7 @@ class EventsController extends GetxController {
       await refreshEvents(candidate); // Refresh the list
       return true;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to delete event: $e');
+      SnackbarUtils.showError('Failed to delete event: $e');
       return false;
     }
   }
@@ -126,7 +127,7 @@ class EventsController extends GetxController {
       await refreshEvents(candidate); // Refresh to get updated RSVP counts
       return true;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to RSVP: $e');
+      SnackbarUtils.showError('Failed to RSVP: $e');
       return false;
     }
   }

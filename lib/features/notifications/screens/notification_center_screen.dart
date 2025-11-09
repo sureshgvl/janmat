@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../models/notification_model.dart';
 import '../services/notification_manager.dart';
 import '../services/test_notifications.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../l10n/features/notifications/notifications_localizations.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
@@ -95,11 +96,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         }
       });
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to mark notification as read',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      SnackbarUtils.showError('Failed to mark notification as read');
     }
   }
 
@@ -116,11 +113,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         }
       });
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to mark notification as unread',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      SnackbarUtils.showError('Failed to mark notification as unread');
     }
   }
 
@@ -134,18 +127,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         }
       });
 
-      Get.snackbar(
-        'Deleted',
-        'Notification deleted',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess('Notification deleted');
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to delete notification',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      SnackbarUtils.showError('Failed to delete notification');
     }
   }
 
@@ -157,18 +141,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         _unreadCount = 0;
       });
 
-      Get.snackbar(
-        'Success',
-        'All notifications marked as read',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess('All notifications marked as read');
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to mark all as read',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      SnackbarUtils.showError('Failed to mark all as read');
     }
   }
 
@@ -200,18 +175,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         _unreadCount = 0;
       });
 
-      Get.snackbar(
-        'Success',
-        'All notifications deleted',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess('All notifications deleted');
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to delete all notifications',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      SnackbarUtils.showError('Failed to delete all notifications');
     }
   }
 
@@ -443,7 +409,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 await notificationTester.testNewFollowerNotification();
                 _loadNotifications(refresh: true);
                 _loadUnreadCount();
-                Get.snackbar('Test', 'New Follower notification sent');
+                SnackbarUtils.showInfo('New Follower notification sent');
               },
             ),
             ListTile(
@@ -455,7 +421,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 await notificationTester.testLevelUpNotification();
                 _loadNotifications(refresh: true);
                 _loadUnreadCount();
-                Get.snackbar('Test', 'Level Up notification sent');
+                SnackbarUtils.showInfo('Level Up notification sent');
               },
             ),
             ListTile(
@@ -467,7 +433,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 await notificationTester.testChatMessageNotification();
                 _loadNotifications(refresh: true);
                 _loadUnreadCount();
-                Get.snackbar('Test', 'Chat message notification sent');
+                SnackbarUtils.showInfo('Chat message notification sent');
               },
             ),
             ListTile(
@@ -479,7 +445,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 await notificationTester.testPollNotification();
                 _loadNotifications(refresh: true);
                 _loadUnreadCount();
-                Get.snackbar('Test', 'Poll notification sent');
+                SnackbarUtils.showInfo('Poll notification sent');
               },
             ),
             const Divider(),
@@ -492,7 +458,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 await notificationTester.clearTestNotifications();
                 _loadNotifications(refresh: true);
                 _loadUnreadCount();
-                Get.snackbar('Test', 'Test notifications cleared');
+                SnackbarUtils.showInfo('Test notifications cleared');
               },
             ),
           ],

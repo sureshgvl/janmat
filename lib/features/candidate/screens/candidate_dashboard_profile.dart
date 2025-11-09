@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/profile_tab_edit.dart';
 import '../../../widgets/loading_overlay.dart';
@@ -112,25 +113,20 @@ class _CandidateDashboardProfileState extends State<CandidateDashboardProfile> {
                                 context,
                               ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar(
-                                AppLocalizations.of(context)!.success,
-                                AppLocalizations.of(context)!.profileUpdatedSuccessfully,
-                                backgroundColor: Colors.green,
-                                colorText: Colors.white,
-                              );
+                              SnackbarUtils.showSuccess('Profile updated successfully');
                             }
                           } else {
                             if (context.mounted) {
                               Navigator.of(
                                 context,
                               ).pop(); // Close loading dialog
-                              Get.snackbar(AppLocalizations.of(context)!.error, AppLocalizations.of(context)!.failedToUpdateProfile);
+                              SnackbarUtils.showError('Failed to update profile');
                             }
                           }
                         } catch (e) {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar(AppLocalizations.of(context)!.error, "${AppLocalizations.of(context)!.anErrorOccurred}: ${e.toString()}");
+                            SnackbarUtils.showError('An error occurred: $e');
                           }
                         } finally {
                           // Clean up the stream controller

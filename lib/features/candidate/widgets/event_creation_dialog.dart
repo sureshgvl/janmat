@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../models/events_model.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../controllers/events_controller.dart';
@@ -110,7 +111,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedDate == null) {
-      Get.snackbar('Error', 'Please select a date for the event');
+      SnackbarUtils.showError('Please select a date for the event');
       return;
     }
 
@@ -153,8 +154,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
         // Pass the event back to the parent widget
         widget.onEventSaved(eventData);
         Get.back();
-        Get.snackbar(
-          'Success',
+        SnackbarUtils.showSuccess(
           widget.eventToEdit != null
               ? 'Event updated successfully'
               : 'Event created successfully',
@@ -163,7 +163,7 @@ class _EventCreationDialogState extends State<EventCreationDialog> {
         throw Exception('Failed to save event to database');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to save event: $e');
+      SnackbarUtils.showError('Failed to save event: $e');
     } finally {
       setState(() {
         _isLoading = false;

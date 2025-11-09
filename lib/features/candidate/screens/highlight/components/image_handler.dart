@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 
 class ImageHandler {
@@ -23,12 +24,7 @@ class ImageHandler {
       }
     } catch (e) {
       AppLogger.candidateError('❌ [HighlightDashboard] Error picking image: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to select image',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('Failed to select image');
     }
     return null;
   }

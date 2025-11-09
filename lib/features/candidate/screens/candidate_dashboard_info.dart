@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/basic_info_controller.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../models/basic_info_model.dart';
@@ -366,15 +367,10 @@ class _CandidateDashboardBasicInfoState
                                 context,
                               ).pop(); // Close loading dialog
                               setState(() => isEditing = false);
-                              Get.snackbar(
-                                AppLocalizations.of(context)!.success,
+                              SnackbarUtils.showSuccess(
                                 AppLocalizations.of(
                                   context,
                                 )!.basicInfoUpdatedSuccessfully,
-                                backgroundColor: Colors.green.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                                duration: const Duration(seconds: 3),
                               );
                             }
                           } else {
@@ -387,25 +383,13 @@ class _CandidateDashboardBasicInfoState
                               Navigator.of(
                                 context,
                               ).pop(); // Close loading dialog
-                              Get.snackbar(
-                                AppLocalizations.of(context)!.error,
-                                'Failed to update basic info',
-                                backgroundColor: Colors.red.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                              );
+                              SnackbarUtils.showError('Failed to update basic info');
                             }
                           }
                         } catch (e) {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar(
-                              AppLocalizations.of(context)!.error,
-                              'An error occurred: $e',
-                              backgroundColor: Colors.red.shade600,
-                              colorText: Colors.white,
-                              snackPosition: SnackPosition.TOP,
-                            );
+                            SnackbarUtils.showError('An error occurred: $e');
                           }
                         } finally {
                           // Clean up the stream controller

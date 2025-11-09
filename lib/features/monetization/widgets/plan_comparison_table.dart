@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/monetization_controller.dart';
 import '../screens/plan_selection_screen.dart';
 
@@ -584,12 +585,7 @@ class PlanComparisonTable extends StatelessWidget {
   void _handlePurchase(BuildContext context, SubscriptionPlan plan) async {
     final currentUser = controller.currentFirebaseUser.value;
     if (currentUser == null) {
-      Get.snackbar(
-        'Error',
-        'Please login to make a purchase',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Please login to make a purchase');
       return;
     }
 
@@ -612,4 +608,3 @@ class PlanComparisonTable extends StatelessWidget {
   }
 
 }
-

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../../monetization/services/plan_service.dart';
 import '../widgets/edit/achievements/achievements_tab_edit.dart';
@@ -208,14 +209,7 @@ class _CandidateDashboardAchievementsState
                               );
 
                               setState(() => isEditing = false);
-                              Get.snackbar(
-                                'Success',
-                                'Achievements updated successfully',
-                                backgroundColor: Colors.green.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                                duration: const Duration(seconds: 3),
-                              );
+                              SnackbarUtils.showSuccess('Achievements updated successfully');
                             }
                           } else {
                             AppLogger.candidate(
@@ -225,13 +219,7 @@ class _CandidateDashboardAchievementsState
 
                             if (context.mounted) {
                               Navigator.of(context).pop(); // Close loading dialog
-                              Get.snackbar(
-                                'Error',
-                                'Failed to update achievements',
-                                backgroundColor: Colors.red.shade600,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                              );
+                              SnackbarUtils.showError('Failed to update achievements');
                             }
                           }
                         } catch (e) {
@@ -239,13 +227,7 @@ class _CandidateDashboardAchievementsState
                             tag: 'DASHBOARD_SAVE_ACHIEVEMENTS', error: e);
                           if (context.mounted) {
                             Navigator.of(context).pop(); // Close loading dialog
-                            Get.snackbar(
-                              'Error',
-                              'An error occurred: $e',
-                              backgroundColor: Colors.red.shade600,
-                              colorText: Colors.white,
-                              snackPosition: SnackPosition.TOP,
-                            );
+                            SnackbarUtils.showError('An error occurred: $e');
                           }
                         } finally {
                           // Clean up the stream controller

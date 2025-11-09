@@ -6,6 +6,7 @@ import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/features/common/lazy_loading_media_widget.dart';
 import 'package:janmat/features/common/whatsapp_image_viewer.dart';
 import 'package:janmat/services/share_service.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 
 class AchievementsTabView extends StatefulWidget {
@@ -62,16 +63,7 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
           (_likedAchievements[index]! ? 1 : -1);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _likedAchievements[index]!
-              ? 'Achievement liked!'
-              : 'Achievement unliked',
-        ),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    SnackbarUtils.showScaffoldInfo(context, _likedAchievements[index]! ? 'Achievement liked!' : 'Achievement unliked');
   }
 
   void _shareAchievement(int index) async {
@@ -91,23 +83,11 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Achievement shared successfully!'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarUtils.showScaffoldSuccess(context, 'Achievement shared successfully!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to share achievement: $e'),
-            duration: Duration(seconds: 3),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to share achievement: $e');
       }
     } finally {
       // Clear loading state

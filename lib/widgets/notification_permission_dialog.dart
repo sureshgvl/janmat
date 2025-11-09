@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 import '../features/notifications/services/fcm_permission_service.dart';
 
 /// Dialog to request notification permissions from users
@@ -76,29 +77,15 @@ class _NotificationPermissionDialogState extends State<NotificationPermissionDia
       final granted = await _permissionService.requestNotificationPermission();
 
       if (granted) {
-        Get.snackbar(
-          'Notifications Enabled',
-          'You\'ll now receive notifications for important updates.',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showSuccess('You\'ll now receive notifications for important updates.');
       } else {
-        Get.snackbar(
-          'Permission Denied',
-          'You can enable notifications later in your device settings.',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 3),
-        );
+        SnackbarUtils.showInfo('You can enable notifications later in your device settings.');
       }
 
       Get.back(result: granted);
     } catch (e) {
       AppLogger.error('Error requesting notification permission: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to request notification permission. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      SnackbarUtils.showError('Failed to request notification permission. Please try again.');
       Get.back(result: false);
     } finally {
       if (mounted) {

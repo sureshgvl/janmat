@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../../utils/app_logger.dart';
 import '../../../../../services/file_upload_service.dart';
+import '../../../../../utils/snackbar_utils.dart';
 import '../highlight_config.dart';
 
 // Banner Image Section Widget
@@ -201,30 +202,15 @@ class _BannerImageSectionState extends State<BannerImageSection> {
         // Update the config with local path
         widget.onImageUrlChanged(localPath);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Banner image saved locally. It will be uploaded to Firebase when you save.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        SnackbarUtils.showScaffoldInfo(context, 'Banner image saved locally. It will be uploaded to Firebase when you save.');
 
         AppLogger.candidate('Banner image saved locally: $localPath');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save banner image'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to save banner image');
       }
     } catch (e) {
       AppLogger.candidate('Error uploading banner image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error: $e');
     } finally {
       setState(() => _isUploading = false);
     }

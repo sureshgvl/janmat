@@ -4,6 +4,7 @@ import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/highlight/models/highlight_model.dart';
 import 'package:janmat/features/highlight/services/highlight_service.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 import 'package:janmat/utils/symbol_utils.dart';
 import '../../controllers/highlights_controller.dart';
 import '../../models/candidate_model.dart';
@@ -333,13 +334,7 @@ class HighlightTabState extends State<HighlightTab> {
       AppLogger.candidate('✅ [HighlightDashboard] Image selection complete - path changed from $oldPath to $_localBannerImagePath');
 
       // Show immediate feedback to user
-      Get.snackbar(
-        'Image Selected',
-        'New banner image ready for preview',
-        backgroundColor: Colors.blue.shade100,
-        colorText: Colors.blue.shade800,
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess('New banner image ready for preview');
     }
   }
 

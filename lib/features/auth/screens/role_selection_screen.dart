@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
 
@@ -25,7 +26,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
 
     if (selectedRole == null) {
-      Get.snackbar( appLocalizations.error, authLocalizations.pleaseSelectARoleToContinue);
+      SnackbarUtils.showError(authLocalizations.pleaseSelectARoleToContinue);
       return;
     }
 
@@ -53,16 +54,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           ? authLocalizations.youSelectedCandidatePleaseCompleteYourProfile
           : authLocalizations.youSelectedVoterPleaseCompleteYourProfile;
 
-      Get.snackbar(
-        authLocalizations.roleSelected,
-        message,
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showSuccess(message);
     } catch (e) {
-      Get.snackbar(
-        appLocalizations.error,
-        authLocalizations.failedToSaveRole(e.toString()),
-      );
+      SnackbarUtils.showError(authLocalizations.failedToSaveRole(e.toString()));
     }
 
     setState(() {
@@ -265,4 +259,3 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     );
   }
 }
-

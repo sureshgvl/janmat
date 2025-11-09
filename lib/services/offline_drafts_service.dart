@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import 'local_database_service.dart';
 import '../widgets/loading_overlay.dart';
 import '../features/candidate/controllers/candidate_user_controller.dart';
@@ -595,11 +596,7 @@ class OfflineDraftsService extends GetxController {
     AppLogger.database('🔄 [OfflineDrafts] Manual force sync triggered', tag: 'DRAFTS');
 
     if (!isOnline.value) {
-      Get.snackbar(
-        'Offline',
-        'Cannot sync drafts while offline. Please check your connection.',
-        duration: const Duration(seconds: 3),
-      );
+      SnackbarUtils.showWarning('Cannot sync drafts while offline. Please check your connection.');
       return false;
     }
 

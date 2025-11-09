@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../services/private_chat_service.dart';
 import '../controllers/chat_controller.dart';
 
@@ -125,29 +126,14 @@ class _UserSearchDialogState extends State<UserSearchDialog> {
         // Navigate to the chat room
         _chatController.selectChatRoom(chatRoom);
 
-        Get.snackbar(
-          'Success',
-          'Private chat started with ${selectedUser.name}',
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade800,
-        );
+        SnackbarUtils.showSuccess('Private chat started with ${selectedUser.name}');
       } else {
-        Get.snackbar(
-          'Error',
-          'Failed to start private chat',
-          backgroundColor: Colors.red.shade100,
-          colorText: Colors.red.shade800,
-        );
+        SnackbarUtils.showError('Failed to start private chat');
       }
     } catch (e) {
       Get.back(); // Close loading
       AppLogger.ui('Error starting private chat: $e', tag: 'CHAT');
-      Get.snackbar(
-        'Error',
-        'Failed to start private chat',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('Failed to start private chat');
     }
   }
 

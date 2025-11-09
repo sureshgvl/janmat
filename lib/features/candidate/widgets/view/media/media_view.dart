@@ -16,6 +16,7 @@ import 'package:janmat/features/candidate/controllers/candidate_user_controller.
 import 'package:janmat/services/share_service.dart';
 import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/common/image_gallery_components.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 class MediaTabView extends StatefulWidget {
   final Candidate candidate;
@@ -639,11 +640,7 @@ class _MediaTabViewState extends State<MediaTabView>
       AppLogger.candidateError(
         '❌ [DELETE] Missing required location data for candidate',
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot delete post: missing candidate location data'),
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Cannot delete post: missing candidate location data');
       return;
     }
 
@@ -819,18 +816,14 @@ class _MediaTabViewState extends State<MediaTabView>
           Navigator.of(context).pop();
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post deleted successfully')),
-        );
+        SnackbarUtils.showScaffoldSuccess(context, 'Post deleted successfully');
       } else {
         // Dismiss loading dialog
         if (mounted) {
           Navigator.of(context).pop();
         }
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to delete post')));
+        SnackbarUtils.showScaffoldError(context, 'Failed to delete post');
       }
     } catch (e) {
       // Dismiss loading dialog on error
@@ -839,9 +832,7 @@ class _MediaTabViewState extends State<MediaTabView>
       }
 
       AppLogger.candidateError('Error deleting post: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting post: $e')));
+      SnackbarUtils.showScaffoldError(context, 'Error deleting post: $e');
     }
   }
 
@@ -894,13 +885,9 @@ class _MediaTabViewState extends State<MediaTabView>
 
       await ShareService.shareCandidateProfile(widget.candidate);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post shared successfully!')),
-      );
+      SnackbarUtils.showScaffoldSuccess(context, 'Post shared successfully!');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error sharing post: $e')));
+      SnackbarUtils.showScaffoldError(context, 'Error sharing post: $e');
     }
   }
 
@@ -1711,11 +1698,6 @@ class _MediaTabViewState extends State<MediaTabView>
       item.likes[mediaKey] = currentLikes > 0 ? 0 : 1; // Toggle between 0 and 1
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(item.likes[mediaKey]! > 0 ? 'Liked!' : 'Unliked'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    SnackbarUtils.showScaffoldInfo(context, item.likes[mediaKey]! > 0 ? 'Liked!' : 'Unliked');
   }
 }

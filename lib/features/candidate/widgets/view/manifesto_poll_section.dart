@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../services/manifesto_poll_service.dart';
 import '../../../../utils/advanced_analytics.dart' as analytics;
+import '../../../../utils/snackbar_utils.dart';
 
 class ManifestoPollSection extends StatefulWidget {
   final String? manifestoId;
@@ -35,12 +36,7 @@ class _ManifestoPollSectionState extends State<ManifestoPollSection> {
 
   Future<void> _selectPollOption(String option) async {
     if (widget.currentUserId == null) {
-      Get.snackbar(
-        'error'.tr,
-        'pleaseLoginToInteract'.tr,
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('pleaseLoginToInteract'.tr);
       return;
     }
 
@@ -65,24 +61,12 @@ class _ManifestoPollSectionState extends State<ManifestoPollSection> {
         },
       );
 
-      Get.snackbar(
-        'thankYou'.tr,
-        'voteRecorded'.tr,
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        duration: const Duration(seconds: 2),
-        maxWidth: 300,
-      );
+      SnackbarUtils.showSuccess('voteRecorded'.tr);
     } catch (e) {
       setState(() {
         _pollError = e.toString();
       });
-      Get.snackbar(
-        'error'.tr,
-        'failedToRecordVote'.tr,
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-      );
+      SnackbarUtils.showError('failedToRecordVote'.tr);
     } finally {
       setState(() {
         _isPollLoading = false;
@@ -235,4 +219,3 @@ class _ManifestoPollSectionState extends State<ManifestoPollSection> {
     );
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme_constants.dart';
+import 'snackbar_utils.dart';
 
 enum SnackBarType { success, error, warning }
 
@@ -9,13 +10,11 @@ class Helpers {
     String message, {
     bool isError = false,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    if (isError) {
+      SnackbarUtils.showScaffoldError(context, message);
+    } else {
+      SnackbarUtils.showScaffoldSuccess(context, message);
+    }
   }
 
   // Enhanced snack bar with proper colors
@@ -24,33 +23,17 @@ class Helpers {
     String message,
     SnackBarType type,
   ) {
-    Color backgroundColor;
-    Color textColor;
-
     switch (type) {
       case SnackBarType.success:
-        backgroundColor = AppColors.snackBarSuccess;
-        textColor = AppColors.snackBarTextLight;
+        SnackbarUtils.showScaffoldSuccess(context, message);
         break;
       case SnackBarType.error:
-        backgroundColor = AppColors.snackBarError;
-        textColor = AppColors.snackBarTextLight;
+        SnackbarUtils.showScaffoldError(context, message);
         break;
       case SnackBarType.warning:
-        backgroundColor = AppColors.snackBarWarning;
-        textColor = AppColors.snackBarTextDark;
+        SnackbarUtils.showScaffoldWarning(context, message);
         break;
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(color: textColor)),
-        backgroundColor: backgroundColor,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
   }
 
   // Convenience methods for common snack bar types
@@ -119,4 +102,3 @@ class Helpers {
     return name.isNotEmpty ? name[0].toUpperCase() : '';
   }
 }
-

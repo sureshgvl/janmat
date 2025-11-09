@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import '../../utils/snackbar_utils.dart';
 
 // Image Gallery Viewer Widget for swipeable image viewing
 class ImageGalleryViewer extends StatefulWidget {
@@ -50,9 +51,7 @@ class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
     final isLocalImage = widget.isLocal(_currentIndex);
 
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preparing image for sharing...')),
-      );
+      SnackbarUtils.showScaffoldInfo(context, 'Preparing image for sharing...');
 
       late XFile xFile;
 
@@ -73,9 +72,7 @@ class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
 
       await Share.shareXFiles([xFile], text: 'Check out this image!');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sharing image: $e')),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error sharing image: $e');
     }
   }
 

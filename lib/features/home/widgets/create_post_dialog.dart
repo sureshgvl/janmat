@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../services/community_feed_service.dart';
 import '../services/push_feed_service.dart';
 
@@ -47,9 +48,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('User not authenticated')));
+        SnackbarUtils.showScaffoldError(context, 'User not authenticated');
         return;
       }
 
@@ -82,24 +81,17 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
 
       if (result != null) {
         Navigator.of(context).pop(true); // Return success
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isSponsored
-                  ? 'Sponsored update created successfully!'
-                  : 'Post created successfully!',
-            ),
-          ),
+        SnackbarUtils.showScaffoldSuccess(
+          context,
+          widget.isSponsored
+              ? 'Sponsored update created successfully!'
+              : 'Post created successfully!',
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to create post')));
+        SnackbarUtils.showScaffoldError(context, 'Failed to create post');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      SnackbarUtils.showScaffoldError(context, 'Error: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -214,4 +206,3 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
     );
   }
 }
-

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../controllers/candidate_user_controller.dart';
@@ -94,8 +95,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
           }
 
           // If we still don't have candidate data, show error
-          Get.snackbar(
-            AppLocalizations.of(context)!.error,
+          SnackbarUtils.showError(
             CandidateLocalizations.of(context)?.candidateDataNotFound ??
                 'Candidate data not found',
           );
@@ -103,8 +103,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         });
       } else {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Get.snackbar(
-            AppLocalizations.of(context)!.error,
+          SnackbarUtils.showError(
             CandidateLocalizations.of(context)?.candidateDataNotFound ??
                 'Candidate data not found',
           );
@@ -603,20 +602,9 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       // Simulate a brief delay for refresh animation
       await Future.delayed(const Duration(seconds: 1));
 
-      Get.snackbar(
-        'Success',
-        'Profile data refreshed!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 2),
-      );
+      SnackbarUtils.showSuccess('Profile data refreshed!');
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to refresh data: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      SnackbarUtils.showError('Failed to refresh data: $e');
     }
   }
 

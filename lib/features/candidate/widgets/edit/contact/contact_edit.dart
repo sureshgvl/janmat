@@ -6,6 +6,7 @@ import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/contact_model.dart';
 import 'package:janmat/features/user/services/user_data_service.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:janmat/utils/snackbar_utils.dart';
 
 
 class ContactSection extends StatefulWidget {
@@ -368,9 +369,7 @@ class _ContactSectionState extends State<ContactSection> {
                             onPressed: isVerifying ? null : () {
                               // Resend OTP logic
                               setState(() => otpSent = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('OTP sent again')),
-                              );
+                              SnackbarUtils.showScaffoldInfo(context, 'OTP sent again');
                             },
                             child: const Text('Resend OTP'),
                           ),
@@ -395,9 +394,7 @@ class _ContactSectionState extends State<ContactSection> {
                     onPressed: newPhoneController.text.isEmpty ? null : () {
                       // Send OTP logic (simulated)
                       setState(() => otpSent = true);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('OTP sent to ${newPhoneController.text}')),
-                      );
+                      SnackbarUtils.showScaffoldInfo(context, 'OTP sent to ${newPhoneController.text}');
                     },
                     child: const Text('Send OTP'),
                   )
@@ -436,34 +433,17 @@ class _ContactSectionState extends State<ContactSection> {
                           }
 
                           Navigator.of(dialogContext).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _loginMethod == 'phone'
-                                  ? 'Phone number and authentication updated successfully'
-                                  : 'Phone number updated successfully'
-                              ),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                          SnackbarUtils.showScaffoldSuccess(context, _loginMethod == 'phone'
+                            ? 'Phone number and authentication updated successfully'
+                            : 'Phone number updated successfully');
                         } catch (authError) {
                           AppLogger.candidateError('Failed to update Firebase Auth: $authError');
                           // Still allow profile update even if auth update fails
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Phone number updated, but authentication sync failed'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
+                          SnackbarUtils.showScaffoldWarning(context, 'Phone number updated, but authentication sync failed');
                           Navigator.of(dialogContext).pop();
                         }
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Invalid OTP. Please try again.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        SnackbarUtils.showScaffoldError(context, 'Invalid OTP. Please try again.');
                         setState(() => isVerifying = false);
                       }
                     },
@@ -508,35 +488,18 @@ class _ContactSectionState extends State<ContactSection> {
         candidateName: data.basicInfo!.fullName,
         photoUrl: data.photo,
         onProgress: (message) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          SnackbarUtils.showScaffoldInfo(context, message);
         },
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Contact information saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarUtils.showScaffoldSuccess(context, 'Contact information saved successfully!');
         Navigator.of(context).pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save contact information'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarUtils.showScaffoldError(context, 'Failed to save contact information');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving contact information: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarUtils.showScaffoldError(context, 'Error saving contact information: $e');
     } finally {
       setState(() {
         _isSaving = false;
