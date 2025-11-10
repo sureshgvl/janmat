@@ -5,6 +5,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../../../utils/app_logger.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../models/chat_message.dart';
 import '../models/user_quota.dart';
 import '../services/local_message_service.dart';
@@ -12,9 +13,25 @@ import '../services/media_service.dart';
 import '../services/offline_message_queue.dart';
 import '../services/private_chat_service.dart';
 import '../services/whatsapp_style_message_cache.dart';
+import '../services/message_sender.dart';
+import '../services/message_state_manager.dart';
+import '../services/voice_recorder_service.dart';
+import '../services/user_quota_manager.dart';
+import '../services/message_moderation_manager.dart';
 import '../repositories/chat_repository.dart';
 import 'room_controller.dart';
 
+// Compatibility layer for message functionality
+// This controller acts as a FACADE that delegates to focused services
+// All business logic has been moved to dedicated services following SOLID principles
+//
+// ARCHITECTURE:
+// - MessageSender: Handles message sending logic
+// - MessageStateManager: Manages message states and UI updates
+// - VoiceRecorderService: Handles voice recording functionality
+// - UserQuotaManager: Manages user message quotas
+//
+// TODO: Future migration - screens can call services directly for better performance
 class MessageController extends GetxController {
    final ChatRepository _repository = ChatRepository();
    final LocalMessageService _localMessageService = LocalMessageService();
@@ -23,6 +40,13 @@ class MessageController extends GetxController {
    final OfflineMessageQueue _offlineQueue = OfflineMessageQueue();
    final PrivateChatService _privateChatService = PrivateChatService();
    final AudioRecorder _audioRecorder = AudioRecorder();
+
+   // New focused services for SOLID principles
+   final MessageSender _messageSender = MessageSender();
+   final MessageStateManager _messageStateManager = MessageStateManager();
+   final VoiceRecorderService _voiceRecorderService = VoiceRecorderService();
+   final UserQuotaManager _userQuotaManager = UserQuotaManager();
+   final MessageModerationManager _messageModerationManager = MessageModerationManager();
 
    // Lazy dependency to avoid initialization order issues
    RoomController get _roomController => Get.find<RoomController>();
@@ -60,7 +84,16 @@ class MessageController extends GetxController {
     String senderId, {
     Message? existingMessage,
   }) async {
-    if (text.trim().isEmpty) return;
+    // Validate message content first
+    final validation = await _messageModerationManager.validateMessage(text, senderId);
+    if (!validation.isValid) {
+      SnackbarUtils.showError(validation.reason ?? 'Message validation failed');
+      return;
+    }
+
+    // Clean the message content
+    final cleanedText = _messageModerationManager.cleanMessageContent(text);
+    if (cleanedText.isEmpty) return;
 
     // Check if this is a ward room and add broadcast control metadata
     final isWardRoom = roomId.startsWith('ward_');
@@ -68,7 +101,7 @@ class MessageController extends GetxController {
 
     final message = existingMessage ?? Message(
       messageId: _generateMessageId(),
-      text: text,
+      text: cleanedText,
       senderId: senderId,
       type: 'text',
       createdAt: DateTime.now(),
@@ -189,37 +222,12 @@ class MessageController extends GetxController {
     }
   }
 
-  // Voice recording methods
+  // Voice recording methods - now using VoiceRecorderService
   Future<void> startVoiceRecording() async {
     try {
-      if (await _audioRecorder.hasPermission()) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final recordingsDir = Directory(
-          path.join(appDir.path, 'voice_recordings'),
-        );
-
-        if (!await recordingsDir.exists()) {
-          await recordingsDir.create(recursive: true);
-        }
-
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.m4a';
-        currentRecordingPath = path.join(recordingsDir.path, fileName);
-
-        const config = RecordConfig(
-          encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
-          sampleRate: 44100,
-        );
-
-        await _audioRecorder.start(config, path: currentRecordingPath!);
-        isRecording.value = true;
-
-        AppLogger.chat(
-          'MessageController: Started voice recording: $currentRecordingPath',
-        );
-      } else {
-        throw Exception('Microphone permission not granted');
-      }
+      await _voiceRecorderService.startRecording();
+      isRecording.value = _voiceRecorderService.isCurrentlyRecording;
+      AppLogger.chat('MessageController: Started voice recording via service');
     } catch (e) {
       AppLogger.chat('MessageController: Failed to start voice recording: $e');
       isRecording.value = false;
@@ -229,16 +237,14 @@ class MessageController extends GetxController {
 
   Future<String?> stopVoiceRecording() async {
     try {
-      final path = await _audioRecorder.stop();
+      final path = await _voiceRecorderService.stopRecording();
       isRecording.value = false;
 
       if (path != null) {
         AppLogger.chat('MessageController: Stopped voice recording: $path');
         return path;
       } else {
-        AppLogger.chat(
-          'MessageController: Voice recording failed - no path returned',
-        );
+        AppLogger.chat('MessageController: Voice recording failed - no path returned');
         return null;
       }
     } catch (e) {

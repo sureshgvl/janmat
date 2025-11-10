@@ -55,6 +55,7 @@ class AppBindings extends Bindings {
     Get.put<CandidateUserController>(CandidateUserController());
     Get.put<LanguageController>(LanguageController());
     Get.put<ScreenFocusController>(ScreenFocusController());
+    Get.put<MonetizationController>(MonetizationController());
 
     // 🎯 LAZY LOAD ALL FEATURE-SPECIFIC CONTROLLERS: Load only when screens are accessed
     // Chat controllers: Hybrid approach - lazy load but ensure proper dependency order
@@ -76,7 +77,6 @@ class AppBindings extends Bindings {
     Get.lazyPut<NotificationSettingsController>(() => NotificationSettingsController());
     Get.lazyPut<FollowingController>(() => FollowingController());
     Get.lazyPut<HighlightController>(() => HighlightController());
-    Get.lazyPut<MonetizationController>(() => MonetizationController());
 
     // 🎯 LAZY LOAD SERVICES: Only initialize when needed
     Get.lazyPut<AdMobService>(() => AdMobService());

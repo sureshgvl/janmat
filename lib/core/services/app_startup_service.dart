@@ -8,6 +8,7 @@ import '../../../firebase_options.dart';
 import '../../../utils/app_logger.dart';
 import '../../services/background_initializer.dart';
 import '../../services/user_token_manager.dart';
+import '../../services/user_status_manager.dart';
 
 
 /// Service responsible for app initialization and startup configuration
@@ -19,6 +20,7 @@ class AppStartupService {
   Future<void> initialize() async {
     await _initializeFirebase();
     await _initializeTokenManagement();
+    await _initializeUserStatusManager();
     await _configureLogging();
     await _setupBackgroundServices();
     await _setupLocalizations();
@@ -189,6 +191,18 @@ class AppStartupService {
     } catch (e) {
       AppLogger.core('❌ FCM token management initialization failed: $e');
       // Don't rethrow - FCM token issues shouldn't block app startup
+    }
+  }
+
+  /// Initialize User Status Manager
+  Future<void> _initializeUserStatusManager() async {
+    try {
+      AppLogger.core('🔄 Initializing User Status Manager...');
+      await UserStatusManager().initialize();
+      AppLogger.core('✅ User Status Manager initialized successfully');
+    } catch (e) {
+      AppLogger.core('❌ User Status Manager initialization failed: $e');
+      // Don't rethrow - status manager issues shouldn't block app startup
     }
   }
 

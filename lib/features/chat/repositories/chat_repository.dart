@@ -798,8 +798,7 @@ class ChatRepository {
       }
       allRooms = uniqueRooms.values.toList();
 
-      // Sort by creation date (newest first)
-      allRooms.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      // Don't sort here - let the controller handle WhatsApp-style sorting by last message time
 
       // BREAKPOINT REPO-11: Final result before caching
       AppLogger.database(

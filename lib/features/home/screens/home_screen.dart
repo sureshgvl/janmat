@@ -62,17 +62,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       // ✅ SAFE NAVIGATION: Only navigate when complete data is available
       // Wait a bit to ensure complete data is stable before navigating
-      if (data.isComplete &&
-          data.needsNavigation &&
-          data.navigationRoute != null) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted &&
-              _currentData?.isComplete == true &&
-              _currentData?.needsNavigation == true) {
+      if (data.isComplete) {
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          if (!mounted || _currentData?.isComplete != true) return;
+
+          // Check navigation status asynchronously
+          final needsNavigation = await data.needsNavigation;
+          final navigationRoute = await data.navigationRoute;
+
+          if (needsNavigation && navigationRoute != null) {
             AppLogger.common(
-              '🚀 Navigating to: ${data.navigationRoute} (confirmed complete data)',
+              '🚀 Navigating to: $navigationRoute (confirmed complete data)',
             );
-            Get.offAllNamed(data.navigationRoute!);
+            Get.offAllNamed(navigationRoute);
           }
         });
       }

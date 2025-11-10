@@ -8,6 +8,7 @@ import 'package:janmat/utils/multi_level_cache.dart';
 import 'package:janmat/features/home/services/home_services.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
+import 'package:janmat/services/user_status_manager.dart';
 
 /// Stream-based service for HomeScreen data loading
 class HomeScreenStreamService {
@@ -430,19 +431,19 @@ class HomeScreenData {
   bool get hasNoData => state == HomeScreenState.noData;
   bool get hasCachedCandidate => state == HomeScreenState.cachedCandidate;
 
-  // Only navigate if profile is NOT completed. Role selection can be ignored if profile is complete
-  bool get needsNavigation => isComplete && (
-    !(userModel?.profileCompleted ?? true)
-  );
+  // Navigation logic using UserStatusManager (priority: role selection first, then profile completion)
+  Future<bool> get needsNavigation async {
+    if (userId == null) return false;
 
-  String? get navigationRoute {
-    if (!isComplete || userModel == null) return null;
+    // Use UserStatusManager for instant navigation checks
+    return await UserStatusManager().needsNavigation(userId!);
+  }
 
-    // If profile is not completed, go to profile completion
-    if (!userModel!.profileCompleted) return '/profile-completion';
+  Future<String?> get navigationRoute async {
+    if (userId == null) return null;
 
-    // Profile is completed, stay on home regardless of roleSelected status
-    return null; // Stay on home
+    // Use UserStatusManager for instant navigation route determination
+    return await UserStatusManager().getNavigationRoute(userId!);
   }
 
   // For voter mode

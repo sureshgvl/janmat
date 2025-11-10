@@ -143,6 +143,8 @@ class RoomController extends GetxController {
     try {
       final createdRoom = await _repository.createChatRoom(chatRoom);
       chatRooms.add(createdRoom);
+      // Sort after adding new room to maintain order
+      _sortChatRoomsByRecentMessages();
       _updateChatRoomDisplayInfos();
       return createdRoom;
     } catch (e) {
@@ -154,6 +156,8 @@ class RoomController extends GetxController {
   void selectChatRoom(ChatRoom chatRoom) {
     currentChatRoom.value = chatRoom;
     _resetUnreadCount(chatRoom.roomId);
+    // Ensure sorting is up to date when selecting a room
+    _sortChatRoomsByRecentMessages();
     _updateChatRoomDisplayInfos();
   }
 
@@ -173,6 +177,9 @@ class RoomController extends GetxController {
     if (time != null) _lastMessageTimes[roomId] = time;
     if (preview != null) _lastMessagePreviews[roomId] = preview;
     if (sender != null) _lastMessageSenders[roomId] = sender;
+
+    // Sort chat rooms when new message arrives (WhatsApp style)
+    _sortChatRoomsByRecentMessages();
     _updateChatRoomDisplayInfos();
   }
 
@@ -192,6 +199,9 @@ class RoomController extends GetxController {
       final futures = batch.map((room) => _calculateUnreadCountForRoom(userId, room));
       await Future.wait(futures);
     }
+
+    // After calculating all unread counts and last message times, sort the chat rooms
+    _sortChatRoomsByRecentMessages();
   }
 
   // Calculate unread count for a single room
@@ -285,14 +295,29 @@ class RoomController extends GetxController {
       ));
     }
 
-    // Sort by last message time
+    // Sort by last message time (WhatsApp style: unified sorting by most recent activity)
     displayInfos.sort((a, b) {
+      // Get the most recent activity time for each room (last message time or creation time)
       final aTime = a.lastMessageTime ?? a.room.createdAt;
       final bTime = b.lastMessageTime ?? b.room.createdAt;
+
+      // Sort in descending order (most recent first)
       return bTime.compareTo(aTime);
     });
 
     chatRoomDisplayInfos.assignAll(displayInfos);
+
+    // Log final display info sorting results
+    final wardDisplayInfos = chatRoomDisplayInfos.where((info) => info.room.roomId.startsWith('ward_')).toList();
+    final areaDisplayInfos = chatRoomDisplayInfos.where((info) => info.room.roomId.startsWith('area_')).toList();
+
+    AppLogger.chat('📋 ROOM CONTROLLER: Display infos sorted - ${chatRoomDisplayInfos.length} total rooms');
+    AppLogger.chat('🏛️ DISPLAY WARD ROOMS (${wardDisplayInfos.length}): ${wardDisplayInfos.map((info) => '${info.room.roomId}(${info.lastMessageTime != null ? "has_msg" : "no_msg"})').join(", ")}');
+    AppLogger.chat('🏘️ DISPLAY AREA ROOMS (${areaDisplayInfos.length}): ${areaDisplayInfos.map((info) => '${info.room.roomId}(${info.lastMessageTime != null ? "has_msg" : "no_msg"})').join(", ")}');
+
+    // Log final top 5 display rooms
+    final topDisplayInfos = chatRoomDisplayInfos.take(5).toList();
+    AppLogger.chat('🔝 FINAL TOP 5 DISPLAY ROOMS: ${topDisplayInfos.map((info) => '${info.room.roomId}(${info.lastMessageTime != null ? "has_msg" : "no_msg"})').join(", ")}');
   }
 
   // Get display title for private chat (other user's name)
@@ -352,6 +377,30 @@ class RoomController extends GetxController {
   // Clear current room
   void clearCurrentRoom() {
     currentChatRoom.value = null;
+  }
+
+  // Sort chat rooms by recent messages (WhatsApp style)
+  void _sortChatRoomsByRecentMessages() {
+    chatRooms.sort((a, b) {
+      // Get the most recent activity time for each room (last message time or creation time)
+      final aTime = _lastMessageTimes[a.roomId] ?? a.createdAt;
+      final bTime = _lastMessageTimes[b.roomId] ?? b.createdAt;
+
+      // Sort in descending order (most recent first)
+      return bTime.compareTo(aTime);
+    });
+
+    // Log detailed sorting results for ward and area rooms
+    final wardRooms = chatRooms.where((room) => room.roomId.startsWith('ward_')).toList();
+    final areaRooms = chatRooms.where((room) => room.roomId.startsWith('area_')).toList();
+
+    AppLogger.chat('📋 ROOM CONTROLLER: Sorted ${chatRooms.length} total chat rooms by recent messages');
+    AppLogger.chat('🏛️ WARD ROOMS (${wardRooms.length}): ${wardRooms.map((r) => '${r.roomId}(${_lastMessageTimes.containsKey(r.roomId) ? "has_msg" : "no_msg"})').join(", ")}');
+    AppLogger.chat('🏘️ AREA ROOMS (${areaRooms.length}): ${areaRooms.map((r) => '${r.roomId}(${_lastMessageTimes.containsKey(r.roomId) ? "has_msg" : "no_msg"})').join(", ")}');
+
+    // Log top 5 rooms for verification
+    final topRooms = chatRooms.take(5).toList();
+    AppLogger.chat('🔝 TOP 5 ROOMS: ${topRooms.map((r) => '${r.roomId}(${_lastMessageTimes.containsKey(r.roomId) ? "has_msg" : "no_msg"})').join(", ")}');
   }
 
   // Clean up

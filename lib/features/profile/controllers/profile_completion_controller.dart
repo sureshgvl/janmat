@@ -20,6 +20,7 @@ import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../../utils/add_sample_states.dart';
 import '../../../services/local_database_service.dart';
+import '../../../services/user_status_manager.dart';
 import '../../notifications/services/constituency_notifications.dart';
 
 class ProfileCompletionController extends GetxController {
@@ -1206,6 +1207,15 @@ class ProfileCompletionController extends GetxController {
         AppLogger.commonError('⚠️ Failed to refresh chat data for voter after ${chatRefreshTime}ms, but profile saved', error: e);
       }
 
+      // Update UserStatusManager for instant access
+      try {
+        await UserStatusManager().updateProfileCompleted(currentUser.uid, true);
+        AppLogger.common('✅ [PROFILE_COMPLETION] UserStatusManager updated for voter profile completion');
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to update UserStatusManager for voter profile completion', error: e);
+        // Don't fail the profile completion if status manager update fails
+      }
+
       // Navigate and show voter success message
       Get.offAllNamed('/home');
       SnackbarUtils.showSuccess(localizations.profileCompleted);
@@ -1327,6 +1337,15 @@ class ProfileCompletionController extends GetxController {
 
       // Small delay to show success message
       await Future.delayed(const Duration(milliseconds: 500));
+
+      // Update UserStatusManager for instant access
+      try {
+        await UserStatusManager().updateProfileCompleted(currentUser.uid, true);
+        AppLogger.common('✅ [PROFILE_COMPLETION] UserStatusManager updated for candidate profile completion');
+      } catch (e) {
+        AppLogger.commonError('⚠️ Failed to update UserStatusManager for candidate profile completion', error: e);
+        // Don't fail the profile completion if status manager update fails
+      }
 
       // Navigate and show candidate success message
       Get.offAllNamed('/home');

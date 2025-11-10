@@ -113,6 +113,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE5DDD5),
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -518,6 +519,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final text = messageController.text.trim();
     AppLogger.chat('🚀 ChatRoomScreen: _sendMessage called with text: "$text"');
 
+    // Wait for user data to be available if not already loaded
+    if (controller.currentUser == null && controller.isUserAuthenticated) {
+      AppLogger.chat('⏳ ChatRoomScreen: User data not loaded yet, waiting...');
+      // Try to load user data
+      await controller.getCompleteUserData();
+      // Small delay to ensure reactive state updates
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
     if (text.isNotEmpty &&
         controller.currentChatRoom.value != null &&
         controller.currentUser != null) {
@@ -532,13 +542,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       AppLogger.chat('✅ ChatRoomScreen: controller.sendTextMessage completed');
 
       messageController.clear(); // Clear the text controller
-      // Use smart scroll for new messages - only scroll if user is near bottom
-      _smartScrollToBottom();
+
+      // Always scroll to bottom after sending message to show the new message
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom(force: true);
+      });
     } else {
       AppLogger.chat('⚠️ ChatRoomScreen: Cannot send message - conditions not met');
       AppLogger.chat('   Text: "$text" (length: ${text.length})');
       AppLogger.chat('   Chat room: ${controller.currentChatRoom.value?.roomId}');
       AppLogger.chat('   Current user: ${controller.currentUser?.uid}');
+      AppLogger.chat('   Is authenticated: ${controller.isUserAuthenticated}');
+
+      if (!controller.isUserAuthenticated) {
+        SnackbarUtils.showError('Please log in to send messages');
+      } else if (controller.currentUser == null) {
+        SnackbarUtils.showError('Loading user data, please try again');
+      }
     }
   }
 

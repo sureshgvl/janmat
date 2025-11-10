@@ -17,6 +17,11 @@ import '../models/poll.dart';
 import '../models/user_quota.dart';
 import '../repositories/chat_repository.dart';
 import '../services/private_chat_service.dart';
+import '../services/user_manager.dart';
+import '../services/poll_manager.dart';
+import '../services/ad_reward_manager.dart';
+import '../services/typing_status_manager.dart';
+import '../services/private_chat_manager.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../../services/admob_service.dart';
 import '../../notifications/services/poll_notification_service.dart';
@@ -29,6 +34,13 @@ class ChatController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
   final ChatRepository _repository = ChatRepository();
   final PrivateChatService _privateChatService = PrivateChatService();
+
+  // New focused services for SOLID principles
+  final UserManager _userManager = UserManager();
+  final PollManager _pollManager = PollManager();
+  final AdRewardManager _adRewardManager = AdRewardManager();
+  final TypingStatusManager _typingStatusManager = TypingStatusManager();
+  final PrivateChatManager _privateChatManager = PrivateChatManager();
 
   // Delegate properties to new controllers with reactive bridging
   List<ChatRoom> get chatRooms => _roomController.chatRooms;
@@ -67,22 +79,18 @@ class ChatController extends GetxController {
     AppLogger.database('Repository cache cleanup requested', tag: 'CHAT');
   }
 
-  // User data - get from auth repository
+  // User data - now using UserManager service
   UserModel? get currentUser {
-    if (_cachedUser != null) {
-      return _cachedUser;
+    // First try to get from reactive state
+    if (_userManager.currentUser.value != null) {
+      return _userManager.currentUser.value;
     }
-
-    // Try to get from auth repository
-    final firebaseUser = _authRepository.currentUser;
-    if (firebaseUser != null) {
-      // Get complete user data asynchronously
-      _loadCompleteUserData();
-      return null; // Return null initially, will be updated when data loads
-    }
-
-    return null;
+    // Fallback to cached user from legacy method
+    return _cachedUser;
   }
+
+  // Synchronous check if user is authenticated (for UI checks)
+  bool get isUserAuthenticated => _userManager.isAuthenticated;
 
   bool get canSendMessage {
     final user = _cachedUser;
@@ -306,183 +314,15 @@ class ChatController extends GetxController {
   bool get isRecording => _messageController.isRecording.value;
 
   Future<void> watchRewardedAdForXP() async {
-    final adMobService = Get.find<AdMobService>();
-
-    AppLogger.ui('Checking ad availability...', tag: 'CHAT');
-    AppLogger.ui('Ad status: ${adMobService.getAdStatus()}', tag: 'CHAT');
-    AppLogger.ui('Ad debug info: ${adMobService.getAdDebugInfo()}', tag: 'CHAT');
-
-    // Force initialize if not done yet
-    await adMobService.initializeIfNeeded();
-
-    // Wait a bit for ad to load if not ready
-    if (!adMobService.isAdAvailable) {
-      AppLogger.ui('Ad not ready, waiting for load...', tag: 'CHAT');
-
-      // Show loading dialog while waiting
-      Get.dialog(
-        AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              const Text('Loading rewarded ad...'),
-              const SizedBox(height: 8),
-              Text(
-                'Preparing your ad. This may take a moment.',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Get.back();
-                SnackbarUtils.showInfo('Ad loading cancelled');
-              },
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-        barrierDismissible: false,
+    // Use AdRewardManager service for handling rewarded ads
+    final user = _cachedUser;
+    if (user != null) {
+      await _adRewardManager.watchRewardedAdForExtraMessages(
+        userId: user.uid,
+        extraMessages: 10,
       );
-
-      // Wait up to 15 seconds for ad to load
-      const maxWaitTime = Duration(seconds: 15);
-      final startTime = DateTime.now();
-
-      while (!adMobService.isAdAvailable &&
-          DateTime.now().difference(startTime) < maxWaitTime) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        AppLogger.ui(
-          'Still waiting for ad... (${DateTime.now().difference(startTime).inSeconds}s)',
-          tag: 'CHAT',
-        );
-      }
-
-      // Close loading dialog
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-
-      if (!adMobService.isAdAvailable) {
-        AppLogger.ui('Ad still not ready after waiting', tag: 'CHAT');
-        SnackbarUtils.showWarning('Ad failed to load. Please check your internet connection and try again.');
-        return;
-      }
-    }
-
-    try {
-      AppLogger.ui('Starting rewarded ad display...', tag: 'CHAT');
-
-      // Show loading dialog while displaying ad
-      Get.dialog(
-        AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              const Text('Showing rewarded ad...'),
-              const SizedBox(height: 8),
-              Text(
-                'Watch the ad completely to earn XP',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-        barrierDismissible: false,
-      );
-
-      AppLogger.ui('Displaying rewarded ad...', tag: 'CHAT');
-      int? rewardXP = await adMobService.showRewardedAd();
-
-      // Close loading dialog
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-
-      // Close loading dialog if still open (double check)
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-
-      AppLogger.ui('Ad result: rewardXP = $rewardXP', tag: 'CHAT');
-
-      // For testing: if ad fails, offer simulation
-      if (rewardXP == null || rewardXP == 0) {
-        AppLogger.ui(
-          'Ad failed or returned no reward, offering simulation for testing',
-          tag: 'CHAT',
-        );
-
-        // Show dialog asking if user wants to simulate reward for testing
-        final shouldSimulate = await Get.dialog<bool>(
-          AlertDialog(
-            title: const Text('Ad Not Available'),
-            content: const Text(
-              'The rewarded ad could not be shown. Would you like to simulate a reward for testing purposes?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(result: false),
-                child: const Text('No'),
-              ),
-              TextButton(
-                onPressed: () => Get.back(result: true),
-                child: const Text('Yes (Test)'),
-              ),
-            ],
-          ),
-        );
-
-        if (shouldSimulate == true) {
-          AppLogger.ui('User chose to simulate reward', tag: 'CHAT');
-          rewardXP = await adMobService.simulateRewardForTesting();
-          AppLogger.ui('Simulated reward: $rewardXP XP', tag: 'CHAT');
-        }
-      }
-
-      if (rewardXP != null && rewardXP > 0) {
-        AppLogger.ui('Ad completed, attempting to award 10 extra messages', tag: 'CHAT');
-
-        // Award 10 extra messages to user
-        final awardSuccess = await _awardExtraMessagesFromAd(10);
-
-        if (awardSuccess) {
-          SnackbarUtils.showSuccess('You earned 10 extra messages for watching the ad!');
-        } else {
-          SnackbarUtils.showError('Ad was watched but failed to award extra messages. Please contact support.');
-        }
-      } else {
-        AppLogger.ui(
-          'Ad was shown but no reward was earned - this might be normal for test ads',
-          tag: 'CHAT',
-        );
-
-        // For test ads, still award extra messages as fallback
-        if (adMobService.isTestAdUnit()) {
-          AppLogger.ui('Test ad detected, awarding fallback extra messages', tag: 'CHAT');
-          final awardSuccess = await _awardExtraMessagesFromAd(10);
-
-          if (awardSuccess) {
-            SnackbarUtils.showSuccess('You earned 10 extra messages (test mode)!');
-          }
-        } else {
-          SnackbarUtils.showWarning('Ad was shown but no reward was earned. Please try again.');
-        }
-      }
-    } catch (e) {
-      AppLogger.ui('Error in rewarded ad flow: $e', tag: 'CHAT');
-
-      // Close loading dialog if open
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-
-      SnackbarUtils.showError('Failed to show ad. Please try again later.');
+    } else {
+      SnackbarUtils.showError('User not authenticated');
     }
   }
 
@@ -627,6 +467,9 @@ class ChatController extends GetxController {
     _roomController = Get.find<RoomController>();
     _messageController = Get.find<MessageController>();
 
+    // Initialize UserManager and load user data
+    _initializeUserManager();
+
     // Clean up expired repository cache on app start (fast operation)
     clearExpiredRepositoryCache();
 
@@ -639,6 +482,17 @@ class ChatController extends GetxController {
     // Firebase is now available synchronously, so we can initialize immediately
     // but we'll still defer heavy operations to when chat is actually accessed
     AppLogger.ui('ChatController initialized - Firebase ready', tag: 'CHAT');
+  }
+
+  // Initialize UserManager and load user data
+  Future<void> _initializeUserManager() async {
+    try {
+      // Load user data into UserManager
+      await _userManager.getCurrentUser();
+      AppLogger.chat('UserManager initialized successfully');
+    } catch (e) {
+      AppLogger.chat('Failed to initialize UserManager: $e');
+    }
   }
 
   // Set up message stream connection

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../../services/user_status_manager.dart';
 import '../controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
 
@@ -40,11 +41,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Update user role in Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .update({'role': selectedRole, 'roleSelected': true});
+      // Update role using UserStatusManager (instant SharedPreferences + async Firebase)
+      await UserStatusManager().updateRole(currentUser.uid, selectedRole!);
 
       // Navigate to profile completion with animation
       Get.offAllNamed('/profile-completion');
