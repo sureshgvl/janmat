@@ -458,6 +458,12 @@ class _MyAppContentState extends State<MyAppContent> {
       initialRoute: _currentRoute,
       getPages: AppRoutes.getPages,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Wrap entire app with SafeArea for global safe area handling
+        return SafeArea(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

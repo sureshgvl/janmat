@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/features/candidate/screens/highlight/candidate_dashboard_highlight_screen.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
+import '../../../core/app_theme.dart';
 import '../../monetization/services/plan_service.dart';
 import 'candidate_dashboard_info.dart';
 import 'candidate_dashboard_achievements.dart';
@@ -224,6 +225,7 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
         ),
         actions: null,
       ),
+      backgroundColor: AppTheme.homeBackgroundColor,
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());

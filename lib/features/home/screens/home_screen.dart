@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/app_theme.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
 import '../../districtSpotLight/services/district_spotlight_service.dart';
@@ -173,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           );
         });
 
-        return _buildMainScreen(context, data);
+        return _buildMainScreen(context, data, backgroundColor: AppTheme.homeBackgroundColor);
       },
     );
   }
@@ -220,12 +221,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   /// Build main screen based on data state
-  Widget _buildMainScreen(BuildContext context, HomeScreenData data) {
+  Widget _buildMainScreen(BuildContext context, HomeScreenData data, {Color? backgroundColor}) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.home)),
       drawer: _buildDrawer(context, data, currentUser),
+      backgroundColor: backgroundColor,
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
         onRefresh: () async {

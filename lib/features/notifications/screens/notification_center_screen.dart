@@ -5,6 +5,7 @@ import '../services/notification_manager.dart';
 import '../services/test_notifications.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../l10n/features/notifications/notifications_localizations.dart';
+import '../../../core/app_theme.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
@@ -236,6 +237,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
           ],
         ],
       ),
+      backgroundColor: AppTheme.homeBackgroundColor,
       body: _buildBody(),
     );
   }

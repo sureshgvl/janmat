@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/features/chat/chat_translations.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../../core/app_theme.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/room_controller.dart';
 import '../controllers/message_controller.dart';
@@ -43,85 +44,46 @@ class _ChatListScreenState extends State<ChatListScreen> {
       appBar: AppBar(
         title: Text(ChatTranslations.chatRooms),
         actions: [
-          // Manual ward room creation button (only for candidates)
+          // Private chat button
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            tooltip: 'Start Private Chat',
+            color: Colors.green,
+            onPressed: () => _showPrivateChatOptions(),
+          ),
+
+          // Add room button (only if can create rooms)
           GetBuilder<ChatController>(
             builder: (controller) {
-              final user = controller.currentUser;
-              if (user != null && user.role == 'candidate') {
+              if (ChatHelpers.canCreateRooms(controller.currentUser?.role)) {
                 return IconButton(
-                  icon: const Icon(Icons.home_work),
-                  tooltip: 'Create Ward Room',
-                  onPressed: () async {
-                    await controller.manuallyCreateWardRoom();
-                  },
+                  icon: const Icon(Icons.add),
+                  tooltip: 'createNewChatRoom'.tr,
+                  color: Colors.blue,
+                  onPressed: () => ChatDialogs.showCreateRoomDialog(context),
                 );
               }
               return const SizedBox.shrink();
             },
           ),
 
-          // Quota indicator and refresh button
-          Row(
-            children: [
-              // Refresh button without background
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'refreshChatRooms'.tr,
-                onPressed: () async {
-                  await controller.refreshChatRooms();
-                  SnackbarUtils.showSuccess('chatRoomsUpdated'.tr);
-                },
-              ),
-
-              // Quota indicator
-              GetBuilder<ChatController>(
-                builder: (controller) => Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: controller.canSendMessage
-                        ? Colors.green.shade100
-                        : Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: controller.canSendMessage
-                          ? Colors.green.shade300
-                          : Colors.red.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        controller.canSendMessage
-                            ? Icons.message
-                            : Icons.warning,
-                        size: 16,
-                        color: controller.canSendMessage
-                            ? Colors.green.shade700
-                            : Colors.red.shade700,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${controller.remainingMessages}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: controller.canSendMessage
-                              ? Colors.green.shade700
-                              : Colors.red.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          // Watch ad button (only if quota low)
+          GetBuilder<ChatController>(
+            builder: (controller) {
+              if (!controller.canSendMessage) {
+                return IconButton(
+                  icon: const Icon(Icons.warning),
+                  tooltip: 'watchAd'.tr,
+                  color: Colors.orange,
+                  onPressed: () => ChatDialogs.showWatchAdDialog(context),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
       ),
+      backgroundColor: AppTheme.homeBackgroundColor,
       body: GetBuilder<ChatController>(
         builder: (controller) {
           if (controller.isLoading.value) {
@@ -255,54 +217,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
           );
         },
       ),
-      floatingActionButton: GetBuilder<ChatController>(
-        builder: (controller) => Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            // Private chat button
-            FloatingActionButton(
-              heroTag: 'private_chat_fab',
-              onPressed: () => _showPrivateChatOptions(),
-              backgroundColor: Colors.green,
-              tooltip: 'Start Private Chat',
-              child: const Icon(Icons.person_add),
-            ),
-            const SizedBox(height: 16),
-            if (ChatHelpers.canCreateRooms(controller.currentUser?.role))
-              _buildCreateRoomButton(),
-            const SizedBox(height: 16),
-            _buildQuotaWarningButtonExtended(),
-          ].whereType<Widget>().toList(),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildCreateRoomButton() {
-    return FloatingActionButton(
-      heroTag: 'create_room_fab',
-      onPressed: () => ChatDialogs.showCreateRoomDialog(context),
-      backgroundColor: Colors.blue,
-      tooltip: 'createNewChatRoom'.tr,
-      child: const Icon(Icons.add),
     );
   }
 
   void _showPrivateChatOptions() {
     Get.dialog(const UserSearchDialog());
-  }
-
-
-  Widget? _buildQuotaWarningButtonExtended() {
-    if (!controller.canSendMessage) {
-      return FloatingActionButton.extended(
-        heroTag: 'watch_ad_fab',
-        onPressed: () => ChatDialogs.showWatchAdDialog(context),
-        backgroundColor: Colors.orange,
-        icon: const Icon(Icons.warning),
-        label: Text('watchAd'.tr),
-      );
-    }
-    return null;
   }
 }

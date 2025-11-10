@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../../core/app_theme.dart';
 import '../controllers/monetization_controller.dart';
 import '../widgets/premium_plans_tab.dart';
 import '../utils/purchase_handlers.dart';
@@ -103,6 +104,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
              ),
            ],
          ),
+         backgroundColor: AppTheme.homeBackgroundColor,
          body: LoadingOverlay(
            isLoading: _controller.isLoading.value,
            child: PremiumPlansTab(

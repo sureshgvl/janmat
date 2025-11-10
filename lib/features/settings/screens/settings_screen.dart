@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../controllers/theme_controller.dart';
+import '../../../core/app_theme.dart';
 import '../../language/controller/language_controller.dart';
 import '../../notifications/screens/notification_preferences_screen.dart';
 
@@ -49,6 +50,7 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)?.settings ?? 'Settings'),
       ),
+      backgroundColor: AppTheme.homeBackgroundColor,
       body: ListView(
         children: [
           const SizedBox(height: 16),

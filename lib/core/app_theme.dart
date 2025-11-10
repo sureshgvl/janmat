@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  // Home screen background color - very light saffron for contrast
+  static const Color homeBackgroundColor = Color(0xFFFFF8F0);
+
   // Patriotic Theme - Default (Saffron & Green)
   static ThemeData get lightTheme {
     return ThemeData(
@@ -261,4 +264,3 @@ class AppTheme {
     );
   }
 }
-

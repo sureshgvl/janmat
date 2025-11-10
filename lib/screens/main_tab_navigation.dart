@@ -204,7 +204,7 @@ class _MainTabNavigationState extends State<MainTabNavigation> {
           ],
           currentIndex: _selectedIndex,
           selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: Colors.grey[700],
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
           showUnselectedLabels: true,
