@@ -35,6 +35,7 @@ import '../features/candidate/services/manifesto_sync_service.dart';
 import '../features/notifications/services/gamification_notification_service.dart';
 import '../services/gamification_service.dart';
 import '../features/monetization/controllers/monetization_controller.dart';
+import '../controllers/background_color_controller.dart';
 import '../services/screen_focus_service.dart';
 import '../features/chat/services/background_cache_warmer.dart';
 import '../features/chat/services/chat_performance_monitor.dart';
@@ -56,6 +57,7 @@ class AppBindings extends Bindings {
     Get.put<LanguageController>(LanguageController());
     Get.put<ScreenFocusController>(ScreenFocusController());
     Get.put<MonetizationController>(MonetizationController());
+    Get.put<BackgroundColorController>(BackgroundColorController());
 
     // 🎯 LAZY LOAD ALL FEATURE-SPECIFIC CONTROLLERS: Load only when screens are accessed
     // Chat controllers: Hybrid approach - lazy load but ensure proper dependency order

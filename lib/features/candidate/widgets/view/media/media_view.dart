@@ -17,6 +17,8 @@ import 'package:janmat/services/share_service.dart';
 import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/common/image_gallery_components.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
+import 'package:janmat/core/app_theme.dart';
+import 'package:janmat/controllers/background_color_controller.dart';
 
 class MediaTabView extends StatefulWidget {
   final Candidate candidate;
@@ -208,6 +210,7 @@ class _MediaTabViewState extends State<MediaTabView>
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
+    final backgroundColorController = Get.find<BackgroundColorController>();
     final mediaItems = _getMediaItems();
 
     // Sort by most recent first
@@ -224,8 +227,10 @@ class _MediaTabViewState extends State<MediaTabView>
       }
     });
 
-    return SingleChildScrollView(
-      child: Column(
+    return Obx(() => Container(
+      color: backgroundColorController.currentBackgroundColor.value,
+      child: SingleChildScrollView(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Facebook-style "What's on your mind?" Composer (only for own profile)
@@ -276,8 +281,9 @@ class _MediaTabViewState extends State<MediaTabView>
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  ));
+}
 
   // Facebook-style "What's on your mind?" post composer
   Widget _buildFacebookStylePostComposer() {

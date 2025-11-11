@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:janmat/core/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../models/candidate_model.dart';
 import '../controllers/change_party_symbol_controller.dart';
@@ -39,9 +40,11 @@ class _ChangePartySymbolScreenState extends State<ChangePartySymbolScreen> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(localizations.changePartySymbolTitle)),
+     backgroundColor: AppTheme.homeBackgroundColor,
+     appBar: AppBar(title: Text(localizations.changePartySymbolTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
+          
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,

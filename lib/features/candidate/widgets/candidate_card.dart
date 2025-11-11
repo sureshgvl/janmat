@@ -48,6 +48,7 @@ class CandidateCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
+            constraints: const BoxConstraints(minHeight: 100),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -64,13 +65,22 @@ class CandidateCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
               border: Border.all(
                 color: isPremiumCandidate
-                    ? Colors.amber.withValues(alpha: 0.3)
-                    : AppColors.borderLight,
-                width: isPremiumCandidate ? 1.5 : 1.0,
+                    ? Colors.amber.withValues(alpha: 0.5)
+                    : Colors.grey.shade300,
+                width: isPremiumCandidate ? 2.0 : 1.5,
               ),
               boxShadow: [
-                AppShadows.light,
-                if (isPremiumCandidate) AppShadows.medium,
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+                if (isPremiumCandidate)
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
               ],
             ),
             child: Row(
@@ -393,4 +403,3 @@ class CandidateCard extends StatelessWidget {
     );
   }
 }
-

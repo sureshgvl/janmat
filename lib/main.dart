@@ -22,9 +22,11 @@ import 'l10n/features/onboarding/onboarding_localizations.dart';
 import 'l10n/features/profile/profile_localizations.dart';
 import 'l10n/features/notifications/notifications_localizations.dart';
 import 'l10n/features/settings/settings_localizations.dart';
+import 'l10n/features/chat/chat_localizations.dart';
 import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
+import 'controllers/background_color_controller.dart';
 import 'features/language/controller/language_controller.dart';
 import 'services/home_screen_stream_service.dart';
 import 'features/highlight/services/highlight_session_service.dart';
@@ -226,6 +228,8 @@ void main() async {
 
   // Initialize ThemeController early
   Get.put<ThemeController>(ThemeController());
+  // Initialize BackgroundColorController early
+  Get.put<BackgroundColorController>(BackgroundColorController());
   // Initialize LanguageController early for reactive locale
   Get.put<LanguageController>(LanguageController());
   // Initialize SharedPreferences for fast cached data access
@@ -444,6 +448,7 @@ class _MyAppContentState extends State<MyAppContent> {
         ProfileLocalizations.delegate,
         NotificationsLocalizations.delegate,
         SettingsLocalizations.delegate,
+        ChatLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: (locale, supportedLocales) {

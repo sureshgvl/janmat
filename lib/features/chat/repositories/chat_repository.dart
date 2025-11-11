@@ -209,7 +209,21 @@ class ChatRepository {
       try {
         // Try to get the full room data from Firestore
         ChatRoom? room;
-        final roomPath = _getRoomPathFromId(meta.roomId);
+        String roomPath;
+
+        if (meta.roomId.startsWith('candidate_')) {
+          // For candidate rooms, construct path using location data from user context
+          if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+            roomPath = 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/chats/${meta.roomId}';
+          } else {
+            // Fallback to flat collection if location data not available
+            roomPath = 'chats/${meta.roomId}';
+          }
+        } else {
+          // For system rooms, use the standard path resolution
+          roomPath = _getRoomPathFromId(meta.roomId);
+        }
+
         final doc = await _firestore.doc(roomPath).get();
 
         if (doc.exists) {
@@ -849,13 +863,36 @@ class ChatRepository {
         'Setting room data in hierarchical structure',
         tag: 'CHAT',
       );
-      final roomPath = _getRoomPathFromId(chatRoom.roomId);
+
+      String roomPath;
+      if (chatRoom.roomId.startsWith('candidate_')) {
+        // For candidate-created rooms, save in ward's hierarchical structure
+        if (chatRoom.stateId != null && chatRoom.districtId != null &&
+            chatRoom.bodyId != null && chatRoom.wardId != null) {
+          roomPath = 'states/${chatRoom.stateId}/districts/${chatRoom.districtId}/bodies/${chatRoom.bodyId}/wards/${chatRoom.wardId}/chats/${chatRoom.roomId}';
+          AppLogger.database(
+            'Candidate room will be saved at hierarchical path: $roomPath',
+            tag: 'CHAT',
+          );
+        } else {
+          // Fallback if location data not available
+          roomPath = 'chats/${chatRoom.roomId}';
+          AppLogger.database(
+            'Candidate room location data missing, using fallback path: $roomPath',
+            tag: 'CHAT',
+          );
+        }
+      } else {
+        // For system rooms (ward/area), use the standard path resolution
+        roomPath = _getRoomPathFromId(chatRoom.roomId);
+      }
+
       final docRef = _firestore.doc(roomPath);
       await docRef.set(chatRoom.toJson());
 
       // BREAKPOINT CREATE-3: After successful creation
       AppLogger.database(
-        'Room successfully created in hierarchical structure',
+        'Room successfully created in hierarchical structure at: $roomPath',
         tag: 'CHAT',
       );
 
@@ -987,29 +1024,57 @@ class ChatRepository {
 
   // Get messages for a chat room from hierarchical structure
   Stream<List<Message>> getMessagesForRoom(String roomId) {
-    // Parse roomId to determine the hierarchical path
-    final roomPath = _getRoomPathFromId(roomId);
-    return _firestore
-        .doc(roomPath)
-        .collection('messages')
-        .orderBy('createdAt', descending: false)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['messageId'] = doc.id;
+    // For candidate rooms, we need to determine the correct path asynchronously
+    if (roomId.startsWith('candidate_')) {
+      // Return a stream that first determines the path, then gets messages
+      return Stream.fromFuture(_getRoomPathFromIdAsync(roomId)).asyncExpand((roomPath) {
+        return _firestore
+            .doc(roomPath)
+            .collection('messages')
+            .orderBy('createdAt', descending: false)
+            .snapshots()
+            .map((snapshot) {
+              return snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['messageId'] = doc.id;
 
-            // Ensure status field exists, default to sent if missing
-            if (!data.containsKey('status') || data['status'] == null) {
-              data['status'] = 1; // MessageStatus.sent.index
-              AppLogger.chat(
-                '⚠️ Message ${doc.id} missing status field, defaulting to sent',
-              );
-            }
+                // Ensure status field exists, default to sent if missing
+                if (!data.containsKey('status') || data['status'] == null) {
+                  data['status'] = 1; // MessageStatus.sent.index
+                  AppLogger.chat(
+                    '⚠️ Message ${doc.id} missing status field, defaulting to sent',
+                  );
+                }
 
-            return Message.fromJson(data);
-          }).toList();
-        });
+                return Message.fromJson(data);
+              }).toList();
+            });
+      });
+    } else {
+      // For system rooms, use the synchronous path resolution
+      final roomPath = _getRoomPathFromId(roomId);
+      return _firestore
+          .doc(roomPath)
+          .collection('messages')
+          .orderBy('createdAt', descending: false)
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['messageId'] = doc.id;
+
+              // Ensure status field exists, default to sent if missing
+              if (!data.containsKey('status') || data['status'] == null) {
+                data['status'] = 1; // MessageStatus.sent.index
+                AppLogger.chat(
+                  '⚠️ Message ${doc.id} missing status field, defaulting to sent',
+                );
+              }
+
+              return Message.fromJson(data);
+            }).toList();
+          });
+    }
   }
 
   // Get paginated messages for a chat room (for loading older messages)
@@ -1096,7 +1161,8 @@ class ChatRepository {
         return true;
       }());
 
-      final roomPath = _getRoomPathFromId(roomId);
+      // Get the correct path for the room
+      final roomPath = await _getRoomPathFromIdAsync(roomId);
       final docRef = _firestore
           .doc(roomPath)
           .collection('messages')
@@ -1644,10 +1710,57 @@ class ChatRepository {
     }
   }
 
+  // Helper method to get hierarchical path from roomId (async version for candidate rooms)
+  Future<String> _getRoomPathFromIdAsync(String roomId) async {
+    AppLogger.database('Async parsing roomId: $roomId', tag: 'CHAT');
+
+    if (roomId.startsWith('candidate_')) {
+      // For candidate rooms, fetch the room data to get location info
+      try {
+        // First try the hierarchical structure (preferred)
+        // We need to get the current user's location to construct the path
+        final userDataController = Get.find<UserDataController>();
+        if (userDataController.isInitialized.value &&
+            userDataController.currentUser.value != null) {
+          final userModel = userDataController.currentUser.value!;
+          if (userModel.stateId != null && userModel.districtId != null &&
+              userModel.bodyId != null && userModel.wardId != null) {
+            final hierarchicalPath = 'states/${userModel.stateId}/districts/${userModel.districtId}/bodies/${userModel.bodyId}/wards/${userModel.wardId}/chats/$roomId';
+            final doc = await _firestore.doc(hierarchicalPath).get();
+            if (doc.exists) {
+              AppLogger.database(
+                'Found candidate room at hierarchical path: $hierarchicalPath',
+                tag: 'CHAT',
+              );
+              return hierarchicalPath;
+            }
+          }
+        }
+
+        // Fallback to flat collection
+        AppLogger.database(
+          'Candidate room not found in hierarchy, using flat collection',
+          tag: 'CHAT',
+        );
+        return 'chats/$roomId';
+      } catch (e) {
+        AppLogger.database(
+          'Error fetching candidate room path: $e, using fallback',
+          tag: 'CHAT',
+        );
+        return 'chats/$roomId';
+      }
+    } else {
+      // For system rooms, use the synchronous version
+      return _getRoomPathFromId(roomId);
+    }
+  }
+
   // Helper method to get hierarchical path from roomId
   String _getRoomPathFromId(String roomId) {
     AppLogger.database('Parsing roomId: $roomId', tag: 'CHAT');
     // Parse roomId like "ward_maharashtra_pune_pune_m_cop_ward_17" or "area_maharashtra_pune_pune_m_cop_ward_17_माळवाडी"
+    // or "candidate_userId_timestamp" for candidate-created rooms
 
     if (roomId.startsWith('ward_')) {
       // Format: ward_{stateId}_{districtId}_{bodyId}_{wardId}
@@ -1713,6 +1826,20 @@ class ChatRepository {
       );
       // Path: states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/areas/{areaId}/chats/area_discussion
       return 'states/$stateId/districts/$districtId/bodies/$bodyId/wards/$wardId/areas/$areaId/chats/area_discussion';
+    } else if (roomId.startsWith('candidate_')) {
+      // Format: candidate_{userId}_{timestamp}
+      // Candidate-created rooms are stored in the ward's hierarchical structure
+      // We need to get the location data from the room data itself
+      AppLogger.database(
+        'Candidate room detected: $roomId - fetching room data to determine path',
+        tag: 'CHAT',
+      );
+
+      // For candidate rooms, we need to fetch the room data to get location info
+      // This is a synchronous method, so we need to handle this differently
+      // For now, assume candidate rooms are stored in the ward hierarchy
+      // The actual path construction is handled in createChatRoom and _convertMetadataToRooms
+      return 'chats/$roomId'; // This will be overridden by the actual path in most cases
     }
 
     AppLogger.database('Unknown room type, using fallback', tag: 'CHAT');
@@ -1874,6 +2001,30 @@ class ChatRepository {
           } catch (e) {
             AppLogger.chat('⚠️ Failed to query hierarchical structure: $e');
           }
+        }
+
+        // Add candidate-created custom rooms
+        try {
+          AppLogger.chat('👤 Getting candidate-created rooms for user: $userId');
+          final candidateRooms = await _firestore
+              .collection('chats')
+              .where('createdBy', isEqualTo: userId)
+              .where('type', isEqualTo: 'public') // Only public rooms created by candidate
+              .get();
+
+          for (final doc in candidateRooms.docs) {
+            final data = doc.data();
+            final room = ChatRoom.fromJson(data);
+            rooms.add(room);
+            AppLogger.chat(
+              '✅ Added candidate-created room: ${room.title} (ID: ${room.roomId})',
+            );
+          }
+          AppLogger.chat(
+            '👤 Found ${candidateRooms.docs.length} candidate-created rooms',
+          );
+        } catch (e) {
+          AppLogger.chat('⚠️ Failed to get candidate-created rooms: $e');
         }
 
         // Add private chats for candidates

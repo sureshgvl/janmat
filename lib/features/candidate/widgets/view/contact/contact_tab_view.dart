@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
+import '../../../../../core/app_theme.dart';
+import '../../../../../controllers/background_color_controller.dart';
 
 class ContactTabView extends StatefulWidget {
   final Candidate candidate;
@@ -19,9 +22,13 @@ class _ContactTabViewState extends State<ContactTabView>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    final backgroundColorController = Get.find<BackgroundColorController>();
+
+    return Obx(() => Container(
+      color: backgroundColorController.currentBackgroundColor.value,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Contact Information
@@ -288,8 +295,9 @@ class _ContactTabViewState extends State<ContactTabView>
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  ));
+}
 
   IconData _getSocialIcon(String platform) {
     switch (platform.toLowerCase()) {

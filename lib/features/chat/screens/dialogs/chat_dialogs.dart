@@ -75,20 +75,55 @@ class ChatDialogs {
 
                 final user = controller.currentUser;
                 if (user != null) {
-                  final chatRoom = ChatRoom(
-                    roomId:
-                        'custom_${user.uid}_${DateTime.now().millisecondsSinceEpoch}',
-                    createdAt: DateTime.now(),
-                    createdBy: user.uid,
-                    type: roomType,
-                    title: title,
-                    description:
-                        (descriptionController.text.trim().isNotEmpty ?? false)
-                        ? descriptionController.text.trim()
-                        : '',
-                  );
+                  // For candidates, create ward-specific rooms in hierarchical structure
+                  if (user.role == 'candidate') {
+                    // Get candidate's location data
+                    final stateId = user.location?.stateId;
+                    final districtId = user.location?.districtId;
+                    final bodyId = user.location?.bodyId;
+                    final wardId = user.location?.wardId;
 
-                  await controller.createChatRoom(chatRoom);
+                    if (stateId != null && districtId != null && bodyId != null && wardId != null) {
+                      // Create room ID in hierarchical structure
+                      final timestamp = DateTime.now().millisecondsSinceEpoch;
+                      final roomId = 'candidate_${user.uid}_${timestamp}';
+
+                      final chatRoom = ChatRoom(
+                        roomId: roomId,
+                        createdAt: DateTime.now(),
+                        createdBy: user.uid,
+                        type: roomType,
+                        title: title,
+                        description: (descriptionController.text.trim().isNotEmpty ?? false)
+                            ? descriptionController.text.trim()
+                            : '',
+                        // For ward-specific rooms, store location data
+                        stateId: stateId,
+                        districtId: districtId,
+                        bodyId: bodyId,
+                        wardId: wardId,
+                      );
+
+                      await controller.createChatRoom(chatRoom);
+                    } else {
+                      // Fallback if location data not available
+                      Get.snackbar('Error', 'Location data not available. Please update your profile.');
+                    }
+                  } else {
+                    // For other users (admins, etc.), use the old logic
+                    final chatRoom = ChatRoom(
+                      roomId: 'custom_${user.uid}_${DateTime.now().millisecondsSinceEpoch}',
+                      createdAt: DateTime.now(),
+                      createdBy: user.uid,
+                      type: roomType,
+                      title: title,
+                      description: (descriptionController.text.trim().isNotEmpty ?? false)
+                          ? descriptionController.text.trim()
+                          : '',
+                    );
+
+                    await controller.createChatRoom(chatRoom);
+                  }
                 }
               }
             },
@@ -201,4 +236,3 @@ class ChatDialogs {
     Get.back(); // Close loading dialog
   }
 }
-

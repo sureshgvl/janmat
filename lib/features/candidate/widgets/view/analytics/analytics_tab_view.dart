@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/services/analytics_export_service.dart';
 import 'package:janmat/features/candidate/services/manifesto_likes_service.dart';
 import 'package:janmat/features/candidate/services/manifesto_poll_service.dart';
 import 'package:janmat/widgets/charts/follower_growth_chart.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
+import 'package:janmat/core/app_theme.dart';
+import 'package:janmat/controllers/background_color_controller.dart';
 
 
 class AnalyticsTabView extends StatefulWidget {
@@ -72,11 +75,14 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final backgroundColorController = Get.find<BackgroundColorController>();
     final analytics = widget.candidate.analytics;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    return Obx(() => Container(
+      color: backgroundColorController.currentBackgroundColor.value,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Analytics Header
@@ -396,8 +402,9 @@ class _AnalyticsTabViewState extends State<AnalyticsTabView>
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  ));
+}
 
   Future<void> _exportAnalytics() async {
     try {

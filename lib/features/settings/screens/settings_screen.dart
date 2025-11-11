@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/settings/settings_localizations.dart';
 import '../../../controllers/theme_controller.dart';
+import '../../../controllers/background_color_controller.dart';
 import '../../../core/app_theme.dart';
 import '../../language/controller/language_controller.dart';
 import '../../notifications/screens/notification_preferences_screen.dart';
@@ -44,6 +45,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeController = Get.find<ThemeController>();
+    final backgroundColorController = Get.find<BackgroundColorController>();
     final languageController = Get.find<LanguageController>();
 
     return Scaffold(
@@ -180,6 +182,120 @@ class SettingsScreen extends StatelessWidget {
                 value: AppThemeType.localBody,
                 groupValue: themeController.currentThemeType.value,
                 onChanged: (value) => themeController.changeTheme(value!),
+              )),
+              const Divider(),
+              // Background Color Selection Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'Background Color',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Obx(() => RadioListTile<BackgroundColorType>(
+                title: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: backgroundColorController.getBackgroundColor(BackgroundColorType.light),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(backgroundColorController.getBackgroundColorDisplayName(BackgroundColorType.light)),
+                  ],
+                ),
+                subtitle: Text(backgroundColorController.getBackgroundColorDescription(BackgroundColorType.light)),
+                value: BackgroundColorType.light,
+                groupValue: backgroundColorController.currentBackgroundColorType.value,
+                onChanged: (value) => backgroundColorController.changeBackgroundColor(value!),
+              )),
+              Obx(() => RadioListTile<BackgroundColorType>(
+                title: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: backgroundColorController.getBackgroundColor(BackgroundColorType.cream),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(backgroundColorController.getBackgroundColorDisplayName(BackgroundColorType.cream)),
+                  ],
+                ),
+                subtitle: Text(backgroundColorController.getBackgroundColorDescription(BackgroundColorType.cream)),
+                value: BackgroundColorType.cream,
+                groupValue: backgroundColorController.currentBackgroundColorType.value,
+                onChanged: (value) => backgroundColorController.changeBackgroundColor(value!),
+              )),
+              Obx(() => RadioListTile<BackgroundColorType>(
+                title: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: backgroundColorController.getBackgroundColor(BackgroundColorType.blue),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(backgroundColorController.getBackgroundColorDisplayName(BackgroundColorType.blue)),
+                  ],
+                ),
+                subtitle: Text(backgroundColorController.getBackgroundColorDescription(BackgroundColorType.blue)),
+                value: BackgroundColorType.blue,
+                groupValue: backgroundColorController.currentBackgroundColorType.value,
+                onChanged: (value) => backgroundColorController.changeBackgroundColor(value!),
+              )),
+              Obx(() => RadioListTile<BackgroundColorType>(
+                title: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: backgroundColorController.getBackgroundColor(BackgroundColorType.green),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(backgroundColorController.getBackgroundColorDisplayName(BackgroundColorType.green)),
+                  ],
+                ),
+                subtitle: Text(backgroundColorController.getBackgroundColorDescription(BackgroundColorType.green)),
+                value: BackgroundColorType.green,
+                groupValue: backgroundColorController.currentBackgroundColorType.value,
+                onChanged: (value) => backgroundColorController.changeBackgroundColor(value!),
+              )),
+              Obx(() => RadioListTile<BackgroundColorType>(
+                title: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: backgroundColorController.getBackgroundColor(BackgroundColorType.gray),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(backgroundColorController.getBackgroundColorDisplayName(BackgroundColorType.gray)),
+                  ],
+                ),
+                subtitle: Text(backgroundColorController.getBackgroundColorDescription(BackgroundColorType.gray)),
+                value: BackgroundColorType.gray,
+                groupValue: backgroundColorController.currentBackgroundColorType.value,
+                onChanged: (value) => backgroundColorController.changeBackgroundColor(value!),
               )),
               const Divider(),
               ListTile(

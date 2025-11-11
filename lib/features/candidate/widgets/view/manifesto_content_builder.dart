@@ -11,6 +11,7 @@ import '../../services/manifesto_likes_service.dart';
 import '../../services/analytics_data_collection_service.dart';
 import '../../../../utils/advanced_analytics.dart' as analytics;
 import '../../../../utils/snackbar_utils.dart';
+import '../../../../core/app_theme.dart';
 
 class ManifestoContentBuilder extends StatefulWidget {
   final Candidate candidate;
@@ -119,10 +120,12 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
 
     // final manifestoId = widget.candidate.candidateId ?? widget.candidate.userId ?? '';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      physics: const ClampingScrollPhysics(),
-      child: Column(
+    return Container(
+      color: AppTheme.homeBackgroundColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        physics: const ClampingScrollPhysics(),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (hasStructuredData)
@@ -376,6 +379,7 @@ class _ManifestoContentBuilderState extends State<ManifestoContentBuilder> {
           const SizedBox(height: 120), // Increased from 20 to add 100px bottom padding
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

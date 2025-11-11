@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:janmat/core/app_theme.dart';
 import '../controllers/candidate_controller.dart';
 import '../../../features/user/models/user_model.dart';
 import '../widgets/candidate_card.dart';
@@ -126,6 +127,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.homeBackgroundColor,
       appBar: AppBar(
         title: const Text('My Area Candidates'),
         elevation: 0,

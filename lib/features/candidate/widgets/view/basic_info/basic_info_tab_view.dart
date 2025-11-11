@@ -5,6 +5,8 @@ import '../../../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../../../utils/symbol_utils.dart';
 import '../../../../../utils/maharashtra_utils.dart';
 import '../../../../../utils/app_logger.dart';
+import '../../../../../core/app_theme.dart';
+import '../../../../../controllers/background_color_controller.dart';
 
 class BasicInfoTabView extends StatelessWidget {
   final Candidate candidate;
@@ -47,9 +49,13 @@ class BasicInfoTabView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    final backgroundColorController = Get.find<BackgroundColorController>();
+
+    return Obx(() => Container(
+      color: backgroundColorController.currentBackgroundColor.value,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Party Information with Symbol
@@ -822,6 +828,7 @@ class BasicInfoTabView extends StatelessWidget {
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  ));
+}
 }

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/app_theme.dart';
+import '../../../controllers/background_color_controller.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
 import '../../districtSpotLight/services/district_spotlight_service.dart';
@@ -174,7 +175,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           );
         });
 
-        return _buildMainScreen(context, data, backgroundColor: AppTheme.homeBackgroundColor);
+        return Obx(() {
+          final backgroundColorController = Get.find<BackgroundColorController>();
+          return _buildMainScreen(context, data, backgroundColor: backgroundColorController.currentBackgroundColor.value);
+        });
       },
     );
   }

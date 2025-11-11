@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/achievements_model.dart';
 import 'package:janmat/utils/app_logger.dart';
@@ -7,6 +8,8 @@ import 'package:janmat/features/common/lazy_loading_media_widget.dart';
 import 'package:janmat/features/common/whatsapp_image_viewer.dart';
 import 'package:janmat/services/share_service.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
+import 'package:janmat/core/app_theme.dart';
+import 'package:janmat/controllers/background_color_controller.dart';
 
 
 class AchievementsTabView extends StatefulWidget {
@@ -103,6 +106,7 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final backgroundColorController = Get.find<BackgroundColorController>();
     final achievements = widget.candidate.achievements ?? [];
 
     // DEBUG: Force some achievements to test UI
@@ -127,9 +131,11 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
     AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Widget called with candidate: ${widget.candidate.basicInfo!.fullName}');
     AppLogger.common('🏆 [ACHIEVEMENTS_VIEW_WIDGET] Achievements in candidate data: ${widget.candidate.achievements?.length ?? "null"}');
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    return Obx(() => Container(
+      color: backgroundColorController.currentBackgroundColor.value,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Achievements Header
@@ -505,8 +511,9 @@ class _AchievementsTabViewState extends State<AchievementsTabView>
           const SizedBox(height: 120), // Added 100px bottom padding
         ],
       ),
-    );
-  }
+    ),
+  ));
+}
 
   // Check if a local file is missing
   bool _isLocalFileMissing(String photoUrl) {

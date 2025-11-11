@@ -38,6 +38,8 @@ class PartySelector extends StatelessWidget {
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.flag),
                 suffixIcon: const Icon(Icons.arrow_drop_down),
+                filled: true,
+                fillColor: Colors.white,
               ),
               child: controller.selectedParty.value != null
                   ? Row(
