@@ -26,11 +26,11 @@ class CandidateController extends GetxController {
   CandidateRepository get candidateRepository => _repository;
   CandidateFollowRepository get followRepository => _followRepository;
 
-  List<Candidate> candidates = [];
+  RxList<Candidate> candidates = <Candidate>[].obs;
   List<Ward> wards = [];
   List<District> districts = [];
-  bool isLoading = false;
-  String? errorMessage;
+  RxBool isLoading = false.obs;
+  Rx<String?> errorMessage = Rx<String?>(null);
 
   // Follow/Unfollow state management
   Map<String, bool> followStatus = {}; // candidateId -> isFollowing
@@ -60,14 +60,14 @@ class CandidateController extends GetxController {
       },
     );
 
-    isLoading = true;
-    errorMessage = null;
+    isLoading.value = true;
+    errorMessage.value = null;
     update();
 
     final startTime = DateTime.now();
 
     try {
-      candidates = await _repository.getCandidatesForUser(userModel);
+      candidates.assignAll(await _repository.getCandidatesForUser(userModel));
 
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
 
@@ -108,11 +108,11 @@ class CandidateController extends GetxController {
         error: e.toString(),
       );
 
-      errorMessage = e.toString();
-      candidates = [];
+      errorMessage.value = e.toString();
+      candidates.clear();
     }
 
-    isLoading = false;
+    isLoading.value = false;
     update();
   }
 
@@ -120,8 +120,9 @@ class CandidateController extends GetxController {
   Future<void> fetchCandidatesByWard(
     String districtId,
     String bodyId,
-    String wardId,
-  ) async {
+    String wardId, {
+    String? stateId,
+  }) async {
     final overallStartTime = DateTime.now();
     AppLogger.database('Starting candidate fetch operation', tag: 'CANDIDATE_CONTROLLER');
     AppLogger.database('Location: $districtId → $bodyId → $wardId', tag: 'CANDIDATE_CONTROLLER');
@@ -133,8 +134,8 @@ class CandidateController extends GetxController {
       metadata: {'districtId': districtId, 'bodyId': bodyId, 'wardId': wardId},
     );
 
-    isLoading = true;
-    errorMessage = null;
+    isLoading.value = true;
+    errorMessage.value = null;
     update();
 
     try {
@@ -145,7 +146,7 @@ class CandidateController extends GetxController {
       final cacheCheckTime = DateTime.now().difference(cacheCheckStart).inMilliseconds;
 
       if (cachedCandidates != null) {
-        candidates = cachedCandidates;
+        candidates.assignAll(cachedCandidates);
         AppLogger.candidate('CACHE HIT - Using SQLite cached data');
         AppLogger.candidate('Candidates loaded: ${candidates.length}');
         AppLogger.candidate('Cache check time: ${cacheCheckTime}ms');
@@ -163,7 +164,7 @@ class CandidateController extends GetxController {
         AppLogger.candidate('Firebase calls: 0');
         AppLogger.candidate('Follow status time: ${followTime}ms');
 
-        isLoading = false;
+        isLoading.value = false;
         update();
         return;
       }
@@ -171,11 +172,12 @@ class CandidateController extends GetxController {
       // Phase 1: Cache miss - fetch from Firebase
       AppLogger.candidate('CACHE MISS - Fetching from Firebase');
       final firebaseStartTime = DateTime.now();
-      candidates = await _repository.getCandidatesByWard(
+      candidates.assignAll(await _repository.getCandidatesByWard(
         districtId,
         bodyId,
         wardId,
-      );
+        stateId: stateId,
+      ));
       final firebaseTime = DateTime.now().difference(firebaseStartTime).inMilliseconds;
 
       AppLogger.candidate('Firebase fetch completed');
@@ -236,31 +238,31 @@ class CandidateController extends GetxController {
         error: e.toString(),
       );
 
-      errorMessage = e.toString();
-      candidates = [];
+      errorMessage.value = e.toString();
+      candidates.clear();
     }
 
-    isLoading = false;
+    isLoading.value = false;
     update();
   }
 
   // Fetch candidates by city
   Future<void> fetchCandidatesByCity(String cityId) async {
-    isLoading = true;
-    errorMessage = null;
+    isLoading.value = true;
+    errorMessage.value = null;
     update();
 
     try {
-      candidates = await _repository.getCandidatesByCity(cityId);
+      candidates.assignAll(await _repository.getCandidatesByCity(cityId));
 
       // Populate follow status for current user
       await _populateFollowStatusForCandidates();
     } catch (e) {
-      errorMessage = e.toString();
-      candidates = [];
+      errorMessage.value = e.toString();
+      candidates.clear();
     }
 
-    isLoading = false;
+    isLoading.value = false;
     update();
   }
 
@@ -278,7 +280,7 @@ class CandidateController extends GetxController {
       update();
     } catch (e) {
       AppLogger.candidateError('Failed to load wards for district $districtId, body $bodyId: $e');
-      errorMessage = 'Failed to load wards: $e';
+      errorMessage.value = 'Failed to load wards: $e';
       wards = [];
       update();
     }
@@ -293,7 +295,7 @@ class CandidateController extends GetxController {
       update();
     } catch (e) {
       AppLogger.candidateError('Failed to load districts: $e');
-      errorMessage = 'Failed to load districts: $e';
+      errorMessage.value = 'Failed to load districts: $e';
       districts = [];
       update();
     }
@@ -305,34 +307,34 @@ class CandidateController extends GetxController {
     String? cityId,
     String? wardId,
   }) async {
-    isLoading = true;
-    errorMessage = null;
+    isLoading.value = true;
+    errorMessage.value = null;
     update();
 
     try {
-      candidates = await _repository.searchCandidates(
+      candidates.assignAll(await _repository.searchCandidates(
         query,
         cityId: cityId,
         wardId: wardId,
-      );
+      ));
     } catch (e) {
-      errorMessage = e.toString();
-      candidates = [];
+      errorMessage.value = e.toString();
+      candidates.clear();
     }
 
-    isLoading = false;
+    isLoading.value = false;
     update();
   }
 
   // Clear candidates
   void clearCandidates() {
-    candidates = [];
+    candidates.clear();
     update();
   }
 
   // Clear error
   void clearError() {
-    errorMessage = null;
+    errorMessage.value = null;
     update();
   }
 
@@ -463,7 +465,7 @@ class CandidateController extends GetxController {
       }
     } catch (e) {
       AppLogger.candidateError('Failed to follow candidate: $e');
-      errorMessage = 'Failed to follow candidate: $e';
+      errorMessage.value = 'Failed to follow candidate: $e';
     }
 
     followLoading[candidateId] = false;
@@ -548,7 +550,7 @@ class CandidateController extends GetxController {
 
     } catch (e) {
       AppLogger.candidateError('❌ Failed to unfollow candidate: $e');
-      errorMessage = 'Failed to unfollow candidate: $e';
+      errorMessage.value = 'Failed to unfollow candidate: $e';
     }
 
     followLoading[candidateId] = false;
@@ -612,7 +614,7 @@ class CandidateController extends GetxController {
       AppLogger.candidate('✅ Updated notification settings for candidate: $candidateId');
     } catch (e) {
       AppLogger.candidateError('❌ Failed to update notification settings: $e');
-      errorMessage = 'Failed to update notification settings: $e';
+      errorMessage.value = 'Failed to update notification settings: $e';
       update();
     }
   }
@@ -665,7 +667,7 @@ class CandidateController extends GetxController {
       throw Exception('Candidate $candidateId not found');
     } catch (e) {
       AppLogger.candidateError('Failed to get followers: $e');
-      errorMessage = 'Failed to get followers: $e';
+      errorMessage.value = 'Failed to get followers: $e';
       update();
       return [];
     }
@@ -677,7 +679,7 @@ class CandidateController extends GetxController {
       return await _followRepository.getUserFollowing(userId);
     } catch (e) {
       AppLogger.candidateError('Failed to get following list: $e');
-      errorMessage = 'Failed to get following list: $e';
+      errorMessage.value = 'Failed to get following list: $e';
       update();
       return [];
     }
@@ -837,7 +839,7 @@ class CandidateController extends GetxController {
       return candidateId;
     } catch (e) {
       AppLogger.candidateError('Failed to create candidate: $e');
-      errorMessage = 'Failed to create candidate: $e';
+      errorMessage.value = 'Failed to create candidate: $e';
       update();
       return null;
     }
@@ -850,17 +852,17 @@ class CandidateController extends GetxController {
     String wardId,
     String status,
   ) async {
-    isLoading = true;
-    errorMessage = null;
+    isLoading.value = true;
+    errorMessage.value = null;
     update();
 
     try {
-      candidates = await _repository.getCandidatesByStatus(
+      candidates.assignAll(await _repository.getCandidatesByStatus(
         districtId,
         bodyId,
         wardId,
         status,
-      );
+      ));
       AppLogger.candidate(
         'Found ${candidates.length} candidates with status: $status',
       );
@@ -869,11 +871,11 @@ class CandidateController extends GetxController {
       await _populateFollowStatusForCandidates();
     } catch (e) {
       AppLogger.candidateError('Failed to fetch candidates by status: $e');
-      errorMessage = e.toString();
-      candidates = [];
+      errorMessage.value = e.toString();
+      candidates.clear();
     }
 
-    isLoading = false;
+    isLoading.value = false;
     update();
   }
 
@@ -912,7 +914,7 @@ class CandidateController extends GetxController {
       update();
     } catch (e) {
       AppLogger.candidateError('Failed to update candidate approval: $e');
-      errorMessage = 'Failed to update candidate approval: $e';
+      errorMessage.value = 'Failed to update candidate approval: $e';
       update();
     }
   }
@@ -952,7 +954,7 @@ class CandidateController extends GetxController {
       update();
     } catch (e) {
       AppLogger.candidateError('Failed to finalize candidates: $e');
-      errorMessage = 'Failed to finalize candidates: $e';
+      errorMessage.value = 'Failed to finalize candidates: $e';
       update();
     }
   }
@@ -965,7 +967,7 @@ class CandidateController extends GetxController {
       AppLogger.candidateError(
         'Failed to get pending approval candidates: $e',
       );
-      errorMessage = 'Failed to get pending approval candidates: $e';
+      errorMessage.value = 'Failed to get pending approval candidates: $e';
       update();
       return [];
     }

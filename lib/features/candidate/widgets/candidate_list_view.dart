@@ -4,6 +4,7 @@ import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/app_theme.dart';
 import '../../../utils/theme_constants.dart';
+import '../../../utils/app_logger.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../controllers/search_controller.dart' as search;
@@ -32,39 +33,60 @@ class CandidateListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      AppLogger.candidate('🔍 [UI] CandidateListView build triggered');
+      AppLogger.candidate('🔍 [UI] candidateController.isLoading: ${candidateController.isLoading}');
+      AppLogger.candidate('🔍 [UI] candidateController.errorMessage: ${candidateController.errorMessage}');
+      AppLogger.candidate('🔍 [UI] locationController.selectedWard: ${locationController.selectedWard.value?.name ?? 'null'}');
+      AppLogger.candidate('🔍 [UI] candidateController.candidates.length: ${candidateController.candidates.length}');
+      AppLogger.candidate('🔍 [UI] searchController.hasActiveSearch: ${searchController.hasActiveSearch}');
+      AppLogger.candidate('🔍 [UI] searchController.hasResults: ${searchController.hasResults}');
+      AppLogger.candidate('🔍 [UI] searchController.currentResults.length: ${searchController.currentResults.length}');
+
+      // Empty state - no ward selected (show this first)
+      if (locationController.selectedWard.value == null) {
+        AppLogger.candidate('🔍 [UI] Showing no ward selected state');
+        return _buildNoWardSelectedState(context);
+      }
+
       // Determine which candidates to show
       final candidatesToShow = _getCandidatesToShow();
+      AppLogger.candidate('🔍 [UI] candidatesToShow.length: ${candidatesToShow.length}');
 
       // Loading state
-      if (candidateController.isLoading) {
+      if (candidateController.isLoading.value) {
+        AppLogger.candidate('🔍 [UI] Showing loading state');
         return _buildLoadingState();
       }
 
       // Error state
-      if (candidateController.errorMessage != null) {
+      if (candidateController.errorMessage.value != null) {
+        AppLogger.candidate('🔍 [UI] Showing error state: ${candidateController.errorMessage.value}');
         return _buildErrorState(context);
-      }
-
-      // Empty state - no ward selected
-      if (locationController.selectedWard.value == null) {
-        return _buildNoWardSelectedState(context);
       }
 
       // Empty state - no candidates found
       if (candidatesToShow.isEmpty) {
+        AppLogger.candidate('🔍 [UI] Showing no candidates found state');
         return _buildNoCandidatesFoundState(context);
       }
 
       // Candidates list
+      AppLogger.candidate('🔍 [UI] Showing candidates list with ${candidatesToShow.length} candidates');
       return _buildCandidatesList(context, candidatesToShow);
     });
   }
 
   List<Candidate> _getCandidatesToShow() {
+    AppLogger.candidate('🔍 [UI] _getCandidatesToShow called');
+    AppLogger.candidate('🔍 [UI] searchController.hasActiveSearch: ${searchController.hasActiveSearch}');
+    AppLogger.candidate('🔍 [UI] searchController.hasResults: ${searchController.hasResults}');
+
     // Priority: Search results > All candidates
     if (searchController.hasActiveSearch && searchController.hasResults) {
+      AppLogger.candidate('🔍 [UI] Returning search results: ${searchController.currentResults.length} candidates');
       return searchController.currentResults;
     }
+    AppLogger.candidate('🔍 [UI] Returning all candidates: ${candidateController.candidates.length} candidates');
     return candidateController.candidates;
   }
 
@@ -90,7 +112,7 @@ class CandidateListView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            candidateController.errorMessage!,
+            candidateController.errorMessage.value!,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.red),
           ),

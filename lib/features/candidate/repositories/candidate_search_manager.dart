@@ -87,8 +87,9 @@ class CandidateSearchManager {
   Future<List<Candidate>> getCandidatesByWard(
     String districtId,
     String bodyId,
-    String wardId,
-  ) async {
+    String wardId, {
+    String? stateId,
+  }) async {
     final monitor = perf_monitor.PerformanceMonitor();
     monitor.startTimer('getCandidatesByWard');
 
@@ -123,8 +124,9 @@ class CandidateSearchManager {
     }
 
     monitor.trackCacheMiss('candidate_ward');
+    final actualStateId = stateId ?? DEFAULT_STATE_ID;
     AppLogger.candidate(
-      '🔍 CACHE MISS: Fetching candidates for $DEFAULT_STATE_ID/$districtId/$bodyId/$wardId from Firebase',
+      '🔍 CACHE MISS: Fetching candidates for $actualStateId/$districtId/$bodyId/$wardId from Firebase',
     );
 
     try {
@@ -134,7 +136,7 @@ class CandidateSearchManager {
         () async {
           return await _firestore
               .collection('states')
-              .doc(DEFAULT_STATE_ID)
+              .doc(actualStateId)
               .collection('districts')
               .doc(districtId)
               .collection('bodies')
@@ -155,7 +157,7 @@ class CandidateSearchManager {
       );
 
       AppLogger.candidate(
-        '📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $DEFAULT_STATE_ID/$districtId/$bodyId/$wardId',
+        '📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $actualStateId/$districtId/$bodyId/$wardId',
       );
 
       final candidates = snapshot.docs.map((doc) {

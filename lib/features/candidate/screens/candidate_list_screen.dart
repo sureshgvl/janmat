@@ -44,25 +44,40 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
 
-    // Initialize PaginationController
+  // Initialize PaginationController
     paginationController = Get.put(PaginationController(
       loadFunction: (offset, limit) async {
-        // Use CandidateRepository to load candidates by ward
+        AppLogger.candidate('🔄 [Pagination] Load function called with offset: $offset, limit: $limit');
+        AppLogger.candidate('🔄 [Pagination] Selected district: ${locationController.selectedDistrictId.value}');
+        AppLogger.candidate('🔄 [Pagination] Selected body: ${locationController.selectedBodyId.value}');
+        AppLogger.candidate('🔄 [Pagination] Selected ward: ${locationController.selectedWard.value?.name ?? 'null'}');
+
+        // Use CandidateRepository to load candidates
         if (locationController.selectedDistrictId.value != null &&
             locationController.selectedBodyId.value != null &&
             locationController.selectedWard.value != null) {
           try {
+            AppLogger.candidate('🔄 [Pagination] Calling getCandidatesByWard...');
             final candidates = await candidateController.candidateRepository.getCandidatesByWard(
               locationController.selectedDistrictId.value!,
               locationController.selectedBodyId.value!,
               locationController.selectedWard.value!.id,
             );
+            AppLogger.candidate('🔄 [Pagination] getCandidatesByWard returned ${candidates.length} candidates');
+
+            // Update the candidateController.candidates list so the UI can display them
+            AppLogger.candidate('🔄 [Pagination] Updating candidateController.candidates with ${candidates.length} candidates');
+            candidateController.candidates.assignAll(candidates);
+            candidateController.update();
+            AppLogger.candidate('🔄 [Pagination] candidateController updated, returning ${candidates.length} candidates');
+
             return candidates;
           } catch (e) {
-            AppLogger.candidateError('Failed to load candidates: $e');
+            AppLogger.candidateError('🔄 [Pagination] Failed to load candidates: $e');
             return [];
           }
         }
+        AppLogger.candidate('🔄 [Pagination] Missing required location data, returning empty list');
         return [];
       },
     ));
@@ -100,8 +115,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       }
       if (widget.initialWardId != null) {
         await locationController.setInitialWard(widget.initialWardId!);
-        // Load candidates for the initial ward
-        await _loadCandidatesForWard();
+        // Load candidates for the initial ward using pagination
+        AppLogger.candidate('🔄 Loading initial candidates via pagination for ward: ${widget.initialWardId}');
+        await paginationController.loadInitial();
       } else {
         // Try to load candidates for current user
         await _loadCandidatesForCurrentUser();
@@ -113,7 +129,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
     }
   }
 
-  Future<void> _loadCandidatesForWard() async {
+  Future<void> _loadCandidatesForWard({String? stateId}) async {
     if (locationController.selectedDistrictId.value != null &&
         locationController.selectedBodyId.value != null &&
         locationController.selectedWard.value != null) {
@@ -122,6 +138,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           locationController.selectedDistrictId.value!,
           locationController.selectedBodyId.value!,
           locationController.selectedWard.value!.id,
+          stateId: stateId ?? locationController.selectedStateId.value,
         );
         AppLogger.candidate('✅ Candidates loaded for ward: ${locationController.selectedWard.value!.name}');
       } catch (e) {
@@ -161,7 +178,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   void _onSearchChanged(String query) {
     if (query.isEmpty) {
       // Clear search and reload original candidates
-      searchController.clearSearch();
+      //searchController.clearSearch();
       _loadCandidatesForWard();
     } else {
       // Perform search on current candidates
@@ -222,6 +239,10 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
               searchController: searchController,
               onSearchChanged: _onSearchChanged,
               onClearSearch: _onClearSearch,
+              onWardSelected: () async {
+                AppLogger.candidate('🔄 Ward selected via UI, loading candidates via pagination');
+                await paginationController.loadInitial();
+              },
             ),
 
             // Candidate List View

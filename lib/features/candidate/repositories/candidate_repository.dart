@@ -123,7 +123,7 @@ class CandidateRepository {
 
   // Search methods
   Future<List<Candidate>> getCandidatesForUser(UserModel user) => _searchManager!.getCandidatesForUser(user);
-  Future<List<Candidate>> getCandidatesByWard(String districtId, String bodyId, String wardId) => _searchManager!.getCandidatesByWard(districtId, bodyId, wardId);
+  Future<List<Candidate>> getCandidatesByWard(String districtId, String bodyId, String wardId, {String? stateId}) => _searchManager!.getCandidatesByWard(districtId, bodyId, wardId, stateId: stateId);
   Future<Map<String, dynamic>> getCandidatesByCityPaginated(String cityId, {int limit = 50, DocumentSnapshot? startAfter}) => _searchManager!.getCandidatesByCityPaginated(cityId, limit: limit, startAfter: startAfter);
   Future<List<Candidate>> getCandidatesByCity(String cityId) => _searchManager!.getCandidatesByCity(cityId);
   Future<Map<String, dynamic>> searchCandidatesPaginated(String query, {String? cityId, String? wardId, int limit = 20, DocumentSnapshot? startAfter}) => _searchManager!.searchCandidatesPaginated(query, cityId: cityId, wardId: wardId, limit: limit, startAfter: startAfter);

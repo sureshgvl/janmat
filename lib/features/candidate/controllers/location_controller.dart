@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../../models/ward_model.dart';
+import '../../../models/state_model.dart' as state_model;
 import '../../../services/location_service.dart';
 import '../services/cache_manager.dart';
 import '../../../utils/app_logger.dart';
@@ -17,16 +19,19 @@ class LocationController extends GetxController {
   final Rx<Ward?> selectedWard = Rx<Ward?>(null);
 
   // Data collections
+  final RxList<state_model.State> states = <state_model.State>[].obs;
   final RxList<District> districts = <District>[].obs;
   final RxMap<String, List<Body>> districtBodies = <String, List<Body>>{}.obs;
   final RxMap<String, List<Ward>> bodyWards = <String, List<Ward>>{}.obs;
 
   // Loading states
+  final RxBool isLoadingStates = true.obs;
   final RxBool isLoadingDistricts = true.obs;
   final RxBool isLoadingBodies = false.obs;
   final RxBool isLoadingWards = false.obs;
 
   // Error states
+  final Rx<String?> statesError = Rx<String?>(null);
   final Rx<String?> districtsError = Rx<String?>(null);
   final Rx<String?> bodiesError = Rx<String?>(null);
   final Rx<String?> wardsError = Rx<String?>(null);
@@ -40,15 +45,19 @@ class LocationController extends GetxController {
   @override
   void onClose() {
     // Clear reactive state
+    selectedStateId.close();
     selectedDistrictId?.close();
     selectedBodyId?.close();
     selectedWard.close();
+    states.close();
     districts.close();
     districtBodies.close();
     bodyWards.close();
+    isLoadingStates.close();
     isLoadingDistricts.close();
     isLoadingBodies.close();
     isLoadingWards.close();
+    statesError?.close();
     districtsError?.close();
     bodiesError?.close();
     wardsError?.close();
@@ -60,11 +69,41 @@ class LocationController extends GetxController {
     try {
       await _locationService.initialize();
       await _cacheManager.initialize();
+      await loadStates();
       await loadDistricts();
     } catch (e) {
       AppLogger.candidateError('Failed to initialize LocationController: $e');
+      statesError?.value = 'Failed to initialize: $e';
       districtsError?.value = 'Failed to initialize: $e';
+      isLoadingStates.value = false;
       isLoadingDistricts.value = false;
+    }
+  }
+
+  /// Load all states
+  Future<void> loadStates() async {
+    isLoadingStates.value = true;
+    statesError?.value = null;
+
+    try {
+      final statesSnapshot = await FirebaseFirestore.instance.collection('states').get();
+
+      final loadedStates = statesSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return state_model.State.fromJson({'id': doc.id, ...data});
+      }).toList();
+
+      // Filter out inactive states
+      final activeStates = loadedStates.where((state) => state.isActive != false).toList();
+
+      states.assignAll(activeStates);
+      AppLogger.candidate('✅ Loaded ${activeStates.length} active states');
+    } catch (e) {
+      AppLogger.candidateError('Failed to load states: $e');
+      statesError?.value = 'Failed to load states: $e';
+      states.clear();
+    } finally {
+      isLoadingStates.value = false;
     }
   }
 
@@ -75,8 +114,17 @@ class LocationController extends GetxController {
 
     try {
       final loadedDistricts = await _locationService.loadDistricts(selectedStateId.value);
-      districts.assignAll(loadedDistricts);
-      AppLogger.candidate('✅ Loaded ${loadedDistricts.length} districts');
+
+      // Debug logging to see what districts are loaded
+      AppLogger.candidate('🔍 Loaded ${loadedDistricts.length} districts from service:');
+      for (final district in loadedDistricts) {
+        AppLogger.candidate('  - ${district.id}: ${district.name}, isActive: ${district.isActive}');
+      }
+
+      // Filter to only active districts (include districts where isActive is null or true, exclude false)
+      final activeDistricts = loadedDistricts.where((district) => district.isActive != false).toList();
+      districts.assignAll(activeDistricts);
+      AppLogger.candidate('✅ Filtered to ${activeDistricts.length} active districts');
     } catch (e) {
       AppLogger.candidateError('Failed to load districts: $e');
       districtsError?.value = 'Failed to load districts: $e';
@@ -137,6 +185,26 @@ class LocationController extends GetxController {
     } finally {
       isLoadingWards.value = false;
     }
+  }
+
+  /// Select a state and reload districts
+  Future<void> selectState(String? stateId) async {
+    if (stateId == selectedStateId.value) return;
+
+    selectedStateId.value = stateId ?? 'maharashtra';
+    selectedDistrictId?.value = null;
+    selectedBodyId?.value = null;
+    selectedWard.value = null;
+
+    // Clear dependent data
+    districtBodies.clear();
+    bodyWards.clear();
+
+    if (stateId != null) {
+      await loadDistricts();
+    }
+
+    AppLogger.candidate('🎯 Selected state: $stateId');
   }
 
   /// Select a district and load its bodies

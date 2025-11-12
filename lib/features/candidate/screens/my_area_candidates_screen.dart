@@ -116,7 +116,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         if (existingIndex == -1) {
           // Add current user to the beginning of the list
           candidateController!.candidates.insert(0, currentUserCandidate);
-          candidateController!.update();
+          // RxList automatically triggers UI updates, no need for update()
         }
       }
     } catch (e) {
@@ -132,89 +132,88 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
         title: const Text('My Area Candidates'),
         elevation: 0,
       ),
-      body: GetBuilder<CandidateController>(
-        builder: (controller) {
-          if (controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Obx(() {
+        final controller = candidateController!;
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (controller.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Failed to load candidates',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
+        if (controller.errorMessage.value != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load candidates',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    controller.errorMessage!,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadUserDataAndCandidates,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (controller.candidates.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No candidates in your area',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'There are no registered candidates in your ward yet.',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _loadUserDataAndCandidates,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: controller.candidates.length,
-              itemBuilder: (context, index) {
-                final candidate = controller.candidates[index];
-                return CandidateCard(
-                  candidate: candidate,
-                  showCurrentUserIndicator: true,
-                  currentUserId: currentUserId,
-                  onFollowChanged: () {
-                    setState(() {});
-                  },
-                );
-              },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  controller.errorMessage.value!,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadUserDataAndCandidates,
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
           );
-        },
-      ),
+        }
+
+        if (controller.candidates.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No candidates in your area',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'There are no registered candidates in your ward yet.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: _loadUserDataAndCandidates,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: controller.candidates.length,
+            itemBuilder: (context, index) {
+              final candidate = controller.candidates[index];
+              return CandidateCard(
+                candidate: candidate,
+                showCurrentUserIndicator: true,
+                currentUserId: currentUserId,
+                onFollowChanged: () {
+                  setState(() {});
+                },
+              );
+            },
+          ),
+        );
+      }),
     );
   }
 
