@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/app_logger.dart';
-import '../utils/multi_level_cache.dart';
+import '../../../utils/app_logger.dart';
+import '../../../utils/multi_level_cache.dart';
 
 /// User Status Manager - Centralized service for managing role and profile status
 /// with SharedPreferences for instant access and Firebase fallbacks

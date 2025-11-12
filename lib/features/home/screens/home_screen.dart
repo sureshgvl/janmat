@@ -145,11 +145,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         // Handle loading states
         if (data == null || data.isLoading) {
+          AppLogger.common('🏠 [HOME_SCREEN] Building loading screen - data: ${data?.toString()}');
           return _buildLoadingScreen(context);
         }
 
         // Handle signed out state
         if (data.isSignedOut) {
+          AppLogger.common('🏠 [HOME_SCREEN] User signed out, navigating to login');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               Get.offAllNamed('/login');
@@ -160,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         // Handle error state
         if (data.hasError) {
+          AppLogger.common('🏠 [HOME_SCREEN] Error state - ${data.errorMessage}');
           return _buildErrorScreen(context, data.errorMessage);
         }
 
@@ -228,6 +231,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildMainScreen(BuildContext context, HomeScreenData data, {Color? backgroundColor}) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
+    AppLogger.common('🏠 [HOME_SCREEN] Building main screen - data state: ${data.state}, user: ${data.userModel?.name} (${data.userModel?.role}), candidate: ${data.effectiveCandidateModel?.basicInfo?.fullName ?? 'null'}');
+
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.home)),
       drawer: _buildDrawer(context, data, currentUser),
@@ -249,19 +254,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     HomeScreenData data,
     User? currentUser,
   ) {
+    AppLogger.common('🏠 [HOME_SCREEN] Building drawer - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, effectiveCandidate: ${data.effectiveCandidateModel != null}');
+
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
-      return HomeDrawer(
+      AppLogger.common('🏠 [HOME_SCREEN] Building candidate drawer with candidate data - effectiveCandidate: ${data.effectiveCandidateModel?.basicInfo?.fullName ?? "null"}');
+      final drawer = HomeDrawer(
         userModel: data.userModel!,
         candidateModel: data.effectiveCandidateModel,
         currentUser: currentUser!,
       );
+      AppLogger.common('🏠 [HOME_SCREEN] Candidate drawer created successfully');
+      return drawer;
     } else if (data.hasPartialData || data.isComplete) {
+      AppLogger.common('🏠 [HOME_SCREEN] Building drawer without candidate data - user role: ${data.userModel?.role}');
       return HomeDrawer(
         userModel: data.userModel,
         candidateModel: null,
         currentUser: currentUser!,
       );
     } else {
+      AppLogger.common('🏠 [HOME_SCREEN] Building placeholder drawer');
       return _buildPlaceholderDrawer(context);
     }
   }
@@ -272,7 +284,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     HomeScreenData data,
     User? currentUser,
   ) {
+    AppLogger.common('🏠 [HOME_SCREEN] Building body - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, role: ${data.role}');
+
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
+      AppLogger.common('🏠 [HOME_SCREEN] Building candidate body with candidate data');
       return HomeBody(
         userModel: data.userModel!,
         candidateModel: data.effectiveCandidateModel,
@@ -280,8 +295,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     } else if ((data.hasPartialData || data.hasCachedCandidate) &&
         data.role == 'candidate') {
+      AppLogger.common('🏠 [HOME_SCREEN] Building candidate placeholder body');
       return _buildCandidatePlaceholderBody(context, data);
     } else {
+      AppLogger.common('🏠 [HOME_SCREEN] Building regular body without candidate data');
       return HomeBody(
         userModel: data.userModel,
         candidateModel: null,

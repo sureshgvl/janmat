@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
-import '../../../core/app_theme.dart';
 import '../../../utils/theme_constants.dart';
+import '../../../widgets/modals/district_selection_modal.dart';
+import '../../../widgets/modals/area_selection_modal.dart';
+import '../../../widgets/modals/ward_selection_modal.dart';
+import '../../../utils/maharashtra_utils.dart';
+import '../../../models/ward_model.dart';
 import '../controllers/location_controller.dart';
 import '../controllers/search_controller.dart' as search;
 
@@ -113,18 +117,74 @@ class SearchAndFiltersSection extends StatelessWidget {
   }
 
   void _showDistrictSelectionModal(BuildContext context) {
-    // Implementation will be added when we create the modal widgets
-    // For now, this is a placeholder
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return DistrictSelectionModal(
+          districts: locationController.districts,
+          districtBodies: locationController.districtBodies,
+          selectedDistrictId: locationController.selectedDistrictId.value,
+          onDistrictSelected: (districtId) async {
+            await locationController.selectDistrict(districtId);
+          },
+        );
+      },
+    );
   }
 
   void _showBodySelectionModal(BuildContext context) {
-    // Implementation will be added when we create the modal widgets
-    // For now, this is a placeholder
+    if (locationController.selectedDistrictId.value == null) return;
+
+    final districtName = MaharashtraUtils.getDistrictDisplayNameV2(
+      locationController.selectedDistrictId.value!,
+      Localizations.localeOf(context),
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return AreaSelectionModal(
+          bodies: locationController.districtBodies[locationController.selectedDistrictId.value] ?? [],
+          selectedBodyId: locationController.selectedBodyId.value,
+          districtName: districtName,
+          onBodySelected: (bodyId) async {
+            await locationController.selectBody(bodyId);
+          },
+        );
+      },
+    );
   }
 
   void _showWardSelectionModal(BuildContext context) {
-    // Implementation will be added when we create the modal widgets
-    // For now, this is a placeholder
+    if (locationController.selectedDistrictId.value == null ||
+        locationController.selectedBodyId.value == null) return;
+
+    final cacheKey = '${locationController.selectedDistrictId.value}_${locationController.selectedBodyId.value}';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return WardSelectionModal(
+          wards: locationController.bodyWards[cacheKey] ?? [],
+          selectedWardId: locationController.selectedWard.value?.id,
+          onWardSelected: (wardId) {
+            final ward = locationController.bodyWards[cacheKey]?.firstWhere(
+              (w) => w.id == wardId,
+              orElse: () => Ward(id: '', name: '', areas: [], districtId: '', bodyId: '', stateId: ''),
+            );
+            if (ward != null && ward.id.isNotEmpty) {
+              locationController.selectWard(ward);
+            }
+          },
+        );
+      },
+    );
   }
 }
 
@@ -186,7 +246,10 @@ class LocationSelectors extends StatelessWidget {
                             const SizedBox(height: 2),
                             Obx(() => Text(
                               locationController.selectedDistrictId.value != null
-                                  ? 'District ${locationController.selectedDistrictId.value}' // Placeholder
+                                  ? MaharashtraUtils.getDistrictDisplayNameV2(
+                                      locationController.selectedDistrictId.value!,
+                                      Localizations.localeOf(context),
+                                    )
                                   : CandidateLocalizations.of(context)!.selectDistrict,
                               style: AppTypography.bodyMedium.copyWith(
                                 color: locationController.selectedDistrictId.value != null
@@ -196,6 +259,8 @@ class LocationSelectors extends StatelessWidget {
                                     ? FontWeight.w500
                                     : FontWeight.normal,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             )),
                           ],
                         ),
@@ -278,7 +343,7 @@ class LocationSelectors extends StatelessWidget {
                         const SizedBox(height: 2),
                         Obx(() => Text(
                           locationController.selectedBodyId.value != null
-                              ? 'Body ${locationController.selectedBodyId.value}' // Placeholder
+                              ? locationController.selectedBody?.name ?? 'Body ${locationController.selectedBodyId.value}'
                               : CandidateLocalizations.of(context)!.selectArea,
                           style: AppTypography.bodyMedium.copyWith(
                             color: locationController.selectedBodyId.value != null

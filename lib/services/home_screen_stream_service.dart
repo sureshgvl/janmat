@@ -8,7 +8,7 @@ import 'package:janmat/utils/multi_level_cache.dart';
 import 'package:janmat/features/home/services/home_services.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
-import 'package:janmat/services/user_status_manager.dart';
+import 'package:janmat/features/user/services/user_status_manager.dart';
 
 /// Stream-based service for HomeScreen data loading
 class HomeScreenStreamService {
@@ -230,13 +230,15 @@ class HomeScreenStreamService {
   /// Load fresh data from services
   Future<void> _loadFreshData(String userId) async {
     try {
-      AppLogger.common('🔄 Loading fresh home data for: $userId');
+      AppLogger.common('🔄 [STREAM_SERVICE] Loading fresh home data for: $userId');
 
       // Use HomeServices with preload integration
+      AppLogger.common('🔄 [STREAM_SERVICE] Calling HomeServices.getUserDataWithPreload for: $userId');
       final result = await HomeServices().getUserDataWithPreload(
         userId,
         enablePreload: true,
       );
+      AppLogger.common('✅ [STREAM_SERVICE] HomeServices returned result - user: ${result['user'] != null}, candidate: ${result['candidate'] != null}');
 
       // Handle both UserModel object and raw Map from cache/partial data
       final userModel = result['user'] is Map<String, dynamic>
@@ -246,6 +248,8 @@ class HomeScreenStreamService {
       final candidateModel = rawCandidate is Map<String, dynamic>
         ? Candidate.fromJson(rawCandidate)
         : rawCandidate as Candidate?;
+
+      AppLogger.common('👤 [STREAM_SERVICE] Processed data - userModel: ${userModel?.name} (${userModel?.role}), candidateModel: ${candidateModel?.basicInfo?.fullName ?? 'null'}');
 
       if (userModel != null) {
         // Extract navigation data for routing cache

@@ -7,8 +7,8 @@ import 'dart:io';
 import '../../../firebase_options.dart';
 import '../../../utils/app_logger.dart';
 import '../../services/background_initializer.dart';
-import '../../services/user_token_manager.dart';
-import '../../services/user_status_manager.dart';
+import '../../features/user/services/user_token_manager.dart';
+import '../../features/user/services/user_status_manager.dart';
 
 
 /// Service responsible for app initialization and startup configuration
@@ -47,7 +47,7 @@ class AppStartupService {
   Future<void> _setupFirebaseSecurity() async {
     if (isProduction) {
       try {
-        // ✅ ENABLE: Play Integrity for production builds
+        // Production: Use Play Integrity for security
         await FirebaseAppCheck.instance.activate(
           androidProvider: AndroidProvider.playIntegrity,
         );
@@ -58,19 +58,20 @@ class AppStartupService {
       } catch (e) {
         AppLogger.auth('⚠️ PRODUCTION: App Check activation failed: $e');
         AppLogger.auth('📋 NOTE: Continuing without App Check - ensure proper Firebase configuration');
-        // Continue without App Check rather than failing the app
       }
 
-      // ✅ RE-ENABLE: App verification for Auth now that fingerprints are configured
       await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: false);
-      AppLogger.auth('✅ PRODUCTION: Firebase Auth app verification enabled with proper SHA fingerprints');
-      AppLogger.auth('🔒 SECURITY: Full authentication security active');
+      AppLogger.auth('✅ PRODUCTION: Firebase Auth app verification enabled');
     } else {
-      // Development: Relax security for easier testing
-      await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
-      await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
+      // Development: Completely disable App Check to avoid Play Integrity issues
+      // App Check is not required for Firebase Auth to work
+      AppLogger.auth('🔧 DEVELOPMENT: Firebase App Check completely disabled');
+      AppLogger.auth('🔒 SECURITY: Basic authentication security active');
 
-      AppLogger.auth('🔧 DEVELOPMENT: Firebase security relaxed for testing');
+      // Keep app verification enabled for development to test real OTP
+      await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: false);
+      AppLogger.auth('🔧 DEVELOPMENT: Firebase Auth app verification enabled for real OTP testing');
+      AppLogger.auth('📋 NOTE: App Check tokens not required for phone authentication');
     }
   }
 

@@ -61,8 +61,8 @@ class AppBindings extends Bindings {
 
     // 🎯 LAZY LOAD ALL FEATURE-SPECIFIC CONTROLLERS: Load only when screens are accessed
     // Chat controllers: Hybrid approach - lazy load but ensure proper dependency order
-    Get.lazyPut<RoomController>(() => RoomController());
-    Get.lazyPut<MessageController>(() => MessageController(), fenix: true);
+    Get.put<RoomController>(RoomController());
+    Get.put<MessageController>(MessageController());
     Get.lazyPut<ChatController>(() => ChatController(), fenix: true);
     Get.lazyPut<CandidateController>(() => CandidateController());
     Get.lazyPut<MediaController>(() => MediaController());

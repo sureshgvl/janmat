@@ -62,37 +62,57 @@ class CandidateUserController extends GetxController {
   /// This replaces the auto-initialization to avoid loading for non-candidate users
   /// Loads candidate data via Firebase call if not already loaded
   void initializeForCandidate() async {
+    AppLogger.common('🎯 [CANDIDATE_CONTROLLER] initializeForCandidate called - isInitialized: ${isInitialized.value}, hasCandidate: ${candidate.value != null}');
+
     // If already initialized and candidate data is available, skip
     if (isInitialized.value && candidate.value != null) {
-      AppLogger.common('👤 CandidateUserController already initialized with candidate data, skipping');
+      AppLogger.common('👤 [CANDIDATE_CONTROLLER] Already initialized with candidate data, skipping');
       return;
     }
 
     try {
-      AppLogger.common('👤 Initializing CandidateUserController for candidate user');
+      AppLogger.common('👤 [CANDIDATE_CONTROLLER] Initializing CandidateUserController for candidate user');
 
-      // Check immediately in case user is already authenticated but candidate data is missing
+      // CRITICAL FIX: Check current user.value first (not just UserController.to.user)
+      // This handles the case where user.value is already set when initializeForCandidate is called
+      if (user.value != null) {
+        AppLogger.common('👤 [CANDIDATE_CONTROLLER] Current user set: ${user.value!.name}, role: ${user.value!.role}');
+        if (user.value!.role == 'candidate' && candidate.value == null) {
+          AppLogger.common('👤 [CANDIDATE_CONTROLLER] Loading candidate data for current candidate user: ${user.value!.name}');
+          await loadCandidateUserData(user.value!.uid);
+          return; // Don't need to set up listeners if we already loaded data
+        } else {
+          AppLogger.common('👤 [CANDIDATE_CONTROLLER] User is not candidate or candidate data already exists - role: ${user.value!.role}, hasCandidate: ${candidate.value != null}');
+        }
+      } else {
+        AppLogger.common('👤 [CANDIDATE_CONTROLLER] No current user set in controller');
+      }
+
+      // Check UserController as fallback (for cases where user data isn't set on this controller yet)
       final currentUser = FirebaseAuth.instance.currentUser;
       final userController = UserController.to;
+      AppLogger.common('👤 [CANDIDATE_CONTROLLER] Checking fallback - Firebase user: ${currentUser?.uid}, UserController user role: ${userController.user.value?.role}');
       if (currentUser != null &&
           userController.user.value?.role == 'candidate' &&
           candidate.value == null) {
-        AppLogger.common('👤 Loading candidate data for already authenticated candidate user');
+        AppLogger.common('👤 [CANDIDATE_CONTROLLER] Loading candidate data for already authenticated candidate user (fallback)');
         // Load candidate data via Firebase call since it's not available yet
         await loadCandidateUserData(currentUser.uid);
         return; // Don't need to set up listeners if we already loaded data
       }
 
       // Listen to auth state changes to load candidate data when user logs in
+      AppLogger.common('👤 [CANDIDATE_CONTROLLER] Setting up listeners for future auth changes');
       ever(_userController.user, (UserModel? authenticatedUser) async {
+        AppLogger.common('👤 [CANDIDATE_CONTROLLER] Auth state changed listener triggered - user: ${authenticatedUser?.name}, role: ${authenticatedUser?.role}');
         if (authenticatedUser != null && authenticatedUser.role == 'candidate' && candidate.value == null) {
-          AppLogger.common('👤 Loading candidate data for authenticated candidate user');
+          AppLogger.common('👤 [CANDIDATE_CONTROLLER] Loading candidate data for authenticated candidate user');
           // Load candidate data via Firebase call - candidate data may not be available yet
           await loadCandidateUserData(authenticatedUser.uid);
         }
       });
     } catch (e) {
-      AppLogger.commonError('❌ Failed to initialize candidate data', error: e);
+      AppLogger.commonError('❌ [CANDIDATE_CONTROLLER] Failed to initialize candidate data', error: e);
       // Don't rethrow - initialization failure shouldn't crash the app
     }
   }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
+import 'package:janmat/features/user/services/user_status_manager.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -20,7 +21,6 @@ import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../../utils/add_sample_states.dart';
 import '../../../services/local_database_service.dart';
-import '../../../services/user_status_manager.dart';
 import '../../notifications/services/constituency_notifications.dart';
 
 class ProfileCompletionController extends GetxController {
@@ -1174,7 +1174,7 @@ class ProfileCompletionController extends GetxController {
 
       // Clear cached user data to ensure fresh data is loaded on next home screen access
       try {
-        await MultiLevelCache().set('home_user_data_${currentUser.uid}', null);
+        await MultiLevelCache().remove('home_user_data_${currentUser.uid}');
         AppLogger.common('🧹 [PROFILE_COMPLETION] Cleared cached home user data for fresh reload');
       } catch (e) {
         AppLogger.commonError('⚠️ Failed to clear cached user data after profile completion', error: e);

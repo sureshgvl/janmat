@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../../models/ward_model.dart';
-import '../services/location_service.dart';
+import '../../../services/location_service.dart';
 import '../services/cache_manager.dart';
 import '../../../utils/app_logger.dart';
 

@@ -6,40 +6,59 @@ import '../../../utils/app_logger.dart';
 import '../../../utils/multi_level_cache.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/controllers/candidate_user_controller.dart';
+import '../../candidate/repositories/candidate_repository.dart';
 
 class HomeServices {
   final MultiLevelCache _cache = MultiLevelCache();
 
   Future<Map<String, dynamic>> getUserData(String? uid, {bool forceRefresh = false}) async {
+    AppLogger.common('🏠 [HOME_SERVICES] getUserData called - uid: $uid, forceRefresh: $forceRefresh');
+
     // Check if user is authenticated before attempting to fetch data
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null || uid == null) {
-      AppLogger.common('ℹ️ User not authenticated, skipping data fetch');
+      AppLogger.common('ℹ️ [HOME_SERVICES] User not authenticated, skipping data fetch - currentUser: ${currentUser?.uid}, uid: $uid');
       return {'user': null, 'candidate': null};
     }
 
     // Verify the requested uid matches the authenticated user
     if (currentUser.uid != uid) {
-      AppLogger.common('⚠️ UID mismatch - requested: $uid, authenticated: ${currentUser.uid}');
+      AppLogger.common('⚠️ [HOME_SERVICES] UID mismatch - requested: $uid, authenticated: ${currentUser.uid}');
       return {'user': null, 'candidate': null};
     }
 
     final cacheKey = 'home_user_data_$uid';
+    AppLogger.common('🔑 [HOME_SERVICES] Using cache key: $cacheKey');
 
     // Try cache first (unless force refresh)
     if (!forceRefresh) {
       try {
         final cachedData = await _cache.get<Map<String, dynamic>>(cacheKey);
         if (cachedData != null && cachedData['user'] != null) {
-          AppLogger.common('⚡ Cache hit for home user data: $uid');
-          return cachedData;
+          final userData = cachedData['user'] as Map<String, dynamic>;
+          final userRole = userData['role'];
+          final hasCandidate = cachedData['candidate'] != null;
+
+          // CRITICAL FIX: Check for data corruption - missing role field
+          if (userRole == null || userRole.toString().isEmpty) {
+            AppLogger.common('🚨 CRITICAL DATA CORRUPTION: User document $uid is missing role field! This indicates background operations are corrupting user data.');
+            AppLogger.common('🔄 [HOME_SERVICES] Force fresh load due to corrupted cache data');
+            // Force fresh load if cached data is corrupted
+          } else {
+            AppLogger.common('⚡ [HOME_SERVICES] Cache hit for home user data: $uid - role: $userRole, hasCandidate: $hasCandidate');
+            return cachedData;
+          }
+        } else {
+          AppLogger.common('📭 [HOME_SERVICES] Cache miss or invalid data for: $uid');
         }
       } catch (e) {
-        AppLogger.common('⚠️ Cache retrieval failed, will fetch fresh data: $e');
+        AppLogger.common('⚠️ [HOME_SERVICES] Cache retrieval failed, will fetch fresh data: $e');
       }
+    } else {
+      AppLogger.common('🔄 [HOME_SERVICES] Force refresh requested, skipping cache');
     }
 
-    AppLogger.common('🔄 Fetching fresh user data for home: $uid');
+    AppLogger.common('🔄 [HOME_SERVICES] Fetching fresh user data for home: $uid');
 
     try {
       // Try to fetch from server with retry logic for unavailable errors
@@ -54,53 +73,35 @@ class HomeServices {
 
         AppLogger.common('👤 User loaded: ${userModel.name}, role: ${userModel.role}, profileCompleted: ${userModel.profileCompleted}, roleSelected: ${userModel.roleSelected}');
 
-        // Load candidate data for candidates - prioritizes controller first
-        if (userModel.profileCompleted && userModel.role == 'candidate') {
-          AppLogger.common('🎯 Loading candidate data for ${userModel.name} (profileCompleted: ${userModel.profileCompleted}, role: ${userModel.role})');
+        // Load candidate data for candidates - use direct repository approach for reliability
+        if (userModel.role == 'candidate') {
+          AppLogger.common('🎯 Loading candidate data for ${userModel.name} (role: ${userModel.role})');
           try {
-            // FIRST: Try centralized CandidateUserController (preferred approach)
-            final candidateUserController = CandidateUserController.to;
-            if (candidateUserController.candidate.value != null) {
-              candidateModel = candidateUserController.candidate.value;
-              AppLogger.common('🎯 Using centralized CandidateUserController data: ${candidateModel?.basicInfo!.fullName}');
-            } else {
-              // Load via centralized controller with timeout to prevent hanging
-              AppLogger.common('📥 Calling loadCandidateUserData for ${userModel.uid}');
+            // Use direct repository load for reliable home screen display
+            candidateModel = await _loadCandidateDataOptimized(userModel.uid);
+            if (candidateModel != null) {
+              AppLogger.common('✅ Loaded candidate data directly: ${candidateModel.basicInfo!.fullName}');
+
+              // Synchronize with CandidateUserController for other parts of the app
               try {
-                await candidateUserController.loadCandidateUserData(userModel.uid)
-                  .timeout(const Duration(seconds: 10), onTimeout: () {
-                    AppLogger.common('⏰ Candidate data loading timed out after 10 seconds');
-                    return;
-                  });
-                candidateModel = candidateUserController.candidate.value;
-                if (candidateModel != null) {
-                  AppLogger.common('📥 Loaded candidate data via CandidateUserController: ${candidateModel.basicInfo!.fullName}');
-                } else {
-                  AppLogger.common('⚠️ CandidateUserController.loadCandidateUserData returned null');
-                }
-              } catch (timeoutError) {
-                AppLogger.common('⏰ Candidate data loading timed out or failed: $timeoutError');
-                try {
-                  // Try fallback direct load
-                  candidateModel = await _loadCandidateDataOptimized(userModel.uid);
-                } catch (fallbackError) {
-                  AppLogger.common('⚠️ Fallback candidate loading also failed: $fallbackError');
-                  // Continue without candidate data - home screen can handle partial data
-                }
+                final candidateUserController = CandidateUserController.to;
+                candidateUserController.user.value = userModel;
+                candidateUserController.candidate.value = candidateModel;
+                candidateUserController.isInitialized.value = true;
+                AppLogger.common('✅ Synchronized candidate data with controller');
+              } catch (syncError) {
+                AppLogger.common('⚠️ Failed to sync with controller, but home screen data loaded: $syncError');
+                // Continue - home screen has the data it needs
               }
+            } else {
+              AppLogger.common('⚠️ No candidate data found for user: ${userModel.uid}');
             }
           } catch (e) {
-            AppLogger.common('⚠️ Centralized controller failed, using direct load: $e');
-            try {
-              // Fallback to direct load
-              candidateModel = await _loadCandidateDataOptimized(userModel.uid);
-            } catch (fallbackError) {
-              AppLogger.common('⚠️ Fallback candidate loading also failed: $fallbackError');
-              // Continue without candidate data - home screen can handle partial data
-            }
+            AppLogger.commonError('❌ Failed to load candidate data: $e');
+            // Continue without candidate data - home screen can handle partial data
           }
         } else {
-          AppLogger.common('ℹ️ Skipping candidate data load - profileCompleted: ${userModel.profileCompleted}, role: ${userModel.role}');
+          AppLogger.common('ℹ️ Skipping candidate data load - not a candidate (role: ${userModel.role})');
         }
 
         // Prepare result data
@@ -148,82 +149,28 @@ class HomeServices {
         return Candidate.fromJson(cachedCandidate);
       }
 
-      // Try fetch with retry logic
-      final candidateDoc = await _fetchCandidateDocWithRetry(uid);
+      // Use CandidateRepository to fetch from the correct nested structure
+      final candidateRepository = CandidateRepository();
+      final candidate = await candidateRepository.getCandidateData(uid);
 
-      if (candidateDoc.exists) {
-        final candidateData = candidateDoc.data()!;
-        final candidate = Candidate.fromJson(candidateData);
-
+      if (candidate != null) {
         // Cache for future use
         try {
-          await candidateCache.set(candidateCacheKey, candidateData, ttl: const Duration(hours: 1));
+          await candidateCache.set(candidateCacheKey, candidate.toJson(), ttl: const Duration(hours: 1));
           AppLogger.common('💾 Candidate data cached');
         } catch (e) {
           AppLogger.common('⚠️ Failed to cache candidate data');
         }
-
-        return candidate;
       }
+
+      return candidate;
     } catch (e) {
       AppLogger.common('⚠️ Candidate data load failed: $e');
     }
     return null;
   }
 
-  /// Fetch candidate document with retry logic for transient Firestore errors
-  Future<DocumentSnapshot<Map<String, dynamic>>> _fetchCandidateDocWithRetry(String uid) async {
-    const maxRetries = 3;
-    const baseDelayMs = 500; // Shorter delays for candidate data
 
-    // Try cache first with fallback to server
-    for (int attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        // Try cache fetch first
-        final candidateDoc = await FirebaseFirestore.instance
-            .collection('candidates')
-            .doc(uid)
-            .get(const GetOptions(source: Source.cache))
-            .timeout(const Duration(seconds: 1));
-
-        if (candidateDoc.exists) {
-          AppLogger.common('✅ Candidate data fetched from cache on attempt ${attempt + 1}');
-          return candidateDoc;
-        }
-      } catch (cacheError) {
-        AppLogger.common('⏳ Cache fetch failed (${cacheError.toString()}), trying server on attempt ${attempt + 1}');
-      }
-
-      // Cache failed, try server
-      try {
-        final candidateDoc = await FirebaseFirestore.instance
-            .collection('candidates')
-            .doc(uid)
-            .get(const GetOptions(source: Source.server))
-            .timeout(const Duration(seconds: 2));
-
-        AppLogger.common('✅ Candidate data fetched from server on attempt ${attempt + 1}');
-        return candidateDoc;
-      } catch (e) {
-        // Check if this is a retriable error
-        if (_isRetriableFirestoreError(e) && attempt < maxRetries) {
-          final delayMs = baseDelayMs * (1 << attempt); // Exponential backoff: 500ms, 1s, 2s
-          AppLogger.common('⏳ Retriable Firestore error on attempt ${attempt + 1}, retrying in ${delayMs}ms: $e');
-          await Future.delayed(Duration(milliseconds: delayMs));
-          continue;
-        }
-
-        // If this is the last attempt or not retriable, re-throw
-        if (attempt == maxRetries || !_isRetriableFirestoreError(e)) {
-          AppLogger.common('❌ All retry attempts failed for candidate data: $e');
-          rethrow;
-        }
-      }
-    }
-
-    // This should never be reached, but just in case
-    throw Exception('Unexpected error in candidate fetch retry logic');
-  }
 
   /// Fetch user document with retry logic for transient Firestore errors
   Future<DocumentSnapshot<Map<String, dynamic>>> _fetchUserDocWithRetry(String uid) async {

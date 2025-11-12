@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/app_logger.dart';
 import '../../candidate/controllers/candidate_user_controller.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
@@ -32,10 +33,13 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppLogger.common('🏠 [HOME_DRAWER] Building drawer - userModel: ${userModel?.name} (${userModel?.role}), candidateModel param: ${candidateModel?.basicInfo?.fullName ?? "null"}');
+
     return GetBuilder<CandidateUserController>(
       builder: (candidateController) {
         // Use the candidateModel parameter or controller data if available
         final currentCandidateModel = candidateModel ?? candidateController.candidate.value;
+        AppLogger.common('🏠 [HOME_DRAWER] Controller candidate: ${candidateController.candidate.value?.basicInfo?.fullName ?? "null"}, using: ${currentCandidateModel?.basicInfo?.fullName ?? "null"}');
 
         return Drawer(
           child: ListView(
@@ -55,39 +59,79 @@ class HomeDrawer extends StatelessWidget {
                     children: [
                       const SizedBox(height: 20), // Top padding above profile pic
                       // Profile Picture at Top
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.white,
-                        backgroundImage:
-                            currentCandidateModel?.photo != null &&
-                                currentCandidateModel!.photo!.isNotEmpty
-                            ? NetworkImage(currentCandidateModel.photo!)
-                            : userModel?.photoURL != null
-                            ? NetworkImage(userModel!.photoURL!)
-                            : currentUser?.photoURL != null
-                            ? NetworkImage(currentUser!.photoURL!)
-                            : null,
-                        child:
-                            (currentCandidateModel?.photo == null ||
-                                    currentCandidateModel!.photo!.isEmpty) &&
-                                userModel?.photoURL == null &&
-                                currentUser?.photoURL == null
-                            ? Text(
-                                ((userModel?.role == 'candidate' && currentCandidateModel != null
-                                      ? (currentCandidateModel.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
-                                      : userModel?.name ?? currentUser?.displayName ?? 'U')
-                                            .isEmpty
-                                        ? 'U'
-                                        : (userModel?.role == 'candidate' && currentCandidateModel != null
-                                            ? (currentCandidateModel.basicInfo?.fullName ?? currentCandidateModel.basicInfo!.fullName ?? userModel?.name ?? currentUser?.displayName ?? 'Candidate')
-                                            : userModel?.name ?? currentUser?.displayName ?? 'U')[0])
-                                    .toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 40,
-                                  color: Theme.of(context).appBarTheme.foregroundColor,
-                                ),
-                              )
-                            : null,
+                      Builder(
+                        builder: (context) {
+                          // Determine display name for initials
+                          String displayName = '';
+                          String source = '';
+
+                          if (userModel?.role == 'candidate' && currentCandidateModel != null) {
+                            // For candidates, try candidate name first
+                            final candidateName = currentCandidateModel.basicInfo?.fullName;
+                            if (candidateName != null && candidateName.isNotEmpty) {
+                              displayName = candidateName;
+                              source = 'candidate_full_name';
+                            } else if (userModel?.name != null && userModel!.name.isNotEmpty) {
+                              displayName = userModel!.name;
+                              source = 'user_name';
+                            } else if (currentUser?.displayName?.isNotEmpty == true) {
+                              displayName = currentUser!.displayName!;
+                              source = 'firebase_display_name';
+                            } else {
+                              displayName = 'Candidate';
+                              source = 'default_candidate';
+                            }
+                          } else {
+                            // For non-candidates
+                            if (userModel?.name != null && userModel!.name.isNotEmpty) {
+                              displayName = userModel!.name;
+                              source = 'user_name';
+                            } else if (currentUser?.displayName?.isNotEmpty == true) {
+                              displayName = currentUser!.displayName!;
+                              source = 'firebase_display_name';
+                            } else {
+                              displayName = 'User';
+                              source = 'default_user';
+                            }
+                          }
+
+                          // Get initials (first letter, or first two letters if name has space)
+                          String initials = displayName.isNotEmpty
+                            ? displayName.trim().split(' ').length > 1
+                              ? '${displayName.trim().split(' ')[0][0]}${displayName.trim().split(' ')[1][0]}'.toUpperCase()
+                              : displayName.trim()[0].toUpperCase()
+                            : 'U';
+
+                          AppLogger.common('🏠 [HOME_DRAWER] Profile display - name: "$displayName" (from: $source), initials: "$initials", candidate: ${currentCandidateModel?.basicInfo?.fullName ?? "null"}');
+
+                          return CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.blue[600], // Distinctive blue background for initials
+                            backgroundImage:
+                                currentCandidateModel?.photo != null &&
+                                    currentCandidateModel!.photo!.isNotEmpty
+                                ? NetworkImage(currentCandidateModel.photo!)
+                                : userModel?.photoURL != null
+                                ? NetworkImage(userModel!.photoURL!)
+                                : currentUser?.photoURL != null
+                                ? NetworkImage(currentUser!.photoURL!)
+                                : null,
+                            child:
+                                (currentCandidateModel?.photo == null ||
+                                        currentCandidateModel!.photo!.isEmpty) &&
+                                    userModel?.photoURL == null &&
+                                    currentUser?.photoURL == null
+                                ? Text(
+                                    initials,
+                                    style: TextStyle(
+                                      fontSize: 40,
+                                      color: Colors.white, // White text on blue background
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       // User Info Below Picture
@@ -201,6 +245,13 @@ class HomeDrawer extends StatelessWidget {
           ),
           // Show candidate-specific menu items
           if (userModel?.role == 'candidate' && currentCandidateModel != null) ...[
+            // Log that we're showing candidate menu items
+            Builder(
+              builder: (context) {
+                AppLogger.common('🏠 [HOME_DRAWER] Showing candidate menu items - user role: ${userModel?.role}, candidate available: ${currentCandidateModel != null}');
+                return const SizedBox.shrink();
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.dashboard),
               title: Text(AppLocalizations.of(context)!.candidateDashboard),

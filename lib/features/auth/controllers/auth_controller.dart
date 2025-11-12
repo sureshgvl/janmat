@@ -2,11 +2,16 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../services/user_token_manager.dart';
+import '../../../utils/multi_level_cache.dart';
+import '../../user/services/user_token_manager.dart';
+import '../../user/models/user_model.dart';
+import '../../candidate/models/candidate_model.dart';
+import '../../candidate/repositories/candidate_repository.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -196,6 +201,10 @@ class AuthController extends GetxController {
       if (userCredential.user != null) {
         AppLogger.auth('OTP login successful: ${userCredential.user!.uid}');
         await _authRepository.createOrUpdateUser(userCredential.user!);
+
+        // Cache fresh user data for immediate home screen display
+        await _cacheFreshUserDataAfterLogin(userCredential.user!.uid);
+
         SnackbarUtils.showSuccess('Login successful');
         Get.offAllNamed('/home');
       }
@@ -240,6 +249,10 @@ class AuthController extends GetxController {
 
       AppLogger.auth('✅ [DEBUG] Google login successful: ${userCredential.user!.uid}');
       await _authRepository.createOrUpdateUser(userCredential.user!);
+
+      // Cache fresh user data for immediate home screen display
+      await _cacheFreshUserDataAfterLogin(userCredential.user!.uid);
+
       SnackbarUtils.showSuccess('Google sign-in successful');
       Get.offAllNamed('/home');
 
@@ -345,6 +358,72 @@ class AuthController extends GetxController {
           AppLogger.auth('Using cached data as fallback after force refresh failure');
         }
       }
+    }
+  }
+
+  // Cache fresh user data after login for immediate home screen display
+  Future<void> _cacheFreshUserDataAfterLogin(String userId) async {
+    try {
+      AppLogger.auth('🔄 Caching fresh user data after login for: $userId');
+
+      // Fetch fresh user data from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final userModel = UserModel.fromJson(userData);
+
+        Candidate? candidateModel;
+
+        // For candidates with completed profiles, also fetch and cache candidate data
+        if (userModel.role == 'candidate' && userModel.profileCompleted) {
+          AppLogger.auth('🎯 User is candidate, fetching candidate data for: $userId');
+          try {
+            // Use the candidate repository to properly fetch candidate data from the nested structure
+            final candidateRepository = CandidateRepository();
+            candidateModel = await candidateRepository.getCandidateData(userId);
+            if (candidateModel != null) {
+              AppLogger.auth('✅ Candidate data fetched and cached for: $userId');
+            } else {
+              AppLogger.auth('⚠️ Candidate document not found for: $userId');
+            }
+          } catch (candidateError) {
+            AppLogger.authError('Failed to fetch candidate data for caching', error: candidateError);
+            // Continue without candidate data - user can still access home screen
+          }
+        }
+
+        // Prepare cache data in the same format as HomeServices
+        final cacheData = {'user': userModel, 'candidate': candidateModel};
+        final cacheKey = 'home_user_data_$userId';
+
+        // Cache with high priority for immediate home screen access
+        await MultiLevelCache().set<Map<String, dynamic>>(
+          cacheKey,
+          cacheData,
+          priority: CachePriority.high,
+          ttl: const Duration(minutes: 30),
+        );
+
+        // Also update routing cache
+        final routingData = {
+          'hasCompletedProfile': userModel.profileCompleted,
+          'hasSelectedRole': userModel.roleSelected,
+          'role': userModel.role,
+          'lastLogin': DateTime.now().toIso8601String(),
+        };
+        await MultiLevelCache().setUserRoutingData(userId, routingData);
+
+        AppLogger.auth('✅ Fresh user data cached after login for: $userId');
+      } else {
+        AppLogger.auth('⚠️ User document not found after login for: $userId');
+      }
+    } catch (e) {
+      AppLogger.authError('Failed to cache fresh user data after login', error: e);
+      // Don't fail login if caching fails - home screen will fetch fresh data
     }
   }
 

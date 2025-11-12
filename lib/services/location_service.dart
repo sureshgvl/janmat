@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../models/district_model.dart';
-import '../../../models/body_model.dart';
-import '../../../models/ward_model.dart';
-import '../../../services/local_database_service.dart';
-import '../../../utils/app_logger.dart';
+import '../models/district_model.dart';
+import '../models/body_model.dart';
+import '../models/ward_model.dart';
+import 'local_database_service.dart';
+import '../utils/app_logger.dart';
 
 /// Service responsible for location data management (districts, bodies, wards).
 /// Handles caching, fetching, and persistence of location data.

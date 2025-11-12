@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../services/user_status_manager.dart';
+import '../../user/services/user_status_manager.dart';
 import '../controllers/auth_controller.dart';
 import '../../chat/controllers/chat_controller.dart';
 
@@ -45,7 +45,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       await UserStatusManager().updateRole(currentUser.uid, selectedRole!);
 
       // Navigate to profile completion with animation
-      Get.offAllNamed('/profile-completion');
+      Get.toNamed('/profile-completion');
 
       // Show appropriate success message based on selected role
       final message = selectedRole == 'candidate'
