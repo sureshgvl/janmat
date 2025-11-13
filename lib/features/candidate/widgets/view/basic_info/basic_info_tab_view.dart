@@ -224,136 +224,145 @@ class BasicInfoTabView extends StatelessWidget {
             ),
           ),
 
-          // Events (if available)
-          if (candidate.events != null && candidate.events!.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.event_available_outlined,
-                          color: Colors.green.shade600,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'upcomingEvents'.tr,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1f2937),
-                        ),
-                      ),
-                    ],
-                  ),
+          // Events (if available) - Only show upcoming events
+          ...() {
+            if (candidate.events != null && candidate.events!.isNotEmpty) {
+              // Filter to only upcoming events
+              final upcomingEvents = candidate.events!.where((event) => event.isUpcoming()).toList();
+              if (upcomingEvents.isNotEmpty) {
+                return [
                   const SizedBox(height: 20),
-                  ...candidate.events!.map(
-                    (event) => Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            margin: const EdgeInsets.only(top: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade500,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.shade200,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.event_available_outlined,
+                                color: Colors.green.shade600,
+                                size: 20,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
+                            const SizedBox(width: 12),
+                            Text(
+                              CandidateLocalizations.of(context)!.upcomingEvents,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1f2937),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        ...upcomingEvents.map(
+                          (event) => Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  event.title,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1f2937),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                if (event.date.isNotEmpty)
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today,
-                                        size: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        event.date,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFF6b7280),
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  margin: const EdgeInsets.only(top: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade500,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.green.shade200,
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
-                                if (event.description != null &&
-                                    event.description!.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    event.description!,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF374151),
-                                      height: 1.4,
-                                    ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        event.title,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1f2937),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      if (event.date.isNotEmpty)
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today,
+                                              size: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              event.date,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Color(0xFF6b7280),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      if (event.description != null &&
+                                          event.description!.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          event.description!,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF374151),
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ],
+                                ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ],
+                ];
+              }
+            }
+            return [];
+          }(),
 
           // Personal Information (Age, Gender, Education, Address)
           if ((candidate.basicInfo?.age != null) ||
@@ -709,7 +718,7 @@ class BasicInfoTabView extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Years of Experience',
+                                CandidateLocalizations.of(context)!.yearsOfExperience,
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[600],
@@ -720,7 +729,7 @@ class BasicInfoTabView extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${candidate.basicInfo!.experienceYears} years',
+                            '${candidate.basicInfo!.experienceYears} ${CandidateLocalizations.of(context)!.years}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -753,7 +762,7 @@ class BasicInfoTabView extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Previous Positions',
+                                CandidateLocalizations.of(context)!.previousPositionsLabel,
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[600],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
-import 'package:janmat/features/candidate/controllers/events_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/events_model.dart';
 import 'package:janmat/features/candidate/repositories/candidate_repository.dart';
@@ -36,7 +35,6 @@ class EventsTabEdit extends StatefulWidget {
 class EventsTabEditState extends State<EventsTabEdit> {
   final CandidateUserController _controller =
       CandidateUserController.to;
-  final EventsController _eventsController = Get.find<EventsController>();
   late Worker _eventsWorker;
   bool _isSaving = false;
 
@@ -126,6 +124,10 @@ class EventsTabEditState extends State<EventsTabEdit> {
       final displayEvents =
           widget.editedData?.events ?? _controller.events.toList();
 
+      // Separate events into upcoming and completed
+      final upcomingEvents = displayEvents.where((event) => event.isUpcoming()).toList();
+      final completedEvents = displayEvents.where((event) => event.isExpired()).toList();
+
       return Card(
         margin: const EdgeInsets.all(16),
         child: Padding(
@@ -137,7 +139,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Upcoming Events',
+                    'Events',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   if (widget.isEditing)
@@ -165,7 +167,7 @@ class EventsTabEditState extends State<EventsTabEdit> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No upcoming events',
+                          'No events available',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 16,
@@ -183,16 +185,28 @@ class EventsTabEditState extends State<EventsTabEdit> {
                     ),
                   ),
                 )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: displayEvents.length,
-                  itemBuilder: (context, index) {
-                    final event = displayEvents[index];
-                    return _buildEventCard(event);
-                  },
-                ),
+              else ...[
+                // Upcoming Events Section
+                if (upcomingEvents.isNotEmpty) ...[
+                  const Text(
+                    'Upcoming Events',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.green),
+                  ),
+                  const SizedBox(height: 12),
+                  ...upcomingEvents.map((event) => _buildEventCard(event)),
+                  const SizedBox(height: 24),
+                ],
+
+                // Completed Events Section
+                if (completedEvents.isNotEmpty) ...[
+                  const Text(
+                    'Completed Events',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  ...completedEvents.map((event) => _buildEventCard(event)),
+                ],
+              ],
             ],
           ),
         ),

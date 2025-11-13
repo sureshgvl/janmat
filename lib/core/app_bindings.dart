@@ -32,8 +32,7 @@ import '../features/language/controller/language_controller.dart';
 import '../features/highlight/controller/highlight_controller.dart';
 import '../services/background_location_sync_service.dart';
 import '../features/candidate/services/manifesto_sync_service.dart';
-import '../features/notifications/services/gamification_notification_service.dart';
-import '../services/gamification_service.dart';
+
 import '../features/monetization/controllers/monetization_controller.dart';
 import '../controllers/background_color_controller.dart';
 import '../services/screen_focus_service.dart';
@@ -84,8 +83,6 @@ class AppBindings extends Bindings {
     Get.lazyPut<AdMobService>(() => AdMobService());
     Get.lazyPut<RazorpayService>(() => RazorpayService());
     Get.lazyPut<FileUploadService>(() => FileUploadService());
-    Get.lazyPut<GamificationNotificationService>(() => GamificationNotificationService());
-    Get.lazyPut<GamificationService>(() => GamificationService());
 
     // 🚀 ASYNC INITIALIZATION: Move heavy operations to background
     // Initialize media cache service asynchronously

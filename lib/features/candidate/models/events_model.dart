@@ -83,6 +83,23 @@ class EventData extends Equatable {
   bool isUserNotGoing(String userId) =>
       rsvp?['not_going']?.contains(userId) ?? false;
 
+  // Helper methods for event status
+  bool isUpcoming() {
+    try {
+      final eventDate = DateTime.parse(date);
+      final now = DateTime.now();
+      // Consider event upcoming if it's today or in the future
+      final today = DateTime(now.year, now.month, now.day);
+      final eventDay = DateTime(eventDate.year, eventDate.month, eventDate.day);
+      return eventDay.isAtSameMomentAs(today) || eventDay.isAfter(today);
+    } catch (e) {
+      // If date parsing fails, assume it's upcoming to avoid breaking existing functionality
+      return true;
+    }
+  }
+
+  bool isExpired() => !isUpcoming();
+
   EventData copyWith({
     String? id,
     String? title,

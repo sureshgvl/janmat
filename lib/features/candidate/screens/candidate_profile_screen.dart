@@ -13,7 +13,7 @@ import '../widgets/view/manifesto/manifesto_view.dart';
 import '../widgets/view/media/media_view.dart';
 import '../widgets/view/contact/contact_tab_view.dart';
 import '../widgets/view/achievements/achievements_tab_view.dart';
-import '../widgets/edit/events/events_edit.dart';
+
 import '../widgets/view/events/events_tab_view.dart';
 import '../widgets/view/followers_analytics_tab_view.dart';
 import '../widgets/profile_header_widget.dart';
@@ -588,21 +588,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       // Contact Tab - Show data immediately, refresh happens in background
       ContactTabView(candidate: candidate!),
 
-      // Events Tab
-      Builder(
-        builder: (context) {
-          if (currentUserId == candidate!.userId) {
-            return EventsTabEdit(
-              candidateData: candidate!,
-              editedData: null,
-              isEditing: false,
-              onEventsChange: (value) {},
-            );
-          } else {
-            return VoterEventsSection(candidateData: candidate!);
-          }
-        },
-      ),
+      // Events Tab - Always show VoterEventsSection for viewing events with RSVP functionality
+      VoterEventsSection(candidateData: candidate!),
     ];
 
     // Add Analytics tab only for own profile

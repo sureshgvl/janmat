@@ -7,9 +7,10 @@ import '../../../models/candidate_model.dart';
 import '../../../models/events_model.dart';
 import '../../../repositories/candidate_event_repository.dart';
 import '../../../services/event_notification_service.dart';
-import '../../../../../services/gamification_service.dart';
 import '../../../../../utils/app_logger.dart';
 import '../../../../../utils/snackbar_utils.dart';
+import '../../../../../l10n/features/candidate/candidate_localizations.dart';
+import '../../../../../controllers/background_color_controller.dart';
 
 class VoterEventsSection extends StatefulWidget {
   final Candidate candidateData;
@@ -23,7 +24,6 @@ class VoterEventsSection extends StatefulWidget {
 class _VoterEventsSectionState extends State<VoterEventsSection> {
   late final EventRepository _eventRepository;
   late final EventNotificationService _notificationService;
-  late final GamificationService _gamificationService;
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   Map<String, String?> _userRSVPStatuses = {};
@@ -36,7 +36,6 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     // Initialize services lazily to avoid circular dependencies
     _eventRepository = EventRepository();
     _notificationService = EventNotificationService();
-    _gamificationService = Get.find<GamificationService>();
     // Load RSVP data when widget initializes
     _loadRSVPData();
   }
@@ -129,20 +128,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
           AppLogger.candidateError('Notification error: $notificationError');
         }
 
-        // Award gamification points
-        try {
-          await _gamificationService.awardRSVPPoints(
-            userId: _currentUserId,
-            eventId: eventId,
-            candidateId: widget.candidateData.candidateId,
-            rsvpType: rsvpType,
-          );
-        } catch (gamificationError) {
-          // Don't fail the RSVP if gamification fails
-          AppLogger.candidateError('Gamification error: $gamificationError');
-        }
-
-        SnackbarUtils.showSuccess('RSVP updated successfully! You earned points!');
+        SnackbarUtils.showSuccess('RSVP updated successfully!');
       }
     } catch (e) {
       SnackbarUtils.showError('Failed to update RSVP: $e');
@@ -166,17 +152,6 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         setState(() {
           _rsvpCounts[eventId] = counts;
         });
-
-        // Remove gamification points
-        try {
-          await _gamificationService.removeRSVPPoints(
-            userId: _currentUserId,
-            eventId: eventId,
-          );
-        } catch (gamificationError) {
-          // Don't fail the RSVP removal if gamification fails
-          AppLogger.candidateError('Gamification error: $gamificationError');
-        }
       }
     } catch (e) {
       SnackbarUtils.showError('Failed to remove RSVP: $e');
@@ -185,61 +160,106 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
   @override
   Widget build(BuildContext context) {
-    // Get events from candidate's data
-    final candidateEvents = widget.candidateData.events ?? [];
+    final backgroundColorController = Get.find<BackgroundColorController>();
 
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Obx(() => Container(
+      color: backgroundColorController.currentBackgroundColor.value,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Upcoming Events',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+            Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      CandidateLocalizations.of(context)!.events,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
 
-            if (_isLoadingRSVP && candidateEvents.isEmpty)
-              const Center(child: CircularProgressIndicator())
-            else if (candidateEvents.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.event_note,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No upcoming events',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
+                    // Get events from candidate's data
+                    ..._buildEventsContent(context),
+                  ],
                 ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: candidateEvents.length,
-                itemBuilder: (context, index) {
-                  final event = candidateEvents[index];
-                  return _buildEventCard(event);
-                },
               ),
+            ),
           ],
         ),
       ),
-    );
+    ));
+  }
+
+  List<Widget> _buildEventsContent(BuildContext context) {
+    final candidateEvents = widget.candidateData.events ?? [];
+
+    // Separate events into upcoming and completed
+    final upcomingEvents = candidateEvents.where((event) => event.isUpcoming()).toList();
+    final completedEvents = candidateEvents.where((event) => event.isExpired()).toList();
+
+    if (_isLoadingRSVP && candidateEvents.isEmpty) {
+      return [
+        const Center(child: CircularProgressIndicator())
+      ];
+    } else if (candidateEvents.isEmpty) {
+      return [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.event_note,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  CandidateLocalizations.of(context)!.noEventsAvailable,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+      ];
+    } else {
+      final List<Widget> content = [];
+
+      // Upcoming Events Section
+      if (upcomingEvents.isNotEmpty) {
+        content.addAll([
+          Text(
+            CandidateLocalizations.of(context)!.upcomingEvents,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.green),
+          ),
+          const SizedBox(height: 12),
+          ...upcomingEvents.map((event) => _buildEventCard(event)),
+          const SizedBox(height: 24),
+        ]);
+      }
+
+      // Completed Events Section
+      if (completedEvents.isNotEmpty) {
+        content.addAll([
+          Text(
+            CandidateLocalizations.of(context)!.completedEvents,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          ...completedEvents.map((event) => _buildEventCard(event)),
+        ]);
+      }
+
+      return content;
+    }
   }
 
   Widget _buildEventCard(EventData event) {
@@ -253,6 +273,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
     final counts = hasValidId
         ? _rsvpCounts[eventId] ?? {'interested': 0, 'going': 0, 'not_going': 0}
         : {'interested': 0, 'going': 0, 'not_going': 0};
+    final isExpired = event.isExpired();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -261,10 +282,49 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Event Title
-            Text(
-              event.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // Event Title with Status Badge
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    event.title,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                if (isExpired) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Expired',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Upcoming',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 8),
 
@@ -321,10 +381,10 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
             if (hasValidId)
               Row(
                 children: [
-                  _buildRSVPCount('Going', counts['going'] ?? 0, Colors.green),
+                  _buildRSVPCount(CandidateLocalizations.of(context)!.rsvpGoing, counts['going'] ?? 0, Colors.green),
                   const SizedBox(width: 16),
                   _buildRSVPCount(
-                    'Interested',
+                    CandidateLocalizations.of(context)!.rsvpInterested,
                     counts['interested'] ?? 0,
                     Colors.orange,
                   ),
@@ -333,27 +393,27 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
 
             const SizedBox(height: 12),
 
-            // RSVP Buttons - only show if event has valid ID
-            if (hasValidId && _currentUserId != null)
+            // RSVP Buttons - only show if event has valid ID and is not expired
+            if (hasValidId && _currentUserId != null && !isExpired)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildRSVPButton(
-                    'Going',
+                    CandidateLocalizations.of(context)!.rsvpGoing,
                     EventRepository.RSVP_GOING,
                     userRSVP == EventRepository.RSVP_GOING,
                     Colors.green,
                     eventId,
                   ),
                   _buildRSVPButton(
-                    'Interested',
+                    CandidateLocalizations.of(context)!.rsvpInterested,
                     EventRepository.RSVP_INTERESTED,
                     userRSVP == EventRepository.RSVP_INTERESTED,
                     Colors.orange,
                     eventId,
                   ),
                   _buildRSVPButton(
-                    'Not Going',
+                    CandidateLocalizations.of(context)!.rsvpNotGoing,
                     EventRepository.RSVP_NOT_GOING,
                     userRSVP == EventRepository.RSVP_NOT_GOING,
                     Colors.red,
@@ -361,17 +421,24 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
                   ),
                 ],
               )
+            else if (isExpired)
+              Center(
+                child: Text(
+                  CandidateLocalizations.of(context)!.eventExpired,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+              )
             else if (!hasValidId)
               Center(
                 child: Text(
-                  'RSVP not available for this event',
+                  CandidateLocalizations.of(context)!.rsvpNotAvailable,
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               )
             else
               Center(
                 child: Text(
-                  'Login to RSVP',
+                  CandidateLocalizations.of(context)!.loginToRsvp,
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ),
@@ -425,7 +492,7 @@ class _VoterEventsSectionState extends State<VoterEventsSection> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            label == 'Going' ? Icons.check_circle : Icons.thumb_up,
+            label == CandidateLocalizations.of(context)!.rsvpGoing ? Icons.check_circle : Icons.thumb_up,
             size: 16,
             color: color,
           ),
