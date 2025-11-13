@@ -73,6 +73,14 @@ class CandidateLocalizations {
   String get achievements => translate('achievements');
   String get media => translate('media');
   String get contact => translate('contact');
+  String get contactInformation => translate('contactInformation');
+  String get phone => translate('phone');
+  String get email => translate('email');
+  String get socialMedia => translate('socialMedia');
+  String get officeInformation => translate('officeInformation');
+  String get officeAddress => translate('officeAddress');
+  String get officeHours => translate('officeHours');
+  String get notProvided => translate('notProvided');
   String get events => translate('events');
   String get analytics => translate('analytics');
   String get profile => translate('profile');
@@ -187,4 +195,3 @@ class CandidateTranslations {
     return CandidateLocalizations.current.translate(key, args: args);
   }
 }
-
