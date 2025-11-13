@@ -99,7 +99,7 @@ class Candidate {
             ),
       photo: extractedPhoto,
       coverPhoto: json['coverPhoto'],
-      contact: ContactModel.fromJson(json['contact'] ?? {}),
+      contact: ExtendedContact.fromJson(json['contact'] ?? {}),
       sponsored: json['sponsored'] ?? false,
       createdAt: createdAt,
       achievements: json['achievements'] != null

@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/edit/contact/contact_edit.dart';
-import '../../../widgets/loading_overlay.dart';
+import '../widgets/view/contact/contact_tab_view.dart';
 
 class CandidateDashboardContact extends StatefulWidget {
   const CandidateDashboardContact({super.key});
@@ -17,7 +15,6 @@ class CandidateDashboardContact extends StatefulWidget {
 class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
   final CandidateUserController controller = CandidateUserController.to;
   bool isEditing = false;
-  bool isSaving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -32,15 +29,19 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
 
       return Scaffold(
         body: SingleChildScrollView(
-          child: ContactSection(
-            candidateData: controller.candidateData.value!,
-            editedData: controller.editedData.value,
-            isEditing: isEditing,
-            onContactChange: (field, value) =>
-                controller.updateContact(field, value),
-            onSocialChange: (field, value) =>
-                controller.updateContact('social_$field', value),
-          ),
+          child: isEditing
+              ? ContactSection(
+                  candidateData: controller.candidateData.value!,
+                  editedData: controller.editedData.value,
+                  isEditing: true,
+                  onContactChange: (field, value) =>
+                      controller.updateContact(field, value),
+                  onSocialChange: (field, value) =>
+                      controller.updateContact('social_$field', value),
+                )
+              : ContactTabView(
+                  candidate: controller.candidateData.value!,
+                ),
         ),
         floatingActionButton: isEditing
             ? Padding(
@@ -51,61 +52,21 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                     FloatingActionButton(
                       heroTag: 'save_contact',
                       onPressed: () async {
-                        // Create a stream controller for progress updates
-                        final messageController = StreamController<String>();
-                        messageController.add('Preparing to save contact...');
-
-                        // Show loading dialog with message stream
-                        LoadingDialog.show(
-                          context,
-                          initialMessage: 'Preparing to save contact...',
-                          messageStream: messageController.stream,
-                        );
-
-                        try {
-                          final success = await controller.saveExtraInfo(
-                            onProgress: (message) =>
-                                messageController.add(message),
+                        // Save changes
+                        final success = await controller.saveExtraInfo();
+                        if (success) {
+                          setState(() => isEditing = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Contact information updated successfully')),
                           );
-
-                          if (success) {
-                            // Update progress: Success
-                            messageController.add(
-                              'Contact saved successfully!',
-                            );
-
-                            // Wait a moment to show success message
-                            await Future.delayed(
-                              const Duration(milliseconds: 800),
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              setState(() => isEditing = false);
-                              SnackbarUtils.showSuccess('Contact updated successfully');
-                            }
-                          } else {
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              SnackbarUtils.showError('Failed to update contact');
-                            }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            Navigator.of(context).pop(); // Close loading dialog
-                            SnackbarUtils.showError('An error occurred: $e');
-                          }
-                        } finally {
-                          // Clean up the stream controller
-                          await messageController.close();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to update contact information')),
+                          );
                         }
                       },
                       backgroundColor: Colors.green,
-                      tooltip: 'Save Changes',
+                      tooltip: 'Save Contact Information',
                       child: const Icon(Icons.save, size: 28),
                     ),
                     const SizedBox(width: 16),
@@ -117,7 +78,7 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
                       },
                       backgroundColor: Colors.red,
                       tooltip: 'Cancel',
-                      child: const Icon(Icons.cancel, size: 28),
+                      child: const Icon(Icons.close, size: 28),
                     ),
                   ],
                 ),
@@ -125,10 +86,15 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
             : Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),
                 child: FloatingActionButton(
-                  heroTag: 'edit_contact',
-                  onPressed: () => setState(() => isEditing = true),
+                  onPressed: () {
+                    // Enter edit mode
+                    if (controller.editedData.value == null && controller.candidateData.value != null) {
+                      controller.editedData.value = controller.candidateData.value;
+                    }
+                    setState(() => isEditing = true);
+                  },
                   backgroundColor: Colors.blue,
-                  tooltip: 'Edit Contact',
+                  tooltip: 'Edit Contact Information',
                   child: const Icon(Icons.edit, size: 28),
                 ),
               ),

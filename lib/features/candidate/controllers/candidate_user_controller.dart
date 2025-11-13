@@ -564,7 +564,48 @@ class CandidateUserController extends GetxController {
   }
 
   void updateContact(String field, String value) {
-    // Stub - not implemented in simplified version
+    // Track contact field changes for save operations
+    trackExtraInfoFieldChange(field, value);
+
+    // Actually update the editedData object with the new contact values
+    if (editedData.value != null) {
+      var currentContact = editedData.value!.contact as ContactModel?;
+
+      if (field.startsWith('social_')) {
+        // Handle social links
+        final socialField = field.substring(7); // Remove 'social_' prefix
+        final currentSocialLinks = currentContact?.socialLinks ?? {};
+        final updatedSocialLinks = Map<String, String>.from(currentSocialLinks);
+        updatedSocialLinks[socialField] = value;
+
+        final updatedContact = currentContact?.copyWith(socialLinks: updatedSocialLinks) ?? ContactModel(socialLinks: updatedSocialLinks);
+        editedData.value = editedData.value!.copyWith(contact: updatedContact);
+        AppLogger.common('✅ Updated editedData contact social link: $socialField = $value', tag: 'CONTACT_UPDATE');
+      } else {
+        // Handle regular contact fields
+        ContactModel updatedContact;
+        if (currentContact == null) {
+          updatedContact = ContactModel();
+        } else {
+          updatedContact = currentContact;
+        }
+
+        if (field == 'phone') {
+          updatedContact = updatedContact.copyWith(phone: value);
+        } else if (field == 'email') {
+          updatedContact = updatedContact.copyWith(email: value);
+        } else if (field == 'officeAddress') {
+          updatedContact = updatedContact.copyWith(officeAddress: value);
+        } else if (field == 'officeHours') {
+          updatedContact = updatedContact.copyWith(officeHours: value);
+        }
+
+        editedData.value = editedData.value!.copyWith(contact: updatedContact);
+        AppLogger.common('✅ Updated editedData contact field: $field = $value', tag: 'CONTACT_UPDATE');
+      }
+    } else {
+      AppLogger.common('❌ editedData.value is null - cannot update contact field: $field', tag: 'CONTACT_UPDATE');
+    }
   }
 
   void updatePhoto(String photoUrl) {
@@ -645,7 +686,36 @@ class CandidateUserController extends GetxController {
   }
 
   Future<bool> saveExtraInfo({Function(String)? onProgress}) async {
-    return saveBasicInfoOnly(onProgress: onProgress);
+    if (editedData.value == null || user.value == null) {
+      AppLogger.common('❌ Cannot save extra info - editedData or user is null', tag: 'SAVE_EXTRA_INFO');
+      return false;
+    }
+
+    try {
+      onProgress?.call('Saving contact information...');
+
+      // Use the repository to update the candidate data
+      final success = await _candidateRepository.updateCandidateExtraInfo(editedData.value!);
+
+      if (success) {
+        onProgress?.call('Contact information saved successfully');
+
+        // Update the main candidate data with the edited data
+        candidate.value = editedData.value;
+
+        // Clear the change tracking
+        clearChangeTracking();
+
+        AppLogger.common('✅ Extra info saved successfully', tag: 'SAVE_EXTRA_INFO');
+        return true;
+      } else {
+        AppLogger.common('❌ Failed to save extra info via repository', tag: 'SAVE_EXTRA_INFO');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.commonError('❌ Error saving extra info', error: e, tag: 'SAVE_EXTRA_INFO');
+      return false;
+    }
   }
 
   void resetEditedData() {

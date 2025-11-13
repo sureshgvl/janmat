@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:janmat/features/candidate/controllers/contact_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/contact_model.dart';
 import 'package:janmat/features/user/services/user_data_service.dart';
@@ -30,9 +29,7 @@ class ContactSection extends StatefulWidget {
 }
 
 class _ContactSectionState extends State<ContactSection> {
-  final ContactController _contactController = Get.find<ContactController>();
   String _loginMethod = 'unknown';
-  bool _isSaving = false;
 
   @override
   void initState() {
@@ -77,6 +74,20 @@ class _ContactSectionState extends State<ContactSection> {
     final contact = data.contact;
     final socialLinks = (contact as ContactModel?)?.socialLinks;
 
+    // Auto-populate WhatsApp link if empty and phone exists
+    final candidatePhone = data.contact?.phone;
+    final whatsappLink = socialLinks?['whatsapp'];
+    if ((whatsappLink == null || whatsappLink.isEmpty) && candidatePhone != null && candidatePhone.isNotEmpty) {
+      // Generate WhatsApp link from phone number
+      final whatsappUrl = 'https://wa.me/$candidatePhone';
+      // Update the social links if we're in editing mode
+      if (widget.isEditing && widget.onSocialChange != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onSocialChange('whatsapp', whatsappUrl);
+        });
+      }
+    }
+
     // Get current user data from UserDataService
     final userDataService = Get.find<UserDataService>();
     final currentUser = userDataService.currentUser.value;
@@ -92,7 +103,7 @@ class _ContactSectionState extends State<ContactSection> {
           16,
           16,
           16,
-          80,
+          100,
         ), // Added 80px bottom padding to prevent content from being hidden behind floating action buttons
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +114,8 @@ class _ContactSectionState extends State<ContactSection> {
             ),
             const SizedBox(height: 16),
             if (widget.isEditing) ...[
-              // Phone number with OTP verification
+              // Phone number input (OTP flow to be implemented later)
+              /*
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -150,6 +162,18 @@ class _ContactSectionState extends State<ContactSection> {
                     ),
                   ],
                 ),
+              ),
+              */
+              TextFormField(
+                initialValue: data.contact?.phone ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                  prefixText: '+91',
+                  prefixIcon: Icon(Icons.phone, color: Colors.blue),
+                ),
+                keyboardType: TextInputType.phone,
+                onChanged: (value) => widget.onContactChange('phone', '+91$value'),
               ),
               const SizedBox(height: 16),
               // Email (conditionally editable based on login method)
@@ -201,7 +225,7 @@ class _ContactSectionState extends State<ContactSection> {
                       ),
                     ] else ...[
                       TextFormField(
-                        initialValue: email ?? '',
+                        initialValue: data.contact?.email ?? '',
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
@@ -221,33 +245,70 @@ class _ContactSectionState extends State<ContactSection> {
               ),
               TextFormField(
                 initialValue: socialLinks?['facebook'] ?? '',
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Facebook',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Image.asset('assets/images/fb.png', width: 20, height: 20),
+                  ),
                 ),
                 onChanged: (value) => widget.onSocialChange('facebook', value),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 initialValue: socialLinks?['twitter'] ?? '',
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Twitter',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Image.asset('assets/images/tweeer.png', width: 20, height: 20),
+                  ),
                 ),
                 onChanged: (value) => widget.onSocialChange('twitter', value),
               ),
+              const SizedBox(height: 8),
+              TextFormField(
+                initialValue: socialLinks?['whatsapp'] ?? '',
+                decoration: InputDecoration(
+                  labelText: 'WhatsApp',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Image.asset('assets/images/whatsapp.png', width: 20, height: 20),
+                  ),
+                ),
+                onChanged: (value) => widget.onSocialChange('whatsapp', value),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                initialValue: socialLinks?['instagram'] ?? '',
+                decoration: InputDecoration(
+                  labelText: 'Instagram',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Image.asset('assets/images/insta.png', width: 20, height: 20),
+                  ),
+                ),
+                onChanged: (value) => widget.onSocialChange('instagram', value),
+              ),
               const SizedBox(height: 16),
               TextFormField(
-                initialValue: '',
+                initialValue: data.contact?.officeAddress ?? '',
                 decoration: const InputDecoration(
                   labelText: 'Office Address',
                   border: OutlineInputBorder(),
                 ),
+                maxLines: 3,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
                 onChanged: (value) => widget.onContactChange('officeAddress', value),
               ),
               const SizedBox(height: 16),
               TextFormField(
-                initialValue: '',
+                initialValue: data.contact?.officeHours ?? '',
                 decoration: const InputDecoration(
                   labelText: 'Office Hours',
                   border: OutlineInputBorder(),
@@ -266,59 +327,7 @@ class _ContactSectionState extends State<ContactSection> {
         ),
       ),
     );
-
-    // Only show Save and Cancel buttons when actually editing
-    if (widget.isEditing) {
-      return Stack(
-        children: [
-          card,
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isSaving ? null : _saveContact,
-                    icon: _isSaving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isSaving ? 'Saving...' : 'Save Contact'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.cancel),
-                    label: const Text('Cancel'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    } else {
-      // When not editing, just return the card without buttons
-      return card;
-    }
+    return card;
   }
 
   void _showPhoneChangeDialog(BuildContext context, String? currentPhone) {
@@ -468,47 +477,4 @@ class _ContactSectionState extends State<ContactSection> {
     );
   }
 
-  Future<void> _saveContact() async {
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      final data = widget.editedData ?? widget.candidateData;
-
-      // Create ContactModel from current form data
-      final contact = ContactModel(
-        phone: data.contact.phone,
-        email: data.contact.email,
-        address: data.contact.address,
-        socialLinks: data.contact.socialLinks ?? {},
-        officeAddress: data.contact.officeAddress,
-        officeHours: data.contact.officeHours,
-      );
-
-      // Save using the controller
-      final success = await _contactController.saveContactTab(
-        candidate: data,
-        contact: contact,
-        candidateName: data.basicInfo!.fullName,
-        photoUrl: data.photo,
-        onProgress: (message) {
-          SnackbarUtils.showScaffoldInfo(context, message);
-        },
-      );
-
-      if (success) {
-        SnackbarUtils.showScaffoldSuccess(context, 'Contact information saved successfully!');
-        Navigator.of(context).pop();
-      } else {
-        SnackbarUtils.showScaffoldError(context, 'Failed to save contact information');
-      }
-    } catch (e) {
-      SnackbarUtils.showScaffoldError(context, 'Error saving contact information: $e');
-    } finally {
-      setState(() {
-        _isSaving = false;
-      });
-    }
-  }
 }

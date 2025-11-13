@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -52,6 +53,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   bool _hasSponsoredBanner = false;
   bool _hasPremiumBadge = false;
   bool _hasHighlightCarousel = false;
+
 
   // Location data variables
   String? _wardName;
@@ -132,13 +134,13 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     _tabController = TabController(length: _isOwnProfile ? 7 : 6, vsync: this);
     _tabController?.addListener(_onTabChanged);
 
-    // Always refresh candidate data to get latest following count for all profiles
-    // if (candidate != null) {
-    //   AppLogger.candidate('🔄 Calling _refreshCandidateFollowingData for all profiles');
-    //   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    //     await _refreshCandidateFollowingData();
-    //   });
-    // }
+    // Always refresh candidate data to get latest contact and other info for all profiles
+    if (candidate != null) {
+      AppLogger.candidate('🔄 Calling _refreshCandidateFollowingData for all profiles');
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _refreshCandidateFollowingData();
+      });
+    }
 
     // Check follow status when screen loads
     if (currentUserId != null && candidate != null) {
@@ -234,26 +236,53 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
-  // Refresh candidate data with following count for non-own profiles
+  // Refresh candidate data using direct document path (fast!)
   Future<void> _refreshCandidateFollowingData() async {
     if (candidate == null) return;
 
     try {
       AppLogger.candidate(
-        '🔄 Refreshing candidate data with following count for profile: ${candidate!.candidateId}',
+        '🔄 Refreshing candidate data using direct path: ${candidate!.candidateId}',
       );
 
-      // Get fresh candidate data with following count populated
-      final freshCandidate = await candidateRepository.getCandidateDataById(
-        candidate!.candidateId,
-      );
+      // Use embedded location data for direct document access (much faster!)
+      final location = candidate!.location;
+      final stateId = location.stateId ?? 'maharashtra';
+      final districtId = location.districtId;
+      final bodyId = location.bodyId;
+      final wardId = location.wardId;
 
-      if (freshCandidate != null && mounted) {
+      if (districtId == null || bodyId == null || wardId == null) {
+        AppLogger.candidate('⚠️ Missing location data, skipping refresh');
+        return;
+      }
+
+      // Direct document query using embedded location data
+      final candidateDoc = await FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidate!.candidateId)
+          .get();
+
+      if (candidateDoc.exists && mounted) {
+        final data = candidateDoc.data()!;
+        final candidateData = Map<String, dynamic>.from(data);
+        candidateData['candidateId'] = candidateDoc.id;
+
+        final freshCandidate = Candidate.fromJson(candidateData);
+
         AppLogger.candidate(
-          '✅ Refreshed candidate data - following count: ${freshCandidate.followingCount}',
+          '✅ Refreshed candidate data instantly - following count: ${freshCandidate.followingCount}',
         );
         setState(() {
-          candidate = freshCandidate;
+          candidate = freshCandidate; // ← Instant UI update
         });
       } else {
         AppLogger.candidate('⚠️ Could not refresh candidate data');
@@ -556,7 +585,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       // Media Tab
       MediaTabView(candidate: candidate!, isOwnProfile: false),
 
-      // Contact Tab
+      // Contact Tab - Show data immediately, refresh happens in background
       ContactTabView(candidate: candidate!),
 
       // Events Tab

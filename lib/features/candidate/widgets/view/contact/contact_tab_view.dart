@@ -247,7 +247,12 @@ class _ContactTabViewState extends State<ContactTabView>
                       (entry) {
                         return InkWell(
                           onTap: () async {
-                            final url = entry.value;
+                            String url = entry.value;
+                            // Handle WhatsApp links - if it's just a phone number, convert to WhatsApp URL
+                            if (entry.key.toLowerCase() == 'whatsapp' && !url.startsWith('http')) {
+                              // If it's just a phone number, create WhatsApp URL
+                              url = 'https://wa.me/$url';
+                            }
                             final uri = Uri.parse(url);
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(uri);
@@ -266,10 +271,10 @@ class _ContactTabViewState extends State<ContactTabView>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  _getSocialIcon(entry.key),
-                                  size: 16,
-                                  color: Colors.blue.shade600,
+                                Image.asset(
+                                  _getSocialIconAsset(entry.key),
+                                  width: 16,
+                                  height: 16,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -292,12 +297,172 @@ class _ContactTabViewState extends State<ContactTabView>
             ),
           ],
 
+          // Office Information
+          if ((widget.candidate.contact.officeAddress != null &&
+                  widget.candidate.contact.officeAddress!.isNotEmpty) ||
+              (widget.candidate.contact.officeHours != null &&
+                  widget.candidate.contact.officeHours!.isNotEmpty)) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Office Information',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1f2937),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (widget.candidate.contact.officeAddress != null &&
+                      widget.candidate.contact.officeAddress!.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.location_on,
+                              color: Colors.orange.shade600,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Office Address',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF6b7280),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.candidate.contact.officeAddress!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1f2937),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (widget.candidate.contact.officeHours != null &&
+                      widget.candidate.contact.officeHours!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.purple.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.access_time,
+                              color: Colors.purple.shade600,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Office Hours',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF6b7280),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.candidate.contact.officeHours!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1f2937),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: 40),
         ],
       ),
     ),
   ));
 }
+
+  String _getSocialIconAsset(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return 'assets/images/fb.png';
+      case 'twitter':
+      case 'x':
+        return 'assets/images/tweeer.png';
+      case 'instagram':
+        return 'assets/images/insta.png';
+      case 'whatsapp':
+        return 'assets/images/whatsapp.png';
+      case 'linkedin':
+        return 'assets/images/linkedin.png'; // Assuming this might be added later
+      case 'youtube':
+        return 'assets/images/youtube.png'; // Assuming this might be added later
+      case 'website':
+        return 'assets/images/website.png'; // Assuming this might be added later
+      default:
+        return 'assets/images/link.png'; // Assuming this might be added later
+    }
+  }
 
   IconData _getSocialIcon(String platform) {
     switch (platform.toLowerCase()) {
@@ -308,6 +473,8 @@ class _ContactTabViewState extends State<ContactTabView>
         return Icons.alternate_email; // X/Twitter icon
       case 'instagram':
         return Icons.camera_alt;
+      case 'whatsapp':
+        return Icons.chat; // WhatsApp icon
       case 'linkedin':
         return Icons.business;
       case 'youtube':
