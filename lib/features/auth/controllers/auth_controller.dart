@@ -436,7 +436,22 @@ class AuthController extends GetxController {
 
   Future<void> resendOTP() async {
     if (!canResendOTP.value) return;
-    await sendOTP();
+
+    isLoading.value = true;
+    try {
+      await _authRepository.resendOTP(phoneController.text, (String vid) {
+        verificationId.value = vid;
+        _startOTPTimer();
+        SnackbarUtils.showSuccess('OTP resent to +91${phoneController.text}');
+      });
+
+      AppLogger.auth('OTP resent successfully');
+    } catch (e) {
+      AppLogger.authError('ResendOTP failed', error: e);
+      SnackbarUtils.showError('Failed to resend OTP: ${e.toString()}');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void _startOTPTimer() {

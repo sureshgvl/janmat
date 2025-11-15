@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../features/user/models/user_model.dart';
 import '../models/candidate_model.dart';
 import '../models/events_model.dart';
@@ -268,9 +269,20 @@ class CandidateUserController extends GetxController {
 
     try {
       AppLogger.common('🔄 Refreshing candidate data for user: $uid');
+
+      // DEBUG: Log user location data used for reading
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final userModel = UserModel.fromJson(userData);
+        AppLogger.common('📍 [REFRESH] User location data - stateId: ${userModel.stateId}, districtId: ${userModel.districtId}, bodyId: ${userModel.bodyId}, wardId: ${userModel.wardId}');
+      }
+
       candidate.value = await _candidateRepository.getCandidateData(uid);
       if (candidate.value != null) {
         AppLogger.common('✅ Candidate data refreshed: ${candidate.value!.basicInfo!.fullName} (${candidate.value!.candidateId})');
+        // DEBUG: Log candidate location data after refresh
+        AppLogger.common('📍 [REFRESH] Candidate location data - stateId: ${candidate.value!.location.stateId}, districtId: ${candidate.value!.location.districtId}, bodyId: ${candidate.value!.location.bodyId}, wardId: ${candidate.value!.location.wardId}');
 
         // DEBUG: Check media count after refresh
         AppLogger.common('🖼️ [REFRESH MEDIA] Media count after refresh: ${candidate.value!.media?.length ?? "null"}');
@@ -292,6 +304,9 @@ class CandidateUserController extends GetxController {
             AppLogger.common('   [REFRESH] Achievement $i: ${achievement.title}');
           }
         }
+
+        // Notify GetBuilder listeners to rebuild UI
+        update(['media_view']);
       } else {
         AppLogger.common('⚠️ No candidate data found during refresh for user: $uid');
       }

@@ -31,6 +31,14 @@ class AuthRepository {
     return _phoneAuthService.signInWithOTP(verificationId, smsCode);
   }
 
+  // Resend OTP using 2Factor
+  Future<void> resendOTP(
+    String phoneNumber,
+    Function(String) onCodeSent,
+  ) async {
+    return _phoneAuthService.resendOTP(phoneNumber, onCodeSent);
+  }
+
   // Google Authentication
   Future<UserCredential?> signInWithGoogle({bool forceAccountPicker = false}) async {
     return _googleAuthService.signInWithGoogle(forceAccountPicker: forceAccountPicker);

@@ -874,6 +874,96 @@ class LocalDatabaseService {
     AppLogger.districtSpotlight('🗑️ [SQLite:DistrictSpotlight] Cleared district spotlight cache for $stateId/$districtId');
   }
 
+  // Comment operations
+  Future<void> addComment(String userId, String postId, String text, [String? parentId]) async {
+    final db = await database;
+    final commentId = '${userId}_${postId}_${DateTime.now().millisecondsSinceEpoch}';
+    await db.insert(
+      commentsTable,
+      {
+        'id': commentId,
+        'userId': userId,
+        'postId': postId,
+        'text': text,
+        'createdAt': DateTime.now().toIso8601String(),
+        'parentId': parentId,
+        'synced': 0,
+        'syncAction': 'create',
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    AppLogger.common('✅ [SQLite:Comments] Added comment: $commentId for post: $postId');
+  }
+
+  Future<List<Map<String, dynamic>>> getCommentsForPost(String postId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      commentsTable,
+      where: 'postId = ?',
+      whereArgs: [postId],
+      orderBy: 'createdAt ASC',
+    );
+    return maps;
+  }
+
+  Future<int> getCommentCountForPost(String postId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $commentsTable WHERE postId = ?',
+      [postId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  // Like operations
+  Future<void> addLike(String userId, String postId) async {
+    final db = await database;
+    final likeId = '${userId}_${postId}';
+    await db.insert(
+      likesTable,
+      {
+        'id': likeId,
+        'userId': userId,
+        'postId': postId,
+        'createdAt': DateTime.now().toIso8601String(),
+        'synced': 0,
+        'syncAction': 'create',
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    AppLogger.common('✅ [SQLite:Likes] Added like: $likeId for post: $postId');
+  }
+
+  Future<void> removeLike(String userId, String postId) async {
+    final db = await database;
+    await db.delete(
+      likesTable,
+      where: 'userId = ? AND postId = ?',
+      whereArgs: [userId, postId],
+    );
+    AppLogger.common('✅ [SQLite:Likes] Removed like for user: $userId, post: $postId');
+  }
+
+  Future<bool> hasUserLikedPost(String userId, String postId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      likesTable,
+      where: 'userId = ? AND postId = ?',
+      whereArgs: [userId, postId],
+      limit: 1,
+    );
+    return maps.isNotEmpty;
+  }
+
+  Future<int> getLikeCountForPost(String postId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $likesTable WHERE postId = ?',
+      [postId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   // Close database
   Future<void> close() async {
     if (_database != null) {

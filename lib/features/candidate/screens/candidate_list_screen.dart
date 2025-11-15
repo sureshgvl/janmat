@@ -243,6 +243,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
                 AppLogger.candidate('🔄 Ward selected via UI, loading candidates via pagination');
                 await paginationController.loadInitial();
               },
+              onDistrictRefresh: () async {
+                await locationController.forceRefreshDistricts();
+              },
             ),
 
             // Candidate List View

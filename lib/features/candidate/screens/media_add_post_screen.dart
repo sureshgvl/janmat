@@ -1005,7 +1005,6 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         images: firebaseImages,
         videos: firebaseVideos,
         youtubeLinks: _selectedYoutubeLinks,
-        likes: const {},
       );
 
       // STEP 1: Fetch existing media data from Firebase

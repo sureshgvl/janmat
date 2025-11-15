@@ -17,6 +17,7 @@ class SearchAndFiltersSection extends StatelessWidget {
   final Function(String) onSearchChanged;
   final VoidCallback onClearSearch;
   final VoidCallback? onWardSelected;
+  final VoidCallback? onDistrictRefresh;
 
   const SearchAndFiltersSection({
     super.key,
@@ -25,6 +26,7 @@ class SearchAndFiltersSection extends StatelessWidget {
     required this.onSearchChanged,
     required this.onClearSearch,
     this.onWardSelected,
+    this.onDistrictRefresh,
   });
 
   @override
@@ -101,6 +103,7 @@ class SearchAndFiltersSection extends StatelessWidget {
             onDistrictTap: () => _showDistrictSelectionModal(context),
             onBodyTap: () => _showBodySelectionModal(context),
             onWardTap: () => _showWardSelectionModal(context),
+            onDistrictRefresh: onDistrictRefresh,
           ),
         ],
       ),
@@ -119,6 +122,9 @@ class SearchAndFiltersSection extends StatelessWidget {
           selectedDistrictId: locationController.selectedDistrictId.value,
           onDistrictSelected: (districtId) async {
             await locationController.selectDistrict(districtId);
+          },
+          onRefresh: () async {
+            await locationController.forceRefreshDistricts();
           },
         );
       },
@@ -198,12 +204,13 @@ class SearchAndFiltersSection extends StatelessWidget {
   }
 }
 
-class LocationBreadcrumb extends StatelessWidget {
+class LocationBreadcrumb extends StatefulWidget {
   final LocationController locationController;
   final VoidCallback onStateTap;
   final VoidCallback onDistrictTap;
   final VoidCallback onBodyTap;
   final VoidCallback onWardTap;
+  final VoidCallback? onDistrictRefresh;
 
   const LocationBreadcrumb({
     super.key,
@@ -212,54 +219,59 @@ class LocationBreadcrumb extends StatelessWidget {
     required this.onDistrictTap,
     required this.onBodyTap,
     required this.onWardTap,
+    this.onDistrictRefresh,
   });
 
-  // Format ward display like in the modal (e.g., "वॉर्ड 1 - Ward Name")
-  String _formatWardDisplay(String wardId, String wardName) {
-    // Extract number from ward_id (e.g., "ward_1" -> "1")
-    final numberMatch = RegExp(r'ward_(\d+)').firstMatch(wardId.toLowerCase());
-    if (numberMatch != null) {
-      final wardNumber = numberMatch.group(1);
-      return 'वॉर्ड $wardNumber - $wardName';
-    }
-    // Fallback to original name if pattern doesn't match
-    return wardName;
+  @override
+  State<LocationBreadcrumb> createState() => _LocationBreadcrumbState();
+}
+
+class _LocationBreadcrumbState extends State<LocationBreadcrumb> {
+  final ScrollController _scrollController = ScrollController();
+  late final Rx<String?> _previousSelectedBodyId = Rx<String?>(null);
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context);
-    final isMarathi = locale.languageCode == 'mr';
-
     return Obx(() {
+      final locale = Localizations.localeOf(context);
+      final isMarathi = locale.languageCode == 'mr';
+
       final parts = <Widget>[];
 
       // State
-      final selectedState = locationController.states.firstWhereOrNull(
-        (state) => state.id == locationController.selectedStateId.value,
+      final selectedState = widget.locationController.states.firstWhereOrNull(
+        (state) => state.id == widget.locationController.selectedStateId.value,
       );
       final stateDisplayName = selectedState != null
           ? (isMarathi && selectedState.marathiName != null
               ? selectedState.marathiName!
               : selectedState.name)
-          : 'Select State';
+          : CandidateLocalizations.of(context)!.selectState;
 
       parts.add(
         InkWell(
-          onTap: onStateTap,
+          onTap: widget.onStateTap,
           child: Text(
             stateDisplayName,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.primary,
+              color: Colors.blue,
               decoration: TextDecoration.underline,
               fontWeight: FontWeight.w500,
+              fontSize: 18,
+
             ),
           ),
         ),
       );
 
       // District - show if state is selected
-      if (locationController.selectedStateId.value.isNotEmpty) {
+      if (widget.locationController.selectedStateId.value.isNotEmpty) {
         parts.add(
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
@@ -267,29 +279,34 @@ class LocationBreadcrumb extends StatelessWidget {
           ),
         );
         parts.add(
-          InkWell(
-            onTap: onDistrictTap,
-            child: Text(
-              locationController.selectedDistrictId.value != null
-                  ? MaharashtraUtils.getDistrictDisplayNameV2(
-                      locationController.selectedDistrictId.value!,
-                      locale,
-                    )
-                  : 'Select District',
-              style: AppTypography.bodyMedium.copyWith(
-                color: locationController.selectedDistrictId.value != null
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
-                decoration: TextDecoration.underline,
-                fontWeight: FontWeight.w500,
+          Row(
+            children: [
+              InkWell(
+                onTap: widget.onDistrictTap,
+                child: Text(
+                  widget.locationController.selectedDistrictId.value != null
+                      ? MaharashtraUtils.getDistrictDisplayNameV2(
+                          widget.locationController.selectedDistrictId.value!,
+                          locale,
+                        )
+                      : CandidateLocalizations.of(context)!.selectDistrict,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: widget.locationController.selectedDistrictId.value != null
+                        ? Colors.blue
+                        : AppColors.textSecondary,
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         );
       }
 
       // Body - show if district is selected
-      if (locationController.selectedDistrictId.value != null) {
+      if (widget.locationController.selectedDistrictId.value != null) {
         parts.add(
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
@@ -297,21 +314,22 @@ class LocationBreadcrumb extends StatelessWidget {
           ),
         );
 
-        final bodyDisplayName = locationController.selectedBodyId.value != null
-            ? (locationController.selectedBody?.name ?? 'Body ${locationController.selectedBodyId.value}')
-            : 'Select Area';
+        final bodyDisplayName = widget.locationController.selectedBodyId.value != null
+            ? (widget.locationController.selectedBody?.name ?? 'Body ${widget.locationController.selectedBodyId.value}')
+            : CandidateLocalizations.of(context)!.selectArea;
 
         parts.add(
           InkWell(
-            onTap: onBodyTap,
+            onTap: widget.onBodyTap,
             child: Text(
               bodyDisplayName,
               style: AppTypography.bodyMedium.copyWith(
-                color: locationController.selectedBodyId.value != null
-                    ? AppColors.secondary
+                color: widget.locationController.selectedBodyId.value != null
+                    ? Colors.blue
                     : AppColors.textSecondary,
                 decoration: TextDecoration.underline,
                 fontWeight: FontWeight.w500,
+                fontSize: 18,
               ),
             ),
           ),
@@ -319,7 +337,7 @@ class LocationBreadcrumb extends StatelessWidget {
       }
 
       // Ward - show if body is selected
-      if (locationController.selectedBodyId.value != null) {
+      if (widget.locationController.selectedBodyId.value != null) {
         parts.add(
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
@@ -328,21 +346,37 @@ class LocationBreadcrumb extends StatelessWidget {
         );
         parts.add(
           InkWell(
-            onTap: onWardTap,
+            onTap: widget.onWardTap,
             child: Text(
-              locationController.selectedWard.value != null
-                  ? locationController.selectedWard.value!.name
-                  : 'Select Ward',
+              widget.locationController.selectedWard.value != null
+                  ? widget.locationController.selectedWard.value!.name
+                  : CandidateLocalizations.of(context)!.selectWard,
               style: AppTypography.bodyMedium.copyWith(
-                color: locationController.selectedWard.value != null
-                    ? AppColors.primary
+                color: widget.locationController.selectedWard.value != null
+                    ? Colors.blue
                     : AppColors.textSecondary,
                 decoration: TextDecoration.underline,
                 fontWeight: FontWeight.w500,
+                fontSize: 18,
               ),
             ),
           ),
         );
+      }
+
+      // Auto-scroll to the end when body is selected (ward appears)
+      if (widget.locationController.selectedBodyId.value != null &&
+          _previousSelectedBodyId.value != widget.locationController.selectedBodyId.value) {
+        _previousSelectedBodyId.value = widget.locationController.selectedBodyId.value;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          }
+        });
       }
 
       return Container(
@@ -363,6 +397,7 @@ class LocationBreadcrumb extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: parts,
@@ -373,357 +408,5 @@ class LocationBreadcrumb extends StatelessWidget {
         ),
       );
     });
-  }
-}
-
-class LocationSelectors extends StatelessWidget {
-  final LocationController locationController;
-  final VoidCallback onStateTap;
-  final VoidCallback onDistrictTap;
-  final VoidCallback onBodyTap;
-  final VoidCallback onWardTap;
-
-  const LocationSelectors({
-    super.key,
-    required this.locationController,
-    required this.onStateTap,
-    required this.onDistrictTap,
-    required this.onBodyTap,
-    required this.onWardTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // State Selection
-        Obx(() => locationController.isLoadingStates.value
-            ? Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-              )
-            : InkWell(
-                onTap: onStateTap,
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                    border: Border.all(color: AppColors.borderLight),
-                    boxShadow: [AppShadows.light],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.map,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Select State',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Obx(() => Text(
-                              locationController.selectedStateId.value != 'maharashtra'
-                                  ? locationController.states.firstWhereOrNull(
-                                      (state) => state.id == locationController.selectedStateId.value,
-                                    )?.marathiName ?? locationController.states.firstWhereOrNull(
-                                      (state) => state.id == locationController.selectedStateId.value,
-                                    )?.name ?? 'Select State'
-                                  : 'Maharashtra',
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: locationController.selectedStateId.value.isNotEmpty
-                                    ? AppColors.textPrimary
-                                    : AppColors.textMuted,
-                                fontWeight: locationController.selectedStateId.value.isNotEmpty
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            )),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ),
-              )),
-        const SizedBox(height: AppSpacing.md),
-
-        // District Selection
-        Obx(() => locationController.isLoadingDistricts.value
-            ? Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-              )
-            : InkWell(
-                onTap: onDistrictTap,
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                    border: Border.all(color: AppColors.borderLight),
-                    boxShadow: [AppShadows.light],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.location_city,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              CandidateLocalizations.of(context)!.selectDistrict,
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Obx(() => Text(
-                              locationController.selectedDistrictId.value != null
-                                  ? MaharashtraUtils.getDistrictDisplayNameV2(
-                                      locationController.selectedDistrictId.value!,
-                                      Localizations.localeOf(context),
-                                    )
-                                  : CandidateLocalizations.of(context)!.selectDistrict,
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: locationController.selectedDistrictId.value != null
-                                    ? AppColors.textPrimary
-                                    : AppColors.textMuted,
-                                fontWeight: locationController.selectedDistrictId.value != null
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            )),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ),
-              )),
-        const SizedBox(height: AppSpacing.md),
-
-        // Body Selection
-        Obx(() {
-          final hasDistrict = locationController.selectedDistrictId.value != null;
-          final hasBodies = locationController.districtBodies.containsKey(locationController.selectedDistrictId.value) &&
-                           (locationController.districtBodies[locationController.selectedDistrictId.value]?.isNotEmpty ?? false);
-
-          if (!hasDistrict || !hasBodies) {
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.business,
-                    color: AppColors.textMuted,
-                    size: 24,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      !hasDistrict
-                          ? CandidateLocalizations.of(context)!.selectDistrictFirst
-                          : CandidateLocalizations.of(context)!.noAreasAvailable,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return InkWell(
-            onTap: onBodyTap,
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                border: Border.all(color: AppColors.borderLight),
-                boxShadow: [AppShadows.light],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.business,
-                    color: AppColors.secondary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          CandidateLocalizations.of(context)!.selectArea,
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Obx(() => Text(
-                          locationController.selectedBodyId.value != null
-                              ? locationController.selectedBody?.name ?? 'Body ${locationController.selectedBodyId.value}'
-                              : CandidateLocalizations.of(context)!.selectArea,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: locationController.selectedBodyId.value != null
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
-                            fontWeight: locationController.selectedBodyId.value != null
-                                ? FontWeight.w500
-                                : FontWeight.normal,
-                          ),
-                        )),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-        const SizedBox(height: AppSpacing.md),
-
-        // Ward Selection
-        Obx(() {
-          final hasBody = locationController.selectedBodyId.value != null;
-          final wardCacheKey = hasBody && locationController.selectedDistrictId.value != null
-              ? '${locationController.selectedDistrictId.value}_${locationController.selectedBodyId.value}'
-              : null;
-          final hasWards = wardCacheKey != null &&
-                          locationController.bodyWards.containsKey(wardCacheKey) &&
-                          (locationController.bodyWards[wardCacheKey]?.isNotEmpty ?? false);
-
-          if (!hasBody || !hasWards) {
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.home,
-                    color: AppColors.textMuted,
-                    size: 24,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      !hasBody
-                          ? CandidateLocalizations.of(context)!.selectAreaFirst
-                          : CandidateLocalizations.of(context)!.noWardsAvailable,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return InkWell(
-            onTap: onWardTap,
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                border: Border.all(color: AppColors.borderLight),
-                boxShadow: [AppShadows.light],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.home,
-                    color: AppColors.accent,
-                    size: 24,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          CandidateLocalizations.of(context)!.selectWard,
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Obx(() => Text(
-                          locationController.selectedWard.value != null
-                              ? locationController.selectedWard.value!.name
-                              : CandidateLocalizations.of(context)!.selectWard,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: locationController.selectedWard.value != null
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
-                            fontWeight: locationController.selectedWard.value != null
-                                ? FontWeight.w500
-                                : FontWeight.normal,
-                          ),
-                        )),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
-    );
   }
 }

@@ -10,39 +10,90 @@ import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/features/common/whatsapp_image_viewer.dart';
 import 'package:janmat/features/common/video_player_screen.dart';
 import 'package:janmat/features/common/reusable_video_widget.dart';
+import 'package:janmat/features/common/image_gallery_components.dart';
 import 'package:janmat/core/app_route_names.dart';
 import 'package:janmat/features/candidate/controllers/media_controller.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
-import 'package:janmat/services/share_service.dart';
 import 'package:janmat/services/file_upload_service.dart';
-import 'package:janmat/features/common/image_gallery_components.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
-import 'package:janmat/core/app_theme.dart';
 import 'package:janmat/controllers/background_color_controller.dart';
+import 'package:janmat/services/local_database_service.dart';
+import 'package:janmat/features/auth/controllers/auth_controller.dart';
+import 'package:janmat/features/candidate/services/firebase_engagement_service.dart';
+import 'package:janmat/features/candidate/models/like_model.dart';
+import 'package:janmat/features/candidate/models/comment_model.dart';
 
 class MediaTabView extends StatefulWidget {
   final Candidate candidate;
   final bool isOwnProfile;
+  final Function(Candidate)? onLocalUpdate;
 
   const MediaTabView({
     super.key,
     required this.candidate,
     this.isOwnProfile = false,
+    this.onLocalUpdate,
   });
 
   @override
   State<MediaTabView> createState() => _MediaTabViewState();
 }
 
-class _MediaTabViewState extends State<MediaTabView>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
+class MediaTabViewReactive extends StatefulWidget {
+  final Candidate candidate;
+  final bool isOwnProfile;
 
-  // Force UI refresh method
-  void _refreshView() {
-    setState(() {});
+  const MediaTabViewReactive({
+    super.key,
+    required this.candidate,
+    this.isOwnProfile = false,
+  });
+
+  @override
+  State<MediaTabViewReactive> createState() => _MediaTabViewReactiveState();
+}
+
+class _MediaTabViewReactiveState extends State<MediaTabViewReactive> {
+  // Local candidate copy for instant UI updates
+  late Candidate localCandidate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize local copy
+    localCandidate = widget.candidate.copyWith();
   }
+
+  @override
+  void didUpdateWidget(MediaTabViewReactive oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update local copy when widget candidate changes
+    if (oldWidget.candidate.candidateId != widget.candidate.candidateId) {
+      localCandidate = widget.candidate.copyWith();
+    }
+  }
+
+  // Update local candidate for instant UI feedback
+  void updateLocalCandidate(Candidate updatedCandidate) {
+    setState(() {
+      localCandidate = updatedCandidate;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaTabView(
+      candidate: localCandidate,
+      isOwnProfile: widget.isOwnProfile,
+      onLocalUpdate: updateLocalCandidate,
+      key: ValueKey('media_view_${localCandidate.candidateId}_${localCandidate.media?.length ?? 0}'),
+    );
+  }
+}
+
+class _MediaTabViewState extends State<MediaTabView> {
+  // Loading states for like buttons (per item)
+  final Map<String, RxBool> _likeLoadingStates = {};
 
   // Get media items from candidate data
   List<MediaItem> _getMediaItems() {
@@ -55,6 +106,28 @@ class _MediaTabViewState extends State<MediaTabView>
       AppLogger.candidate('📱 [MEDIA_VIEW] Raw media data: $media');
       AppLogger.candidate('📱 [MEDIA_VIEW] Media type: ${media?.runtimeType}');
       AppLogger.candidate('📱 [MEDIA_VIEW] Media length: ${media?.length}');
+
+      // Check if media is null or empty
+      if (media == null) {
+        AppLogger.candidate('📱 [MEDIA_VIEW] Media is null - no media data available');
+        return [];
+      }
+
+      if (media.isEmpty) {
+        AppLogger.candidate('📱 [MEDIA_VIEW] Media is empty - no media items. Add some media posts to see them here!');
+        return [];
+      }
+
+      // DEBUG: Log each media item to see the structure
+      for (int i = 0; i < media.length; i++) {
+        final item = media[i];
+        AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i: $item (type: ${item.runtimeType})');
+        if (item is Map<String, dynamic>) {
+          AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i keys: ${item.keys.toList()}');
+          AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i title: ${item['title']}');
+          AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i date: ${item['date']}');
+        }
+      }
 
       if (media != null && media.isNotEmpty) {
         // Check the first item to determine format
@@ -98,10 +171,26 @@ class _MediaTabViewState extends State<MediaTabView>
                     '📱 [MEDIA_VIEW] - youtubeLinks count: ${(itemMap['youtubeLinks'] as List?)?.length ?? 0}',
                   );
                   AppLogger.candidate(
-                    '📱 [MEDIA_VIEW] - likes: ${itemMap['likes']}',
+                    '📱 [MEDIA_VIEW] - likes count: ${(itemMap['likes'] as List?)?.length ?? 0}',
+                  );
+                  AppLogger.candidate(
+                    '📱 [MEDIA_VIEW] - comments count: ${(itemMap['comments'] as List?)?.length ?? 0}',
+                  );
+                  AppLogger.candidate(
+                    '📱 [MEDIA_VIEW] - raw likes data: ${itemMap['likes']}',
+                  );
+                  AppLogger.candidate(
+                    '📱 [MEDIA_VIEW] - raw comments data: ${itemMap['comments']}',
                   );
 
+
                   final parsedItem = MediaItem.fromJson(itemMap);
+                  AppLogger.candidate(
+                    '📱 [MEDIA_VIEW] - parsed likes count: ${parsedItem.likes.length}',
+                  );
+                  AppLogger.candidate(
+                    '📱 [MEDIA_VIEW] - parsed comments count: ${parsedItem.comments.length}',
+                  );
                   AppLogger.candidate(
                     '📱 [MEDIA_VIEW] Successfully parsed item: ${parsedItem.title}',
                   );
@@ -172,7 +261,6 @@ class _MediaTabViewState extends State<MediaTabView>
               }
             }
 
-            final likes = <String, int>{};
             mediaItems.add(
               MediaItem(
                 title: title,
@@ -180,7 +268,6 @@ class _MediaTabViewState extends State<MediaTabView>
                 images: images,
                 videos: videos,
                 youtubeLinks: youtubeLinks,
-                likes: likes,
               ),
             );
           }
@@ -208,8 +295,6 @@ class _MediaTabViewState extends State<MediaTabView>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
-
     final backgroundColorController = Get.find<BackgroundColorController>();
     final mediaItems = _getMediaItems();
 
@@ -524,70 +609,10 @@ class _MediaTabViewState extends State<MediaTabView>
             ),
           ],
 
-          // Engagement actions
+          // Engagement actions (Like and Comment only - Facebook style)
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Like button
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _toggleLike(item, 'post'),
-                    icon: Icon(
-                      Icons.thumb_up_outlined,
-                      color: Colors.grey.shade600,
-                      size: 18,
-                    ),
-                    label: Text(
-                      'Like',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    style: TextButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                    ),
-                  ),
-                ),
-                // Comment placeholder
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      // Show comment dialog
-                      _showCommentDialog(item);
-                    },
-                    icon: Icon(
-                      Icons.comment_outlined,
-                      color: Colors.grey.shade600,
-                      size: 18,
-                    ),
-                    label: Text(
-                      'Comment',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    style: TextButton.styleFrom(alignment: Alignment.center),
-                  ),
-                ),
-                // Share functionality
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      _sharePost(item);
-                    },
-                    icon: Icon(
-                      Icons.share_outlined,
-                      color: Colors.grey.shade600,
-                      size: 18,
-                    ),
-                    label: Text(
-                      'Share',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    style: TextButton.styleFrom(
-                      alignment: Alignment.centerRight,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: _buildEngagementSection(item),
           ),
         ],
       ),
@@ -725,7 +750,6 @@ class _MediaTabViewState extends State<MediaTabView>
       );
 
       // STEP 2: Add storage paths to candidate's deleteStorage array (deferred cleanup pattern)
-      bool deleteStorageUpdated = false;
       if (storagePathsToDelete.isNotEmpty) {
         try {
           // Get the hierarchical path for the candidate
@@ -750,7 +774,6 @@ class _MediaTabViewState extends State<MediaTabView>
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
-          deleteStorageUpdated = true;
           AppLogger.candidate(
             '📋 [DELETE] Successfully added ${storagePathsToDelete.length} files to deleteStorage: $storagePathsToDelete',
           );
@@ -842,60 +865,7 @@ class _MediaTabViewState extends State<MediaTabView>
     }
   }
 
-  void _showCommentDialog(MediaItem item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Comments'),
-        content: const Text('Comments feature will be available soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _sharePost(MediaItem item) async {
-    try {
-      // Generate share text for media post
-      final postTitle = item.title.isNotEmpty ? item.title : 'Campaign Update';
-      final candidateName = widget.candidate.basicInfo!.fullName ?? 'Candidate';
-
-      final StringBuffer buffer = StringBuffer();
-      buffer.writeln('📱 Post by $candidateName');
-
-      if (postTitle.isNotEmpty && postTitle != 'Campaign Update') {
-        buffer.writeln('📝 "$postTitle"');
-      }
-
-      // Add media count
-      final totalMedia =
-          item.images.length + item.videos.length + item.youtubeLinks.length;
-      if (totalMedia > 0) {
-        buffer.writeln('🖼️ Contains $totalMedia media item(s)');
-      }
-
-      // Add date
-      if (item.date.isNotEmpty) {
-        buffer.writeln('📅 Posted on ${_formatDate(item.date)}');
-      }
-
-      buffer.writeln();
-      buffer.writeln('🌟 View this candidate\'s latest updates on Janmat!');
-      buffer.writeln(
-        'Download the app now: https://play.google.com/store/apps/details?id=com.janmat',
-      );
-
-      await ShareService.shareCandidateProfile(widget.candidate);
-
-      SnackbarUtils.showScaffoldSuccess(context, 'Post shared successfully!');
-    } catch (e) {
-      SnackbarUtils.showScaffoldError(context, 'Error sharing post: $e');
-    }
-  }
 
   // Video content builder
   Widget _buildVideoContent(MediaItem item) {
@@ -905,7 +875,6 @@ class _MediaTabViewState extends State<MediaTabView>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: item.videos.map((videoUrl) {
         final videoIndex = item.videos.indexOf(videoUrl);
-        final videoLikes = item.likes['video_$videoIndex'] ?? 0;
         final videoId = YoutubePlayer.convertUrlToId(videoUrl);
 
         if (videoId != null) {
@@ -918,74 +887,34 @@ class _MediaTabViewState extends State<MediaTabView>
             ),
             child: Column(
               children: [
-                Stack(
-                  children: [
-                    Container(
-                      height: 180,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: YoutubePlayer(
-                          controller: YoutubePlayerController(
-                            initialVideoId: videoId,
-                            flags: const YoutubePlayerFlags(
-                              autoPlay: false,
-                              mute: false,
-                              enableCaption: true,
-                              captionLanguage: 'en',
-                              forceHD: false,
-                              loop: false,
-                              controlsVisibleAtStart: true,
-                            ),
-                          ),
-                          showVideoProgressIndicator: true,
-                          progressIndicatorColor: Colors.red,
-                          progressColors: const ProgressBarColors(
-                            playedColor: Colors.red,
-                            handleColor: Colors.redAccent,
-                          ),
+                Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: YoutubePlayer(
+                      controller: YoutubePlayerController(
+                        initialVideoId: videoId,
+                        flags: const YoutubePlayerFlags(
+                          autoPlay: false,
+                          mute: false,
+                          enableCaption: true,
+                          captionLanguage: 'en',
+                          forceHD: false,
+                          loop: false,
+                          controlsVisibleAtStart: true,
                         ),
                       ),
-                    ),
-                    // Like button overlay
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => _toggleLike(item, 'video_$videoIndex'),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.favorite,
-                                size: 16,
-                                color: videoLikes > 0
-                                    ? Colors.red
-                                    : Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                videoLikes.toString(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[700],
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      showVideoProgressIndicator: true,
+                      progressIndicatorColor: Colors.red,
+                      progressColors: const ProgressBarColors(
+                        playedColor: Colors.red,
+                        handleColor: Colors.redAccent,
                       ),
                     ),
-                  ],
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -1031,50 +960,10 @@ class _MediaTabViewState extends State<MediaTabView>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: Stack(
-              children: [
-                VideoPreviewWidget(
-                  videoUrl: videoUrl,
-                  title: '${item.title} - Video ${videoIndex + 1}',
-                  aspectRatio: 16 / 9,
-                ),
-                // Like button overlay
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => _toggleLike(item, 'video_$videoIndex'),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.favorite,
-                            size: 16,
-                            color: videoLikes > 0
-                                ? Colors.red
-                                : Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            videoLikes.toString(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            child: VideoPreviewWidget(
+              videoUrl: videoUrl,
+              title: '${item.title} - Video ${videoIndex + 1}',
+              aspectRatio: 16 / 9,
             ),
           );
         }
@@ -1090,7 +979,6 @@ class _MediaTabViewState extends State<MediaTabView>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: item.youtubeLinks.map((youtubeUrl) {
         final linkIndex = item.youtubeLinks.indexOf(youtubeUrl);
-        final youtubeLikes = item.likes['youtube_$linkIndex'] ?? 0;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -1116,69 +1004,28 @@ class _MediaTabViewState extends State<MediaTabView>
                       topLeft: Radius.circular(12),
                       topRight: Radius.circular(12),
                     ),
-                    child: Stack(
-                      children: [
-                        YoutubePlayer(
-                          controller: YoutubePlayerController(
-                            initialVideoId: YoutubePlayer.convertUrlToId(
-                              youtubeUrl,
-                            )!,
-                            flags: const YoutubePlayerFlags(
-                              autoPlay: false,
-                              mute: false,
-                              enableCaption: true,
-                              captionLanguage: 'en',
-                              forceHD: false,
-                              loop: false,
-                              controlsVisibleAtStart: true,
-                              showLiveFullscreenButton: true,
-                            ),
-                          ),
-                          showVideoProgressIndicator: true,
-                          progressIndicatorColor: Colors.red,
-                          progressColors: const ProgressBarColors(
-                            playedColor: Colors.red,
-                            handleColor: Colors.redAccent,
-                          ),
+                    child: YoutubePlayer(
+                      controller: YoutubePlayerController(
+                        initialVideoId: YoutubePlayer.convertUrlToId(
+                          youtubeUrl,
+                        )!,
+                        flags: const YoutubePlayerFlags(
+                          autoPlay: false,
+                          mute: false,
+                          enableCaption: true,
+                          captionLanguage: 'en',
+                          forceHD: false,
+                          loop: false,
+                          controlsVisibleAtStart: true,
+                          showLiveFullscreenButton: true,
                         ),
-                        // Like button overlay
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: GestureDetector(
-                            onTap: () =>
-                                _toggleLike(item, 'youtube_$linkIndex'),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.favorite,
-                                    size: 14,
-                                    color: youtubeLikes > 0
-                                        ? Colors.red
-                                        : Colors.grey[600],
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    youtubeLikes.toString(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey[700],
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                      showVideoProgressIndicator: true,
+                      progressIndicatorColor: Colors.red,
+                      progressColors: const ProgressBarColors(
+                        playedColor: Colors.red,
+                        handleColor: Colors.redAccent,
+                      ),
                     ),
                   ),
                 ),
@@ -1186,8 +1033,8 @@ class _MediaTabViewState extends State<MediaTabView>
               // Link details
               InkWell(
                 onTap: () async {
-                  if (await canLaunch(youtubeUrl)) {
-                    await launch(youtubeUrl);
+                  if (await canLaunchUrl(Uri.parse(youtubeUrl))) {
+                    await launchUrl(Uri.parse(youtubeUrl));
                   }
                 },
                 child: Padding(
@@ -1679,6 +1526,621 @@ class _MediaTabViewState extends State<MediaTabView>
     );
   }
 
+  // Build engagement section with embedded data from MediaItem
+  Widget _buildEngagementSection(MediaItem item) {
+    final engagementService = FirebaseEngagementService();
+    final currentUserId = _getCurrentUserId();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Engagement summary (like count and comment count) - ABOVE buttons like Facebook
+        if (item.likeCount > 0 || item.commentCount > 0) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                if (item.likeCount > 0) ...[
+                  Icon(
+                    Icons.thumb_up,
+                    color: Colors.blue,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${item.likeCount}',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                if (item.likeCount > 0 && item.commentCount > 0) ...[
+                  const SizedBox(width: 16),
+                ],
+                if (item.commentCount > 0) ...[
+                  Text(
+                    '${item.commentCount} ${item.commentCount == 1 ? 'comment' : 'comments'}',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+        // Like and Comment buttons row - BELOW counts like Facebook
+        Row(
+          children: [
+            // Like button with loading state
+            Expanded(
+              child: Obx(() => _buildLikeButton(item, engagementService, currentUserId)),
+            ),
+            // Comment button
+            Expanded(
+              child: TextButton.icon(
+                onPressed: () => _showCommentsSheetEmbedded(item, engagementService),
+                icon: Icon(
+                  Icons.comment_outlined,
+                  color: Colors.grey.shade600,
+                  size: 18,
+                ),
+                label: Text(
+                  'Comment',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                style: TextButton.styleFrom(alignment: Alignment.center),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Build like button with reactive state
+  Widget _buildLikeButton(MediaItem item, FirebaseEngagementService service, String currentUserId) {
+    // Get reactive loading state for this specific item
+    final isLoading = _getLikeLoadingState(item);
+
+    return TextButton.icon(
+      onPressed: isLoading.value ? null : () => _toggleLikeOptimistic(item, service, currentUserId, isLoading),
+      icon: isLoading.value
+          ? SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  item.hasUserLiked(currentUserId) ? Colors.blue : Colors.grey.shade600,
+                ),
+              ),
+            )
+          : Icon(
+              item.hasUserLiked(currentUserId) ? Icons.thumb_up : Icons.thumb_up_outlined,
+              color: item.hasUserLiked(currentUserId) ? Colors.blue : Colors.grey.shade600,
+              size: 18,
+            ),
+      label: Text(
+        isLoading.value ? '...' : (item.hasUserLiked(currentUserId) ? 'Liked' : 'Like'),
+        style: TextStyle(
+          color: item.hasUserLiked(currentUserId) ? Colors.blue : Colors.grey.shade600,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        alignment: Alignment.centerLeft,
+      ),
+    );
+  }
+
+  // Get reactive loading state for a specific item
+  RxBool _getLikeLoadingState(MediaItem item) {
+    final key = '${item.title}_${item.date}';
+    if (!_likeLoadingStates.containsKey(key)) {
+      _likeLoadingStates[key] = false.obs;
+    }
+    return _likeLoadingStates[key]!;
+  }
+
+  // Optimistic like toggle with loading states and instant UI updates
+  void _toggleLikeOptimistic(MediaItem item, FirebaseEngagementService service, String currentUserId, RxBool isLoading) async {
+    if (currentUserId.isEmpty) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to like posts');
+      return;
+    }
+
+    // Get current user's information
+    final currentUserInfo = _getCurrentUserInfo();
+
+    // Set loading state
+    isLoading.value = true;
+
+    // Store original state for rollback
+    final wasLiked = item.hasUserLiked(currentUserId);
+
+    // DEBUG: Log candidate location data
+    AppLogger.candidate('📍 [LIKE] Candidate location - stateId: ${widget.candidate.location.stateId}, districtId: ${widget.candidate.location.districtId}, bodyId: ${widget.candidate.location.bodyId}, wardId: ${widget.candidate.location.wardId}');
+
+    try {
+      // Call Firebase service FIRST (no optimistic updates for now)
+      if (wasLiked) {
+        // Unlike
+        await service.removeLikeFromMediaItem(
+          candidateId: widget.candidate.candidateId,
+          stateId: widget.candidate.location.stateId ?? '',
+          districtId: widget.candidate.location.districtId ?? '',
+          bodyId: widget.candidate.location.bodyId ?? '',
+          wardId: widget.candidate.location.wardId ?? '',
+          mediaItem: item,
+        );
+        SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+      } else {
+        // Like
+        await service.addLikeToMediaItem(
+          candidateId: widget.candidate.candidateId,
+          stateId: widget.candidate.location.stateId ?? '',
+          districtId: widget.candidate.location.districtId ?? '',
+          bodyId: widget.candidate.location.bodyId ?? '',
+          wardId: widget.candidate.location.wardId ?? '',
+          mediaItem: item,
+          userName: currentUserInfo['name'],
+          userPhoto: currentUserInfo['photo'],
+        );
+        SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+      }
+
+      // Optimistic UI update - update local candidate data immediately
+      try {
+        final updatedMedia = widget.candidate.media?.map((mediaData) {
+          final parsedItem = MediaItem.fromJson(mediaData as Map<String, dynamic>);
+          if (parsedItem.title == item.title && parsedItem.date == item.date) {
+            // Create updated likes based on the operation
+            final updatedLikes = wasLiked
+              ? parsedItem.likes.where((like) => like.userId != currentUserId).toList()
+              : [...parsedItem.likes, Like(
+                  id: '${currentUserId}_${DateTime.now().millisecondsSinceEpoch}',
+                  userId: currentUserId,
+                  postId: '${widget.candidate.candidateId}_${item.title}_${item.date}',
+                  mediaKey: 'post',
+                  createdAt: DateTime.now(),
+                  userName: currentUserInfo['name'],
+                  userPhoto: currentUserInfo['photo'],
+                )];
+            return parsedItem.copyWith(likes: updatedLikes).toJson();
+          }
+          return mediaData;
+        }).toList();
+
+        // Update local candidate copy for immediate UI feedback
+        final updatedCandidate = widget.candidate.copyWith(media: updatedMedia);
+        widget.onLocalUpdate?.call(updatedCandidate);
+      } catch (e) {
+        AppLogger.candidateError('Error updating local candidate data after like: $e');
+      }
+
+    } catch (e) {
+      AppLogger.candidateError('Error toggling like: $e');
+      SnackbarUtils.showScaffoldError(context, 'Failed to update like - please try again');
+    } finally {
+      // Always clear loading state
+      isLoading.value = false;
+    }
+  }
+
+  // Get current user ID
+  String _getCurrentUserId() {
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
+    return currentUser?.uid ?? '';
+  }
+
+  // Get current user information (name and photo)
+  Map<String, String> _getCurrentUserInfo() {
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
+
+    // Try to get user info from CandidateUserController first
+    final candidateController = Get.find<CandidateUserController>();
+    if (candidateController.candidate.value != null) {
+      final candidate = candidateController.candidate.value!;
+      return {
+        'name': candidate.basicInfo?.fullName ?? 'Anonymous User',
+        'photo': candidate.photo ?? '',
+      };
+    }
+
+    // Fallback to auth user display name
+    return {
+      'name': currentUser?.displayName ?? 'Anonymous User',
+      'photo': currentUser?.photoURL ?? '',
+    };
+  }
+
+  // Toggle like using embedded data approach
+  void _toggleLikeEmbedded(MediaItem item, FirebaseEngagementService service) async {
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId.isEmpty) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to like posts');
+      return;
+    }
+
+    // Get current user's information
+    final currentUserInfo = _getCurrentUserInfo();
+
+    try {
+      if (item.hasUserLiked(currentUserId)) {
+        // Unlike
+        await service.removeLikeFromMediaItem(
+          candidateId: widget.candidate.candidateId,
+          stateId: widget.candidate.location.stateId ?? '',
+          districtId: widget.candidate.location.districtId ?? '',
+          bodyId: widget.candidate.location.bodyId ?? '',
+          wardId: widget.candidate.location.wardId ?? '',
+          mediaItem: item,
+        );
+        SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+      } else {
+        // Like
+        await service.addLikeToMediaItem(
+          candidateId: widget.candidate.candidateId,
+          stateId: widget.candidate.location.stateId ?? '',
+          districtId: widget.candidate.location.districtId ?? '',
+          bodyId: widget.candidate.location.bodyId ?? '',
+          wardId: widget.candidate.location.wardId ?? '',
+          mediaItem: item,
+          userName: currentUserInfo['name'],
+          userPhoto: currentUserInfo['photo'],
+        );
+        SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+      }
+
+      // Force immediate UI refresh by triggering GetBuilder rebuild
+      final candidateController = Get.find<CandidateUserController>();
+      candidateController.update(); // Force GetBuilder to rebuild
+
+      // Also refresh candidate data in background to ensure consistency
+      try {
+        await candidateController.refreshCandidateData();
+      } catch (e) {
+        AppLogger.candidateError('Error refreshing candidate data after like: $e');
+      }
+    } catch (e) {
+      AppLogger.candidateError('Error toggling like: $e');
+      SnackbarUtils.showScaffoldError(context, 'Failed to update like');
+    }
+  }
+
+  // Show comments sheet using embedded data
+  void _showCommentsSheetEmbedded(MediaItem item, FirebaseEngagementService service) {
+    final TextEditingController commentController = TextEditingController();
+    final currentUserId = _getCurrentUserId();
+
+    if (currentUserId.isEmpty) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to view comments');
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.7,
+            minChildSize: 0.3,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) => Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Comments',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(Icons.close, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+                // Comments list
+                Expanded(
+                  child: item.comments.isEmpty
+                      ? ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 48,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No comments yet',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Be the first to comment!',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: item.comments.length,
+                          itemBuilder: (context, index) {
+                            final comment = item.comments[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // User avatar
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: Colors.blue.shade100,
+                                    child: comment.userPhoto != null && comment.userPhoto!.isNotEmpty
+                                        ? ClipOval(
+                                            child: Image.network(
+                                              comment.userPhoto!,
+                                              fit: BoxFit.cover,
+                                              width: 32,
+                                              height: 32,
+                                              errorBuilder: (context, error, stackTrace) => Icon(
+                                                Icons.person,
+                                                color: Colors.blue.shade600,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.person,
+                                            color: Colors.blue.shade600,
+                                            size: 16,
+                                          ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              if (comment.userName != null && comment.userName!.isNotEmpty) ...[
+                                                Text(
+                                                  comment.userName!,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.grey.shade700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                              ],
+                                              Text(
+                                                comment.text,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey.shade800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _formatCommentTime(comment.createdAt.toIso8601String()),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                // Comment input
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // User avatar
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.blue.shade100,
+                        child: widget.candidate.photo != null && widget.candidate.photo!.isNotEmpty
+                            ? ClipOval(
+                                child: Image.network(
+                                  widget.candidate.photo!,
+                                  fit: BoxFit.cover,
+                                  width: 32,
+                                  height: 32,
+                                  errorBuilder: (context, error, stackTrace) => Icon(
+                                    Icons.person,
+                                    color: Colors.blue.shade600,
+                                    size: 16,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                Icons.person,
+                                color: Colors.blue.shade600,
+                                size: 16,
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Comment text field
+                      Expanded(
+                        child: TextField(
+                          controller: commentController,
+                          decoration: InputDecoration(
+                            hintText: 'Write a comment...',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                          maxLines: null,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (text) => _addCommentEmbedded(item, text, commentController, setState, service),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Send button
+                      IconButton(
+                        onPressed: () => _addCommentEmbedded(item, commentController.text, commentController, setState, service),
+                        icon: Icon(
+                          Icons.send,
+                          color: commentController.text.isNotEmpty
+                              ? Colors.blue.shade600
+                              : Colors.grey.shade400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Add comment using embedded data approach
+  void _addCommentEmbedded(MediaItem item, String text, TextEditingController controller, StateSetter setState, FirebaseEngagementService service) async {
+    if (text.trim().isEmpty) return;
+
+    final currentUserId = _getCurrentUserId();
+    if (currentUserId.isEmpty) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to comment');
+      return;
+    }
+
+    // Get current user's information
+    final currentUserInfo = _getCurrentUserInfo();
+
+    try {
+      await service.addCommentToMediaItem(
+        candidateId: widget.candidate.candidateId,
+        stateId: widget.candidate.location.stateId ?? '',
+        districtId: widget.candidate.location.districtId ?? '',
+        bodyId: widget.candidate.location.bodyId ?? '',
+        wardId: widget.candidate.location.wardId ?? '',
+        mediaItem: item,
+        text: text.trim(),
+        userName: currentUserInfo['name'],
+        userPhoto: currentUserInfo['photo'],
+      );
+
+      controller.clear();
+
+      // Optimistic UI update - update local candidate data immediately
+      try {
+        final updatedMedia = widget.candidate.media?.map((mediaData) {
+          final parsedItem = MediaItem.fromJson(mediaData as Map<String, dynamic>);
+          if (parsedItem.title == item.title && parsedItem.date == item.date) {
+            // Add the new comment to the local data
+            final newComment = Comment(
+              id: '${currentUserId}_${DateTime.now().millisecondsSinceEpoch}',
+              userId: currentUserId,
+              postId: '${widget.candidate.candidateId}_${item.title}_${item.date}',
+              text: text.trim(),
+              createdAt: DateTime.now(),
+              userName: currentUserInfo['name'],
+              userPhoto: currentUserInfo['photo'],
+            );
+            final updatedComments = [...parsedItem.comments, newComment];
+            return parsedItem.copyWith(comments: updatedComments).toJson();
+          }
+          return mediaData;
+        }).toList();
+
+        // Update local candidate copy for immediate UI feedback
+        final updatedCandidate = widget.candidate.copyWith(media: updatedMedia);
+        widget.onLocalUpdate?.call(updatedCandidate);
+      } catch (e) {
+        AppLogger.candidateError('Error updating local candidate data after comment: $e');
+      }
+
+      setState(() {}); // Refresh the comments sheet
+
+      SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+    } catch (e) {
+      AppLogger.candidateError('Error adding comment: $e');
+      SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+    }
+  }
+
   // Extract storage path from Firebase URL
   String _extractStoragePath(String firebaseUrl) {
     try {
@@ -1696,14 +2158,644 @@ class _MediaTabViewState extends State<MediaTabView>
     }
   }
 
-  void _toggleLike(MediaItem item, String mediaKey) {
-    // In a real app, this would update the server
-    // For now, we'll just show a local update
-    setState(() {
-      final currentLikes = item.likes[mediaKey] ?? 0;
-      item.likes[mediaKey] = currentLikes > 0 ? 0 : 1; // Toggle between 0 and 1
-    });
+  // Firebase-based like toggle
+  void _toggleLikeFirebase(MediaItem item, String mediaKey, FirebaseEngagementService service) async {
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
 
-    SnackbarUtils.showScaffoldInfo(context, item.likes[mediaKey]! > 0 ? 'Liked!' : 'Unliked');
+    if (currentUser == null) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to like posts');
+      return;
+    }
+
+    final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+
+    try {
+      final hasLiked = await service.hasUserLiked(postId, mediaKey);
+
+      if (hasLiked) {
+        // Unlike
+        await service.removeLike(postId, mediaKey);
+        SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+      } else {
+        // Like
+        await service.addLike(
+          postId,
+          mediaKey,
+          userName: widget.candidate.basicInfo?.fullName,
+          userPhoto: widget.candidate.photo,
+        );
+        SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+      }
+    } catch (e) {
+      AppLogger.candidateError('Error toggling like: $e');
+      SnackbarUtils.showScaffoldError(context, 'Failed to update like');
+    }
+  }
+
+  // Show comments in a bottom sheet (Firebase-based)
+  void _showCommentsSheetFirebase(MediaItem item, FirebaseEngagementService service) {
+    final TextEditingController commentController = TextEditingController();
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
+
+    if (currentUser == null) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to view comments');
+      return;
+    }
+
+    final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) => Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Comments',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              // Comments list
+              Expanded(
+                child: StreamBuilder<List<Comment>>(
+                  stream: service.getCommentsStream(postId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final comments = snapshot.data ?? [];
+
+                    if (comments.isEmpty) {
+                      return ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.chat_bubble_outline,
+                                  size: 48,
+                                  color: Colors.grey.shade400,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No comments yet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Be the first to comment!',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = comments[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // User avatar
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.blue.shade100,
+                                child: comment.userPhoto != null && comment.userPhoto!.isNotEmpty
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          comment.userPhoto!,
+                                          fit: BoxFit.cover,
+                                          width: 32,
+                                          height: 32,
+                                          errorBuilder: (context, error, stackTrace) => Icon(
+                                            Icons.person,
+                                            color: Colors.blue.shade600,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        color: Colors.blue.shade600,
+                                        size: 16,
+                                      ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (comment.userName != null && comment.userName!.isNotEmpty) ...[
+                                            Text(
+                                              comment.userName!,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                          ],
+                                          Text(
+                                            comment.text,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey.shade800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatCommentTime(comment.createdAt.toIso8601String()),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              // Comment input
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // User avatar
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.blue.shade100,
+                      child: widget.candidate.photo != null && widget.candidate.photo!.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                widget.candidate.photo!,
+                                fit: BoxFit.cover,
+                                width: 32,
+                                height: 32,
+                                errorBuilder: (context, error, stackTrace) => Icon(
+                                  Icons.person,
+                                  color: Colors.blue.shade600,
+                                  size: 16,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.person,
+                              color: Colors.blue.shade600,
+                              size: 16,
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Comment text field
+                    Expanded(
+                      child: TextField(
+                        controller: commentController,
+                        decoration: InputDecoration(
+                          hintText: 'Write a comment...',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                        maxLines: null,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (text) => _addCommentFirebase(item, text, commentController, setState, service),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Send button
+                    IconButton(
+                      onPressed: () => _addCommentFirebase(item, commentController.text, commentController, setState, service),
+                      icon: Icon(
+                        Icons.send,
+                        color: commentController.text.isNotEmpty
+                            ? Colors.blue.shade600
+                            : Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _addCommentFirebase(MediaItem item, String text, TextEditingController controller, StateSetter setState, FirebaseEngagementService service) async {
+    if (text.trim().isEmpty) return;
+
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
+
+    if (currentUser == null) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to comment');
+      return;
+    }
+
+    try {
+      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+
+      await service.addComment(
+        postId,
+        text.trim(),
+        userName: widget.candidate.basicInfo?.fullName,
+        userPhoto: widget.candidate.photo,
+      );
+
+      controller.clear();
+      setState(() {}); // Refresh the comments list
+
+      SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+    } catch (e) {
+      AppLogger.candidateError('Error adding comment: $e');
+      SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+    }
+  }
+
+  // Get comment count for a post
+  Future<int> _getCommentCount(MediaItem item) async {
+    try {
+      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final dbService = LocalDatabaseService();
+      return await dbService.getCommentCountForPost(postId);
+    } catch (e) {
+      AppLogger.candidateError('Error getting comment count: $e');
+      return 0;
+    }
+  }
+
+  // Show comments in a bottom sheet (Facebook-style)
+  void _showCommentsSheet(MediaItem item) {
+    final TextEditingController commentController = TextEditingController();
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
+
+    if (currentUser == null) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to view comments');
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) => Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Comments',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              // Comments list
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _getCommentsForPost(item),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final comments = snapshot.data ?? [];
+
+                    if (comments.isEmpty) {
+                      return ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.chat_bubble_outline,
+                                  size: 48,
+                                  color: Colors.grey.shade400,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No comments yet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Be the first to comment!',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = comments[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // User avatar
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.blue.shade100,
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.blue.shade600,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Text(
+                                        comment['text'] ?? '',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatCommentTime(comment['createdAt']),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              // Comment input
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // User avatar
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.blue.shade100,
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.blue.shade600,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Comment text field
+                    Expanded(
+                      child: TextField(
+                        controller: commentController,
+                        decoration: InputDecoration(
+                          hintText: 'Write a comment...',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                        maxLines: null,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (text) => _addComment(item, text, commentController, setState),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Send button
+                    IconButton(
+                      onPressed: () => _addComment(item, commentController.text, commentController, setState),
+                      icon: Icon(
+                        Icons.send,
+                        color: commentController.text.isNotEmpty
+                            ? Colors.blue.shade600
+                            : Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _getCommentsForPost(MediaItem item) async {
+    try {
+      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final dbService = LocalDatabaseService();
+      return await dbService.getCommentsForPost(postId);
+    } catch (e) {
+      AppLogger.candidateError('Error getting comments: $e');
+      return [];
+    }
+  }
+
+  void _addComment(MediaItem item, String text, TextEditingController controller, StateSetter setState) async {
+    if (text.trim().isEmpty) return;
+
+    final authController = Get.find<AuthController>();
+    final currentUser = authController.currentUser.value;
+
+    if (currentUser == null) {
+      SnackbarUtils.showScaffoldError(context, 'Please login to comment');
+      return;
+    }
+
+    try {
+      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final dbService = LocalDatabaseService();
+
+      await dbService.addComment(currentUser.uid, postId, text.trim());
+
+      controller.clear();
+      setState(() {}); // Refresh the comments list
+
+      // Force refresh of the parent widget to update comment count
+      setState(() {});
+
+      SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+    } catch (e) {
+      AppLogger.candidateError('Error adding comment: $e');
+      SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+    }
+  }
+
+  String _formatCommentTime(String? dateString) {
+    if (dateString == null) return '';
+
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return '';
+    }
   }
 }

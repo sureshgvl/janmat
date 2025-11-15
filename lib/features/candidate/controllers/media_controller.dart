@@ -275,55 +275,12 @@ class MediaController extends GetxController implements IMediaController {
     return false;
   }
 
+  // Note: Likes are now handled by FirebaseEngagementService, not stored in MediaItem
   @override
   Future<bool> updateMediaLike(Candidate candidate, MediaItem item, String mediaKey, int likes) async {
-    try {
-      AppLogger.database('MediaController: Updating like for ${candidate.candidateId}, key: $mediaKey, likes: $likes', tag: 'MEDIA_LIKE');
-
-      // Get the current grouped media
-      final currentGroupedMedia = await getMediaGrouped(candidate);
-      if (currentGroupedMedia == null) return false;
-
-      // Find and update the specific item
-      MediaItem? targetItem;
-      int itemIndex = -1;
-
-      for (int i = 0; i < currentGroupedMedia.length; i++) {
-        final mediaData = currentGroupedMedia[i];
-        final parsedItem = MediaItem.fromJson(mediaData);
-
-        // Compare by title and date to find the matching item
-        if (parsedItem.title == item.title && parsedItem.date == item.date) {
-          targetItem = parsedItem;
-          itemIndex = i;
-          break;
-        }
-      }
-
-      if (targetItem == null || itemIndex == -1) {
-        AppLogger.databaseError('MediaController: Could not find target media item for like update', tag: 'MEDIA_LIKE');
-        return false;
-      }
-
-      // Update the likes for this item
-      targetItem.likes[mediaKey] = likes;
-
-      // Update the grouped media array
-      currentGroupedMedia[itemIndex] = targetItem.toJson();
-
-      // Save the updated grouped media
-      final success = await saveMediaGrouped(candidate, currentGroupedMedia);
-
-      if (success) {
-        AppLogger.database('✅ MediaController: Like updated successfully for ${candidate.candidateId}', tag: 'MEDIA_LIKE');
-      } else {
-        AppLogger.databaseError('❌ MediaController: Failed to save like update', tag: 'MEDIA_LIKE');
-      }
-
-      return success;
-    } catch (e) {
-      AppLogger.databaseError('MediaController: Error updating like', tag: 'MEDIA_LIKE', error: e);
-      return false;
-    }
+    // This method is deprecated - likes are now handled by FirebaseEngagementService
+    // Keeping for backward compatibility but it no longer modifies the MediaItem
+    AppLogger.database('MediaController: updateMediaLike is deprecated - likes now handled by FirebaseEngagementService', tag: 'MEDIA_LIKE');
+    return true; // Return success to avoid breaking existing code
   }
 }

@@ -332,6 +332,33 @@ class LocationController extends GetxController {
     AppLogger.candidate('🔄 Refreshed location data');
   }
 
+  /// Force refresh districts data (bypass cache)
+  Future<void> forceRefreshDistricts() async {
+    isLoadingDistricts.value = true;
+    districtsError?.value = null;
+
+    try {
+      final loadedDistricts = await _locationService.loadDistricts(selectedStateId.value, forceReload: true);
+
+      // Debug logging to see what districts are loaded
+      AppLogger.candidate('🔍 Force loaded ${loadedDistricts.length} districts from Firestore:');
+      for (final district in loadedDistricts) {
+        AppLogger.candidate('  - ${district.id}: ${district.name}, isActive: ${district.isActive}');
+      }
+
+      // Filter to only active districts (include districts where isActive is null or true, exclude false)
+      final activeDistricts = loadedDistricts.where((district) => district.isActive != false).toList();
+      districts.assignAll(activeDistricts);
+      AppLogger.candidate('✅ Force filtered to ${activeDistricts.length} active districts');
+    } catch (e) {
+      AppLogger.candidateError('Failed to force load districts: $e');
+      districtsError?.value = 'Failed to load districts: $e';
+      districts.clear();
+    } finally {
+      isLoadingDistricts.value = false;
+    }
+  }
+
   /// Get cache statistics
   Future<Map<String, dynamic>> getCacheStats() async {
     return await _locationService.getCacheStatus();

@@ -24,15 +24,19 @@ class LocationService {
   }
 
   /// Load districts for a given state, with caching support
-  Future<List<District>> loadDistricts(String stateId) async {
-    // Try SQLite cache first
-    final cachedDistricts = await _loadDistrictsFromSQLite(stateId);
-    if (cachedDistricts.isNotEmpty) {
-      AppLogger.candidate('⚡ CACHE HIT: Loaded ${cachedDistricts.length} districts from SQLite');
-      return cachedDistricts;
+  Future<List<District>> loadDistricts(String stateId, {bool forceReload = false}) async {
+    if (!forceReload) {
+      // Try SQLite cache first
+      final cachedDistricts = await _loadDistrictsFromSQLite(stateId);
+      if (cachedDistricts.isNotEmpty) {
+        AppLogger.candidate('⚡ CACHE HIT: Loaded ${cachedDistricts.length} districts from SQLite');
+        return cachedDistricts;
+      }
+    } else {
+      AppLogger.candidate('🔄 FORCE RELOAD: Skipping cache for districts from state: $stateId');
     }
 
-    // Cache miss - load from Firestore
+    // Cache miss or force reload - load from Firestore
     AppLogger.candidate('🔄 Loading districts from Firestore for state: $stateId');
     try {
       final districtsSnapshot = await FirebaseFirestore.instance

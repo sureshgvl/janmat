@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'like_model.dart';
+import 'comment_model.dart';
 
 // Media Item Model for Facebook-style post sharing
 class MediaItem {
@@ -7,8 +9,9 @@ class MediaItem {
   List<String> images;
   List<String> videos;
   List<String> youtubeLinks;
-  Map<String, int> likes; // Track likes for each media item
   String? addedDate; // New field for added date display
+  List<Like> likes; // Likes stored directly in media item
+  List<Comment> comments; // Comments stored directly in media item
 
   MediaItem({
     this.title = '',
@@ -16,40 +19,26 @@ class MediaItem {
     List<String>? images,
     List<String>? videos,
     List<String>? youtubeLinks,
-    Map<String, int>? likes,
     this.addedDate,
+    List<Like>? likes,
+    List<Comment>? comments,
   }) : date = date ?? DateTime.now().toIso8601String().split('T')[0],
        images = images ?? [],
        videos = videos ?? [],
        youtubeLinks = youtubeLinks ?? [],
-       likes = likes ?? {};
+       likes = likes ?? [],
+       comments = comments ?? [];
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
-    // Handle Firebase format where title might be in likes map
-    String title = json['title'] ?? '';
-    if (title.isEmpty && json['likes'] is Map && json['likes']['title'] != null) {
-      title = json['likes']['title'];
-    }
-
-    // Handle likes map - it might contain the title, so we need to extract only integer values
-    final rawLikes = json['likes'] ?? {};
-    final Map<String, int> likes = {};
-    if (rawLikes is Map) {
-      rawLikes.forEach((key, value) {
-        if (value is int && key != 'title') { // Skip title key
-          likes[key] = value;
-        }
-      });
-    }
-
     return MediaItem(
-      title: title,
+      title: json['title'] ?? '',
       date: json['date'] ?? DateTime.now().toIso8601String().split('T')[0],
       images: List<String>.from(json['images'] ?? []),
       videos: List<String>.from(json['videos'] ?? []),
       youtubeLinks: List<String>.from(json['youtubeLinks'] ?? []),
-      likes: likes,
       addedDate: json['added_date'],
+      likes: (json['likes'] as List<dynamic>?)?.map((like) => Like.fromJson(like as Map<String, dynamic>)).toList() ?? [],
+      comments: (json['comments'] as List<dynamic>?)?.map((comment) => Comment.fromJson(comment as Map<String, dynamic>)).toList() ?? [],
     );
   }
 
@@ -60,9 +49,61 @@ class MediaItem {
       'images': images,
       'videos': videos,
       'youtubeLinks': youtubeLinks,
-      'likes': likes,
       'added_date': addedDate,
+      'likes': likes.map((like) => like.toJson()).toList(),
+      'comments': comments.map((comment) => comment.toJson()).toList(),
     };
+  }
+
+  // Helper methods for engagement
+  int get likeCount => likes.length;
+  int get commentCount => comments.length;
+
+  bool hasUserLiked(String userId) {
+    return likes.any((like) => like.userId == userId);
+  }
+
+  // Convenience method for checking if current user liked (requires userId parameter)
+  bool isLikedBy(String userId) {
+    return hasUserLiked(userId);
+  }
+
+  void addLike(Like like) {
+    // Remove existing like from same user if exists
+    likes.removeWhere((existingLike) => existingLike.userId == like.userId);
+    likes.add(like);
+  }
+
+  void removeLike(String userId) {
+    likes.removeWhere((like) => like.userId == userId);
+  }
+
+  void addComment(Comment comment) {
+    comments.add(comment);
+    // Sort comments by creation time (most recent first)
+    comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  MediaItem copyWith({
+    String? title,
+    String? date,
+    List<String>? images,
+    List<String>? videos,
+    List<String>? youtubeLinks,
+    String? addedDate,
+    List<Like>? likes,
+    List<Comment>? comments,
+  }) {
+    return MediaItem(
+      title: title ?? this.title,
+      date: date ?? this.date,
+      images: images ?? this.images,
+      videos: videos ?? this.videos,
+      youtubeLinks: youtubeLinks ?? this.youtubeLinks,
+      addedDate: addedDate ?? this.addedDate,
+      likes: likes ?? this.likes,
+      comments: comments ?? this.comments,
+    );
   }
 }
 

@@ -134,6 +134,7 @@ class CandidateLocalizations {
   String get female => translate('female');
   String get other => translate('other');
   String get selectArea => translate('selectArea');
+  String get selectState => translate('selectState');
   String get selectWard => translate('selectWard');
   String get searchCandidatesHint => translate('searchCandidatesHint');
   String get selectDistrictFirst => translate('selectDistrictFirst');

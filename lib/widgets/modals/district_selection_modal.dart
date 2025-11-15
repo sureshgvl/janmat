@@ -10,6 +10,7 @@ class DistrictSelectionModal extends StatefulWidget {
   final Map<String, List<Body>> districtBodies;
   final String? selectedDistrictId;
   final Function(String) onDistrictSelected;
+  final VoidCallback? onRefresh;
 
   const DistrictSelectionModal({
     super.key,
@@ -17,6 +18,7 @@ class DistrictSelectionModal extends StatefulWidget {
     required this.districtBodies,
     required this.selectedDistrictId,
     required this.onDistrictSelected,
+    this.onRefresh,
   });
 
   @override
@@ -158,6 +160,22 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                         ),
                       ),
                     ),
+                    if (widget.onRefresh != null)
+                      IconButton(
+                        onPressed: () {
+                          widget.onRefresh!();
+                          // Refresh the list after calling onRefresh
+                          setState(() {
+                            filteredDistricts = List.from(widget.districts);
+                          });
+                        },
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: Colors.blue,
+                          size: 28,
+                        ),
+                        tooltip: 'Refresh districts',
+                      ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(
@@ -339,4 +357,3 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
     );
   }
 }
-

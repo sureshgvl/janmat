@@ -93,6 +93,9 @@ dependencies:
   youtube_player_flutter: ^9.0.1
   # gallery_saver: ^2.3.2  # Temporarily disabled due to http version conflict
 
+  # SMS Auto-fill for OTP
+  sms_autofill: ^2.3.0
+
   # Local Notifications
   flutter_local_notifications: ^17.2.2
 

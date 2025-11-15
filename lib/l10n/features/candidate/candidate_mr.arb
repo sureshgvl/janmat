@@ -244,6 +244,7 @@
   "myAreaCandidates": "माझ्या क्षेत्रातील उमेदवार",
   "candidatesFromYourWard": "तुमच्या वॉर्डमधील उमेदवार",
   "noCandidatesFound": "कोणतेही उमेदवार सापडले नाहीत",
+  "selectState": "राज्य निवडा",
   "selectWardToViewCandidates": "उमेदवार पाहण्यासाठी वॉर्ड निवडा",
   "searchByWard": "वॉर्डनुसार शोधा",
   "selectDistrict": "जिल्हा निवडा",

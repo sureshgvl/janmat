@@ -1,12 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
 import '../controllers/auth_controller.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  late SmsAutoFill _autoFill;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoFill = SmsAutoFill();
+    _listenForSms();
+  }
+
+  @override
+  void dispose() {
+    _autoFill.unregisterListener();
+    super.dispose();
+  }
+
+  void _listenForSms() async {
+    await _autoFill.listenForCode();
+    _autoFill.code.listen((code) {
+      if (code != null && code.isNotEmpty) {
+        AppLogger.auth('📱 Auto-read OTP from SMS: $code');
+
+        // Auto-fill the OTP controller
+        final controller = Get.find<AuthController>();
+        controller.otpController.text = code;
+        AppLogger.auth('✅ OTP auto-filled in text field');
+
+        // Show success message
+        Get.snackbar(
+          'OTP Auto-filled',
+          'OTP has been automatically filled from SMS',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.9),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +243,28 @@ class LoginScreen extends StatelessWidget {
           authLocalizations.enterOTP(controller.phoneController.text),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
+        // Auto-read indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.smartphone,
+              size: 16,
+              color: Theme.of(context).primaryColor,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Auto-read OTP from SMS',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: controller.otpController,
           keyboardType: TextInputType.number,
@@ -469,4 +535,3 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-
