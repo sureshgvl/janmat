@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,272 +25,353 @@ class CandidateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCurrentUser = showCurrentUserIndicator && candidate.userId == currentUserId;
 
-    // Get age from basic info
+    // Get data - use optimistically updated count if following
     final age = candidate.basicInfo?.age;
-    final displayName = age != null ? '${candidate.basicInfo!.fullName}, $age' : candidate.basicInfo!.fullName;
-
-    // Get education
     final education = candidate.basicInfo?.education;
-
-    // Get achievements
     final achievements = candidate.achievements;
 
-    // Determine if candidate is premium
-    final isPremiumCandidate = candidate.sponsored || candidate.followersCount > 1000;
+    // OPTIMISTIC FOLLOWER COUNT: Show 1+ if following (handles server delay)
+    int followersCount = candidate.followersCount;
+    bool isFollowingOptimistically = false;
+
+    // Check if we're optimistically following (controller says yes but server not updated)
+    final controller = Get.find<CandidateController>();
+    isFollowingOptimistically = controller.followStatus[candidate.candidateId] == true && followersCount == 0;
+
+    if (isFollowingOptimistically) {
+      followersCount = 1; // Show at least 1 follower when following
+    }
+    final isPremiumCandidate = candidate.sponsored || followersCount > 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            debugPrint('🔄 CANDIDATE_CARD_NAVIGATION: Navigating to profile for ${candidate.candidateId}');
             Get.toNamed('/candidate-profile', arguments: candidate);
           },
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            constraints: const BoxConstraints(minHeight: 100),
+            constraints: const BoxConstraints(minHeight: 140),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.white,
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.04)
-                      : AppColors.background,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.white,
               border: Border.all(
                 color: isPremiumCandidate
-                    ? Colors.amber.withValues(alpha: 0.5)
-                    : Colors.grey.shade300,
-                width: isPremiumCandidate ? 2.0 : 1.5,
+                    ? Colors.amber.withOpacity(0.3)
+                    : Colors.grey.shade200,
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withOpacity(0.08),
                   blurRadius: 8,
-                  offset: const Offset(0, 4),
+                  offset: const Offset(0, 2),
                 ),
-                if (isPremiumCandidate)
-                  BoxShadow(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
               ],
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Candidate Photo
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                    border: Border.all(
-                      color: isPremiumCandidate
-                          ? Colors.amber.withValues(alpha: 0.6)
-                          : AppColors.borderLight,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                // LEFT: Profile Photo + Follow Button Column
+                Column(
+                  children: [
+                    // Profile Photo
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isPremiumCandidate
+                              ? Colors.amber.withValues(alpha: 0.5)
+                              : Colors.grey.shade300,
+                          width: 2,
+                        ),
                       ),
-                    ],
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                      image: candidate.photo != null && candidate.photo!.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(candidate.photo!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                      color: candidate.photo == null || candidate.photo!.isEmpty
-                          ? (isPremiumCandidate
-                              ? Colors.amber.shade100
-                              : Colors.grey.shade200)
-                          : null,
-                    ),
-                    child: candidate.photo == null || candidate.photo!.isEmpty
-                        ? Center(
-                            child: Text(
-                              candidate.basicInfo!.fullName![0].toUpperCase(),
-                              style: AppTypography.labelLarge.copyWith(
+                      child: ClipOval(
+                        child: candidate.photo != null && candidate.photo!.isNotEmpty
+                            ? Image.network(
+                                candidate.photo!,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
                                 color: isPremiumCandidate
-                                    ? Colors.amber.shade800
-                                    : Colors.grey.shade600,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 28,
+                                    ? Colors.amber.shade100
+                                    : Colors.grey.shade200,
+                                child: Center(
+                                  child: Text(
+                                    candidate.basicInfo!.fullName![0].toUpperCase(),
+                                    style: AppTypography.labelLarge.copyWith(
+                                      color: isPremiumCandidate
+                                          ? Colors.amber.shade800
+                                          : Colors.grey.shade600,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
+                                    ),
+                                  ),
+                                ),
                               ),
+                      ),
+                    ),
+
+
+
+                    // "YOU" Indicator for current user
+                    if (isCurrentUser)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.primary, AppColors.secondary],
                             ),
-                          )
-                        : null,
-                  ),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'YOU',
+                            style: AppTypography.caption.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+
                 const SizedBox(width: 12),
 
-                // Candidate Info
+                // RIGHT: Text Information
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Name with Age
+                      const SizedBox(height: 4),
+
+                      // Name (Large, Bold)
+                      Text(
+                        candidate.basicInfo!.fullName!,
+                        style: AppTypography.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      // Party + Age Row
                       Row(
                         children: [
+                          // Party Symbol
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: SymbolUtils.getSymbolImageProvider(
+                                  SymbolUtils.getPartySymbolPath(
+                                    candidate.party,
+                                    candidate: candidate,
+                                  ),
+                                ),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Party Name + Age
                           Expanded(
                             child: Text(
-                              displayName!,
-                              style: AppTypography.bodyLarge.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                              '${SymbolUtils.getPartyDisplayNameWithLocale(
+                                candidate.party,
+                                Localizations.localeOf(context).languageCode,
+                              )} • ${age != null ? '$age years' : 'Age not specified'}',
+                              style: AppTypography.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (isCurrentUser) ...[
-                            const SizedBox(width: AppSpacing.sm),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [AppColors.primary, AppColors.secondary],
-                                ),
-                                borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                              ),
-                              child: Text(
-                                'YOU',
-                                style: AppTypography.caption.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+
+                          // Follow Button (right-aligned) - only show if not current user
+                          if (!isCurrentUser)
+                            GetBuilder<CandidateController>(
+                              builder: (controller) {
+                                final isFollowing = controller.followStatus[candidate.candidateId] ?? false;
+                                final isLoading = controller.followLoading[candidate.candidateId] ?? false;
+                                debugPrint('🎭 CANDIDATE_CARD_FOLLOW_STATUS: ${candidate.candidateId} -> isFollowing=$isFollowing, isLoading=$isLoading, controller=${controller.hashCode}');
+
+                                return Container(
+                                  width: 32,
+                                  height: 32,
+                                  margin: const EdgeInsets.only(left: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        isFollowing ? Colors.grey.shade400 : AppColors.primary,
+                                        isFollowing ? Colors.grey.shade600 : AppColors.secondary,
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    onPressed: isLoading
+                                        ? null
+                                        : () async {
+                                            final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                                            debugPrint('🔥 CANDIDATE_CARD_FOLLOW_CLICK: User $userId attempting to follow/unfollow ${candidate.candidateId}');
+                                            await controller.followCandidate(
+                                              userId,
+                                              candidate.candidateId,
+                                              stateId: candidate.location.stateId,
+                                              districtId: candidate.location.districtId,
+                                              bodyId: candidate.location.bodyId,
+                                              wardId: candidate.location.wardId,
+                                            );
+                                            onFollowChanged?.call();
+                                            debugPrint('✅ CANDIDATE_CARD_FOLLOW_COMPLETED: Follow operation finished for ${candidate.candidateId}');
+                                          },
+                                    icon: isLoading
+                                        ? SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : Icon(
+                                            isFollowing ? Icons.check : Icons.person_add,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                );
+                              },
                             ),
-                          ],
                         ],
                       ),
 
-                      const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: 8),
 
-                      // Education and Party row
-                      Row(
+                      // Chips Row 1: Followers + Education
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
-                          // Party Symbol and Name
-                          Expanded(
+                          Container(
+                            height: 28,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            constraints: const BoxConstraints(maxWidth: 120),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Container(
-                                  width: 18,
-                                  height: 18,
-                                  decoration: BoxDecoration(
-                                    image: DecorationImage(
-                                      image: SymbolUtils.getSymbolImageProvider(
-                                        SymbolUtils.getPartySymbolPath(
-                                          candidate.party,
-                                          candidate: candidate,
-                                        ),
-                                      ),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
+                                Icon(
+                                  Icons.people,
+                                  size: 14,
+                                  color: Colors.green.shade700,
                                 ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: Text(
-                                    SymbolUtils.getPartyDisplayNameWithLocale(
-                                      candidate.party,
-                                      Localizations.localeOf(context).languageCode,
-                                    ),
-                                    style: AppTypography.bodySmall.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$followersCount',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.green.shade700,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(width: AppSpacing.sm),
-                          // Education
                           if (education != null && education.isNotEmpty)
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.sm,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.info.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.school,
-                                      size: 14,
-                                      color: AppColors.info,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        education,
-                                        style: AppTypography.bodySmall.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.info,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.school,
+                                    size: 14,
+                                    color: AppColors.info,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      education,
+                                      style: AppTypography.bodySmall.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.info,
+                                        fontSize: 13,
                                       ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                         ],
                       ),
 
-                      const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: 6),
 
-                      // Achievements row
+                      // Chips Row 2: Achievements
                       if (achievements != null && achievements.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.emoji_events,
                                 size: 14,
-                                color: Colors.amber.shade600,
+                                color: Colors.amber.shade700,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${achievements.length} Achievement${achievements.length > 1 ? 's' : ''}',
-                                style: AppTypography.caption.copyWith(
+                                '${achievements.length} achievement${achievements.length > 1 ? 's' : ''}',
+                                style: AppTypography.bodySmall.copyWith(
                                   fontWeight: FontWeight.w500,
                                   color: Colors.amber.shade700,
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
@@ -298,103 +380,6 @@ class CandidateCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                const SizedBox(width: AppSpacing.md),
-
-                // Follow Button or Current User Indicator
-                if (isCurrentUser)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.secondary],
-                      ),
-                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'YOU',
-                      style: AppTypography.labelMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  )
-                else
-                  GetBuilder<CandidateController>(
-                    builder: (controller) {
-                      final isFollowing = controller.followStatus[candidate.candidateId] ?? false;
-                      final isLoading = controller.followLoading[candidate.candidateId] ?? false;
-
-                      // Hide follow button if already following
-                      if (isFollowing) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.info.withValues(alpha: 0.2), AppColors.info.withValues(alpha: 0.1)],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: AppColors.info.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.info.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          onPressed: isLoading
-                              ? null
-                              : () async {
-                                  final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-                                  await controller.followCandidate(
-                                    userId,
-                                    candidate.candidateId,
-                                    stateId: candidate.location.stateId,
-                                    districtId: candidate.location.districtId,
-                                    bodyId: candidate.location.bodyId,
-                                    wardId: candidate.location.wardId,
-                                  );
-                                  onFollowChanged?.call();
-                                },
-                          icon: isLoading
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.info),
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.person_add,
-                                  size: 22,
-                                  color: AppColors.info,
-                                ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      );
-                    },
-                  ),
               ],
             ),
           ),

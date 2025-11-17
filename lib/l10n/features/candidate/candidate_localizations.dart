@@ -100,6 +100,7 @@ class CandidateLocalizations {
   String get candidateDataNotAvailable => translate('candidateDataNotAvailable');
   String get candidateDashboard => translate('candidateDashboard');
   String get basicInfo => translate('basicInfo');
+  String get myAreaCandidates => translate('myAreaCandidates');
   String get searchCandidates => translate('searchCandidates');
   String get noCandidatesFound => translate('noCandidatesFound');
   String get selectWardToViewCandidates => translate('selectWardToViewCandidates');

@@ -37,16 +37,18 @@ class FollowStatsWidget extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(
                   horizontal: 4,
                 ),
-                child: GetBuilder<CandidateController>(
+        child: GetBuilder<CandidateController>(
                   builder: (controller) {
                     final isFollowing = controller.followStatus[candidate.candidateId] ?? false;
                     final isLoading = controller.followLoading[candidate.candidateId] ?? false;
+                    debugPrint('♻️ FOLLOW_STATS_WIDGET_BUILD: ${candidate.candidateId} -> isFollowing=$isFollowing, isLoading=$isLoading, controller=${controller.hashCode}');
 
                     return ElevatedButton.icon(
                       onPressed: isLoading
                           ? null
                           : () async {
                               final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                              debugPrint('🏠 PROFILE_SCREEN_FOLLOW_CLICK: User $userId clicking ${isFollowing ? 'unfollow' : 'follow'} for ${candidate.candidateId}');
                               if (!isFollowing) {
                                 await controller.followCandidate(
                                   userId,
@@ -59,6 +61,7 @@ class FollowStatsWidget extends StatelessWidget {
                               } else {
                                 await controller.toggleFollow(userId, candidate.candidateId);
                               }
+                              debugPrint('✅ PROFILE_SCREEN_FOLLOW_COMPLETED: Follow operation finished for ${candidate.candidateId}');
                             },
                       icon: Icon(
                         isFollowing ? Icons.check : Icons.person_add,

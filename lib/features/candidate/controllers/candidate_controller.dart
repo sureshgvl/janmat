@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
@@ -343,9 +344,15 @@ class CandidateController extends GetxController {
   // Check if user is following a candidate
   Future<void> checkFollowStatus(String userId, String candidateId) async {
     try {
+      // Get candidateUserId from cached candidates for proper lookup
+      final candidate = candidates.firstWhereOrNull(
+        (c) => c.candidateId == candidateId,
+      );
+
       final isFollowing = await _followRepository.isUserFollowingCandidate(
         userId,
         candidateId,
+        candidateUserId: candidate?.userId, // Check both possible document IDs
       );
       followStatus[candidateId] = isFollowing;
       update();
@@ -366,6 +373,7 @@ class CandidateController extends GetxController {
   }) async {
     if (followLoading[candidateId] == true) return;
 
+    debugPrint('🚀 CONTROLLER_FOLLOW_START: User $userId attempting to follow candidate $candidateId');
     followLoading[candidateId] = true;
     update();
 

@@ -104,8 +104,8 @@ class HomeServices {
           AppLogger.common('ℹ️ Skipping candidate data load - not a candidate (role: ${userModel.role})');
         }
 
-        // Prepare result data
-        final result = {'user': userModel, 'candidate': candidateModel};
+        // Prepare result data (serialize to JSON Maps for consistent caching)
+        final result = {'user': userModel.toJson(), 'candidate': candidateModel?.toJson()};
 
         // Cache the result with high priority for home screen
         try {
@@ -256,7 +256,7 @@ class HomeServices {
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
         final userModel = UserModel.fromJson(userData);
-        final result = {'user': userModel, 'candidate': null};
+        final result = {'user': userModel.toJson(), 'candidate': null};
 
         await cache.set(cacheKey, result, ttl: const Duration(hours: 1));
         AppLogger.common('🔄 Background cache refresh completed');

@@ -396,8 +396,8 @@ class AuthController extends GetxController {
           }
         }
 
-        // Prepare cache data in the same format as HomeServices
-        final cacheData = {'user': userModel, 'candidate': candidateModel};
+        // Prepare cache data in the same format as HomeServices (serialize to JSON Maps)
+        final cacheData = {'user': userModel.toJson(), 'candidate': candidateModel?.toJson()};
         final cacheKey = 'home_user_data_$userId';
 
         // Cache with high priority for immediate home screen access

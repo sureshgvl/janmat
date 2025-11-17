@@ -145,6 +145,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     // Check follow status when screen loads
     if (currentUserId != null && candidate != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        debugPrint('📋 PROFILE_SCREEN_INIT: Checking follow status for $currentUserId -> ${candidate!.candidateId}');
         controller.checkFollowStatus(currentUserId!, candidate!.candidateId);
       });
     }
@@ -237,6 +238,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   }
 
   // Refresh candidate data using direct document path (fast!)
+  // Note: This preserves controller follow status to avoid UI inconsistencies
   Future<void> _refreshCandidateFollowingData() async {
     if (candidate == null) return;
 
@@ -276,13 +278,39 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = candidateDoc.id;
 
-        final freshCandidate = Candidate.fromJson(candidateData);
+        late Candidate freshCandidate = Candidate.fromJson(candidateData);
 
         AppLogger.candidate(
           '✅ Refreshed candidate data instantly - following count: ${freshCandidate.followingCount}',
         );
+
+        // CRITICAL: Preserve UI state when server data is stale
+        // Don't let server refreshes override controller's optimistic follow updates
+        final currentFollowStatus = controller.followStatus[candidate!.candidateId] ?? false;
+        final serverFollowingCount = freshCandidate.followingCount ?? 0;
+
+        // If controller shows user followed this candidate but server shows 0 followers,
+        // it means the follow hasn't been processed by background sync yet.
+        // Preserve UI state to avoid visual inconsistencies.
+        if (currentFollowStatus && freshCandidate.followersCount == 0) {
+          AppLogger.candidate(
+            '⚠️ Controller shows followed but server reports 0. Preserving optimistic UI state.',
+          );
+
+          // Use copyWith to create new candidate with preserved follower counts
+          // Update only non-follow-related data from server
+          freshCandidate = freshCandidate.copyWith(
+            contact: freshCandidate.contact,
+            events: freshCandidate.events,
+            media: freshCandidate.media,
+            analytics: freshCandidate.analytics,
+            followersCount: candidate!.followersCount, // PRESERVE UI STATE
+            followingCount: candidate!.followingCount, // PRESERVE UI STATE
+          );
+        }
+
         setState(() {
-          candidate = freshCandidate; // ← Instant UI update
+          candidate = freshCandidate;
         });
       } else {
         AppLogger.candidate('⚠️ Could not refresh candidate data');

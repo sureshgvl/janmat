@@ -191,20 +191,38 @@ class CandidateFollowRepository {
     }
   }
 
-  // Check if user is following a candidate
+  // Check if user is following a candidate - FIXED: Handle both candidateId and candidateUserId storage
   Future<bool> isUserFollowingCandidate(
     String userId,
-    String candidateId,
-  ) async {
+    String candidateId, {
+    String? candidateUserId, // Also check this if provided
+  }) async {
     try {
-      final doc = await _firestore
+      // Try both possible document IDs (backward compatibility): candidateId or candidateUserId
+      final candidateIdDoc = await _firestore
           .collection('users')
           .doc(userId)
           .collection('following')
           .doc(candidateId)
           .get();
 
-      return doc.exists;
+      if (candidateIdDoc.exists) {
+        return true;
+      }
+
+      // Also check candidateUserId if provided (for newer follow operations)
+      if (candidateUserId != null && candidateUserId != candidateId) {
+        final candidateUserIdDoc = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('following')
+            .doc(candidateUserId)
+            .get();
+
+        return candidateUserIdDoc.exists;
+      }
+
+      return false;
     } catch (e) {
       AppLogger.candidateError('Failed to check follow status: $e');
       throw Exception('Failed to check follow status: $e');
