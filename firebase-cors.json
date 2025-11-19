@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:5000", "http://localhost:59886", "https://janmat-8e831.web.app", "http://localhost:3000"],
+    "method": ["GET", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 86400
+  }
+]

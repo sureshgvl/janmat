@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
 import 'local_database_service.dart';
+import 'web_storage_helper.dart';
 import '../widgets/loading_overlay.dart';
 import '../features/candidate/controllers/candidate_user_controller.dart';
 import '../features/candidate/controllers/save_all_coordinator.dart';
@@ -159,50 +161,69 @@ class OfflineDraftsService extends GetxController {
     AppLogger.database('📝 [OfflineDrafts] Service initialized successfully', tag: 'DRAFTS');
   }
 
-  /// Create drafts table in SQLite database
+  /// Create drafts table in SQLite database (mobile) or initialize web storage
   Future<void> _createDraftsTable() async {
-    final db = await _localDb.database;
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS $draftsTable (
-        draftId TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
-        dataType TEXT NOT NULL,
-        tabName TEXT NOT NULL,
-        draftContent TEXT NOT NULL,
-        createdAt TEXT NOT NULL,
-        lastModified TEXT NOT NULL,
-        state TEXT NOT NULL,
-        syncedAt TEXT,
-        firebaseVersion TEXT,
-        UNIQUE(draftId)
-      )
-    ''');
-    AppLogger.database('📝 [OfflineDrafts] Drafts table created/verified', tag: 'DRAFTS');
+    if (kIsWeb) {
+      // Web: No need to create tables, SharedPreferences handles this automatically
+      await WebStorageHelper.init();
+      AppLogger.database('🌐 [OfflineDrafts] Web storage initialized', tag: 'DRAFTS');
+    } else {
+      // Mobile: Create SQLite table
+      final db = await _localDb.database;
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $draftsTable (
+          draftId TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          dataType TEXT NOT NULL,
+          tabName TEXT NOT NULL,
+          draftContent TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          lastModified TEXT NOT NULL,
+          state TEXT NOT NULL,
+          syncedAt TEXT,
+          firebaseVersion TEXT,
+          UNIQUE(draftId)
+        )
+      ''');
+      AppLogger.database('🐘 [OfflineDrafts] SQLite drafts table created/verified', tag: 'DRAFTS');
+    }
   }
 
   /// Load pending drafts from local storage
   Future<void> _loadPendingDrafts() async {
     try {
-      final db = await _localDb.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        draftsTable,
-        where: 'state != ?',
-        whereArgs: [DraftState.saved.name],
-      );
+      if (kIsWeb) {
+        // Web: Load from SharedPreferences
+        final draftsMap = await WebStorageHelper.getOfflineDrafts();
+        final drafts = draftsMap.values.map((draftJson) =>
+          DraftData.fromJson(draftJson as Map<String, dynamic>)
+        ).where((draft) => draft.state != DraftState.saved).toList();
 
-      final drafts = maps.map((map) {
-        // Convert draft content from JSON string back to Map
-        final mapCopy = Map<String, dynamic>.from(map);
-        if (mapCopy['draftContent'] is String) {
-          mapCopy['draftContent'] = json.decode(mapCopy['draftContent']);
-        }
-        return DraftData.fromJson(mapCopy);
-      }).toList();
+        pendingDrafts.assignAll(drafts);
+        unsyncedDraftsCount.value = drafts.where((d) => d.state != DraftState.saved).length;
+        AppLogger.database('🌐 [OfflineDrafts] Web loaded ${drafts.length} pending drafts', tag: 'DRAFTS');
+      } else {
+        // Mobile: Load from SQLite database
+        final db = await _localDb.database;
+        final List<Map<String, dynamic>> maps = await db.query(
+          draftsTable,
+          where: 'state != ?',
+          whereArgs: [DraftState.saved.name],
+        );
 
-      pendingDrafts.assignAll(drafts);
-      unsyncedDraftsCount.value = drafts.where((d) => d.state != DraftState.saved).length;
+        final drafts = maps.map((map) {
+          // Convert draft content from JSON string back to Map
+          final mapCopy = Map<String, dynamic>.from(map);
+          if (mapCopy['draftContent'] is String) {
+            mapCopy['draftContent'] = json.decode(mapCopy['draftContent']);
+          }
+          return DraftData.fromJson(mapCopy);
+        }).toList();
 
-      AppLogger.database('📝 [OfflineDrafts] Loaded ${drafts.length} pending drafts', tag: 'DRAFTS');
+        pendingDrafts.assignAll(drafts);
+        unsyncedDraftsCount.value = drafts.where((d) => d.state != DraftState.saved).length;
+        AppLogger.database('🐘 [OfflineDrafts] SQLite loaded ${drafts.length} pending drafts', tag: 'DRAFTS');
+      }
     } catch (e) {
       AppLogger.databaseError('📝 [OfflineDrafts] Error loading pending drafts', error: e, tag: 'DRAFTS');
     }
@@ -269,15 +290,23 @@ class OfflineDraftsService extends GetxController {
     );
 
     try {
-      final db = await _localDb.database;
-      await db.insert(
-        draftsTable,
-        {
-          ...draft.toJson(),
-          'draftContent': json.encode(draft.draftContent), // Store as JSON string
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      if (kIsWeb) {
+        // Web: Save to SharedPreferences
+        await WebStorageHelper.saveOfflineDraft(draft.draftId, draft.toJson());
+        AppLogger.database('🌐 [OfflineDrafts] Web draft saved: ${draft.draftId}', tag: 'DRAFTS');
+      } else {
+        // Mobile: Save to SQLite database
+        final db = await _localDb.database;
+        await db.insert(
+          draftsTable,
+          {
+            ...draft.toJson(),
+            'draftContent': json.encode(draft.draftContent), // Store as JSON string
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        AppLogger.database('🐘 [OfflineDrafts] SQLite draft saved: ${draft.draftId}', tag: 'DRAFTS');
+      }
 
       // Update or add to pending drafts list
       final existingIndex = pendingDrafts.indexWhere((d) => d.draftId == draft.draftId);
@@ -574,12 +603,20 @@ class OfflineDraftsService extends GetxController {
   /// Delete draft from storage
   Future<void> deleteDraft(String draftId) async {
     try {
-      final db = await _localDb.database;
-      await db.delete(
-        draftsTable,
-        where: 'draftId = ?',
-        whereArgs: [draftId],
-      );
+      if (kIsWeb) {
+        // Web: Delete from SharedPreferences
+        await WebStorageHelper.deleteWebData('offline_drafts', draftId);
+        AppLogger.database('🌐 [OfflineDrafts] Web draft deleted: $draftId', tag: 'DRAFTS');
+      } else {
+        // Mobile: Delete from SQLite database
+        final db = await _localDb.database;
+        await db.delete(
+          draftsTable,
+          where: 'draftId = ?',
+          whereArgs: [draftId],
+        );
+        AppLogger.database('🐘 [OfflineDrafts] SQLite draft deleted: $draftId', tag: 'DRAFTS');
+      }
 
       pendingDrafts.removeWhere((d) => d.draftId == draftId);
       unsyncedDraftsCount.value = pendingDrafts.where((d) => d.state != DraftState.saved).length;

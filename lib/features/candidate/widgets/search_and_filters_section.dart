@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../utils/theme_constants.dart';
+import '../../../utils/app_logger.dart';
 import '../../../widgets/modals/state_selection_modal.dart';
 import '../../../widgets/modals/district_selection_modal.dart';
 import '../../../widgets/modals/area_selection_modal.dart';
@@ -100,7 +101,13 @@ class SearchAndFiltersSection extends StatelessWidget {
           LocationBreadcrumb(
             locationController: locationController,
             onStateTap: () => _showStateSelectionModal(context),
-            onDistrictTap: () => _showDistrictSelectionModal(context),
+            onDistrictTap: () {
+              AppLogger.core('🔍 DISTRICT SELECTION: onDistrictTap called');
+              AppLogger.core('🔍 DISTRICT SELECTION: Current state ID: ${locationController.selectedStateId.value}');
+              AppLogger.core('🔍 DISTRICT SELECTION: Available districts: ${locationController.districts.length}');
+              AppLogger.core('🔍 DISTRICT SELECTION: Current selected district: ${locationController.selectedDistrictId.value}');
+              _showDistrictSelectionModal(context);
+            },
             onBodyTap: () => _showBodySelectionModal(context),
             onWardTap: () => _showWardSelectionModal(context),
             onDistrictRefresh: onDistrictRefresh,
@@ -111,11 +118,13 @@ class SearchAndFiltersSection extends StatelessWidget {
   }
 
   void _showDistrictSelectionModal(BuildContext context) {
+    AppLogger.core('🏠 DISTRICT MODAL: Opening district selection modal');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
+        AppLogger.core('🏠 DISTRICT MODAL: Building modal widget');
         return DistrictSelectionModal(
           districts: locationController.districts,
           districtBodies: locationController.districtBodies,
@@ -281,8 +290,14 @@ class _LocationBreadcrumbState extends State<LocationBreadcrumb> {
         parts.add(
           Row(
             children: [
-              InkWell(
-                onTap: widget.onDistrictTap,
+              GestureDetector(
+                onTapDown: (details) {
+                  AppLogger.core('🖱️ DISTRICT TEXT: onTapDown detected at ${details.globalPosition}');
+                },
+                onTap: () {
+                  AppLogger.core('🖱️ DISTRICT TEXT: GestureDetector onTap fired!');
+                  widget.onDistrictTap();
+                },
                 child: Text(
                   widget.locationController.selectedDistrictId.value != null
                       ? MaharashtraUtils.getDistrictDisplayNameV2(
@@ -303,6 +318,8 @@ class _LocationBreadcrumbState extends State<LocationBreadcrumb> {
             ],
           ),
         );
+      } else {
+        AppLogger.core('❌ DISTRICT NOT SHOWN: State not selected (selectedStateId is empty)');
       }
 
       // Body - show if district is selected

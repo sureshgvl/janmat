@@ -67,12 +67,16 @@ class LocationController extends GetxController {
   /// Initialize the location service and load initial data
   Future<void> initialize() async {
     try {
+      AppLogger.core('🚀 LOCATION CONTROLLER: Initializing LocationController');
+      AppLogger.core('🚀 LOCATION CONTROLLER: Default state: ${selectedStateId.value}');
       await _locationService.initialize();
       await _cacheManager.initialize();
+      AppLogger.core('🚀 LOCATION CONTROLLER: Services initialized');
       await loadStates();
       await loadDistricts();
+      AppLogger.core('🚀 LOCATION CONTROLLER: Initialization complete');
     } catch (e) {
-      AppLogger.candidateError('Failed to initialize LocationController: $e');
+      AppLogger.core('🚀 LOCATION CONTROLLER ERROR: Failed to initialize: $e');
       statesError?.value = 'Failed to initialize: $e';
       districtsError?.value = 'Failed to initialize: $e';
       isLoadingStates.value = false;
@@ -97,9 +101,9 @@ class LocationController extends GetxController {
       final activeStates = loadedStates.where((state) => state.isActive != false).toList();
 
       states.assignAll(activeStates);
-      AppLogger.candidate('✅ Loaded ${activeStates.length} active states');
+      AppLogger.core('🏛️ LOCATION CONTROLLER: Loaded ${activeStates.length} active states');
     } catch (e) {
-      AppLogger.candidateError('Failed to load states: $e');
+      AppLogger.core('🏛️ LOCATION CONTROLLER ERROR: Failed to load states: $e');
       statesError?.value = 'Failed to load states: $e';
       states.clear();
     } finally {
@@ -116,17 +120,17 @@ class LocationController extends GetxController {
       final loadedDistricts = await _locationService.loadDistricts(selectedStateId.value);
 
       // Debug logging to see what districts are loaded
-      AppLogger.candidate('🔍 Loaded ${loadedDistricts.length} districts from service:');
-      for (final district in loadedDistricts) {
-        AppLogger.candidate('  - ${district.id}: ${district.name}, isActive: ${district.isActive}');
+      AppLogger.core('🏙️ LOCATION CONTROLLER: Loaded ${loadedDistricts.length} districts from service:');
+      for (final district in loadedDistricts.take(5)) { // Limit to first 5 to avoid spam
+        AppLogger.core('🏙️   - ${district.id}: ${district.name}, isActive: ${district.isActive}');
       }
 
       // Filter to only active districts (include districts where isActive is null or true, exclude false)
       final activeDistricts = loadedDistricts.where((district) => district.isActive != false).toList();
       districts.assignAll(activeDistricts);
-      AppLogger.candidate('✅ Filtered to ${activeDistricts.length} active districts');
+      AppLogger.core('🏙️ LOCATION CONTROLLER: Filtered to ${activeDistricts.length} active districts');
     } catch (e) {
-      AppLogger.candidateError('Failed to load districts: $e');
+      AppLogger.core('🏙️ LOCATION CONTROLLER ERROR: Failed to load districts: $e');
       districtsError?.value = 'Failed to load districts: $e';
       districts.clear();
     } finally {
@@ -137,7 +141,7 @@ class LocationController extends GetxController {
   /// Load bodies for a specific district
   Future<void> loadBodiesForDistrict(String districtId) async {
     if (districtBodies.containsKey(districtId)) {
-      AppLogger.candidate('⚡ Using cached bodies for district: $districtId');
+      AppLogger.core('🏢 LOCATION CONTROLLER: Using cached bodies for district: $districtId');
       return;
     }
 
@@ -150,9 +154,9 @@ class LocationController extends GetxController {
         districtId,
       );
       districtBodies[districtId] = bodies;
-      AppLogger.candidate('✅ Loaded ${bodies.length} bodies for district: $districtId');
+      AppLogger.core('🏢 LOCATION CONTROLLER: Loaded ${bodies.length} bodies for district: $districtId');
     } catch (e) {
-      AppLogger.candidateError('Failed to load bodies for district $districtId: $e');
+      AppLogger.core('🏢 LOCATION CONTROLLER ERROR: Failed to load bodies for district $districtId: $e');
       bodiesError?.value = 'Failed to load areas: $e';
     } finally {
       isLoadingBodies.value = false;
@@ -164,7 +168,7 @@ class LocationController extends GetxController {
     final cacheKey = '${districtId}_$bodyId';
 
     if (bodyWards.containsKey(cacheKey)) {
-      AppLogger.candidate('⚡ Using cached wards for $districtId/$bodyId');
+      AppLogger.core('🏠 LOCATION CONTROLLER: Using cached wards for $districtId/$bodyId');
       return;
     }
 
@@ -178,9 +182,9 @@ class LocationController extends GetxController {
         bodyId,
       );
       bodyWards[cacheKey] = wards;
-      AppLogger.candidate('✅ Loaded ${wards.length} wards for $districtId/$bodyId');
+      AppLogger.core('🏠 LOCATION CONTROLLER: Loaded ${wards.length} wards for $districtId/$bodyId');
     } catch (e) {
-      AppLogger.candidateError('Failed to load wards for $districtId/$bodyId: $e');
+      AppLogger.core('🏠 LOCATION CONTROLLER ERROR: Failed to load wards for $districtId/$bodyId: $e');
       wardsError?.value = 'Failed to load wards: $e';
     } finally {
       isLoadingWards.value = false;
@@ -204,7 +208,7 @@ class LocationController extends GetxController {
       await loadDistricts();
     }
 
-    AppLogger.candidate('🎯 Selected state: $stateId');
+    AppLogger.core('🎯 LOCATION CONTROLLER: Selected state: $stateId');
   }
 
   /// Select a district and load its bodies
@@ -222,7 +226,7 @@ class LocationController extends GetxController {
       await loadBodiesForDistrict(districtId);
     }
 
-    AppLogger.candidate('🎯 Selected district: $districtId');
+    AppLogger.core('🎯 LOCATION CONTROLLER: Selected district: $districtId');
   }
 
   /// Select a body and load its wards
@@ -236,13 +240,13 @@ class LocationController extends GetxController {
       await loadWardsForBody(selectedDistrictId!.value!, bodyId);
     }
 
-    AppLogger.candidate('🎯 Selected body: $bodyId');
+    AppLogger.core('🎯 LOCATION CONTROLLER: Selected body: $bodyId');
   }
 
   /// Select a ward
   void selectWard(Ward? ward) {
     selectedWard.value = ward;
-    AppLogger.candidate('🎯 Selected ward: ${ward?.name ?? 'null'}');
+    AppLogger.core('🎯 LOCATION CONTROLLER: Selected ward: ${ward?.name ?? 'null'}');
   }
 
   /// Set initial values (useful for deep linking)
@@ -273,9 +277,9 @@ class LocationController extends GetxController {
         }
       }
 
-      AppLogger.candidate('✅ Set initial location values: district=$districtId, body=$bodyId, ward=$wardId');
+      AppLogger.core('🎯 LOCATION CONTROLLER: Set initial location values: district=$districtId, body=$bodyId, ward=$wardId');
     } catch (e) {
-      AppLogger.candidateError('Failed to set initial values: $e');
+      AppLogger.core('🎯 LOCATION CONTROLLER ERROR: Failed to set initial values: $e');
     }
   }
 
@@ -291,7 +295,7 @@ class LocationController extends GetxController {
     bodiesError?.value = null;
     wardsError?.value = null;
 
-    AppLogger.candidate('🧹 Cleared all location selections');
+    AppLogger.core('🧹 LOCATION CONTROLLER: Cleared all location selections');
   }
 
   /// Check if a complete location is selected (district + body + ward)
@@ -329,7 +333,7 @@ class LocationController extends GetxController {
   Future<void> refresh() async {
     clearSelections();
     await loadDistricts();
-    AppLogger.candidate('🔄 Refreshed location data');
+    AppLogger.core('🔄 LOCATION CONTROLLER: Refreshed location data');
   }
 
   /// Force refresh districts data (bypass cache)
@@ -341,17 +345,17 @@ class LocationController extends GetxController {
       final loadedDistricts = await _locationService.loadDistricts(selectedStateId.value, forceReload: true);
 
       // Debug logging to see what districts are loaded
-      AppLogger.candidate('🔍 Force loaded ${loadedDistricts.length} districts from Firestore:');
-      for (final district in loadedDistricts) {
-        AppLogger.candidate('  - ${district.id}: ${district.name}, isActive: ${district.isActive}');
+      AppLogger.core('🏙️ LOCATION CONTROLLER: Force loaded ${loadedDistricts.length} districts from Firestore:');
+      for (final district in loadedDistricts.take(5)) { // Limit to first 5 to avoid spam
+        AppLogger.core('🏙️   - ${district.id}: ${district.name}, isActive: ${district.isActive}');
       }
 
       // Filter to only active districts (include districts where isActive is null or true, exclude false)
       final activeDistricts = loadedDistricts.where((district) => district.isActive != false).toList();
       districts.assignAll(activeDistricts);
-      AppLogger.candidate('✅ Force filtered to ${activeDistricts.length} active districts');
+      AppLogger.core('🏙️ LOCATION CONTROLLER: Force filtered to ${activeDistricts.length} active districts');
     } catch (e) {
-      AppLogger.candidateError('Failed to force load districts: $e');
+      AppLogger.core('🏙️ LOCATION CONTROLLER ERROR: Failed to force load districts: $e');
       districtsError?.value = 'Failed to load districts: $e';
       districts.clear();
     } finally {
@@ -368,7 +372,7 @@ class LocationController extends GetxController {
   Future<void> clearCaches() async {
     await _cacheManager.clearLocationCaches();
     await _locationService.clearCaches();
-    AppLogger.candidate('🧹 Cleared location caches');
+    AppLogger.core('🧹 LOCATION CONTROLLER: Cleared location caches');
   }
 
   /// Set initial district (for deep linking)

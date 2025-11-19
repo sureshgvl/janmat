@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import '../../firebase_options.dart';
 import './app_logger.dart';
 
 class SampleStatesManager {
@@ -168,5 +171,94 @@ class SampleStatesManager {
     ];
 
     await addSampleDistrictsForState('maharashtra', sampleDistricts);
+  }
+}
+
+void main() async {
+  try {
+    print('🚀 Starting Firestore database population...');
+
+    // Initialize Firebase
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+    // Add states first
+    print('🌍 Adding Maharashtra state...');
+    await SampleStatesManager.addSampleStates();
+
+    // Add districts for Maharashtra
+    final allDistricts = [
+      {'districtId': 'pune', 'name': 'Pune'},
+      {'districtId': 'mumbai', 'name': 'Mumbai'},
+      {'districtId': 'thane', 'name': 'Thane'},
+      {'districtId': 'nagpur', 'name': 'Nagpur'},
+      {'districtId': 'nashik', 'name': 'Nashik'},
+      {'districtId': 'ahmednagar', 'name': 'Ahmednagar'},
+      {'districtId': 'solapur', 'name': 'Solapur'},
+      {'districtId': 'jalgaon', 'name': 'Jalgaon'},
+      {'districtId': 'kolhapur', 'name': 'Kolhapur'},
+      {'districtId': 'satara', 'name': 'Satara'},
+      {'districtId': 'aurangabad', 'name': 'Aurangabad'},
+      {'districtId': 'latur', 'name': 'Latur'},
+      {'districtId': 'dhule', 'name': 'Dhule'},
+      {'districtId': 'nanded', 'name': 'Nanded'},
+    ];
+
+    print('📍 Adding districts for Maharashtra...');
+    await SampleStatesManager.addSampleDistrictsForState('maharashtra', allDistricts);
+    print('✅ Added ${allDistricts.length} districts');
+
+    // Add bodies for Pune
+    print('🏛️ Adding Pune Municipal Corporation...');
+    final firestore = FirebaseFirestore.instance;
+    await firestore
+        .collection('states')
+        .doc('maharashtra')
+        .collection('districts')
+        .doc('pune')
+        .collection('bodies')
+        .doc('pune_m_corp')
+        .set({
+          'bodyId': 'pune_m_corp',
+          'name': 'Pune Municipal Corporation',
+          'type': 'municipal_corporation',
+          'isActive': true,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+    // Add wards for Pune
+    print('🏘️ Adding wards for Pune Municipal Corporation...');
+    for (int i = 1; i <= 5; i++) {
+      await firestore
+          .collection('states')
+          .doc('maharashtra')
+          .collection('districts')
+          .doc('pune')
+          .collection('bodies')
+          .doc('pune_m_corp')
+          .collection('wards')
+          .doc('ward_$i')
+          .set({
+            'wardId': 'ward_$i',
+            'name': 'Ward $i',
+            'districtId': 'pune',
+            'bodyId': 'pune_m_corp',
+            'stateId': 'maharashtra',
+            'areas': ['Area A', 'Area B'],
+            'isActive': true,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+    }
+
+    print('✅ Added Pune Municipal Corporation and 5 wards');
+    print('🎉 Firestore data population completed successfully!');
+    print('💡 The web app should now be able to access districts from Firestore');
+
+  } catch (e) {
+    print('❌ Error populating Firestore data: $e');
+    print('💡 This script writes to Firestore, so you need proper Firebase authentication');
+    print('💡 Run this script after proper Firebase login: firebase auth:login');
+    print('💡 Or use Firebase service account credentials');
   }
 }

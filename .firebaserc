@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "janmat-8e831"
+  },
+  "targets": {
+    "janmat-8e831": {
+      "hosting": {
+        "janmat-official": [
+          "janmat-official"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

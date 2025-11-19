@@ -73,8 +73,8 @@ class _CandidateDashboardBasicInfoState
     );
 
     try {
-      // Load location data from SQLite cache
-      final locationData = await _locationDatabase.getCandidateLocationData(
+      // Load location data using platform-aware method (works on web and mobile)
+      final locationData = await _locationDatabase.getCandidateLocationDataWeb(
         candidate.location.districtId ?? '',
         candidate.location.bodyId ?? '',
         candidate.location.wardId ?? '',
@@ -93,7 +93,7 @@ class _CandidateDashboardBasicInfoState
 
         // Try loading again after sync
         final updatedLocationData = await _locationDatabase
-            .getCandidateLocationData(
+            .getCandidateLocationDataWeb(
               candidate.location.districtId ?? '',
               candidate.location.bodyId ?? '',
               candidate.location.wardId ?? '',

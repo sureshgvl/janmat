@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
 import 'core/app_initializer.dart';
@@ -15,6 +17,7 @@ import 'core/app_routes.dart';
 import 'core/app_route_names.dart';
 import 'core/services/app_startup_service.dart';
 import 'services/background_initializer.dart';
+import 'core/portrait_wrapper.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/features/candidate/candidate_localizations.dart';
 import 'l10n/features/auth/auth_localizations.dart';
@@ -29,6 +32,7 @@ import 'controllers/theme_controller.dart';
 import 'controllers/background_color_controller.dart';
 import 'features/language/controller/language_controller.dart';
 import 'services/home_screen_stream_service.dart';
+import 'features/user/services/user_status_manager.dart';
 import 'features/highlight/services/highlight_session_service.dart';
 
 /// Extension to handle Locale serialization/deserialization for JSON
@@ -160,15 +164,23 @@ Future<Map<String, dynamic>> _getAppSetupState() async {
 
 
 
-/// Get the appropriate route for logged-in users based on role selection and profile completion
+/// Get the appropriate route for logged-in users with pre-navigation flow control
 Future<String> _getUserFlowRoute(User? user) async {
   if (user == null) return AppRouteNames.login;
 
   try {
+    // 🚀 Fetch user data BEFORE navigation to control flow
+    AppLogger.core('🔍 Fetching user data for flow control...');
+
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 5), onTimeout: () {
+          AppLogger.core('⏰ User data fetch timeout - will try cached routing data');
+          // Don't return invalid cast, just let timeout exception propagate to catch block
+          throw Exception('User data fetch timeout');
+        });
 
     if (userDoc.exists) {
       final userData = userDoc.data();
@@ -176,30 +188,134 @@ Future<String> _getUserFlowRoute(User? user) async {
       final roleSelected = userData?['roleSelected'] ?? false;
       final profileCompleted = userData?['profileCompleted'] ?? false;
 
-      AppLogger.core('👤 User flow check: role="$role", roleSelected=$roleSelected, profileCompleted=$profileCompleted');
+      AppLogger.core('✅ User data: role="$role", roleSelected=$roleSelected, profileCompleted=$profileCompleted');
 
+      // 🔄 LEGACY USER COMPATIBILITY
+      if (!roleSelected && role.isNotEmpty && (role == 'candidate' || role == 'voter')) {
+        AppLogger.core('🚨 LEGACY USER: Setting flags and going to home');
+        FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'roleSelected': true,
+          'profileCompleted': true,
+        }).catchError((e) => AppLogger.core('⚠️ Legacy update failed: $e'));
+        return AppRouteNames.home;
+      }
+
+      // 🎯 CLEAN FLOW CONTROL: Navigate before reaching home screen
       if (!roleSelected) {
+        AppLogger.core('🎯 → Role selection screen');
         return AppRouteNames.roleSelection;
       } else if (!profileCompleted) {
+        AppLogger.core('🎯 → Profile completion screen');
         return AppRouteNames.profileCompletion;
       } else {
+        AppLogger.core('🎯 → Home screen (setup complete)');
         return AppRouteNames.home;
       }
     } else {
-      // New user, start with role selection
-      AppLogger.core('🆕 New user detected, starting with role selection');
+      // 🆕 NEW USER: Always start with role selection
+      AppLogger.core('🆕 New user → Role selection screen');
       return AppRouteNames.roleSelection;
     }
   } catch (e) {
-    AppLogger.core('⚠️ Error checking user flow state: $e');
-    // On error, default to role selection to be safe
-    return AppRouteNames.roleSelection;
+    AppLogger.core('❌ User flow error: $e');
+    // On error, try to use cached routing data as fallback
+    final cachedRoute = _tryGetCachedRoute(user.uid);
+    if (cachedRoute != null) {
+      AppLogger.core('✨ Using cached route as fallback: $cachedRoute');
+      return cachedRoute;
+    }
+    // Last resort: default to home for existing users to not disrupt experience
+    AppLogger.core('💔 No cached route available, defaulting to home');
+    return AppRouteNames.home;
+  }
+}
+
+/// Try to get cached routing data when Firebase is unavailable
+String? _tryGetCachedRoute(String userId) {
+  try {
+    final prefs = Get.find<SharedPreferences>();
+    final routingKey = 'routing_data_$userId';
+    final routingData = prefs.getString(routingKey);
+    if (routingData != null) {
+      final data = Map<String, dynamic>.from(jsonDecode(routingData));
+      final hasCompletedProfile = data['hasCompletedProfile'] ?? false;
+      final hasSelectedRole = data['hasSelectedRole'] ?? false;
+
+      if (hasSelectedRole && hasCompletedProfile) {
+        return AppRouteNames.home;
+      } else if (hasSelectedRole && !hasCompletedProfile) {
+        return AppRouteNames.profileCompletion;
+      } else {
+        return AppRouteNames.roleSelection;
+      }
+    }
+  } catch (e) {
+    AppLogger.core('⚠️ Failed to get cached route: $e');
+  }
+  return null;
+}
+
+/// Get cached user routing data synchronously (for fallback)
+Map<String, dynamic>? _getCachedUserDataSync() {
+  try {
+    final prefs = Get.find<SharedPreferences>();
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (userId.isEmpty) return null;
+
+    final routingKey = 'routing_data_$userId';
+    final routingData = prefs.getString(routingKey);
+    if (routingData != null) {
+      return Map<String, dynamic>.from(jsonDecode(routingData));
+    }
+  } catch (e) {
+    AppLogger.core('⚠️ Failed to get cached user data: $e');
+  }
+  return null;
+}
+
+/// 🚨 CRITICAL FIX: Sync UserStatusManager to prevent HomeScreen navigation conflicts
+/// This ensures UserStatusManager has the same data as Firebase after corrections
+Future<void> _syncUserStatusManager(String userId, {
+  String? role,
+  bool? roleSelected,
+  bool? profileCompleted,
+}) async {
+  try {
+    AppLogger.core('🔄 Syncing UserStatusManager with corrected data...');
+
+    // Update UserStatusManager (this updates SharedPreferences, cache, and Firebase consistently)
+    final statusManager = Get.find<UserStatusManager>();
+
+    if (role != null) {
+      await statusManager.updateRole(userId, role);
+    }
+
+    if (roleSelected != null) {
+      // We need to update roleSelected separately since updateRole() sets it to true
+      // But we might need to set other combinations
+      if (roleSelected && role == null) {
+        // Only roleSelected is being updated, update in Firebase directly
+        await FirebaseFirestore.instance.collection('users').doc(userId).update({'roleSelected': true});
+      }
+    }
+
+    if (profileCompleted != null && profileCompleted) {
+      await statusManager.updateProfileCompleted(userId, profileCompleted);
+    }
+
+    AppLogger.core('✅ UserStatusManager synced successfully');
+  } catch (e) {
+    AppLogger.core('⚠️ UserStatusManager sync failed: $e');
+    // Don't throw - this shouldn't block the main flow
   }
 }
 
 void main() async {
   // Ensure Flutter binding is initialized for safety
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Web-specific configuration is handled by web/index.html
+  // The HTML sets up centering and mobile viewport automatically
 
   // Load environment variables FIRST before any other initialization
   try {
@@ -256,6 +372,15 @@ void main() async {
   PerformanceMonitor().stopTimer('app_startup');
   PerformanceMonitor().logSlowOperation('app_startup', 2000); // Log if startup > 2 seconds
 
+  // 🔧 WEB AUTHENTICATION FIX: Add explicit Firebase auth state debugging
+  if (kIsWeb) {
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      AppLogger.auth('🌐 [WEB-DEBUG] Auth state change: ${user?.uid ?? 'null'} at ${user?.email ?? 'no-email'}');
+    }, onError: (error) {
+      AppLogger.auth('🌐 [WEB-DEBUG] Auth state error: $error');
+    });
+  }
+
   runApp(const MyApp());
 }
 
@@ -289,7 +414,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     switch (state) {
       case AppLifecycleState.inactive:
-        AppLogger.core('🏃 App became inactive');
+        //AppLogger.core('🏃 App became inactive');
         break;
       case AppLifecycleState.paused:
         AppLogger.core('😴 App paused (background) - ending highlight session');
@@ -297,7 +422,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         _sessionService.endSession();
         break;
       case AppLifecycleState.resumed:
-        AppLogger.core('🎉 App resumed (foreground)');
+        //AppLogger.core('🎉 App resumed (foreground)');
         // Useful for analytics: user returned to the app
         // Session will be created automatically when needed
         break;
@@ -464,9 +589,11 @@ class _MyAppContentState extends State<MyAppContent> {
       getPages: AppRoutes.getPages,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        // Wrap entire app with SafeArea for global safe area handling
-        return SafeArea(
-          child: child ?? const SizedBox.shrink(),
+        // Wrap entire app with PortraitWrapper for web/desktop centering + SafeArea
+        return PortraitWrapper(
+          child: SafeArea(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

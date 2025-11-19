@@ -32,12 +32,17 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
   @override
   void initState() {
     super.initState();
+    // Add district modal initialization logging
+    AppLogger.core('🏙️ 🏁 DISTRICT SELECTION MODAL: Initializing district selection modal');
+    AppLogger.core('🏙️ 📊 DISTRICT SELECTION MODAL: Total districts loaded: ${widget.districts.length}');
+    AppLogger.core('🏙️ 🎯 DISTRICT SELECTION MODAL: Currently selected district: ${widget.selectedDistrictId ?? "None"}');
     filteredDistricts = List.from(widget.districts);
+    AppLogger.core('🏙️ ✅ DISTRICT SELECTION MODAL: Initialization complete');
 
     // Log districts being displayed
-    AppLogger.ui('District Selection Modal - Displaying ${widget.districts.length} districts:');
-    for (final district in widget.districts) {
-      AppLogger.ui('  - ID: ${district.id}, Name: ${district.name}');
+    AppLogger.core('🏙️ 📋 DISTRICT SELECTION MODAL: Displaying ${widget.districts.length} districts:');
+    for (final district in widget.districts.take(5)) {
+      AppLogger.core('🏙️     - ID: ${district.id}, Name: ${district.name}');
     }
   }
 
@@ -109,11 +114,7 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
     );
   }
 
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -252,7 +253,9 @@ class _DistrictSelectionModalState extends State<DistrictSelectionModal> {
                         district.id,
                         Localizations.localeOf(context),
                       );
-                      AppLogger.ui('Displaying district: ID=${district.id}, Name=${district.name}, DisplayName=$displayName, Selected=$isSelected, Disabled=$isDisabled');
+                      if (index < 5) { // Only log first 5 items to avoid spam
+                        AppLogger.core('🏙️ 📋 DISTRICT SELECTION MODAL: Displaying district $index - ID: ${district.id}, Name: ${district.name}, Selected: $isSelected');
+                      }
 
                       return InkWell(
                         onTap: isDisabled

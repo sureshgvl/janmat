@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import '../utils/app_logger.dart';
 import '../features/candidate/services/media_cache_service.dart';
@@ -159,7 +161,7 @@ class FileUploadService {
           .replaceAll(' ', '_');
       final fileName =
           'achievement_${candidateId}_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef = _storage.ref().child('achievement_photos/$fileName');
+      final storageRef = _storage.ref().child('achievements/$fileName');
 
       final uploadTask = storageRef.putFile(
         File(fileToUpload.path),
@@ -315,8 +317,45 @@ class FileUploadService {
 
   // Local storage methods for temporary photo storage
 
-  // Get local app directory for temporary files
+  // Ensure Firebase Auth is properly initialized (web specific)
+  Future<void> _ensureFirebaseAuth() async {
+    AppLogger.common('🔐 [Auth Check] Checking Firebase Auth status...', tag: 'AUTH_CHECK');
+
+    try {
+      final auth = FirebaseAuth.instance;
+      final currentUser = auth.currentUser;
+
+      AppLogger.common('🔍 [Auth Check] Firebase Auth instance: ${auth.app.name}', tag: 'AUTH_CHECK');
+      AppLogger.common('👤 [Auth Check] Current user: ${currentUser?.uid ?? 'NULL'}', tag: 'AUTH_CHECK');
+      AppLogger.common('📧 [Auth Check] User email: ${currentUser?.email ?? 'NULL'}', tag: 'AUTH_CHECK');
+      AppLogger.common('✅ [Auth Check] User display name: ${currentUser?.displayName ?? 'NULL'}', tag: 'AUTH_CHECK');
+
+      if (currentUser == null) {
+        AppLogger.common('🚫 [Auth Check] No authenticated user found - throwing exception', tag: 'AUTH_CHECK');
+        throw Exception('User must be authenticated to upload files. Please log in and try again.');
+      }
+
+      // Additional verification that the user token is valid
+      final idToken = await currentUser.getIdToken();
+      if (idToken == null || idToken.isEmpty) {
+        AppLogger.common('🚫 [Auth Check] Invalid user token - throwing exception', tag: 'AUTH_CHECK');
+        throw Exception('Authentication token is invalid. Please log in again.');
+      }
+
+      AppLogger.common('✅ [Auth Check] User fully authenticated with valid token: ${currentUser.uid}', tag: 'AUTH_CHECK');
+    } catch (e) {
+      AppLogger.commonError('❌ [Auth Check] Firebase Auth check failed', error: e, tag: 'AUTH_CHECK');
+      // Re-throw with more context
+      throw Exception('Authentication check failed: ${e.toString()}. Please ensure you are logged in and try again.');
+    }
+  }
+
+  // Get local app directory for temporary files (mobile only)
   Future<Directory> _getLocalTempDirectory() async {
+    if (kIsWeb) {
+      throw Exception('Web platform does not support local file directories');
+    }
+
     final directory = await getApplicationDocumentsDirectory();
     final tempDir = Directory('${directory.path}/temp_photos');
     if (!await tempDir.exists()) {
@@ -325,18 +364,71 @@ class FileUploadService {
     return tempDir;
   }
 
-  // Save photo to local storage temporarily with smart optimization
+  // Save photo (locally for mobile, directly to Firebase for web) with smart optimization
   Future<String?> savePhotoLocally(
     String candidateId,
     String achievementTitle,
   ) async {
     try {
+      // Check platform first to avoid image_picker issues on web
+      if (kIsWeb) {
+        AppLogger.common('🌐 [FileUpload] Web detected - using file picker');
+
+        // Ensure Firebase Auth is properly initialized before upload
+        await _ensureFirebaseAuth();
+
+        // Web: Use file picker for web-compatible image selection
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+        );
+
+        if (result == null || result.files.isEmpty) return null;
+
+        final file = result.files.first;
+
+        if (file.bytes == null) {
+          AppLogger.common('⚠️ [FileUpload] Web file bytes are null');
+          throw Exception('Failed to get file data from web picker');
+        }
+
+        // Upload directly to Firebase Storage using bytes for web
+        final sanitizedTitle = achievementTitle
+            .replaceAll(RegExp(r'[^\w\s]'), '')
+            .replaceAll(' ', '_');
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'achievement_${candidateId}_${sanitizedTitle}_$timestamp.jpg';
+        final storageRef = _storage.ref().child('achievements/$fileName');
+
+        AppLogger.common('🌐 [FileUpload] Uploading to Firebase Storage: achievements/$fileName');
+
+        try {
+          final uploadTask = storageRef.putData(
+            file.bytes!,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+
+          final snapshot = await uploadTask.whenComplete(() {});
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          AppLogger.common('🌐 [FileUpload] Web file picker upload successful: $downloadUrl');
+          return downloadUrl;
+        } catch (firebaseError) {
+          AppLogger.commonError('❌ [FileUpload] Firebase Storage upload failed', error: firebaseError);
+          throw Exception('Firebase upload failed: $firebaseError');
+        }
+      }
+
+      // Mobile flow: Use image_picker (not compatible with web)
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80, // Start with good quality
       );
 
       if (image == null) return null;
+
+      // Mobile: Save to local storage temporarily for later upload
+      AppLogger.common('📱 [FileUpload] Mobile detected - saving locally first', tag: 'MOBILE_UPLOAD');
 
       // Check file size and optimize if needed
       final optimizedImage = await _optimizeImageForStorage(image);
@@ -365,8 +457,8 @@ class FileUploadService {
       // Return the local file path (prefixed with 'local:' to distinguish from Firebase URLs)
       return 'local:${localFile.path}';
     } catch (e) {
-      AppLogger.commonError('Error saving photo locally', error: e);
-      throw Exception('Failed to save photo locally: $e');
+      AppLogger.commonError('Error saving/uploading photo', error: e);
+      throw Exception('Failed to save/upload photo: $e');
     }
   }
 
@@ -499,8 +591,13 @@ class FileUploadService {
     }
   }
 
-  // Clean up all temporary local photos
+  // Clean up all temporary local photos (mobile only)
   Future<void> cleanupTempPhotos() async {
+    if (kIsWeb) {
+      AppLogger.common('🌐 [FileUpload] Web detected - no local cleanup needed', tag: 'WEB_CLEANUP');
+      return;
+    }
+
     try {
       final tempDir = await _getLocalTempDirectory();
       if (await tempDir.exists()) {
@@ -646,6 +743,12 @@ class FileUploadService {
     int? maxHeight,
     bool autoCorrectOrientation = true,
   }) async {
+    // Web compatibility fix: Skip compression on web
+    if (kIsWeb) {
+      AppLogger.common('🌐 [Image Compress] Skipping compression on web', tag: 'MEDIA_OPTIM');
+      return sourceImage;
+    }
+
     try {
       final sourceFile = File(sourceImage.path);
       final originalSize = await sourceFile.length();
@@ -688,6 +791,12 @@ class FileUploadService {
     XFile sourceImage, {
     ImagePurpose purpose = ImagePurpose.thumbnail, // Default to thumbnail for performance
   }) async {
+    // Web compatibility fix: Skip optimization on web to avoid file operations
+    if (kIsWeb) {
+      AppLogger.common('🌐 [Smart Optim] Skipping image optimization on web', tag: 'MEDIA_OPTIM');
+      return sourceImage;
+    }
+
     try {
       final sourceFile = File(sourceImage.path);
       final originalSize = await sourceFile.length();
@@ -808,14 +917,21 @@ class FileUploadService {
 
   // =================== BACKWARD COMPATIBILITY METHODS ===================
 
-  // Save existing file to local storage (for media tab)
+  // Save existing file to local storage (for media tab) - Web compatible
   Future<String?> saveExistingFileLocally(
     String sourceFilePath,
     String candidateId,
     String fileName,
   ) async {
+    if (kIsWeb) {
+      AppLogger.common('🌐 [FileUpload] Web detected - redirecting to Firebase upload', tag: 'WEB_MEDIA');
+      // On web, we can't save locally, so just return the source path as-is
+      // The calling code should handle web-specific logic
+      return sourceFilePath;
+    }
+
     try {
-      AppLogger.common('Saving existing file locally...', tag: 'LOCAL_STORAGE');
+      AppLogger.common('📱 [FileUpload] Saving existing file locally...', tag: 'LOCAL_STORAGE');
 
       // Get application documents directory
       final directory = await getApplicationDocumentsDirectory();

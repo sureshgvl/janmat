@@ -53,6 +53,53 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // MAINTAIN SECONDARY LOADING POPUP DURING NAVIGATION TRANSITION
+  Future<void> _handleGoogleSignIn(
+    AuthController controller,
+    bool forceAccountPicker,
+    AuthLocalizations authLocalizations,
+  ) async {
+    // Show the secondary loading dialog
+    Get.dialog(
+      AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Determining your account status...',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please wait while we set up your account',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+      barrierDismissible: false, // Prevent dismissal while navigating
+    );
+
+    try {
+      AppLogger.auth('🔄 [LOGIN SCREEN] Starting Google sign-in process...');
+      await controller.signInWithGoogle(forceAccountPicker: forceAccountPicker, showOwnDialog: false);
+      AppLogger.auth('✅ [LOGIN SCREEN] Google sign-in completed');
+
+      // Keep the loading dialog until navigation completes
+      // The AuthController.signInWithGoogle already handles navigation
+    } catch (e) {
+      AppLogger.auth('❌ [LOGIN SCREEN] Error in Google sign-in: $e');
+      // Close the secondary loading dialog on error
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      // Primary sign-in error handling is done in AuthController
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final AuthController controller = Get.find<AuthController>();
@@ -391,7 +438,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ElevatedButton(
-                      onPressed: () => controller.signInWithGoogle(forceAccountPicker: false),
+                      onPressed: controller.isLoading.value ? null : () async {
+                        await _handleGoogleSignIn(controller, false, authLocalizations);
+                      },
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 56),
                         backgroundColor: Colors.green,
@@ -402,43 +451,54 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Image.asset(
-                            'assets/images/google_logo.png',
-                            height: 24,
-                            width: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Row(
                               children: [
-                                Text(
-                                  authLocalizations.continueAs(storedAccount?['displayName'] ?? 'User'),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                Image.asset(
+                                  'assets/images/google_logo.png',
+                                  height: 24,
+                                  width: 24,
                                 ),
-                                Text(
-                                  storedAccount?['email'] ?? '',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        authLocalizations.continueAs(storedAccount?['displayName'] ?? 'User'),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        storedAccount?['email'] ?? '',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
 
                   // Sign in with different account button
                   ElevatedButton.icon(
-                    onPressed: () => controller.signInWithGoogle(forceAccountPicker: true),
+                    onPressed: controller.isLoading.value ? null : () async {
+                      await _handleGoogleSignIn(controller, true, authLocalizations);
+                    },
                     icon: controller.isLoading.value
                         ? const SizedBox(
                             width: 20,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,12 +14,31 @@ import '../../../features/user/services/user_cache_service.dart';
 class GoogleAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
   final UserCacheService _cacheService = UserCacheService();
   final BackgroundSyncManager _syncManager = BackgroundSyncManager();
   final FCMService _fcmService = FCMService();
+
+  // 🔒 SIGN-IN MUTEX to prevent "Future already completed"
+  bool _isSigningIn = false;
+
+  // SINGLETON GoogleSignIn instance - prevents multiple conflicting instances
+  static GoogleSignIn? _sharedGoogleSignIn;
+
+  GoogleAuthService() {
+    // Initialize services but don't create GoogleSignIn here to avoid conflicts
+  }
+
+  // Get the singleton GoogleSignIn instance
+  static GoogleSignIn get _googleSignInInstance {
+    _sharedGoogleSignIn ??= GoogleSignIn(
+      scopes: ['email', 'profile'],
+      // Don't set clientId here for web - it gets it from the meta tag
+    );
+    return _sharedGoogleSignIn!;
+  }
+
+  // Public getter for shared GoogleSignIn instance (singleton)
+  static GoogleSignIn get sharedGoogleSignIn => _googleSignInInstance;
 
   // Check network connectivity before attempting Google Sign-In
   Future<bool> _checkConnectivity() async {
@@ -33,196 +53,92 @@ class GoogleAuthService {
     }
   }
 
-  // Google Sign-In - Optimized for Release Build Performance
+  // Google Sign-In - Platform-specific implementation with MUTEX
   Future<UserCredential?> signInWithGoogle({bool forceAccountPicker = false}) async {
-    final startTime = DateTime.now();
-    startPerformanceTimer('google_signin_release_optimized');
+    // 🔒 MUTEX: Prevent duplicate sign-in attempts
+    if (_isSigningIn) {
+      AppLogger.auth('⚠️ Sign-in already in progress, ignoring duplicate request');
+      return null;
+    }
 
-    AppLogger.auth('🚀 Starting RELEASE-OPTIMIZED Google Sign-In at ${startTime.toIso8601String()}');
+    _isSigningIn = true;
+    AppLogger.auth('🚀 Starting Google Sign-In...');
 
     try {
-      // RELEASE OPTIMIZATION: Skip connectivity check for faster startup
-      // App Check and Firebase will handle network issues
-      AppLogger.auth('⚡ [RELEASE_OPTIMIZED] Skipping connectivity check for speed');
+      if (kIsWeb) {
+        // Web implementation: Use Firebase Auth popup
+        AppLogger.auth('🌐 Attempting Google Sign-In popup...');
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
 
-      GoogleSignInAccount? googleUser;
+        final UserCredential userCredential = await _firebaseAuth.signInWithPopup(googleProvider);
 
-      // RELEASE OPTIMIZATION: Skip silent sign-in for first-time users
-      // Go directly to account picker for faster UX
-      if (!forceAccountPicker) {
-        // Try silent sign-in with shorter timeout (2s instead of 5s)
-        AppLogger.auth('🔍 [RELEASE_OPTIMIZED] Quick silent sign-in attempt...');
-        try {
-          googleUser = await _googleSignIn.signInSilently().timeout(
-            const Duration(seconds: 2), // Reduced from 5s for faster UX
-            onTimeout: () {
-              AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Silent sign-in timeout after 2s');
-              return null;
-            },
-          );
-          if (googleUser != null) {
-            AppLogger.auth('✅ [RELEASE_OPTIMIZED] Silent sign-in successful: ${googleUser.displayName}');
-          }
-        } catch (e) {
-          AppLogger.auth('ℹ️ [RELEASE_OPTIMIZED] Silent sign-in failed, proceeding to picker');
+        AppLogger.auth('✅ Google Sign-In successful: ${userCredential.user?.displayName}');
+        AppLogger.auth('📧 Email: ${userCredential.user?.email}');
+        AppLogger.auth('🆔 UID: ${userCredential.user?.uid}');
+
+        // Create/update user record
+        await _createOrUpdateUserMinimal(userCredential.user!);
+
+        return userCredential;
+      } else {
+        // Mobile/Android implementation: Use GoogleSignIn package
+        AppLogger.auth('📱 Attempting Google Sign-In on mobile...');
+
+        final GoogleSignInAccount? googleUser = await _googleSignInInstance.signIn();
+
+        if (googleUser == null) {
+          throw 'Google sign-in was cancelled by user';
         }
-      }
 
-      // If silent failed or forced picker requested, show account picker
-      if (googleUser == null) {
-        AppLogger.auth('📱 [RELEASE_OPTIMIZED] Showing Google account picker...');
+        AppLogger.auth('✅ Google account selected: ${googleUser.email}');
 
-        final signInStart = DateTime.now();
-        googleUser = await _googleSignIn.signIn().timeout(
-          const Duration(seconds: 30), // Reduced from 45s for faster UX
-          onTimeout: () {
-            final timeoutDuration = DateTime.now().difference(signInStart);
-            AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Account picker timeout after ${timeoutDuration.inSeconds}s');
-            throw Exception('Google Sign-In timed out. Please try again.');
-          },
+        // Get authentication credentials
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+        // Create Firebase credential
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
         );
 
-        final signInDuration = DateTime.now().difference(signInStart);
-        AppLogger.auth('✅ [RELEASE_OPTIMIZED] Account picker completed in ${signInDuration.inSeconds}s');
+        // Sign in to Firebase with the Google credential
+        final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
+
+        AppLogger.auth('✅ Firebase authentication successful: ${userCredential.user?.displayName}');
+        AppLogger.auth('📧 Email: ${userCredential.user?.email}');
+        AppLogger.auth('🆔 UID: ${userCredential.user?.uid}');
+
+        // Store Google account info for UX
+        await _storeLastGoogleAccount(googleUser);
+
+        // Create/update user record
+        await _createOrUpdateUserMinimal(userCredential.user!);
+
+        return userCredential;
       }
 
-      if (googleUser == null) {
-        final totalDuration = DateTime.now().difference(startTime);
-        stopPerformanceTimer('google_signin_release_optimized');
-        AppLogger.auth('[RELEASE_OPTIMIZED] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
-        return null;
-      }
-
-      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Google account selected: ${googleUser.displayName}');
-
-      // RELEASE OPTIMIZATION: Store account info asynchronously (don't await)
-      _storeLastGoogleAccount(googleUser); // Fire-and-forget
-
-      // RELEASE OPTIMIZATION: Get tokens and prepare data in parallel with reduced logging
-      final parallelStart = DateTime.now();
-
-      final tokenFuture = googleUser.authentication;
-      final userDataPrepFuture = _prepareUserDataLocally(googleUser);
-
-      final parallelResults = await Future.wait([tokenFuture, userDataPrepFuture]);
-      final parallelDuration = DateTime.now().difference(parallelStart);
-
-      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
-
-      final GoogleSignInAuthentication googleAuth = parallelResults[0] as GoogleSignInAuthentication;
-
-      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        throw 'Failed to retrieve authentication tokens from Google';
-      }
-
-      // Create Firebase credential
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken!,
-        idToken: googleAuth.idToken!,
-      );
-
-      // RELEASE OPTIMIZATION: Firebase auth with shorter timeout (30s instead of 45s)
-      final firebaseStart = DateTime.now();
-
-      final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential)
-          .timeout(
-            const Duration(seconds: 30), // Reduced from 45s for faster UX
-            onTimeout: () {
-              AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Firebase auth timeout after 30s');
-              throw Exception('Authentication is taking longer than expected. Please try again.');
-            },
-          );
-
-      final firebaseDuration = DateTime.now().difference(firebaseStart);
-      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Firebase auth successful in ${firebaseDuration.inMilliseconds}ms');
-
-      // RELEASE OPTIMIZATION: Create minimal user record asynchronously for faster navigation
-      _createOrUpdateUserMinimal(userCredential.user!); // Fire-and-forget
-
-      // RELEASE OPTIMIZATION: Move all background operations to true background
-      // Don't block navigation for any setup operations
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _performBackgroundSetup(userCredential.user!);
-        _updateUserFCMToken(userCredential.user!);
-      });
-
-      final totalDuration = DateTime.now().difference(startTime);
-      stopPerformanceTimer('google_signin_release_optimized');
-
-      AppLogger.auth('🎉 [RELEASE_OPTIMIZED] Google Sign-In completed in ${totalDuration.inSeconds}s');
-      AppLogger.auth('📊 [RELEASE_OPTIMIZED] Breakdown: Parallel=${parallelDuration.inMilliseconds}ms, Firebase=${firebaseDuration.inMilliseconds}ms');
-
-      return userCredential;
     } catch (e) {
-      final totalDuration = DateTime.now().difference(startTime);
-      stopPerformanceTimer('google_signin_optimized');
+      AppLogger.auth('❌ Google Sign-In failed: ${e.toString()}');
 
-      AppLogger.auth('[GOOGLE_SIGNIN] Google Sign-In failed after ${totalDuration.inSeconds}s');
-
-      AppLogger.auth('[GOOGLE_SIGNIN] Error details: ${e.toString()}');
-      AppLogger.auth('[GOOGLE_SIGNIN] Error type: ${e.runtimeType}');
-      // Handle the special case where auth succeeded but timed out
-      if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
-        AppLogger.auth('✅ [GOOGLE_SIGNIN] Handling successful authentication that timed out');
-
-        final currentUser = _firebaseAuth.currentUser;
-        if (currentUser != null) {
-          AppLogger.auth('✅ [GOOGLE_SIGNIN] Proceeding with authenticated user: ${currentUser.displayName} (UID: ${currentUser.uid})');
-
-          // Minimal user data for successful auth
-          AppLogger.auth('👤 [GOOGLE_SIGNIN] Creating minimal user record for timeout recovery...');
-          final recoveryStart = DateTime.now();
-          await _createOrUpdateUserMinimal(currentUser);
-          final recoveryDuration = DateTime.now().difference(recoveryStart);
-          AppLogger.auth('✅ [GOOGLE_SIGNIN] Recovery user record created in ${recoveryDuration.inMilliseconds}ms');
-
-          // Background setup
-          _performBackgroundSetup(currentUser);
-          AppLogger.auth('✅ [GOOGLE_SIGNIN] Background setup initiated for timeout recovery');
-
-          AppLogger.auth('🎉 [GOOGLE_SIGNIN] Google Sign-In completed successfully despite timeout');
-          return null; // Return null to indicate success but no UserCredential
-        } else {
-          AppLogger.auth('[GOOGLE_SIGNIN] Timeout recovery failed - no current user found');
-        }
-      }
-
-      // Categorize and provide more specific error messages
-      String errorCategory = 'unknown';
-      String userMessage = 'Sign-in failed';
-
-      if (e.toString().contains('network') || e.toString().contains('timeout')) {
-        errorCategory = 'network';
-        userMessage = 'Network error during sign-in. Please check your internet connection and try again.';
-        AppLogger.auth('🌐 [GOOGLE_SIGNIN] Network-related error detected');
-      } else if (e.toString().contains('cancelled') || e.toString().contains('CANCELLED')) {
-        errorCategory = 'user_cancelled';
-        userMessage = 'Sign-in was cancelled.';
-        AppLogger.auth('🚫 [GOOGLE_SIGNIN] User cancelled the sign-in process');
-      } else if (e.toString().contains('sign_in_failed') || e.toString().contains('SIGN_IN_FAILED')) {
-        errorCategory = 'auth_failed';
-        userMessage = 'Authentication failed. Please try again.';
-        AppLogger.auth('🔐 [GOOGLE_SIGNIN] Authentication failure detected');
-      } else if (e.toString().contains('account') || e.toString().contains('ACCOUNT')) {
-        errorCategory = 'account_issue';
-        userMessage = 'Account selection failed. Please try selecting a different account.';
-        AppLogger.auth('👤 [GOOGLE_SIGNIN] Account-related error detected');
-      } else if (e.toString().contains('Firebase authentication timed out')) {
-        errorCategory = 'firebase_timeout';
-        userMessage = 'Sign-in is taking longer than expected. Please wait a moment and try again.';
-        AppLogger.auth('⏰ [GOOGLE_SIGNIN] Firebase authentication timeout detected');
+      // Categorize errors for better error messages
+      if (e.toString().contains('popup-blocked')) {
+        throw 'Please allow popups for this site to sign in with Google';
+      } else if (e.toString().contains('cancelled') || e.toString().contains('was cancelled by user')) {
+        throw 'Sign-in was cancelled';
+      } else if (e.toString().contains('network')) {
+        throw 'Network error - please check your connection';
+      } else if (e.toString().contains('sign_in_failed')) {
+        throw 'Google sign-in failed - please try again';
+      } else if (e.toString().contains('invalid_client')) {
+        throw 'Google authentication configuration error';
       } else {
-        errorCategory = 'unknown';
-        userMessage = 'Sign-in failed: ${e.toString()}';
-        AppLogger.auth('❓ [GOOGLE_SIGNIN] Unknown error category');
+        throw 'Sign-in failed: ${e.toString()}';
       }
-
-      AppLogger.auth('📊 [GOOGLE_SIGNIN] Error summary:');
-      AppLogger.auth('   - Category: $errorCategory');
-      AppLogger.auth('   - Duration: ${totalDuration.inSeconds}s');
-      AppLogger.auth('   - User message: $userMessage');
-
-      throw userMessage;
+    } finally {
+      // 🔒Always reset mutex
+      _isSigningIn = false;
     }
   }
 
@@ -453,9 +369,53 @@ class GoogleAuthService {
     }
   }
 
-  // Sign out from Google
+  // Sign out from Google and clear all auth data
   Future<void> signOutFromGoogle() async {
-    await _googleSignIn.signOut();
-    AppLogger.auth('✅ Google account signed out');
+    try {
+      // Sign out from Firebase first
+      await FirebaseAuth.instance.signOut();
+      AppLogger.auth('✅ Firebase user signed out');
+
+      // Sign out from Google Sign-In
+      await _googleSignInInstance.signOut();
+      AppLogger.auth('✅ Google account signed out');
+
+      // Clear all cached auth data
+      await clearLastGoogleAccount();
+      AppLogger.auth('✅ Auth cache cleared');
+
+    } catch (e) {
+      AppLogger.auth('⚠️ Sign out error: $e');
+    }
+  }
+
+  // 🔥 COMPLETE FIREBASE AUTH RESET - for when auth gets corrupted
+  Future<void> resetFirebaseAuth() async {
+    AppLogger.auth('🔥 Starting COMPLETE Firebase Auth Reset...');
+
+    try {
+      // Step 1: Sign out from everything
+      await signOutFromGoogle();
+
+      // Step 2: Disconnect Firebase Auth listeners temporarily
+      FirebaseAuth.instance.authStateChanges().listen((user) {
+        AppLogger.auth('🔄 Auth state during reset: ${user?.uid ?? 'null'}');
+      });
+
+      // Step 3: Clear local storage and preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      AppLogger.auth('🧹 SharedPreferences cleared');
+
+      // Step 4: Force Firebase to clean state
+      await FirebaseAuth.instance.signOut();
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      AppLogger.auth('✅ Firebase Auth completely reset');
+      AppLogger.auth('🎯 Now try Google Sign-In again - should be clean');
+
+    } catch (e) {
+      AppLogger.auth('❌ Reset failed: $e');
+    }
   }
 }

@@ -1,4 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:get/get.dart';
@@ -19,28 +22,41 @@ class LocationDataService {
   LocationDataService._internal();
 
   Database? _database;
+  SharedPreferences? _prefs;
   bool _isInitialized = false;
 
-  /// Initialize the database
+  /// Initialize the database (SQLite on mobile, SharedPreferences on web)
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      final dbPath = await getDatabasesPath();
-      final path = join(dbPath, 'location_data.db');
+      if (kIsWeb) {
+        // Use SharedPreferences for web (limited but sufficient for current usage)
+        _prefs = await SharedPreferences.getInstance();
+        AppLogger.common('✅ LocationDataService initialized for web (using SharedPreferences cache)');
+      } else {
+        // Use SQLite for mobile platforms
+        final dbPath = await getDatabasesPath();
+        final path = join(dbPath, 'location_data.db');
 
-      _database = await openDatabase(
-        path,
-        version: 1,
-        onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
-      );
+        _database = await openDatabase(
+          path,
+          version: 1,
+          onCreate: _onCreate,
+          onUpgrade: _onUpgrade,
+        );
+        AppLogger.common('✅ LocationDataService initialized for mobile (using SQLite)');
+      }
 
       _isInitialized = true;
-      AppLogger.common('✅ LocationDataService initialized successfully');
     } catch (e) {
       AppLogger.commonError('❌ Failed to initialize LocationDataService: $e');
-      rethrow;
+      if (!kIsWeb) {
+        rethrow;
+      } else {
+        _isInitialized = true; // Continue without cache on web errors
+        AppLogger.common('⚠️ Continuing without cache on web due to initialization error');
+      }
     }
   }
 
@@ -456,122 +472,194 @@ class LocationDataService {
   // ===== PRIVATE CACHE METHODS =====
 
   Future<State?> _getStateFromCache(String stateId) async {
-    final maps = await _database!.query(
-      'states',
-      where: 'id = ?',
-      whereArgs: [stateId],
-    );
-
-    if (maps.isNotEmpty) {
-      // Convert integer back to boolean for State model
-      final data = Map<String, dynamic>.from(maps.first);
-      if (data['isActive'] != null) {
-        data['isActive'] = (data['isActive'] as int) == 1;
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final jsonStr = _prefs!.getString('state_$stateId');
+        if (jsonStr != null) {
+          final data = json.decode(jsonStr);
+          return State.fromJson(data);
+        }
       }
-      return State.fromJson(data);
+    } else {
+      final maps = await _database!.query(
+        'states',
+        where: 'id = ?',
+        whereArgs: [stateId],
+      );
+
+      if (maps.isNotEmpty) {
+        // Convert integer back to boolean for State model
+        final data = Map<String, dynamic>.from(maps.first);
+        if (data['isActive'] != null) {
+          data['isActive'] = (data['isActive'] as int) == 1;
+        }
+        return State.fromJson(data);
+      }
     }
     return null;
   }
 
   Future<District?> _getDistrictFromCache(String districtId, {String? stateId}) async {
-    final maps = await _database!.query(
-      'districts',
-      where: stateId != null ? 'id = ? AND stateId = ?' : 'id = ?',
-      whereArgs: stateId != null ? [districtId, stateId] : [districtId],
-    );
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final jsonStr = _prefs!.getString('district_$districtId${stateId != null ? '_${stateId}' : ''}');
+        if (jsonStr != null) {
+          final data = json.decode(jsonStr);
+          return District.fromJson(data);
+        }
+      }
+    } else {
+      final maps = await _database!.query(
+        'districts',
+        where: stateId != null ? 'id = ? AND stateId = ?' : 'id = ?',
+        whereArgs: stateId != null ? [districtId, stateId] : [districtId],
+      );
 
-    if (maps.isNotEmpty) {
-      return District.fromJson(maps.first);
+      if (maps.isNotEmpty) {
+        return District.fromJson(maps.first);
+      }
     }
     return null;
   }
 
   Future<Body?> _getBodyFromCache(String bodyId, {String? stateId, String? districtId}) async {
-    final maps = await _database!.query(
-      'bodies',
-      where: (stateId != null && districtId != null) ? 'id = ? AND stateId = ? AND districtId = ?' : 'id = ?',
-      whereArgs: (stateId != null && districtId != null) ? [bodyId, stateId, districtId] : [bodyId],
-    );
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final jsonStr = _prefs!.getString('body_$bodyId${districtId != null ? '_${districtId}' : ''}');
+        if (jsonStr != null) {
+          final data = json.decode(jsonStr);
+          return Body.fromJson(data);
+        }
+      }
+    } else {
+      final maps = await _database!.query(
+        'bodies',
+        where: (stateId != null && districtId != null) ? 'id = ? AND stateId = ? AND districtId = ?' : 'id = ?',
+        whereArgs: (stateId != null && districtId != null) ? [bodyId, stateId, districtId] : [bodyId],
+      );
 
-    if (maps.isNotEmpty) {
-      return Body.fromJson(maps.first);
+      if (maps.isNotEmpty) {
+        return Body.fromJson(maps.first);
+      }
     }
     return null;
   }
 
   Future<Ward?> _getWardFromCache(String wardId, {String? stateId, String? districtId, String? bodyId}) async {
-    final maps = await _database!.query(
-      'wards',
-      where: (stateId != null && districtId != null && bodyId != null) ? 'id = ? AND stateId = ? AND districtId = ? AND bodyId = ?' : 'id = ?',
-      whereArgs: (stateId != null && districtId != null && bodyId != null) ? [wardId, stateId, districtId, bodyId] : [wardId],
-    );
-
-    if (maps.isNotEmpty) {
-      // Convert comma-separated string back to List<String> for Ward model
-      final data = Map<String, dynamic>.from(maps.first);
-      if (data['areas'] != null && data['areas'] is String) {
-        data['areas'] = (data['areas'] as String).split(',').where((s) => s.isNotEmpty).toList();
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final jsonStr = _prefs!.getString('ward_$wardId${bodyId != null ? '_${bodyId}' : ''}');
+        if (jsonStr != null) {
+          final data = json.decode(jsonStr);
+          return Ward.fromJson(data);
+        }
       }
-      return Ward.fromJson(data);
+    } else {
+      final maps = await _database!.query(
+        'wards',
+        where: (stateId != null && districtId != null && bodyId != null) ? 'id = ? AND stateId = ? AND districtId = ? AND bodyId = ?' : 'id = ?',
+        whereArgs: (stateId != null && districtId != null && bodyId != null) ? [wardId, stateId, districtId, bodyId] : [wardId],
+      );
+
+      if (maps.isNotEmpty) {
+        // Convert comma-separated string back to List<String> for Ward model
+        final data = Map<String, dynamic>.from(maps.first);
+        if (data['areas'] != null && data['areas'] is String) {
+          data['areas'] = (data['areas'] as String).split(',').where((s) => s.isNotEmpty).toList();
+        }
+        return Ward.fromJson(data);
+      }
     }
     return null;
   }
 
   Future<void> _cacheState(State state) async {
-    // Convert boolean to integer for SQLite compatibility
-    final stateData = state.toJson();
-    if (stateData['isActive'] != null) {
-      stateData['isActive'] = (stateData['isActive'] as bool) ? 1 : 0;
-    }
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final stateData = state.toJson();
+        final jsonStr = json.encode(stateData);
+        await _prefs!.setString('state_${state.id}', jsonStr);
+      }
+    } else {
+      // Convert boolean to integer for SQLite compatibility
+      final stateData = state.toJson();
+      if (stateData['isActive'] != null) {
+        stateData['isActive'] = (stateData['isActive'] as bool) ? 1 : 0;
+      }
 
-    await _database!.insert(
-      'states',
-      {
-        ...stateData,
-        'lastSyncedAt': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      await _database!.insert(
+        'states',
+        {
+          ...stateData,
+          'lastSyncedAt': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<void> _cacheDistrict(District district) async {
-    await _database!.insert(
-      'districts',
-      {
-        ...district.toJson(),
-        'lastSyncedAt': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final districtData = district.toJson();
+        final jsonStr = json.encode(districtData);
+        await _prefs!.setString('district_${district.id}${district.stateId != null ? '_${district.stateId}' : ''}', jsonStr);
+      }
+    } else {
+      await _database!.insert(
+        'districts',
+        {
+          ...district.toJson(),
+          'lastSyncedAt': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<void> _cacheBody(Body body) async {
-    await _database!.insert(
-      'bodies',
-      {
-        ...body.toJson(),
-        'lastSyncedAt': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final bodyData = body.toJson();
+        final jsonStr = json.encode(bodyData);
+        await _prefs!.setString('body_${body.id}_${body.districtId}', jsonStr);
+      }
+    } else {
+      await _database!.insert(
+        'bodies',
+        {
+          ...body.toJson(),
+          'lastSyncedAt': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<void> _cacheWard(Ward ward) async {
-    // Convert List<String> to JSON string for SQLite compatibility
-    final wardData = ward.toJson();
-    if (wardData['areas'] != null) {
-      // Convert List<String> to JSON string
-      wardData['areas'] = (wardData['areas'] as List<String>).join(',');
-    }
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final wardData = ward.toJson();
+        final jsonStr = json.encode(wardData);
+        await _prefs!.setString('ward_${ward.id}_${ward.bodyId}', jsonStr);
+      }
+    } else {
+      // Convert List<String> to JSON string for SQLite compatibility
+      final wardData = ward.toJson();
+      if (wardData['areas'] != null) {
+        // Convert List<String> to JSON string
+        wardData['areas'] = (wardData['areas'] as List<String>).join(',');
+      }
 
-    await _database!.insert(
-      'wards',
-      {
-        ...wardData,
-        'lastSyncedAt': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      await _database!.insert(
+        'wards',
+        {
+          ...wardData,
+          'lastSyncedAt': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   // ===== PRIVATE FIREBASE SEARCH METHODS =====
@@ -690,20 +778,33 @@ class LocationDataService {
   Future<void> clearCache() async {
     await _ensureInitialized();
 
-    await _database!.delete('wards');
-    await _database!.delete('bodies');
-    await _database!.delete('districts');
-    await _database!.delete('states');
+    if (kIsWeb) {
+      if (_prefs != null) {
+        final keys = _prefs!.getKeys().where((key) =>
+          key.startsWith('state_') || key.startsWith('district_') ||
+          key.startsWith('body_') || key.startsWith('ward_')
+        ).toList();
+        for (var key in keys) {
+          await _prefs!.remove(key);
+        }
+      }
+    } else {
+      await _database!.delete('wards');
+      await _database!.delete('bodies');
+      await _database!.delete('districts');
+      await _database!.delete('states');
+    }
 
     AppLogger.common('🗑️ Location data cache cleared');
   }
 
   /// Close database connection
   Future<void> dispose() async {
-    if (_database != null) {
+    if (!kIsWeb && _database != null) {
       await _database!.close();
       _database = null;
-      _isInitialized = false;
     }
+    _prefs = null;
+    _isInitialized = false;
   }
 }

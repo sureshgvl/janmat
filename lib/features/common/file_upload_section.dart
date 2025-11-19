@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../utils/app_logger.dart';
 import '../../utils/snackbar_utils.dart';
 import '../candidate/models/candidate_model.dart';
@@ -411,15 +414,44 @@ class _FileUploadSectionState extends State<FileUploadSection> {
     }
   }
 
-  // Local storage helper methods
+  // Local storage helper methods - Web compatible
   Future<String?> _saveFileLocally(dynamic file, String type) async {
     try {
+      if (kIsWeb && (type == 'image' || type == 'video')) {
+        // Web: Images/videos from picker need direct Firebase upload
+        AppLogger.candidate('🌐 [FileUpload] Web detected for $type - uploading directly to Firebase');
+
+        if (file is XFile) {
+          // Upload directly to Firebase Storage
+          final userId = widget.candidateData.userId ?? 'unknown_user';
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final fileName = '${type}_${userId}_$timestamp.${type == 'video' ? 'mp4' : 'jpg'}';
+          final storagePath = 'manifesto/${type}s/$fileName';
+
+          final storageRef = FirebaseStorage.instance.ref().child(storagePath);
+
+          final uploadTask = storageRef.putFile(
+            File(file.path),
+            SettableMetadata(contentType: type == 'video' ? 'video/mp4' : 'image/jpeg'),
+          );
+
+          final snapshot = await uploadTask.whenComplete(() {});
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          AppLogger.candidate('🌐 [FileUpload] Web $type upload successful: $downloadUrl');
+          return downloadUrl;
+        }
+
+        // If file is not XFile, return null to indicate upload is complete
+        return null;
+      }
+
       AppLogger.candidate('💾 [Local Storage] Saving $type file locally...');
 
       // Clean up old temp files first (keep only files from last 30 minutes)
       await _cleanupOldTempFiles();
 
-      // Get application documents directory
+      // Get application documents directory (only for mobile)
       final directory = await getApplicationDocumentsDirectory();
       final localDir = Directory('${directory.path}/manifesto_temp');
       if (!await localDir.exists()) {
@@ -439,7 +471,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       // Save file locally
       if (file is file_picker.PlatformFile) {
         if (file.bytes != null) {
-          // Web platform
+          // Web platform PDF or other files with bytes
           final localFile = File(localPath);
           await localFile.writeAsBytes(file.bytes!);
           AppLogger.candidate('💾 [Local Storage] Saved web file to: $localPath');
@@ -457,13 +489,18 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       AppLogger.candidate('💾 [Local Storage] File saved successfully at: $localPath');
       return localPath;
     } catch (e) {
-      AppLogger.candidate('💾 [Local Storage] Error saving file locally: $e');
+      AppLogger.candidate('💾 [Local Storage] Error saving/uploading file: $e');
       return null;
     }
   }
 
-  // Clean up old temporary files (older than 30 minutes)
+  // Clean up old temporary files (older than 30 minutes) - Web compatible
   Future<void> _cleanupOldTempFiles() async {
+    if (kIsWeb) {
+      AppLogger.candidate('🌐 [Cache Cleanup] Web detected - no local cleanup needed');
+      return;
+    }
+
     try {
       AppLogger.candidate('🧹 [Cache Cleanup] Starting cache cleanup...');
 

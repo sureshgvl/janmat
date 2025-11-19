@@ -19,6 +19,7 @@ class CandidateListView extends StatelessWidget {
   final PaginationController paginationController;
   final VoidCallback onRefresh;
   final VoidCallback onLoadMore;
+  final String? currentUserId; // Add current user ID
 
   const CandidateListView({
     super.key,
@@ -28,6 +29,7 @@ class CandidateListView extends StatelessWidget {
     required this.paginationController,
     required this.onRefresh,
     required this.onLoadMore,
+    this.currentUserId,
   });
 
   @override
@@ -215,7 +217,11 @@ class CandidateListView extends StatelessWidget {
                     ),
                   );
                 },
-                child: CandidateCard(candidate: candidate),
+                child: CandidateCard(
+                  candidate: candidate,
+                  showCurrentUserIndicator: true,
+                  currentUserId: currentUserId,
+                ),
               );
             },
           ),

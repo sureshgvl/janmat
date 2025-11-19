@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
@@ -269,10 +271,10 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
           _fileUploadService.isLocalPath(achievement.photoUrl!)) {
         try {
           // Remove local paths - they should not persist in database
-          AppLogger.candidate('🧹 [Achievements Cleanup] Removing invalid local photo URL: ${achievement.photoUrl}');
+          AppLogger.core('🧹 [Achievements Cleanup] Removing invalid local photo URL: ${achievement.photoUrl}');
           _achievements[i] = achievement.copyWith(photoUrl: null);
         } catch (e) {
-          AppLogger.candidateError('❌ [Achievements Cleanup] Error cleaning up local photo path: $e');
+          AppLogger.coreError('❌ [Achievements Cleanup] Error cleaning up local photo path: $e');
         }
       }
     }
@@ -325,6 +327,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
   final List<Map<String, dynamic>> _localAchievementPhotos = []; // Similar to manifesto's _localFiles
 
   Future<void> _uploadPhoto(int index) async {
+    AppLogger.candidate('📸 [Achievements Upload] Starting photo upload for achievement $index');
     setState(() {
       _uploadingPhotos[index] = true;
     });
@@ -333,73 +336,119 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
       final candidateId = widget.candidateData.candidateId;
       final achievement = _achievements[index];
 
-      final localPath = await _fileUploadService.savePhotoLocally(
+      AppLogger.candidate('📸 [Achievements Upload] Achievement: ${achievement.title}, candidateId: $candidateId');
+
+      final resultPath = await _fileUploadService.savePhotoLocally(
         candidateId,
         achievement.title,
       );
 
-      if (localPath == null) return;
+      AppLogger.candidate('📸 [Achievements Upload] savePhotoLocally returned: $resultPath');
 
-      final validation = await _fileUploadService.validateFileSize(localPath);
-
-      if (!validation.isValid) {
-        SnackbarUtils.showScaffoldError(context, validation.message);
+      if (resultPath == null) {
+        AppLogger.candidate('❌ [Achievements Upload] savePhotoLocally returned null - early exit');
+        SnackbarUtils.showScaffoldError(context, 'Failed to capture photo');
         return;
       }
 
-      if (validation.warning) {
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Large File Warning'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(validation.message),
-                if (validation.recommendation != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    validation.recommendation!,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Choose Different Photo'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Continue Anyway'),
-              ),
-            ],
-          ),
-        );
+      // Check if this is a Firebase URL (web upload) vs local path (mobile)
+      final isFirebaseUrl = resultPath.startsWith('https://');
 
-        if (proceed != true) return;
+      AppLogger.candidate('📸 [Achievements Upload] Is Firebase URL: $isFirebaseUrl, Platform: ${kIsWeb ? 'WEB' : 'MOBILE'}');
+
+      if (kIsWeb && isFirebaseUrl) {
+        // Web: File already uploaded to Firebase
+        AppLogger.candidate('🌐 [Achievements Upload] Web upload complete - setting Firebase URL directly');
+
+        // 🗑️ Handle old photo cleanup: Add old photo to deleteStorage if it exists
+        if (achievement.photoUrl != null && achievement.photoUrl!.isNotEmpty && !FileUploadService().isLocalPath(achievement.photoUrl!)) {
+          await _addOldPhotoToDeleteStorage([achievement.photoUrl!]);
+          AppLogger.candidate('🗑️ [Achievements Upload] Added old photo to deleteStorage: ${achievement.photoUrl}');
+        }
+
+        _updateAchievement(index, achievement.copyWith(photoUrl: resultPath));
+        SnackbarUtils.showScaffoldSuccess(context, 'Photo uploaded successfully');
+        return;
       }
 
-      // Add to _localAchievementPhotos for upload tracking
-      _localAchievementPhotos.add({
-        'achievementIndex': index,
-        'achievement': achievement,
-        'localPath': localPath.replaceFirst('local:', ''), // Store clean path like manifesto does
-      });
+      // Mobile flow: Validate file size for local path
+      if (!kIsWeb && !isFirebaseUrl) {
+        AppLogger.candidate('📱 [Achievements Upload] Mobile upload - validating local file');
 
-      // Set the achievement photoUrl to the local path so it shows immediately in the UI
-      // The cleanup logic will remove this before saving to database to prevent null URLs
-      _updateAchievement(index, achievement.copyWith(photoUrl: localPath));
+        final validation = await _fileUploadService.validateFileSize(resultPath);
 
-      SnackbarUtils.showScaffoldSuccess(context, 'Photo saved locally');
+        if (!validation.isValid) {
+          AppLogger.candidate('❌ [Achievements Upload] Mobile validation failed: ${validation.message}');
+          SnackbarUtils.showScaffoldError(context, validation.message);
+          return;
+        }
+
+        if (validation.warning) {
+          AppLogger.candidate('⚠️ [Achievements Upload] Mobile file has warning: ${validation.message}');
+
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Large File Warning'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(validation.message),
+                  if (validation.recommendation != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      validation.recommendation!,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Choose Different Photo'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Continue Anyway'),
+                ),
+              ],
+            ),
+          );
+
+          if (proceed != true) {
+            AppLogger.candidate('⏭️ [Achievements Upload] Mobile user cancelled after warning');
+            return;
+          }
+        }
+
+        // Add to local photos list for batch upload later
+        AppLogger.candidate('📱 [Achievements Upload] Mobile - adding to local photos list');
+        _localAchievementPhotos.add({
+          'achievementIndex': index,
+          'achievement': achievement,
+          'localPath': resultPath.replaceFirst('local:', ''), // Store clean path like manifesto does
+        });
+
+        // Set the achievement photoUrl to the local path for immediate UI display
+        _updateAchievement(index, achievement.copyWith(photoUrl: resultPath));
+
+        SnackbarUtils.showScaffoldSuccess(context, 'Photo saved locally');
+        AppLogger.candidate('✅ [Achievements Upload] Mobile upload setup complete');
+      } else {
+        AppLogger.candidate('⚠️ [Achievements Upload] Unexpected path format. Platform: ${kIsWeb ? 'WEB' : 'MOBILE'}, isFirebaseUrl: $isFirebaseUrl, path: $resultPath');
+        SnackbarUtils.showScaffoldError(context, 'Unexpected error occurred during photo upload');
+      }
+
     } catch (e) {
+      AppLogger.candidateError('❌ [Achievements Upload] Exception: $e');
       SnackbarUtils.showScaffoldError(context, 'Failed to save photo: $e');
     } finally {
       setState(() {
         _uploadingPhotos[index] = false;
       });
+      AppLogger.candidate('🏁 [Achievements Upload] Upload process completed for index $index');
     }
   }
 
@@ -576,6 +625,32 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
     }
   }
 
+  /// Add old photo URLs to candidate's deleteStorage array for cleanup
+  Future<void> _addOldPhotoToDeleteStorage(List<String> oldPhotoUrls) async {
+    try {
+      if (oldPhotoUrls.isEmpty) return;
+
+      // Get candidate path for update
+      final candidatePath =
+          'states/${widget.candidateData.location.stateId}/districts/${widget.candidateData.location.districtId}/bodies/${widget.candidateData.location.bodyId}/wards/${widget.candidateData.location.wardId}/candidates/${widget.candidateData.candidateId}';
+
+      AppLogger.candidate('🗑️ [DeleteStorage] Adding ${oldPhotoUrls.length} photos to deleteStorage for candidate: ${widget.candidateData.candidateId}');
+
+      // Add photos to deleteStorage array using FieldValue.arrayUnion
+      await FirebaseFirestore.instance
+          .doc(candidatePath)
+          .update({
+            'deleteStorage': FieldValue.arrayUnion(oldPhotoUrls),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      AppLogger.candidate('✅ [DeleteStorage] Successfully added photos to deleteStorage: $oldPhotoUrls');
+    } catch (e) {
+      AppLogger.candidateError('❌ [DeleteStorage] Failed to add photos to deleteStorage', error: e);
+      // Don't throw - cleanup failures shouldn't break the main flow
+    }
+  }
+
   Future<void> _saveAchievements() async {
     setState(() {
       _isSaving = true;
@@ -696,6 +771,7 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Center(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
                         'No achievements yet. Add your first achievement!',
@@ -710,22 +786,22 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
                   ),
                 ),
               )
-          else
-            Column(
-              children: List.generate(_achievements.length, (index) {
-                final achievement = _achievements[index];
-                return AchievementItemWidget(
-                  achievement: achievement,
-                  isEditing: widget.isEditing,
-                  index: index,
-                  onUpdate: _updateAchievement,
-                  onDelete: _removeAchievement,
-                  isUploading: _uploadingPhotos[index] == true,
-                  onUploadPhoto: _uploadPhoto,
-                );
-              }),
-            ),
-          const SizedBox(height: 120), // Added 100px bottom padding
+            else
+              Column(
+                children: List.generate(_achievements.length, (index) {
+                  final achievement = _achievements[index];
+                  return AchievementItemWidget(
+                    achievement: achievement,
+                    isEditing: widget.isEditing,
+                    index: index,
+                    onUpdate: _updateAchievement,
+                    onDelete: _removeAchievement,
+                    isUploading: _uploadingPhotos[index] == true,
+                    onUploadPhoto: _uploadPhoto,
+                  );
+                }),
+              ),
+            const SizedBox(height: 120), // Added 100px bottom padding
           ],
         ),
       ),

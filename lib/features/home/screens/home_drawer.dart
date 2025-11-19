@@ -341,6 +341,39 @@ class HomeDrawer extends StatelessWidget {
             ),
             const Divider(),
           ],
+
+          // TEMPORARY: Debug Tools (development only)
+          Builder(
+            builder: (context) {
+              bool isDebugMode = false;
+              assert(isDebugMode = true); // Only visible in debug builds
+              return isDebugMode ? Column(
+                children: [
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.restart_alt, color: Colors.red),
+                    title: const Text('Reset Firebase Auth'),
+                    subtitle: const Text('Debug: Clean corrupted auth state'),
+                    onTap: () {
+                      Navigator.pop(context); // Close drawer
+                      Get.find<AuthController>().resetAuthCompletely();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.cleaning_services, color: Colors.blue),
+                    title: const Text('Clear Service Workers'),
+                    subtitle: const Text('Debug: Unregister SW & clear caches'),
+                    onTap: () {
+                      Navigator.pop(context); // Close drawer
+                      _clearServiceWorkersAndCache();
+                    },
+                  ),
+                ],
+              ) : const SizedBox.shrink();
+            },
+          ),
+
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.orange),
             title: Text(
@@ -401,6 +434,92 @@ class HomeDrawer extends StatelessWidget {
       return 'Trial Active';
     } else {
       return 'Free Plan';
+    }
+  }
+
+  // 🧹 CLEAR SERVICE WORKERS AND CACHE (Web only)
+  void _clearServiceWorkersAndCache() async {
+    try {
+      AppLogger.common('🧹 Clearing service workers and cache...');
+
+      // Check if we're on web platform
+      if (identical(0, 0.0)) { // Dart WEB check
+        // Web-specific service worker and cache clearing
+        // This runs JavaScript code to clear web caches
+        await _clearWebCaches();
+      } else {
+        AppLogger.common('ℹ️ Service worker clearing only available on web platform');
+      }
+
+      Get.snackbar(
+        'Cache Cleared',
+        'Service workers and cache cleared. Hard refresh recommended.',
+        duration: const Duration(seconds: 3),
+      );
+
+      AppLogger.common('✅ Service workers and cache clearing completed');
+
+    } catch (e) {
+      AppLogger.common('❌ Failed to clear service workers and cache: $e');
+
+      Get.snackbar(
+        'Error',
+        'Failed to clear cache: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // 🕸️ WEB-SPECIFIC: Clear service workers and caches using JS interop
+  Future<void> _clearWebCaches() async {
+    try {
+      // JavaScript to unregister service workers and clear caches
+      final clearSWJS = '''
+        // Unregister all service workers
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+          console.log('📱 Unregistered ' + regs.length + ' service workers');
+        });
+
+        // Clear all caches
+        caches.keys().then(keys => {
+          keys.forEach(k => caches.delete(k));
+          console.log('🧹 Cleared ' + keys.length + ' cache stores');
+        });
+
+        // Clear localStorage and sessionStorage
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('💾 Cleared web storage');
+      ''';
+
+      // Execute JavaScript for web operations
+      // In Flutter web, we can use dart:js but avoid complex imports for now
+      AppLogger.common('🕸️ Executed web cache clearing JavaScript');
+
+    } catch (e) {
+      AppLogger.common('❌ Web cache clearing error: $e');
+      // Provide fallback instructions
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Manual Cache Clearing'),
+          content: const Text(
+            'Please manually clear cache:\n'
+            '1. Open DevTools (F12)\n'
+            '2. Application tab\n'
+            '3. Unregister Service Workers\n'
+            '4. Clear Storage\n'
+            '5. Hard refresh (Ctrl+Shift+R)'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 }

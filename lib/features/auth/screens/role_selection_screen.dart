@@ -21,6 +21,24 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   final chatController = Get.find<ChatController>();
   String? selectedRole;
   bool isLoading = false;
+  bool isInitializing = true; // ADD: Loading state during initialization
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeScreen();
+  }
+
+  Future<void> _initializeScreen() async {
+    // ADD: Simulate initialization (e.g., checking user data if needed)
+    // For now, just set a small delay to show loading state
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      setState(() {
+        isInitializing = false;
+      });
+    }
+  }
 
   Future<void> _saveRole() async {
     final appLocalizations = AppLocalizations.of(context)!;
@@ -92,166 +110,193 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
          automaticallyImplyLeading: false, // Prevent back button
        ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                authLocalizations.howWouldYouLikeToParticipate,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                authLocalizations.selectYourRoleToCustomizeExperience,
-                style: TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 32),
-
-              // Role Selection Cards
-              Expanded(
-                child: ListView.builder(
-                  itemCount: roles.length,
-                  itemBuilder: (context, index) {
-                    final role = roles[index];
-                    final isSelected = selectedRole == role['id'];
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      elevation: isSelected ? 8 : 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: isSelected
-                              ? role['color']
-                              : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          setState(() {
-                            selectedRole = role['id'];
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              // Icon
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: role['color'].withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  role['icon'],
-                                  color: role['color'],
-                                  size: 30,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-
-                              // Content
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      role['title'],
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: isSelected
-                                            ? role['color']
-                                            : Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      role['subtitle'],
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      role['description'],
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.black45,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Selection Indicator
-                              if (isSelected)
-                                Icon(
-                                  Icons.check_circle,
-                                  color: role['color'],
-                                  size: 28,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Continue Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _saveRole,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: selectedRole != null
-                        ? Colors.blue
-                        : Colors.grey,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Main Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Text(
+                    authLocalizations.howWouldYouLikeToParticipate,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          authLocalizations.continueButton,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  const SizedBox(height: 8),
+                  Text(
+                    authLocalizations.selectYourRoleToCustomizeExperience,
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Role Selection Cards
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: roles.length,
+                      itemBuilder: (context, index) {
+                        final role = roles[index];
+                        final isSelected = selectedRole == role['id'];
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          elevation: isSelected ? 8 : 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? role['color']
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
                           ),
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                selectedRole = role['id'];
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Row(
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: role['color'].withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      role['icon'],
+                                      color: role['color'],
+                                      size: 30,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+
+                                  // Content
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          role['title'],
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected
+                                                ? role['color']
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          role['subtitle'],
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          role['description'],
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.black45,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Selection Indicator
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: role['color'],
+                                      size: 28,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Continue Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _saveRole,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: selectedRole != null
+                            ? Colors.blue
+                            : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                ),
+                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              authLocalizations.continueButton,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Info Text
+                  Center(
+                    child: Text(
+                      authLocalizations.youCanChangeYourRoleLaterInSettings,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 16),
-
-              // Info Text
-              Center(
-                child: Text(
-                  authLocalizations.youCanChangeYourRoleLaterInSettings,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
+            // ADD: Loading Overlay during initialization
+            if (isInitializing)
+              Container(
+                color: Colors.white,
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading...',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

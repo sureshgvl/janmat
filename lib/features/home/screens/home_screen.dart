@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../core/app_theme.dart';
 import '../../../controllers/background_color_controller.dart';
 import 'home_drawer.dart';
 import 'home_body.dart';
@@ -53,32 +53,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _initializeStreaming() {
+    AppLogger.common('🏠 [HOME_SCREEN] 🎬 STAGE 1: Starting streaming service initialization');
     // Initialize the stream service
     _streamService.initialize();
+    AppLogger.common('🏠 [HOME_SCREEN] ✅ STAGE 2: Stream service initialized');
 
     // Listen to data stream
     _dataSubscription = _streamService.dataStream.listen((data) {
+      AppLogger.common('🏠 [HOME_SCREEN] 📡 STAGE 3: Received data from stream - isLoading: ${data.isLoading}, isComplete: ${data.isComplete}, hasUser: ${data.userModel != null}');
+
       setState(() {
         _currentData = data;
       });
 
-      // ✅ SAFE NAVIGATION: Only navigate when complete data is available
-      // Wait a bit to ensure complete data is stable before navigating
+      if (data.isLoading) {
+        AppLogger.common('🏠 [HOME_SCREEN] ⏳ STAGE 4: Data loading... showing loading screen');
+        return;
+      }
+
+      if (data.isSignedOut) {
+        AppLogger.common('🏠 [HOME_SCREEN] 🚪 User signed out, navigation to login');
+        return;
+      }
+
+      if (data.hasError) {
+        AppLogger.common('🏠 [HOME_SCREEN] ❌ Error in data: ${data.errorMessage}');
+        return;
+      }
+
+      // ✅ USER DATA COMPLETE: No modal checks needed since flow is controlled pre-navigation
       if (data.isComplete) {
-        Future.delayed(const Duration(milliseconds: 500), () async {
-          if (!mounted || _currentData?.isComplete != true) return;
-
-          // Check navigation status asynchronously
-          final needsNavigation = await data.needsNavigation;
-          final navigationRoute = await data.navigationRoute;
-
-          if (needsNavigation && navigationRoute != null) {
-            AppLogger.common(
-              '🚀 Navigating to: $navigationRoute (confirmed complete data)',
-            );
-            Get.offAllNamed(navigationRoute);
-          }
-        });
+        AppLogger.common('🏠 [HOME_SCREEN] � Data is complete - user setup already validated by navigation flow');
       }
 
       // Handle district spotlight when user is authenticated
@@ -278,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Build body with appropriate placeholders
+  /// Build body - Clean implementation since all setup checks happen before navigation
   Widget _buildBody(
     BuildContext context,
     HomeScreenData data,
@@ -286,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   ) {
     AppLogger.common('🏠 [HOME_SCREEN] Building body - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, role: ${data.role}');
 
+    // Regular home screen logic for completed user setup
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
       AppLogger.common('🏠 [HOME_SCREEN] Building candidate body with candidate data');
       return HomeBody(
@@ -490,5 +496,348 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+
+  /// Build role selection body embedded in home screen
+  Widget _buildRoleSelectionBody(BuildContext context) {
+    // Show role selection modal immediately when this widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _showRoleSelectionModal(context);
+      }
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  /// Build profile completion body embedded in home screen
+  Widget _buildProfileCompletionBody(BuildContext context, dynamic userModel) {
+    // Show profile completion modal immediately when this widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _showProfileCompletionModal(context, userModel);
+      }
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  /// Helper method to build role selection cards
+  Widget _buildRoleCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 48,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Helper method to build profile completion steps
+  Widget _buildProfileStep(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            size: 24,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey[400],
+        ),
+      ],
+    );
+  }
+
+  /// Show role selection modal dialog
+  void _showRoleSelectionModal(BuildContext context) {
+    AppLogger.common('🤝 [HOME_SCREEN] Showing role selection modal');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Column(
+            children: [
+              Icon(
+                Icons.admin_panel_settings,
+                size: 64,
+                color: Theme.of(dialogContext).primaryColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Choose Your Role',
+                style: Theme.of(dialogContext).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Select whether you want to register as a Candidate or Voter',
+                style: Theme.of(dialogContext).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildRoleCard(
+                      dialogContext,
+                      title: 'Candidate',
+                      subtitle: 'Run for office and campaign',
+                      icon: Icons.person,
+                      onTap: () => _handleRoleSelection(dialogContext, 'candidate'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildRoleCard(
+                      dialogContext,
+                      title: 'Voter',
+                      subtitle: 'Vote and participate in elections',
+                      icon: Icons.how_to_vote,
+                      onTap: () => _handleRoleSelection(dialogContext, 'voter'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Show profile completion modal dialog
+  void _showProfileCompletionModal(BuildContext context, dynamic userModel) {
+    AppLogger.common('👤 [HOME_SCREEN] Showing profile completion modal');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Column(
+            children: [
+              Icon(
+                Icons.edit_note,
+                size: 64,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Complete Your Profile',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Set up your profile information to get started',
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildProfileStep(
+                      context,
+                      icon: Icons.person_outline,
+                      title: 'Personal Information',
+                      subtitle: 'Name, age, location',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildProfileStep(
+                      context,
+                      icon: Icons.account_balance,
+                      title: 'Political Preferences',
+                      subtitle: 'Party, interests, manifesto',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildProfileStep(
+                      context,
+                      icon: Icons.photo_camera,
+                      title: 'Profile Photo',
+                      subtitle: 'Add your photo or symbol',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _handleProfileCompletion(context, userModel),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Complete Profile',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Handle role selection - update user data and refresh UI
+  void _handleRoleSelection(BuildContext context, String role) async {
+    AppLogger.common('🎭 [HOME_SCREEN] Role selected: $role');
+
+    try {
+      // Get current user
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        AppLogger.common('❌ [HOME_SCREEN] No user found for role selection');
+        return;
+      }
+
+      // Update user document with role and roleSelected flag
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'role': role,
+        'roleSelected': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      AppLogger.common('✅ [HOME_SCREEN] Role updated successfully: $role');
+
+      // Close modal and refresh data
+      Navigator.of(context).pop();
+      _streamService.refreshData(forceRefresh: true);
+
+    } catch (error) {
+      AppLogger.common('❌ [HOME_SCREEN] Failed to update role: $error');
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save role selection: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Handle profile completion - navigate to dedicated screen
+  void _handleProfileCompletion(BuildContext context, dynamic userModel) {
+    AppLogger.common('👤 [HOME_SCREEN] Profile completion triggered');
+    // Close modal and navigate to profile completion screen
+    Navigator.of(context).pop();
+    // Force a page refresh to clear any routing issues and show fresh UI
+    // This should prevent the modal from showing again after profile completion
+    Future.delayed(const Duration(milliseconds: 300), () {
+      Get.offAllNamed('/home', predicate: (_) => false); // Clear navigation stack
+    });
   }
 }

@@ -70,6 +70,9 @@ class ProfileCompletionController extends GetxController {
   bool isNamePreFilled = false;
   bool isPhonePreFilled = false;
   String? currentUserRole;
+  String _loginMethod = 'unknown';
+
+  String get loginMethod => _loginMethod;
 
   @override
   void onInit() async {
@@ -160,6 +163,17 @@ class ProfileCompletionController extends GetxController {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
+    // Detect login method
+    _loginMethod = 'unknown';
+    if (currentUser.providerData.isNotEmpty) {
+      final provider = currentUser.providerData.first;
+      if (provider.providerId == 'google.com') {
+        _loginMethod = 'google';
+      } else if (provider.providerId == 'phone') {
+        _loginMethod = 'phone';
+      }
+    }
+
     // Pre-fill name from display name (Google login) or email prefix
     if (currentUser.displayName != null &&
         currentUser.displayName!.isNotEmpty) {
@@ -196,6 +210,7 @@ class ProfileCompletionController extends GetxController {
     AppLogger.common(
       '  Phone: ${phoneController.text} (${isPhonePreFilled ? 'from auth' : 'manual'})',
     );
+    AppLogger.common('  Login Method: $_loginMethod');
     AppLogger.common('  Email: ${currentUser.email}');
     AppLogger.common('  Photo: ${currentUser.photoURL}');
 

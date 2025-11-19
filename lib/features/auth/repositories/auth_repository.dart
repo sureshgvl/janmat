@@ -136,4 +136,9 @@ class AuthRepository {
   Future<void> clearAppSetupFlags() async {
     return _authCacheService.clearAppSetupFlags();
   }
+
+  // Firebase Auth Reset - for corrupted auth state situations
+  Future<void> resetFirebaseAuth() async {
+    return _googleAuthService.resetFirebaseAuth();
+  }
 }

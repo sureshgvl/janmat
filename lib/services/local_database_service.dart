@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/app_logger.dart';
 import '../models/district_model.dart';
 import '../models/state_model.dart' as state_model;
@@ -11,6 +12,7 @@ import '../models/body_model.dart';
 import '../models/ward_model.dart';
 import '../features/districtSpotLight/model/district_spotlight_model.dart';
 import '../features/candidate/models/candidate_model.dart';
+import './web_storage_helper.dart';
 
 class LocalDatabaseService {
   static Database? _database;
@@ -797,81 +799,146 @@ class LocalDatabaseService {
     }
   }
 
-  // District Spotlight operations
+  // District Spotlight operations - Web compatible
   Future<void> insertDistrictSpotlight(DistrictSpotlight spotlight, String stateId, String districtId) async {
-    final db = await database;
-    final spotlightData = {
-      'id': spotlight.id ?? '${stateId}_$districtId',
-      'stateId': stateId,
-      'districtId': districtId,
-      'partyId': spotlight.partyId,
-      'fullImage': spotlight.fullImage,
-      'bannerImage': spotlight.bannerImage,
-      'isActive': spotlight.isActive ? 1 : 0,
-      'createdAt': spotlight.createdAt?.toIso8601String(),
-      'updatedAt': spotlight.updatedAt?.toIso8601String(),
-      'lastFetched': DateTime.now().toIso8601String(),
-      'version': spotlight.version,
-    };
+    if (kIsWeb) {
+      // Web: Store in SharedPreferences
+      final spotlightKey = 'district_spotlight_${stateId}_$districtId';
+      final spotlightData = spotlight.toJson();
+      spotlightData['lastFetched'] = DateTime.now().toIso8601String();
 
-    await db.insert(
-      districtSpotlightsTable,
-      spotlightData,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      await WebStorageHelper.saveCacheMetadata(spotlightKey, spotlightData);
+      AppLogger.districtSpotlight('🌐 [WebStorage:DistrictSpotlight] Cached district spotlight for $stateId/$districtId');
+    } else {
+      // Mobile: Store in SQLite
+      final db = await database;
+      final spotlightData = {
+        'id': spotlight.id ?? '${stateId}_$districtId',
+        'stateId': stateId,
+        'districtId': districtId,
+        'partyId': spotlight.partyId,
+        'fullImage': spotlight.fullImage,
+        'bannerImage': spotlight.bannerImage,
+        'isActive': spotlight.isActive ? 1 : 0,
+        'createdAt': spotlight.createdAt?.toIso8601String(),
+        'updatedAt': spotlight.updatedAt?.toIso8601String(),
+        'lastFetched': DateTime.now().toIso8601String(),
+        'version': spotlight.version,
+      };
 
-    await updateCacheMetadata('district_spotlight_${stateId}_$districtId');
-    AppLogger.districtSpotlight('✅ [SQLite:DistrictSpotlight] Inserted district spotlight for $stateId/$districtId');
+      await db.insert(
+        districtSpotlightsTable,
+        spotlightData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      await updateCacheMetadata('district_spotlight_${stateId}_$districtId');
+      AppLogger.districtSpotlight('✅ [SQLite:DistrictSpotlight] Inserted district spotlight for $stateId/$districtId');
+    }
   }
 
   Future<DistrictSpotlight?> getDistrictSpotlight(String stateId, String districtId) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      districtSpotlightsTable,
-      where: 'stateId = ? AND districtId = ?',
-      whereArgs: [stateId, districtId],
-    );
+    if (kIsWeb) {
+      // Web: Check SharedPreferences first
+      final cachedData = await WebStorageHelper.getCacheMetadata();
+      final spotlightKey = 'district_spotlight_${stateId}_$districtId';
 
-    if (maps.isNotEmpty) {
-      final map = maps.first;
-      return DistrictSpotlight(
-        id: map['id'],
-        partyId: map['partyId'],
-        fullImage: map['fullImage'],
-        bannerImage: map['bannerImage'],
-        isActive: map['isActive'] == 1,
-        createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
-        updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
-        version: map['version'],
+      if (cachedData.containsKey(spotlightKey)) {
+        final data = cachedData[spotlightKey]!;
+
+        // Check if data is recent (within 24 hours)
+        final lastFetched = data['lastFetched'] != null
+            ? DateTime.tryParse(data['lastFetched'])
+            : null;
+
+        if (lastFetched != null &&
+            DateTime.now().difference(lastFetched) < const Duration(hours: 24)) {
+          return DistrictSpotlight(
+            id: data['id'],
+            partyId: data['partyId'],
+            fullImage: data['fullImage'],
+            bannerImage: data['bannerImage'],
+            isActive: data['isActive'] == true || data['isActive'] == 1,
+            createdAt: data['createdAt'] != null ? DateTime.tryParse(data['createdAt']) : null,
+            updatedAt: data['updatedAt'] != null ? DateTime.tryParse(data['updatedAt']) : null,
+            version: data['version'],
+          );
+        }
+      }
+      AppLogger.districtSpotlight('🌐 [WebStorage:DistrictSpotlight] No cache or expired for $stateId/$districtId');
+      return null;
+    } else {
+      // Mobile: Query SQLite database
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        districtSpotlightsTable,
+        where: 'stateId = ? AND districtId = ?',
+        whereArgs: [stateId, districtId],
       );
+
+      if (maps.isNotEmpty) {
+        final map = maps.first;
+        return DistrictSpotlight(
+          id: map['id'],
+          partyId: map['partyId'],
+          fullImage: map['fullImage'],
+          bannerImage: map['bannerImage'],
+          isActive: map['isActive'] == 1,
+          createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+          updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+          version: map['version'],
+        );
+      }
+      return null;
     }
-    return null;
   }
 
   Future<DateTime?> getDistrictSpotlightLastFetched(String stateId, String districtId) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      districtSpotlightsTable,
-      columns: ['lastFetched'],
-      where: 'stateId = ? AND districtId = ?',
-      whereArgs: [stateId, districtId],
-    );
+    if (kIsWeb) {
+      // Web: Check SharedPreferences metadata
+      final cachedData = await WebStorageHelper.getCacheMetadata();
+      final spotlightKey = 'district_spotlight_${stateId}_$districtId';
 
-    if (maps.isNotEmpty) {
-      return DateTime.parse(maps.first['lastFetched']);
+      if (cachedData.containsKey(spotlightKey)) {
+        final data = cachedData[spotlightKey]!;
+        final lastFetched = data['lastFetched'];
+        return lastFetched != null ? DateTime.tryParse(lastFetched) : null;
+      }
+      return null;
+    } else {
+      // Mobile: Query SQLite database
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        districtSpotlightsTable,
+        columns: ['lastFetched'],
+        where: 'stateId = ? AND districtId = ?',
+        whereArgs: [stateId, districtId],
+      );
+
+      if (maps.isNotEmpty) {
+        return DateTime.parse(maps.first['lastFetched']);
+      }
+      return null;
     }
-    return null;
   }
 
-  // Delete district spotlight for a specific district
+  // Delete district spotlight for a specific district - Web compatible
   Future<void> clearDistrictSpotlight(String stateId, String districtId) async {
-    final db = await database;
-    await db.delete(
-      districtSpotlightsTable,
-      where: 'stateId = ? AND districtId = ?',
-      whereArgs: [stateId, districtId],
-    );
-    AppLogger.districtSpotlight('🗑️ [SQLite:DistrictSpotlight] Cleared district spotlight cache for $stateId/$districtId');
+    if (kIsWeb) {
+      // Web: Delete from SharedPreferences
+      final spotlightKey = 'district_spotlight_${stateId}_$districtId';
+      await WebStorageHelper.deleteWebData('cache_metadata', spotlightKey);
+      AppLogger.districtSpotlight('🌐 [WebStorage:DistrictSpotlight] Cleared district spotlight cache for $stateId/$districtId');
+    } else {
+      // Mobile: Delete from SQLite database
+      final db = await database;
+      await db.delete(
+        districtSpotlightsTable,
+        where: 'stateId = ? AND districtId = ?',
+        whereArgs: [stateId, districtId],
+      );
+      AppLogger.districtSpotlight('🗑️ [SQLite:DistrictSpotlight] Cleared district spotlight cache for $stateId/$districtId');
+    }
   }
 
   // Comment operations
@@ -962,6 +1029,69 @@ class LocalDatabaseService {
       [postId],
     );
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  // Platform-aware location data method (web compatible)
+  Future<Map<String, String?>> getCandidateLocationDataWeb(
+    String districtId,
+    String bodyId,
+    String wardId,
+    [String? stateId]
+  ) async {
+    if (kIsWeb) {
+      // Web: Use SharedPreferences storage
+      final locationKey = '${districtId}_${bodyId}_${wardId}';
+      final cachedData = await WebStorageHelper.getLocationData();
+
+      if (cachedData.containsKey(locationKey)) {
+        final data = cachedData[locationKey]!;
+        AppLogger.common('🌐 [WebStorage] Location data retrieved from cache: District="${data['districtName']}", Body="${data['bodyName']}", Ward="${data['wardName']}"');
+        return {
+          'districtName': data['districtName'],
+          'bodyName': data['bodyName'],
+          'wardName': data['wardName'],
+        };
+      }
+
+      // If not cached, try to fetch from SQLite first (during initial loading)
+      // This fallback handles the migration period
+      try {
+        return await getCandidateLocationData(districtId, bodyId, wardId, stateId);
+      } catch (e) {
+        // If SQLite fails or doesn't exist on web, use fallback values
+        final fallbackResult = {
+          'districtName': districtId,
+          'bodyName': bodyId,
+          'wardName': 'Ward $wardId',
+        };
+        AppLogger.common('🌐 [WebStorage] Using fallback location data: $fallbackResult');
+        return fallbackResult;
+      }
+    } else {
+      // Mobile: Use existing SQLite method
+      return await getCandidateLocationData(districtId, bodyId, wardId, stateId);
+    }
+  }
+
+  // Web cache management for location data
+  Future<void> cacheLocationDataWeb(
+    String districtId,
+    String bodyId,
+    String wardId,
+    String districtName,
+    String bodyName,
+    String wardName,
+  ) async {
+    if (!kIsWeb) return; // Only cache on web
+
+    final locationKey = '${districtId}_${bodyId}_${wardId}';
+    await WebStorageHelper.saveLocationData(locationKey, {
+      'districtName': districtName,
+      'bodyName': bodyName,
+      'wardName': wardName,
+    });
+
+    AppLogger.common('🌐 [WebStorage] Cached location data: $districtName, $bodyName, $wardName');
   }
 
   // Close database

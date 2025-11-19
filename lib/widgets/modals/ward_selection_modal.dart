@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/ward_model.dart';
 import '../../l10n/features/profile/profile_localizations.dart';
+import '../../utils/app_logger.dart';
 
 class WardSelectionModal extends StatefulWidget {
   final List<Ward> wards;
@@ -25,13 +26,26 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
   @override
   void initState() {
     super.initState();
+    // Log search by ward screen initialization
+    AppLogger.core('🏠 🏁 WARD SEARCH SCREEN: Initializing ward selection modal');
+    AppLogger.core('🏠 📊 WARD SEARCH SCREEN: Total wards loaded: ${widget.wards.length}');
+    AppLogger.core('🏠 🎯 WARD SEARCH SCREEN: Currently selected ward: ${widget.selectedWardId ?? "None"}');
+
+    if (widget.wards.isNotEmpty) {
+      final sampleWard = widget.wards.first;
+      AppLogger.core('🏠 📝 WARD SEARCH SCREEN: Sample ward - ID: ${sampleWard.id}, Name: ${sampleWard.name}, Areas: ${sampleWard.areas?.length ?? 0}');
+    }
+
     filteredWards = List.from(widget.wards);
+    AppLogger.core('🏠 ✅ WARD SEARCH SCREEN: Initialization complete');
   }
 
   void _filterWards(String query) {
     if (query.isEmpty) {
       filteredWards = List.from(widget.wards);
+      AppLogger.core('🏠 🔄 WARD SEARCH SCREEN: Search cleared, showing all ${filteredWards.length} wards');
     } else {
+      AppLogger.core('🏠 🔍 WARD SEARCH SCREEN: Filtering wards with query: "$query"');
       final lowerQuery = query.toLowerCase();
       filteredWards = widget.wards.where((ward) {
         // Search in ward name
@@ -59,6 +73,7 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
 
         return nameMatch || idMatch || areaMatch || numberMatch || marathiMatch;
       }).toList();
+      AppLogger.core('🏠 📊 WARD SEARCH SCREEN: Search query "$query" found ${filteredWards.length} matching wards');
     }
     // Sort by ward number
     filteredWards.sort((a, b) {
@@ -381,6 +396,8 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
 
                       return InkWell(
                         onTap: () {
+                          AppLogger.core('🏠 ✅ WARD SEARCH SCREEN: Ward selected - ID: ${ward.id}, Name: ${ward.name}');
+                          AppLogger.core('🏠 📤 WARD SEARCH SCREEN: Calling onWardSelected callback and closing modal');
                           widget.onWardSelected(ward.id);
                           Navigator.of(context).pop();
                         },
@@ -517,4 +534,3 @@ class _WardSelectionModalState extends State<WardSelectionModal> {
     );
   }
 }
-

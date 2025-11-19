@@ -496,21 +496,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
 
               const SizedBox(height: 16),
 
-              // Demo Data Button
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _populateDemoData,
-                  icon: const Icon(Icons.lightbulb),
-                  label: Text(CandidateLocalizations.of(context)!.useDemoData),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
               // City and Ward fields (non-editable)
               Container(
                 padding: const EdgeInsets.all(16),

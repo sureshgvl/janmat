@@ -4,6 +4,11 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+// Universal storage interface and implementation
+import 'universal_storage.dart';
+import 'web_storage.dart' as web;
+import 'mobile_storage.dart' as mobile;
+
 /// Log levels for controlling verbosity
 enum LogLevel {
   none(0),
@@ -51,6 +56,9 @@ class AppLogger {
   // Environment-based global log level (overrides individual flags)
   static LogLevel? _globalLogLevel;
 
+  // Universal storage instance
+  static UniversalStorage? _universalStorage;
+
   // Load configuration from environment variables
   static void loadFromEnvironment() {
     try {
@@ -70,80 +78,49 @@ class AppLogger {
     }
   }
 
-  // File logging
-  static RandomAccessFile? _logFile;
-  static bool _fileLoggingEnabled = true;
-  static IOSink? _fileSink;
-
-  // Initialize file logging
+  // Initialize universal storage logging
   static Future<void> initFileLogging() async {
-    if (!_fileLoggingEnabled) return;
-
     try {
-      // Try to write to project logs directory first, fallback to app documents
-      String logPath;
+      AppLogger.common('🎛️ Initializing universal storage for logging...');
 
-      try {
-        // For development: Try writing to project's logs directory
-        final projectDir = Directory.current;
-        final logsDir = Directory('${projectDir.path}/logs');
-
-        // Create logs directory if it doesn't exist
-        if (!await logsDir.exists()) {
-          await logsDir.create(recursive: true);
-        }
-
-        logPath = '${logsDir.path}/janmat_log.txt';
-        AppLogger.common('📝 Using project directory logs: $logPath');
-      } catch (e) {
-        // Fallback to app documents directory (production/some development cases)
-        final directory = await getApplicationDocumentsDirectory();
-        logPath = '${directory.path}/janmat_log.txt';
-        AppLogger.common('📝 Fallback to app documents directory: $logPath');
+      // Create universal storage instance based on platform
+      if (kIsWeb) {
+        _universalStorage = web.createUniversalStorage();
+      } else {
+        _universalStorage = mobile.createUniversalStorage();
       }
 
-      // Create or truncate the file
-      final logFile = File(logPath);
-      _fileSink = logFile.openWrite(mode: FileMode.append);
-
-      // Write header to file
-      final header = '\n\n=== JANMAT LOGS SESSION STARTED ${DateTime.now()} ===\n';
-      _fileSink?.write(header);
-      _fileSink?.flush();
-
-      AppLogger.common('📝 File logging initialized successfully');
+      await _universalStorage?.init();
+      AppLogger.common('✅ Universal storage logging initialized successfully');
     } catch (e) {
-      AppLogger.error('❌ Failed to initialize file logging: $e');
-      _fileLoggingEnabled = false;
+      AppLogger.common('⚠️ Failed to initialize universal storage logging: $e');
+      _universalStorage = null;
     }
   }
 
-  // Close file logging
+  // Close universal storage logging
   static Future<void> closeFileLogging() async {
-    if (!_fileLoggingEnabled || _fileSink == null) return;
+    if (_universalStorage == null) return;
 
     try {
-      _fileSink?.write('\n=== JANMAT LOGS SESSION ENDED ${DateTime.now()} ===\n\n');
-      await _fileSink?.flush();
-      await _fileSink?.close();
-      _fileSink = null;
-      AppLogger.common('📝 File logging closed');
+      AppLogger.common('🎛️ Closing universal storage logging...');
+      await _universalStorage?.close();
+      _universalStorage = null;
+      AppLogger.common('✅ Universal storage logging closed');
     } catch (e) {
       // Silent failure when closing
     }
   }
 
-  // Write to log file
-  static Future<void> _writeToLogFile(String message, {String? level}) async {
-    if (!_fileLoggingEnabled || _fileSink == null) return;
+  // Write to universal storage
+  static Future<void> _writeToUniversalStorage(String message, {String? level}) async {
+    if (_universalStorage == null) return;
 
     try {
-      final timestamp = DateTime.now().toIso8601String();
-      final formattedMessage = '${level ?? 'INFO'} [$timestamp] $message\n';
-      _fileSink?.write(formattedMessage);
-      await _fileSink?.flush();
+      final formattedMessage = '${level ?? 'INFO'} $message';
+      await _universalStorage?.writeLog(formattedMessage);
     } catch (e) {
-      // Silent failure during file writing to avoid log loops
+      // Silent failure during storage writing to avoid log loops
     }
   }
 
@@ -153,7 +130,7 @@ class AppLogger {
   static bool _showNetworkLogs = true;
   static bool _showCacheLogs = true;
   static bool _showDatabaseLogs = true;
-  static bool _showUILogs = false; // UI logs can be noisy
+  static bool _showUILogs = true; // UI logs can be noisy
   static bool _showPerformanceLogs = true;
   static bool _showCommonLogs = true;
   static bool _showMonetizationLogs = true;

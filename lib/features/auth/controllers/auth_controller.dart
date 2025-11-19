@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/app_route_names.dart';
 import '../repositories/auth_repository.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -217,23 +219,26 @@ class AuthController extends GetxController {
     }
   }
 
-  // GOOGLE LOGIN - WITH DETAILED ERROR LOGGING
-  Future<void> signInWithGoogle({bool forceAccountPicker = false}) async {
+  // GOOGLE LOGIN - WITH SMART ROUTING BASED ON USER STATUS
+  Future<void> signInWithGoogle({bool forceAccountPicker = false, bool showOwnDialog = true}) async {
     isLoading.value = true;
 
-    Get.dialog(
-      AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            const Text('Signing in with Google...'),
-          ],
+    // CONDITIONAL DIALOG: Only show dialog if requested
+    if (showOwnDialog) {
+      Get.dialog(
+        AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('Signing in with Google...'),
+            ],
+          ),
         ),
-      ),
-      barrierDismissible: false,
-    );
+        barrierDismissible: false,
+      );
+    }
 
     try {
       AppLogger.auth('🔄 [DEBUG] Starting Google sign-in process...');
@@ -250,11 +255,15 @@ class AuthController extends GetxController {
       AppLogger.auth('✅ [DEBUG] Google login successful: ${userCredential.user!.uid}');
       await _authRepository.createOrUpdateUser(userCredential.user!);
 
-      // Cache fresh user data for immediate home screen display
+      // Cache fresh user data for immediate screen access
       await _cacheFreshUserDataAfterLogin(userCredential.user!.uid);
 
+      // 🔍 DETERMINE CORRECT ROUTE BASED ON USER STATUS
+      final targetRoute = await _getPostLoginRoute(userCredential.user!);
+      AppLogger.auth('🎯 Post-login route determined: $targetRoute');
+
       SnackbarUtils.showSuccess('Google sign-in successful');
-      Get.offAllNamed('/home');
+      Get.offAllNamed(targetRoute);
 
     } catch (e) {
       // FORCE SHOW BUG: Everything gets caught in AuthRepository - let's see what we actually get
@@ -317,6 +326,27 @@ class AuthController extends GetxController {
         // If navigation fails, force restart would be needed
         AppLogger.authError('Navigation failed during logout', error: navError);
       }
+    }
+  }
+
+  // 🚨 EMERGENCY: Complete Firebase Auth Reset - Use when auth is corrupted
+  Future<void> resetAuthCompletely() async {
+    AppLogger.auth('🚨 Starting EMERGENCY Auth Reset...');
+
+    try {
+      await _authRepository.resetFirebaseAuth();
+      AppLogger.auth('✅ Auth reset completed');
+
+      // Clear reactive states
+      currentUser.value = null;
+      _cachedAuthData = null;
+
+      SnackbarUtils.showSuccess('Authentication reset complete. Try signing in again.');
+      Get.offAllNamed('/login');
+
+    } catch (e) {
+      AppLogger.authError('Auth reset failed', error: e);
+      SnackbarUtils.showError('Reset failed, but try signing in anyway.');
     }
   }
 
@@ -471,5 +501,97 @@ class AuthController extends GetxController {
   void _stopOTPTimer() {
     _otpTimer?.cancel();
     _otpTimer = null;
+  }
+
+  // DETERMINE POST-LOGIN ROUTE BASED ON USER STATUS
+  Future<String> _getPostLoginRoute(User user) async {
+    try {
+      AppLogger.auth('🔍 Determining post-login route for user: ${user.uid}');
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get()
+          .timeout(const Duration(seconds: 5), onTimeout: () {
+            AppLogger.auth('⏰ User data fetch timeout during post-login routing');
+            throw Exception('User data fetch timeout');
+          });
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final role = userData?['role'] ?? '';
+        final roleSelected = userData?['roleSelected'] ?? false;
+        final profileCompleted = userData?['profileCompleted'] ?? false;
+
+        AppLogger.auth('✅ User status: role="$role", roleSelected=$roleSelected, profileCompleted=$profileCompleted');
+
+        // LEGACY COMPATIBILITY: Fix old users who have role but missing flags
+        if (!roleSelected && role.isNotEmpty && (role == 'candidate' || role == 'voter')) {
+          AppLogger.auth('🚨 LEGACY USER: Setting flags automatically');
+          try {
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+              'roleSelected': true,
+              'profileCompleted': true,
+            });
+            AppLogger.auth('✅ Legacy user flags set successfully');
+          } catch (e) {
+            AppLogger.authError('Failed to update legacy user flags', error: e);
+          }
+          return AppRouteNames.home; // LEGACY: Go directly to home since they have role and data
+        }
+
+        // CLEAN FLOW: Navigate based on completion status
+        if (!roleSelected) {
+          AppLogger.auth('🎯 → Role selection screen');
+          return AppRouteNames.roleSelection;
+        } else if (!profileCompleted) {
+          AppLogger.auth('🎯 → Profile completion screen');
+          return AppRouteNames.profileCompletion;
+        } else {
+          AppLogger.auth('🎯 → Home screen (setup complete)');
+          return AppRouteNames.home;
+        }
+      } else {
+        // NEW USER: Always start with role selection
+        AppLogger.auth('🆕 New user → Role selection screen');
+        return AppRouteNames.roleSelection;
+      }
+    } catch (e) {
+      AppLogger.authError('Failed to determine post-login route', error: e);
+      // On error, try to use cached routing data as fallback
+      final cachedRoute = await _getCachedPostLoginRoute(user.uid);
+      if (cachedRoute != null) {
+        AppLogger.auth('✨ Using cached route as fallback: $cachedRoute');
+        return cachedRoute;
+      }
+      // Last resort: default to home for existing users to not disrupt experience
+      AppLogger.auth('💔 No cached route available, defaulting to home');
+      return AppRouteNames.home;
+    }
+  }
+
+  // Get cached routing data for fallback during post-login
+  Future<String?> _getCachedPostLoginRoute(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final routingKey = 'routing_data_$userId';
+      final routingData = prefs.getString(routingKey);
+      if (routingData != null) {
+        final data = jsonDecode(routingData);
+        final hasCompletedProfile = data['hasCompletedProfile'] ?? false;
+        final hasSelectedRole = data['hasSelectedRole'] ?? false;
+
+        if (hasSelectedRole && hasCompletedProfile) {
+          return AppRouteNames.home;
+        } else if (hasSelectedRole && !hasCompletedProfile) {
+          return AppRouteNames.profileCompletion;
+        } else {
+          return AppRouteNames.roleSelection;
+        }
+      }
+    } catch (e) {
+      AppLogger.auth('⚠️ Failed to get cached post-login route: $e');
+    }
+    return null;
   }
 }

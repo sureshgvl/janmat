@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_controller.dart';
 import '../controllers/location_controller.dart';
 import '../controllers/search_controller.dart' as search;
@@ -38,6 +39,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
   late final PaginationController paginationController;
 
   final ScrollController _scrollController = ScrollController();
+  final String? currentUserId = FirebaseAuth.instance.currentUser?.uid; // Add current user ID
 
   @override
   void initState() {
@@ -256,6 +258,7 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
               paginationController: paginationController,
               onRefresh: _refreshCandidates,
               onLoadMore: _loadMoreCandidates,
+              currentUserId: currentUserId,
             ),
           ],
         ),

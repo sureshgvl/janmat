@@ -2,17 +2,21 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
 import '../../../services/admob_service.dart';
 import '../../../features/chat/controllers/chat_controller.dart';
 import '../../../features/candidate/controllers/candidate_controller.dart';
+import 'google_auth_service.dart';
 
 class AccountDeletionService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  AccountDeletionService() {
+    // No longer need to initialize GoogleSignIn here
+    // We'll use the shared instance from GoogleAuthService
+  }
 
   // Delete account and all associated data with proper batch size management
   Future<void> deleteAccount() async {
@@ -45,7 +49,7 @@ class AccountDeletionService {
       AppLogger.auth('✅ Firebase Auth account deleted');
 
       // Force sign out from Google (if applicable)
-      await _googleSignIn.signOut();
+      await GoogleAuthService.sharedGoogleSignIn.signOut();
 
       // Clear all local app data and cache AFTER auth deletion
       await _clearAppCache();
@@ -60,7 +64,7 @@ class AccountDeletionService {
       // If Firestore deletion fails, still try to delete from Auth
       try {
         await user.delete();
-        await _googleSignIn.signOut();
+        await GoogleAuthService.sharedGoogleSignIn.signOut();
         await _clearAppCache();
         await _clearAllControllers();
         AppLogger.auth('⚠️ Partial deletion completed - some data may remain');

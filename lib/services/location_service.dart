@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/district_model.dart';
@@ -25,19 +26,24 @@ class LocationService {
 
   /// Load districts for a given state, with caching support
   Future<List<District>> loadDistricts(String stateId, {bool forceReload = false}) async {
+    AppLogger.core('🏙️ LOCATION SERVICE: Loading districts for state: $stateId, forceReload: $forceReload');
+
     if (!forceReload) {
       // Try SQLite cache first
+      AppLogger.core('🏙️ LOCATION SERVICE: Checking cache first...');
       final cachedDistricts = await _loadDistrictsFromSQLite(stateId);
       if (cachedDistricts.isNotEmpty) {
-        AppLogger.candidate('⚡ CACHE HIT: Loaded ${cachedDistricts.length} districts from SQLite');
+        AppLogger.core('🏙️ LOCATION SERVICE: ⚡ CACHE HIT: Loaded ${cachedDistricts.length} districts from SQLite');
         return cachedDistricts;
+      } else {
+        AppLogger.core('🏙️ LOCATION SERVICE: 🔄 CACHE MISS: No cached districts found');
       }
     } else {
-      AppLogger.candidate('🔄 FORCE RELOAD: Skipping cache for districts from state: $stateId');
+      AppLogger.core('🏙️ LOCATION SERVICE: 🔄 FORCE RELOAD: Skipping cache for districts from state: $stateId');
     }
 
     // Cache miss or force reload - load from Firestore
-    AppLogger.candidate('🔄 Loading districts from Firestore for state: $stateId');
+    AppLogger.core('🏙️ LOCATION SERVICE: 🔄 Loading districts from Firestore for state: $stateId');
     try {
       final districtsSnapshot = await FirebaseFirestore.instance
           .collection('states')
@@ -45,34 +51,48 @@ class LocationService {
           .collection('districts')
           .get();
 
+      AppLogger.core('🏙️ LOCATION SERVICE: 📊 Firestore query returned ${districtsSnapshot.docs.length} documents');
+
       final districts = districtsSnapshot.docs.map((doc) {
         final data = doc.data();
-        return District.fromJson({'id': doc.id, ...data});
+        final district = District.fromJson({'id': doc.id, ...data});
+        AppLogger.core('🏙️ LOCATION SERVICE:   - Document ID: ${doc.id}, Data: ${data.toString().substring(0, min(100, data.toString().length))}');
+        return district;
       }).toList();
 
-      AppLogger.candidate('✅ Loaded ${districts.length} districts from Firebase');
+      AppLogger.core('🏙️ LOCATION SERVICE: ✅ Successfully loaded ${districts.length} districts from Firebase');
 
-      // Cache in SQLite for future use
-      await _localDatabase.insertDistricts(districts);
+      // Cache in SQLite for future use (only if not web, but will handle gracefully)
+      try {
+        await _localDatabase.insertDistricts(districts);
+        AppLogger.core('🏙️ LOCATION SERVICE: 💾 Cached districts in local database');
+      } catch (cacheError) {
+        AppLogger.core('🏙️ LOCATION SERVICE: ⚠️ Failed to cache districts: $cacheError (might be expected on web)');
+      }
 
       return districts;
     } catch (e) {
-      AppLogger.candidateError('Error loading districts from Firebase: $e');
+      AppLogger.core('🏙️ LOCATION SERVICE ERROR: ❌ Error loading districts from Firebase: $e');
       return [];
     }
   }
 
   /// Load bodies for a specific district
   Future<List<Body>> loadBodiesForDistrict(String stateId, String districtId) async {
+    AppLogger.core('🏢 LOCATION SERVICE: Loading bodies for state: $stateId, district: $districtId');
+
     // Try SQLite cache first
+    AppLogger.core('🏢 LOCATION SERVICE: Checking cache first...');
     final cachedBodies = await _loadBodiesFromSQLite(districtId);
     if (cachedBodies.isNotEmpty) {
-      AppLogger.candidate('⚡ CACHE HIT: Loaded ${cachedBodies.length} bodies from SQLite for district $districtId');
+      AppLogger.core('🏢 LOCATION SERVICE: ⚡ CACHE HIT: Loaded ${cachedBodies.length} bodies from SQLite for district $districtId');
       return cachedBodies;
+    } else {
+      AppLogger.core('🏢 LOCATION SERVICE: 🔄 CACHE MISS: No cached bodies found');
     }
 
     // Cache miss - load from Firestore
-    AppLogger.candidate('🔄 Loading bodies from Firestore for district: $districtId');
+    AppLogger.core('🏢 LOCATION SERVICE: 🔄 Loading bodies from Firestore for state: $stateId, district: $districtId');
     try {
       final bodiesSnapshot = await FirebaseFirestore.instance
           .collection('states')
@@ -82,41 +102,55 @@ class LocationService {
           .collection('bodies')
           .get();
 
+      AppLogger.core('🏢 LOCATION SERVICE: 📊 Firestore query returned ${bodiesSnapshot.docs.length} bodies documents');
+
       final bodies = bodiesSnapshot.docs.map((doc) {
         final data = doc.data();
-        return Body.fromJson({
+        final body = Body.fromJson({
           'id': doc.id,
           'districtId': districtId,
           'stateId': stateId,
           ...data,
         });
+        AppLogger.core('🏢 LOCATION SERVICE:   - Document ID: ${doc.id}, Name: ${body.name ?? 'N/A'}');
+        return body;
       }).toList();
 
-      AppLogger.candidate('✅ Loaded ${bodies.length} bodies from Firebase for district $districtId');
+      AppLogger.core('🏢 LOCATION SERVICE: ✅ Successfully loaded ${bodies.length} bodies from Firebase for district $districtId');
 
-      // Cache in SQLite
-      await _localDatabase.insertBodies(bodies);
+      // Cache in SQLite for future use (only if not web, but will handle gracefully)
+      try {
+        await _localDatabase.insertBodies(bodies);
+        AppLogger.core('🏢 LOCATION SERVICE: 💾 Cached bodies in local database');
+      } catch (cacheError) {
+        AppLogger.core('🏢 LOCATION SERVICE: ⚠️ Failed to cache bodies: $cacheError (might be expected on web)');
+      }
 
       return bodies;
     } catch (e) {
-      AppLogger.candidateError('Error loading bodies for district $districtId: $e');
+      AppLogger.core('🏢 LOCATION SERVICE ERROR: ❌ Error loading bodies from Firebase for district $districtId: $e');
       return [];
     }
   }
 
   /// Load wards for a specific district and body
   Future<List<Ward>> loadWardsForBody(String stateId, String districtId, String bodyId) async {
+    AppLogger.core('🏠 LOCATION SERVICE: Loading wards for state: $stateId, district: $districtId, body: $bodyId');
+
     final cacheKey = '${districtId}_$bodyId';
 
     // Try SQLite cache first
+    AppLogger.core('🏠 LOCATION SERVICE: Checking cache first...');
     final cachedWards = await _loadWardsFromSQLite(districtId, bodyId, cacheKey);
     if (cachedWards.isNotEmpty) {
-      AppLogger.candidate('⚡ CACHE HIT: Loaded ${cachedWards.length} wards from SQLite for $districtId/$bodyId');
+      AppLogger.core('🏠 LOCATION SERVICE: ⚡ CACHE HIT: Loaded ${cachedWards.length} wards from SQLite for $districtId/$bodyId');
       return cachedWards;
+    } else {
+      AppLogger.core('🏠 LOCATION SERVICE: 🔄 CACHE MISS: No cached wards found');
     }
 
     // Cache miss - load from Firestore
-    AppLogger.candidate('🔄 Loading wards from Firestore for $districtId/$bodyId');
+    AppLogger.core('🏠 LOCATION SERVICE: 🔄 Loading wards from Firestore for $stateId/$districtId/$bodyId');
     try {
       final wardsSnapshot = await FirebaseFirestore.instance
           .collection('states')
@@ -128,24 +162,33 @@ class LocationService {
           .collection('wards')
           .get();
 
+      AppLogger.core('🏠 LOCATION SERVICE: 📊 Firestore query returned ${wardsSnapshot.docs.length} ward documents');
+
       final wards = wardsSnapshot.docs.map((doc) {
         final data = doc.data();
-        return Ward.fromJson({
+        final ward = Ward.fromJson({
           ...data,
           'wardId': doc.id,
           'districtId': districtId,
           'bodyId': bodyId,
         });
+        AppLogger.core('🏠 LOCATION SERVICE:   - Document ID: ${doc.id}, Name: ${ward.name ?? 'N/A'}');
+        return ward;
       }).toList();
 
-      AppLogger.candidate('✅ Loaded ${wards.length} wards from Firebase for $districtId/$bodyId');
+      AppLogger.core('🏠 LOCATION SERVICE: ✅ Successfully loaded ${wards.length} wards from Firebase for $districtId/$bodyId');
 
-      // Cache in SQLite
-      await _localDatabase.insertWards(wards);
+      // Cache in SQLite for future use (only if not web, but will handle gracefully)
+      try {
+        await _localDatabase.insertWards(wards);
+        AppLogger.core('🏠 LOCATION SERVICE: 💾 Cached wards in local database');
+      } catch (cacheError) {
+        AppLogger.core('🏠 LOCATION SERVICE: ⚠️ Failed to cache wards: $cacheError (might be expected on web)');
+      }
 
       return wards;
     } catch (e) {
-      AppLogger.candidateError('Error loading wards for $districtId/$bodyId: $e');
+      AppLogger.core('🏠 LOCATION SERVICE ERROR: ❌ Error loading wards from Firebase for $districtId/$bodyId: $e');
       return [];
     }
   }
