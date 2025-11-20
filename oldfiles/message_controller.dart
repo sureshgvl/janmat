@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../../../utils/app_logger.dart';
-import '../../../utils/snackbar_utils.dart';
 import '../models/chat_message.dart';
 import '../models/user_quota.dart';
 import '../services/local_message_service.dart';
@@ -13,26 +12,10 @@ import '../services/media_service.dart';
 import '../services/offline_message_queue.dart';
 import '../services/private_chat_service.dart';
 import '../services/whatsapp_style_message_cache.dart';
-import '../services/message_sender.dart';
-import '../services/message_state_manager.dart';
-import '../services/voice_recorder_service.dart';
-import '../services/user_quota_manager.dart';
-import '../services/message_moderation_manager.dart';
 import '../repositories/chat_repository.dart';
 import 'room_controller.dart';
 
-// Compatibility layer for message functionality
-// This controller acts as a FACADE that delegates to focused services
-// All business logic has been moved to dedicated services following SOLID principles
-//
-// ARCHITECTURE:
-// - MessageSender: Handles message sending logic
-// - MessageStateManager: Manages message states and UI updates
-// - VoiceRecorderService: Handles voice recording functionality
-// - UserQuotaManager: Manages user message quotas
-//
-// TODO: Future migration - screens can call services directly for better performance
-class MessageController extends GetxController {
+class MessageController {
    final ChatRepository _repository = ChatRepository();
    final LocalMessageService _localMessageService = LocalMessageService();
    final WhatsAppStyleMessageCache _messageCache = WhatsAppStyleMessageCache();
@@ -41,41 +24,49 @@ class MessageController extends GetxController {
    final PrivateChatService _privateChatService = PrivateChatService();
    final AudioRecorder _audioRecorder = AudioRecorder();
 
-   // New focused services for SOLID principles
-   final MessageSender _messageSender = MessageSender();
-   final MessageStateManager _messageStateManager = MessageStateManager();
-   final VoiceRecorderService _voiceRecorderService = VoiceRecorderService();
-   final UserQuotaManager _userQuotaManager = UserQuotaManager();
-   final MessageModerationManager _messageModerationManager = MessageModerationManager();
+   // Dependencies - will be injected via Riverpod
+   late RoomController _roomController;
 
-   // Lazy dependency to avoid initialization order issues
-   RoomController get _roomController => Get.find<RoomController>();
+   // Constructor for dependency injection
+   MessageController({RoomController? roomController}) {
+     _roomController = roomController ?? RoomController();
+     _initialize();
+   }
 
-  // Voice recording state
-  var isRecording = false.obs;
-  String? currentRecordingPath;
+   // Voice recording state
+   bool _isRecording = false;
+   String? _currentRecordingPath;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _localMessageService.initialize();
-    _messageCache.initialize();
-    _offlineQueue.initialize();
-    _loadUserQuota();
+   // Getters for state (will be accessed through Riverpod providers)
+   bool get isRecording => _isRecording;
+   String? get currentRecordingPath => _currentRecordingPath;
+   List<Message> get messages => _messages;
+   UserQuota? get userQuota => _userQuota;
+   set userQuota(UserQuota? quota) => _userQuota = quota;
+   bool get isLoadingMore => _isLoadingMore;
+   bool get hasMoreMessages => _hasMoreMessages;
+   DateTime? get oldestMessageTimestamp => _oldestMessageTimestamp;
 
-    // Set up offline queue callbacks
-    _setupOfflineQueueCallbacks();
-  }
+   // Message state
+   List<Message> _messages = [];
+   UserQuota? _userQuota;
 
-  // Message state
-  var messages = <Message>[].obs;
-  var userQuota = Rx<UserQuota?>(null);
+   // Pagination state
+   bool _isLoadingMore = false;
+   bool _hasMoreMessages = true;
+   DateTime? _oldestMessageTimestamp;
+   static const int messagesPerPage = 20;
 
-  // Pagination state
-  var isLoadingMore = false.obs;
-  var hasMoreMessages = true.obs;
-  var oldestMessageTimestamp = Rx<DateTime?>(null);
-  static const int messagesPerPage = 20;
+   // Initialize the controller
+   void _initialize() {
+     _localMessageService.initialize();
+     _messageCache.initialize();
+     _offlineQueue.initialize();
+     _loadUserQuota();
+
+     // Set up offline queue callbacks
+     _setupOfflineQueueCallbacks();
+   }
 
   // Message sending
   Future<void> sendTextMessage(
@@ -84,16 +75,7 @@ class MessageController extends GetxController {
     String senderId, {
     Message? existingMessage,
   }) async {
-    // Validate message content first
-    final validation = await _messageModerationManager.validateMessage(text, senderId);
-    if (!validation.isValid) {
-      SnackbarUtils.showError(validation.reason ?? 'Message validation failed');
-      return;
-    }
-
-    // Clean the message content
-    final cleanedText = _messageModerationManager.cleanMessageContent(text);
-    if (cleanedText.isEmpty) return;
+    if (text.trim().isEmpty) return;
 
     // Check if this is a ward room and add broadcast control metadata
     final isWardRoom = roomId.startsWith('ward_');
@@ -101,7 +83,7 @@ class MessageController extends GetxController {
 
     final message = existingMessage ?? Message(
       messageId: _generateMessageId(),
-      text: cleanedText,
+      text: text,
       senderId: senderId,
       type: 'text',
       createdAt: DateTime.now(),
@@ -173,7 +155,7 @@ class MessageController extends GetxController {
   Future<void> _updateUserQuotaAfterMessage() async {
     try {
       // Get current quota
-      final currentQuota = userQuota.value;
+      final currentQuota = _userQuota;
       if (currentQuota != null) {
         // Increment messages sent
         final updatedQuota = currentQuota.copyWith(
@@ -181,7 +163,7 @@ class MessageController extends GetxController {
         );
 
         // Update local state
-        userQuota.value = updatedQuota;
+        _userQuota = updatedQuota;
 
         // Update in repository
         await _repository.updateUserQuota(updatedQuota);
@@ -222,34 +204,61 @@ class MessageController extends GetxController {
     }
   }
 
-  // Voice recording methods - now using VoiceRecorderService
+  // Voice recording methods
   Future<void> startVoiceRecording() async {
     try {
-      await _voiceRecorderService.startRecording();
-      isRecording.value = _voiceRecorderService.isCurrentlyRecording;
-      AppLogger.chat('MessageController: Started voice recording via service');
+      if (await _audioRecorder.hasPermission()) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final recordingsDir = Directory(
+          path.join(appDir.path, 'voice_recordings'),
+        );
+
+        if (!await recordingsDir.exists()) {
+          await recordingsDir.create(recursive: true);
+        }
+
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}.m4a';
+        _currentRecordingPath = path.join(recordingsDir.path, fileName);
+
+        const config = RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 128000,
+          sampleRate: 44100,
+        );
+
+        await _audioRecorder.start(config, path: _currentRecordingPath!);
+        _isRecording = true;
+
+        AppLogger.chat(
+          'MessageController: Started voice recording: $_currentRecordingPath',
+        );
+      } else {
+        throw Exception('Microphone permission not granted');
+      }
     } catch (e) {
       AppLogger.chat('MessageController: Failed to start voice recording: $e');
-      isRecording.value = false;
+      _isRecording = false;
       rethrow;
     }
   }
 
   Future<String?> stopVoiceRecording() async {
     try {
-      final path = await _voiceRecorderService.stopRecording();
-      isRecording.value = false;
+      final path = await _audioRecorder.stop();
+      _isRecording = false;
 
       if (path != null) {
         AppLogger.chat('MessageController: Stopped voice recording: $path');
         return path;
       } else {
-        AppLogger.chat('MessageController: Voice recording failed - no path returned');
+        AppLogger.chat(
+          'MessageController: Voice recording failed - no path returned',
+        );
         return null;
       }
     } catch (e) {
       AppLogger.chat('MessageController: Failed to stop voice recording: $e');
-      isRecording.value = false;
+      _isRecording = false;
       return null;
     }
   }
@@ -277,19 +286,10 @@ class MessageController extends GetxController {
 
     // Save locally immediately and add to UI
     await _localMessageService.saveMessage(message, roomId);
-    messages.add(message);
+    _messages.add(message);
     AppLogger.chat(
-      '📝 MessageController: Added voice message to UI, total messages: ${messages.length}',
+      '📝 MessageController: Added image message to UI, total messages: ${_messages.length}',
     );
-    update(); // Force UI update
-    AppLogger.chat(
-      '📝 MessageController: Added image message to UI, total messages: ${messages.length}',
-    );
-    update(); // Force UI update
-    AppLogger.chat(
-      '📝 MessageController: Added message to UI, total messages: ${messages.length}',
-    );
-    update(); // Force UI update
 
     // Send to server asynchronously (don't block UI)
     _sendImageMessageToServer(message, roomId, imagePath);
@@ -375,7 +375,7 @@ class MessageController extends GetxController {
 
     // Save locally immediately and add to UI
     await _localMessageService.saveMessage(message, roomId);
-    messages.add(message);
+    _messages.add(message);
 
     // Send to server asynchronously (don't block UI)
     _sendVoiceMessageToServer(message, roomId, audioPath);
@@ -435,9 +435,9 @@ class MessageController extends GetxController {
   ) async {
     await _repository.addReactionToMessage(roomId, messageId, userId, emoji);
     // Update local message
-    final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
+    final messageIndex = _messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
-      final message = messages[messageIndex];
+      final message = _messages[messageIndex];
       final reactions = List<MessageReaction>.from(message.reactions ?? []);
       reactions.add(
         MessageReaction(
@@ -446,7 +446,7 @@ class MessageController extends GetxController {
           createdAt: DateTime.now(),
         ),
       );
-      messages[messageIndex] = message.copyWith(reactions: reactions);
+      _messages[messageIndex] = message.copyWith(reactions: reactions);
     }
   }
 
@@ -464,34 +464,34 @@ class MessageController extends GetxController {
     }
 
     // Update local message
-    final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
+    final messageIndex = _messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
-      final message = messages[messageIndex];
+      final message = _messages[messageIndex];
       final readBy = List<String>.from(message.readBy)..add(userId);
-      messages[messageIndex] = message.copyWith(readBy: readBy);
+      _messages[messageIndex] = message.copyWith(readBy: readBy);
     }
   }
 
   // Retry failed message
   Future<void> retryMessage(String roomId, String messageId) async {
-    final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
+    final messageIndex = _messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex == -1) return;
 
-    final message = messages[messageIndex];
+    final message = _messages[messageIndex];
     if (message.status != MessageStatus.failed) return;
 
     // Update status to sending
-    messages[messageIndex] = message.copyWith(status: MessageStatus.sending);
+    _messages[messageIndex] = message.copyWith(status: MessageStatus.sending);
 
     try {
       await _repository.sendMessage(roomId, message);
-      messages[messageIndex] = message.copyWith(status: MessageStatus.sent);
+      _messages[messageIndex] = message.copyWith(status: MessageStatus.sent);
       await _localMessageService.updateMessageStatus(
         messageId,
         MessageStatus.sent,
       );
     } catch (e) {
-      messages[messageIndex] = message.copyWith(status: MessageStatus.failed);
+      _messages[messageIndex] = message.copyWith(status: MessageStatus.failed);
       await _localMessageService.updateMessageStatus(
         messageId,
         MessageStatus.failed,
@@ -503,9 +503,9 @@ class MessageController extends GetxController {
   Future<void> deleteMessage(String roomId, String messageId) async {
     await _repository.deleteMessage(roomId, messageId);
     // Update local message
-    final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
+    final messageIndex = _messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
-      messages[messageIndex] = messages[messageIndex].copyWith(isDeleted: true);
+      _messages[messageIndex] = _messages[messageIndex].copyWith(isDeleted: true);
     }
   }
 
@@ -533,7 +533,7 @@ class MessageController extends GetxController {
     await _localMessageService.saveMessage(message, roomId);
 
     // Check if message already exists before adding
-    final existingIndex = messages.indexWhere((m) => m.messageId == message.messageId);
+    final existingIndex = _messages.indexWhere((m) => m.messageId == message.messageId);
     if (existingIndex != -1) {
       AppLogger.chat(
         '⚠️ MessageController: Message ${message.messageId} already exists at index $existingIndex, skipping duplicate add',
@@ -541,20 +541,18 @@ class MessageController extends GetxController {
       return;
     }
 
-    messages.add(message);
+    _messages.add(message);
     AppLogger.chat(
-      '✅ MessageController: Added message ${message.messageId} to UI, total messages: ${messages.length}',
+      '✅ MessageController: Added message ${message.messageId} to UI, total messages: ${_messages.length}',
     );
 
     // Update room's last message info for sorting
     _updateRoomLastMessageInfo(message, roomId);
 
     // Log all current messages for debugging
-    for (int i = 0; i < messages.length; i++) {
-      AppLogger.chat('   Message $i: ID=${messages[i].messageId}, Text="${messages[i].text}"');
+    for (int i = 0; i < _messages.length; i++) {
+      AppLogger.chat('   Message $i: ID=${_messages[i].messageId}, Text="${_messages[i].text}"');
     }
-
-    update(); // Force UI update
   }
 
   // Update message status
@@ -563,30 +561,29 @@ class MessageController extends GetxController {
     MessageStatus status,
   ) async {
     await _localMessageService.updateMessageStatus(messageId, status);
-    final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
+    final messageIndex = _messages.indexWhere((m) => m.messageId == messageId);
     if (messageIndex != -1) {
-      messages[messageIndex] = messages[messageIndex].copyWith(status: status);
+      _messages[messageIndex] = _messages[messageIndex].copyWith(status: status);
       AppLogger.chat(
         '📝 MessageController: Updated message $messageId status to $status',
       );
-      update(); // Force GetX UI update
     }
-}
+  }
 
   // Load messages for room with WhatsApp-style multi-level caching
   Future<void> loadMessagesForRoom(String roomId) async {
     AppLogger.chat('🚀 MessageController: Loading messages for room $roomId with multi-level cache');
 
     // Reset pagination state
-    hasMoreMessages.value = true;
-    oldestMessageTimestamp.value = null;
+    _hasMoreMessages = true;
+    _oldestMessageTimestamp = null;
 
     // Use WhatsApp-style message cache (3-tier: memory → disk → local storage)
     final cachedMessages = await _messageCache.getMessagesForRoom(roomId);
     if (cachedMessages.isNotEmpty) {
-      messages.assignAll(cachedMessages);
+      _messages = cachedMessages;
       // Set oldest timestamp for pagination
-      oldestMessageTimestamp.value = cachedMessages.first.createdAt;
+      _oldestMessageTimestamp = cachedMessages.first.createdAt;
       AppLogger.chat('⚡ MessageController: Loaded ${cachedMessages.length} messages from cache instantly');
     } else {
       AppLogger.chat('📭 MessageController: No cached messages, will load from server');
@@ -597,8 +594,8 @@ class MessageController extends GetxController {
       AppLogger.chat('🔄 MessageController: Received ${serverMessages.length} messages from server');
 
       // Merge with current messages using intelligent deduplication
-      final mergedMessages = _mergeMessages(messages, serverMessages);
-      messages.assignAll(mergedMessages);
+      final mergedMessages = _mergeMessages(_messages, serverMessages);
+      _messages = mergedMessages;
 
       // Cache the merged messages for future instant loading
       if (mergedMessages.isNotEmpty) {
@@ -611,16 +608,15 @@ class MessageController extends GetxController {
         _updateRoomLastMessageInfo(latestMessage, roomId);
       }
 
-      update(); // Force UI update
-      AppLogger.chat('✅ MessageController: Messages updated, total: ${messages.length}');
+      AppLogger.chat('✅ MessageController: Messages updated, total: ${_messages.length}');
     });
   }
 
   // Load more messages (pagination)
   Future<void> loadMoreMessages(String roomId) async {
-    if (isLoadingMore.value || !hasMoreMessages.value) return;
+    if (_isLoadingMore || !_hasMoreMessages) return;
 
-    isLoadingMore.value = true;
+    _isLoadingMore = true;
 
     try {
       AppLogger.chat('📄 Loading more messages for room: $roomId');
@@ -629,26 +625,26 @@ class MessageController extends GetxController {
       final olderMessages = await _repository.getMessagesForRoomPaginated(
         roomId,
         limit: messagesPerPage,
-        startAfter: oldestMessageTimestamp.value,
+        startAfter: _oldestMessageTimestamp,
       );
 
       if (olderMessages.isEmpty) {
         // No more messages to load
-        hasMoreMessages.value = false;
+        _hasMoreMessages = false;
         AppLogger.chat('📄 No more messages to load');
       } else {
         // Add older messages to the beginning
-        messages.insertAll(0, olderMessages);
+        _messages.insertAll(0, olderMessages);
 
         // Update oldest timestamp for next pagination
-        oldestMessageTimestamp.value = olderMessages.last.createdAt;
+        _oldestMessageTimestamp = olderMessages.last.createdAt;
 
-        AppLogger.chat('📄 Loaded ${olderMessages.length} more messages, total: ${messages.length}');
+        AppLogger.chat('📄 Loaded ${olderMessages.length} more messages, total: ${_messages.length}');
       }
     } catch (e) {
       AppLogger.chat('❌ Error loading more messages: $e');
     } finally {
-      isLoadingMore.value = false;
+      _isLoadingMore = false;
     }
   }
 
@@ -783,10 +779,8 @@ class MessageController extends GetxController {
   }
 
   // Clean up
-  @override
-  void onClose() {
+  void dispose() {
     _offlineQueue.dispose();
-    messages.clear();
-    super.onClose();
+    _messages.clear();
   }
 }

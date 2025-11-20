@@ -90,6 +90,9 @@ class _MessageInputState extends State<MessageInput> {
         }
       });
     }
+
+    // Trigger rebuild whenever text changes so button state updates immediately
+    setState(() {});
   }
 
   void _updateTypingStatus(bool isTyping) {
@@ -237,404 +240,241 @@ class _MessageInputState extends State<MessageInput> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(
-        maxHeight:
-            MediaQuery.of(context).size.height * 0.4, // Responsive max height
-        minHeight: 48, // Minimum height for input field
-      ),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Recording indicator or preview
-            GetBuilder<ChatController>(
-              builder: (controller) => controller.isRecording
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      margin: const EdgeInsets.only(bottom: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.mic, color: Colors.red, size: 14),
-                          const SizedBox(width: 6),
-                          Text(
-                            ChatTranslations.recording(_formatDuration(_recordingDuration)),
-                            style: TextStyle(
-                              color: Colors.red.shade700,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _showRecordingPreview
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      margin: const EdgeInsets.only(bottom: 4),
-                      constraints: const BoxConstraints(
-                        maxHeight: 120,
-                      ), // Limit height
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header with duration
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.mic,
-                                color: widget.controller.canSendMessage
-                                    ? Colors.blue.shade600
-                                    : Colors.grey,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  ChatTranslations.voiceMessage(_formatDuration(_recordingDuration)),
-                                  style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Progress and controls
-                          if (_previewDuration != Duration.zero) ...[
-                            const SizedBox(height: 6),
-                            LinearProgressIndicator(
-                              value:
-                                  _previewPosition.inMilliseconds /
-                                  _previewDuration.inMilliseconds,
-                              backgroundColor: Colors.blue.shade100,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.blue.shade600,
-                              ),
-                            ),
-                          ],
-
-                          // Control buttons
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              // Play/Pause button
-                              IconButton(
-                                onPressed: _playPausePreview,
-                                icon: Icon(
-                                  _isPreviewPlaying
-                                      ? Icons.pause
-                                      : Icons.play_arrow,
-                                  color: Colors.blue.shade600,
-                                  size: 20,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 40,
-                                  minHeight: 40,
-                                ),
-                                padding: EdgeInsets.zero,
-                                tooltip: _isPreviewPlaying ? ChatTranslations.pause : ChatTranslations.play,
-                              ),
-
-                              // Send button
-                              ElevatedButton.icon(
-                                onPressed: widget.controller.canSendMessage
-                                    ? _sendRecording
-                                    : null,
-                                icon: const Icon(Icons.send, size: 14),
-                                label: Text(
-                                  ChatTranslations.send,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade600,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  minimumSize: const Size(70, 32),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                              ),
-
-                              // Delete button
-                              IconButton(
-                                onPressed: _cancelRecording,
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                  size: 20,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 40,
-                                  minHeight: 40,
-                                ),
-                                padding: EdgeInsets.zero,
-                                tooltip: ChatTranslations.deleteRecording,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            // Input field with responsive height
-            GetBuilder<ChatController>(
-              builder: (controller) => TextField(
-                controller: widget.textController,
-                decoration: InputDecoration(
-                  hintText: controller.canSendMessage
-                      ? ChatTranslations.typeMessage
-                      : controller.shouldShowWatchAdsButton
-                      ? ChatTranslations.watchAdToEarnXP
-                      : ChatTranslations.unableToSendMessages,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  // Character counter for long messages
-                  counterText: widget.textController.text.length > 1000
-                      ? '${widget.textController.text.length}/4096'
-                      : null,
-                  counterStyle: TextStyle(
-                    fontSize: 12,
-                    color: widget.textController.text.length > 3500
-                        ? Colors.red
-                        : Colors.grey.shade600,
-                  ),
-                ),
-                maxLines: 4, // Limit to 4 lines to prevent excessive height
-                minLines: 1,
-                maxLength: 4096, // WhatsApp-like character limit
-                enabled: controller.canSendMessage,
-                textInputAction: TextInputAction.newline,
-              ),
-            ),
-
-            // XP and Quota display row
-            GetBuilder<ChatController>(
-              builder: (controller) => Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: Row(
-                  children: [
-                    // XP Points display
-                    Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Recording indicator or preview (compact)
+          GetBuilder<ChatController>(
+            builder: (controller) => controller.isRecording || _showRecordingPreview
+                ? Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
                       children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
-                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.mic,
+                          color: Colors.blue.shade600,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          ChatTranslations.xpPoints((controller.currentUser?.xpPoints ?? 0).toString()),
+                          controller.isRecording
+                              ? ChatTranslations.recording(_formatDuration(_recordingDuration))
+                              : ChatTranslations.voiceMessage(_formatDuration(_recordingDuration)),
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: Colors.blue.shade700,
                             fontWeight: FontWeight.w500,
+                            fontSize: 12,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    // Chat Quota display
-                    Row(
-                      children: [
-                        const Icon(Icons.message, color: Colors.blue, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          ChatTranslations.messagesCount(controller.remainingMessages.toString()),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Premium indicator (if applicable)
-                    if (controller.currentUser?.premium == true) ...[
-                      const SizedBox(width: 16),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.verified,
-                            color: Colors.green,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            ChatTranslations.premium,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.green.shade600,
-                              fontWeight: FontWeight.w500,
+                        const Spacer(),
+                        // Quick actions for recording preview
+                        if (_showRecordingPreview) ...[
+                          IconButton(
+                            onPressed: _playPausePreview,
+                            icon: Icon(
+                              _isPreviewPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Colors.blue.shade600,
+                              size: 18,
                             ),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            padding: EdgeInsets.zero,
+                          ),
+                          IconButton(
+                            onPressed: _sendRecording,
+                            icon: const Icon(Icons.send, color: Colors.blue, size: 18),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            padding: EdgeInsets.zero,
+                          ),
+                          IconButton(
+                            onPressed: _cancelRecording,
+                            icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ] else if (controller.isRecording) ...[
+                          IconButton(
+                            onPressed: () => _toggleVoiceRecording(),
+                            icon: const Icon(Icons.stop, color: Colors.red, size: 18),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            padding: EdgeInsets.zero,
                           ),
                         ],
-                      ),
-                    ],
-                  ],
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+
+          // Single row with text input and buttons (WhatsApp style)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Attachment button
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                child: GetBuilder<ChatController>(
+                  builder: (controller) => IconButton(
+                    icon: const Icon(Icons.add, size: 24),
+                    color: controller.canSendMessage ? Colors.grey.shade600 : Colors.grey.shade400,
+                    onPressed: controller.canSendMessage
+                        ? widget.onShowAttachmentOptions
+                        : null,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    padding: EdgeInsets.zero,
+                  ),
                 ),
               ),
-            ),
 
-            // Bottom row with buttons (always at bottom like WhatsApp)
-            Container(
-              height: 48, // Fixed height for button row
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  // Attachment button
-                  GetBuilder<ChatController>(
-                    builder: (controller) => IconButton(
-                      icon: Icon(
-                        Icons.attach_file,
-                        color: controller.canSendMessage ? null : Colors.grey,
+              // Text input field (expands to fill space)
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 40,
+                    maxHeight: 100, // Allow up to ~3-4 lines
+                  ),
+                  child: GetBuilder<ChatController>(
+                    builder: (controller) => TextField(
+                      controller: widget.textController,
+                      decoration: InputDecoration(
+                        hintText: controller.canSendMessage
+                            ? ChatTranslations.typeMessage
+                            : controller.shouldShowWatchAdsButton
+                            ? ChatTranslations.watchAdToEarnXP
+                            : ChatTranslations.unableToSendMessages,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        // Character counter (removed)
+                        counterText: null,
                       ),
-                      onPressed: controller.canSendMessage
-                          ? widget.onShowAttachmentOptions
-                          : null,
+                      maxLines: null, // Allow multiple lines
+                      minLines: 1,
+                      // maxLength: 4096, // Removed to hide character counter
+                      enabled: controller.canSendMessage,
+                      textInputAction: TextInputAction.newline,
+                      keyboardType: TextInputType.multiline,
                     ),
                   ),
+                ),
+              ),
 
-                  // Voice recording button
-                  GetBuilder<ChatController>(
-                    builder: (controller) => IconButton(
+              const SizedBox(width: 8),
+
+              // Send button or voice/camera button
+              Obx(() {
+                final controller = Get.find<ChatController>();
+                final hasText = widget.textController.text.trim().isNotEmpty;
+                final canSend = controller.canSendMessage;
+                final isSending = controller.isSendingMessage.value;
+                final shouldShowAds = controller.shouldShowWatchAdsButton;
+
+                // Only log when state actually changes
+                if (_lastIsSending != isSending || _lastCanSend != canSend || _lastShouldShowAds != shouldShowAds) {
+                  AppLogger.chat('🔄 MessageInput: State changed - hasText: $hasText, isSending: $isSending, canSend: $canSend, shouldShowAds: $shouldShowAds');
+                  _lastIsSending = isSending;
+                  _lastCanSend = canSend;
+                  _lastShouldShowAds = shouldShowAds;
+                }
+
+                // ALWAYS show send button when there's text, regardless of quota
+                if (hasText) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0084FF), // WhatsApp blue
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      key: ValueKey('send_button_$isSending'),
+                      icon: isSending
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.send, color: Colors.white, size: 18),
+                      onPressed: isSending ? null : () {
+                        AppLogger.chat('📤 MessageInput: Send button clicked');
+                        widget.onSendMessage();
+                      },
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Send message',
+                    ),
+                  );
+                }
+                // Only show recording voice button if user can send messages
+                else if (canSend) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    child: IconButton(
                       icon: Icon(
                         controller.isRecording ? Icons.stop : Icons.mic,
-                        color: controller.canSendMessage
-                            ? (controller.isRecording ? Colors.red : null)
-                            : Colors.grey,
+                        color: controller.isRecording ? Colors.red : Colors.grey.shade600,
+                        size: 24,
                       ),
-                      onPressed: controller.canSendMessage
-                          ? _toggleVoiceRecording
-                          : null,
+                      onPressed: _toggleVoiceRecording,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                      padding: EdgeInsets.zero,
                       tooltip: controller.isRecording
                           ? ChatTranslations.stopRecording
                           : ChatTranslations.startVoiceRecording,
                     ),
-                  ),
-
-                  // Spacer to push send button to the right
-                  const Expanded(child: SizedBox()),
-
-                  // Send button or Watch Ads button
-                  Obx(() {
-                    final controller = Get.find<ChatController>();
-                    final isSending = controller.isSendingMessage.value;
-                    final canSend = controller.canSendMessage;
-                    final shouldShowAds = controller.shouldShowWatchAdsButton;
-
-                    // Only log when state actually changes to avoid spam
-                    if (_lastIsSending != isSending || _lastCanSend != canSend || _lastShouldShowAds != shouldShowAds) {
-                      AppLogger.chat('🔄 MessageInput: State changed - isSendingMessage: $isSending, canSend: $canSend, shouldShowAds: $shouldShowAds');
-                      _lastIsSending = isSending;
-                      _lastCanSend = canSend;
-                      _lastShouldShowAds = shouldShowAds;
-                    }
-
-                    if (canSend) {
-                      // Show send button when user can send messages
-                      return Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          key: ValueKey('send_button_$isSending'), // Force rebuild with unique key
-                          icon: isSending
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(Icons.send, color: Colors.white),
-                          onPressed: isSending
-                              ? () {
-                                  AppLogger.chat('🚫 MessageInput: Send button pressed but disabled (sending in progress)');
-                                  null;
-                                }
-                              : () {
-                                  AppLogger.chat('📤 MessageInput: Send button pressed - calling onSendMessage');
-                                  widget.onSendMessage();
-                                },
-                        ),
-                      );
-                    } else if (shouldShowAds) {
-                      // Show watch ads button when user cannot send but is not premium
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade600,
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.play_circle_fill,
-                            color: Colors.white,
-                          ),
-                          onPressed: () => controller.watchRewardedAdForXP(),
-                          tooltip: 'Watch ad to earn XP',
-                        ),
-                      );
-                    } else {
-                      // Show disabled send button for premium users who somehow can't send
-                      return Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.grey,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const IconButton(
-                          icon: Icon(Icons.send, color: Colors.white),
-                          onPressed: null,
-                        ),
-                      );
-                    }
-                  }),
-                ],
-              ),
-            ),
-          ],
-        ),
+                  );
+                } else if (shouldShowAds) {
+                  // Show watch ads button when user cannot send but is not premium
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade600,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.play_circle_fill, color: Colors.white, size: 18),
+                      onPressed: () => controller.watchRewardedAdForXP(),
+                      tooltip: 'Watch ad to earn XP',
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                      padding: EdgeInsets.zero,
+                    ),
+                  );
+                } else {
+                  // Show disabled microphone when user absolutely cannot send
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    child: IconButton(
+                      icon: const Icon(Icons.mic, color: Colors.grey, size: 24),
+                      onPressed: null,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Cannot send messages - upgrade to premium',
+                    ),
+                  );
+                }
+              }),
+            ],
+          ),
+        ],
       ),
     );
   }

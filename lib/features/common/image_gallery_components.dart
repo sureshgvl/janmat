@@ -6,6 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_html/html.dart' as html;
 import '../../utils/snackbar_utils.dart';
 
 // Image Gallery Viewer Widget for swipeable image viewing
@@ -53,24 +55,49 @@ class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
     try {
       SnackbarUtils.showScaffoldInfo(context, 'Preparing image for sharing...');
 
-      late XFile xFile;
+      if (kIsWeb) {
+        // On web: Download the image directly to user's downloads folder
+        if (isLocalImage) {
+          SnackbarUtils.showScaffoldError(context, 'Cannot share local images on web platform');
+          return;
+        }
 
-      if (isLocalImage) {
-        final localPath = currentImageUrl.replaceFirst('local:', '');
-        xFile = XFile(localPath);
-      } else {
         final response = await http.get(Uri.parse(currentImageUrl));
-        final tempDir = await getTemporaryDirectory();
-        final filePath = path.join(
-          tempDir.path,
-          'shared_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        );
-        final file = File(filePath);
-        await file.writeAsBytes(response.bodyBytes);
-        xFile = XFile(filePath);
-      }
+        if (response.statusCode != 200) {
+          throw Exception('Failed to download image');
+        }
 
-      await Share.shareXFiles([xFile], text: 'Check out this image!');
+        final blob = html.Blob([response.bodyBytes], 'image/jpeg');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'shared_image.jpg')
+          ..click();
+
+        html.Url.revokeObjectUrl(url);
+
+        SnackbarUtils.showScaffoldInfo(context, 'Image downloaded successfully!');
+      } else {
+        // On Android/iOS: Use existing mobile sharing logic
+        late XFile xFile;
+
+        if (isLocalImage) {
+          final localPath = currentImageUrl.replaceFirst('local:', '');
+          xFile = XFile(localPath);
+        } else {
+          final response = await http.get(Uri.parse(currentImageUrl));
+          final tempDir = await getTemporaryDirectory();
+          final filePath = path.join(
+            tempDir.path,
+            'shared_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          );
+          final file = File(filePath);
+          await file.writeAsBytes(response.bodyBytes);
+          xFile = XFile(filePath);
+        }
+
+        await Share.shareXFiles([xFile], text: 'Check out this image!');
+      }
     } catch (e) {
       SnackbarUtils.showScaffoldError(context, 'Error sharing image: $e');
     }

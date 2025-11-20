@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:vector_math/vector_math_64.dart' as vector_math;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_html/html.dart' as html;
 import '../../utils/snackbar_utils.dart';
 
 /// WhatsApp-style full-screen image viewer with interactive features
@@ -149,32 +151,46 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
       // Show loading indicator
       SnackbarUtils.showScaffoldInfo(context, 'Preparing image for sharing...');
 
-      // Download the image to a temporary file
+      // Download the image
       final response = await http.get(Uri.parse(widget.imageUrl));
       if (response.statusCode != 200) {
         throw Exception('Failed to download image');
       }
 
-      // Get temporary directory
-      final tempDir = await getTemporaryDirectory();
-      final fileName = 'shared_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final filePath = path.join(tempDir.path, fileName);
+      if (kIsWeb) {
+        // On web: Download the image directly to user's downloads folder
+        final blob = html.Blob([response.bodyBytes], 'image/jpeg');
+        final url = html.Url.createObjectUrlFromBlob(blob);
 
-      // Save image to file
-      final file = File(filePath);
-      await file.writeAsBytes(response.bodyBytes);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'shared_image.jpg')
+          ..click();
 
-      // Share the image file
-      final result = await Share.shareXFiles(
-        [XFile(filePath)],
-        text: widget.title != null ? 'Check out this ${widget.title}!' : 'Check out this image!',
-      );
+        html.Url.revokeObjectUrl(url);
 
-      // Clean up the temporary file
-      if (await file.exists()) {
-        await file.delete();
+        SnackbarUtils.showScaffoldInfo(context, 'Image downloaded successfully!');
+      } else {
+        // On Android/iOS: Use existing mobile sharing logic
+        // Get temporary directory
+        final tempDir = await getTemporaryDirectory();
+        final fileName = 'shared_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final filePath = path.join(tempDir.path, fileName);
+
+        // Save image to file
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        // Share the image file
+        await Share.shareXFiles(
+          [XFile(filePath)],
+          text: widget.title != null ? 'Check out this ${widget.title}!' : 'Check out this image!',
+        );
+
+        // Clean up the temporary file
+        if (await file.exists()) {
+          await file.delete();
+        }
       }
-
     } catch (e) {
       SnackbarUtils.showScaffoldError(context, 'Failed to share image: ${e.toString()}');
     }

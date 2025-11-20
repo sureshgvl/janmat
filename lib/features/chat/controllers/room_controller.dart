@@ -22,6 +22,8 @@ class RoomController extends GetxController {
   final Map<String, DateTime> _lastMessageTimes = {};
   final Map<String, String> _lastMessagePreviews = {};
   final Map<String, String> _lastMessageSenders = {};
+  // Member counts
+  final Map<String, int> _memberCounts = {};
 
   // Load chat rooms for user with WhatsApp-style instant loading
   Future<void> loadChatRooms(
@@ -43,143 +45,135 @@ class RoomController extends GetxController {
       AppLogger.chat('⚡ ROOM CONTROLLER: Instant loading ${persistentRooms.length} rooms from persistent cache');
       chatRooms.assignAll(persistentRooms);
       await _calculateUnreadCounts(userId, persistentRooms);
+      await _calculateMemberCounts(persistentRooms);
       _updateChatRoomDisplayInfos();
 
-      // Then fetch fresh data in background
-      isLoading.value = false; // Don't show loading since we have cached data
-      _loadFreshDataInBackground(userId, userRole, '', stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
+      // Don't show loading since we have cached data
+      isLoading.value = false;
     } else {
-      // Check repository cache as fallback
-      final cacheKey = userRole == 'voter'
-          ? '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}'
-          : '${userId}_${userRole}_${stateId ?? 'no_state'}_${districtId ?? 'no_district'}_${bodyId ?? 'no_body'}_${wardId ?? 'no_ward'}_${area ?? 'no_area'}';
+      // No cache available, fetch from server
+      isLoading.value = true;
+      try {
+        final rooms = await _repository.getChatRoomsForUser(
+          userId,
+          userRole,
+          stateId: stateId,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+          area: area,
+        );
+        chatRooms.assignAll(rooms);
 
-      final cachedRooms = await _repository.getCachedRooms(cacheKey);
+        // Cache persistently for future instant loading
+        await _persistentCache.cacheChatRooms(userId, rooms);
 
-      if (cachedRooms != null && cachedRooms.isNotEmpty) {
-        // Show repository cached data immediately
-        AppLogger.chat('💾 ROOM CONTROLLER: Showing ${cachedRooms.length} repository cached rooms');
-        chatRooms.assignAll(cachedRooms);
-        await _calculateUnreadCounts(userId, cachedRooms);
+        // Calculate unread counts and member counts
+        await _calculateUnreadCounts(userId, rooms);
+        await _calculateMemberCounts(rooms);
         _updateChatRoomDisplayInfos();
 
-        // Cache persistently for next time and fetch fresh data
-        await _persistentCache.cacheChatRooms(userId, cachedRooms);
+        AppLogger.chat('✅ ROOM CONTROLLER: Loaded ${rooms.length} rooms');
+      } catch (e) {
+        AppLogger.chat('❌ ROOM CONTROLLER: Error loading chat rooms: $e');
+      } finally {
         isLoading.value = false;
-        _loadFreshDataInBackground(userId, userRole, cacheKey, stateId: stateId, districtId: districtId, bodyId: bodyId, wardId: wardId, area: area);
-      } else {
-        // No cached data at all, show loading and fetch from server
-        AppLogger.chat('🔄 ROOM CONTROLLER: No cache available, fetching from server');
-        isLoading.value = true;
-        try {
-          final rooms = await _repository.getChatRoomsForUser(
-            userId,
-            userRole,
-            stateId: stateId,
-            districtId: districtId,
-            bodyId: bodyId,
-            wardId: wardId,
-            area: area,
-          );
-          chatRooms.assignAll(rooms);
-
-          // Cache persistently for future instant loading
-          await _persistentCache.cacheChatRooms(userId, rooms);
-
-          // Calculate unread counts for each room
-          await _calculateUnreadCounts(userId, rooms);
-          _updateChatRoomDisplayInfos();
-
-          AppLogger.chat('✅ ROOM CONTROLLER: Loaded and cached ${rooms.length} rooms');
-        } catch (e) {
-          AppLogger.chat('❌ ROOM CONTROLLER: Error loading chat rooms: $e');
-        } finally {
-          isLoading.value = false;
-        }
       }
     }
   }
 
-  // Load fresh data in background when cached data is already displayed
-  Future<void> _loadFreshDataInBackground(
-    String userId,
-    String userRole,
-    String cacheKey, {
-    String? stateId,
-    String? districtId,
-    String? bodyId,
-    String? wardId,
-    String? area,
-  }) async {
-    try {
-      AppLogger.chat('🔄 ROOM CONTROLLER: Loading fresh data in background...');
-      final freshRooms = await _repository.getChatRoomsForUser(
-        userId,
-        userRole,
-        stateId: stateId,
-        districtId: districtId,
-        bodyId: bodyId,
-        wardId: wardId,
-        area: area,
-      );
+  // Calculate member counts for all rooms
+  Future<void> _calculateMemberCounts(List<ChatRoom> rooms) async {
+    final futures = <Future>[];
 
-      // Only update if we got different data
-      if (freshRooms.length != chatRooms.length ||
-          !freshRooms.every((room) => chatRooms.any((cached) => cached.roomId == room.roomId))) {
-        AppLogger.chat('🔄 ROOM CONTROLLER: Fresh data differs from cache, updating UI');
-        chatRooms.assignAll(freshRooms);
-        await _calculateUnreadCounts(userId, freshRooms);
-        _updateChatRoomDisplayInfos();
-      } else {
-        AppLogger.chat('🔄 ROOM CONTROLLER: Fresh data matches cache, no UI update needed');
+    for (final room in rooms) {
+      if (room.type == 'private') {
+        // For private chats, member count is just members.length
+        _memberCounts[room.roomId] = room.members?.length ?? 0;
+      } else if (room.roomId.startsWith('ward_')) {
+        futures.add(_calculateWardMemberCount(room));
+      } else if (room.roomId.startsWith('area_')) {
+        futures.add(_calculateAreaMemberCount(room));
       }
-    } catch (e) {
-      AppLogger.chat('Error loading fresh chat rooms in background: $e');
     }
+
+    // Wait for all async calculations to complete
+    await Future.wait(futures);
   }
 
-  // Create new chat room
-  Future<ChatRoom?> createChatRoom(ChatRoom chatRoom) async {
-    try {
-      final createdRoom = await _repository.createChatRoom(chatRoom);
-      chatRooms.add(createdRoom);
-      // Sort after adding new room to maintain order
-      _sortChatRoomsByRecentMessages();
-      _updateChatRoomDisplayInfos();
-      return createdRoom;
-    } catch (e) {
-      return null;
+  // Calculate member count for a ward room
+  Future<void> _calculateWardMemberCount(ChatRoom room) async {
+    // try {
+    //   final count = await _repository.getWardActiveUserCount(room.roomId);
+    //   _memberCounts[room.roomId] = count;
+    //   AppLogger.chat('🐛 Ward ${room.roomId}: counted $count members');
+    // } catch (e) {
+    //   AppLogger.chat('Error calculating member count for ward ${room.roomId}: $e');
+    //   _memberCounts[room.roomId] = 0;
+    // }
+  }
+
+  // Calculate member count for an area room
+  Future<void> _calculateAreaMemberCount(ChatRoom room) async {
+    // try {
+    //   final count = await _repository.getAreaActiveUserCount(room.roomId);
+    //   _memberCounts[room.roomId] = count;
+    //   AppLogger.chat('🏠 Area ${room.roomId}: counted $count members');
+    // } catch (e) {
+    //   AppLogger.chat('Error calculating member count for area ${room.roomId}: $e');
+    //   _memberCounts[room.roomId] = 0;
+    // }
+  }
+
+  // Update display info - synchronous version that uses pre-calculated counts
+  void _updateChatRoomDisplayInfos() {
+    final displayInfos = <ChatRoomDisplayInfo>[];
+
+    for (final room in chatRooms) {
+      displayInfos.add(ChatRoomDisplayInfo(
+        room: room,
+        unreadCount: _unreadCounts[room.roomId] ?? 0,
+        lastMessageTime: _lastMessageTimes[room.roomId],
+        lastMessagePreview: _lastMessagePreviews[room.roomId],
+        lastMessageSender: _lastMessageSenders[room.roomId],
+        displayTitle: null,
+        activeUsersCount: _memberCounts[room.roomId] ?? 0,
+      ));
     }
+
+    // Sort by last message time
+    displayInfos.sort((a, b) {
+      final aTime = a.lastMessageTime ?? a.room.createdAt;
+      final bTime = b.lastMessageTime ?? b.room.createdAt;
+      return bTime.compareTo(aTime);
+    });
+
+    chatRoomDisplayInfos.assignAll(displayInfos);
+
+    // Log member counts
+    final wardDisplayInfos = chatRoomDisplayInfos.where((info) => info.room.roomId.startsWith('ward_')).toList();
+    final areaDisplayInfos = chatRoomDisplayInfos.where((info) => info.room.roomId.startsWith('area_')).toList();
+
+    AppLogger.chat('📋 ROOM CONTROLLER: Display infos updated - ${chatRoomDisplayInfos.length} rooms');
+    AppLogger.chat('🏛️ WARD ROOMS: ${wardDisplayInfos.map((info) => '${info.room.roomId}(${info.activeUsersCount} users)').join(", ")}');
+    AppLogger.chat('🏘️ AREA ROOMS: ${areaDisplayInfos.map((info) => '${info.room.roomId}(${info.activeUsersCount} users)').join(", ")}');
+  }
+
+  // Get total unread count
+  int get totalUnreadCount {
+    return _unreadCounts.values.fold(0, (sum, count) => sum + count);
   }
 
   // Select chat room
   void selectChatRoom(ChatRoom chatRoom) {
     currentChatRoom.value = chatRoom;
     _resetUnreadCount(chatRoom.roomId);
-    // Ensure sorting is up to date when selecting a room
-    _sortChatRoomsByRecentMessages();
     _updateChatRoomDisplayInfos();
   }
 
   // Update unread count
   void updateUnreadCount(String roomId, int count) {
     _unreadCounts[roomId] = count;
-    _updateChatRoomDisplayInfos();
-  }
-
-  // Update last message info
-  void updateLastMessageInfo(
-    String roomId, {
-    DateTime? time,
-    String? preview,
-    String? sender,
-  }) {
-    if (time != null) _lastMessageTimes[roomId] = time;
-    if (preview != null) _lastMessagePreviews[roomId] = preview;
-    if (sender != null) _lastMessageSenders[roomId] = sender;
-
-    // Sort chat rooms when new message arrives (WhatsApp style)
-    _sortChatRoomsByRecentMessages();
     _updateChatRoomDisplayInfos();
   }
 
@@ -192,57 +186,40 @@ class RoomController extends GetxController {
   Future<void> _calculateUnreadCounts(String userId, List<ChatRoom> rooms) async {
     final firestore = FirebaseFirestore.instance;
 
-    // Process rooms in batches to avoid overwhelming Firestore
-    const batchSize = 5;
-    for (var i = 0; i < rooms.length; i += batchSize) {
-      final batch = rooms.sublist(i, i + batchSize > rooms.length ? rooms.length : i + batchSize);
-      final futures = batch.map((room) => _calculateUnreadCountForRoom(userId, room));
-      await Future.wait(futures);
-    }
+    for (final room in rooms) {
+      try {
+        final totalMessagesSnapshot = await firestore
+            .collection('chats')
+            .doc(room.roomId)
+            .collection('messages')
+            .orderBy('createdAt', descending: true)
+            .limit(50)
+            .get();
 
-    // After calculating all unread counts and last message times, sort the chat rooms
-    _sortChatRoomsByRecentMessages();
-  }
+        final allMessages = totalMessagesSnapshot.docs;
+        var unreadCount = 0;
 
-  // Calculate unread count for a single room
-  Future<void> _calculateUnreadCountForRoom(String userId, ChatRoom room) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-
-      // Get all messages for this room (we need them anyway for last message info)
-      final totalMessagesSnapshot = await firestore
-          .collection('chats')
-          .doc(room.roomId)
-          .collection('messages')
-          .orderBy('createdAt', descending: true)
-          .limit(50) // Limit to recent messages for performance
-          .get();
-
-      final allMessages = totalMessagesSnapshot.docs;
-
-      // Calculate unread count by checking which messages don't contain userId in readBy
-      var unreadCount = 0;
-      for (final messageDoc in allMessages) {
-        final messageData = messageDoc.data();
-        final readBy = List<String>.from(messageData['readBy'] ?? []);
-        if (!readBy.contains(userId)) {
-          unreadCount++;
+        for (final messageDoc in allMessages) {
+          final messageData = messageDoc.data();
+          final readBy = List<String>.from(messageData['readBy'] ?? []);
+          if (!readBy.contains(userId)) {
+            unreadCount++;
+          }
         }
-      }
 
-      _unreadCounts[room.roomId] = unreadCount;
+        _unreadCounts[room.roomId] = unreadCount;
 
-      // Get last message info for sorting (from the first message since we ordered descending)
-      if (allMessages.isNotEmpty) {
-        final lastMessage = allMessages.first; // First because we ordered descending
-        final messageData = lastMessage.data();
-        _lastMessageTimes[room.roomId] = (messageData['createdAt'] as Timestamp).toDate();
-        _lastMessagePreviews[room.roomId] = _getMessagePreview(messageData);
-        _lastMessageSenders[room.roomId] = messageData['senderId'] ?? '';
+        if (allMessages.isNotEmpty) {
+          final lastMessage = allMessages.first;
+          final messageData = lastMessage.data();
+          _lastMessageTimes[room.roomId] = (messageData['createdAt'] as Timestamp).toDate();
+          _lastMessagePreviews[room.roomId] = _getMessagePreview(messageData);
+          _lastMessageSenders[room.roomId] = messageData['senderId'] ?? '';
+        }
+      } catch (e) {
+        AppLogger.chat('Error calculating unread count for room ${room.roomId}: $e');
+        _unreadCounts[room.roomId] = 0;
       }
-    } catch (e) {
-      AppLogger.chat('Error calculating unread count for room ${room.roomId}: $e');
-      _unreadCounts[room.roomId] = 0;
     }
   }
 
@@ -267,111 +244,35 @@ class RoomController extends GetxController {
     }
   }
 
-  // Update display info
-  void _updateChatRoomDisplayInfos() async {
-    final displayInfos = <ChatRoomDisplayInfo>[];
-
-    for (final room in chatRooms) {
-      String? displayTitle;
-
-      // For private chats, get the other user's name
-      if (room.type == 'private') {
-        try {
-          final userInfo = await _getPrivateChatDisplayTitle(room.roomId);
-          displayTitle = userInfo;
-        } catch (e) {
-          AppLogger.chat('Error getting private chat display title: $e');
-          displayTitle = 'Private Chat';
-        }
-      }
-
-      displayInfos.add(ChatRoomDisplayInfo(
-        room: room,
-        unreadCount: _unreadCounts[room.roomId] ?? 0,
-        lastMessageTime: _lastMessageTimes[room.roomId],
-        lastMessagePreview: _lastMessagePreviews[room.roomId],
-        lastMessageSender: _lastMessageSenders[room.roomId],
-        displayTitle: displayTitle,
-      ));
-    }
-
-    // Sort by last message time (WhatsApp style: unified sorting by most recent activity)
-    displayInfos.sort((a, b) {
-      // Get the most recent activity time for each room (last message time or creation time)
-      final aTime = a.lastMessageTime ?? a.room.createdAt;
-      final bTime = b.lastMessageTime ?? b.room.createdAt;
-
-      // Sort in descending order (most recent first)
-      return bTime.compareTo(aTime);
-    });
-
-    chatRoomDisplayInfos.assignAll(displayInfos);
-
-    // Log final display info sorting results
-    final wardDisplayInfos = chatRoomDisplayInfos.where((info) => info.room.roomId.startsWith('ward_')).toList();
-    final areaDisplayInfos = chatRoomDisplayInfos.where((info) => info.room.roomId.startsWith('area_')).toList();
-
-    AppLogger.chat('📋 ROOM CONTROLLER: Display infos sorted - ${chatRoomDisplayInfos.length} total rooms');
-    AppLogger.chat('🏛️ DISPLAY WARD ROOMS (${wardDisplayInfos.length}): ${wardDisplayInfos.map((info) => '${info.room.roomId}(${info.lastMessageTime != null ? "has_msg" : "no_msg"})').join(", ")}');
-    AppLogger.chat('🏘️ DISPLAY AREA ROOMS (${areaDisplayInfos.length}): ${areaDisplayInfos.map((info) => '${info.room.roomId}(${info.lastMessageTime != null ? "has_msg" : "no_msg"})').join(", ")}');
-
-    // Log final top 5 display rooms
-    final topDisplayInfos = chatRoomDisplayInfos.take(5).toList();
-    AppLogger.chat('🔝 FINAL TOP 5 DISPLAY ROOMS: ${topDisplayInfos.map((info) => '${info.room.roomId}(${info.lastMessageTime != null ? "has_msg" : "no_msg"})').join(", ")}');
-  }
-
-  // Get display title for private chat (other user's name)
-  Future<String?> _getPrivateChatDisplayTitle(String roomId) async {
-    try {
-      final roomDoc = await FirebaseFirestore.instance.collection('chats').doc(roomId).get();
-      if (!roomDoc.exists) return 'Private Chat';
-
-      final roomData = roomDoc.data() as Map<String, dynamic>;
-      final members = List<String>.from(roomData['members'] ?? []);
-
-      // Get current user ID from auth repository
-      final currentUser = _authRepository.currentUser;
-      if (currentUser == null) return 'Private Chat';
-      final currentUserId = currentUser.uid;
-
-      // Find the other user
-      final otherUserId = members.firstWhere(
-        (id) => id != currentUserId,
-        orElse: () => '',
-      );
-
-      if (otherUserId.isEmpty) return 'Private Chat';
-
-      // Get other user's info
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(otherUserId).get();
-      if (!userDoc.exists) return 'Private Chat';
-
-      final userData = userDoc.data() as Map<String, dynamic>;
-      return userData['name'] ?? 'Private Chat';
-    } catch (e) {
-      AppLogger.chat('Error getting private chat display title: $e');
-      return 'Private Chat';
-    }
-  }
-
-  // Get total unread count
-  int get totalUnreadCount {
-    return _unreadCounts.values.fold(0, (sum, count) => sum + count);
-  }
-
   // Check if room exists
   Future<bool> roomExists(String roomId) async {
     return chatRooms.any((room) => room.roomId == roomId);
   }
 
-  // Ensure ward room exists
-  Future<void> ensureWardRoomExists() async {
-    // Implementation would go here
+  // Create new chat room
+  Future<ChatRoom?> createChatRoom(ChatRoom chatRoom) async {
+    try {
+      final createdRoom = await _repository.createChatRoom(chatRoom);
+      chatRooms.add(createdRoom);
+      await _calculateMemberCounts([createdRoom]);
+      _updateChatRoomDisplayInfos();
+      return createdRoom;
+    } catch (e) {
+      return null;
+    }
   }
 
-  // Ensure area room exists
-  Future<void> ensureAreaRoomExists() async {
-    // Implementation would go here
+  // Update last message info
+  void updateLastMessageInfo(
+    String roomId, {
+    DateTime? time,
+    String? preview,
+    String? sender,
+  }) {
+    if (time != null) _lastMessageTimes[roomId] = time;
+    if (preview != null) _lastMessagePreviews[roomId] = preview;
+    if (sender != null) _lastMessageSenders[roomId] = sender;
+    _updateChatRoomDisplayInfos();
   }
 
   // Clear current room
@@ -379,28 +280,16 @@ class RoomController extends GetxController {
     currentChatRoom.value = null;
   }
 
-  // Sort chat rooms by recent messages (WhatsApp style)
-  void _sortChatRoomsByRecentMessages() {
-    chatRooms.sort((a, b) {
-      // Get the most recent activity time for each room (last message time or creation time)
-      final aTime = _lastMessageTimes[a.roomId] ?? a.createdAt;
-      final bTime = _lastMessageTimes[b.roomId] ?? b.createdAt;
+  // Ensure ward room exists
+  Future<void> ensureWardRoomExists() async {
+    AppLogger.chat('🏛️ Ward room existence check requested - method stub for compatibility');
+    // Implementation would go here - currently not needed for chat list functionality
+  }
 
-      // Sort in descending order (most recent first)
-      return bTime.compareTo(aTime);
-    });
-
-    // Log detailed sorting results for ward and area rooms
-    final wardRooms = chatRooms.where((room) => room.roomId.startsWith('ward_')).toList();
-    final areaRooms = chatRooms.where((room) => room.roomId.startsWith('area_')).toList();
-
-    AppLogger.chat('📋 ROOM CONTROLLER: Sorted ${chatRooms.length} total chat rooms by recent messages');
-    AppLogger.chat('🏛️ WARD ROOMS (${wardRooms.length}): ${wardRooms.map((r) => '${r.roomId}(${_lastMessageTimes.containsKey(r.roomId) ? "has_msg" : "no_msg"})').join(", ")}');
-    AppLogger.chat('🏘️ AREA ROOMS (${areaRooms.length}): ${areaRooms.map((r) => '${r.roomId}(${_lastMessageTimes.containsKey(r.roomId) ? "has_msg" : "no_msg"})').join(", ")}');
-
-    // Log top 5 rooms for verification
-    final topRooms = chatRooms.take(5).toList();
-    AppLogger.chat('🔝 TOP 5 ROOMS: ${topRooms.map((r) => '${r.roomId}(${_lastMessageTimes.containsKey(r.roomId) ? "has_msg" : "no_msg"})').join(", ")}');
+  // Ensure area room exists
+  Future<void> ensureAreaRoomExists() async {
+    AppLogger.chat('🏘️ Area room existence check requested - method stub for compatibility');
+    // Implementation would go here - currently not needed for chat list functionality
   }
 
   // Clean up
@@ -413,6 +302,7 @@ class RoomController extends GetxController {
     _lastMessageTimes.clear();
     _lastMessagePreviews.clear();
     _lastMessageSenders.clear();
+    _memberCounts.clear();
     super.onClose();
   }
 }

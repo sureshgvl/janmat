@@ -4,6 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_html/html.dart' as html;
 import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/models/achievements_model.dart';
 import '../l10n/features/candidate/candidate_localizations.dart';
@@ -68,54 +70,86 @@ class ShareService {
       final fileUploadService = FileUploadService();
       final isLocal = fileUploadService.isLocalPath(achievement.photoUrl!);
 
-      if (isLocal) {
-        // Use the local file directly - no need to download
-        final localPath = achievement.photoUrl!.replaceFirst('local:', '');
-        imageFile = File(localPath);
-        if (!await imageFile.exists()) {
-          throw Exception('Local image file not found');
+      if (kIsWeb) {
+        // On web platform
+        if (isLocal) {
+          // Cannot share local files on web - fallback to text sharing
+          await Share.share(shareText);
+          return;
+        } else {
+          // Download and trigger download for remote images
+          final response = await http.get(Uri.parse(achievement.photoUrl!));
+          if (response.statusCode != 200) {
+            throw Exception('Failed to download achievement image');
+          }
+
+          final blob = html.Blob([response.bodyBytes], 'image/jpeg');
+          final url = html.Url.createObjectUrlFromBlob(blob);
+
+          // Create filename from achievement title
+          final safeTitle = achievement.title
+              .replaceAll(RegExp(r'[^\w\s\u0900-\u097F]'), '_')
+              .replaceAll(RegExp(r'\s+'), '_')
+              .substring(0, achievement.title.length > 30 ? 30 : achievement.title.length);
+          final fileName = '${safeTitle}_achievement.jpg';
+
+          final anchor = html.AnchorElement(href: url)
+            ..setAttribute('download', fileName)
+            ..click();
+
+          html.Url.revokeObjectUrl(url);
         }
       } else {
-        // Download the image from Firebase URL
-        final response = await http.get(Uri.parse(achievement.photoUrl!));
-        if (response.statusCode != 200) {
-          throw Exception('Failed to download achievement image');
+        // On Android/iOS platforms
+        if (isLocal) {
+          // Use the local file directly - no need to download
+          final localPath = achievement.photoUrl!.replaceFirst('local:', '');
+          imageFile = File(localPath);
+          if (!await imageFile.exists()) {
+            throw Exception('Local image file not found');
+          }
+        } else {
+          // Download the image from Firebase URL
+          final response = await http.get(Uri.parse(achievement.photoUrl!));
+          if (response.statusCode != 200) {
+            throw Exception('Failed to download achievement image');
+          }
+
+          // Get temporary directory
+          final tempDir = await getTemporaryDirectory();
+
+          // Create file name with achievement title
+          final safeTitle = achievement.title
+              .replaceAll(RegExp(r'[^\w\s\u0900-\u097F]'), '_') // Allow Unicode but replace special chars
+              .replaceAll(RegExp(r'\s+'), '_')
+              .substring(0, achievement.title.length > 30 ? 30 : achievement.title.length);
+          final fileName = '${safeTitle}_achievement.jpg';
+          final filePath = path.join(tempDir.path, fileName);
+
+          // Save image to temporary file
+          imageFile = File(filePath);
+          await imageFile.writeAsBytes(response.bodyBytes);
+
+          // For downloaded files, clean up after sharing
+          Future.delayed(const Duration(seconds: 30), () async {
+            try {
+              if (await imageFile!.exists()) {
+                await imageFile.delete();
+              }
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+          });
         }
 
-        // Get temporary directory
-        final tempDir = await getTemporaryDirectory();
-
-        // Create file name with achievement title
-        final safeTitle = achievement.title
-            .replaceAll(RegExp(r'[^\w\s\u0900-\u097F]'), '_') // Allow Unicode but replace special chars
-            .replaceAll(RegExp(r'\s+'), '_')
-            .substring(0, achievement.title.length > 30 ? 30 : achievement.title.length);
-        final fileName = '${safeTitle}_achievement.jpg';
-        final filePath = path.join(tempDir.path, fileName);
-
-        // Save image to temporary file
-        imageFile = File(filePath);
-        await imageFile.writeAsBytes(response.bodyBytes);
-
-        // For downloaded files, clean up after sharing
-        Future.delayed(const Duration(seconds: 30), () async {
-          try {
-            if (await imageFile!.exists()) {
-              await imageFile.delete();
-            }
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        });
+        // Share the image file with text - Use proper display name
+        final candidateDisplayName = candidate.basicInfo?.fullName ?? candidate.basicInfo!.fullName;
+        await Share.shareXFiles(
+          [XFile(imageFile.path)],
+          text: shareText,
+          subject: '🏆 $candidateDisplayName - ${achievement.title}',
+        );
       }
-
-      // Share the image file with text - Use proper display name
-      final candidateDisplayName = candidate.basicInfo?.fullName ?? candidate.basicInfo!.fullName;
-      await Share.shareXFiles(
-        [XFile(imageFile.path)],
-        text: shareText,
-        subject: '🏆 $candidateDisplayName - ${achievement.title}',
-      );
 
     } catch (e) {
       // Fallback to text sharing if image processing fails

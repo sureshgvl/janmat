@@ -431,19 +431,28 @@ class MessageBubbleState extends State<MessageBubble> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.message.mediaUrl != null)
-              ReusableImageWidget(
-                imageUrl: widget.controller.getMediaUrl(
+            if (widget.message.mediaUrl != null) ...[
+              () {
+                final mediaUrl = widget.controller.getMediaUrl(
                   widget.message.messageId,
                   widget.message.mediaUrl,
-                )!,
-                fit: BoxFit.cover,
-                maxWidth: 200,
-                maxHeight: 200,
-                borderRadius: BorderRadius.circular(8),
-                enableFullScreenView: true,
-                fullScreenTitle: 'Chat Image',
-              ),
+                )!;
+
+                // Determine if the URL is local (file path) or remote (HTTP URL)
+                final isLocalImage = !mediaUrl.startsWith('http');
+
+                return ReusableImageWidget(
+                  imageUrl: isLocalImage ? 'local:$mediaUrl' : mediaUrl,
+                  isLocal: isLocalImage,
+                  fit: BoxFit.cover,
+                  maxWidth: 200,
+                  maxHeight: 200,
+                  borderRadius: BorderRadius.circular(8),
+                  enableFullScreenView: true,
+                  fullScreenTitle: 'Chat Image',
+                );
+              }(),
+            ],
             if (widget.message.text.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(

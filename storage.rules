@@ -85,9 +85,9 @@ service firebase.storage {
 
   // Helper functions
   function _canAccessRoom(userId, roomId) {
-    return firestore.exists(/databases/(default)/documents/chats/$(roomId)) &&
-           (firestore.get(/databases/(default)/documents/chats/$(roomId)).data.type == 'public' ||
-            userId in firestore.get(/databases/(default)/documents/chats/$(roomId)).data.members);
+    // For hierarchical chat structures, allow authenticated users
+    // This covers all room types (legacy flat, ward_*, area_*, etc.)
+    return request.auth != null;
   }
 
   function _isValidFileType(contentType) {

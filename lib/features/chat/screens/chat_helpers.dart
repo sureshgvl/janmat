@@ -60,16 +60,16 @@ class ChatHelpers {
       // For private rooms, subtitle is "Private conversation"
       return chatRoom.description ?? 'Private conversation';
     } else if (chatRoom.roomId.startsWith('ward_')) {
-      // For ward rooms, subtitle is the ward name
-      return chatRoom.description ?? 'Ward Discussion';
+      // For ward rooms, show minimal subtitle
+      return chatRoom.description ?? '';
     } else if (chatRoom.roomId.startsWith('area_')) {
-      // For area rooms, subtitle is area discussion
-      return chatRoom.description ?? 'Area Discussion';
+      // For area rooms, show minimal subtitle
+      return chatRoom.description ?? '';
     } else if (chatRoom.roomId.startsWith('candidate_')) {
-      // For candidate rooms, subtitle is description
-      return chatRoom.description ?? 'Official Updates';
+      // For candidate rooms, show minimal subtitle
+      return chatRoom.description ?? '';
     } else {
-      return chatRoom.description ?? 'Group Chat';
+      return chatRoom.description ?? '';
     }
   }
 
@@ -115,4 +115,3 @@ class ChatHelpers {
     return !canSendMessage;
   }
 }
-
