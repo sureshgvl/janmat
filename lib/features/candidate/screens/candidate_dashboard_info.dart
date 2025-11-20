@@ -258,8 +258,10 @@ class _CandidateDashboardBasicInfoState
       }
 
       return Scaffold(
-        body: SingleChildScrollView(
-          child: isEditing
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: SingleChildScrollView(
+            child: isEditing
             ? BasicInfoEdit(
                   candidateData: candidateUserController.candidateData.value!,
                   editedData: candidateUserController.editedData.value ??
@@ -292,6 +294,7 @@ class _CandidateDashboardBasicInfoState
                   );
                   },
                 ),
+          ),
         ),
         floatingActionButton: isEditing
             ? Padding(

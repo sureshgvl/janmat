@@ -652,7 +652,7 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context)!.promises,
+            AppLocalizations.of(context)!.promisesTitle,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -885,4 +885,3 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
     }
   }
 }
-

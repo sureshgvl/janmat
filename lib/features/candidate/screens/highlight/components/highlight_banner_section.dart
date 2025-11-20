@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../highlight/models/highlight_model.dart';
 import 'image_handler.dart';
 
@@ -22,6 +23,28 @@ class HighlightBannerSection extends StatelessWidget {
     required this.onPickImage,
     required this.currentSymbol,
   });
+
+  // Helper method to build image widget with web compatibility for preview
+  Widget _buildPreviewImage(String imagePath) {
+    // On web, use Image.network for blob URLs
+    if (kIsWeb && imagePath.startsWith('blob:')) {
+      return Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(),
+      );
+    }
+    // On mobile/desktop, use Image.file for local file paths
+    else if (!kIsWeb) {
+      return Image.file(
+        File(imagePath),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(),
+      );
+    }
+    // Fallback
+    return Container();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -277,11 +300,7 @@ class HighlightBannerSection extends StatelessWidget {
                           Positioned.fill(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                File(localBannerImagePath!),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(),
-                              ),
+                              child: _buildPreviewImage(localBannerImagePath!),
                             ),
                           )
                         else if (currentHighlight!.imageUrl != null && currentHighlight!.imageUrl!.isNotEmpty)

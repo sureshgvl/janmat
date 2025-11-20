@@ -63,12 +63,15 @@ class _CandidateDashboardHighlightState
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
         ),
-        body: HighlightTab(
-          key: _highlightTabKey,
-          candidateData: controller.candidateData.value!,
-          editedData: controller.editedData.value,
-          onHighlightChange: controller.updateHighlightsInfo,
-          onChangesStateChanged: _onChangesStateChanged,
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: HighlightTab(
+            key: _highlightTabKey,
+            candidateData: controller.candidateData.value!,
+            editedData: controller.editedData.value,
+            onHighlightChange: controller.updateHighlightsInfo,
+            onChangesStateChanged: _onChangesStateChanged,
+          ),
         ),
         floatingActionButton: Padding(
           padding: const EdgeInsets.only(bottom: 20, right: 16),

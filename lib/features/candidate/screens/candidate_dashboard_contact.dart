@@ -28,20 +28,23 @@ class _CandidateDashboardContactState extends State<CandidateDashboardContact> {
       }
 
       return Scaffold(
-        body: SingleChildScrollView(
-          child: isEditing
-              ? ContactSection(
-                  candidateData: controller.candidateData.value!,
-                  editedData: controller.editedData.value,
-                  isEditing: true,
-                  onContactChange: (field, value) =>
-                      controller.updateContact(field, value),
-                  onSocialChange: (field, value) =>
-                      controller.updateContact('social_$field', value),
-                )
-              : ContactTabView(
-                  candidate: controller.candidateData.value!,
-                ),
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: SingleChildScrollView(
+            child: isEditing
+                ? ContactSection(
+                    candidateData: controller.candidateData.value!,
+                    editedData: controller.editedData.value,
+                    isEditing: true,
+                    onContactChange: (field, value) =>
+                        controller.updateContact(field, value),
+                    onSocialChange: (field, value) =>
+                        controller.updateContact('social_$field', value),
+                  )
+                : ContactTabView(
+                    candidate: controller.candidateData.value!,
+                  ),
+          ),
         ),
         floatingActionButton: isEditing
             ? Padding(

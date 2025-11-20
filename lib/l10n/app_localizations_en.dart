@@ -442,7 +442,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseAddAtLeast2Options => 'Please add at least 2 options';
 
   @override
-  String get promises => 'Promises';
+  String promises(Object max) {
+    return 'Promises ($max)';
+  }
 
   @override
   String get addPoint => 'Add Point';
@@ -584,4 +586,219 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadAppText => 'Download JanMat app to explore complete manifestos and connect with candidates.';
+
+  @override
+  String get limited => 'LIMITED';
+
+  @override
+  String get current => 'CURRENT';
+
+  @override
+  String get free => 'FREE';
+
+  @override
+  String get xpPoints => 'XP Points';
+
+  @override
+  String get contactSupport => 'Contact Support';
+
+  @override
+  String get basicInfo => 'Basic Info';
+
+  @override
+  String get manifesto => 'Manifesto';
+
+  @override
+  String get pdfUpload => 'PDF Upload';
+
+  @override
+  String get videoUpload => 'Video Upload';
+
+  @override
+  String achievements(Object max) {
+    return 'Achievements ($max)';
+  }
+
+  @override
+  String mediaItems(Object max) {
+    return 'Media ($max items)';
+  }
+
+  @override
+  String get contact => 'Contact';
+
+  @override
+  String get extendedInfo => 'Extended Info';
+
+  @override
+  String get socialLinks => 'Social Links';
+
+  @override
+  String get prioritySupport => 'Priority Support';
+
+  @override
+  String events(Object max) {
+    return 'Events ($max)';
+  }
+
+  @override
+  String get analytics => 'Analytics';
+
+  @override
+  String get advanced => 'Advanced';
+
+  @override
+  String get fullDashboard => 'Full Dashboard';
+
+  @override
+  String get realTime => 'Real-time';
+
+  @override
+  String get premiumBadge => 'Premium Badge';
+
+  @override
+  String get sponsoredBanner => 'Sponsored Banner';
+
+  @override
+  String get highlightBanner => 'Highlight Banner on Home Screen';
+
+  @override
+  String get pushNotifications => 'Push Notifications';
+
+  @override
+  String get multipleHighlights => 'Multiple Highlights';
+
+  @override
+  String get carouselOnHome => 'Carousel on Home Screen';
+
+  @override
+  String get adminSupport => 'Admin Support';
+
+  @override
+  String get customBranding => 'Custom Branding';
+
+  @override
+  String get allocatedSeats => 'Allocated Seats';
+
+  @override
+  String get freePlanActive => 'Free Plan Active';
+
+  @override
+  String get basicPlanActive => 'Basic Plan Active';
+
+  @override
+  String get goldPlanActive => 'Gold Plan Active';
+
+  @override
+  String get platinumPlanActive => 'Platinum Plan Active';
+
+  @override
+  String get currentActivePlanMessage => 'This is your current active plan';
+
+  @override
+  String get higherPlanActive => 'You have a higher plan active';
+
+  @override
+  String get planAlreadyActive => 'This plan is already active';
+
+  @override
+  String get planNotAvailable => 'Plan not available';
+
+  @override
+  String get freePlanName => 'Free Plan';
+
+  @override
+  String get basicPlanName => 'Basic Plan';
+
+  @override
+  String get goldPlanName => 'Gold Plan';
+
+  @override
+  String get platinumPlanName => 'Platinum Plan';
+
+  @override
+  String get activeFreePlan => 'Active Free Plan';
+
+  @override
+  String get activateFreePlan => 'Activate Free Plan';
+
+  @override
+  String get currentPlan => 'Current Plan';
+
+  @override
+  String get alreadyActive => 'Already Active';
+
+  @override
+  String get alreadyActiveButton => 'Already Active';
+
+  @override
+  String get planExpired => 'Plan Expired';
+
+  @override
+  String expiresInTime(Object time) {
+    return 'Expires in $time';
+  }
+
+  @override
+  String get confirmPlanChange => 'Confirm Plan Change';
+
+  @override
+  String get downgradeWarning => 'Warning: You will lose all premium features and may lose access to paid content.';
+
+  @override
+  String get yesDowngrade => 'Yes, Downgrade';
+
+  @override
+  String subscribeFirst(Object plan) {
+    return 'Subscribe to $plan First';
+  }
+
+  @override
+  String get loadingPremiumPlans => 'Loading premium plans...';
+
+  @override
+  String get noPlansAvailable => 'No premium plans available at the moment.';
+
+  @override
+  String get highlightBannerFeatures => 'Professional Highlight Banner On Home Screen Features';
+
+  @override
+  String get highlightBannerDescription => '• Up to 4 banners on home screen\n• Premium visibility for your campaign\n• Requires Platinum Plan to unlock';
+
+  @override
+  String get carouselProfile => 'Carousel Profile on Home Screen';
+
+  @override
+  String get carouselDescription => '• Up to 10 carousel slots on home screen\n• Maximum visibility for your campaign\n• Requires Platinum Plan to unlock';
+
+  @override
+  String get locked => 'LOCKED';
+
+  @override
+  String requiresPlanOrPlatinum(Object plan) {
+    return 'Requires $plan or Platinum Plan';
+  }
+
+  @override
+  String get refreshPlans => 'Refresh Plans';
+
+  @override
+  String get premiumPlansRefreshed => 'Premium plans refreshed successfully!';
+
+  @override
+  String failedToRefreshPlans(Object error) {
+    return 'Failed to refresh plans: $error';
+  }
+
+  @override
+  String get noPlansAvailableShort => 'No plans available';
+
+  @override
+  String get loading => 'Loading...';
+
+  @override
+  String get allocateSeats => 'Allocated Seats';
+
+  @override
+  String get multiResolution => 'Multi-Resolution';
 }

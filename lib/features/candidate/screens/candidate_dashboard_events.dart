@@ -54,7 +54,9 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
       }
 
       return Scaffold(
-        body: isEditing
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: isEditing
             ? SingleChildScrollView(
                 child: EventsTabEdit(
                   key: _eventsSectionKey,
@@ -71,6 +73,7 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
             : VoterEventsSection(
                 candidateData: controller.candidateData.value!,
               ),
+        ),
         floatingActionButton: canManageEvents ? (isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),

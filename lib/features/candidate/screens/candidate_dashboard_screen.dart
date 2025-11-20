@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../services/file_upload_service.dart';
 import 'package:janmat/features/candidate/screens/highlight/candidate_dashboard_highlight_screen.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
@@ -48,10 +50,40 @@ class _CandidateDashboardScreenState extends State<CandidateDashboardScreen>
     ); // Start with basic tabs
     _tabController.addListener(_handleTabChange);
     _loadPlanFeatures();
-    // Refresh data when dashboard is opened
+    // Refresh data when dashboard is opened and cleanup deleted storage
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.refreshCandidateData();
+      controller.refreshCandidateData().then((_) {
+        // After data refresh, asynchronously cleanup deleted storage files
+        _cleanupDeletedStorage();
+      });
     });
+  }
+
+  /// Cleanup deleted storage files asynchronously when candidate opens dashboard
+  void _cleanupDeletedStorage() {
+    final candidate = controller.candidate.value;
+    if (candidate == null) {
+      return;
+    }
+
+    // Check if location fields are available
+    final stateId = candidate.location.stateId;
+    final districtId = candidate.location.districtId;
+    final bodyId = candidate.location.bodyId;
+    final wardId = candidate.location.wardId;
+
+    if (stateId == null || districtId == null || bodyId == null || wardId == null) {
+      return;
+    }
+
+    final fileUploadService = Get.find<FileUploadService>();
+    unawaited(fileUploadService.cleanupDeletedStorageFiles(
+      stateId: stateId,
+      districtId: districtId,
+      bodyId: bodyId,
+      wardId: wardId,
+      candidateId: candidate.candidateId,
+    ));
   }
 
   void _handleTabChange() {

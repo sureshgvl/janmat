@@ -116,7 +116,9 @@ class _CandidateDashboardAchievementsState
       }
 
       return Scaffold(
-        body: isEditing
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: isEditing
             ? SingleChildScrollView(
                 child: AchievementsTabEdit(
                   key: _achievementsTabEditKey,
@@ -130,6 +132,7 @@ class _CandidateDashboardAchievementsState
                 candidate: controller.candidateData.value!,
                 isOwnProfile: true,
               ),
+        ),
         floatingActionButton: canDisplayAchievements ? (isEditing
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 20, right: 16),

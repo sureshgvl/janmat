@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -895,6 +896,80 @@ class FileUploadService {
     AppLogger.common('✅ [Batch Optim] Completed: $successCount/${images.length} successful', tag: 'MEDIA_OPTIM');
 
     return optimizedImages;
+  }
+
+  /// Process deleted storage files asynchronously (called when candidate opens dashboard)
+  Future<void> cleanupDeletedStorageFiles({
+    required String stateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateId,
+  }) async {
+    AppLogger.common('🧹 [Cleanup] Starting async cleanup of deleteStorage for candidate: $candidateId', tag: 'STORAGE_CLEANUP');
+
+    try {
+      // Get candidate document path
+      final candidateRef = FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId);
+
+      // Get current candidate data
+      final candidateDoc = await candidateRef.get();
+      if (!candidateDoc.exists) {
+        AppLogger.common('⚠️ [Cleanup] Candidate document not found for: $candidateId', tag: 'STORAGE_CLEANUP');
+        return;
+      }
+
+      final candidateData = candidateDoc.data()!;
+      final deleteStorage = candidateData['deleteStorage'] as List<dynamic>? ?? [];
+
+      if (deleteStorage.isEmpty) {
+        AppLogger.common('✅ [Cleanup] No files to delete for candidate: $candidateId', tag: 'STORAGE_CLEANUP');
+        return;
+      }
+
+      AppLogger.common('📋 [Cleanup] Found ${deleteStorage.length} files to delete: $deleteStorage', tag: 'STORAGE_CLEANUP');
+
+      int deletedCount = 0;
+      int errorCount = 0;
+
+      // Process each file in deleteStorage array
+      for (final storagePath in deleteStorage) {
+        try {
+          if (storagePath is String && storagePath.isNotEmpty) {
+            // Delete from Firebase Storage
+            await _storage.ref().child(storagePath).delete();
+            deletedCount++;
+            AppLogger.common('✅ [Cleanup] Deleted: $storagePath', tag: 'STORAGE_CLEANUP');
+          }
+        } catch (e) {
+          errorCount++;
+          AppLogger.common('❌ [Cleanup] Failed to delete $storagePath for $candidateId: ${e.toString()}', tag: 'STORAGE_CLEANUP');
+          // Continue processing other files even if one fails
+        }
+      }
+
+      // Clear the deleteStorage array in Firestore
+      await candidateRef.update({
+        'deleteStorage': FieldValue.delete(), // Delete the field entirely or set to []
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      AppLogger.common('🔄 [Cleanup] Cleared deleteStorage array for $candidateId ($deletedCount files deleted, $errorCount errors)', tag: 'STORAGE_CLEANUP');
+
+    } catch (e) {
+      AppLogger.commonError('💥 [Cleanup] Error processing deleteStorage cleanup for $candidateId', error: e, tag: 'STORAGE_CLEANUP');
+      // Don't re-throw - this is background cleanup, failures shouldn't break the app
+    }
   }
 
   /// Calculate and display optimization statistics

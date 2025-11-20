@@ -112,7 +112,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
            actions: [
              IconButton(
                icon: const Icon(Icons.refresh),
-               tooltip: 'Refresh Plans',
+               tooltip: AppLocalizations.of(context)!.refreshPlans,
                onPressed: _refreshPlans,
              ),
            ],
@@ -142,7 +142,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
       await _loadUserData();
 
       AppLogger.monetization('✅ REFRESH COMPLETED SUCCESSFULLY');
-      SnackbarUtils.showSuccess('Premium plans refreshed successfully!');
+      SnackbarUtils.showSuccess(AppLocalizations.of(context)!.premiumPlansRefreshed);
     } catch (e) {
       AppLogger.monetization('❌ REFRESH FAILED: $e');
       SnackbarUtils.showError('Failed to refresh plans: $e');

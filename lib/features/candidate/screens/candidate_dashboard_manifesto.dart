@@ -59,36 +59,39 @@ class _CandidateDashboardManifestoState
       }
 
       return Scaffold(
-        body: SingleChildScrollView(
-          child: isEditing
-              ? ManifestoTabEdit(
-                  key: _manifestoSectionKey,
-                  candidateData: controller.candidateData.value!,
-                  editedData: controller.editedData.value,
-                  isEditing: isEditing,
-                  onManifestoChange: (manifesto) =>
-                      controller.updateManifestoInfo('title', manifesto),
-                  onManifestoPdfChange: (pdf) =>
-                      controller.updateManifestoInfo('pdfUrl', pdf),
-                  onManifestoTitleChange: (title) =>
-                      controller.updateManifestoInfo('title', title),
-                  onManifestoPromisesChange:
-                      (List<Map<String, dynamic>> manifestoPromises) =>
-                          controller.updateManifestoInfo(
-                            'promises',
-                            manifestoPromises,
-                          ),
-                  onManifestoImageChange: (image) =>
-                      controller.updateManifestoInfo('image', image),
-                  onManifestoVideoChange: (video) =>
-                      controller.updateManifestoInfo('videoUrl', video),
-                )
-              : ManifestoTabView(
-                  candidate: controller.candidateData.value!,
-                  isOwnProfile: true,
-                  showVoterInteractions:
-                      true, // Show voter interactions so candidate can see how it looks to voters
-                ),
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: SingleChildScrollView(
+            child: isEditing
+                ? ManifestoTabEdit(
+                    key: _manifestoSectionKey,
+                    candidateData: controller.candidateData.value!,
+                    editedData: controller.editedData.value,
+                    isEditing: isEditing,
+                    onManifestoChange: (manifesto) =>
+                        controller.updateManifestoInfo('title', manifesto),
+                    onManifestoPdfChange: (pdf) =>
+                        controller.updateManifestoInfo('pdfUrl', pdf),
+                    onManifestoTitleChange: (title) =>
+                        controller.updateManifestoInfo('title', title),
+                    onManifestoPromisesChange:
+                        (List<Map<String, dynamic>> manifestoPromises) =>
+                            controller.updateManifestoInfo(
+                              'promises',
+                              manifestoPromises,
+                            ),
+                    onManifestoImageChange: (image) =>
+                        controller.updateManifestoInfo('image', image),
+                    onManifestoVideoChange: (video) =>
+                        controller.updateManifestoInfo('videoUrl', video),
+                  )
+                : ManifestoTabView(
+                    candidate: controller.candidateData.value!,
+                    isOwnProfile: true,
+                    showVoterInteractions:
+                        true, // Show voter interactions so candidate can see how it looks to voters
+                  ),
+          ),
         ),
         floatingActionButton: canEditManifesto ? (isEditing
             ? Padding(

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
+import 'package:janmat/utils/theme_constants.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/plan_model.dart';
@@ -1372,7 +1373,14 @@ class MonetizationController extends GetxController {
     if (user.subscriptionExpiresAt != null && user.premium == true) {
       final daysUntilExpiry = user.subscriptionExpiresAt!.difference(now).inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
-        SnackbarUtils.showWarning('Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.');
+        SnackbarUtils.showCustom(
+          title: 'Warning',
+          message: 'Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.',
+          backgroundColor: AppColors.snackBarWarning,
+          textColor: Colors.black,
+          icon: const Icon(Icons.warning, color: Colors.black),
+          duration: const Duration(seconds: 3),
+        );
       }
     }
 

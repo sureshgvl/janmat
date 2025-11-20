@@ -42,16 +42,16 @@ class PremiumPlansTab extends StatelessWidget {
 
             // Loading indicator while loading plans
             if (isLoading && !hasPlans) ...[
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
+                  padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Column(
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
                       Text(
-                        'Loading premium plans...',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.loadingPremiumPlans,
+                        style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 14,
                         ),

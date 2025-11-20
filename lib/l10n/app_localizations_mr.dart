@@ -442,7 +442,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get pleaseAddAtLeast2Options => 'कृपया किमान 2 पर्याय जोडा';
 
   @override
-  String get promises => 'वचने';
+  String promises(Object max) {
+    return 'वचन ($max)';
+  }
 
   @override
   String get addPoint => 'बिंदू जोडा';
@@ -584,4 +586,219 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get downloadAppText => 'पूर्ण घोषणापत्रे एक्सप्लोर करण्यासाठी आणि उमेदवारांशी संपर्क साधण्यासाठी जनमत अॅप डाउनलोड करा.';
+
+  @override
+  String get limited => 'मर्यादित';
+
+  @override
+  String get current => 'सद्य';
+
+  @override
+  String get free => 'विनामूल्य';
+
+  @override
+  String get xpPoints => 'XP गुण';
+
+  @override
+  String get contactSupport => 'संपर्क सपोर्ट';
+
+  @override
+  String get basicInfo => 'मूलभूत माहिती';
+
+  @override
+  String get manifesto => 'घोषणापत्र';
+
+  @override
+  String get pdfUpload => 'PDF अपलोड';
+
+  @override
+  String get videoUpload => 'व्हिडिओ अपलोड';
+
+  @override
+  String achievements(Object max) {
+    return 'उपलब्धी ($max)';
+  }
+
+  @override
+  String mediaItems(Object max) {
+    return 'मीडिया ($max आयटम)';
+  }
+
+  @override
+  String get contact => 'संपर्क';
+
+  @override
+  String get extendedInfo => 'विस्तारित माहिती';
+
+  @override
+  String get socialLinks => 'सामाजिक लिंक्स';
+
+  @override
+  String get prioritySupport => 'प्राधान्य सपोर्ट';
+
+  @override
+  String events(Object max) {
+    return 'कार्यक्रम ($max)';
+  }
+
+  @override
+  String get analytics => 'विश्लेषण';
+
+  @override
+  String get advanced => 'प्रगत';
+
+  @override
+  String get fullDashboard => 'पूर्ण डॅशबोर्ड';
+
+  @override
+  String get realTime => 'रिअल-टाइम';
+
+  @override
+  String get premiumBadge => 'प्रीमियम बॅज';
+
+  @override
+  String get sponsoredBanner => 'प्रायोजित बॅनर';
+
+  @override
+  String get highlightBanner => 'होम स्क्रीनवर हायलाइट बॅनर';
+
+  @override
+  String get pushNotifications => 'पुश नोटिफिकेशन';
+
+  @override
+  String get multipleHighlights => 'बहु हायलाइट';
+
+  @override
+  String get carouselOnHome => 'होम स्क्रीनवर करूसल';
+
+  @override
+  String get adminSupport => 'प्रशासन सपोर्ट';
+
+  @override
+  String get customBranding => 'कस्टम ब्रॅंडिंग';
+
+  @override
+  String get allocatedSeats => 'वाटप केलेली जागा';
+
+  @override
+  String get freePlanActive => 'विनामूल्य योजना सक्रिय';
+
+  @override
+  String get basicPlanActive => 'मूलभूत योजना सक्रिय';
+
+  @override
+  String get goldPlanActive => 'गोल्ड योजना सक्रिय';
+
+  @override
+  String get platinumPlanActive => 'प्लॅटिनम योजना सक्रिय';
+
+  @override
+  String get currentActivePlanMessage => 'ही तुमची सद्य सक्रिय योजना आहे';
+
+  @override
+  String get higherPlanActive => 'तुमच्याकडे उच्च योजना सक्रिय आहे';
+
+  @override
+  String get planAlreadyActive => 'ही योजना आधीच सक्रिय आहे';
+
+  @override
+  String get planNotAvailable => 'योजना उपलब्ध नाही';
+
+  @override
+  String get freePlanName => 'विनामूल्य योजना';
+
+  @override
+  String get basicPlanName => 'मूलभूत योजना';
+
+  @override
+  String get goldPlanName => 'गोल्ड योजना';
+
+  @override
+  String get platinumPlanName => 'प्लॅटिनम योजना';
+
+  @override
+  String get activeFreePlan => 'सक्रिय विनामूल्य योजना';
+
+  @override
+  String get activateFreePlan => 'विनामूल्य योजना सक्रिय करा';
+
+  @override
+  String get currentPlan => 'सद्य योजना';
+
+  @override
+  String get alreadyActive => 'आधीच सक्रिय';
+
+  @override
+  String get alreadyActiveButton => 'आधीच सक्रिय';
+
+  @override
+  String get planExpired => 'योजना कालबाह्य झाली';
+
+  @override
+  String expiresInTime(Object time) {
+    return '$time मध्ये कालबाह्य होईल';
+  }
+
+  @override
+  String get confirmPlanChange => 'योजना बदलाची पुष्टी करा';
+
+  @override
+  String get downgradeWarning => 'सावधानता: तुम्ही सर्व प्रीमियम वैशिष्ट्ये गमवाल आणि पेड सामग्रीमध्ये प्रवेश गमवू शकता.';
+
+  @override
+  String get yesDowngrade => 'होय, डाउनग्रेड करा';
+
+  @override
+  String subscribeFirst(Object plan) {
+    return 'प्रथम $plan साठी सब्स्क्राइब करा';
+  }
+
+  @override
+  String get loadingPremiumPlans => 'प्रीमियम योजना लोड करत आहे...';
+
+  @override
+  String get noPlansAvailable => 'सद्या कोणतीही प्रीमियम योजना उपलब्ध नाही.';
+
+  @override
+  String get highlightBannerFeatures => 'होम स्क्रीनवरील प्रोफेशनल हायलाइट बॅनर वैशिष्ट्ये';
+
+  @override
+  String get highlightBannerDescription => '• होम स्क्रीनवर जास्तीत जास्त 4 बॅनर\n• तुमच्या मोहिमेची प्रीमियम दृश्यमानता\n• प्लॅटिनम योजनेची आवश्यकता';
+
+  @override
+  String get carouselProfile => 'होम स्क्रीनवर करूसल प्रोफाइल';
+
+  @override
+  String get carouselDescription => '• होम स्क्रीनवर जास्तीत जास्त 10 करूसल स्लॉट\n• तुमच्या मोहिमेची कमाल दृश्यमानता\n• प्लॅटिनम योजनेची आवश्यकता';
+
+  @override
+  String get locked => 'लॉक केलेले';
+
+  @override
+  String requiresPlanOrPlatinum(Object plan) {
+    return '$plan किंवा प्लॅटिनम योजनेची आवश्यकता';
+  }
+
+  @override
+  String get refreshPlans => 'योजना रिफ्रेश करा';
+
+  @override
+  String get premiumPlansRefreshed => 'प्रीमियम योजना यशस्वीरित्या रिफ्रेश झाल्या!';
+
+  @override
+  String failedToRefreshPlans(Object error) {
+    return 'योजना रिफ्रेश करण्यात अयशस्वी: $error';
+  }
+
+  @override
+  String get noPlansAvailableShort => 'कोणतीही योजना उपलब्ध नाही';
+
+  @override
+  String get loading => 'लोड करत आहे...';
+
+  @override
+  String get allocateSeats => 'वाटप केलेली जागा';
+
+  @override
+  String get multiResolution => 'बहु-रिझोल्यूशन';
 }

@@ -920,8 +920,8 @@ abstract class AppLocalizations {
   /// No description provided for @promises.
   ///
   /// In en, this message translates to:
-  /// **'Promises'**
-  String get promises;
+  /// **'Promises ({max})'**
+  String promises(Object max);
 
   /// No description provided for @addPoint.
   ///
@@ -1156,6 +1156,408 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download JanMat app to explore complete manifestos and connect with candidates.'**
   String get downloadAppText;
+
+  /// No description provided for @limited.
+  ///
+  /// In en, this message translates to:
+  /// **'LIMITED'**
+  String get limited;
+
+  /// No description provided for @current.
+  ///
+  /// In en, this message translates to:
+  /// **'CURRENT'**
+  String get current;
+
+  /// No description provided for @free.
+  ///
+  /// In en, this message translates to:
+  /// **'FREE'**
+  String get free;
+
+  /// No description provided for @xpPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'XP Points'**
+  String get xpPoints;
+
+  /// No description provided for @contactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Support'**
+  String get contactSupport;
+
+  /// No description provided for @basicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Info'**
+  String get basicInfo;
+
+  /// No description provided for @manifesto.
+  ///
+  /// In en, this message translates to:
+  /// **'Manifesto'**
+  String get manifesto;
+
+  /// No description provided for @pdfUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF Upload'**
+  String get pdfUpload;
+
+  /// No description provided for @videoUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Video Upload'**
+  String get videoUpload;
+
+  /// No description provided for @achievements.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements ({max})'**
+  String achievements(Object max);
+
+  /// No description provided for @mediaItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Media ({max} items)'**
+  String mediaItems(Object max);
+
+  /// No description provided for @contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contact;
+
+  /// No description provided for @extendedInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Extended Info'**
+  String get extendedInfo;
+
+  /// No description provided for @socialLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Links'**
+  String get socialLinks;
+
+  /// No description provided for @prioritySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority Support'**
+  String get prioritySupport;
+
+  /// No description provided for @events.
+  ///
+  /// In en, this message translates to:
+  /// **'Events ({max})'**
+  String events(Object max);
+
+  /// No description provided for @analytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get analytics;
+
+  /// No description provided for @advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get advanced;
+
+  /// No description provided for @fullDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Dashboard'**
+  String get fullDashboard;
+
+  /// No description provided for @realTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time'**
+  String get realTime;
+
+  /// No description provided for @premiumBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Badge'**
+  String get premiumBadge;
+
+  /// No description provided for @sponsoredBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Sponsored Banner'**
+  String get sponsoredBanner;
+
+  /// No description provided for @highlightBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight Banner on Home Screen'**
+  String get highlightBanner;
+
+  /// No description provided for @pushNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Push Notifications'**
+  String get pushNotifications;
+
+  /// No description provided for @multipleHighlights.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple Highlights'**
+  String get multipleHighlights;
+
+  /// No description provided for @carouselOnHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Carousel on Home Screen'**
+  String get carouselOnHome;
+
+  /// No description provided for @adminSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Support'**
+  String get adminSupport;
+
+  /// No description provided for @customBranding.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Branding'**
+  String get customBranding;
+
+  /// No description provided for @allocatedSeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Allocated Seats'**
+  String get allocatedSeats;
+
+  /// No description provided for @freePlanActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Plan Active'**
+  String get freePlanActive;
+
+  /// No description provided for @basicPlanActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Plan Active'**
+  String get basicPlanActive;
+
+  /// No description provided for @goldPlanActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold Plan Active'**
+  String get goldPlanActive;
+
+  /// No description provided for @platinumPlanActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Platinum Plan Active'**
+  String get platinumPlanActive;
+
+  /// No description provided for @currentActivePlanMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your current active plan'**
+  String get currentActivePlanMessage;
+
+  /// No description provided for @higherPlanActive.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a higher plan active'**
+  String get higherPlanActive;
+
+  /// No description provided for @planAlreadyActive.
+  ///
+  /// In en, this message translates to:
+  /// **'This plan is already active'**
+  String get planAlreadyActive;
+
+  /// No description provided for @planNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan not available'**
+  String get planNotAvailable;
+
+  /// No description provided for @freePlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Plan'**
+  String get freePlanName;
+
+  /// No description provided for @basicPlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Plan'**
+  String get basicPlanName;
+
+  /// No description provided for @goldPlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold Plan'**
+  String get goldPlanName;
+
+  /// No description provided for @platinumPlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'Platinum Plan'**
+  String get platinumPlanName;
+
+  /// No description provided for @activeFreePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Free Plan'**
+  String get activeFreePlan;
+
+  /// No description provided for @activateFreePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate Free Plan'**
+  String get activateFreePlan;
+
+  /// No description provided for @currentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Plan'**
+  String get currentPlan;
+
+  /// No description provided for @alreadyActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Already Active'**
+  String get alreadyActive;
+
+  /// No description provided for @alreadyActiveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Already Active'**
+  String get alreadyActiveButton;
+
+  /// No description provided for @planExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan Expired'**
+  String get planExpired;
+
+  /// No description provided for @expiresInTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in {time}'**
+  String expiresInTime(Object time);
+
+  /// No description provided for @confirmPlanChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Plan Change'**
+  String get confirmPlanChange;
+
+  /// No description provided for @downgradeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: You will lose all premium features and may lose access to paid content.'**
+  String get downgradeWarning;
+
+  /// No description provided for @yesDowngrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, Downgrade'**
+  String get yesDowngrade;
+
+  /// No description provided for @subscribeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe to {plan} First'**
+  String subscribeFirst(Object plan);
+
+  /// No description provided for @loadingPremiumPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading premium plans...'**
+  String get loadingPremiumPlans;
+
+  /// No description provided for @noPlansAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No premium plans available at the moment.'**
+  String get noPlansAvailable;
+
+  /// No description provided for @highlightBannerFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Professional Highlight Banner On Home Screen Features'**
+  String get highlightBannerFeatures;
+
+  /// No description provided for @highlightBannerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'• Up to 4 banners on home screen\n• Premium visibility for your campaign\n• Requires Platinum Plan to unlock'**
+  String get highlightBannerDescription;
+
+  /// No description provided for @carouselProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Carousel Profile on Home Screen'**
+  String get carouselProfile;
+
+  /// No description provided for @carouselDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'• Up to 10 carousel slots on home screen\n• Maximum visibility for your campaign\n• Requires Platinum Plan to unlock'**
+  String get carouselDescription;
+
+  /// No description provided for @locked.
+  ///
+  /// In en, this message translates to:
+  /// **'LOCKED'**
+  String get locked;
+
+  /// No description provided for @requiresPlanOrPlatinum.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires {plan} or Platinum Plan'**
+  String requiresPlanOrPlatinum(Object plan);
+
+  /// No description provided for @refreshPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Plans'**
+  String get refreshPlans;
+
+  /// No description provided for @premiumPlansRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium plans refreshed successfully!'**
+  String get premiumPlansRefreshed;
+
+  /// No description provided for @failedToRefreshPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to refresh plans: {error}'**
+  String failedToRefreshPlans(Object error);
+
+  /// No description provided for @noPlansAvailableShort.
+  ///
+  /// In en, this message translates to:
+  /// **'No plans available'**
+  String get noPlansAvailableShort;
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
+
+  /// No description provided for @allocateSeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Allocated Seats'**
+  String get allocateSeats;
+
+  /// No description provided for @multiResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-Resolution'**
+  String get multiResolution;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

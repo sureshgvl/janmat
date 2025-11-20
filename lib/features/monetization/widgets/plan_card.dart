@@ -97,8 +97,8 @@ class PlanCard extends StatelessWidget {
                         color: Colors.blue,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        'CURRENT',
+                      child: Text(
+                        AppLocalizations.of(context)!.current,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -118,14 +118,14 @@ class PlanCard extends StatelessWidget {
 
             // Price display logic
             if (plan.planId == 'free_plan') ...[
-              const Text(
-                'FREE',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
+                    Text(
+                      AppLocalizations.of(context)!.limited,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ] else if (plan.type == 'voter') ...[
               const Text(
                 'XP Points',
@@ -156,7 +156,7 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            ..._buildFeatureList(),
+            ..._buildFeatureList(context),
 
             const SizedBox(height: 16),
 
@@ -326,94 +326,94 @@ class PlanCard extends StatelessWidget {
     return AppLocalizations.of(context)!.upgradeToPremium;
   }
 
-  List<Widget> _buildFeatureList() {
+  List<Widget> _buildFeatureList(BuildContext context) {
     final features = <Widget>[];
 
     // Dashboard Tabs Features (only for candidate plans)
     if (plan.dashboardTabs != null) {
       if (plan.dashboardTabs!.basicInfo.enabled) {
-        features.add(_buildFeatureItem('Basic Info', true));
+        features.add(_buildFeatureItem(AppLocalizations.of(context)!.basicInfo, true));
       }
 
       if (plan.dashboardTabs!.manifesto.enabled) {
-        features.add(_buildFeatureItem('Manifesto', true));
+        features.add(_buildFeatureItem(AppLocalizations.of(context)!.manifesto, true));
         if (plan.dashboardTabs!.manifesto.features.pdfUpload) {
-          features.add(_buildFeatureItem('  • PDF Upload', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.pdfUpload}', true));
         }
         if (plan.dashboardTabs!.manifesto.features.videoUpload) {
-          features.add(_buildFeatureItem('  • Video Upload', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.videoUpload}', true));
         }
         if (plan.dashboardTabs!.manifesto.features.promises) {
-          features.add(_buildFeatureItem('  • Promises (${plan.dashboardTabs!.manifesto.features.maxPromises})', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.promises(plan.dashboardTabs!.manifesto.features.maxPromises)}', true));
         }
         if (plan.dashboardTabs!.manifesto.features.multipleVersions == true) {
-          features.add(_buildFeatureItem('  • Multiple Versions', true));
+          features.add(_buildFeatureItem('  • Multiple Versions', true)); // Keep hardcoded as not in localization
         }
       }
 
       if (plan.dashboardTabs!.achievements.enabled) {
         final max = plan.dashboardTabs!.achievements.maxAchievements == -1 ? 'Unlimited' : plan.dashboardTabs!.achievements.maxAchievements.toString();
-        features.add(_buildFeatureItem('Achievements ($max)', true));
+        features.add(_buildFeatureItem('${AppLocalizations.of(context)!.achievements} ($max)', true));
       }
 
       if (plan.dashboardTabs!.media.enabled) {
         final max = plan.dashboardTabs!.media.maxMediaItems == -1 ? 'Unlimited' : plan.dashboardTabs!.media.maxMediaItems.toString();
-        features.add(_buildFeatureItem('Media ($max items)', true));
+        features.add(_buildFeatureItem('${AppLocalizations.of(context)!.mediaItems} ($max items)', true));
       }
 
       if (plan.dashboardTabs!.contact.enabled) {
-        features.add(_buildFeatureItem('Contact', true));
+        features.add(_buildFeatureItem(AppLocalizations.of(context)!.contact, true));
         if (plan.dashboardTabs!.contact.features.extended) {
-          features.add(_buildFeatureItem('  • Extended Info', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.extendedInfo}', true));
         }
         if (plan.dashboardTabs!.contact.features.socialLinks) {
-          features.add(_buildFeatureItem('  • Social Links', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.socialLinks}', true));
         }
         if (plan.dashboardTabs!.contact.features.prioritySupport == true) {
-          features.add(_buildFeatureItem('  • Priority Support', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.prioritySupport}', true));
         }
       }
 
       if (plan.dashboardTabs!.events.enabled) {
         final max = plan.dashboardTabs!.events.maxEvents == -1 ? 'Unlimited' : plan.dashboardTabs!.events.maxEvents.toString();
-        features.add(_buildFeatureItem('Events ($max)', true));
+        features.add(_buildFeatureItem('${AppLocalizations.of(context)!.events} ($max)', true));
       }
 
       if (plan.dashboardTabs!.analytics.enabled) {
-        features.add(_buildFeatureItem('Analytics', true));
+        features.add(_buildFeatureItem(AppLocalizations.of(context)!.analytics, true));
         if (plan.dashboardTabs!.analytics.features?.advanced == true) {
-          features.add(_buildFeatureItem('  • Advanced', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.advanced}', true));
         }
         if (plan.dashboardTabs!.analytics.features?.fullDashboard == true) {
-          features.add(_buildFeatureItem('  • Full Dashboard', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.fullDashboard}', true));
         }
         if (plan.dashboardTabs!.analytics.features?.realTime == true) {
-          features.add(_buildFeatureItem('  • Real-time', true));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.realTime}', true));
         }
       }
     }
 
     // Profile Features
     if (plan.profileFeatures.premiumBadge) {
-      features.add(_buildFeatureItem('Premium Badge', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.premiumBadge, true));
     }
     if (plan.profileFeatures.sponsoredBanner) {
-      features.add(_buildFeatureItem('Sponsored Banner', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.sponsoredBanner, true));
     }
     if (plan.profileFeatures.highlightCarousel) {
-      features.add(_buildFeatureItem('Highlight Banner on Home Screen', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.highlightBanner, true));
     }
     if (plan.profileFeatures.pushNotifications) {
-      features.add(_buildFeatureItem('Push Notifications', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.pushNotifications, true));
     }
     if (plan.profileFeatures.multipleHighlights == true) {
-      features.add(_buildFeatureItem('Carousel on Home Screen', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.carouselOnHome, true));
     }
     if (plan.profileFeatures.adminSupport == true) {
-      features.add(_buildFeatureItem('Admin Support', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.adminSupport, true));
     }
     if (plan.profileFeatures.customBranding == true) {
-      features.add(_buildFeatureItem('Custom Branding', true));
+      features.add(_buildFeatureItem(AppLocalizations.of(context)!.customBranding, true));
     }
 
     // Add allocated seats display for highlight plans
@@ -711,4 +711,3 @@ class PlanCard extends StatelessWidget {
     }
   }
 }
-

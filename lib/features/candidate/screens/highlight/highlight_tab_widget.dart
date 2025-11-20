@@ -45,6 +45,8 @@ class HighlightTabState extends State<HighlightTab> {
   // Force rebuild counter for image updates
   int _imageUpdateCounter = 0;
 
+  // Image adjustment no longer needed since we use cropping
+
   // Track original image URL for cleanup
   String? _originalImageUrl;
   List<String> _imagesToDelete = [];
@@ -298,7 +300,7 @@ class HighlightTabState extends State<HighlightTab> {
     AppLogger.candidate('📤 [Highlight] Config sync completed');
   }
 
-  // Image picker functionality
+  // Image picker functionality - now includes cropping immediately like basic info
   Future<void> _pickBannerImage() async {
     final imagePath = await ImageHandler.pickBannerImage();
 
@@ -309,8 +311,7 @@ class HighlightTabState extends State<HighlightTab> {
       AppLogger.candidate('📸 [HighlightDashboard] Setting local image path: $imagePath');
       AppLogger.candidate('📸 [HighlightDashboard] Previous local path: $_localBannerImagePath');
 
-      // Update state with new image path and force rebuild counter
-      final oldPath = _localBannerImagePath;
+      // Update state with new image path - no adjuster needed since cropping is done
       setState(() {
         _localBannerImagePath = imagePath;
         _imageUpdateCounter++; // Force rebuild by changing counter
@@ -318,23 +319,13 @@ class HighlightTabState extends State<HighlightTab> {
 
       AppLogger.candidate('📸 [HighlightDashboard] State updated - new local path: $_localBannerImagePath, counter: $_imageUpdateCounter');
 
-      // Additional force rebuild for immediate UI update
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          AppLogger.candidate('🔄 [HighlightDashboard] Post-frame callback - forcing additional rebuild');
-          setState(() {
-            _imageUpdateCounter++; // Another counter increment to ensure rebuild
-          });
-        }
-      });
-
       // Notify parent that changes have been made
       widget.onChangesStateChanged(true);
 
-      AppLogger.candidate('✅ [HighlightDashboard] Image selection complete - path changed from $oldPath to $_localBannerImagePath');
+      // Show success message
+      SnackbarUtils.showSuccess('Banner image selected and cropped - ready for preview');
 
-      // Show immediate feedback to user
-      SnackbarUtils.showSuccess('New banner image ready for preview');
+      AppLogger.candidate('✅ [HighlightDashboard] Image cropping complete - banner image ready');
     }
   }
 
@@ -372,6 +363,7 @@ class HighlightTabState extends State<HighlightTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Main content - simplified since we no longer need the ImageAdjuster overlay
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
