@@ -29,6 +29,7 @@ import 'l10n/features/chat/chat_localizations.dart';
 import 'utils/app_logger.dart';
 import 'utils/performance_monitor.dart';
 import 'controllers/theme_controller.dart';
+import 'core/services/fast_startup_coordinator.dart';
 import 'controllers/background_color_controller.dart';
 import 'features/language/controller/language_controller.dart';
 import 'services/home_screen_stream_service.dart';
@@ -342,46 +343,27 @@ void main() async {
     BackgroundInitializer.testingMode = true;
   }
 
-  // Initialize ThemeController early
-  Get.put<ThemeController>(ThemeController());
-  // Initialize BackgroundColorController early
-  Get.put<BackgroundColorController>(BackgroundColorController());
-  // Initialize LanguageController early for reactive locale
-  Get.put<LanguageController>(LanguageController());
-  // Initialize SharedPreferences for fast cached data access
-  final prefs = await SharedPreferences.getInstance();
-  Get.put<SharedPreferences>(prefs);
-  AppLogger.core('✅ SharedPreferences initialized');
+  // 🚀 FAST STARTUP: Use the new FastStartupCoordinator to show the splash screen immediately
+  // while initializing in the background
+  AppLogger.core('🚀 FAST STARTUP: Starting fast app initialization...');
 
-  // Initialize all services through the centralized startup service
-  // This replaces all Firebase, logging, and service initialization
+  // Show the splash screen immediately with initialization running in background
+  runApp(const FastSplashApp());
+
+  // Start background initialization and navigate when ready
   try {
-    final startupService = AppStartupService();
-    await startupService.initialize();
-    AppLogger.core('✅ App startup service initialized successfully');
+    final coordinator = FastStartupCoordinator();
+    final startupData = await coordinator.initializeFast();
+
+    AppLogger.core('✅ FAST STARTUP: Initialization complete, navigating to main app...');
+
+    // Navigate to main app with startup data
+    runApp(MyFastApp(startupData: startupData));
   } catch (e) {
-    AppLogger.core('❌ App startup failed: $e');
-    // Continue with app initialization but note the error
-    // In a real production app, you might want to show an error screen here
+    AppLogger.coreError('❌ FAST STARTUP FAILED: Falling back to traditional startup', error: e);
+    // Fallback to traditional startup
+    runApp(const MyApp());
   }
-
-  // Initialize app-specific services (keep separate from core startup)
-  final initializer = AppInitializer();
-  await initializer.initialize();
-
-  PerformanceMonitor().stopTimer('app_startup');
-  PerformanceMonitor().logSlowOperation('app_startup', 2000); // Log if startup > 2 seconds
-
-  // 🔧 WEB AUTHENTICATION FIX: Add explicit Firebase auth state debugging
-  if (kIsWeb) {
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      AppLogger.auth('🌐 [WEB-DEBUG] Auth state change: ${user?.uid ?? 'null'} at ${user?.email ?? 'no-email'}');
-    }, onError: (error) {
-      AppLogger.auth('🌐 [WEB-DEBUG] Auth state error: $error');
-    });
-  }
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -557,6 +539,172 @@ class _MyAppContentState extends State<MyAppContent> {
       );
     }
 
+    // Single GetMaterialApp for the entire app - use initial values, changes handled via Get.changeTheme/updateLocale
+    final themeController = Get.find<ThemeController>();
+    final languageController = Get.find<LanguageController>();
+
+    return GetMaterialApp(
+      title: 'JanMat',
+      theme: themeController.currentTheme.value,
+      locale: languageController.currentLocale.value,
+      localizationsDelegates: [
+        ...AppLocalizations.localizationsDelegates,
+        CandidateLocalizations.delegate,
+        AuthLocalizations.delegate,
+        OnboardingLocalizations.delegate,
+        ProfileLocalizations.delegate,
+        NotificationsLocalizations.delegate,
+        SettingsLocalizations.delegate,
+        ChatLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        for (var supported in supportedLocales) {
+          if (supported.languageCode == locale?.languageCode) {
+            return supported;
+          }
+        }
+        return const Locale('en'); // Fallback to English
+      },
+      initialBinding: AppBindings(),
+      initialRoute: _currentRoute,
+      getPages: AppRoutes.getPages,
+      debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Wrap entire app with PortraitWrapper for web/desktop centering + SafeArea
+        return PortraitWrapper(
+          child: SafeArea(
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 🚀 FAST STARTUP: Simple splash screen app that shows immediately
+class FastSplashApp extends StatelessWidget {
+  const FastSplashApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: AnimatedSplashScreen(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+/// 🚀 FAST STARTUP: Main app with pre-initialized data
+class MyFastApp extends StatefulWidget {
+  final Map<String, dynamic> startupData;
+
+  const MyFastApp({super.key, required this.startupData});
+
+  @override
+  State<MyFastApp> createState() => _MyFastAppState();
+}
+
+class _MyFastAppState extends State<MyFastApp> with WidgetsBindingObserver {
+  late StreamSubscription<User?> _authSubscription;
+  late StreamSubscription<ThemeData> _themeSubscription;
+  late StreamSubscription<Locale> _localeSubscription;
+  late String _currentRoute;
+  final HighlightSessionService _sessionService = HighlightSessionService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AppLogger.core('📱 Fast App lifecycle observer initialized');
+
+    // Get initial route from startup data
+    _currentRoute = widget.startupData['initialRoute'] as String;
+
+    // Listen to theme changes and update GetX theme
+    final themeController = Get.find<ThemeController>();
+    _themeSubscription = themeController.currentTheme.listen((theme) {
+      Get.changeTheme(theme);
+    });
+
+    // Listen to locale changes and update GetX locale
+    final languageController = Get.find<LanguageController>();
+    _localeSubscription = languageController.currentLocale.listen((locale) {
+      Get.updateLocale(locale);
+    });
+
+    // Listen to auth changes and navigate accordingly
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (!mounted) return;
+
+      final isStreamLoggedIn = user != null;
+      final isLoggedIn = widget.startupData['isLoggedIn'] as bool;
+      final isLanguageSelected = widget.startupData['isLanguageSelected'] as bool;
+      final isOnboardingCompleted = widget.startupData['isOnboardingCompleted'] as bool;
+
+      String newRoute;
+
+      if (!isLanguageSelected) {
+        newRoute = AppRouteNames.languageSelection;
+      } else if (!isOnboardingCompleted) {
+        newRoute = AppRouteNames.onboarding;
+      } else if (!isStreamLoggedIn) {
+        newRoute = AppRouteNames.login;
+      } else {
+        // For logged-in users, check user state and navigate appropriately
+        newRoute = await _getUserFlowRoute(user);
+      }
+
+      AppLogger.core('🔄 Fast App Auth change: ${user?.uid ?? 'null'} → Route: $newRoute');
+
+      // Navigate to new route if different from current
+      if (newRoute != _currentRoute) {
+        setState(() {
+          _currentRoute = newRoute;
+        });
+        // Use GetX navigation to change route
+        Get.offAllNamed(newRoute);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    _themeSubscription.cancel();
+    _localeSubscription.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    AppLogger.core('🧹 Fast App lifecycle observer disposed');
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    AppLogger.core('🔄 Fast App state: $state');
+
+    switch (state) {
+      case AppLifecycleState.inactive:
+        break;
+      case AppLifecycleState.paused:
+        AppLogger.core('😴 Fast App paused (background) - ending highlight session');
+        // End the current highlight session when app goes to background
+        _sessionService.endSession();
+        break;
+      case AppLifecycleState.resumed:
+        break;
+      case AppLifecycleState.detached:
+        AppLogger.core('🔌 Fast App detached (killed) - ending highlight session');
+        // End session when app is killed
+        _sessionService.endSession();
+        break;
+      case AppLifecycleState.hidden:
+        AppLogger.core('👁️ Fast App hidden');
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Single GetMaterialApp for the entire app - use initial values, changes handled via Get.changeTheme/updateLocale
     final themeController = Get.find<ThemeController>();
     final languageController = Get.find<LanguageController>();

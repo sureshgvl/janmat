@@ -181,7 +181,7 @@ class _CandidateDashboardAchievementsState
                           // Use editedData if available (contains uploaded file updates), otherwise fallback to candidateData
                           final candidate = controller.editedData.value ?? controller.candidateData.value!;
 
-                          final achievementsController = Get.find<AchievementsController>();
+                          final achievementsController = Get.find<AchievementsController>(tag: 'achievements_tab');
                           final success = await achievementsController.saveAchievementsTab(
                             candidate: candidate,
                             achievements: achievementsModel,

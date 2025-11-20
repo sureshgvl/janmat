@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../controllers/candidate_user_controller.dart';
-import '../controllers/events_controller.dart';
+
 import '../../monetization/services/plan_service.dart';
 import '../widgets/edit/events/events_edit.dart';
 import '../widgets/view/events/events_tab_view.dart';
@@ -102,13 +102,9 @@ class _CandidateDashboardEventsState extends State<CandidateDashboardEvents> {
                             await eventsSectionState.uploadPendingFiles();
                           }
 
-                          // Then save the events data using events controller
-                          final eventsController = Get.find<EventsController>();
-                          final success = await eventsController.saveEventsTab(
-                            candidate: controller.candidateData.value!,
-                            events: controller.candidateData.value!.events ?? [],
-                            onProgress: (message) => messageController.add(message),
-                          );
+                          // Then save the events data using the main controller (cross-platform compatible)
+                          messageController.add('Saving events data...');
+                          final success = await controller.saveExtraInfo();
 
                           if (success) {
                             // Update progress: Success

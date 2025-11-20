@@ -231,7 +231,7 @@ class AchievementsTabEdit extends StatefulWidget {
 }
 
 class AchievementsTabEditState extends State<AchievementsTabEdit> {
-  final AchievementsController _achievementsController = Get.find<AchievementsController>();
+  late final AchievementsController _achievementsController;
   late List<Achievement> _achievements;
   final FileUploadService _fileUploadService = FileUploadService();
   final Map<int, bool> _uploadingPhotos = {};
@@ -241,6 +241,8 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
   @override
   void initState() {
     super.initState();
+    // Initialize controller lazily if not already present
+    _achievementsController = Get.put(AchievementsController(), tag: 'achievements_tab');
     _loadAchievements();
   }
 
@@ -256,6 +258,10 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
   @override
   void dispose() {
     _cleanupDanglingPhotos();
+    // Clean up controller when widget is disposed
+    if (Get.isRegistered<AchievementsController>(tag: 'achievements_tab')) {
+      Get.delete<AchievementsController>(tag: 'achievements_tab');
+    }
     super.dispose();
   }
 
