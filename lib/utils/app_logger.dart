@@ -69,9 +69,48 @@ class AppLogger {
         AppLogger.common('🎛️ Global log level set to: $_globalLogLevel');
       }
 
-      // If a global log level is set, disable all categorical logs
+      // If a global log level is set to debug/warning, disable noisy logs but keep monetization/candidate logs enabled for web debugging
       if (_globalLogLevel != null && _globalLogLevel != LogLevel.verbose) {
-        disableAllLogs();
+        // Disable UI logs (too noisy) and performance logs, but keep core monetization/candidate logs enabled
+        AppLogger.configure(
+          ui: false,          // Disable UI logs (too noisy)
+          performance: false, // Disable performance logs
+          // Keep monetization and candidate logs enabled for web debugging
+          monetization: true,
+          candidate: true,
+          core: true,
+          common: true,
+          // Disable others for cleaner logs
+          chat: false,
+          auth: false,
+          network: false,
+          cache: false,
+          database: false,
+          polls: false,
+          profile: false,
+          settings: false,
+          notifications: false,
+          highlight: false,
+          fcm: false,
+          video: false,
+          razorpay: false,
+          trial: false,
+          userCache: false,
+          localDatabase: false,
+          manifesto: false,
+          symbol: false,
+          abTest: false,
+          backgroundSync: false,
+          connectionOptimizer: false,
+          dataCompression: false,
+          errorRecovery: false,
+          memoryManager: false,
+          multiLevelCache: false,
+          progressiveLoader: false,
+          realtimeOptimizer: false,
+          districtSpotlight: false,
+        );
+        AppLogger.common('🔧 Environment configured for debug level - disabled noisy logs but kept monetization/candidate logs enabled');
       }
     } catch (e) {
       AppLogger.common('⚠️ Failed to load logging config from environment: $e');
@@ -363,19 +402,43 @@ class AppLogger {
   static void monetization(String message, {String? tag, bool isShow = true}) {
     if (isShow && _showMonetizationLogs) {
       _logger.d('💰 ${tag != null ? '[$tag] ' : ''}$message');
+      // Force console output on web for monetization logs
+      if (kIsWeb) {
+        print('💰 ${tag != null ? '[$tag] ' : ''}$message');
+      }
     }
   }
 
   static void monetizationError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
     if (isShow && _showMonetizationLogs) {
       _logger.e('💰❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      // Force console output on web for monetization error logs
+      if (kIsWeb) {
+        print('💰❌ ${tag != null ? '[$tag] ' : ''}$message');
+        if (error != null) {
+          print('Error: $error');
+        }
+        if (stackTrace != null) {
+          print('StackTrace: $stackTrace');
+        }
+      }
     }
   }
 
   // Candidate logs
   static void candidate(String message, {String? tag, bool isShow = true}) {
     if (isShow && _showCandidateLogs) {
-      _logger.d('👥 ${tag != null ? '[$tag] ' : ''}$message');
+      final logMessage = '👥 ${tag != null ? '[$tag] ' : ''}$message';
+      _logger.d(logMessage);
+      // Force console output on web for candidate logs
+      if (kIsWeb) {
+        print(logMessage);
+      }
+    } else {
+      // Debug why logs might not be shown
+      if (kIsWeb) {
+        print('👥 [CANDIDATE LOG DEBUG] show=$isShow, showCandidateLogs=$_showCandidateLogs, message="$message"');
+      }
     }
   }
 

@@ -26,6 +26,19 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
   @override
   void initState() {
     super.initState();
+    // Test all logging methods to ensure they work on web
+    AppLogger.monetization('📱 MonetizationScreen: initState called');
+    AppLogger.common('🔧 MONETIZATION_SCREEN: Common log test');
+    AppLogger.core('🏗️ MONETIZATION_SCREEN: Core log test');
+    // Force show=true and test modified candidate method
+    AppLogger.candidate('👥 MONETIZATION_SCREEN: Candidate log test', isShow: true);
+    AppLogger.ui('🎨 MONETIZATION_SCREEN: UI log test');
+    AppLogger.network('🌐 MONETIZATION_SCREEN: Network log test');
+    AppLogger.cache('🏗️ MONETIZATION_SCREEN: Cache log test');
+    AppLogger.database('💾 MONETIZATION_SCREEN: Database log test');
+    AppLogger.performance('⚡ MONETIZATION_SCREEN: Performance log test');
+    print('🐛 MANUAL PRINT: If you see this, console logging works!');
+
     _loadUserData();
   }
 

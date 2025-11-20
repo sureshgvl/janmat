@@ -345,6 +345,8 @@ void main() async {
 
   // 🚀 FAST STARTUP: Use the new FastStartupCoordinator to show the splash screen immediately
   // while initializing in the background
+  print('🔧 FORCED MONETIZATION LOG TEST - Web logging should work: ${DateTime.now()}');
+  AppLogger.monetization('🧪 TESTING MONETIZATION LOGS ON WEB - This should appear with 💰 emoji');
   AppLogger.core('🚀 FAST STARTUP: Starting fast app initialization...');
 
   // Show the splash screen immediately with initialization running in background

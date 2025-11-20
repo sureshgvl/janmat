@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_logger.dart';
 import '../services/phone_auth_service.dart';
 import '../services/google_auth_service.dart';
+import '../services/email_auth_service.dart';
 import '../services/user_management_service.dart';
 import '../services/storage_management_service.dart';
 import '../services/account_deletion_service.dart';
@@ -11,6 +12,7 @@ class AuthRepository {
   // Service instances
   final PhoneAuthService _phoneAuthService = PhoneAuthService();
   final GoogleAuthService _googleAuthService = GoogleAuthService();
+  final EmailAuthService _emailAuthService = EmailAuthService();
   final UserManagementService _userManagementService = UserManagementService();
   final StorageManagementService _storageManagementService = StorageManagementService();
   final AccountDeletionService _accountDeletionService = AccountDeletionService();
@@ -50,6 +52,25 @@ class AuthRepository {
 
   Future<void> clearLastGoogleAccount() async {
     return _googleAuthService.clearLastGoogleAccount();
+  }
+
+  // Email Authentication
+  Future<UserCredential> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    return _emailAuthService.signInWithEmailAndPassword(email, password);
+  }
+
+  Future<UserCredential> createUserWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    return _emailAuthService.createUserWithEmailAndPassword(email, password);
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    return _emailAuthService.sendPasswordResetEmail(email);
   }
 
   // User Management

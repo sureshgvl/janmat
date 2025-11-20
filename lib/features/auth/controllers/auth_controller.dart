@@ -20,6 +20,8 @@ class AuthController extends GetxController {
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   RxBool isLoading = false.obs;
   RxBool isOTPScreen = false.obs;
@@ -53,6 +55,8 @@ class AuthController extends GetxController {
   void onClose() {
     phoneController.dispose();
     otpController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
     _otpTimer?.cancel();
     _authChangeDebouncer?.cancel();
     _backgroundSyncTimer?.cancel();
@@ -215,6 +219,81 @@ class AuthController extends GetxController {
       SnackbarUtils.showError('Invalid OTP: ${e.toString()}');
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
+      isLoading.value = false;
+    }
+  }
+
+  // EMAIL LOGIN - WITH SMART ROUTING BASED ON USER STATUS
+  Future<void> signInWithEmailAndPassword() async {
+    if (emailController.text.isEmpty) {
+      SnackbarUtils.showError('Please enter your email address');
+      return;
+    }
+
+    if (passwordController.text.isEmpty) {
+      SnackbarUtils.showError('Please enter your password');
+      return;
+    }
+
+    isLoading.value = true;
+
+    Get.dialog(
+      AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            const Text('Signing in...'),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    try {
+      AppLogger.auth('🔄 Starting email sign-in process for: ${emailController.text}');
+      final userCredential = await _authRepository.signInWithEmailAndPassword(
+        emailController.text.trim(),
+        passwordController.text,
+      );
+
+      if (Get.isDialogOpen ?? false) Get.back();
+
+      if (userCredential.user != null) {
+        AppLogger.auth('✅ Email login successful: ${userCredential.user!.uid}');
+        await _authRepository.createOrUpdateUser(userCredential.user!);
+
+        // Cache fresh user data for immediate screen access
+        await _cacheFreshUserDataAfterLogin(userCredential.user!.uid);
+
+        // 🔍 DETERMINE CORRECT ROUTE BASED ON USER STATUS
+        final targetRoute = await _getPostLoginRoute(userCredential.user!);
+        AppLogger.auth('🎯 Post-login route determined: $targetRoute');
+
+        SnackbarUtils.showSuccess('Email sign-in successful');
+        Get.offAllNamed(targetRoute);
+      } else {
+        SnackbarUtils.showError('Sign-in failed. Please try again.');
+      }
+
+    } catch (e) {
+      if (Get.isDialogOpen ?? false) Get.back();
+
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('wrong-password') || errorStr.contains('invalid-credential')) {
+        SnackbarUtils.showError('Invalid email or password. Please check your credentials and try again.');
+      } else if (errorStr.contains('user-not-found')) {
+        SnackbarUtils.showError('No account found with this email address.');
+      } else if (errorStr.contains('user-disabled')) {
+        SnackbarUtils.showError('This account has been disabled. Please contact support.');
+      } else if (errorStr.contains('too-many-requests')) {
+        SnackbarUtils.showError('Too many failed login attempts. Please try again later.');
+      } else {
+        AppLogger.authError('Email sign-in failed', error: e);
+        SnackbarUtils.showError('Sign-in failed: ${e.toString()}');
+      }
+    } finally {
       isLoading.value = false;
     }
   }

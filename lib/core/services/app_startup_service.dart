@@ -82,8 +82,10 @@ class AppStartupService {
     try {
       AppLogger.core('🔄 Setting up application logging...');
 
-      // Load environment-based configuration first
-      AppLogger.loadFromEnvironment();
+      // Load environment-based configuration only in debug mode
+      if (!isProduction) {
+        AppLogger.loadFromEnvironment();
+      }
 
       // Initialize file logging
       await _setupFileLogging();
@@ -97,6 +99,32 @@ class AppStartupService {
         database: true,
         ui: isProduction ? false : true, // Only show UI logs in debug
         performance: true,
+        common: true,
+        monetization: true, // Explicitly enable monetization logs for all platforms
+        candidate: true,
+        polls: true,
+        profile: true,
+        settings: true,
+        notifications: true,
+        core: true,
+        highlight: true,
+        fcm: kIsWeb ? false : true, // Disable FCM logs on web since FCM is not supported
+        video: true,
+        razorpay: true,
+        trial: true,
+        userCache: true,
+        localDatabase: true,
+        manifesto: true,
+        symbol: true,
+        abTest: true,
+        backgroundSync: true,
+        connectionOptimizer: true,
+        dataCompression: true,
+        errorRecovery: true,
+        memoryManager: true,
+        multiLevelCache: true,
+        progressiveLoader: true,
+        realtimeOptimizer: true,
         districtSpotlight: true,
       );
 

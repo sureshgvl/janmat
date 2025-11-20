@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sms_autofill/sms_autofill.dart';
+import 'package:flutter/foundation.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
@@ -136,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 80,
                       ),
                       const SizedBox(height: 10),
-                      
+
                       Text(
                         appLocalizations.welcomeMessage,
                         style: TextStyle(
@@ -153,11 +154,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(24.0),
-                          child: Obx(
-                            () => controller.isOTPScreen.value
-                                ? _buildOTPScreen(context, controller)
-                                : _buildPhoneInputScreen(context, controller),
-                          ),
+                          child: kIsWeb
+                              ? _buildEmailPasswordScreen(context, controller)
+                              : Obx(
+                                  () => controller.isOTPScreen.value
+                                      ? _buildOTPScreen(context, controller)
+                                      : _buildPhoneInputScreen(context, controller),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -170,6 +173,86 @@ class _LoginScreenState extends State<LoginScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildEmailPasswordScreen(BuildContext context, AuthController controller) {
+    return Column(
+      children: [
+        TextField(
+          controller: controller.emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            labelText: 'Email',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: controller.passwordController,
+          obscureText: true,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Obx(
+          () => ElevatedButton(
+            onPressed: controller.isLoading.value ? null : () async {
+              await controller.signInWithEmailAndPassword();
+            },
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ),
+            child: controller.isLoading.value
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text('Signing in...'),
+                    ],
+                  )
+                : Text('Sign In'),
+          ),
+        ),
+      ],
     );
   }
 

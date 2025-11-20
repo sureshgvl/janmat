@@ -643,7 +643,17 @@ class CandidatePlansSection extends StatelessWidget {
       //   return true;
       // }());
 
-      return Column(children: debugWidgets);
+      // Highlight the plans section with a border and background
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade300, width: 2),
+        ),
+        child: Column(children: debugWidgets),
+      );
     });
   }
 }

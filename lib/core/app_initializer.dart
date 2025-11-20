@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -51,13 +52,17 @@ class AppInitializer {
 
       AppLogger.core('Firebase initialized');
 
-      // Initialize FCM for push notifications
-      try {
-        final fcmService = FCMService();
-        await fcmService.initialize();
-        AppLogger.core('FCM service initialized');
-      } catch (e) {
-        AppLogger.coreError('FCM initialization failed', error: e);
+      // Initialize FCM for push notifications (skip on web where FCM may not be fully supported)
+      if (!kIsWeb) {
+        try {
+          final fcmService = FCMService();
+          await fcmService.initialize();
+          AppLogger.core('FCM service initialized');
+        } catch (e) {
+          AppLogger.coreError('FCM initialization failed', error: e);
+        }
+      } else {
+        AppLogger.core('ℹ️ FCM initialization skipped on web platform');
       }
     } catch (e) {
       AppLogger.coreError('Firebase initialization failed', error: e);
@@ -147,6 +152,9 @@ class AppInitializer {
   }
 
   Future<void> checkForUpdate() async {
+    // Skip update check on web platform as in_app_update plugin doesn't support web
+    if (kIsWeb) return;
+
     try {
       final updateInfo = await InAppUpdate.checkForUpdate();
       if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {

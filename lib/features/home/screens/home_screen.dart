@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       // ✅ USER DATA COMPLETE: No modal checks needed since flow is controlled pre-navigation
       if (data.isComplete) {
-        AppLogger.common('🏠 [HOME_SCREEN] � Data is complete - user setup already validated by navigation flow');
+        AppLogger.common('[HOME_SCREEN] [OK] Data is complete - user setup already validated by navigation flow');
       }
 
       // Handle district spotlight when user is authenticated

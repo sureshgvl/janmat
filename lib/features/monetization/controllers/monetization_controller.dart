@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
@@ -185,15 +186,16 @@ class MonetizationController extends GetxController {
 
       if (!userDoc.exists) {
         AppLogger.monetization('❌ [MonetizationController] User document not found for: $userId');
-        return null;
+        return kIsWeb ? 'municipal_corporation' : null; // Web fallback
       }
 
       final userData = userDoc.data()!;
       final electionAreas = userData['electionAreas'] as List<dynamic>?;
 
+      // WEB FALLBACK: If no election areas, assume municipal corporation (most common)
       if (electionAreas == null || electionAreas.isEmpty) {
-        AppLogger.monetization('❌ [MonetizationController] No election areas found for user: $userId');
-        return null;
+        AppLogger.monetization('❌ [MonetizationController] No election areas found for user: $userId, using web fallback');
+        return kIsWeb ? 'municipal_corporation' : null;
       }
 
       // For candidates, use the first (and typically only) election area
@@ -206,27 +208,33 @@ class MonetizationController extends GetxController {
       final districtId = location?['districtId'] as String?;
 
       if (stateId == null || districtId == null) {
-        AppLogger.monetization('❌ [MonetizationController] Missing stateId or districtId for user: $userId');
-        return null;
+        AppLogger.monetization('❌ [MonetizationController] Missing stateId or districtId for user: $userId, using web fallback');
+        return kIsWeb ? 'municipal_corporation' : null;
       }
 
       AppLogger.monetization('📍 [MonetizationController] User location: state=$stateId, district=$districtId, body=$bodyId');
 
-      // Try SQLite cache first for better performance
-      final localDb = LocalDatabaseService();
-      final cachedBodies = await localDb.getBodiesForDistrict(districtId);
-      final cachedBody = cachedBodies.firstWhereOrNull(
-        (body) => body.id == bodyId,
-      );
+      // Try SQLite cache first for better performance (MOBILE ONLY)
+      if (!kIsWeb) {
+        try {
+          final localDb = LocalDatabaseService();
+          final cachedBodies = await localDb.getBodiesForDistrict(districtId);
+          final cachedBody = cachedBodies.firstWhereOrNull(
+            (body) => body.id == bodyId,
+          );
 
-      if (cachedBody != null) {
-        final electionType = _mapBodyTypeToElectionType(cachedBody.type);
-        AppLogger.monetization('✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})');
-        return electionType;
+          if (cachedBody != null) {
+            final electionType = _mapBodyTypeToElectionType(cachedBody.type);
+            AppLogger.monetization('✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})');
+            return electionType;
+          }
+        } catch (e) {
+          AppLogger.monetization('⚠️ [MonetizationController] SQLite cache failed on mobile: $e');
+        }
       }
 
-      // Fallback to Firebase if not in cache
-      AppLogger.monetization('🔄 [MonetizationController] Body not in cache, fetching from Firebase...');
+      // Fallback to Firebase if not in cache or on web
+      AppLogger.monetization('🔄 [MonetizationController] ${kIsWeb ? 'Web platform' : 'Body not in cache'}, fetching from Firebase...');
       final bodyDoc = await FirebaseFirestore.instance
           .collection('states')
           .doc(stateId)
@@ -237,8 +245,8 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!bodyDoc.exists) {
-        AppLogger.monetization('❌ [MonetizationController] Body document not found: $bodyId');
-        return null;
+        AppLogger.monetization('❌ [MonetizationController] Body document not found: $bodyId, using web fallback');
+        return kIsWeb ? 'municipal_corporation' : null;
       }
 
       final bodyTypeString = bodyDoc.data()?['type'] as String?;
@@ -268,9 +276,23 @@ class MonetizationController extends GetxController {
 
       final electionType = _mapBodyTypeToElectionType(bodyType);
       AppLogger.monetization('✅ [MonetizationController] Final election type: $electionType (body type: $bodyType)');
+
+      // FINAL WEB FALLBACK: If election type is still null, default to municipal corporation
+      if (electionType == null && kIsWeb) {
+        AppLogger.monetization('⚠️ [MonetizationController] Election type resolved to null on web, using fallback: municipal_corporation');
+        return 'municipal_corporation';
+      }
+
       return electionType;
     } catch (e) {
       AppLogger.monetization('❌ [MonetizationController] Error getting election type: $e');
+
+      // EMERGENCY WEB FALLBACK: Return municipal corporation for any error on web
+      if (kIsWeb) {
+        AppLogger.monetization('⚠️ [MonetizationController] Error occurred on web, using emergency fallback: municipal_corporation');
+        return 'municipal_corporation';
+      }
+
       return null;
     }
   }
