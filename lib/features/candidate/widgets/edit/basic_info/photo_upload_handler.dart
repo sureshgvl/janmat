@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -24,34 +25,39 @@ class PhotoUploadHandler {
 
       if (pickedFile == null) return null;
 
-      // Try to crop the image, but have a fallback if cropping fails
+      // Try to crop the image, but have a fallback if cropping fails (skip cropping on web)
       CroppedFile? croppedFile;
-      try {
-        croppedFile = await ImageCropper().cropImage(
-          sourcePath: pickedFile.path,
-          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-          uiSettings: [
-            AndroidUiSettings(
-              toolbarTitle: 'Crop Profile Photo',
-              toolbarColor: Theme.of(context).primaryColor,
-              toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: true,
-              hideBottomControls: false,
-              showCropGrid: true,
-            ),
-            IOSUiSettings(
-              title: 'Crop Profile Photo',
-              aspectRatioLockEnabled: true,
-              resetAspectRatioEnabled: false,
-              aspectRatioPickerButtonHidden: true,
-              rotateClockwiseButtonHidden: false,
-              rotateButtonsHidden: false,
-            ),
-          ],
-        );
-      } catch (cropError) {
-        AppLogger.candidate('Cropping failed, using original image: $cropError');
+      if (!kIsWeb) {
+        // Only attempt cropping on mobile platforms
+        try {
+          croppedFile = await ImageCropper().cropImage(
+            sourcePath: pickedFile.path,
+            aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+            uiSettings: [
+              AndroidUiSettings(
+                toolbarTitle: 'Crop Profile Photo',
+                toolbarColor: Theme.of(context).primaryColor,
+                toolbarWidgetColor: Colors.white,
+                initAspectRatio: CropAspectRatioPreset.square,
+                lockAspectRatio: true,
+                hideBottomControls: false,
+                showCropGrid: true,
+              ),
+              IOSUiSettings(
+                title: 'Crop Profile Photo',
+                aspectRatioLockEnabled: true,
+                resetAspectRatioEnabled: false,
+                aspectRatioPickerButtonHidden: true,
+                rotateClockwiseButtonHidden: false,
+                rotateButtonsHidden: false,
+              ),
+            ],
+          );
+        } catch (cropError) {
+          AppLogger.candidate('Cropping failed on mobile, using original image: $cropError');
+        }
+      } else {
+        AppLogger.candidate('Skipping image cropping on web platform - using original image');
       }
 
       // Use cropped file if available, otherwise use original

@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 import '../../../utils/app_logger.dart';
 import '../models/basic_info_model.dart';
 import '../repositories/basic_info_repository.dart';
@@ -64,13 +66,31 @@ class BasicInfoController extends GetxController implements IBasicInfoController
         final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
         try {
-          // Upload directly using Firebase Storage (avoid PhotoUploadHandler's UI dependencies)
           final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
           final storageRef = FirebaseStorage.instance.ref().child('profile_images/$userId/$fileName');
-          final uploadTask = storageRef.putFile(
-            File(localFilePath),
-            SettableMetadata(contentType: 'image/jpeg'),
-          );
+
+          UploadTask uploadTask;
+
+          if (kIsWeb && localFilePath.startsWith('blob:')) {
+            // Web: Download blob data and upload as bytes
+            AppLogger.database('🌐 WEB UPLOAD: Converting blob to bytes...', tag: 'BASIC_INFO_TAB');
+            final response = await http.get(Uri.parse(localFilePath));
+            if (response.statusCode == 200) {
+              uploadTask = storageRef.putData(
+                response.bodyBytes,
+                SettableMetadata(contentType: 'image/jpeg'),
+              );
+            } else {
+              throw Exception('Failed to download blob: ${response.statusCode}');
+            }
+          } else {
+            // Mobile: Use File directly
+            AppLogger.database('📱 MOBILE UPLOAD: Using file path...', tag: 'BASIC_INFO_TAB');
+            uploadTask = storageRef.putFile(
+              File(localFilePath),
+              SettableMetadata(contentType: 'image/jpeg'),
+            );
+          }
 
           final snapshot = await uploadTask.whenComplete(() {});
           final uploadedUrl = await snapshot.ref.getDownloadURL();

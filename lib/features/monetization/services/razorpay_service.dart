@@ -1,11 +1,14 @@
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/foundation.dart';
 import '../controllers/monetization_controller.dart';
 import '../../../utils/app_logger.dart';
+import 'razorpay_web_service.dart';
 
 class RazorpayService extends GetxService {
   late Razorpay _razorpay;
+  RazorpayWebService? _webService;
 
   // Razorpay keys - Replace with your actual keys
   static const String razorpayKeyId = 'rzp_test_RJP3bsiM4dz0Aa'; // Test key
@@ -18,12 +21,19 @@ class RazorpayService extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _initializeRazorpay();
+    if (kIsWeb) {
+      _webService = RazorpayWebService();
+      _webService?.initialize();
+    } else {
+      _initializeRazorpay();
+    }
   }
 
   @override
   void onClose() {
-    _razorpay.clear();
+    if (!kIsWeb) {
+      _razorpay.clear();
+    }
     super.onClose();
   }
 
@@ -111,36 +121,85 @@ class RazorpayService extends GetxService {
     String? prefillName,
     Map<String, dynamic>? notes,
   }) {
-   AppLogger.razorpay('STARTING RAZORPAY PAYMENT PROCESS');
-   AppLogger.razorpay('Amount: ₹${amount / 100} ($amount paisa)');
+    if (kIsWeb) {
+      _startWebPayment(amount, description, contact, email, prefillName);
+    } else {
+      _startMobilePayment(amount, description, contact, email, prefillName);
+    }
+  }
 
-   var options = {
-     'key': razorpayKeyId,
-     'amount': amount,
-     'name': 'Janmat',
-     'description': description,
-     'prefill': {
-       'contact': contact,
-       'email': email,
-       if (prefillName != null) 'name': prefillName,
-     },
-     'external': {
-       'wallets': ['paytm']
-     }
-   };
+  void _startMobilePayment(
+    int amount,
+    String description,
+    String contact,
+    String email,
+    String? prefillName,
+  ) {
+    AppLogger.razorpay('STARTING RAZORPAY PAYMENT PROCESS (Mobile)');
+    AppLogger.razorpay('Amount: ₹${amount / 100} ($amount paisa)');
 
-   try {
-     AppLogger.razorpay('Opening Razorpay checkout...');
-     _razorpay.open(options);
-     AppLogger.razorpay('Razorpay checkout opened successfully');
-   } catch (e) {
-     AppLogger.razorpayError('ERROR STARTING RAZORPAY PAYMENT: $e');
-     Fluttertoast.showToast(
-       msg: 'Error starting payment: $e',
-       toastLength: Toast.LENGTH_LONG,
-     );
-   }
- }
+    var options = {
+      'key': razorpayKeyId,
+      'amount': amount,
+      'name': 'Janmat',
+      'description': description,
+      'prefill': {
+        'contact': contact,
+        'email': email,
+        if (prefillName != null) 'name': prefillName,
+      },
+      'external': {
+        'wallets': ['paytm']
+      }
+    };
+
+    try {
+      AppLogger.razorpay('Opening Razorpay checkout...');
+      _razorpay.open(options);
+      AppLogger.razorpay('Razorpay checkout opened successfully');
+    } catch (e) {
+      AppLogger.razorpayError('ERROR STARTING RAZORPAY PAYMENT: $e');
+      Fluttertoast.showToast(
+        msg: 'Error starting payment: $e',
+        toastLength: Toast.LENGTH_LONG,
+      );
+    }
+  }
+
+  void _startWebPayment(
+    int amount,
+    String description,
+    String contact,
+    String email,
+    String? prefillName,
+  ) {
+    if (_webService == null) return;
+
+    _webService!.startPayment(
+      amount: amount,
+      description: description,
+      contact: contact,
+      email: email,
+      prefillName: prefillName,
+      successCallback: (String paymentId, String orderId, String signature) {
+        // Create a response object compatible with mobile handlers
+        PaymentSuccessResponse response = PaymentSuccessResponse.fromMap({
+          'paymentId': paymentId,
+          'orderId': orderId,
+          'signature': signature,
+        });
+        _handlePaymentSuccess(response);
+      },
+      errorCallback: (String errorCode, String errorMessage) {
+        // Create a response object compatible with mobile handlers
+        PaymentFailureResponse response = PaymentFailureResponse.fromMap({
+          'code': int.tryParse(errorCode) ?? Razorpay.NETWORK_ERROR,
+          'message': errorMessage,
+        });
+        _handlePaymentError(response);
+      },
+    );
+  }
 
   // Create order on your backend (placeholder - implement actual API call)
   Future<String?> createOrder({
@@ -200,4 +259,3 @@ class RazorpayService extends GetxService {
     };
   }
 }
-

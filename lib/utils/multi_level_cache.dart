@@ -439,7 +439,9 @@ class DiskCache {
 
   Future<void> _ensureInitialized() async {
     _prefs ??= await SharedPreferences.getInstance();
-    _cacheDir ??= await getApplicationCacheDirectory();
+    if (!kIsWeb) {
+      _cacheDir ??= await getApplicationCacheDirectory();
+    }
     await _loadMetadata();
   }
 
@@ -483,16 +485,35 @@ class DiskCache {
 
     final metadata = _metadata[key];
     if (metadata != null && !metadata.isExpired) {
-      final file = File('${_cacheDir!.path}/$key');
-      if (await file.exists()) {
-        try {
-          final content = await file.readAsString();
-          final data = jsonDecode(content);
-          return data as T;
-        } catch (e) {
-          // File corrupted, remove it
-          await file.delete();
-          _metadata.remove(key);
+      if (kIsWeb) {
+        // Web: Use SharedPreferences directly
+        final cacheData = _prefs!.getString('cache_$key');
+        if (cacheData != null) {
+          try {
+            return jsonDecode(cacheData) as T;
+          } catch (e) {
+            // Corrupted data, remove it
+            await _prefs!.remove('cache_$key');
+            _metadata.remove(key);
+            await _saveMetadata();
+          }
+        }
+      } else {
+        // Mobile/Desktop: Use file system
+        if (_cacheDir != null) {
+          final file = File('${_cacheDir!.path}/$key');
+          if (await file.exists()) {
+            try {
+              final content = await file.readAsString();
+              final data = jsonDecode(content);
+              return data as T;
+            } catch (e) {
+              // File corrupted, remove it
+              await file.delete();
+              _metadata.remove(key);
+              await _saveMetadata();
+            }
+          }
         }
       }
     }
@@ -516,9 +537,18 @@ class DiskCache {
 
     _metadata[key] = entry;
 
-    final file = File('${_cacheDir!.path}/$key');
-    final content = jsonEncode(value);
-    await file.writeAsString(content);
+    if (kIsWeb) {
+      // Web: Store in SharedPreferences
+      final content = jsonEncode(value);
+      await _prefs!.setString('cache_$key', content);
+    } else {
+      // Mobile/Desktop: Use file system
+      if (_cacheDir != null) {
+        final file = File('${_cacheDir!.path}/$key');
+        final content = jsonEncode(value);
+        await file.writeAsString(content);
+      }
+    }
 
     await _saveMetadata();
   }
@@ -527,10 +557,20 @@ class DiskCache {
     await _ensureInitialized();
 
     _metadata.remove(key);
-    final file = File('${_cacheDir!.path}/$key');
-    if (await file.exists()) {
-      await file.delete();
+
+    if (kIsWeb) {
+      // Web: Remove from SharedPreferences
+      await _prefs!.remove('cache_$key');
+    } else {
+      // Mobile/Desktop: Delete file
+      if (_cacheDir != null) {
+        final file = File('${_cacheDir!.path}/$key');
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
     }
+
     await _saveMetadata();
   }
 
@@ -538,14 +578,25 @@ class DiskCache {
     await _ensureInitialized();
 
     _metadata.clear();
-    if (_cacheDir != null) {
-      final files = _cacheDir!.listSync();
-      for (final file in files) {
-        if (file is File) {
-          await file.delete();
+
+    if (kIsWeb) {
+      // Web: Remove all cache keys from SharedPreferences
+      final keys = _prefs!.getKeys().where((key) => key.startsWith('cache_'));
+      for (final key in keys) {
+        await _prefs!.remove(key);
+      }
+    } else {
+      // Mobile/Desktop: Clear all files
+      if (_cacheDir != null) {
+        final files = _cacheDir!.listSync();
+        for (final file in files) {
+          if (file is File) {
+            await file.delete();
+          }
         }
       }
     }
+
     await _saveMetadata();
   }
 

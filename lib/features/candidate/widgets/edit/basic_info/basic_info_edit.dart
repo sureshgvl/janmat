@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../../utils/app_logger.dart';
@@ -256,7 +257,9 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
                             radius: 40,
                             backgroundImage: photoValue != null
                                 ? (isLocalPhoto
-                                    ? FileImage(File(photoValue.substring(6))) // Remove 'local:' prefix
+                                    ? (kIsWeb && photoValue.substring(6).startsWith('blob:')
+                                        ? NetworkImage(photoValue.substring(6)) // Web: Use NetworkImage for blob URLs
+                                        : FileImage(File(photoValue.substring(6)))) // Mobile: Use FileImage for file paths
                                     : NetworkImage(photoValue))
                                 : null,
                             child: photoValue == null

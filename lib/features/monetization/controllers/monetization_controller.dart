@@ -46,7 +46,7 @@ class MonetizationController extends GetxController {
   var first1000Limit = 1000.obs;
 
   // Payment mode toggle for testing
-  var useMockPayment = true.obs; // Set to false to test real Razorpay
+  var useMockPayment = false.obs; // Real payments everywhere (temporarily enabled for testing)
 
   // Real-time subscription monitoring
   StreamSubscription<DocumentSnapshot>? _subscriptionListener;
