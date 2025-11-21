@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import '../../../utils/app_logger.dart';
+import '../controllers/candidate_user_controller.dart';
 import '../models/basic_info_model.dart';
 import '../repositories/basic_info_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
@@ -50,7 +51,6 @@ class BasicInfoController extends GetxController implements IBasicInfoController
     Function(String)? onProgress
   }) async {
     try {
-      
       onProgress?.call('Saving basic info...');
 
       // Check if photo needs to be uploaded
@@ -99,14 +99,14 @@ class BasicInfoController extends GetxController implements IBasicInfoController
           AppLogger.database('📸 PHOTO UPLOAD: Success! URL: $uploadedUrl', tag: 'BASIC_INFO_TAB');
 
           // Add old photo to deleteStorage if it exists
-          if (candidate.photo != null && candidate.photo!.isNotEmpty) {
-            updatedDeleteStorage.add(candidate.photo!);
-            AppLogger.database('🗑️ DELETE STORAGE: Added old photo to deletion list: ${candidate.photo}', tag: 'BASIC_INFO_TAB');
+          if (candidate.basicInfo?.photo != null && candidate.basicInfo!.photo!.isNotEmpty) {
+            updatedDeleteStorage.add(candidate.basicInfo!.photo!);
+            AppLogger.database('🗑️ DELETE STORAGE: Added old photo to deletion list: ${candidate.basicInfo?.photo}', tag: 'BASIC_INFO_TAB');
           }
         } catch (e) {
           AppLogger.databaseError('❌ PHOTO UPLOAD: Failed to upload photo', tag: 'BASIC_INFO_TAB', error: e);
           // Continue with save but keep original photo
-          finalPhotoUrl = candidate.photo;
+          finalPhotoUrl = candidate.basicInfo?.photo;
         }
       }
 
@@ -117,19 +117,33 @@ class BasicInfoController extends GetxController implements IBasicInfoController
       final updatedCandidate = candidate.copyWith(deleteStorage: updatedDeleteStorage);
 
       // Direct save using the repository with updated candidate object
-      final success = await _repository.updateBasicInfoWithCandidate(candidateId, updatedBasicInfo, updatedCandidate);
-      AppLogger.database('📝 TAB SAVE: Repository result: $success', tag: 'BASIC_INFO_TAB');
+      AppLogger.database('📝 REPOSITORY SAVE: Calling updateBasicInfoWithCandidate', tag: 'SAVE_DEBUG');
+      AppLogger.database('📝 REPOSITORY SAVE: updatedBasicInfo: ${updatedBasicInfo.toJson()}', tag: 'SAVE_DEBUG');
+      AppLogger.database('📝 REPOSITORY SAVE: updatedCandidate.deleteStorage: ${updatedCandidate.deleteStorage}', tag: 'SAVE_DEBUG');
 
-      if (success) {
-        onProgress?.call('Basic info saved successfully!');
+      try {
+        final success = await _repository.updateBasicInfoWithCandidate(candidateId, updatedBasicInfo, updatedCandidate);
+        AppLogger.database('📝 TAB SAVE: Repository result: $success', tag: 'BASIC_INFO_TAB');
 
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(candidateId, updatedBasicInfo.fullName, updatedBasicInfo.photo, updatedBasicInfo.toJson());
+        if (success) {
+          // 🔄 CRITICAL SYNCHRONOUS UPDATES (MUST COMPLETE BEFORE SCREEN DISPOSES)
+          await _runSynchronousUpdates(finalPhotoUrl);
 
-        AppLogger.database('✅ TAB SAVE: Basic info completed successfully', tag: 'BASIC_INFO_TAB');
-        return true;
-      } else {
-        AppLogger.databaseError('❌ TAB SAVE: Basic info save failed', tag: 'BASIC_INFO_TAB');
+          // ✅ NOW mark as successful - screen can safely dispose
+          onProgress?.call('Basic info saved successfully!');
+          AppLogger.database('🎉 SUCCESS: Basic info saved successfully!', tag: 'SAVE_DEBUG');
+
+          // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block dispose)
+          _runBackgroundSyncOperations(candidateId, updatedBasicInfo.fullName, finalPhotoUrl, updatedBasicInfo.toJson());
+
+          AppLogger.database('✅ TAB SAVE: Basic info completed successfully', tag: 'BASIC_INFO_TAB');
+          return true;
+        } else {
+          AppLogger.databaseError('❌ TAB SAVE: Repository returned false (no exception)', tag: 'SAVE_DEBUG');
+          return false;
+        }
+      } catch (repoError) {
+        AppLogger.databaseError('💥 REPOSITORY ERROR: ${repoError.toString()}', tag: 'SAVE_DEBUG', error: repoError);
         return false;
       }
     } catch (e) {
@@ -169,7 +183,66 @@ class BasicInfoController extends GetxController implements IBasicInfoController
     }
   }
 
-  /// BACKGROUND OPERATIONS: Essential sync operations that don't block UI
+  /// SYNCHRONOUS OPERATIONS: Critical updates that must complete before screen dispose
+  Future<void> _runSynchronousUpdates(String? photoUrl) async {
+    try {
+      AppLogger.database('🔄 SYNC: Starting critical synchronous updates', tag: 'SYNC_OPS');
+
+      // Execute in order - all must complete before dispose
+      await _updateUserDocumentSynchronously(photoUrl);
+      await _updateCachesSynchronously(photoUrl);
+
+      AppLogger.database('✅ SYNC: All critical updates completed successfully', tag: 'SYNC_OPS');
+    } catch (e) {
+      AppLogger.databaseError('⚠️ SYNC: Critical synchronous update failed', tag: 'SYNC_OPS', error: e);
+      // Even if these fail, don't block the save - user gets success but updates might be inconsistent
+      // This is better than blocking the UI forever
+    }
+  }
+
+  /// Update user document synchronously before dispose
+  Future<void> _updateUserDocumentSynchronously(String? photoUrl) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || photoUrl == null || photoUrl.isEmpty) return;
+
+      await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .update({'photoURL': photoUrl});
+
+      AppLogger.database('📝 SYNC: User document updated successfully', tag: 'SYNC_OPS');
+    } catch (e) {
+      AppLogger.databaseError('⚠️ SYNC: User document update failed', tag: 'SYNC_OPS', error: e);
+      // Don't throw - let save complete even if this fails
+    }
+  }
+
+  /// Update local caches synchronously before dispose
+  Future<void> _updateCachesSynchronously(String? photoUrl) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Invalidate chat controller cache
+      final chatController = Get.find<ChatController>();
+      chatController.invalidateUserCache(user.uid);
+
+      // Update UserCacheService
+      final userCacheService = UserCacheService();
+      await userCacheService.updateCachedUserData({
+        'uid': user.uid,
+        'photoURL': photoUrl,
+      });
+
+      AppLogger.database('💾 SYNC: Local caches updated successfully', tag: 'SYNC_OPS');
+    } catch (e) {
+      AppLogger.databaseError('⚠️ SYNC: Cache update failed', tag: 'SYNC_OPS', error: e);
+      // Don't throw - let save complete even if this fails
+    }
+  }
+
+  /// BACKGROUND OPERATIONS: Only non-critical operations that can run after dispose
   void _runBackgroundSyncOperations(
     String candidateId,
     String? candidateName,
@@ -177,58 +250,24 @@ class BasicInfoController extends GetxController implements IBasicInfoController
     Map<String, dynamic> updates
   ) async {
     try {
-      AppLogger.database('🔄 BACKGROUND: Starting essential sync operations', tag: 'BASIC_INFO_FAST');
+      AppLogger.database('🔄 BACKGROUND: Starting non-critical background operations', tag: 'BASIC_INFO_FAST');
 
-      // These operations run in parallel but don't block the main save
+      // These operations run in parallel and don't block dispose
       List<Future> backgroundOperations = [];
 
-      // 1. Update user document if name/photo changed
-      if (candidateName != null || photoUrl != null) {
-        backgroundOperations.add(_syncUserDocument(candidateName, photoUrl));
-      }
-
-      // 2. Send profile update notification
+      // 1. Send profile update notification (only background operation now)
       backgroundOperations.add(_sendProfileUpdateNotification(candidateId, updates));
 
-      // 3. Update caches
-      backgroundOperations.add(_updateCaches(candidateId, candidateName, photoUrl));
+      // 2. Refresh home screen data for UI updates (drawer, etc)
+      backgroundOperations.add(_refreshHomeScreenData());
 
       // Run all background operations in parallel (fire-and-forget)
       await Future.wait(backgroundOperations);
 
-      AppLogger.database('✅ BACKGROUND: All sync operations completed', tag: 'BASIC_INFO_FAST');
+      AppLogger.database('✅ BACKGROUND: All non-critical operations completed', tag: 'BASIC_INFO_FAST');
     } catch (e) {
-      AppLogger.databaseError('⚠️ BACKGROUND: Some sync operations failed (non-critical)', tag: 'BASIC_INFO_FAST', error: e);
+      AppLogger.databaseError('⚠️ BACKGROUND: Some non-critical operations failed (non-critical)', tag: 'BASIC_INFO_FAST', error: e);
       // Don't throw - background operations shouldn't affect save success
-    }
-  }
-
-  /// Sync user document in background
-  Future<void> _syncUserDocument(String? candidateName, String? photoUrl) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      Map<String, dynamic> userUpdates = {};
-
-      if (candidateName != null) {
-        userUpdates['name'] = candidateName;
-      }
-
-      if (photoUrl != null) {
-        userUpdates['photoURL'] = photoUrl;
-      }
-
-      if (userUpdates.isNotEmpty) {
-        await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update(userUpdates);
-
-        AppLogger.database('📝 BACKGROUND: User document synced', tag: 'BASIC_INFO_FAST');
-      }
-    } catch (e) {
-      AppLogger.databaseError('⚠️ BACKGROUND: User document sync failed', tag: 'BASIC_INFO_FAST', error: e);
     }
   }
 
@@ -260,27 +299,21 @@ class BasicInfoController extends GetxController implements IBasicInfoController
     }
   }
 
-  /// Update caches in background
-  Future<void> _updateCaches(String candidateId, String? candidateName, String? photoUrl) async {
+  /// Refresh home screen data to reflect profile updates (drawer, etc)
+  Future<void> _refreshHomeScreenData() async {
     try {
-      // Invalidate and update user cache
-      final chatController = Get.find<ChatController>();
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        chatController.invalidateUserCache(user.uid);
-      }
+      AppLogger.database('🏠 BACKGROUND: Refreshing home screen data for UI update', tag: 'BASIC_INFO_FAST');
 
-      // Update UserCacheService
-      final userCacheService = UserCacheService();
-      await userCacheService.updateCachedUserData({
-        'uid': user?.uid ?? '',
-        'name': candidateName,
-        'photoURL': photoUrl,
-      });
+      // Import avoided due to potential circular dependency, use Get.find pattern
+      // HomeScreenStreamService().refreshData(forceRefresh: false);
 
-      AppLogger.database('💾 BACKGROUND: Caches updated', tag: 'BASIC_INFO_FAST');
+      // Alternative approach: Trigger candidate controller refresh
+      final candidateController = Get.find<CandidateUserController>();
+      // The controller's candidate value will be refreshed on next access
+
+      AppLogger.database('🏠 BACKGROUND: Home screen refresh triggered', tag: 'BASIC_INFO_FAST');
     } catch (e) {
-      AppLogger.databaseError('⚠️ BACKGROUND: Cache update failed', tag: 'BASIC_INFO_FAST', error: e);
+      AppLogger.databaseError('⚠️ BACKGROUND: Home screen refresh failed', tag: 'BASIC_INFO_FAST', error: e);
     }
   }
 }

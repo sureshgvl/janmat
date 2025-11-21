@@ -321,9 +321,9 @@ class CandidateComparisonScreen extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: ClipOval(
-        child: candidate.photo != null && candidate.photo!.isNotEmpty
+        child: candidate.basicInfo!.photo != null && candidate.basicInfo!.photo!.isNotEmpty
             ? Image.network(
-                candidate.photo!,
+                candidate.basicInfo!.photo!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return CircleAvatar(

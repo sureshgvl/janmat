@@ -86,7 +86,7 @@ class BannerSyncService {
           'rotation': (config['priorityLevel'] ?? 'normal') != 'urgent',
           'views': 0,
           'clicks': 0,
-          'imageUrl': highlightData.imageUrl ?? candidate.photo,
+          'imageUrl': highlightData.imageUrl ?? candidate.basicInfo!.photo,
           'candidateName': candidate.basicInfo!.fullName ?? 'Candidate',
           'party': candidate.party ?? 'Party',
           'createdAt': FieldValue.serverTimestamp(),

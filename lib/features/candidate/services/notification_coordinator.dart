@@ -194,7 +194,6 @@ class NotificationCoordinator {
     final profileData = {
       'name': candidate.basicInfo!.fullName,
       'party': candidate.party,
-      'photo': candidate.photo,
       'achievements': candidate.achievements?.map((a) => a.toJson()).toList(),
       'basic_info': candidate.basicInfo?.toJson(),
       'manifesto_data': candidate.manifestoData?.toJson(),

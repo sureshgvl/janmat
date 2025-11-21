@@ -80,8 +80,8 @@ class Candidate {
       createdAt = DateTime.now();
     }
 
-    // Determine photo source: prefer basic_info.photo, fallback to top-level photo
-    String? extractedPhoto = (json['basic_info']?['photo'] as String?) ?? json['photo'];
+    // Use photo from basic_info map only
+    String? extractedPhoto = json['basic_info']?['photo'] as String?;
 
     return Candidate(
       candidateId: json['candidateId'] ?? '',
@@ -163,7 +163,6 @@ class Candidate {
       'symbol': symbolUrl,
       'symbolName': symbolName,
       'location': location.toJson(),
-      'photo': photo,
       'coverPhoto': coverPhoto,
       'contact': contact.toJson(),
       'sponsored': sponsored,
@@ -218,7 +217,6 @@ class Candidate {
       symbolUrl: symbolUrl ?? this.symbolUrl,
       symbolName: symbolName ?? this.symbolName,
       location: location ?? this.location,
-      photo: photo ?? this.photo,
       coverPhoto: coverPhoto ?? this.coverPhoto,
       contact: contact ?? this.contact,
       sponsored: sponsored ?? this.sponsored,

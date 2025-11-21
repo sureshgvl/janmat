@@ -149,7 +149,7 @@ class HighlightTabEditState extends State<HighlightTabEdit> {
         candidate: data,
         highlight: highlightData,
         candidateName: data.basicInfo!.fullName,
-        photoUrl: data.photo,
+        photoUrl: data.basicInfo!.photo,
         onProgress: (message) {
           SnackbarUtils.showScaffoldInfo(context, message);
         },

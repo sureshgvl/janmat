@@ -86,7 +86,9 @@ class _MediaTabViewReactiveState extends State<MediaTabViewReactive> {
       candidate: localCandidate,
       isOwnProfile: widget.isOwnProfile,
       onLocalUpdate: updateLocalCandidate,
-      key: ValueKey('media_view_${localCandidate.candidateId}_${localCandidate.media?.length ?? 0}'),
+      key: ValueKey(
+        'media_view_${localCandidate.candidateId}_${localCandidate.media?.length ?? 0}',
+      ),
     );
   }
 }
@@ -109,23 +111,35 @@ class _MediaTabViewState extends State<MediaTabView> {
 
       // Check if media is null or empty
       if (media == null) {
-        AppLogger.candidate('📱 [MEDIA_VIEW] Media is null - no media data available');
+        AppLogger.candidate(
+          '📱 [MEDIA_VIEW] Media is null - no media data available',
+        );
         return [];
       }
 
       if (media.isEmpty) {
-        AppLogger.candidate('📱 [MEDIA_VIEW] Media is empty - no media items. Add some media posts to see them here!');
+        AppLogger.candidate(
+          '📱 [MEDIA_VIEW] Media is empty - no media items. Add some media posts to see them here!',
+        );
         return [];
       }
 
       // DEBUG: Log each media item to see the structure
       for (int i = 0; i < media.length; i++) {
         final item = media[i];
-        AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i: $item (type: ${item.runtimeType})');
+        AppLogger.candidate(
+          '📱 [MEDIA_VIEW] Media item $i: $item (type: ${item.runtimeType})',
+        );
         if (item is Map<String, dynamic>) {
-          AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i keys: ${item.keys.toList()}');
-          AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i title: ${item['title']}');
-          AppLogger.candidate('📱 [MEDIA_VIEW] Media item $i date: ${item['date']}');
+          AppLogger.candidate(
+            '📱 [MEDIA_VIEW] Media item $i keys: ${item.keys.toList()}',
+          );
+          AppLogger.candidate(
+            '📱 [MEDIA_VIEW] Media item $i title: ${item['title']}',
+          );
+          AppLogger.candidate(
+            '📱 [MEDIA_VIEW] Media item $i date: ${item['date']}',
+          );
         }
       }
 
@@ -182,7 +196,6 @@ class _MediaTabViewState extends State<MediaTabView> {
                   AppLogger.candidate(
                     '📱 [MEDIA_VIEW] - raw comments data: ${itemMap['comments']}',
                   );
-
 
                   final parsedItem = MediaItem.fromJson(itemMap);
                   AppLogger.candidate(
@@ -312,63 +325,67 @@ class _MediaTabViewState extends State<MediaTabView> {
       }
     });
 
-    return Obx(() => Container(
-      color: backgroundColorController.currentBackgroundColor.value,
-      child: SingleChildScrollView(
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Facebook-style "What's on your mind?" Composer (only for own profile)
-          if (widget.isOwnProfile) ...[
-            const SizedBox(height: 16),
-            _buildFacebookStylePostComposer(),
-          ],
+    return Obx(
+      () => Container(
+        color: backgroundColorController.currentBackgroundColor.value,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Facebook-style "What's on your mind?" Composer (only for own profile)
+              if (widget.isOwnProfile) ...[
+                const SizedBox(height: 16),
+                _buildFacebookStylePostComposer(),
+              ],
 
-          const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-          // Media Posts Timeline (all saved media posts)
-          ...mediaItems.map((item) => _buildFacebookStylePostCard(item)),
+              // Media Posts Timeline (all saved media posts)
+              ...mediaItems.map((item) => _buildFacebookStylePostCard(item)),
 
-          // Empty State
-          if (mediaItems.isEmpty) ...[
-            const SizedBox(height: 40),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.photo_library_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
+              // Empty State
+              if (mediaItems.isEmpty) ...[
+                const SizedBox(height: 40),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.photo_library_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.isOwnProfile
+                            ? 'No posts yet'
+                            : 'No media available',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.isOwnProfile
+                            ? 'Tap above to create your first post!'
+                            : 'Photos and videos will appear here',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.isOwnProfile ? 'No posts yet' : 'No media available',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.isOwnProfile
-                        ? 'Tap above to create your first post!'
-                        : 'Photos and videos will appear here',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ],
+                ),
+              ],
 
-          const SizedBox(height: 40),
-        ],
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
       ),
-    ),
-  ));
-}
+    );
+  }
 
   // Facebook-style "What's on your mind?" post composer
   Widget _buildFacebookStylePostComposer() {
@@ -390,11 +407,11 @@ class _MediaTabViewState extends State<MediaTabView> {
                   radius: 20,
                   backgroundColor: Colors.blue.shade100,
                   child:
-                      widget.candidate.photo != null &&
-                          widget.candidate.photo!.isNotEmpty
+                      widget.candidate.basicInfo!.photo != null &&
+                          widget.candidate.basicInfo!.photo!.isNotEmpty
                       ? ClipOval(
                           child: Image.network(
-                            widget.candidate.photo!,
+                            widget.candidate.basicInfo!.photo!,
                             fit: BoxFit.cover,
                             width: 40,
                             height: 40,
@@ -502,11 +519,11 @@ class _MediaTabViewState extends State<MediaTabView> {
                   radius: 20,
                   backgroundColor: Colors.blue.shade100,
                   child:
-                      widget.candidate.photo != null &&
-                          widget.candidate.photo!.isNotEmpty
+                      widget.candidate.basicInfo!.photo != null &&
+                          widget.candidate.basicInfo!.photo!.isNotEmpty
                       ? ClipOval(
                           child: Image.network(
-                            widget.candidate.photo!,
+                            widget.candidate.basicInfo!.photo!,
                             fit: BoxFit.cover,
                             width: 40,
                             height: 40,
@@ -671,7 +688,10 @@ class _MediaTabViewState extends State<MediaTabView> {
       AppLogger.candidateError(
         '❌ [DELETE] Missing required location data for candidate',
       );
-      SnackbarUtils.showScaffoldError(context, 'Cannot delete post: missing candidate location data');
+      SnackbarUtils.showScaffoldError(
+        context,
+        'Cannot delete post: missing candidate location data',
+      );
       return;
     }
 
@@ -864,8 +884,6 @@ class _MediaTabViewState extends State<MediaTabView> {
       SnackbarUtils.showScaffoldError(context, 'Error deleting post: $e');
     }
   }
-
-
 
   // Video content builder
   Widget _buildVideoContent(MediaItem item) {
@@ -1541,11 +1559,7 @@ class _MediaTabViewState extends State<MediaTabView> {
             child: Row(
               children: [
                 if (item.likeCount > 0) ...[
-                  Icon(
-                    Icons.thumb_up,
-                    color: Colors.blue,
-                    size: 14,
-                  ),
+                  Icon(Icons.thumb_up, color: Colors.blue, size: 14),
                   const SizedBox(width: 4),
                   Text(
                     '${item.likeCount}',
@@ -1578,12 +1592,15 @@ class _MediaTabViewState extends State<MediaTabView> {
           children: [
             // Like button with loading state
             Expanded(
-              child: Obx(() => _buildLikeButton(item, engagementService, currentUserId)),
+              child: Obx(
+                () => _buildLikeButton(item, engagementService, currentUserId),
+              ),
             ),
             // Comment button
             Expanded(
               child: TextButton.icon(
-                onPressed: () => _showCommentsSheetEmbedded(item, engagementService),
+                onPressed: () =>
+                    _showCommentsSheetEmbedded(item, engagementService),
                 icon: Icon(
                   Icons.comment_outlined,
                   color: Colors.grey.shade600,
@@ -1603,12 +1620,19 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Build like button with reactive state
-  Widget _buildLikeButton(MediaItem item, FirebaseEngagementService service, String currentUserId) {
+  Widget _buildLikeButton(
+    MediaItem item,
+    FirebaseEngagementService service,
+    String currentUserId,
+  ) {
     // Get reactive loading state for this specific item
     final isLoading = _getLikeLoadingState(item);
 
     return TextButton.icon(
-      onPressed: isLoading.value ? null : () => _toggleLikeOptimistic(item, service, currentUserId, isLoading),
+      onPressed: isLoading.value
+          ? null
+          : () =>
+                _toggleLikeOptimistic(item, service, currentUserId, isLoading),
       icon: isLoading.value
           ? SizedBox(
               width: 18,
@@ -1616,24 +1640,32 @@ class _MediaTabViewState extends State<MediaTabView> {
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  item.hasUserLiked(currentUserId) ? Colors.blue : Colors.grey.shade600,
+                  item.hasUserLiked(currentUserId)
+                      ? Colors.blue
+                      : Colors.grey.shade600,
                 ),
               ),
             )
           : Icon(
-              item.hasUserLiked(currentUserId) ? Icons.thumb_up : Icons.thumb_up_outlined,
-              color: item.hasUserLiked(currentUserId) ? Colors.blue : Colors.grey.shade600,
+              item.hasUserLiked(currentUserId)
+                  ? Icons.thumb_up
+                  : Icons.thumb_up_outlined,
+              color: item.hasUserLiked(currentUserId)
+                  ? Colors.blue
+                  : Colors.grey.shade600,
               size: 18,
             ),
       label: Text(
-        isLoading.value ? '...' : (item.hasUserLiked(currentUserId) ? 'Liked' : 'Like'),
+        isLoading.value
+            ? '...'
+            : (item.hasUserLiked(currentUserId) ? 'Liked' : 'Like'),
         style: TextStyle(
-          color: item.hasUserLiked(currentUserId) ? Colors.blue : Colors.grey.shade600,
+          color: item.hasUserLiked(currentUserId)
+              ? Colors.blue
+              : Colors.grey.shade600,
         ),
       ),
-      style: TextButton.styleFrom(
-        alignment: Alignment.centerLeft,
-      ),
+      style: TextButton.styleFrom(alignment: Alignment.centerLeft),
     );
   }
 
@@ -1647,7 +1679,12 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Optimistic like toggle with loading states and instant UI updates
-  void _toggleLikeOptimistic(MediaItem item, FirebaseEngagementService service, String currentUserId, RxBool isLoading) async {
+  void _toggleLikeOptimistic(
+    MediaItem item,
+    FirebaseEngagementService service,
+    String currentUserId,
+    RxBool isLoading,
+  ) async {
     if (currentUserId.isEmpty) {
       SnackbarUtils.showScaffoldError(context, 'Please login to like posts');
       return;
@@ -1663,7 +1700,9 @@ class _MediaTabViewState extends State<MediaTabView> {
     final wasLiked = item.hasUserLiked(currentUserId);
 
     // DEBUG: Log candidate location data
-    AppLogger.candidate('📍 [LIKE] Candidate location - stateId: ${widget.candidate.location.stateId}, districtId: ${widget.candidate.location.districtId}, bodyId: ${widget.candidate.location.bodyId}, wardId: ${widget.candidate.location.wardId}');
+    AppLogger.candidate(
+      '📍 [LIKE] Candidate location - stateId: ${widget.candidate.location.stateId}, districtId: ${widget.candidate.location.districtId}, bodyId: ${widget.candidate.location.bodyId}, wardId: ${widget.candidate.location.wardId}',
+    );
 
     try {
       // Call Firebase service FIRST (no optimistic updates for now)
@@ -1696,20 +1735,28 @@ class _MediaTabViewState extends State<MediaTabView> {
       // Optimistic UI update - update local candidate data immediately
       try {
         final updatedMedia = widget.candidate.media?.map((mediaData) {
-          final parsedItem = MediaItem.fromJson(mediaData as Map<String, dynamic>);
+          final parsedItem = MediaItem.fromJson(
+            mediaData as Map<String, dynamic>,
+          );
           if (parsedItem.title == item.title && parsedItem.date == item.date) {
             // Create updated likes based on the operation
             final updatedLikes = wasLiked
-              ? parsedItem.likes.where((like) => like.userId != currentUserId).toList()
-              : [...parsedItem.likes, Like(
-                  id: '${currentUserId}_${DateTime.now().millisecondsSinceEpoch}',
-                  userId: currentUserId,
-                  postId: '${widget.candidate.candidateId}_${item.title}_${item.date}',
-                  mediaKey: 'post',
-                  createdAt: DateTime.now(),
-                  userName: currentUserInfo['name'],
-                  userPhoto: currentUserInfo['photo'],
-                )];
+                ? parsedItem.likes
+                      .where((like) => like.userId != currentUserId)
+                      .toList()
+                : [
+                    ...parsedItem.likes,
+                    Like(
+                      id: '${currentUserId}_${DateTime.now().millisecondsSinceEpoch}',
+                      userId: currentUserId,
+                      postId:
+                          '${widget.candidate.candidateId}_${item.title}_${item.date}',
+                      mediaKey: 'post',
+                      createdAt: DateTime.now(),
+                      userName: currentUserInfo['name'],
+                      userPhoto: currentUserInfo['photo'],
+                    ),
+                  ];
             return parsedItem.copyWith(likes: updatedLikes).toJson();
           }
           return mediaData;
@@ -1719,12 +1766,16 @@ class _MediaTabViewState extends State<MediaTabView> {
         final updatedCandidate = widget.candidate.copyWith(media: updatedMedia);
         widget.onLocalUpdate?.call(updatedCandidate);
       } catch (e) {
-        AppLogger.candidateError('Error updating local candidate data after like: $e');
+        AppLogger.candidateError(
+          'Error updating local candidate data after like: $e',
+        );
       }
-
     } catch (e) {
       AppLogger.candidateError('Error toggling like: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to update like - please try again');
+      SnackbarUtils.showScaffoldError(
+        context,
+        'Failed to update like - please try again',
+      );
     } finally {
       // Always clear loading state
       isLoading.value = false;
@@ -1749,7 +1800,7 @@ class _MediaTabViewState extends State<MediaTabView> {
       final candidate = candidateController.candidate.value!;
       return {
         'name': candidate.basicInfo?.fullName ?? 'Anonymous User',
-        'photo': candidate.photo ?? '',
+        'photo': candidate.basicInfo!.photo ?? '',
       };
     }
 
@@ -1761,7 +1812,10 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Toggle like using embedded data approach
-  void _toggleLikeEmbedded(MediaItem item, FirebaseEngagementService service) async {
+  void _toggleLikeEmbedded(
+    MediaItem item,
+    FirebaseEngagementService service,
+  ) async {
     final currentUserId = _getCurrentUserId();
     if (currentUserId.isEmpty) {
       SnackbarUtils.showScaffoldError(context, 'Please login to like posts');
@@ -1806,7 +1860,9 @@ class _MediaTabViewState extends State<MediaTabView> {
       try {
         await candidateController.refreshCandidateData();
       } catch (e) {
-        AppLogger.candidateError('Error refreshing candidate data after like: $e');
+        AppLogger.candidateError(
+          'Error refreshing candidate data after like: $e',
+        );
       }
     } catch (e) {
       AppLogger.candidateError('Error toggling like: $e');
@@ -1815,7 +1871,10 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Show comments sheet using embedded data
-  void _showCommentsSheetEmbedded(MediaItem item, FirebaseEngagementService service) {
+  void _showCommentsSheetEmbedded(
+    MediaItem item,
+    FirebaseEngagementService service,
+  ) {
     final TextEditingController commentController = TextEditingController();
     final currentUserId = _getCurrentUserId();
 
@@ -1921,18 +1980,25 @@ class _MediaTabViewState extends State<MediaTabView> {
                                   CircleAvatar(
                                     radius: 16,
                                     backgroundColor: Colors.blue.shade100,
-                                    child: comment.userPhoto != null && comment.userPhoto!.isNotEmpty
+                                    child:
+                                        comment.userPhoto != null &&
+                                            comment.userPhoto!.isNotEmpty
                                         ? ClipOval(
                                             child: Image.network(
                                               comment.userPhoto!,
                                               fit: BoxFit.cover,
                                               width: 32,
                                               height: 32,
-                                              errorBuilder: (context, error, stackTrace) => Icon(
-                                                Icons.person,
-                                                color: Colors.blue.shade600,
-                                                size: 16,
-                                              ),
+                                              errorBuilder:
+                                                  (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) => Icon(
+                                                    Icons.person,
+                                                    color: Colors.blue.shade600,
+                                                    size: 16,
+                                                  ),
                                             ),
                                           )
                                         : Icon(
@@ -1944,18 +2010,25 @@ class _MediaTabViewState extends State<MediaTabView> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(16),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                           ),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              if (comment.userName != null && comment.userName!.isNotEmpty) ...[
+                                              if (comment.userName != null &&
+                                                  comment
+                                                      .userName!
+                                                      .isNotEmpty) ...[
                                                 Text(
                                                   comment.userName!,
                                                   style: TextStyle(
@@ -1978,7 +2051,9 @@ class _MediaTabViewState extends State<MediaTabView> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _formatCommentTime(comment.createdAt.toIso8601String()),
+                                          _formatCommentTime(
+                                            comment.createdAt.toIso8601String(),
+                                          ),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey.shade500,
@@ -2007,18 +2082,21 @@ class _MediaTabViewState extends State<MediaTabView> {
                       CircleAvatar(
                         radius: 16,
                         backgroundColor: Colors.blue.shade100,
-                        child: widget.candidate.photo != null && widget.candidate.photo!.isNotEmpty
+                        child:
+                            widget.candidate.basicInfo!.photo != null &&
+                                widget.candidate.basicInfo!.photo!.isNotEmpty
                             ? ClipOval(
                                 child: Image.network(
-                                  widget.candidate.photo!,
+                                  widget.candidate.basicInfo!.photo!,
                                   fit: BoxFit.cover,
                                   width: 32,
                                   height: 32,
-                                  errorBuilder: (context, error, stackTrace) => Icon(
-                                    Icons.person,
-                                    color: Colors.blue.shade600,
-                                    size: 16,
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Icon(
+                                        Icons.person,
+                                        color: Colors.blue.shade600,
+                                        size: 16,
+                                      ),
                                 ),
                               )
                             : Icon(
@@ -2051,13 +2129,25 @@ class _MediaTabViewState extends State<MediaTabView> {
                           ),
                           maxLines: null,
                           textInputAction: TextInputAction.send,
-                          onSubmitted: (text) => _addCommentEmbedded(item, text, commentController, setState, service),
+                          onSubmitted: (text) => _addCommentEmbedded(
+                            item,
+                            text,
+                            commentController,
+                            setState,
+                            service,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       // Send button
                       IconButton(
-                        onPressed: () => _addCommentEmbedded(item, commentController.text, commentController, setState, service),
+                        onPressed: () => _addCommentEmbedded(
+                          item,
+                          commentController.text,
+                          commentController,
+                          setState,
+                          service,
+                        ),
                         icon: Icon(
                           Icons.send,
                           color: commentController.text.isNotEmpty
@@ -2077,7 +2167,13 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Add comment using embedded data approach
-  void _addCommentEmbedded(MediaItem item, String text, TextEditingController controller, StateSetter setState, FirebaseEngagementService service) async {
+  void _addCommentEmbedded(
+    MediaItem item,
+    String text,
+    TextEditingController controller,
+    StateSetter setState,
+    FirebaseEngagementService service,
+  ) async {
     if (text.trim().isEmpty) return;
 
     final currentUserId = _getCurrentUserId();
@@ -2107,13 +2203,16 @@ class _MediaTabViewState extends State<MediaTabView> {
       // Optimistic UI update - update local candidate data immediately
       try {
         final updatedMedia = widget.candidate.media?.map((mediaData) {
-          final parsedItem = MediaItem.fromJson(mediaData as Map<String, dynamic>);
+          final parsedItem = MediaItem.fromJson(
+            mediaData as Map<String, dynamic>,
+          );
           if (parsedItem.title == item.title && parsedItem.date == item.date) {
             // Add the new comment to the local data
             final newComment = Comment(
               id: '${currentUserId}_${DateTime.now().millisecondsSinceEpoch}',
               userId: currentUserId,
-              postId: '${widget.candidate.candidateId}_${item.title}_${item.date}',
+              postId:
+                  '${widget.candidate.candidateId}_${item.title}_${item.date}',
               text: text.trim(),
               createdAt: DateTime.now(),
               userName: currentUserInfo['name'],
@@ -2129,7 +2228,9 @@ class _MediaTabViewState extends State<MediaTabView> {
         final updatedCandidate = widget.candidate.copyWith(media: updatedMedia);
         widget.onLocalUpdate?.call(updatedCandidate);
       } catch (e) {
-        AppLogger.candidateError('Error updating local candidate data after comment: $e');
+        AppLogger.candidateError(
+          'Error updating local candidate data after comment: $e',
+        );
       }
 
       setState(() {}); // Refresh the comments sheet
@@ -2159,7 +2260,11 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Firebase-based like toggle
-  void _toggleLikeFirebase(MediaItem item, String mediaKey, FirebaseEngagementService service) async {
+  void _toggleLikeFirebase(
+    MediaItem item,
+    String mediaKey,
+    FirebaseEngagementService service,
+  ) async {
     final authController = Get.find<AuthController>();
     final currentUser = authController.currentUser.value;
 
@@ -2183,7 +2288,7 @@ class _MediaTabViewState extends State<MediaTabView> {
           postId,
           mediaKey,
           userName: widget.candidate.basicInfo?.fullName,
-          userPhoto: widget.candidate.photo,
+          userPhoto: widget.candidate.basicInfo!.photo,
         );
         SnackbarUtils.showScaffoldInfo(context, 'Liked!');
       }
@@ -2194,7 +2299,10 @@ class _MediaTabViewState extends State<MediaTabView> {
   }
 
   // Show comments in a bottom sheet (Firebase-based)
-  void _showCommentsSheetFirebase(MediaItem item, FirebaseEngagementService service) {
+  void _showCommentsSheetFirebase(
+    MediaItem item,
+    FirebaseEngagementService service,
+  ) {
     final TextEditingController commentController = TextEditingController();
     final authController = Get.find<AuthController>();
     final currentUser = authController.currentUser.value;
@@ -2310,18 +2418,22 @@ class _MediaTabViewState extends State<MediaTabView> {
                               CircleAvatar(
                                 radius: 16,
                                 backgroundColor: Colors.blue.shade100,
-                                child: comment.userPhoto != null && comment.userPhoto!.isNotEmpty
+                                child:
+                                    comment.userPhoto != null &&
+                                        comment.userPhoto!.isNotEmpty
                                     ? ClipOval(
                                         child: Image.network(
                                           comment.userPhoto!,
                                           fit: BoxFit.cover,
                                           width: 32,
                                           height: 32,
-                                          errorBuilder: (context, error, stackTrace) => Icon(
-                                            Icons.person,
-                                            color: Colors.blue.shade600,
-                                            size: 16,
-                                          ),
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  Icon(
+                                                    Icons.person,
+                                                    color: Colors.blue.shade600,
+                                                    size: 16,
+                                                  ),
                                         ),
                                       )
                                     : Icon(
@@ -2342,9 +2454,11 @@ class _MediaTabViewState extends State<MediaTabView> {
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          if (comment.userName != null && comment.userName!.isNotEmpty) ...[
+                                          if (comment.userName != null &&
+                                              comment.userName!.isNotEmpty) ...[
                                             Text(
                                               comment.userName!,
                                               style: TextStyle(
@@ -2367,7 +2481,9 @@ class _MediaTabViewState extends State<MediaTabView> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      _formatCommentTime(comment.createdAt.toIso8601String()),
+                                      _formatCommentTime(
+                                        comment.createdAt.toIso8601String(),
+                                      ),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade500,
@@ -2388,9 +2504,7 @@ class _MediaTabViewState extends State<MediaTabView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
-                  ),
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
                 ),
                 child: Row(
                   children: [
@@ -2398,18 +2512,21 @@ class _MediaTabViewState extends State<MediaTabView> {
                     CircleAvatar(
                       radius: 16,
                       backgroundColor: Colors.blue.shade100,
-                      child: widget.candidate.photo != null && widget.candidate.photo!.isNotEmpty
+                      child:
+                          widget.candidate.basicInfo!.photo != null &&
+                              widget.candidate.basicInfo!.photo!.isNotEmpty
                           ? ClipOval(
                               child: Image.network(
-                                widget.candidate.photo!,
+                                widget.candidate.basicInfo!.photo!,
                                 fit: BoxFit.cover,
                                 width: 32,
                                 height: 32,
-                                errorBuilder: (context, error, stackTrace) => Icon(
-                                  Icons.person,
-                                  color: Colors.blue.shade600,
-                                  size: 16,
-                                ),
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Icon(
+                                      Icons.person,
+                                      color: Colors.blue.shade600,
+                                      size: 16,
+                                    ),
                               ),
                             )
                           : Icon(
@@ -2442,13 +2559,25 @@ class _MediaTabViewState extends State<MediaTabView> {
                         ),
                         maxLines: null,
                         textInputAction: TextInputAction.send,
-                        onSubmitted: (text) => _addCommentFirebase(item, text, commentController, setState, service),
+                        onSubmitted: (text) => _addCommentFirebase(
+                          item,
+                          text,
+                          commentController,
+                          setState,
+                          service,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     // Send button
                     IconButton(
-                      onPressed: () => _addCommentFirebase(item, commentController.text, commentController, setState, service),
+                      onPressed: () => _addCommentFirebase(
+                        item,
+                        commentController.text,
+                        commentController,
+                        setState,
+                        service,
+                      ),
                       icon: Icon(
                         Icons.send,
                         color: commentController.text.isNotEmpty
@@ -2466,7 +2595,13 @@ class _MediaTabViewState extends State<MediaTabView> {
     );
   }
 
-  void _addCommentFirebase(MediaItem item, String text, TextEditingController controller, StateSetter setState, FirebaseEngagementService service) async {
+  void _addCommentFirebase(
+    MediaItem item,
+    String text,
+    TextEditingController controller,
+    StateSetter setState,
+    FirebaseEngagementService service,
+  ) async {
     if (text.trim().isEmpty) return;
 
     final authController = Get.find<AuthController>();
@@ -2478,13 +2613,14 @@ class _MediaTabViewState extends State<MediaTabView> {
     }
 
     try {
-      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final postId =
+          '${widget.candidate.candidateId}_${item.title}_${item.date}';
 
       await service.addComment(
         postId,
         text.trim(),
         userName: widget.candidate.basicInfo?.fullName,
-        userPhoto: widget.candidate.photo,
+        userPhoto: widget.candidate.basicInfo!.photo,
       );
 
       controller.clear();
@@ -2500,7 +2636,8 @@ class _MediaTabViewState extends State<MediaTabView> {
   // Get comment count for a post
   Future<int> _getCommentCount(MediaItem item) async {
     try {
-      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final postId =
+          '${widget.candidate.candidateId}_${item.title}_${item.date}';
       final dbService = LocalDatabaseService();
       return await dbService.getCommentCountForPost(postId);
     } catch (e) {
@@ -2672,9 +2809,7 @@ class _MediaTabViewState extends State<MediaTabView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
-                  ),
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
                 ),
                 child: Row(
                   children: [
@@ -2712,13 +2847,23 @@ class _MediaTabViewState extends State<MediaTabView> {
                         ),
                         maxLines: null,
                         textInputAction: TextInputAction.send,
-                        onSubmitted: (text) => _addComment(item, text, commentController, setState),
+                        onSubmitted: (text) => _addComment(
+                          item,
+                          text,
+                          commentController,
+                          setState,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     // Send button
                     IconButton(
-                      onPressed: () => _addComment(item, commentController.text, commentController, setState),
+                      onPressed: () => _addComment(
+                        item,
+                        commentController.text,
+                        commentController,
+                        setState,
+                      ),
                       icon: Icon(
                         Icons.send,
                         color: commentController.text.isNotEmpty
@@ -2738,7 +2883,8 @@ class _MediaTabViewState extends State<MediaTabView> {
 
   Future<List<Map<String, dynamic>>> _getCommentsForPost(MediaItem item) async {
     try {
-      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final postId =
+          '${widget.candidate.candidateId}_${item.title}_${item.date}';
       final dbService = LocalDatabaseService();
       return await dbService.getCommentsForPost(postId);
     } catch (e) {
@@ -2747,7 +2893,12 @@ class _MediaTabViewState extends State<MediaTabView> {
     }
   }
 
-  void _addComment(MediaItem item, String text, TextEditingController controller, StateSetter setState) async {
+  void _addComment(
+    MediaItem item,
+    String text,
+    TextEditingController controller,
+    StateSetter setState,
+  ) async {
     if (text.trim().isEmpty) return;
 
     final authController = Get.find<AuthController>();
@@ -2759,7 +2910,8 @@ class _MediaTabViewState extends State<MediaTabView> {
     }
 
     try {
-      final postId = '${widget.candidate.candidateId}_${item.title}_${item.date}';
+      final postId =
+          '${widget.candidate.candidateId}_${item.title}_${item.date}';
       final dbService = LocalDatabaseService();
 
       await dbService.addComment(currentUser.uid, postId, text.trim());

@@ -4,7 +4,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/foundation.dart';
 import '../controllers/monetization_controller.dart';
 import '../../../utils/app_logger.dart';
-import 'razorpay_web_service.dart';
+
+// Conditional import for web service - uses stub on non-web platforms
+import 'razorpay_web_service_stub.dart' if (dart.library.html) 'razorpay_web_service.dart';
 
 class RazorpayService extends GetxService {
   late Razorpay _razorpay;

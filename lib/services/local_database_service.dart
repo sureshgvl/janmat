@@ -549,7 +549,6 @@ class LocalDatabaseService {
         'userId': candidate.userId ?? '',
         'name': candidate.basicInfo!.fullName,
         'party': candidate.party,
-        'photo': candidate.photo,
         'followersCount': candidate.followersCount,
         'data': candidate.toJson().toString(),
         'lastUpdated': DateTime.now().toIso8601String(),

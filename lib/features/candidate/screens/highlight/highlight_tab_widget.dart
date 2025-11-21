@@ -338,7 +338,7 @@ class HighlightTabState extends State<HighlightTab> {
         _originalImageUrl!.isNotEmpty) {
 
       // Get candidate's profile photo URL
-      final candidateProfilePhotoUrl = widget.candidateData.photo;
+      final candidateProfilePhotoUrl = widget.candidateData.basicInfo!.photo;
 
       // If current highlight image is different from candidate's profile photo,
       // it means it's a custom uploaded image that should be deleted

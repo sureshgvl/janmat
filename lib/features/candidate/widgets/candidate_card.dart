@@ -95,9 +95,9 @@ class CandidateCard extends StatelessWidget {
                         ),
                       ),
                       child: ClipOval(
-                        child: candidate.photo != null && candidate.photo!.isNotEmpty
+                        child: candidate.basicInfo!.photo != null && candidate.basicInfo!.photo!.isNotEmpty
                             ? Image.network(
-                                candidate.photo!,
+                                candidate.basicInfo!.photo!,
                                 fit: BoxFit.cover,
                               )
                             : Container(

@@ -874,7 +874,6 @@ class CandidateOperations {
           'symbol': candidate.symbolUrl,
           'symbolName': candidate.symbolName,
           'extra_info': null,
-          'photo': candidate.photo,
           'contact': candidate.contact.toJson(),
         });
 

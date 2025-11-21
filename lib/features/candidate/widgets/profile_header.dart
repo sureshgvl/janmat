@@ -145,10 +145,10 @@ class ProfileHeader extends StatelessWidget {
                       child: ClipOval(
                         child: Stack(
                           children: [
-                            candidate.photo != null &&
-                                    candidate.photo!.isNotEmpty
+                            candidate.basicInfo!.photo != null &&
+                                    candidate.basicInfo!.photo!.isNotEmpty
                                 ? Image.network(
-                                    candidate.photo!,
+                                    candidate.basicInfo!.photo!,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return CircleAvatar(

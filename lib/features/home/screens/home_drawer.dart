@@ -126,18 +126,18 @@ class HomeDrawer extends StatelessWidget {
                             backgroundColor: Colors
                                 .blue[600], // Distinctive blue background for initials
                             backgroundImage:
-                                currentCandidateModel?.photo != null &&
-                                    currentCandidateModel!.photo!.isNotEmpty
-                                ? NetworkImage(currentCandidateModel.photo!)
+                                currentCandidateModel?.basicInfo!.photo != null &&
+                                    currentCandidateModel!.basicInfo!.photo!.isNotEmpty
+                                ? NetworkImage(currentCandidateModel.basicInfo!.photo!)
                                 : userModel?.photoURL != null
                                 ? NetworkImage(userModel!.photoURL!)
                                 : currentUser?.photoURL != null
                                 ? NetworkImage(currentUser!.photoURL!)
                                 : null,
                             child:
-                                (currentCandidateModel?.photo == null ||
+                                (currentCandidateModel?.basicInfo!.photo == null ||
                                         currentCandidateModel!
-                                            .photo!
+                                            .basicInfo!.photo!
                                             .isEmpty) &&
                                     userModel?.photoURL == null &&
                                     currentUser?.photoURL == null

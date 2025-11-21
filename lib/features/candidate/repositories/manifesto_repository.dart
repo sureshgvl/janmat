@@ -93,6 +93,7 @@ class ManifestoRepository implements IManifestoRepository {
       // Save all ManifestoModel fields inside manifesto_data map at root level
       final updates = <String, dynamic>{
         'manifesto_data': manifesto.toJson(),
+        'deleteStorage': candidate.deleteStorage,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 

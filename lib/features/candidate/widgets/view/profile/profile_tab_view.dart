@@ -258,10 +258,10 @@ class _ProfileTabViewState extends State<ProfileTabView>
                         child: CircleAvatar(
                           radius: 52,
                           backgroundColor: Colors.white.withValues(alpha: 0.9),
-                          backgroundImage: widget.candidate.photo != null
-                              ? NetworkImage(widget.candidate.photo!)
+                          backgroundImage: widget.candidate.basicInfo!.photo != null
+                              ? NetworkImage(widget.candidate.basicInfo!.photo!)
                               : null,
-                          child: widget.candidate.photo == null
+                          child: widget.candidate.basicInfo!.photo == null
                               ? Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),

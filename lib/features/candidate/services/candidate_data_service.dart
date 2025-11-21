@@ -68,7 +68,7 @@ class CandidateDataService {
           'uid': userData['uid'] ?? '',
           'name': data.basicInfo!.fullName ?? userData['name'] ?? 'Unknown Candidate',
           'email': userData['email'],
-          'photoURL': data.photo ?? userData['photo'],
+          'photoURL': data.basicInfo!.photo ?? userData['photo'],
           'party': data.party ?? userData['party'] ?? 'independent',
           'districtId': data.location.districtId ?? userData['districtId'],
           'bodyId': data.location.bodyId ?? userData['bodyId'],
@@ -223,7 +223,6 @@ class CandidateDataService {
         'userId': candidate.userId,
         'name': candidate.basicInfo!.fullName ?? 'Unknown',
         'party': candidate.party ?? 'independent',
-        'photo': candidate.photo,
         'followersCount': 0, // Not relevant for user's own data
         'data': candidate.toJson().toString(),
         'lastUpdated': DateTime.now().toIso8601String(),
@@ -275,7 +274,6 @@ class CandidateDataService {
         candidateId: userData['uid'] ?? '',
         userId: userData['uid'] ?? '',
         party: userData['party'] ?? 'independent',
-        photo: userData['photo'],
         location: LocationModel(
           districtId: userData['districtId'],
           bodyId: userData['bodyId'],

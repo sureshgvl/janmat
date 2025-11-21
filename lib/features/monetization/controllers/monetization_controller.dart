@@ -929,7 +929,7 @@ class MonetizationController extends GetxController {
         wardId: candidate.location.wardId!,
         candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
         party: candidate.party,
-        imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+        imageUrl: candidate.basicInfo?.photo,
       );
 
       // Create welcome sponsored post
@@ -939,7 +939,7 @@ class MonetizationController extends GetxController {
         title: '🎉 Platinum Plan Activated!',
         message:
             '${candidate.basicInfo?.fullName ?? 'The candidate'} is now a Platinum member with maximum visibility!',
-        imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+        imageUrl: candidate.basicInfo?.photo,
       );
 
       AppLogger.monetization('✅ Platinum welcome content created successfully');
@@ -996,7 +996,7 @@ class MonetizationController extends GetxController {
             wardId: candidate.location.wardId!,
             candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
             party: candidate.party,
-            imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+            imageUrl: candidate.basicInfo?.photo,
             bannerStyle: 'premium',
             callToAction: 'View Profile',
             priorityLevel: 'normal',
@@ -1017,7 +1017,7 @@ class MonetizationController extends GetxController {
             wardId: candidate.location.wardId!,
             candidateName: candidate.basicInfo?.fullName ?? 'Candidate',
             party: candidate.party,
-            imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+            imageUrl: candidate.basicInfo?.photo,
             priorityLevel: 'normal', // Default priority for highlight plan
             validityDays: validityDays, // Use the purchased validity days
             placement: ['top_banner'], // Only banner for highlight plans
@@ -1030,7 +1030,7 @@ class MonetizationController extends GetxController {
             title: '🎉 Highlight Plan Activated!',
             message:
                 '${candidate.basicInfo?.fullName ?? 'The candidate'} is now visible in highlight banners!',
-            imageUrl: candidate.basicInfo?.photo ?? candidate.photo,
+            imageUrl: candidate.basicInfo?.photo,
           );
 
           AppLogger.monetization('✅ New highlight created successfully');

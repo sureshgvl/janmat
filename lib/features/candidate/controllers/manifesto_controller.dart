@@ -1,6 +1,10 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 import '../../../utils/app_logger.dart';
 import '../models/candidate_model.dart';
 import '../models/manifesto_model.dart';
@@ -110,41 +114,245 @@ class ManifestoController extends GetxController
     required ManifestoModel manifesto,
     Function(String)? onProgress,
   }) async {
+    AppLogger.database(
+      '📝 MANIFESTO_SAVE: Starting manifesto save operation',
+      tag: 'MANIFESTO_SAVE_DEBUG',
+    );
+    AppLogger.database(
+      '📝 MANIFESTO_SAVE: candidateId: $candidateId',
+      tag: 'MANIFESTO_SAVE_DEBUG',
+    );
+    AppLogger.database(
+      '📝 MANIFESTO_SAVE: manifesto.pdfUrl: "${manifesto.pdfUrl}"',
+      tag: 'MANIFESTO_SAVE_DEBUG',
+    );
+    AppLogger.database(
+      '📝 MANIFESTO_SAVE: manifesto.image: "${manifesto.image}"',
+      tag: 'MANIFESTO_SAVE_DEBUG',
+    );
+    AppLogger.database(
+      '📝 MANIFESTO_SAVE: manifesto.videoUrl: "${manifesto.videoUrl}"',
+      tag: 'MANIFESTO_SAVE_DEBUG',
+    );
+
     try {
-      AppLogger.database(
-        '📝 TAB SAVE: Manifesto tab for $candidateId',
-        tag: 'MANIFESTO_TAB',
+      onProgress?.call('Preparing manifesto data...');
+
+      // Check if manifesto media needs to be uploaded (same as basic_info)
+      String? finalPdfUrl = manifesto.pdfUrl;
+      String? finalImageUrl = manifesto.image;
+      String? finalVideoUrl = manifesto.videoUrl;
+      List<String> updatedDeleteStorage = List<String>.from(
+        candidate.deleteStorage ?? [],
       );
 
-      onProgress?.call('Saving manifesto...');
+      // Analyze what needs to be uploaded
+      List<String> uploadsNeeded = [];
+      if (manifesto.pdfUrl != null && manifesto.pdfUrl!.startsWith('local:'))
+        uploadsNeeded.add('PDF');
+      if (manifesto.image != null && manifesto.image!.startsWith('local:'))
+        uploadsNeeded.add('image');
+      if (manifesto.videoUrl != null &&
+          manifesto.videoUrl!.startsWith('local:'))
+        uploadsNeeded.add('video');
 
-      // Direct save using the repository with candidate object, like basic_info
-      final success = await _repository.updateManifestoWithCandidate(
-        candidateId,
-        manifesto,
-        candidate,
-      );
+      if (uploadsNeeded.isNotEmpty) {
+        onProgress?.call('Uploading ${uploadsNeeded.join(', ')} to storage...');
+      }
 
-      if (success) {
-        onProgress?.call('Manifesto saved successfully!');
-
-        // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block UI)
-        _runBackgroundSyncOperations(
-          candidateId,
-          candidate.basicInfo!.fullName,
-          candidate.photo,
-          manifesto.toJson(),
-        );
-
+      // Handle PDF upload
+      if (manifesto.pdfUrl != null && manifesto.pdfUrl!.startsWith('local:')) {
         AppLogger.database(
-          '✅ TAB SAVE: Manifesto completed successfully',
+          '📄 PDF UPLOAD: Uploading manifesto PDF...',
           tag: 'MANIFESTO_TAB',
         );
-        return true;
-      } else {
-        AppLogger.databaseError(
-          '❌ TAB SAVE: Manifesto save failed',
+        onProgress?.call('📄 Uploading PDF document...');
+
+        try {
+          final pdfUrl = await _uploadMediaFile(
+            manifesto.pdfUrl!,
+            'pdfs',
+            candidateId,
+          );
+          finalPdfUrl = pdfUrl;
+          AppLogger.database(
+            '📄 PDF UPLOAD: Success! URL: $pdfUrl',
+            tag: 'MANIFESTO_TAB',
+          );
+          onProgress?.call('✅ PDF uploaded successfully');
+
+          // Add old PDF to deleteStorage if it exists
+          if (candidate.manifestoData?.pdfUrl != null &&
+              candidate.manifestoData!.pdfUrl!.isNotEmpty &&
+              !candidate.manifestoData!.pdfUrl!.startsWith('local:')) {
+            updatedDeleteStorage.add(candidate.manifestoData!.pdfUrl!);
+            AppLogger.database(
+              '🗑️ DELETE STORAGE: Added old manifesto PDF to deletion list',
+              tag: 'MANIFESTO_TAB',
+            );
+          }
+        } catch (e) {
+          AppLogger.databaseError(
+            '❌ PDF UPLOAD: Failed to upload manifesto PDF',
+            tag: 'MANIFESTO_TAB',
+            error: e,
+          );
+          onProgress?.call('⚠️ PDF upload failed - using original');
+        }
+      }
+
+      // Handle image upload
+      if (manifesto.image != null && manifesto.image!.startsWith('local:')) {
+        AppLogger.database(
+          '🖼️ IMAGE UPLOAD: Uploading manifesto image...',
           tag: 'MANIFESTO_TAB',
+        );
+        onProgress?.call('🖼️ Uploading banner image...');
+
+        try {
+          final imageUrl = await _uploadMediaFile(
+            manifesto.image!,
+            'images',
+            candidateId,
+          );
+          finalImageUrl = imageUrl;
+          AppLogger.database(
+            '🖼️ IMAGE UPLOAD: Success! URL: $imageUrl',
+            tag: 'MANIFESTO_TAB',
+          );
+          onProgress?.call('✅ Image uploaded successfully');
+
+          // Add old image to deleteStorage if it exists
+          if (candidate.manifestoData?.image != null &&
+              candidate.manifestoData!.image!.isNotEmpty &&
+              !candidate.manifestoData!.image!.startsWith('local:')) {
+            updatedDeleteStorage.add(candidate.manifestoData!.image!);
+            AppLogger.database(
+              '🗑️ DELETE STORAGE: Added old manifesto image to deletion list',
+              tag: 'MANIFESTO_TAB',
+            );
+          }
+        } catch (e) {
+          AppLogger.databaseError(
+            '❌ IMAGE UPLOAD: Failed to upload manifesto image',
+            tag: 'MANIFESTO_TAB',
+            error: e,
+          );
+          onProgress?.call('⚠️ Image upload failed - using original');
+        }
+      }
+
+      // Handle video upload
+      if (manifesto.videoUrl != null &&
+          manifesto.videoUrl!.startsWith('local:')) {
+        AppLogger.database(
+          '🎬 VIDEO UPLOAD: Uploading manifesto video...',
+          tag: 'MANIFESTO_TAB',
+        );
+        onProgress?.call('🎬 Uploading promotional video...');
+
+        try {
+          final videoUrl = await _uploadMediaFile(
+            manifesto.videoUrl!,
+            'videos',
+            candidateId,
+          );
+          finalVideoUrl = videoUrl;
+          AppLogger.database(
+            '🎬 VIDEO UPLOAD: Success! URL: $videoUrl',
+            tag: 'MANIFESTO_TAB',
+          );
+          onProgress?.call('✅ Video uploaded successfully');
+
+          // Add old video to deleteStorage if it exists
+          if (candidate.manifestoData?.videoUrl != null &&
+              candidate.manifestoData!.videoUrl!.isNotEmpty &&
+              !candidate.manifestoData!.videoUrl!.startsWith('local:')) {
+            updatedDeleteStorage.add(candidate.manifestoData!.videoUrl!);
+            AppLogger.database(
+              '🗑️ DELETE STORAGE: Added old manifesto video to deletion list',
+              tag: 'MANIFESTO_TAB',
+            );
+          }
+        } catch (e) {
+          AppLogger.databaseError(
+            '❌ VIDEO UPLOAD: Failed to upload manifesto video',
+            tag: 'MANIFESTO_TAB',
+            error: e,
+          );
+          onProgress?.call('⚠️ Video upload failed - using original');
+        }
+      }
+
+      // Create updated manifesto with final URLs
+      final updatedManifesto = manifesto.copyWith(
+        pdfUrl: finalPdfUrl,
+        image: finalImageUrl,
+        videoUrl: finalVideoUrl,
+      );
+
+      // Create updated candidate with deleteStorage changes
+      final updatedCandidate = candidate.copyWith(
+        deleteStorage: updatedDeleteStorage,
+      );
+
+      // Direct save using the repository with updated candidate object
+      AppLogger.database(
+        '📝 REPOSITORY SAVE: Calling updateManifestoWithCandidate',
+        tag: 'MANIFESTO_SAVE_DEBUG',
+      );
+      AppLogger.database(
+        '📝 REPOSITORY SAVE: updatedManifesto: ${updatedManifesto.toJson()}',
+        tag: 'MANIFESTO_SAVE_DEBUG',
+      );
+      AppLogger.database(
+        '📝 REPOSITORY SAVE: updatedCandidate.deleteStorage: ${updatedCandidate.deleteStorage}',
+        tag: 'MANIFESTO_SAVE_DEBUG',
+      );
+
+      try {
+        final success = await _repository.updateManifestoWithCandidate(
+          candidateId,
+          updatedManifesto,
+          updatedCandidate,
+        );
+
+        if (success) {
+          // 🔄 CRITICAL SYNCHRONOUS UPDATES (MUST COMPLETE BEFORE SCREEN DISPOSES)
+          await _runSynchronousUpdates();
+
+          // ✅ NOW mark as successful - screen can safely dispose
+          onProgress?.call('Manifesto saved successfully!');
+          AppLogger.database(
+            '🎉 SUCCESS: Manifesto saved successfully!',
+            tag: 'MANIFESTO_SAVE_DEBUG',
+          );
+
+          // 🔄 BACKGROUND OPERATIONS (fire-and-forget, don't block dispose)
+          _runBackgroundSyncOperations(
+            candidateId,
+            candidate.basicInfo!.fullName,
+            candidate.basicInfo!.photo,
+            updatedManifesto.toJson(),
+          );
+
+          AppLogger.database(
+            '✅ TAB SAVE: Manifesto completed successfully',
+            tag: 'MANIFESTO_TAB',
+          );
+          return true;
+        } else {
+          AppLogger.databaseError(
+            '❌ TAB SAVE: Manifesto save failed',
+            tag: 'MANIFESTO_SAVE_DEBUG',
+          );
+          return false;
+        }
+      } catch (repoError) {
+        AppLogger.databaseError(
+          '💥 REPOSITORY ERROR: ${repoError.toString()}',
+          tag: 'MANIFESTO_SAVE_DEBUG',
+          error: repoError,
         );
         return false;
       }
@@ -316,6 +524,85 @@ class ManifestoController extends GetxController
         tag: 'MANIFESTO_URLS',
       );
       return false;
+    }
+  }
+
+  /// Upload media file to Firebase Storage (same as basic_info)
+  Future<String> _uploadMediaFile(
+    String localFilePath,
+    String mediaType,
+    String candidateId,
+  ) async {
+    final localPath = localFilePath.substring(6);
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final extension = mediaType == 'pdfs' ? '.pdf' : '.jpg';
+    final fileName =
+        '${mediaType}_${userId}_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+    final storageRef = FirebaseStorage.instance.ref().child(
+      'manifesto_media/${candidateId}/${mediaType}/$fileName',
+    );
+
+    String contentType;
+    switch (mediaType) {
+      case 'pdfs':
+        contentType = 'application/pdf';
+        break;
+      case 'images':
+        contentType = 'image/jpeg';
+        break;
+      case 'videos':
+        contentType = 'video/mp4';
+        break;
+      default:
+        contentType = 'application/octet-stream';
+    }
+
+    if (kIsWeb && localPath.startsWith('blob:')) {
+      // Web: Download blob and upload as bytes
+      final response = await http.get(Uri.parse(localPath));
+      if (response.statusCode == 200) {
+        final uploadTask = storageRef.putData(
+          response.bodyBytes,
+          SettableMetadata(contentType: contentType),
+        );
+        final snapshot = await uploadTask.whenComplete(() {});
+        return await snapshot.ref.getDownloadURL();
+      } else {
+        throw Exception(
+          'Failed to download $mediaType: ${response.statusCode}',
+        );
+      }
+    } else {
+      // Mobile: Upload file directly
+      final uploadTask = storageRef.putFile(
+        File(localPath),
+        SettableMetadata(contentType: contentType),
+      );
+      final snapshot = await uploadTask.whenComplete(() {});
+      return await snapshot.ref.getDownloadURL();
+    }
+  }
+
+  /// SYNCHRONOUS OPERATIONS: Critical updates that must complete before screen dispose
+  Future<void> _runSynchronousUpdates() async {
+    try {
+      AppLogger.database(
+        '🔄 SYNC: Starting critical synchronous updates',
+        tag: 'MANIFESTO_SYNC_OPS',
+      );
+      // For manifesto, we don't need specific synchronous updates since
+      // media files are updated at manifesto level, not user level
+      AppLogger.database(
+        '✅ SYNC: All critical updates completed successfully',
+        tag: 'MANIFESTO_SYNC_OPS',
+      );
+    } catch (e) {
+      AppLogger.databaseError(
+        '⚠️ SYNC: Critical synchronous update failed',
+        tag: 'MANIFESTO_SYNC_OPS',
+        error: e,
+      );
     }
   }
 }

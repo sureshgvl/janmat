@@ -367,9 +367,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: candidateModel?.photo != null
+                    child: candidateModel?.basicInfo!.photo != null
                         ? Image.network(
-                            candidateModel!.photo!,
+                            candidateModel!.basicInfo!.photo!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Icon(
                               Icons.account_circle,

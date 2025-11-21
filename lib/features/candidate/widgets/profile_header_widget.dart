@@ -60,14 +60,14 @@ class ProfileHeaderWidget extends StatelessWidget {
               // Profile Picture
               GestureDetector(
                 onTap: () {
-                  if (candidate.photo != null && candidate.photo!.isNotEmpty) {
+                  if (candidate.basicInfo!.photo != null && candidate.basicInfo!.photo!.isNotEmpty) {
                     Navigator.of(context).push(
                       PageRouteBuilder(
                         opaque: false,
                         barrierColor: Colors.black,
                         pageBuilder: (context, animation, secondaryAnimation) {
                           return WhatsAppImageViewer(
-                            imageUrl: candidate.photo!,
+                            imageUrl: candidate.basicInfo!.photo!,
                             title: candidate.basicInfo!.fullName!,
                           );
                         },
@@ -98,10 +98,10 @@ class ProfileHeaderWidget extends StatelessWidget {
                         ],
                       ),
                       child: ClipOval(
-                        child: candidate.photo != null &&
-                                candidate.photo!.isNotEmpty
+                        child: candidate.basicInfo!.photo != null &&
+                                candidate.basicInfo!.photo!.isNotEmpty
                             ? Image.network(
-                                candidate.photo!,
+                                candidate.basicInfo!.photo!,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return CircleAvatar(
