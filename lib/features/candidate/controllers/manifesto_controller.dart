@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
+import '../../../services/sync/i_sync_service.dart';
 import '../../../utils/app_logger.dart';
 import '../models/candidate_model.dart';
 import '../models/manifesto_model.dart';
@@ -103,6 +104,45 @@ class ManifestoController extends GetxController
       tag: 'MANIFESTO_CTRL',
     );
     // Implementation will be handled by the calling controller
+  }
+
+  /// Optimistic update for manifesto using ISyncService
+  /// Updates UI immediately and queues background sync
+  Future<void> updateManifestoOptimistically(
+    String candidateId,
+    ManifestoModel currentManifesto,
+    String field,
+    dynamic value,
+  ) async {
+    try {
+      // Update local state immediately (optimistic)
+      final updatedManifesto = getUpdatedCandidate(currentManifesto, field, value);
+      // TODO: Update the Rx model or notify UI
+
+      // Create sync operation
+      final op = SyncOperation(
+        id: '${candidateId}_manifesto_${field}_${DateTime.now().millisecondsSinceEpoch}',
+        type: SyncOperationType.update,
+        candidateId: candidateId,
+        target: 'candidates/$candidateId/manifesto',
+        payload: {field: value},
+      );
+
+      // Queue operation for background sync
+      final syncService = Get.find<ISyncService>();
+      await syncService.queueOperation(op);
+
+      AppLogger.database(
+        '🎯 Optimistic manifesto update queued: $field=$value',
+        tag: 'OPTIMIST_UPDATE',
+      );
+    } catch (e) {
+      AppLogger.databaseError(
+        'Failed optimistic manifesto update: $e',
+        tag: 'OPTIMIST_UPDATE',
+        error: e,
+      );
+    }
   }
 
   /// TAB-SPECIFIC SAVE: Direct manifesto tab save method

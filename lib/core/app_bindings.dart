@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:janmat/utils/app_logger.dart';
+import 'package:flutter/foundation.dart';
 import '../features/auth/controllers/auth_controller.dart';
 import '../features/chat/controllers/chat_controller.dart';
 import '../features/chat/controllers/room_controller.dart';
@@ -16,9 +17,9 @@ import '../features/candidate/controllers/save_all_coordinator.dart';
 import '../services/offline_drafts_service.dart';
 import '../features/candidate/services/media_cache_service.dart';
 import '../features/candidate/repositories/media_repository.dart';
-
-import '../services/admob_service.dart';
-import '../features/monetization/services/razorpay_service.dart';
+import '../services/sync/i_sync_service.dart';
+import '../services/sync/mobile_sync_service.dart';
+import '../services/sync/web_sync_service.dart';
 import '../services/file_upload_service.dart';
 import '../features/notifications/services/notification_manager.dart';
 import '../features/user/services/user_data_service.dart';
@@ -34,6 +35,7 @@ import '../services/background_location_sync_service.dart';
 import '../features/candidate/services/manifesto_sync_service.dart';
 
 import '../features/monetization/controllers/monetization_controller.dart';
+import '../features/monetization/services/razorpay_service.dart';
 import '../controllers/background_color_controller.dart';
 import '../services/screen_focus_service.dart';
 import '../features/chat/services/background_cache_warmer.dart';
@@ -57,6 +59,8 @@ class AppBindings extends Bindings {
     Get.put<ScreenFocusController>(ScreenFocusController());
     Get.put<MonetizationController>(MonetizationController());
     Get.put<BackgroundColorController>(BackgroundColorController());
+    // Platform-specific sync service
+    Get.put<ISyncService>(kIsWeb ? WebSyncService() : MobileSyncService());
 
     // 🎯 LAZY LOAD ALL FEATURE-SPECIFIC CONTROLLERS: Load only when screens are accessed
     // Chat controllers: Hybrid approach - lazy load but ensure proper dependency order
@@ -80,7 +84,6 @@ class AppBindings extends Bindings {
     Get.lazyPut<HighlightController>(() => HighlightController());
 
     // 🎯 LAZY LOAD SERVICES: Only initialize when needed
-    Get.lazyPut<AdMobService>(() => AdMobService());
     Get.lazyPut<RazorpayService>(() => RazorpayService());
     Get.lazyPut<FileUploadService>(() => FileUploadService());
 

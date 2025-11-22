@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
@@ -314,6 +315,20 @@ Future<void> _syncUserStatusManager(String userId, {
 void main() async {
   // Ensure Flutter binding is initialized for safety
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize workmanager for background tasks (mobile only)
+  if (!kIsWeb) {
+    // Initialize workmanager
+    // (The WorkManager callback is handled in MobileSyncService)
+  }
+
+  // Initialize Hive for local storage (web uses IndexedDB)
+  if (kIsWeb) {
+    await Hive.initFlutter();
+  } else {
+    // Mobile also uses Hive for media queue
+    await Hive.initFlutter();
+  }
 
   // Web-specific configuration is handled by web/index.html
   // The HTML sets up centering and mobile viewport automatically

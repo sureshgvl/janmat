@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import '../../../utils/app_logger.dart';
+import '../../../services/sync/i_sync_service.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../models/basic_info_model.dart';
 import '../repositories/basic_info_repository.dart';
@@ -183,6 +184,106 @@ class BasicInfoController extends GetxController implements IBasicInfoController
     }
   }
 
+  /// 🎯 OPTIMISTIC UPDATE: Immediate UI update with background offline sync
+  /// Allows editing profile info even when offline - queues for later sync
+  Future<void> updateBasicInfoOptimistically(
+    String candidateId,
+    String field,
+    dynamic value, {
+    dynamic candidate,
+    Function(String)? onProgress,
+  }) async {
+    try {
+      AppLogger.database('🎯 OPTIMISTIC UPDATE: $field = $value for $candidateId', tag: 'BASIC_OPTIMISTIC');
+
+      final syncService = Get.find<ISyncService>();
+      final opId = 'basic_info_${candidateId}_${field}_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Create sync operation for offline capability
+      final op = SyncOperation(
+        id: opId,
+        type: SyncOperationType.update,
+        candidateId: candidateId,
+        target: 'basic_info',
+        payload: {
+          'field': field,
+          'value': value,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+
+      // Queue operation for background sync (offline support)
+      await syncService.queueOperation(op);
+      AppLogger.database('✅ OPTIMISTIC UPDATE: Operation queued for sync', tag: 'BASIC_OPTIMISTIC');
+
+      // If provided, also perform immediate fast save for connected users
+      if (candidate != null) {
+        final updates = {field: value};
+        final success = await saveBasicInfoFast(candidateId, updates,
+          candidate: candidate,
+          candidateName: null,
+          onProgress: onProgress
+        );
+
+        if (!success) {
+          AppLogger.database('⚠️ OPTIMISTIC UPDATE: Fast save failed, relying on sync queue', tag: 'BASIC_OPTIMISTIC');
+          // Still successful - operation is queued and will sync when online
+        }
+      }
+
+      AppLogger.database('🎯 OPTIMISTIC UPDATE: Completed successfully', tag: 'BASIC_OPTIMISTIC');
+    } catch (e) {
+      AppLogger.databaseError('❌ OPTIMISTIC UPDATE: Failed', tag: 'BASIC_OPTIMISTIC', error: e);
+      // Re-throw to let UI handle error state
+      throw Exception('Failed to update basic info: $e');
+    }
+  }
+
+  /// 🚀 FAST SAVE: Direct immediate save (no offline queuing for critical fields)
+  Future<bool> saveBasicInfoFast(
+    String candidateId,
+    Map<String, dynamic> updates, {
+    required dynamic candidate,
+    String? candidateName,
+    Function(String)? onProgress,
+  }) async {
+    try {
+      AppLogger.database('🚀 FAST SAVE: Basic info for $candidateId', tag: 'BASIC_FAST');
+
+      // Get current basic info to merge updates
+      final currentBasicInfo = await getBasicInfo(candidate);
+      if (currentBasicInfo == null) {
+        AppLogger.databaseError('❌ FAST SAVE: Cannot get current basic info', tag: 'BASIC_FAST');
+        return false;
+      }
+
+      // Create updated basic info model
+      BasicInfoModel updatedBasicInfo = currentBasicInfo;
+      for (final entry in updates.entries) {
+        updatedBasicInfo = getUpdatedCandidate(updatedBasicInfo, entry.key, entry.value);
+      }
+
+      // Perform full save with photo handling etc.
+      final success = await saveBasicInfoTabWithCandidate(
+        candidateId: candidateId,
+        basicInfo: updatedBasicInfo,
+        candidate: candidate,
+        onProgress: onProgress,
+      );
+
+      if (success) {
+        AppLogger.database('✅ FAST SAVE: Completed successfully', tag: 'BASIC_FAST');
+        return true;
+      } else {
+        AppLogger.databaseError('❌ FAST SAVE: Failed', tag: 'BASIC_FAST');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.databaseError('❌ FAST SAVE: Exception occurred', tag: 'BASIC_FAST', error: e);
+      return false;
+    }
+  }
+
   /// SYNCHRONOUS OPERATIONS: Critical updates that must complete before screen dispose
   Future<void> _runSynchronousUpdates(String? photoUrl) async {
     try {
@@ -308,7 +409,6 @@ class BasicInfoController extends GetxController implements IBasicInfoController
       // HomeScreenStreamService().refreshData(forceRefresh: false);
 
       // Alternative approach: Trigger candidate controller refresh
-      final candidateController = Get.find<CandidateUserController>();
       // The controller's candidate value will be refreshed on next access
 
       AppLogger.database('🏠 BACKGROUND: Home screen refresh triggered', tag: 'BASIC_INFO_FAST');

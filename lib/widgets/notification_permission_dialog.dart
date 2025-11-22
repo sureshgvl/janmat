@@ -134,6 +134,7 @@ class NotificationPermissionPromptService {
     }
 
     return await showDialog<bool>(
+      // ignore: use_build_context_synchronously
       context: context,
       barrierDismissible: false, // User must make a choice
       builder: (context) => const NotificationPermissionDialog(),

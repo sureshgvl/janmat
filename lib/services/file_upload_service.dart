@@ -29,6 +29,43 @@ class FileUploadService {
   // Upload profile photo
   Future<String?> uploadProfilePhoto(String userId) async {
     try {
+      // Check platform and use appropriate file picker
+      if (kIsWeb) {
+        AppLogger.common('🌐 [Profile Photo] Web detected - using file picker');
+
+        // Web: Use file picker for web-compatible image selection
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+        );
+
+        if (result == null || result.files.isEmpty) return null;
+
+        final file = result.files.first;
+
+        if (file.bytes == null) {
+          AppLogger.common('⚠️ [Profile Photo] Web file bytes are null');
+          throw Exception('Failed to get file data from web picker');
+        }
+
+        final fileName = 'profile_$userId.jpg';
+        final storageRef = _storage.ref().child('profile_photos/$fileName');
+
+        AppLogger.common('🌐 [Profile Photo] Uploading to Firebase Storage: profile_photos/$fileName');
+
+        final uploadTask = storageRef.putData(
+          file.bytes!,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+
+        final snapshot = await uploadTask.whenComplete(() {});
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+
+        AppLogger.common('🌐 [Profile Photo] Web upload successful: $downloadUrl');
+        return downloadUrl;
+      }
+
+      // Mobile: Use image_picker for mobile gallery access
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,

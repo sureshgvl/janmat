@@ -1,11 +1,11 @@
 {
-    "name": "janmat",
-    "short_name": "janmat",
+    "name": "JanMat - Political Social Media",
+    "short_name": "JanMat",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "JanMat - Political Social Media Platform. Connect with candidates, join political discussions, and stay informed about local elections.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

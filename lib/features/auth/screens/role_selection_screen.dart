@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/auth/auth_localizations.dart';
@@ -41,7 +40,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   }
 
   Future<void> _saveRole() async {
-    final appLocalizations = AppLocalizations.of(context)!;
     final authLocalizations = AuthLocalizations.of(context) ?? AuthLocalizations.current;
 
     if (selectedRole == null) {

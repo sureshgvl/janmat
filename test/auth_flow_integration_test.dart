@@ -238,8 +238,6 @@ void main() {
     });
 
     test('Account Data Validation: Proper structure validation', () {
-      final authRepo = AuthRepository();
-
       // Test valid data structure
       final validData = {
         'email': 'test@example.com',

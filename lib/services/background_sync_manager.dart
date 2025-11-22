@@ -129,7 +129,7 @@ class BackgroundSyncManager {
             xpPoints: 0,
             premium: false,
             createdAt: DateTime.now(),
-            photoURL: firebaseUser.photoURL,
+            photoURL: null, // User will add manually
           );
 
           await userDoc.set(userModel.toJson(), SetOptions(merge: true));
@@ -144,7 +144,6 @@ class BackgroundSyncManager {
           final updatedData = {
             'name': firebaseUser.displayName ?? existingData['name'],
             'phone': firebaseUser.phoneNumber ?? existingData['phone'],
-            'photoURL': firebaseUser.photoURL ?? existingData['photoURL'],
             'lastUpdated': FieldValue.serverTimestamp(),
           };
 

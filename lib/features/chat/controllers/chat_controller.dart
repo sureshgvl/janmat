@@ -19,11 +19,9 @@ import '../repositories/chat_repository.dart';
 import '../services/private_chat_service.dart';
 import '../services/user_manager.dart';
 import '../services/poll_manager.dart';
-import '../services/ad_reward_manager.dart';
 import '../services/typing_status_manager.dart';
 import '../services/private_chat_manager.dart';
 import '../../auth/repositories/auth_repository.dart';
-import '../../../services/admob_service.dart';
 import '../../notifications/services/poll_notification_service.dart';
 import '../../../utils/app_logger.dart';
 
@@ -38,7 +36,6 @@ class ChatController extends GetxController {
   // New focused services for SOLID principles
   final UserManager _userManager = UserManager();
   final PollManager _pollManager = PollManager();
-  final AdRewardManager _adRewardManager = AdRewardManager();
   final TypingStatusManager _typingStatusManager = TypingStatusManager();
   final PrivateChatManager _privateChatManager = PrivateChatManager();
 
@@ -314,13 +311,10 @@ class ChatController extends GetxController {
   bool get isRecording => _messageController.isRecording.value;
 
   Future<void> watchRewardedAdForXP() async {
-    // Use AdRewardManager service for handling rewarded ads
+    // Ad functionality removed - directly award extra messages
     final user = _cachedUser;
     if (user != null) {
-      await _adRewardManager.watchRewardedAdForExtraMessages(
-        userId: user.uid,
-        extraMessages: 10,
-      );
+      await _awardExtraMessagesFromAd(10);
     } else {
       SnackbarUtils.showError('User not authenticated');
     }
@@ -870,10 +864,8 @@ class ChatController extends GetxController {
 
   String? get currentRecordingPath => null; // Placeholder
 
-  // Force reload rewarded ads for testing
+  // Force reload rewarded ads for testing (stub since ads removed)
   void forceReloadAds() {
-    final adMobService = Get.find<AdMobService>();
-    adMobService.reloadRewardedAd();
-    SnackbarUtils.showInfo('Rewarded ads have been reloaded. Try watching an ad again.');
+    SnackbarUtils.showInfo('Ad functionality has been removed.');
   }
 }
