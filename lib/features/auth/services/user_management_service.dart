@@ -35,7 +35,6 @@ class UserManagementService {
           xpPoints: 0,
           premium: false,
           createdAt: DateTime.now(),
-          photoURL: firebaseUser.photoURL,
         );
 
         // Use set with merge to ensure atomic operation
@@ -51,7 +50,6 @@ class UserManagementService {
         final updatedData = {
           'phone': firebaseUser.phoneNumber,
           'email': firebaseUser.email,
-          'photoURL': firebaseUser.photoURL,
           'lastLogin': FieldValue.serverTimestamp(), // Track login time
         };
 

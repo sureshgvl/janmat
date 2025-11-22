@@ -99,19 +99,15 @@ class HomeDrawer extends StatelessWidget {
                                     : displayName.trim()[0].toUpperCase()
                               : 'U';
 
-                          // PHOTO SOURCE: UserController.user.value.photoURL
+                          // PHOTO SOURCE: UserController.user.value.photoURL (only user-uploaded photos)
                           return CircleAvatar(
                             radius: 50,
                             backgroundColor: Colors.blue[600],
                             backgroundImage:
                                 userController.user.value?.photoURL != null
                                 ? NetworkImage(userController.user.value!.photoURL!)
-                                : currentUser?.photoURL != null
-                                ? NetworkImage(currentUser!.photoURL!)
                                 : null,
-                            child:
-                                (userController.user.value?.photoURL == null &&
-                                    currentUser?.photoURL == null)
+                            child: userController.user.value?.photoURL == null
                                 ? Text(
                                     initials,
                                     style: TextStyle(
