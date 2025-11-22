@@ -269,5 +269,8 @@
   "freePlanActive": "Free Plan Active",
   "basicPlanActive": "Basic Plan Active",
   "goldPlanActive": "Gold Plan Active",
-  "platinumPlanActive": "Platinum Plan Active"
+  "platinumPlanActive": "Platinum Plan Active",
+  "uploadPhoto": "Upload Photo",
+  "viewPhoto": "View Photo",
+  "profilePhoto": "Profile Photo"
 }

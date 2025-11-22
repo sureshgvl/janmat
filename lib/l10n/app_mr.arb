@@ -269,5 +269,8 @@
   "freePlanActive": "विनामूल्य योजना सक्रिय",
   "basicPlanActive": "मूलभूत योजना सक्रिय",
   "goldPlanActive": "गोल्ड योजना सक्रिय",
-  "platinumPlanActive": "प्लॅटिनम योजना सक्रिय"
+  "platinumPlanActive": "प्लॅटिनम योजना सक्रिय",
+  "uploadPhoto": "फोटो अपलोड करा",
+  "viewPhoto": "फोटो पहा",
+  "profilePhoto": "प्रोफाइल फोटो"
 }

@@ -801,4 +801,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get multiResolution => 'Multi-Resolution';
+
+  @override
+  String get uploadPhoto => 'Upload Photo';
+
+  @override
+  String get viewPhoto => 'View Photo';
+
+  @override
+  String get profilePhoto => 'Profile Photo';
 }

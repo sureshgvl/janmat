@@ -1,4 +1,6 @@
 {
+  "profile": "प्रोफाइल",
+  "notAvailable": "उपलब्ध नाही",
   "profilePhotoUpdatedSuccessfully": "प्रोफाइल फोटो यशस्वीरित्या अपडेट झाला!",
   "failedToUpdateProfilePhoto": "प्रोफाइल फोटो अपडेट करण्यात अयशस्वी: {error}",
   "loggingOut": "लॉग आउट करत आहे...",
@@ -127,5 +129,12 @@
   "regularElectionDescription": "एका निवडणूक प्रकाराची निवड करा",
   "selectPoliticalParty": "राजकीय पक्ष निवडा",
   "selectYourPoliticalParty": "आपला राजकीय पक्ष निवडा",
-  "politicalPartyRequired": "राजकीय पक्ष *"
+  "politicalPartyRequired": "राजकीय पक्ष *",
+  "uploadPhoto": "फोटो अपलोड करा",
+  "viewPhoto": "फोटो पहा",
+  "profilePhoto": "प्रोफाइल फोटो",
+  "removePhotoConfirmation": "आपण नक्की आपला प्रोफाइल फोटो काढून टाकू इच्छिता?",
+  "remove": "काढा",
+  "profilePhotoRemovedSuccessfully": "प्रोफाइल फोटो यशस्वीरित्या काढला!",
+  "failedToRemoveProfilePhoto": "प्रोफाइल फोटो काढण्यात अयशस्वी: {error}"
 }

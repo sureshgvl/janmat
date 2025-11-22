@@ -126,5 +126,12 @@
   "regularElectionDescription": "Select single election type",
   "selectPoliticalParty": "Select Political Party",
   "selectYourPoliticalParty": "Select your political party",
-  "politicalPartyRequired": "Political Party *"
+  "politicalPartyRequired": "Political Party *",
+  "uploadPhoto": "Upload Photo",
+  "viewPhoto": "View Photo",
+  "profilePhoto": "Profile Photo",
+  "removePhotoConfirmation": "Are you sure you want to remove your profile photo?",
+  "remove": "Remove",
+  "profilePhotoRemovedSuccessfully": "Profile photo removed successfully!",
+  "failedToRemoveProfilePhoto": "Failed to remove profile photo: {error}"
 }

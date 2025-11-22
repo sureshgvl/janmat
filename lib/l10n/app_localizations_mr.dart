@@ -801,4 +801,13 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get multiResolution => 'बहु-रिझोल्यूशन';
+
+  @override
+  String get uploadPhoto => 'फोटो अपलोड करा';
+
+  @override
+  String get viewPhoto => 'फोटो पहा';
+
+  @override
+  String get profilePhoto => 'प्रोफाइल फोटो';
 }

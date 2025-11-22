@@ -6,10 +6,13 @@ import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
+import '../../../core/app_theme.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
-import '../../chat/controllers/chat_controller.dart';
+import '../../candidate/controllers/candidate_user_controller.dart';
+import '../../user/controllers/user_controller.dart';
 import '../../../services/file_upload_service.dart';
+import '../../common/whatsapp_image_viewer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -137,8 +140,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      if (userModel.photoURL != null) {
-        await _fileUploadService.deleteFile(userModel.photoURL!);
+      // Get current photo URL directly from Firebase Auth (source of truth)
+      // This ensures we delete the correct old photo even if userModel is stale
+      final currentPhotoURL = currentUser.photoURL;
+
+      if (currentPhotoURL != null && currentPhotoURL.isNotEmpty) {
+        AppLogger.common('🗑️ Deleting old profile photo before upload: $currentPhotoURL');
+        await _fileUploadService.deleteFile(currentPhotoURL);
       }
 
       final downloadUrl = await _fileUploadService.uploadProfilePhoto(
@@ -151,9 +159,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .collection('users')
             .doc(currentUser.uid)
             .update({'photoURL': downloadUrl});
+        
+        final UserController userController = Get.find<UserController>();
+        await userController.updateUserData({'photoURL': downloadUrl});
 
-        final chatController = Get.find<ChatController>();
-        await chatController.refreshUserDataAndChat();
+        userController.update();
+
+        // // Refresh home drawer photo
+        // if (Get.isRegistered<CandidateUserController>()) {
+        //   try {
+        //     final candidateController = Get.find<CandidateUserController>();
+        //     candidateController.update();
+        //   } catch (e) {
+        //     // Silently ignore if controller not available
+        //   }
+        // }
 
         if (mounted) {
           SnackbarUtils.showSuccess(successMessage);
@@ -296,9 +316,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .doc(currentUser.uid)
           .update({'photoURL': null});
 
-      final chatController = Get.find<ChatController>();
-      await chatController.refreshUserDataAndChat();
+      final UserController userController = Get.find<UserController>();
 
+      // Force UI refresh by temporarily setting user to null then back
+      final tempUser = userController.user.value;
+      userController.user.value = null;
+      await Future.delayed(const Duration(milliseconds: 10)); // Allow UI to rebuild
+
+      await userController.updateUserData({'photoURL': null});
+      userController.user.value = tempUser!.copyWith(photoURL: null);
+
+      userController.update();
+      setState(() {}); // Additional state update to ensure UI refreshes
+
+      
       if (mounted) {
         SnackbarUtils.showSuccess(successMessage);
       }
@@ -316,69 +347,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _viewProfilePhoto(BuildContext context, String photoUrl) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.photo,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        ProfileLocalizations.of(context)?.translate('profilePhoto') ??
-                            'Profile Photo',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.7,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: InteractiveViewer(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(photoUrl),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WhatsAppImageViewer(
+          imageUrl: photoUrl,
+          title: ProfileLocalizations.of(context)?.translate('profilePhoto') ??
+              'Profile Photo',
+        ),
+      ),
     );
   }
 
@@ -402,10 +379,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
       ),
       body: Container(
-        color: Theme.of(context).colorScheme.surface,
-        child: GetBuilder<ChatController>(
-          builder: (chatController) {
-            UserModel? userModel = chatController.currentUser;
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        child: GetBuilder<UserController>(
+          builder: (userController) {
+            UserModel? userModel = userController.user.value;
 
             if (userModel == null) {
               return FutureBuilder<DocumentSnapshot>(
@@ -482,7 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          const SizedBox(height: kToolbarHeight + 20),
+          
           // Profile Header Card
           Container(
             width: double.infinity,
@@ -504,13 +481,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? NetworkImage(userModel.photoURL!)
                           : null,
                       child: userModel.photoURL == null
-                          ? Text(
-                              (userModel.name.isEmpty ? 'U' : userModel.name[0])
-                                  .toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
+                          ? Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  (userModel.name.isEmpty ? 'U' : userModel.name[0])
+                                      .toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
                               ),
                             )
                           : null,
@@ -661,7 +652,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         context: context,
                         icon: Icons.phone,
                         label: ProfileLocalizations.of(context)?.translate('phoneNumber') ?? 'Phone Number',
-                        value: userModel.phone,
+                        value: userModel.phone?.isNotEmpty == true ? userModel.phone! : (ProfileLocalizations.of(context)?.translate('notAvailable') ?? 'Not Available'),
                         iconColor: Theme.of(context).colorScheme.primary,
                       ),
                       if (userModel.email != null)

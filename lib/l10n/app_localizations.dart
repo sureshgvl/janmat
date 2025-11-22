@@ -1558,6 +1558,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Multi-Resolution'**
   String get multiResolution;
+
+  /// No description provided for @uploadPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Photo'**
+  String get uploadPhoto;
+
+  /// No description provided for @viewPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'View Photo'**
+  String get viewPhoto;
+
+  /// No description provided for @profilePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Photo'**
+  String get profilePhoto;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

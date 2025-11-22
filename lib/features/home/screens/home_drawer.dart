@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_logger.dart';
 import '../../user/models/user_model.dart';
-import '../../candidate/controllers/candidate_user_controller.dart';
+import '../../user/controllers/user_controller.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/screens/candidate_list_screen.dart';
 import '../../candidate/screens/candidate_dashboard_screen.dart';
@@ -37,22 +37,19 @@ class HomeDrawer extends StatelessWidget {
       '🏠 [HOME_DRAWER] Building drawer - userModel: ${userModel?.name} (${userModel?.role}), candidateModel param: ${candidateModel?.basicInfo?.fullName ?? "null"}',
     );
 
-    return GetBuilder<CandidateUserController>(
-      builder: (candidateController) {
-        // Use the candidateModel parameter or controller data if available
-        final currentCandidateModel =
-            candidateModel ?? candidateController.candidate.value;
+    // Profile header uses UserController only
+    return GetBuilder<UserController>(
+      builder: (userController) {
         AppLogger.common(
-          '🏠 [HOME_DRAWER] Controller candidate: ${candidateController.candidate.value?.basicInfo?.fullName ?? "null"}, using: ${currentCandidateModel?.basicInfo?.fullName ?? "null"}',
+          '🏠 [HOME_DRAWER] User controller available with photoURL: ${userController.user.value?.photoURL}',
         );
 
         return Drawer(
           child: ListView(
             padding: EdgeInsets.zero,
-            physics:
-                const AlwaysScrollableScrollPhysics(), // Ensure always scrollable
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              // Profile Header Section (Scrollable)
+              // Profile Header Section (USES ONLY UserController)
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).appBarTheme.backgroundColor,
@@ -60,33 +57,21 @@ class HomeDrawer extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min, // Allow natural height
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(
-                        height: 20,
-                      ), // Top padding above profile pic
-                      // Profile Picture at Top
+                      const SizedBox(height: 20),
+                      // Profile Picture - from UserController.user.value
                       Builder(
                         builder: (context) {
-                          // Determine display name for initials
                           String displayName = '';
                           String source = '';
 
-                          if (userModel?.role == 'candidate' &&
-                              currentCandidateModel != null) {
-                            // For candidates, try candidate name first
-                            final candidateName =
-                                currentCandidateModel.basicInfo?.fullName;
-                            if (candidateName != null &&
-                                candidateName.isNotEmpty) {
-                              displayName = candidateName;
-                              source = 'candidate_full_name';
-                            } else if (userModel?.name != null &&
-                                userModel!.name.isNotEmpty) {
+                          if (userModel?.role == 'candidate') {
+                            // Show user name for candidates header
+                            if (userModel?.name != null && userModel!.name.isNotEmpty) {
                               displayName = userModel!.name;
                               source = 'user_name';
-                            } else if (currentUser?.displayName?.isNotEmpty ==
-                                true) {
+                            } else if (currentUser?.displayName?.isNotEmpty == true) {
                               displayName = currentUser!.displayName!;
                               source = 'firebase_display_name';
                             } else {
@@ -95,12 +80,10 @@ class HomeDrawer extends StatelessWidget {
                             }
                           } else {
                             // For non-candidates
-                            if (userModel?.name != null &&
-                                userModel!.name.isNotEmpty) {
+                            if (userModel?.name != null && userModel!.name.isNotEmpty) {
                               displayName = userModel!.name;
                               source = 'user_name';
-                            } else if (currentUser?.displayName?.isNotEmpty ==
-                                true) {
+                            } else if (currentUser?.displayName?.isNotEmpty == true) {
                               displayName = currentUser!.displayName!;
                               source = 'firebase_display_name';
                             } else {
@@ -109,7 +92,6 @@ class HomeDrawer extends StatelessWidget {
                             }
                           }
 
-                          // Get initials (first letter, or first two letters if name has space)
                           String initials = displayName.isNotEmpty
                               ? displayName.trim().split(' ').length > 1
                                     ? '${displayName.trim().split(' ')[0][0]}${displayName.trim().split(' ')[1][0]}'
@@ -117,36 +99,24 @@ class HomeDrawer extends StatelessWidget {
                                     : displayName.trim()[0].toUpperCase()
                               : 'U';
 
-                          AppLogger.common(
-                            '🏠 [HOME_DRAWER] Profile display - name: "$displayName" (from: $source), initials: "$initials", candidate: ${currentCandidateModel?.basicInfo?.fullName ?? "null"}',
-                          );
-
+                          // PHOTO SOURCE: UserController.user.value.photoURL
                           return CircleAvatar(
                             radius: 50,
-                            backgroundColor: Colors
-                                .blue[600], // Distinctive blue background for initials
+                            backgroundColor: Colors.blue[600],
                             backgroundImage:
-                                currentCandidateModel?.basicInfo!.photo != null &&
-                                    currentCandidateModel!.basicInfo!.photo!.isNotEmpty
-                                ? NetworkImage(currentCandidateModel.basicInfo!.photo!)
-                                : userModel?.photoURL != null
-                                ? NetworkImage(userModel!.photoURL!)
+                                userController.user.value?.photoURL != null
+                                ? NetworkImage(userController.user.value!.photoURL!)
                                 : currentUser?.photoURL != null
                                 ? NetworkImage(currentUser!.photoURL!)
                                 : null,
                             child:
-                                (currentCandidateModel?.basicInfo!.photo == null ||
-                                        currentCandidateModel!
-                                            .basicInfo!.photo!
-                                            .isEmpty) &&
-                                    userModel?.photoURL == null &&
-                                    currentUser?.photoURL == null
+                                (userController.user.value?.photoURL == null &&
+                                    currentUser?.photoURL == null)
                                 ? Text(
                                     initials,
                                     style: TextStyle(
                                       fontSize: 40,
-                                      color: Colors
-                                          .white, // White text on blue background
+                                      color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   )
@@ -155,31 +125,20 @@ class HomeDrawer extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 12),
-                      // User Info Below Picture
+                      // User Info Below Picture - from UserController and userModel
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Name
                           Text(
-                            userModel?.role == 'candidate' &&
-                                    currentCandidateModel != null
-                                ? (currentCandidateModel.basicInfo?.fullName ??
-                                      currentCandidateModel
-                                          .basicInfo!
-                                          .fullName ??
-                                      userModel?.name ??
-                                      currentUser?.displayName ??
-                                      'Candidate')
-                                : userModel?.name ??
-                                      currentUser?.displayName ??
-                                      'User',
+                            userModel?.role == 'candidate'
+                                ? (userModel?.name ?? currentUser?.displayName ?? 'Candidate')
+                                : userModel?.name ?? currentUser?.displayName ?? 'User',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(
-                                context,
-                              ).appBarTheme.foregroundColor,
+                              color: Theme.of(context).appBarTheme.foregroundColor,
                             ),
                             textAlign: TextAlign.center,
                             overflow: TextOverflow.ellipsis,
@@ -188,16 +147,11 @@ class HomeDrawer extends StatelessWidget {
                           const SizedBox(height: 4),
                           // Email/Phone
                           Text(
-                            userModel?.email ??
-                                currentUser?.email ??
-                                currentUser?.phoneNumber ??
-                                '',
+                            userModel?.email ?? currentUser?.email ?? currentUser?.phoneNumber ?? '',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
-                              color: Theme.of(
-                                context,
-                              ).appBarTheme.foregroundColor,
+                              color: Theme.of(context).appBarTheme.foregroundColor,
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 1,
@@ -207,10 +161,7 @@ class HomeDrawer extends StatelessWidget {
                           // Plan Badge (only for candidates)
                           if (userModel?.role == 'candidate') ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.25),
                                 borderRadius: BorderRadius.circular(16),
@@ -236,9 +187,7 @@ class HomeDrawer extends StatelessWidget {
                                     _getPlanDisplayText(userModel!),
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Theme.of(
-                                        context,
-                                      ).appBarTheme.foregroundColor,
+                                      color: Theme.of(context).appBarTheme.foregroundColor,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -246,26 +195,24 @@ class HomeDrawer extends StatelessWidget {
                               ),
                             ),
                           ],
-                          const SizedBox(
-                            height: 16,
-                          ), // Extra space before menu items
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
+
+              // REST OF DRAWER - keeps existing candidate logic for menus
               ListTile(
                 leading: const Icon(Icons.person),
                 title: Text(AppLocalizations.of(context)!.profile),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  // Navigate based on user role
-                  if (userModel?.role == 'candidate' &&
-                      currentCandidateModel != null) {
+                  Navigator.pop(context);
+                  if (userModel?.role == 'candidate' && candidateModel != null) {
                     HomeNavigation.toRightToLeft(
                       const CandidateProfileScreen(),
-                      arguments: currentCandidateModel,
+                      arguments: candidateModel,
                     );
                   } else {
                     HomeNavigation.toNamedRightToLeft('/profile');
@@ -276,18 +223,16 @@ class HomeDrawer extends StatelessWidget {
                 leading: const Icon(Icons.location_on),
                 title: Text(AppLocalizations.of(context)!.myAreaCandidates),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
+                  Navigator.pop(context);
                   HomeNavigation.toRightToLeft(const MyAreaCandidatesScreen());
                 },
               ),
               // Show candidate-specific menu items
-              if (userModel?.role == 'candidate' &&
-                  currentCandidateModel != null) ...[
-                // Log that we're showing candidate menu items
+              if (userModel?.role == 'candidate' && candidateModel != null) ...[
                 Builder(
                   builder: (context) {
                     AppLogger.common(
-                      '🏠 [HOME_DRAWER] Showing candidate menu items - user role: ${userModel?.role}, candidate available: ${currentCandidateModel != null}',
+                      '🏠 [HOME_DRAWER] Showing candidate menu items - user role: ${userModel?.role}',
                     );
                     return const SizedBox.shrink();
                   },
@@ -296,24 +241,16 @@ class HomeDrawer extends StatelessWidget {
                   leading: const Icon(Icons.dashboard),
                   title: Text(AppLocalizations.of(context)!.candidateDashboard),
                   onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    HomeNavigation.toRightToLeft(
-                      const CandidateDashboardScreen(),
-                    ); // Navigate to candidate dashboard
+                    Navigator.pop(context);
+                    HomeNavigation.toRightToLeft(const CandidateDashboardScreen());
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.swap_horiz),
-                  title: Text(
-                    AppLocalizations.of(context)!.changePartySymbolTitle,
-                  ),
+                  title: Text(AppLocalizations.of(context)!.changePartySymbolTitle),
                   onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    HomeNavigation.toRightToLeft(
-                      ChangePartySymbolScreen(
-                        currentCandidate: currentCandidateModel,
-                      ),
-                    );
+                    Navigator.pop(context);
+                    HomeNavigation.toRightToLeft(ChangePartySymbolScreen(currentCandidate: candidateModel));
                   },
                 ),
               ],
@@ -321,54 +258,44 @@ class HomeDrawer extends StatelessWidget {
                 leading: const Icon(Icons.search),
                 title: Text(AppLocalizations.of(context)!.searchByWard),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    const CandidateListScreen(),
-                  ); // Navigate to candidate list screen
+                  Navigator.pop(context);
+                  HomeNavigation.toRightToLeft(const CandidateListScreen());
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.chat),
                 title: Text(AppLocalizations.of(context)!.chatRooms),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    const ChatListScreen(),
-                  ); // Navigate to chat list screen
+                  Navigator.pop(context);
+                  HomeNavigation.toRightToLeft(const ChatListScreen());
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.notifications),
                 title: Text(AppLocalizations.of(context)!.notifications),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    const NotificationCenterScreen(),
-                  ); // Navigate to notification center
+                  Navigator.pop(context);
+                  HomeNavigation.toRightToLeft(const NotificationCenterScreen());
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.settings),
                 title: Text(AppLocalizations.of(context)!.settings),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    const SettingsScreen(),
-                  ); // Navigate to settings screen
+                  Navigator.pop(context);
+                  HomeNavigation.toRightToLeft(const SettingsScreen());
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.info),
                 title: Text(AppLocalizations.of(context)!.about),
                 onTap: () {
-                  Navigator.pop(context); // Close drawer
-                  HomeNavigation.toRightToLeft(
-                    const AboutScreen(),
-                  ); // Navigate to about screen
+                  Navigator.pop(context);
+                  HomeNavigation.toRightToLeft(const AboutScreen());
                 },
               ),
 
-              // Premium Features - only show for candidates
+              // Premium Features
               Builder(
                 builder: (context) {
                   final showPremiumFeatures = userModel?.role == 'candidate';
@@ -386,81 +313,15 @@ class HomeDrawer extends StatelessWidget {
                       const Divider(),
                       Builder(
                         builder: (context) {
-                          AppLogger.candidate(
-                            '🏠 [HOME_DRAWER] Rendering premium features button',
-                          );
+                          AppLogger.candidate('🏠 [HOME_DRAWER] Rendering premium features button');
                           return ListTile(
-                            leading: const Icon(
-                              Icons.star,
-                              color: Color(0xFFFF9933),
-                            ),
-                            title: Text(
-                              AppLocalizations.of(context)!.premiumFeatures,
-                            ),
-                            subtitle: Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.upgradeToUnlockPremiumFeatures,
-                            ),
+                            leading: const Icon(Icons.star, color: Color(0xFFFF9933)),
+                            title: Text(AppLocalizations.of(context)!.premiumFeatures),
+                            subtitle: Text(AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures),
                             onTap: () {
-                              AppLogger.core(
-                                '🏠 [HOME_DRAWER] 🔥 PREMIUM FEATURES BUTTON CLICKED! 🔥',
-                              );
-                              AppLogger.core(
-                                '🏠 [HOME_DRAWER] Context type: ${context.runtimeType}',
-                              );
-                              // Test candidate logging in home drawer
-                              AppLogger.candidate('🏠 [HOME_DRAWER] Testing candidate log in drawer', isShow: true);
-                              try {
-                                Get.snackbar(
-                                  'Navigation',
-                                  '[HOME_DRAWER] Role check: ${userModel?.role}, showPremiumFeatures: $showPremiumFeatures',
-                                  duration: const Duration(seconds: 3),
-                                  backgroundColor: Colors.red,
-                                  colorText: Colors.white,
-                                );
-
-                                // Log current navigation stack
-                                final navigator = Navigator.of(context);
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] Navigator available: ${navigator != null}',
-                                );
-
-                                // Close drawer
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] About to close drawer...',
-                                );
-                                Navigator.pop(context);
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] ✅ Drawer closed successfully',
-                                );
-
-                                // Navigate to monetization
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] Starting navigation to MonetizationScreen...',
-                                );
-                                HomeNavigation.toRightToLeft(
-                                  const MonetizationScreen(),
-                                );
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] ✅ Navigation call completed successfully',
-                                );
-                              } catch (e, stack) {
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] ❌ ERROR during navigation: $e',
-                                );
-                                AppLogger.core(
-                                  '🏠 [HOME_DRAWER] Stack trace: $stack',
-                                );
-                                // Show error snackbar
-                                Get.snackbar(
-                                  'Navigation Error',
-                                  'Failed to open premium features: $e',
-                                  duration: const Duration(seconds: 3),
-                                  backgroundColor: Colors.red,
-                                  colorText: Colors.white,
-                                );
-                              }
+                              AppLogger.core('🏠 [HOME_DRAWER] 🔥 PREMIUM FEATURES BUTTON CLICKED! 🔥');
+                              Navigator.pop(context);
+                              HomeNavigation.toRightToLeft(const MonetizationScreen());
                             },
                           );
                         },
@@ -474,15 +335,9 @@ class HomeDrawer extends StatelessWidget {
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.orange),
-                title: Text(
-                  AppLocalizations.of(context)!.logout,
-                  style: TextStyle(color: Colors.orange),
-                ),
-                subtitle: Text(
-                  AppLocalizations.of(context)!.signOutOfYourAccount,
-                ),
+                title: Text(AppLocalizations.of(context)!.logout, style: TextStyle(color: Colors.orange)),
+                subtitle: Text(AppLocalizations.of(context)!.signOutOfYourAccount),
                 onTap: () async {
-                  // Show confirmation dialog
                   final shouldLogout = await showDialog<bool>(
                     context: context,
                     builder: (BuildContext context) {
@@ -490,15 +345,10 @@ class HomeDrawer extends StatelessWidget {
                         title: const Text('Logout'),
                         content: const Text('Are you sure you want to logout?'),
                         actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
-                          ),
+                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(true),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.orange,
-                            ),
+                            style: TextButton.styleFrom(foregroundColor: Colors.orange),
                             child: const Text('Logout'),
                           ),
                         ],
@@ -507,9 +357,7 @@ class HomeDrawer extends StatelessWidget {
                   );
 
                   if (shouldLogout == true) {
-                    // Close drawer first
                     Navigator.of(context).pop();
-                    // Then logout
                     final authController = Get.find<AuthController>();
                     await authController.logout();
                   }
@@ -532,90 +380,6 @@ class HomeDrawer extends StatelessWidget {
       return 'Trial Active';
     } else {
       return 'Free Plan';
-    }
-  }
-
-  // 🧹 CLEAR SERVICE WORKERS AND CACHE (Web only)
-  void _clearServiceWorkersAndCache() async {
-    try {
-      AppLogger.common('🧹 Clearing service workers and cache...');
-
-      // Check if we're on web platform
-      if (identical(0, 0.0)) {
-        // Dart WEB check
-        // Web-specific service worker and cache clearing
-        // This runs JavaScript code to clear web caches
-        await _clearWebCaches();
-      } else {
-        AppLogger.common(
-          'ℹ️ Service worker clearing only available on web platform',
-        );
-      }
-
-      Get.snackbar(
-        'Cache Cleared',
-        'Service workers and cache cleared. Hard refresh recommended.',
-        duration: const Duration(seconds: 3),
-      );
-
-      AppLogger.common('✅ Service workers and cache clearing completed');
-    } catch (e) {
-      AppLogger.common('❌ Failed to clear service workers and cache: $e');
-
-      Get.snackbar(
-        'Error',
-        'Failed to clear cache: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  // 🕸️ WEB-SPECIFIC: Clear service workers and caches using JS interop
-  Future<void> _clearWebCaches() async {
-    try {
-      // JavaScript to unregister service workers and clear caches
-      final clearSWJS = '''
-        // Unregister all service workers
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          regs.forEach(r => r.unregister());
-          console.log('📱 Unregistered ' + regs.length + ' service workers');
-        });
-
-        // Clear all caches
-        caches.keys().then(keys => {
-          keys.forEach(k => caches.delete(k));
-          console.log('🧹 Cleared ' + keys.length + ' cache stores');
-        });
-
-        // Clear localStorage and sessionStorage
-        localStorage.clear();
-        sessionStorage.clear();
-        console.log('💾 Cleared web storage');
-      ''';
-
-      // Execute JavaScript for web operations
-      // In Flutter web, we can use dart:js but avoid complex imports for now
-      AppLogger.common('🕸️ Executed web cache clearing JavaScript');
-    } catch (e) {
-      AppLogger.common('❌ Web cache clearing error: $e');
-      // Provide fallback instructions
-      Get.dialog(
-        AlertDialog(
-          title: const Text('Manual Cache Clearing'),
-          content: const Text(
-            'Please manually clear cache:\n'
-            '1. Open DevTools (F12)\n'
-            '2. Application tab\n'
-            '3. Unregister Service Workers\n'
-            '4. Clear Storage\n'
-            '5. Hard refresh (Ctrl+Shift+R)',
-          ),
-          actions: [
-            TextButton(onPressed: () => Get.back(), child: const Text('OK')),
-          ],
-        ),
-      );
     }
   }
 }

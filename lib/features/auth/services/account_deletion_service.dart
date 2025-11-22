@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
-import '../../../services/admob_service.dart';
 import '../../../features/chat/controllers/chat_controller.dart';
 import '../../../features/candidate/controllers/candidate_controller.dart';
 import 'google_auth_service.dart';
@@ -266,9 +265,6 @@ class AccountDeletionService {
       }
       if (Get.isRegistered<CandidateController>()) {
         Get.delete<CandidateController>(force: true);
-      }
-      if (Get.isRegistered<AdMobService>()) {
-        Get.delete<AdMobService>(force: true);
       }
 
       AppLogger.auth(
