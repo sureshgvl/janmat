@@ -13,12 +13,12 @@ class RazorpayService extends GetxService {
   RazorpayWebService? _webService;
 
   // Razorpay keys - Replace with your actual keys
-  static const String razorpayKeyId = 'rzp_test_RJP3bsiM4dz0Aa'; // Test key
-  static const String razorpayKeySecret = 'k9tGXewq28ileCC6Nba0PgdT'; // Test secret
+  // static const String razorpayKeyId = 'rzp_test_RiMWsU7GNxKFqz'; // Test key
+  // static const String razorpayKeySecret = 'cThh9upiy1NtnaHdO6cWr99I'; // Test secret
 
   // Production keys (uncomment for production)
-  // static const String razorpayKeyId = 'rzp_live_your_key_id';
-  // static const String razorpayKeySecret = 'your_key_secret';
+  static const String razorpayKeyId = 'rzp_live_RjD86XHWEf5MN5';
+  static const String razorpayKeySecret = 'S4ZUIZBAVKTUUcy2PVQkuJVX';
 
   @override
   void onInit() {

@@ -8,8 +8,8 @@ import '../../../utils/app_logger.dart';
 
 class RazorpayWebService {
   // Razorpay keys - same as mobile version for consistency
-  static const String razorpayKeyId = 'rzp_test_RJP3bsiM4dz0Aa'; // Test key
-  static const String razorpayKeySecret = 'k9tGXewq28ileCC6Nba0PgdT'; // Test secret
+  static const String razorpayKeyId = 'rzp_live_RjD86XHWEf5MN5'; // Live key
+  static const String razorpayKeySecret = 'S4ZUIZBAVKTUUcy2PVQkuJVX'; // Live secret
 
   // Success and error callbacks for web JS integration
   Function(String paymentId, String orderId, String signature)? _successCallback;
