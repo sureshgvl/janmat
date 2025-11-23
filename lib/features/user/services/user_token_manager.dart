@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../../utils/app_logger.dart';
 
 /// Manages FCM token synchronization across user and candidate profiles
@@ -14,6 +15,12 @@ class UserTokenManager {
 
   /// Initialize FCM token management - call once in app startup
   Future<void> initialize() async {
+    if (kIsWeb) {
+      AppLogger.common('📱 WEB: Skipping FCM token management (not supported on web)');
+      _isInitialized = true; // Mark as initialized to prevent retries
+      return;
+    }
+
     if (_isInitialized) return;
 
     try {
@@ -37,6 +44,11 @@ class UserTokenManager {
 
   /// Call after user authentication/login
   Future<void> onUserAuthenticated() async {
+    if (kIsWeb) {
+      AppLogger.common('📱 WEB: Skipping FCM token update after authentication');
+      return;
+    }
+
     try {
       AppLogger.common('🔐 User authenticated - updating FCM tokens...');
       await _validateAndUpdateCurrentToken();
@@ -49,11 +61,14 @@ class UserTokenManager {
 
   /// Force token update (useful for testing or manual refresh)
   Future<void> forceTokenUpdate() async {
+    if (kIsWeb) return;
     await _validateAndUpdateCurrentToken();
   }
 
   /// Check if candidate profiles have FCM tokens and update if missing
   Future<void> ensureCandidateTokens() async {
+    if (kIsWeb) return;
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 

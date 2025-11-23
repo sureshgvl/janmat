@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -39,8 +40,12 @@ class LocalDatabaseService {
   // Initialize database
   Future<Database> get database async {
     if (_database != null) return _database!;
-    // Initialize FFI for desktop platforms
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // Initialize FFI for different platforms
+    if (kIsWeb) {
+      // Web: Explicitly set databaseFactory for web
+      databaseFactory = databaseFactoryFfiWeb;
+    } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // Desktop: Initialize FFI for desktop platforms
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
@@ -49,14 +54,20 @@ class LocalDatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = join(documentsDirectory.path, _dbName);
-    return await openDatabase(
-      path,
-      version: _dbVersion,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
+    if (kIsWeb) {
+      // Web doesn't support file system databases, return a memory database
+      AppLogger.common('📱 WEB: SQLite not available, using in-memory database');
+      return await openDatabase(':memory:', version: _dbVersion, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    } else {
+      final documentsDirectory = await getApplicationDocumentsDirectory();
+      final path = join(documentsDirectory.path, _dbName);
+      return await openDatabase(
+        path,
+        version: _dbVersion,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      );
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {

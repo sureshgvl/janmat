@@ -211,8 +211,13 @@ class AppStartupService {
     });
   }
 
-  /// Initialize FCM token management
+  /// Initialize FCM token management - Only for mobile platforms
   Future<void> _initializeTokenManagement() async {
+    if (kIsWeb) {
+      AppLogger.core('📱 WEB: Skipping FCM token management (not supported on web)');
+      return;
+    }
+
     try {
       AppLogger.core('🔄 Initializing FCM token management...');
       await UserTokenManager().initialize();

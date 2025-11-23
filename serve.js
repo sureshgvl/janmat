@@ -3,7 +3,14 @@ const fs = require('fs');
 const path = require('path');
 
 const server = http.createServer((req, res) => {
-  const filePath = path.join(__dirname, 'build/web', req.url === '/' ? 'index.html' : req.url);
+  let filePath = path.join(__dirname, 'build/web');
+
+  // SPA routing: serve index.html for all non-asset routes
+  if (req.url === '/' || req.url.startsWith('/candidate/')) {
+    filePath = path.join(filePath, 'index.html');
+  } else {
+    filePath = path.join(filePath, req.url);
+  }
 
   fs.readFile(filePath, (err, data) => {
     if (err) {

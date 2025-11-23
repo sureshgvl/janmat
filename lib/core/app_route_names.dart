@@ -14,6 +14,7 @@ class AppRouteNames {
 
   // Candidate routes
   static const candidateProfile = '/candidate-profile';
+  static const publicCandidateProfile = '/public-candidate-profile';
   static const changePartySymbol = '/change-party-symbol';
   static const candidateMediaAdd = '/candidate/dashboard/media/add';
   static const candidateMediaEdit = '/candidate/dashboard/media/edit';

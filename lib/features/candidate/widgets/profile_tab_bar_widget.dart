@@ -88,21 +88,7 @@ class ProfileTabBarWidget extends StatelessWidget {
       ),
     ];
 
-    // Add Analytics tab only for own profile
-    if (isOwnProfile) {
-      tabs.add(
-        Tab(
-          child: Text(
-            CandidateTranslations.tr('analytics'),
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      );
-    }
+
 
     return SliverPersistentHeader(
       pinned: true,

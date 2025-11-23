@@ -10,6 +10,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'dart:io';
 
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
@@ -315,6 +319,16 @@ Future<void> _syncUserStatusManager(String userId, {
 void main() async {
   // Ensure Flutter binding is initialized for safety
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize databaseFactory for SQLite before any other initialization
+  if (kIsWeb) {
+    // Web: Initialize Sqflite for web early
+    databaseFactory = databaseFactoryFfiWeb;
+  } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // Desktop: Initialize FFI for desktop platforms
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   // Initialize workmanager for background tasks (mobile only)
   if (!kIsWeb) {
@@ -638,6 +652,21 @@ class _MyFastAppState extends State<MyFastApp> with WidgetsBindingObserver {
     // Get initial route from startup data
     _currentRoute = widget.startupData['initialRoute'] as String;
 
+    // 🚪 Handle guest routing parameters
+    final guestParams = widget.startupData['guestParams'];
+    if (guestParams != null) {
+      print('🚪 FAST APP: Guest params found: $guestParams');
+      print('🚪 FAST APP: Current route: $_currentRoute');
+
+      // Navigate immediately with guest parameters
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        print('🚪 FAST APP: Executing guest navigation...');
+        Get.offAllNamed(_currentRoute, arguments: guestParams);
+      });
+    } else {
+      print('🚪 FAST APP: No guest params found in startup data');
+    }
+
     // Listen to theme changes and update GetX theme
     final themeController = Get.find<ThemeController>();
     _themeSubscription = themeController.currentTheme.listen((theme) {
@@ -656,8 +685,10 @@ class _MyFastAppState extends State<MyFastApp> with WidgetsBindingObserver {
 
       final isStreamLoggedIn = user != null;
       final isLoggedIn = widget.startupData['isLoggedIn'] as bool;
-      final isLanguageSelected = widget.startupData['isLanguageSelected'] as bool;
-      final isOnboardingCompleted = widget.startupData['isOnboardingCompleted'] as bool;
+      // For fast startup, these values aren't available, so check SharedPreferences directly
+      final prefs = Get.find<SharedPreferences>();
+      final isLanguageSelected = !(prefs.getBool('is_first_time') ?? true);
+      final isOnboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
 
       String newRoute;
 

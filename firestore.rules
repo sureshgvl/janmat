@@ -174,9 +174,9 @@ service cloud.firestore {
         (request.auth.token.admin == true || request.auth.token.role == 'admin');
     }
 
-    // State-based candidates collection
+    // State-based candidates collection - PUBLIC FOR GUEST ACCESS!
     match /states/{stateId}/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/candidates/{candidateId} {
-      allow read: if request.auth != null; // Allow authenticated users to read candidates
+      allow read: if true; // 🔥 PUBLIC READ for guest access to candidate profiles!
       allow create: if request.auth != null &&
         (request.auth.uid == request.resource.data.userId ||
          request.auth.token.admin == true || request.auth.token.role == 'admin');

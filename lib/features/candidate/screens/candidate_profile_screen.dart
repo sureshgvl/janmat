@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../../services/guest_routing_service.dart';
+import '../../../services/public_candidate_service.dart';
+import '../../../services/share_candidate_profile_service.dart';
+import '../../../widgets/common/shimmer_loading_widgets.dart';
+import '../../../widgets/common/error_state_widgets.dart';
+import '../../../core/app_route_names.dart';
 import '../models/candidate_model.dart';
 import '../controllers/candidate_controller.dart';
 import '../controllers/candidate_user_controller.dart';
@@ -30,8 +37,22 @@ import '../../../models/ward_model.dart';
 import '../repositories/candidate_repository.dart';
 import 'candidate_dashboard_screen.dart';
 
+enum ProfileScreenState {
+  loading,
+  loaded,
+  error,
+  candidateNotFound,
+  networkError,
+}
+
+/// Loading States for candidate profile
 class CandidateProfileScreen extends StatefulWidget {
-  const CandidateProfileScreen({super.key});
+  final bool isGuestAccess;
+
+  const CandidateProfileScreen({
+    super.key,
+    this.isGuestAccess = false,
+  });
 
   @override
   State<CandidateProfileScreen> createState() => _CandidateProfileScreenState();
@@ -39,6 +60,8 @@ class CandidateProfileScreen extends StatefulWidget {
 
 class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     with TickerProviderStateMixin {
+  // Screen state management
+  ProfileScreenState _screenState = ProfileScreenState.loading;
   Candidate? candidate;
   final CandidateController controller = Get.isRegistered<CandidateController>()
       ? Get.find<CandidateController>()
@@ -64,7 +87,17 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   void initState() {
     super.initState();
 
-    // Check if arguments are provided
+    // Check if this is guest access (from URL parameters)
+    final args = Get.arguments;
+    if (args is PublicCandidateUrlParams) {
+      // Handle guest access via URL parameters
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _handleGuestAccess(args);
+      });
+      return;
+    }
+
+    // Standard access with candidate object or own profile loading
     if (Get.arguments == null) {
       // Handle the case where no candidate data is provided
       // First try to get candidate data from the controller for own profile
@@ -89,8 +122,8 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
               );
               _tabController?.addListener(_onTabChanged);
               _loadPlanFeatures();
-              _loadLocationData();
-              return;
+              await _loadLocationData();
+
             }
           } catch (e) {
             AppLogger.candidateError(
@@ -163,102 +196,108 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     // Load location data
     _loadLocationData();
 
+    // Mark screen as loaded after all data is ready
+    if (mounted) {
+      setState(() {
+        _screenState = ProfileScreenState.loaded;
+      });
+    }
+
     // Track profile view (only for other users viewing this profile)
     if (!_isOwnProfile && candidate != null) {
       _trackProfileView();
     }
   }
 
-  @override
-  void dispose() {
-    _tabController?.dispose();
-    super.dispose();
-  }
-
-  void _onTabChanged() {
-    if (_tabController?.indexIsChanging == false) {
-      // Only log when tab change is complete
-      final tabNames = [
-        CandidateLocalizations.of(context)!.info,
-        CandidateLocalizations.of(context)!.manifesto,
-        CandidateLocalizations.of(context)!.achievements,
-        CandidateLocalizations.of(context)!.media,
-        CandidateLocalizations.of(context)!.contact,
-        CandidateLocalizations.of(context)!.events,
-      ];
-
-      // Add analytics tab name only for own profile
-      if (_isOwnProfile) {
-        tabNames.add(CandidateLocalizations.of(context)!.analytics);
-      }
-
-      final currentTab = tabNames[_tabController!.index];
-
-      // Only log in debug mode
-      assert(() {
-        AppLogger.candidate('🔄 Tab switched to: $currentTab');
-        return true;
-      }());
-    }
-  }
-
-  String _formatNumber(String value) {
+  /// Handle guest access via URL parameters
+  Future<void> _handleGuestAccess(PublicCandidateUrlParams urlParams) async {
     try {
-      final num = int.parse(value);
-      if (num >= 1000000) {
-        return '${(num / 1000000).toStringAsFixed(1)}M';
-      } else if (num >= 1000) {
-        return '${(num / 1000).toStringAsFixed(1)}K';
+      AppLogger.candidate('🚪 Handling guest access for URL: ${urlParams.toString()}');
+
+      // Set guest access flag
+      _isOwnProfile = false; // Guests can't edit profiles
+
+      // Initialize TabController for guest access (6 tabs, no analytics)
+      _tabController = TabController(length: 6, vsync: this);
+      _tabController?.addListener(_onTabChanged);
+
+      // Fetch candidate data using public service
+      final fetchedCandidate = await PublicCandidateService().getCandidateByFullPath(
+        stateId: urlParams.stateId,
+        districtId: urlParams.districtId,
+        bodyId: urlParams.bodyId,
+        wardId: urlParams.wardId,
+        candidateId: urlParams.candidateId,
+      );
+
+      if (fetchedCandidate == null) {
+        AppLogger.candidate('❌ Guest access failed - candidate not found');
+        SnackbarUtils.showError(
+          CandidateLocalizations.of(context)?.candidateDataNotFound ??
+              'Candidate profile not found',
+        );
+        _navigateGuestBack();
+        return;
       }
-      return value;
-    } catch (e) {
-      return value;
+
+      AppLogger.candidate('✅ Guest access successful - loaded candidate: ${fetchedCandidate.basicInfo?.fullName}');
+
+      setState(() {
+        candidate = fetchedCandidate;
+      });
+
+      // Track guest profile view
+      await PublicCandidateService().trackGuestProfileView(
+        candidateId: urlParams.candidateId,
+        candidateName: fetchedCandidate.basicInfo?.fullName,
+        source: 'direct_url',
+      );
+
+      // Load location data for display (optimized batched queries)
+      await _loadLocationData();
+
+      // Note: Plan features are skipped for guests (no auth required)
+
+      // ✅ Mark screen as loaded after guest access success
+      if (mounted) {
+        setState(() {
+          _screenState = ProfileScreenState.loaded;
+        });
+      }
+
+    } catch (e, stackTrace) {
+      AppLogger.candidateError('❌ Guest access failed: $e $stackTrace');
+      SnackbarUtils.showError('Failed to load candidate profile');
+      _navigateGuestBack();
     }
   }
 
-  /// Get current locale for party name translation
-  String _getCurrentLocale() {
-    final locale = Localizations.localeOf(context);
-    return locale.languageCode; // Returns 'en' or 'mr'
-  }
-
-  // Format date
-  String formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  // Sync with controller data for own profile
-  void _syncWithControllerData() {
-    if (_isOwnProfile && dataController.candidateData.value != null) {
-      AppLogger.candidate('🔄 Syncing profile screen with controller data');
-      setState(() {
-        candidate = dataController.candidateData.value;
-      });
+  /// Navigate back for guest users (different from authenticated users)
+  void _navigateGuestBack() {
+    if (GuestRoutingService.isCurrentlyInGuestMode()) {
+      // For guests, navigate to login screen
+      Get.offAllNamed(AppRouteNames.login);
+    } else {
+      // For authenticated users, normal back navigation
+      Navigator.of(context).pop();
     }
   }
 
   // Refresh candidate data using direct document path (fast!)
   // Note: This preserves controller follow status to avoid UI inconsistencies
   Future<void> _refreshCandidateFollowingData() async {
-    if (candidate == null) return;
+    final location = candidate!.location;
+    final stateId = location.stateId ?? 'maharashtra';
+    final districtId = location.districtId;
+    final bodyId = location.bodyId;
+    final wardId = location.wardId;
+
+    if (districtId == null || bodyId == null || wardId == null) {
+      AppLogger.candidate('⚠️ Missing location data, skipping refresh');
+      return;
+    }
 
     try {
-      AppLogger.candidate(
-        '🔄 Refreshing candidate data using direct path: ${candidate!.candidateId}',
-      );
-
-      // Use embedded location data for direct document access (much faster!)
-      final location = candidate!.location;
-      final stateId = location.stateId ?? 'maharashtra';
-      final districtId = location.districtId;
-      final bodyId = location.bodyId;
-      final wardId = location.wardId;
-
-      if (districtId == null || bodyId == null || wardId == null) {
-        AppLogger.candidate('⚠️ Missing location data, skipping refresh');
-        return;
-      }
-
       // Direct document query using embedded location data
       final candidateDoc = await FirebaseFirestore.instance
           .collection('states')
@@ -340,10 +379,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
-  // Load location data
+  // Load location data (optimized for different access types)
   Future<void> _loadLocationData() async {
     AppLogger.candidate(
-      '🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}',
+      '🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId} (${widget.isGuestAccess ? 'guest' : 'authenticated'})',
     );
     AppLogger.candidate(
       '📍 [Candidate Profile] IDs: district=${candidate?.location.districtId}, body=${candidate?.location.bodyId}, ward=${candidate?.location.wardId}',
@@ -352,75 +391,17 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     if (candidate == null) return;
 
     try {
-      // DEBUG: Print all ward data to see what's stored
-      AppLogger.candidate('🔍 [DEBUG] Checking all ward data in SQLite...');
-      final db = await _locationDatabase.database;
-      final allWards = await db.query('wards');
-      AppLogger.candidate(
-        '📊 [DEBUG] Total wards in SQLite: ${allWards.length}',
-      );
-      for (var ward in allWards) {
-        AppLogger.candidate(
-          '🏛️ [DEBUG] Ward: id=${ward['id']}, name="${ward['name']}", districtId=${ward['districtId']}, bodyId=${ward['bodyId']}, stateId=${ward['stateId']}',
-        );
-      }
+      // For guest access: Use optimized PublicCandidateService with batched, cached queries
+      if (widget.isGuestAccess) {
+        AppLogger.candidate('🚀 [Guest Access] Using optimized batched location loading...');
 
-      // Specifically check ward_17 data
-      final ward17Data = allWards.where((w) => w['id'] == 'ward_17').toList();
-      if (ward17Data.isNotEmpty) {
-        AppLogger.candidate('🎯 [DEBUG] ward_17 data: ${ward17Data.first}');
-      } else {
-        AppLogger.candidate('❌ [DEBUG] ward_17 not found in SQLite');
-      }
-
-      // Load location data from SQLite cache
-      final locationData = await _locationDatabase.getCandidateLocationData(
-        candidate!.location.districtId ?? '',
-        candidate!.location.bodyId ?? '',
-        candidate!.location.wardId ?? '',
-        candidate!.location.stateId ?? 'maharashtra',
-      );
-
-      // Check if ward data is missing or corrupted
-      final rawWardName = locationData['wardName'];
-      final isWardDataCorrupted =
-          rawWardName != null &&
-          (rawWardName.startsWith('Ward Ward ') ||
-              (rawWardName.startsWith('Ward ') &&
-                  RegExp(r'^ward_\d+$').hasMatch(rawWardName.substring(5))));
-
-      if (locationData['wardName'] == null || isWardDataCorrupted) {
-        AppLogger.candidate(
-          '⚠️ [Candidate Profile] Ward data missing or corrupted (raw: "$rawWardName"), triggering sync...',
+        final locationData = await PublicCandidateService().getLocationDisplayData(
+          stateId: candidate!.location.stateId ?? 'maharashtra',
+          districtId: candidate!.location.districtId ?? '',
+          bodyId: candidate!.location.bodyId ?? '',
+          wardId: candidate!.location.wardId ?? '',
         );
 
-        // Trigger background sync for missing/corrupted location data
-        await _syncMissingLocationData();
-
-        // Try loading again after sync
-        final updatedLocationData = await _locationDatabase
-            .getCandidateLocationData(
-              candidate!.location.districtId ?? '',
-              candidate!.location.bodyId ?? '',
-              candidate!.location.wardId ?? '',
-              candidate!.location.stateId ?? 'maharashtra',
-            );
-
-        if (mounted) {
-          setState(() {
-            _districtName = updatedLocationData['districtName'];
-            _bodyName = updatedLocationData['bodyName'];
-            _wardName = updatedLocationData['wardName'];
-          });
-        }
-
-        AppLogger.candidate(
-          '✅ [Candidate Profile] Location data loaded after sync:',
-        );
-        AppLogger.candidate('   📍 District: $_districtName');
-        AppLogger.candidate('   🏛️ Body: $_bodyName');
-        AppLogger.candidate('   🏛️ Ward: $_wardName');
-      } else {
         if (mounted) {
           setState(() {
             _districtName = locationData['districtName'];
@@ -430,12 +411,18 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         }
 
         AppLogger.candidate(
-          '✅ [Candidate Profile] Location data loaded successfully from SQLite:',
+          '✅ [Guest Access] Location data loaded from cache/batch:',
         );
         AppLogger.candidate('   📍 District: $_districtName');
         AppLogger.candidate('   🏛️ Body: $_bodyName');
         AppLogger.candidate('   🏛️ Ward: $_wardName');
+        return;
       }
+
+      // For authenticated users: Use platform-aware location loading (works on web and mobile)
+      AppLogger.candidate('🔐 [Authenticated User] Using platform-aware location loading...');
+      await _loadAuthenticatedLocationData();
+
     } catch (e) {
       AppLogger.candidateError(
         '❌ [Candidate Profile] Error loading location data: $e',
@@ -450,6 +437,32 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         });
       }
     }
+  }
+
+  // Platform-aware location loading for authenticated users (works on web and mobile)
+  Future<void> _loadAuthenticatedLocationData() async {
+    // Load location data using platform-aware method (works on web and mobile)
+    final locationData = await _locationDatabase.getCandidateLocationDataWeb(
+      candidate!.location.districtId ?? '',
+      candidate!.location.bodyId ?? '',
+      candidate!.location.wardId ?? '',
+      candidate!.location.stateId ?? 'maharashtra',
+    );
+
+    if (mounted) {
+      setState(() {
+        _districtName = locationData['districtName'];
+        _bodyName = locationData['bodyName'];
+        _wardName = locationData['wardName'];
+      });
+    }
+
+    AppLogger.candidate(
+      '✅ [Candidate Profile] Location data loaded successfully (platform-aware):',
+    );
+    AppLogger.candidate('   📍 District: $_districtName');
+    AppLogger.candidate('   🏛️ Body: $_bodyName');
+    AppLogger.candidate('   🏛️ Ward: $_wardName');
   }
 
   // Track profile view for analytics
@@ -620,12 +633,98 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       VoterEventsSection(candidateData: candidate!),
     ];
 
-    // Add Analytics tab only for own profile
-    if (_isOwnProfile) {
-      tabViews.add(FollowersAnalyticsSection(candidateData: candidate!));
-    }
+
 
     return tabViews;
+  }
+
+  // Tab change listener
+  void _onTabChanged() {
+    if (_tabController?.indexIsChanging == false) {
+      // Only log when tab change is complete
+      final tabNames = [
+        CandidateLocalizations.of(context)?.info ?? 'Info',
+        CandidateLocalizations.of(context)?.manifesto ?? 'Manifesto',
+        CandidateLocalizations.of(context)?.achievements ?? 'Achievements',
+        CandidateLocalizations.of(context)?.media ?? 'Media',
+        CandidateLocalizations.of(context)?.contact ?? 'Contact',
+        CandidateLocalizations.of(context)?.events ?? 'Events',
+      ];
+
+      // Add analytics tab name only for own profile
+      if (_isOwnProfile) {
+        tabNames.add(CandidateLocalizations.of(context)?.analytics ?? 'Analytics');
+      }
+
+      if (_tabController!.index < tabNames.length) {
+        final currentTab = tabNames[_tabController!.index];
+        AppLogger.candidate('🔄 Tab switched to: $currentTab');
+      }
+    }
+  }
+
+  // Format date helper
+  String formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  // Get current locale
+  String _getCurrentLocale() {
+    final locale = Localizations.localeOf(context);
+    return locale.languageCode;
+  }
+
+  // Format number helper
+  String _formatNumber(String value) {
+    try {
+      final num = int.parse(value);
+      if (num >= 1000000) {
+        return '${(num / 1000000).toStringAsFixed(1)}M';
+      } else if (num >= 1000) {
+        return '${(num / 1000).toStringAsFixed(1)}K';
+      }
+      return value;
+    } catch (e) {
+      return value;
+    }
+  }
+
+  // Sync with controller data for own profile
+  void _syncWithControllerData() {
+    if (_isOwnProfile && dataController.candidateData.value != null) {
+      AppLogger.candidate('🔄 Syncing profile screen with controller data');
+      setState(() {
+        candidate = dataController.candidateData.value;
+      });
+    }
+  }
+
+  // Share profile functionality
+  Future<void> _shareProfile() async {
+    if (candidate == null) return;
+
+    final candidateName = candidate!.basicInfo?.fullName ?? 'This candidate';
+
+    try {
+      // Generate the profile URL
+      final url = ShareCandidateProfileService().generateFullProfileUrl(
+        candidateId: candidate!.candidateId,
+        stateId: candidate!.location.stateId ?? 'maharashtra',
+        districtId: candidate!.location.districtId ?? '',
+        bodyId: candidate!.location.bodyId ?? '',
+        wardId: candidate!.location.wardId ?? '',
+      );
+
+      final subject = 'Check out $candidateName\'s candidate profile on Janmat';
+
+      // Use native share sheet
+      await Share.share(url, subject: subject);
+
+      SnackbarUtils.showSuccess('Profile link shared successfully!');
+    } catch (e) {
+      AppLogger.candidateError('❌ Error sharing profile: $e');
+      SnackbarUtils.showError('Failed to share profile');
+    }
   }
 
   // Refresh candidate data
@@ -654,20 +753,119 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
+  // Retry loading candidate - for error states
+  Future<void> _retryLoadCandidate() async {
+    setState(() {
+      _screenState = ProfileScreenState.loading;
+    });
+
+    // For guest access, retry the guest access flow
+    if (Get.arguments is PublicCandidateUrlParams) {
+      await _handleGuestAccess(Get.arguments as PublicCandidateUrlParams);
+      return;
+    }
+
+    // For normal access, restart the init flow
+    // This is a simplified retry - in production we'd want to extract the loading logic
+    if (candidate != null) {
+      setState(() {
+        _screenState = ProfileScreenState.loaded;
+      });
+    } else {
+      // If candidate is still null, try reloading for own profile
+      if (currentUserId != null) {
+        try {
+          await dataController.loadCandidateUserData(currentUserId!);
+          if (dataController.candidate.value != null) {
+            setState(() {
+              candidate = dataController.candidate.value;
+              _screenState = ProfileScreenState.loaded;
+            });
+            return;
+          }
+        } catch (e) {
+          // Continue to error state
+        }
+      }
+
+      setState(() {
+        _screenState = ProfileScreenState.candidateNotFound;
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
-    // Handle case where candidate is null
-    if (candidate == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(CandidateLocalizations.of(context)!.candidateProfile),
-        ),
-        body: Center(
-          child: Text(
-            CandidateLocalizations.of(context)!.candidateDataNotAvailable,
+    // Handle different screen states
+    switch (_screenState) {
+      case ProfileScreenState.loading:
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(CandidateLocalizations.of(context)!.candidateProfile),
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
           ),
-        ),
-      );
+          body: const CandidateProfileSkeletonLoader(),
+        );
+
+      case ProfileScreenState.candidateNotFound:
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Candidate Profile'),
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+          body: CandidateNotFoundError(
+            isGuest: widget.isGuestAccess,
+            onRetry: _retryLoadCandidate,
+            onBrowseCandidates: () => Get.offAllNamed(AppRouteNames.home),
+          ),
+        );
+
+      case ProfileScreenState.networkError:
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Candidate Profile'),
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          body: NetworkErrorWidget(
+            onRetry: _retryLoadCandidate,
+            customMessage: 'Unable to load candidate profile. Please check your connection.',
+          ),
+        );
+
+      case ProfileScreenState.error:
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Candidate Profile'),
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          body: ErrorStateWidget(
+            errorType: ErrorType.server,
+            onRetry: _retryLoadCandidate,
+          ),
+        );
+
+      case ProfileScreenState.loaded:
+        // Continue with normal profile view
+        break;
     }
 
     // Check if candidate is premium based on plan permissions
@@ -678,9 +876,29 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         title: Text(CandidateLocalizations.of(context)!.candidateProfile),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            // Check if this is guest access (accessed via direct URL)
+            final isGuestUser = GuestRoutingService.isCurrentlyInGuestMode();
+
+            if (isGuestUser) {
+              // Guest user behavior: Navigate to login screen for exploration
+              AppLogger.common('🚪 Guest user navigating back from profile');
+              Get.offAllNamed(AppRouteNames.login);
+            } else {
+              // Normal authenticated user behavior
+              Navigator.of(context).pop();
+            }
+          },
         ),
         actions: [
+          // Share button for all users (guests and authenticated)
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () => _shareProfile(),
+            tooltip: 'Share Profile',
+          ),
+
+          // Edit button only for profile owner
           if (currentUserId == candidate!.userId)
             IconButton(
               icon: const Icon(Icons.edit),

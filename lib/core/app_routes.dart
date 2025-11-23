@@ -46,6 +46,10 @@ class AppRoutes {
       page: () => const CandidateProfileScreen(),
     ),
     GetPage(
+      name: AppRouteNames.publicCandidateProfile,
+      page: () => const CandidateProfileScreen(isGuestAccess: true),
+    ),
+    GetPage(
       name: AppRouteNames.changePartySymbol,
       page: () {
         final candidate = Get.arguments as Candidate?;

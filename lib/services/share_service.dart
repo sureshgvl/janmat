@@ -11,6 +11,7 @@ import '../features/candidate/models/achievements_model.dart';
 import '../l10n/features/candidate/candidate_localizations.dart';
 import '../utils/symbol_utils.dart';
 import '../services/file_upload_service.dart';
+import '../services/share_candidate_profile_service.dart';
 
 /// Service for handling sharing functionality across the app
 class ShareService {
@@ -27,8 +28,15 @@ class ShareService {
   /// Share candidate profile with basic information
   static Future<void> shareCandidateProfile(Candidate candidate) async {
     try {
-      final shareText = _generateProfileShareText(candidate);
-      await Share.share(shareText);
+      if (kIsWeb) {
+        // On web, copy to clipboard instead of using Share API
+        final url = await _generateWebShareUrl(candidate);
+        await _copyToClipboard(url, 'Profile link copied to clipboard!');
+      } else {
+        // On mobile, use Share API
+        final shareText = _generateProfileShareText(candidate);
+        await Share.share(shareText);
+      }
     } catch (e) {
       throw Exception('Failed to share profile: $e');
     }
@@ -273,5 +281,28 @@ class ShareService {
     buffer.writeln('https://play.google.com/store/apps/details?id=com.janmat');
 
     return buffer.toString();
+  }
+
+  /// Generate web share URL for candidate profile
+  static String _generateWebShareUrl(Candidate candidate) {
+    // Import needed for accessing the service
+    // Use the same ShareCandidateProfileService to generate the URL
+    return ShareCandidateProfileService().generateFullProfileUrl(
+      candidateId: candidate.candidateId,
+      stateId: candidate.location.stateId ?? 'maharashtra',
+      districtId: candidate.location.districtId ?? '',
+      bodyId: candidate.location.bodyId ?? '',
+      wardId: candidate.location.wardId ?? '',
+    );
+  }
+
+  /// Copy text to clipboard (web implementation)
+  static Future<void> _copyToClipboard(String text, String successMessage) async {
+    if (kIsWeb) {
+      html.window.navigator.clipboard?.writeText(text);
+      // For now, just show a simple success message
+      // In a real app, you'd want to import a snackbar service
+      html.window.alert(successMessage);
+    }
   }
 }

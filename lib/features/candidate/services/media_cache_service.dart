@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../../utils/app_logger.dart';
@@ -112,6 +113,12 @@ class MediaCacheService {
   }
 
   Future<void> _loadCacheIndex() async {
+    // Skip file system operations on web
+    if (kIsWeb) {
+      AppLogger.common('📱 WEB: [MediaCache] Skipping file system cache on web', tag: 'CACHE');
+      return;
+    }
+
     try {
       final tempDir = await getTemporaryDirectory();
       final indexFile = File(path.join(tempDir.path, 'media_cache_index.json'));

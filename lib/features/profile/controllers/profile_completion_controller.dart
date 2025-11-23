@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/features/user/services/user_status_manager.dart';
 import '../../../utils/app_logger.dart';
@@ -20,7 +21,7 @@ import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 import '../../../utils/add_sample_states.dart';
-import '../../../services/local_database_service.dart';
+
 import '../../notifications/services/constituency_notifications.dart';
 
 class ProfileCompletionController extends GetxController {
@@ -33,8 +34,7 @@ class ProfileCompletionController extends GetxController {
   final ChatController chatController = Get.find<ChatController>();
   final candidateRepository = CandidateRepository();
 
-  // Location database service for automatic data caching
-  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
+  // No local database service - using only Firebase for web compatibility
 
   // Form controllers
   final nameController = TextEditingController();
@@ -271,18 +271,8 @@ class ProfileCompletionController extends GetxController {
           AppLogger.common('🚫 Filtered out $filteredCount inactive states. Active states: ${states.length}');
         }
 
-        // 🚀 OPTIMIZED: Cache states directly from fetched data (no redundant Firebase call)
-        AppLogger.common('🌍 [Profile] Caching ${states.length} active states in SQLite during profile completion');
-        try {
-          await _locationDatabase.insertDistricts(states.map((state) => District(
-            id: state.id,
-            name: state.name,
-            stateId: state.id, // States are stored as districts with stateId = id
-          )).toList());
-          AppLogger.common('✅ [Profile] States cached successfully in SQLite');
-        } catch (e) {
-          AppLogger.commonError('❌ [Profile] Failed to cache states', error: e);
-        }
+        // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
+        //AppLogger.common('� [Profile] Using Firestore directly - caching not supported on web');
       }
 
       // No default state selection - user must choose
@@ -314,52 +304,7 @@ class ProfileCompletionController extends GetxController {
       try {
         AppLogger.common('🔍 Loading districts for state: $stateId (attempt ${retryCount + 1})');
 
-        // 🚀 OPTIMIZATION: First try to load from local cache - COMMENTED OUT FOR TESTING
-        /*
-        try {
-          // Check if districts are cached for this state
-          final db = await _locationDatabase.database;
-          final cachedDistrictsMaps = await db.query(
-            'districts',
-            where: 'stateId = ?',
-            whereArgs: [stateId],
-          );
-
-          if (cachedDistrictsMaps.isNotEmpty) {
-            final cachedDistricts = cachedDistrictsMaps.map((map) => District.fromJson(map)).toList();
-            AppLogger.common('🎯 Found ${cachedDistricts.length} districts in cache for state: $stateId');
-
-            // Check if this is the old cached data (states stored as districts)
-            // If so, clear cache and reload from Firestore
-            if (cachedDistricts.length == 1 && cachedDistricts.first.id == stateId) {
-              AppLogger.common('⚠️ Found old cached data (state stored as district), clearing cache and reloading from Firestore');
-              try {
-                await _locationDatabase.database.then((db) => db.delete('districts', where: 'stateId = ?', whereArgs: [stateId]));
-                AppLogger.common('✅ Cleared old cache data for state: $stateId');
-              } catch (e) {
-                AppLogger.commonError('❌ Failed to clear old cache data', error: e);
-              }
-            } else {
-              districts = cachedDistricts;
-              districtBodies.clear();
-
-              // Load bodies for cached districts
-              await _loadBodiesForDistricts(stateId);
-
-              isLoadingDistricts = false;
-              update();
-              AppLogger.common('✅ Successfully loaded ${districts.length} districts from cache for state $stateId');
-              return;
-            }
-          } else {
-            AppLogger.common('⚠️ No districts found in cache for state: $stateId, loading from Firestore');
-          }
-        } catch (cacheError) {
-          AppLogger.common('⚠️ Cache load failed, falling back to Firestore: $cacheError');
-        }
-        */
-
-        // Load from Firestore if cache miss
+        // Load from Firestore directly (web-compatible approach)
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('states')
             .doc(stateId)
@@ -389,14 +334,8 @@ class ProfileCompletionController extends GetxController {
 
         AppLogger.common('✅ Loaded ${districts.length} active districts from Firestore for state $stateId');
 
-        // 🚀 OPTIMIZED: Cache districts directly from fetched data (no redundant Firebase call)
-        AppLogger.common('🏙️ [Profile] Caching ${districts.length} districts in SQLite for state: $stateId');
-        try {
-          await _locationDatabase.insertDistricts(districts);
-          AppLogger.common('✅ [Profile] Districts cached successfully in SQLite');
-        } catch (e) {
-          AppLogger.commonError('❌ [Profile] Failed to cache districts', error: e);
-        }
+        // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
+        AppLogger.common('🌐 [Profile] Skipping district caching on web - using Firestore directly');
 
         // Load bodies only for the selected state
         await _loadBodiesForDistricts(stateId);
@@ -447,14 +386,8 @@ class ProfileCompletionController extends GetxController {
           });
         }).toList();
 
-        // 🚀 OPTIMIZED: Cache bodies directly from fetched data (no redundant Firebase call)
-        AppLogger.common('🏛️ [Profile] Caching ${districtBodies[district.id]!.length} bodies in SQLite for district: ${district.id}');
-        try {
-          await _locationDatabase.insertBodies(districtBodies[district.id]!);
-          AppLogger.common('✅ [Profile] Bodies cached successfully in SQLite');
-        } catch (e) {
-          AppLogger.commonError('❌ [Profile] Failed to cache bodies for district ${district.id}', error: e);
-        }
+        // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
+        AppLogger.common(' [Profile] Skipping bodies caching on web for district ${district.id} - using Firestore directly');
       } catch (e) {
         AppLogger.commonError('❌ Failed to load bodies for district ${district.id}', error: e);
         districtBodies[district.id] = []; // Set empty list on error
@@ -543,14 +476,8 @@ class ProfileCompletionController extends GetxController {
         return aNumber.compareTo(bNumber);
       });
 
-      // 🚀 OPTIMIZED: Cache wards directly from fetched data (no redundant Firebase call)
-      AppLogger.common('🏛️ [Profile] Caching ${bodyWards[bodyId]!.length} wards in SQLite for $districtId/$bodyId');
-      try {
-        await _locationDatabase.insertWards(bodyWards[bodyId]!);
-        AppLogger.common('✅ [Profile] Wards cached successfully in SQLite');
-      } catch (e) {
-        AppLogger.commonError('❌ [Profile] Failed to cache wards for $districtId/$bodyId', error: e);
-      }
+      // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
+      AppLogger.common(' [Profile] Skipping wards caching on web for $districtId/$bodyId - using Firestore directly');
 
       update();
       AppLogger.common('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');
@@ -931,13 +858,25 @@ class ProfileCompletionController extends GetxController {
   bool _validateVoterAdditionalFields(BuildContext context) {
     final localizations = ProfileLocalizations.of(context)!;
 
-    // Area selection required for voters if ward has areas
-    if (selectedWard != null &&
-        selectedWard!.areas != null &&
-        selectedWard!.areas!.isNotEmpty &&
-        selectedArea == null) {
-      SnackbarUtils.showError(localizations.selectYourArea);
-      return false;
+    // For ZP+PS combined elections, validate ZP and PS areas
+    if (selectedElectionType == 'zp_ps_combined') {
+      if (selectedZPBodyId != null && selectedZPWardId != null && selectedZPArea == null) {
+        SnackbarUtils.showError('Please select your ZP area');
+        return false;
+      }
+      if (selectedPSBodyId != null && selectedPSWardId != null && selectedPSArea == null) {
+        SnackbarUtils.showError('Please select your PS area');
+        return false;
+      }
+    } else {
+      // For regular elections, area selection required for voters if ward has areas
+      if (selectedWard != null &&
+          selectedWard!.areas != null &&
+          selectedWard!.areas!.isNotEmpty &&
+          selectedArea == null) {
+        SnackbarUtils.showError(localizations.selectYourArea);
+        return false;
+      }
     }
 
     return true;

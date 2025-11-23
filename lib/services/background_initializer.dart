@@ -48,8 +48,13 @@ class BackgroundInitializer {
     _isInitialized = true;
   }
 
-  /// Start background isolate for heavy computations
+  /// Start background isolate for heavy computations - disabled on web
   Future<void> _startIsolate() async {
+    if (kIsWeb) {
+      AppLogger.common('📱 WEB: Skipping background isolate (not supported on web)');
+      return;
+    }
+
     try {
       _isolate = await Isolate.spawn(_isolateEntry, _receivePort.sendPort);
       _sendPort = await _receivePort.first as SendPort;
@@ -134,7 +139,7 @@ class BackgroundInitializer {
     }
   }
 
-  /// Initialize services with zero frame impact
+  /// Initialize services with zero frame impact - disabled compute on web
   Future<void> initializeServiceWithZeroFrames(
     String serviceName,
     Future<void> Function() initializer,
@@ -150,12 +155,21 @@ class BackgroundInitializer {
           AppLogger.common('✅ $serviceName initialized with zero frames');
         });
       } else {
-        // Use compute for other services
-        await compute(_runServiceInitializer, {
-          'service': serviceName,
-          'initializer': initializer,
-        });
-        AppLogger.common('✅ $serviceName initialized with zero frames');
+        // Use compute for other services - not available on web
+        if (kIsWeb) {
+          AppLogger.common('📱 WEB: Skipping compute for $serviceName, using main thread');
+          SchedulerBinding.instance.addPostFrameCallback((_) async {
+            AppLogger.common('🔄 Initializing $serviceName on web main thread');
+            await initializer();
+            AppLogger.common('✅ $serviceName initialized on web');
+          });
+        } else {
+          await compute(_runServiceInitializer, {
+            'service': serviceName,
+            'initializer': initializer,
+          });
+          AppLogger.common('✅ $serviceName initialized with zero frames');
+        }
       }
     } catch (e) {
       AppLogger.commonError('❌ $serviceName initialization failed', error: e);
@@ -246,17 +260,23 @@ class BackgroundInitializer {
   bool get isReady => _isInitialized && _sendPort != null;
 }
 
-/// Extension for zero-frame operations
+/// Extension for zero-frame operations - web compatible
 extension ZeroFrameOperations on Future<void> {
   /// Run this operation with zero frame impact
   Future<void> withZeroFrames() async {
     final initializer = BackgroundInitializer();
 
-    if (initializer.isReady) {
+    if (kIsWeb) {
+      // On web, just run directly in post-frame callback
+      AppLogger.common('📱 WEB: Running operation with zero frames using scheduler');
+      SchedulerBinding.instance.addPostFrameCallback((_) async {
+        await this;
+      });
+    } else if (initializer.isReady) {
       await initializer.runInIsolate(() => this);
     } else {
-      // Fallback to compute
-      await compute(_runFutureInCompute, this);
+      // Fallback to compute on mobile
+      await compute(_runFutureInCompute, this as Future<void>);
     }
   }
 }

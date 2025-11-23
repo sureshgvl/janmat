@@ -47,7 +47,7 @@ class AppLogger {
       errorMethodCount: 5,
       lineLength: 120,
       colors: true,
-      printEmojis: true,
+      printEmojis: kIsWeb ? false : true, // Disable emojis on web to avoid encoding issues
       printTime: true,
     ),
     level: kDebugMode ? Level.verbose : Level.warning,
