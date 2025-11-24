@@ -11,6 +11,7 @@ import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../utils/advanced_analytics.dart';
 import '../../../utils/memory_manager.dart';
+import '../../../utils/multi_level_cache.dart';
 import '../../notifications/services/candidate_following_notifications.dart';
 import '../../../services/local_database_service.dart';
 import '../../../utils/app_logger.dart';
@@ -117,7 +118,7 @@ class CandidateController extends GetxController {
     update();
   }
 
-  // Fetch candidates by ward with analytics and SQLite caching
+  // Fetch candidates by ward with analytics and SQLite caching (optimized for web)
   Future<void> fetchCandidatesByWard(
     String districtId,
     String bodyId,
@@ -140,15 +141,30 @@ class CandidateController extends GetxController {
     update();
 
     try {
-      // Phase 1: Try to load from SQLite cache first
-      AppLogger.candidate('📊 [Controller:Candidates] Phase 1: Checking SQLite cache...');
+      List<Candidate>? cachedCandidates;
+
+      // Phase 1: Try to load from cache - web optimized
+      AppLogger.candidate('📊 [Controller:Candidates] Phase 1: Checking cache...');
       final cacheCheckStart = DateTime.now();
-      final cachedCandidates = await _loadCandidatesFromSQLite(wardId);
+
+      if (kIsWeb) {
+        // Web: Use MultiLevelCache directly for fast persistence
+        final cacheKey = 'candidates_dharashiv_dharashiv_zp_$wardId';
+        final cachedData = await MultiLevelCache().get<List<dynamic>>(cacheKey);
+        if (cachedData != null) {
+          cachedCandidates = cachedData.map((e) => Candidate.fromJson(e as Map<String, dynamic>)).toList();
+          AppLogger.candidate('🌐 WEB CACHE HIT - Using MultiLevelCache data');
+        }
+      } else {
+        // Mobile: Use SQLite cache
+        cachedCandidates = await _loadCandidatesFromSQLite(wardId);
+      }
+
       final cacheCheckTime = DateTime.now().difference(cacheCheckStart).inMilliseconds;
 
       if (cachedCandidates != null) {
         candidates.assignAll(cachedCandidates);
-        AppLogger.candidate('CACHE HIT - Using SQLite cached data');
+        AppLogger.candidate('CACHE HIT - Using cached data');
         AppLogger.candidate('Candidates loaded: ${candidates.length}');
         AppLogger.candidate('Cache check time: ${cacheCheckTime}ms');
 
@@ -164,6 +180,15 @@ class CandidateController extends GetxController {
         AppLogger.candidate('Cache hit: Yes');
         AppLogger.candidate('Firebase calls: 0');
         AppLogger.candidate('Follow status time: ${followTime}ms');
+
+        // Memory management - register for cleanup
+        _memoryManager.registerObject(
+          'candidates_${districtId}_${bodyId}_$wardId',
+          candidates,
+          ttl: Duration(minutes: 15),
+          category: 'candidates',
+          metadata: {'count': candidates.length},
+        );
 
         isLoading.value = false;
         update();
@@ -185,10 +210,21 @@ class CandidateController extends GetxController {
       AppLogger.candidate('Candidates fetched: ${candidates.length}');
       AppLogger.candidate('Firebase time: ${firebaseTime}ms');
 
-      // Phase 2: Cache candidates in SQLite for future use
-      AppLogger.candidate('Phase 2: Caching to SQLite...');
+      // Phase 2: Cache candidates
+      AppLogger.candidate('Phase 2: Caching candidates...');
       final cacheStartTime = DateTime.now();
-      await _cacheCandidatesInSQLite(candidates, wardId);
+
+      if (kIsWeb) {
+        // Web: Cache in MultiLevelCache
+        final cacheKey = 'candidates_dharashiv_dharashiv_zp_$wardId';
+        final candidatesJson = candidates.map((c) => c.toJson()).toList();
+        await MultiLevelCache().set<List<dynamic>>(cacheKey, candidatesJson, ttl: Duration(hours: 24));
+        AppLogger.candidate('🌐 Web cached ${candidates.length} candidates in MultiLevelCache');
+      } else {
+        // Mobile: Cache in SQLite
+        await _cacheCandidatesInSQLite(candidates, wardId);
+      }
+
       final cacheTime = DateTime.now().difference(cacheStartTime).inMilliseconds;
 
       // Phase 3: Populate follow status
@@ -223,7 +259,7 @@ class CandidateController extends GetxController {
       AppLogger.candidate('Total time: ${totalTime}ms');
       AppLogger.candidate('Cache hit: No');
       AppLogger.candidate('Firebase calls: 1');
-      AppLogger.candidate('SQLite cache time: ${cacheTime}ms');
+      AppLogger.candidate('Cache time: ${cacheTime}ms');
       AppLogger.candidate('Follow status time: ${followTime}ms');
 
     } catch (e) {

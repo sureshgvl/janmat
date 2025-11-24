@@ -68,8 +68,8 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
           // Start Feed Section
           Builder(
             builder: (context) {
-              AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'FEED_SECTION');
-              AppLogger.common('Start Feed Section', tag: 'FEED_SECTION');
+              // AppLogger.common('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄', tag: 'FEED_SECTION');
+              // AppLogger.common('Start Feed Section', tag: 'FEED_SECTION');
               return const SizedBox.shrink();
             },
           ),
@@ -127,11 +127,11 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
 
                 Builder(
                   builder: (context) {
-                    AppLogger.common('End Feed Section', tag: 'FEED_SECTION');
-                    AppLogger.common(
-                      '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
-                      tag: 'FEED_SECTION',
-                    );
+                    // AppLogger.common('End Feed Section', tag: 'FEED_SECTION');
+                    // AppLogger.common(
+                    //   '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+                    //   tag: 'FEED_SECTION',
+                    // );
                     return const SizedBox.shrink();
                   },
                 ),
@@ -146,14 +146,14 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                 // Start Static Sections
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
-                      tag: 'STATIC_SECTIONS',
-                    );
-                    AppLogger.common(
-                      'Start Static Sections',
-                      tag: 'STATIC_SECTIONS',
-                    );
+                    // AppLogger.common(
+                    //   '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+                    //   tag: 'STATIC_SECTIONS',
+                    // );
+                    // AppLogger.common(
+                    //   'Start Static Sections',
+                    //   tag: 'STATIC_SECTIONS',
+                    // );
                     return const SizedBox.shrink();
                   },
                 ),
@@ -162,10 +162,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                 // Welcome Section
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      'Loading Welcome Section...',
-                      tag: 'STATIC_SECTIONS',
-                    );
+                    // AppLogger.common(
+                    //   'Loading Welcome Section...',
+                    //   tag: 'STATIC_SECTIONS',
+                    // );
                     return HomeWidgets.buildWelcomeSection(
                       context,
                       widget.userModel,
@@ -179,10 +179,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                     widget.userModel?.isTrialActive == true) ...[
                   Builder(
                     builder: (context) {
-                      AppLogger.common(
-                        'Loading Trial Status Banner...',
-                        tag: 'STATIC_SECTIONS',
-                      );
+                      // AppLogger.common(
+                      //   'Loading Trial Status Banner...',
+                      //   tag: 'STATIC_SECTIONS',
+                      // );
                       return HomeWidgets.buildTrialBanner(
                         context,
                         widget.userModel!,
@@ -197,10 +197,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                 if (widget.userModel?.role == 'candidate') ...[
                   Builder(
                     builder: (context) {
-                      AppLogger.common(
-                        'Loading Premium Features Card...',
-                        tag: 'STATIC_SECTIONS',
-                      );
+                      // AppLogger.common(
+                      //   'Loading Premium Features Card...',
+                      //   tag: 'STATIC_SECTIONS',
+                      // );
                       return HomeWidgets.buildPremiumCard(
                         context,
                         widget.userModel,
@@ -215,24 +215,24 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                 // Quick Actions
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      'Loading Quick Actions...',
-                      tag: 'STATIC_SECTIONS',
-                    );
+                    // AppLogger.common(
+                    //   'Loading Quick Actions...',
+                    //   tag: 'STATIC_SECTIONS',
+                    // );
                     return HomeWidgets.buildQuickActions(context);
                   },
                 ),
 
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      'End Static Sections',
-                      tag: 'STATIC_SECTIONS',
-                    );
-                    AppLogger.common(
-                      '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
-                      tag: 'STATIC_SECTIONS',
-                    );
+                    // AppLogger.common(
+                    //   'End Static Sections',
+                    //   tag: 'STATIC_SECTIONS',
+                    // );
+                    // AppLogger.common(
+                    //   '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+                    //   tag: 'STATIC_SECTIONS',
+                    // );
                     return const SizedBox.shrink();
                   },
                 ),
@@ -241,10 +241,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                   const SizedBox(height: 32),
                   Builder(
                     builder: (context) {
-                      AppLogger.common(
-                        'Loading Candidate Dashboard...',
-                        tag: 'STATIC_SECTIONS',
-                      );
+                      // AppLogger.common(
+                      //   'Loading Candidate Dashboard...',
+                      //   tag: 'STATIC_SECTIONS',
+                      // );
                       return _buildCandidateDashboard(context);
                     },
                   ),

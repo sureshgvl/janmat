@@ -283,14 +283,15 @@ class UserStatusManager {
       if (profileCompleted != null) updates['profileCompleted'] = profileCompleted;
 
       if (updates.isNotEmpty) {
+        // Use set with merge: true to create document if it doesn't exist
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
-            .update(updates);
-        AppLogger.common('🔥 Firebase updated for user: $userId with: $updates');
+            .set(updates, SetOptions(merge: true));
+        AppLogger.common('🔥 Firebase document created/updated for user: $userId with: $updates');
       }
     } catch (e) {
-      AppLogger.commonError('❌ Error updating Firebase for $userId', error: e);
+      AppLogger.commonError('❌ Error creating/updating Firebase document for $userId', error: e);
       // Don't rethrow - Firebase update failure shouldn't break the flow
     }
   }

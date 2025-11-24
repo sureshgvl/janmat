@@ -39,10 +39,6 @@ class UserManagementService {
 
         // Use set with merge to ensure atomic operation
         await userDoc.set(userModel.toJson(), SetOptions(merge: true));
-
-        // Create default quota for new user (optimized)
-        await _createDefaultUserQuotaOptimized(firebaseUser.uid);
-
         AppLogger.auth('✅ New user created successfully');
       } else {
         AppLogger.auth('🔄 Updating existing user record...');
@@ -79,53 +75,4 @@ class UserManagementService {
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
-
-  // Create default quota for new user
-  Future<void> _createDefaultUserQuota(String userId) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      final quotaData = {
-        'userId': userId,
-        'dailyLimit': 100,
-        'messagesSent': 0,
-        'extraQuota': 0,
-        'lastReset': DateTime.now().toIso8601String(),
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-      await quotaRef.set(quotaData);
-      AppLogger.auth('✅ Created default quota for new user: $userId');
-    } catch (e) {
-      AppLogger.auth('Failed to create default quota for user $userId: $e');
-      // Don't throw here as user creation should succeed even if quota creation fails
-    }
-  }
-
-  // Create default quota for new user - Optimized version
-  Future<void> _createDefaultUserQuotaOptimized(String userId) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      final now = DateTime.now();
-
-      // Use server timestamp for better consistency
-      final quotaData = {
-        'userId': userId,
-        'dailyLimit': 100,
-        'messagesSent': 0,
-        'extraQuota': 0,
-        'lastReset': now.toIso8601String(),
-        'createdAt': now.toIso8601String(),
-        'lastUpdated': FieldValue.serverTimestamp(),
-      };
-
-      // Use set with merge for atomic operation
-      await quotaRef.set(quotaData, SetOptions(merge: true));
-      AppLogger.auth('✅ Created optimized default quota for new user: $userId');
-    } catch (e) {
-      AppLogger.auth(
-        '❌ Failed to create optimized default quota for user $userId: $e',
-      );
-      // Fallback to original method
-      await _createDefaultUserQuota(userId);
-    }
-  }
 }

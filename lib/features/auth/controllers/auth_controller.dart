@@ -323,9 +323,8 @@ class AuthController extends GetxController {
       AppLogger.auth('🔄 [DEBUG] Starting Google sign-in process...');
       final userCredential = await _authRepository.signInWithGoogle(forceAccountPicker: forceAccountPicker);
 
-      if (Get.isDialogOpen ?? false) Get.back();
-
       if (userCredential == null || userCredential.user == null) {
+        if (Get.isDialogOpen ?? false) Get.back();
         AppLogger.auth('⚠️ [DEBUG] User cancelled Google sign-in');
         SnackbarUtils.showError('Google sign-in was cancelled');
         return;
@@ -342,6 +341,7 @@ class AuthController extends GetxController {
       AppLogger.auth('🎯 Post-login route determined: $targetRoute');
 
       SnackbarUtils.showSuccess('Google sign-in successful');
+      if (Get.isDialogOpen ?? false) Get.back();
       Get.offAllNamed(targetRoute);
 
     } catch (e) {

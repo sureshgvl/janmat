@@ -20,7 +20,6 @@ import '../../candidate/models/contact_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
-import '../../../utils/add_sample_states.dart';
 
 import '../../notifications/services/constituency_notifications.dart';
 
@@ -231,31 +230,7 @@ class ProfileCompletionController extends GetxController {
         '📊 Found ${statesSnapshot.docs.length} states in Firestore',
       );
 
-      // If no states found, add sample states
-      if (statesSnapshot.docs.isEmpty) {
-        AppLogger.commonError('⚠️ No states found in database, adding sample states');
-        try {
-          await SampleStatesManager.addSampleStates();
-          await SampleStatesManager.addSampleDistrictsForMaharashtra();
-
-          // Reload states after adding samples
-          final updatedSnapshot = await FirebaseFirestore.instance
-              .collection('states')
-              .get();
-
-          states = updatedSnapshot.docs.map((doc) {
-            final data = doc.data();
-            AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'}');
-            return state_model.State.fromJson({'id': doc.id, ...data});
-          }).toList();
-
-          AppLogger.common('✅ Sample states added and loaded successfully');
-        } catch (e) {
-          AppLogger.commonError('❌ Failed to add sample states', error: e);
-          // Continue with empty states list
-          states = [];
-        }
-      } else {
+      if (statesSnapshot.docs.isNotEmpty) {
         states = statesSnapshot.docs.map((doc) {
           final data = doc.data();
           AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']} - Active: ${data['isActive']}');

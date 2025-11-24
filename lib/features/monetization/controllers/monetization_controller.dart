@@ -8,11 +8,12 @@ import 'package:janmat/utils/theme_constants.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/plan_model.dart';
+import '../../../models/payment_model.dart';
 import '../../../models/body_model.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../services/razorpay_service.dart';
 import '../../../services/local_database_service.dart';
-import '../../highlight/controller/highlight_controller.dart' as hc;
+import '../../highlight/controller/highlight_plan_banner_controller.dart' as hc;
 import '../../highlight/services/highlight_service.dart';
 import '../../../features/candidate/controllers/candidate_controller.dart';
 import '../repositories/monetization_repository.dart';
@@ -27,8 +28,9 @@ class MonetizationController extends GetxController {
   // Reactive variables
   var plans = <SubscriptionPlan>[].obs;
   var userSubscriptions = <UserSubscription>[].obs;
-  var xpTransactions = <XPTransaction>[].obs;
-  var userXPBalance = 0.obs;
+  ////var xpTransactions = <XPTransaction>[].o // COMMENTED: XP balance not displayedbs; // COMMENTED: XP balance not displayed
+  var paymentHistory = <PaymentTransaction>[].obs;
+  ////var userXPBalance = 0.o // COMMENTED: XP balance not displayedbs; // COMMENTED: XP balance not displayed
   var isLoading = false.obs;
   var errorMessage = ''.obs;
 
@@ -46,7 +48,11 @@ class MonetizationController extends GetxController {
   var first1000Limit = 1000.obs;
 
   // Payment mode toggle for testing
-  var useMockPayment = false.obs; // Real payments everywhere (temporarily enabled for testing)
+  var useMockPayment =
+      false.obs; // Real payments everywhere (temporarily enabled for testing)
+
+  // Web payment data storage
+  Map<String, dynamic>? _lastPaymentData;
 
   // Real-time subscription monitoring
   StreamSubscription<DocumentSnapshot>? _subscriptionListener;
@@ -87,7 +93,9 @@ class MonetizationController extends GetxController {
     try {
       // Check session cache first (unless force refresh)
       if (!forceRefresh && _plansLoaded && _lastPlansLoadTime != null) {
-        final timeSinceLastLoad = DateTime.now().difference(_lastPlansLoadTime!);
+        final timeSinceLastLoad = DateTime.now().difference(
+          _lastPlansLoadTime!,
+        );
         // Cache for 30 minutes during session
         if (timeSinceLastLoad.inMinutes < 30) {
           return;
@@ -155,7 +163,6 @@ class MonetizationController extends GetxController {
       // Update cache flags
       _plansLoaded = true;
       _lastPlansLoadTime = DateTime.now();
-
     } catch (e) {
       errorMessage.value = 'Failed to load plans: $e';
     }
@@ -177,7 +184,9 @@ class MonetizationController extends GetxController {
   // Election Type Derivation using SQLite cache
   Future<String?> getUserElectionType(String userId) async {
     try {
-      AppLogger.monetization('🔍 [MonetizationController] Getting election type for user: $userId');
+      AppLogger.monetization(
+        '🔍 [MonetizationController] Getting election type for user: $userId',
+      );
 
       // Get user document to access electionAreas
       final userDoc = await FirebaseFirestore.instance
@@ -186,7 +195,9 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!userDoc.exists) {
-        AppLogger.monetization('❌ [MonetizationController] User document not found for: $userId');
+        AppLogger.monetization(
+          '❌ [MonetizationController] User document not found for: $userId',
+        );
         return kIsWeb ? 'municipal_corporation' : null; // Web fallback
       }
 
@@ -195,7 +206,9 @@ class MonetizationController extends GetxController {
 
       // WEB FALLBACK: If no election areas, assume municipal corporation (most common)
       if (electionAreas == null || electionAreas.isEmpty) {
-        AppLogger.monetization('❌ [MonetizationController] No election areas found for user: $userId, using web fallback');
+        AppLogger.monetization(
+          '❌ [MonetizationController] No election areas found for user: $userId, using web fallback',
+        );
         return kIsWeb ? 'municipal_corporation' : null;
       }
 
@@ -209,11 +222,15 @@ class MonetizationController extends GetxController {
       final districtId = location?['districtId'] as String?;
 
       if (stateId == null || districtId == null) {
-        AppLogger.monetization('❌ [MonetizationController] Missing stateId or districtId for user: $userId, using web fallback');
+        AppLogger.monetization(
+          '❌ [MonetizationController] Missing stateId or districtId for user: $userId, using web fallback',
+        );
         return kIsWeb ? 'municipal_corporation' : null;
       }
 
-      AppLogger.monetization('📍 [MonetizationController] User location: state=$stateId, district=$districtId, body=$bodyId');
+      AppLogger.monetization(
+        '📍 [MonetizationController] User location: state=$stateId, district=$districtId, body=$bodyId',
+      );
 
       // Try SQLite cache first for better performance (MOBILE ONLY)
       if (!kIsWeb) {
@@ -226,16 +243,22 @@ class MonetizationController extends GetxController {
 
           if (cachedBody != null) {
             final electionType = _mapBodyTypeToElectionType(cachedBody.type);
-            AppLogger.monetization('✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})');
+            AppLogger.monetization(
+              '✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})',
+            );
             return electionType;
           }
         } catch (e) {
-          AppLogger.monetization('⚠️ [MonetizationController] SQLite cache failed on mobile: $e');
+          AppLogger.monetization(
+            '⚠️ [MonetizationController] SQLite cache failed on mobile: $e',
+          );
         }
       }
 
       // Fallback to Firebase if not in cache or on web
-      AppLogger.monetization('🔄 [MonetizationController] ${kIsWeb ? 'Web platform' : 'Body not in cache'}, fetching from Firebase...');
+      AppLogger.monetization(
+        '🔄 [MonetizationController] ${kIsWeb ? 'Web platform' : 'Body not in cache'}, fetching from Firebase...',
+      );
       final bodyDoc = await FirebaseFirestore.instance
           .collection('states')
           .doc(stateId)
@@ -246,12 +269,16 @@ class MonetizationController extends GetxController {
           .get();
 
       if (!bodyDoc.exists) {
-        AppLogger.monetization('❌ [MonetizationController] Body document not found: $bodyId, using web fallback');
+        AppLogger.monetization(
+          '❌ [MonetizationController] Body document not found: $bodyId, using web fallback',
+        );
         return kIsWeb ? 'municipal_corporation' : null;
       }
 
       final bodyTypeString = bodyDoc.data()?['type'] as String?;
-      AppLogger.monetization('📄 [MonetizationController] Body type from Firebase: $bodyTypeString');
+      AppLogger.monetization(
+        '📄 [MonetizationController] Body type from Firebase: $bodyTypeString',
+      );
 
       // Convert string to BodyType enum
       BodyType? bodyType;
@@ -276,21 +303,29 @@ class MonetizationController extends GetxController {
       }
 
       final electionType = _mapBodyTypeToElectionType(bodyType);
-      AppLogger.monetization('✅ [MonetizationController] Final election type: $electionType (body type: $bodyType)');
+      AppLogger.monetization(
+        '✅ [MonetizationController] Final election type: $electionType (body type: $bodyType)',
+      );
 
       // FINAL WEB FALLBACK: If election type is still null, default to municipal corporation
       if (electionType == null && kIsWeb) {
-        AppLogger.monetization('⚠️ [MonetizationController] Election type resolved to null on web, using fallback: municipal_corporation');
+        AppLogger.monetization(
+          '⚠️ [MonetizationController] Election type resolved to null on web, using fallback: municipal_corporation',
+        );
         return 'municipal_corporation';
       }
 
       return electionType;
     } catch (e) {
-      AppLogger.monetization('❌ [MonetizationController] Error getting election type: $e');
+      AppLogger.monetization(
+        '❌ [MonetizationController] Error getting election type: $e',
+      );
 
       // EMERGENCY WEB FALLBACK: Return municipal corporation for any error on web
       if (kIsWeb) {
-        AppLogger.monetization('⚠️ [MonetizationController] Error occurred on web, using emergency fallback: municipal_corporation');
+        AppLogger.monetization(
+          '⚠️ [MonetizationController] Error occurred on web, using emergency fallback: municipal_corporation',
+        );
         return 'municipal_corporation';
       }
 
@@ -397,55 +432,95 @@ class MonetizationController extends GetxController {
     }
   }
 
-  // XP Management
+  // Payment History Management
 
-  Future<void> loadUserXPBalance(String userId) async {
+  Future<void> loadUserPaymentHistory(String userId, {int limit = 50}) async {
     try {
-      final balance = await _repository.getUserXPBalance(userId);
-      userXPBalance.value = balance;
-    } catch (e) {
-      errorMessage.value = 'Failed to load XP balance: $e';
-    }
-  }
-
-  Future<void> loadUserXPTransactions(String userId, {int limit = 50}) async {
-    try {
-      final transactions = await _repository.getUserXPTransactions(
+      isLoading.value = true;
+      final payments = await _repository.getUserPaymentHistory(
         userId,
         limit: limit,
       );
-      xpTransactions.value = transactions;
+      paymentHistory.value = payments;
     } catch (e) {
-      errorMessage.value = 'Failed to load XP transactions: $e';
+      errorMessage.value = 'Failed to load payment history: $e';
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  Future<bool> spendXP(
-    String userId,
-    int amount,
-    String description, {
-    String? referenceId,
-  }) async {
+  Future<Map<String, double>> getUserPaymentStats(String userId) async {
     try {
-      if (userXPBalance.value < amount) {
-        errorMessage.value = 'Insufficient XP balance';
-        return false;
-      }
-
-      await _repository.updateUserXPBalance(userId, -amount);
-      await loadUserXPBalance(userId);
-      await loadUserXPTransactions(userId);
-
-      return true;
+      return await _repository.getUserPaymentStats(userId);
     } catch (e) {
-      errorMessage.value = 'Failed to spend XP: $e';
-      return false;
+      errorMessage.value = 'Failed to load payment stats: $e';
+      return {
+        'totalSpent': 0.0,
+        'totalTransactions': 0.0,
+        'avgTransactionAmount': 0.0,
+      };
     }
   }
 
-  Future<bool> canAffordXP(int amount) async {
-    return userXPBalance.value >= amount;
+  Future<void> createPaymentTransaction(PaymentTransaction transaction) async {
+    try {
+      await _repository.createPaymentTransaction(transaction);
+      // Reload payment history after creating a new transaction
+      await loadUserPaymentHistory(transaction.userId);
+    } catch (e) {
+      errorMessage.value = 'Failed to record payment: $e';
+    }
   }
+
+  // XP Management
+
+  // Future<void> loadUserXPBalance(String userId) async {
+  //   try {
+  //     final balance = await _repository.getUserXPBalance(userId);
+  //     userXPBalance.value = balance;
+  //   } catch (e) {
+  //     errorMessage.value = 'Failed to load XP balance: $e';
+  //   }
+  // }
+
+  // Future<void> loadUserXPTransactions(String userId, {int limit = 50}) async {
+  //   try {
+  //     final transactions = await _repository.getUserXPTransactions(
+  //       userId,
+  //       limit: limit,
+  //     );
+  //     xpTransactions.value = transactions;
+  //   } catch (e) {
+  //     errorMessage.value = 'Failed to load XP transactions: $e';
+  //   }
+  // }
+
+  // Future<bool> spendXP(
+  //   String userId,
+  //   int amount,
+  //   String description, {
+  //   String? referenceId,
+  // }) async {
+  //   try {
+  //     if (userXPBalance.value < amount) {
+  //       errorMessage.value = 'Insufficient XP balance';
+  //       return false;
+  //     }
+
+  //     await _repository.updateUserXPBalance(userId, -amount);
+  //     await loadUserXPBalance(userId);
+  //     await loadUserXPTransactions(userId);
+
+  //     return true;
+  //   } catch (e) {
+  //     errorMessage.value = 'Failed to spend XP: $e';
+  //     return false;
+  //   }
+  // }
+
+  // Future<bool> canAffordXP(int amount) async {
+  //   return userXPBalance.value >= amount;
+  // }
 
   // Candidate Plan Progress Tracking
 
@@ -485,6 +560,13 @@ class MonetizationController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = '';
+
+      // Store payment data for web callback (will be updated with orderId after creation)
+      _lastPaymentData = {
+        'planId': planId,
+        'electionType': electionType,
+        'validityDays': validityDays,
+      };
 
       // Get current user
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -550,11 +632,15 @@ class MonetizationController extends GetxController {
           },
         );
 
+        // Update payment data with orderId if we got one
+        if (orderId != null && _lastPaymentData != null) {
+          _lastPaymentData!['orderId'] = orderId;
+          AppLogger.razorpay('✅ Updated payment data with orderId: $orderId');
+        }
+
         // Start Razorpay payment with enhanced options for test mode
         razorpayService.startPayment(
-          orderId:
-              orderId ??
-              'order_${planId}_${electionType}_${validityDays}_${DateTime.now().millisecondsSinceEpoch}',
+          orderId: orderId, // Use the created orderId
           amount: amount * 100, // Convert rupees to paisa for Razorpay
           description: 'Purchase $plan.name ($validityDays days)',
           contact: currentUser.phoneNumber ?? '',
@@ -657,21 +743,56 @@ class MonetizationController extends GetxController {
 
   // Handle successful payment
   void handlePaymentSuccess(PaymentSuccessResponse response) {
-    // Extract notes from response if available
-    final orderParts = response.orderId?.split('_') ?? [];
+    // Extract plan details from stored payment data (for web) or orderId (for mobile)
+    String? planId;
+    String? electionType;
+    int validityDays = 30; // Default
 
-    if (orderParts.length >= 2) {
-      final planId = orderParts[1]; // Extract planId from orderId
-
-      final currentUser = FirebaseAuth.instance.currentUser;
-
-      if (currentUser != null) {
-        // Complete the purchase
-        _completePurchaseAfterPayment(currentUser.uid, planId);
+    // First check if we have stored payment data (web flow)
+    final storedData = _lastPaymentData;
+    if (storedData != null) {
+      planId = storedData['planId'];
+      electionType = storedData['electionType'];
+      validityDays = storedData['validityDays'] ?? 30;
+      // Clear stored data after use
+      _lastPaymentData = null;
+    } else {
+      // Mobile flow - extract from orderId
+      final orderParts = response.orderId?.split('_') ?? [];
+      if (orderParts.length >= 2) {
+        planId = orderParts[1];
+        if (orderParts.length >= 4) {
+          electionType = orderParts[2];
+          validityDays = int.tryParse(orderParts[3] ?? '30') ?? 30;
+        }
       }
     }
 
-    SnackbarUtils.showSuccess('Payment completed successfully!');
+    if (planId != null) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        // Complete the purchase with appropriate data
+        if (electionType != null && validityDays > 0) {
+          // Election-based plan
+          _completePurchaseAfterPaymentWithElection(
+            currentUser.uid,
+            planId,
+            electionType,
+            validityDays,
+          );
+        } else {
+          // Legacy plan
+          _completePurchaseAfterPayment(currentUser.uid, planId);
+        }
+      }
+    } else {
+      AppLogger.razorpayError(
+        'Failed to extract plan details from payment response',
+      );
+      SnackbarUtils.showError(
+        'Payment processing failed - could not identify plan',
+      );
+    }
   }
 
   // Handle payment error
@@ -679,6 +800,11 @@ class MonetizationController extends GetxController {
     errorMessage.value = response.message ?? 'Payment failed';
 
     SnackbarUtils.showError(response.message ?? 'Unknown error occurred');
+  }
+
+  // Get stored payment data for web callbacks
+  Map<String, dynamic>? getLastPaymentData() {
+    return _lastPaymentData;
   }
 
   // Handle mock payment success
@@ -804,6 +930,28 @@ class MonetizationController extends GetxController {
 
       await _repository.createSubscription(subscription);
 
+      // Create payment transaction record for history
+      final paymentTransaction = PaymentTransaction(
+        id: '',
+        paymentId: 'pay_${purchasedAt.millisecondsSinceEpoch}',
+        orderId:
+            'order_${planId}_${electionType}_${validityDays}_${purchasedAt.millisecondsSinceEpoch}',
+        signature: 'signature_${purchasedAt.millisecondsSinceEpoch}',
+        userId: userId,
+        planId: planId,
+        planName: plan.name,
+        planType: plan.type,
+        amountPaid: amountPaid,
+        currency: 'INR',
+        status: 'success',
+        paymentDate: purchasedAt,
+        electionType: electionType,
+        validityDays: validityDays,
+        paymentMethod: 'razorpay',
+      );
+
+      await _repository.createPaymentTransaction(paymentTransaction);
+
       // Update user based on plan type
       if (plan.type == 'candidate') {
         await _repository.upgradeUserToPremiumCandidate(userId);
@@ -821,7 +969,12 @@ class MonetizationController extends GetxController {
 
       // For highlight plans, create highlight content
       if (plan.type == 'highlight') {
-        await _createHighlightPlanContent(userId, planId, electionType, validityDays);
+        await _createHighlightPlanContent(
+          userId,
+          planId,
+          electionType,
+          validityDays,
+        );
       }
 
       // Reload data
@@ -835,7 +988,11 @@ class MonetizationController extends GetxController {
     _showPostPurchaseUI(planId, electionType, validityDays);
   }
 
-  Future<void> _showPostPurchaseUI(String planId, String? electionType, int validityDays) async {
+  Future<void> _showPostPurchaseUI(
+    String planId,
+    String? electionType,
+    int validityDays,
+  ) async {
     try {
       final plan = getPlanById(planId);
       if (plan == null) return;
@@ -863,14 +1020,16 @@ class MonetizationController extends GetxController {
   }
 
   void _showBenefitsShowcase(SubscriptionPlan plan, int validityDays) {
-    Get.to(() => PlanBenefitsShowcase(
-      plan: plan,
-      validityDays: validityDays,
-      onGetStarted: () {
-        Get.back();
-        _showWelcomeContent(plan);
-      },
-    ));
+    Get.to(
+      () => PlanBenefitsShowcase(
+        plan: plan,
+        validityDays: validityDays,
+        onGetStarted: () {
+          Get.back();
+          _showWelcomeContent(plan);
+        },
+      ),
+    );
   }
 
   void _showWelcomeContent(SubscriptionPlan plan) {
@@ -909,19 +1068,24 @@ class MonetizationController extends GetxController {
     try {
       // Get candidate controller and retrieve candidate data directly
       final candidateController = Get.find<CandidateController>();
-      final candidate = await candidateController.candidateRepository.getCandidateData(userId);
+      final candidate = await candidateController.candidateRepository
+          .getCandidateData(userId);
       if (candidate == null) {
         AppLogger.monetization('❌ No candidate data found for user: $userId');
         return;
       }
 
-      AppLogger.monetization('✅ Found candidate data for Platinum content creation: ${candidate.candidateId}');
+      AppLogger.monetization(
+        '✅ Found candidate data for Platinum content creation: ${candidate.candidateId}',
+      );
 
       // Get highlight controller
-      final highlightController = Get.find<hc.HighlightController>();
+      final highlightController = Get.find<hc.HighlightPlanBannerController>();
 
       // Create Platinum highlight - ensure we use the correct hierarchical path
-      AppLogger.monetization('🔥 Creating Platinum highlight for candidate: ${candidate.candidateId}');
+      AppLogger.monetization(
+        '🔥 Creating Platinum highlight for candidate: ${candidate.candidateId}',
+      );
       await highlightController.createPlatinumHighlight(
         candidateId: candidate.candidateId,
         districtId: candidate.location.districtId!,
@@ -949,48 +1113,73 @@ class MonetizationController extends GetxController {
   }
 
   // Create content for highlight plans
-  Future<void> _createHighlightPlanContent(String userId, String planId, String? electionType, int validityDays) async {
+  Future<void> _createHighlightPlanContent(
+    String userId,
+    String planId,
+    String? electionType,
+    int validityDays,
+  ) async {
     try {
-      AppLogger.monetization('🎯 ======= CREATING HIGHLIGHT PLAN CONTENT =======');
-      AppLogger.monetization('🎯 User ID: $userId, Plan ID: $planId, Election Type: $electionType, Validity: $validityDays days');
+      AppLogger.monetization(
+        '🎯 ======= CREATING HIGHLIGHT PLAN CONTENT =======',
+      );
+      AppLogger.monetization(
+        '🎯 User ID: $userId, Plan ID: $planId, Election Type: $electionType, Validity: $validityDays days',
+      );
 
       // Get candidate controller and retrieve candidate data directly
       final candidateController = Get.find<CandidateController>();
       AppLogger.monetization('🎯 Getting candidate data for user: $userId');
 
-      final candidate = await candidateController.candidateRepository.getCandidateData(userId);
+      final candidate = await candidateController.candidateRepository
+          .getCandidateData(userId);
       if (candidate == null) {
         AppLogger.monetization('❌ No candidate data found for user: $userId');
         return;
       }
 
-      AppLogger.monetization('✅ Found candidate data for highlight plan content creation: ${candidate.candidateId}');
-      AppLogger.monetization('📍 Candidate location: ${candidate.location.districtId}/${candidate.location.bodyId}/${candidate.location.wardId}');
+      AppLogger.monetization(
+        '✅ Found candidate data for highlight plan content creation: ${candidate.candidateId}',
+      );
+      AppLogger.monetization(
+        '📍 Candidate location: ${candidate.location.districtId}/${candidate.location.bodyId}/${candidate.location.wardId}',
+      );
 
       // Get highlight controller
-      final highlightController = Get.find<hc.HighlightController>();
-      AppLogger.monetization('🎯 HighlightController found, starting highlight creation');
+      final highlightController = Get.find<hc.HighlightPlanBannerController>();
+      AppLogger.monetization(
+        '🎯 HighlightController found, starting highlight creation',
+      );
 
       // Create highlight based on plan type
       if (planId == 'highlight_plan') {
-        AppLogger.monetization('🔥 Creating highlight plan content for candidate: ${candidate.candidateId}');
-
-        // Check if candidate already has an existing highlight in their ward
-        final existingHighlights = await HighlightService.getHighlightsByCandidateInWard(
-          candidateId: candidate.candidateId,
-          districtId: candidate.location.districtId!,
-          bodyId: candidate.location.bodyId!,
-          wardId: candidate.location.wardId!,
+        AppLogger.monetization(
+          '🔥 Creating highlight plan content for candidate: ${candidate.candidateId}',
         );
 
-        final existingHighlight = existingHighlights.isNotEmpty ? existingHighlights.first : null;
+        // Check if candidate already has an existing highlight in their ward
+        final existingHighlights =
+            await HighlightService.getHighlightsByCandidateInWard(
+              candidateId: candidate.candidateId,
+              stateId: candidate.location.stateId!,
+              districtId: candidate.location.districtId!,
+              bodyId: candidate.location.bodyId!,
+              wardId: candidate.location.wardId!,
+            );
+
+        final existingHighlight = existingHighlights.isNotEmpty
+            ? existingHighlights.first
+            : null;
 
         if (existingHighlight != null) {
-          AppLogger.monetization('🔄 Found existing highlight ${existingHighlight.id} for candidate ${candidate.candidateId}, updating instead of creating new');
+          AppLogger.monetization(
+            '🔄 Found existing highlight ${existingHighlight.id} for candidate ${candidate.candidateId}, updating instead of creating new',
+          );
 
           // Update existing highlight - preserve clicks and views, update everything else
           await HighlightService.updateExistingHighlight(
             existingHighlight: existingHighlight,
+            stateId: candidate.location.stateId!,
             districtId: candidate.location.districtId!,
             bodyId: candidate.location.bodyId!,
             wardId: candidate.location.wardId!,
@@ -1007,11 +1196,14 @@ class MonetizationController extends GetxController {
 
           AppLogger.monetization('✅ Existing highlight updated successfully');
         } else {
-          AppLogger.monetization('🆕 No existing highlight found, creating new one');
+          AppLogger.monetization(
+            '🆕 No existing highlight found, creating new one',
+          );
 
           // Create new highlight
           await highlightController.createOrUpdatePlatinumHighlight(
             candidateId: candidate.candidateId,
+            stateId: candidate.location.stateId!,
             districtId: candidate.location.districtId!,
             bodyId: candidate.location.bodyId!,
             wardId: candidate.location.wardId!,
@@ -1038,17 +1230,21 @@ class MonetizationController extends GetxController {
 
         AppLogger.monetization('✅ Highlight plan content created successfully');
       } else {
-        AppLogger.monetization('⚠️ Unknown plan ID: $planId, no content created');
+        AppLogger.monetization(
+          '⚠️ Unknown plan ID: $planId, no content created',
+        );
       }
 
-      AppLogger.monetization('🎯 ======= HIGHLIGHT PLAN CONTENT CREATION COMPLETED =======\n');
+      AppLogger.monetization(
+        '🎯 ======= HIGHLIGHT PLAN CONTENT CREATION COMPLETED =======\n',
+      );
     } catch (e) {
       AppLogger.monetization('❌ Error creating highlight plan content: $e');
-      AppLogger.monetization('🎯 ======= HIGHLIGHT PLAN CONTENT CREATION FAILED =======\n');
+      AppLogger.monetization(
+        '🎯 ======= HIGHLIGHT PLAN CONTENT CREATION FAILED =======\n',
+      );
     }
   }
-
-
 
   // Utility Methods
 
@@ -1081,7 +1277,9 @@ class MonetizationController extends GetxController {
   // Force refresh plans (useful for hot reload issues)
   Future<void> refreshPlans() async {
     try {
-      AppLogger.monetization('🔄 FORCE REFRESH: Reloading plans after hot reload...');
+      AppLogger.monetization(
+        '🔄 FORCE REFRESH: Reloading plans after hot reload...',
+      );
       isLoading.value = true;
       errorMessage.value = '';
 
@@ -1176,14 +1374,14 @@ class MonetizationController extends GetxController {
       }
 
       // Load XP transactions
-      await loadUserXPTransactions(firebaseUser.uid, limit: 10);
-      _addLog('   Recent XP Transactions: ${xpTransactions.length}');
+      // await loadUserXPTransactions(firebaseUser.uid, limit: 10);
+      // _addLog('   Recent XP Transactions: ${xpTransactions.length}');
 
-      for (var transaction in xpTransactions.take(3)) {
-        _addLog(
-          '   - ${transaction.type}: ${transaction.amount} XP - ${transaction.description}',
-        );
-      }
+      // for (var transaction in xpTransactions.take(3)) {
+      //   _addLog(
+      //     '   - ${transaction.type}: ${transaction.amount} XP - ${transaction.description}',
+      //   );
+      // }
 
       _addLog('🎉 User status data loaded successfully');
     } catch (e) {
@@ -1326,7 +1524,10 @@ class MonetizationController extends GetxController {
     final currentPremium = currentUser.premium ?? false;
 
     if (previousPremium && !currentPremium) {
-      _handlePlanExpiry('Candidate Plan', 'Your premium plan has expired. Upgrade to continue enjoying premium features.');
+      _handlePlanExpiry(
+        'Candidate Plan',
+        'Your premium plan has expired. Upgrade to continue enjoying premium features.',
+      );
     }
 
     // Check Highlight Banner Plan expiry
@@ -1338,7 +1539,10 @@ class MonetizationController extends GetxController {
         currentHighlightPlanId == null &&
         highlightExpiry != null &&
         now.isAfter(highlightExpiry)) {
-      _handlePlanExpiry('Highlight Banner', 'Your highlight banner plan has expired. Renew to maintain banner visibility.');
+      _handlePlanExpiry(
+        'Highlight Banner',
+        'Your highlight banner plan has expired. Renew to maintain banner visibility.',
+      );
     }
 
     // Check Carousel Plan expiry
@@ -1350,7 +1554,10 @@ class MonetizationController extends GetxController {
         currentCarouselPlanId == null &&
         carouselExpiry != null &&
         now.isAfter(carouselExpiry)) {
-      _handlePlanExpiry('Carousel Plan', 'Your carousel plan has expired. Renew to continue carousel placement.');
+      _handlePlanExpiry(
+        'Carousel Plan',
+        'Your carousel plan has expired. Renew to continue carousel placement.',
+      );
     }
 
     // Check for upcoming expiries (within 3 days)
@@ -1371,11 +1578,14 @@ class MonetizationController extends GetxController {
 
     // Check candidate plan expiry warning
     if (user.subscriptionExpiresAt != null && user.premium == true) {
-      final daysUntilExpiry = user.subscriptionExpiresAt!.difference(now).inDays;
+      final daysUntilExpiry = user.subscriptionExpiresAt!
+          .difference(now)
+          .inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
         SnackbarUtils.showCustom(
           title: 'Warning',
-          message: 'Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.',
+          message:
+              'Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.',
           backgroundColor: AppColors.snackBarWarning,
           textColor: Colors.black,
           icon: const Icon(Icons.warning, color: Colors.black),
@@ -1386,17 +1596,25 @@ class MonetizationController extends GetxController {
 
     // Check highlight plan expiry warning
     if (user.highlightPlanExpiresAt != null && user.highlightPlanId != null) {
-      final daysUntilExpiry = user.highlightPlanExpiresAt!.difference(now).inDays;
+      final daysUntilExpiry = user.highlightPlanExpiresAt!
+          .difference(now)
+          .inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
-        SnackbarUtils.showWarning('Your highlight banner expires in $daysUntilExpiry days.');
+        SnackbarUtils.showWarning(
+          'Your highlight banner expires in $daysUntilExpiry days.',
+        );
       }
     }
 
     // Check carousel plan expiry warning
     if (user.carouselPlanExpiresAt != null && user.carouselPlanId != null) {
-      final daysUntilExpiry = user.carouselPlanExpiresAt!.difference(now).inDays;
+      final daysUntilExpiry = user.carouselPlanExpiresAt!
+          .difference(now)
+          .inDays;
       if (daysUntilExpiry <= warningDays && daysUntilExpiry > 0) {
-        SnackbarUtils.showWarning('Your carousel plan expires in $daysUntilExpiry days.');
+        SnackbarUtils.showWarning(
+          'Your carousel plan expires in $daysUntilExpiry days.',
+        );
       }
     }
   }

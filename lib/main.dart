@@ -546,8 +546,12 @@ class _MyAppContentState extends State<MyAppContent> {
         setState(() {
           _currentRoute = newRoute;
         });
-        // Use GetX navigation to change route
-        Get.offAllNamed(newRoute);
+        // Use context-safe navigation to avoid GetX context issues
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Get.offAllNamed(newRoute);
+          }
+        });
       }
     });
   }
@@ -710,8 +714,12 @@ class _MyFastAppState extends State<MyFastApp> with WidgetsBindingObserver {
         setState(() {
           _currentRoute = newRoute;
         });
-        // Use GetX navigation to change route
-        Get.offAllNamed(newRoute);
+        // Use context-safe navigation to avoid GetX context issues
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Get.offAllNamed(newRoute);
+          }
+        });
       }
     });
   }

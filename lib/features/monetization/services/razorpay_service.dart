@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../controllers/monetization_controller.dart';
 import '../../../utils/app_logger.dart';
 
@@ -13,12 +14,12 @@ class RazorpayService extends GetxService {
   RazorpayWebService? _webService;
 
   // Razorpay keys - Replace with your actual keys
-  // static const String razorpayKeyId = 'rzp_test_RiMWsU7GNxKFqz'; // Test key
-  // static const String razorpayKeySecret = 'cThh9upiy1NtnaHdO6cWr99I'; // Test secret
+  static const String razorpayKeyId = 'rzp_test_RiMWsU7GNxKFqz'; // Test key
+  static const String razorpayKeySecret = 'cThh9upiy1NtnaHdO6cWr99I'; // Test secret
 
-  // Production keys (uncomment for production)
-  static const String razorpayKeyId = 'rzp_live_RjD86XHWEf5MN5';
-  static const String razorpayKeySecret = 'S4ZUIZBAVKTUUcy2PVQkuJVX';
+  // // Production keys (uncomment for production)
+  // static const String razorpayKeyId = 'rzp_live_RjD86XHWEf5MN5';
+  // static const String razorpayKeySecret = 'S4ZUIZBAVKTUUcy2PVQkuJVX';
 
   @override
   void onInit() {
@@ -140,6 +141,11 @@ class RazorpayService extends GetxService {
     AppLogger.razorpay('STARTING RAZORPAY PAYMENT PROCESS (Mobile)');
     AppLogger.razorpay('Amount: ₹${amount / 100} ($amount paisa)');
 
+    // Get the stored orderId from the MonetizationController if available
+    final monetizationController = Get.find<MonetizationController>();
+    final paymentData = monetizationController.getLastPaymentData();
+    final orderId = paymentData?['orderId'];
+
     var options = {
       'key': razorpayKeyId,
       'amount': amount,
@@ -154,6 +160,14 @@ class RazorpayService extends GetxService {
         'wallets': ['paytm']
       }
     };
+
+    // Add order_id to options if we have one (this enables auto-capture via webhooks)
+    if (orderId != null && orderId.isNotEmpty) {
+      options['order_id'] = orderId;
+      AppLogger.razorpay('✅ Including order_id in payment: $orderId');
+    } else {
+      AppLogger.razorpay('⚠️ No order_id available - payment will be authorized only');
+    }
 
     try {
       AppLogger.razorpay('Opening Razorpay checkout...');
@@ -183,7 +197,19 @@ class RazorpayService extends GetxService {
       contact: contact,
       email: email,
       prefillName: prefillName,
-      successCallback: (String paymentId, String orderId, String signature) {
+      successCallback: (String paymentId, String orderIdParam, String signature) {
+        // For web, create an orderId that includes the planId if available from notes
+        // First check if we have stored payment data from the controller
+        final monetizationController = Get.find<MonetizationController>();
+        final paymentData = monetizationController.getLastPaymentData();
+
+        String orderId = orderIdParam;
+        if (paymentData != null) {
+          // Reconstruct orderId with plan data for consistency
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          orderId = 'order_${paymentData['planId']}_${paymentData['electionType'] ?? ''}_${paymentData['validityDays'] ?? 0}_$timestamp';
+        }
+
         // Create a response object compatible with mobile handlers
         PaymentSuccessResponse response = PaymentSuccessResponse.fromMap({
           'paymentId': paymentId,
@@ -203,28 +229,53 @@ class RazorpayService extends GetxService {
     );
   }
 
-  // Create order on your backend (placeholder - implement actual API call)
+  // Create order using Firebase Functions
   Future<String?> createOrder({
     required int amount,
     required String currency,
     required String receipt,
     Map<String, dynamic>? notes,
   }) async {
-   AppLogger.razorpay('CREATING PAYMENT ORDER');
-   AppLogger.razorpay('Amount: ₹${amount / 100} ($amount paisa)');
+    AppLogger.razorpay('CREATING PAYMENT ORDER VIA FIREBASE FUNCTIONS');
+    AppLogger.razorpay('Amount: ₹${amount / 100} ($amount paisa)');
 
-   try {
-     // For test mode, skip order creation to avoid API issues
-     AppLogger.razorpay('Test mode: Skipping order creation');
-     AppLogger.razorpay('Using direct payment without order ID');
+    try {
+      // For web, we'll handle this differently - no server-side order creation
+      if (kIsWeb) {
+        AppLogger.razorpay('Web platform: Using direct Razorpay (no server-side order creation)');
+        return null;
+      }
 
-     // Return null to indicate no order ID (Razorpay will handle this)
-     return null;
-   } catch (e) {
-     AppLogger.razorpayError('ERROR CREATING ORDER: $e');
-     return null;
-   }
- }
+      final functions = FirebaseFunctions.instance;
+
+      AppLogger.razorpay('Calling createRazorpayOrder Firebase Function...');
+
+      final result = await functions
+          .httpsCallable('createRazorpayOrder')
+          .call({
+            'amount': amount,
+            'currency': currency,
+            'receipt': receipt,
+            'notes': notes,
+            'payment_capture': 0, // Manual capture, will be done via webhook
+          });
+
+      if (result.data['success'] == true) {
+        final orderId = result.data['order']['id'];
+        AppLogger.razorpay('✅ Order created successfully: $orderId');
+        return orderId;
+      } else {
+        AppLogger.razorpayError('❌ Order creation failed: ${result.data}');
+        return null;
+      }
+    } catch (error) {
+      AppLogger.razorpayError('ERROR CREATING ORDER VIA FIREBASE: $error');
+
+      // Fallback to null for web or if Firebase Functions fail
+      AppLogger.razorpay('Falling back to direct payment without order ID');
+      return null;
+    }
+  }
 
   // Verify payment signature (implement on backend)
   Future<bool> verifyPayment({

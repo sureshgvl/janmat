@@ -2,12 +2,12 @@ import 'package:get/get.dart';
 import '../models/highlight_model.dart';
 import '../../../models/push_feed_model.dart';
 import '../../candidate/models/location_model.dart';
-import '../../../repositories/highlight_repository.dart';
+import '../repository/highlight_banner_repository.dart';
 import '../services/highlight_service.dart';
 import '../../../utils/app_logger.dart';
 
-class HighlightController extends GetxController {
-  final HighlightRepository _repository = HighlightRepository();
+class HighlightPlanBannerController extends GetxController {
+  final HighlightBannerRepository _repository = HighlightBannerRepository();
 
   // Reactive variables
   var highlights = <Highlight>[].obs;
@@ -17,7 +17,8 @@ class HighlightController extends GetxController {
   // Cache for platinum banners (list for rotation)
   final List<Highlight> _platinumBanners = [];
   List<Highlight> get platinumBanners => _platinumBanners;
-  Highlight? get currentPlatinumBanner => _platinumBanners.isNotEmpty ? _platinumBanners.first : null;
+  Highlight? get currentPlatinumBanner =>
+      _platinumBanners.isNotEmpty ? _platinumBanners.first : null;
 
   @override
   void onInit() {
@@ -28,6 +29,7 @@ class HighlightController extends GetxController {
   // Create or update Platinum highlight for real candidate
   Future<String?> createOrUpdatePlatinumHighlight({
     required String candidateId,
+    required String stateId,
     required String districtId,
     required String bodyId,
     required String wardId,
@@ -51,6 +53,7 @@ class HighlightController extends GetxController {
       // Use the service method that handles checking for existing highlights
       return await HighlightService.createOrUpdatePlatinumHighlight(
         candidateId: candidateId,
+        stateId: stateId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,

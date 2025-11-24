@@ -386,61 +386,15 @@ class FeedWidgets {
 
   // Helper methods for data loading
   Future<List<Map<String, dynamic>>> _loadPushFeedData(Map<String, String> locationData) async {
-    try {
-      // Fetch actual sponsored updates from Firestore
-      final sponsoredUpdates = await _pushFeedService.getPushFeedForWard(
-        locationData['districtId'] ?? 'pune',
-        locationData['bodyId'] ?? 'pune_m_cop',
-        locationData['wardId'] ?? 'ward_17',
-      );
-
-      // Convert SponsoredUpdate objects to the expected Map format
-      return sponsoredUpdates
-          .map(
-            (update) => {
-              'title': update.title,
-              'message': update.message,
-              'imageUrl': update.imageUrl,
-              'isSponsored': true,
-              'authorName': update.authorName,
-              'timestamp': update.timestamp,
-            },
-          )
-          .toList();
-    } catch (e) {
-      AppLogger.common('Error loading push feed data: $e');
-      return [];
-    }
+    // Disabled: Skip loading push feed data to avoid loading indicator
+    // Return empty list immediately to prevent loading state
+    return [];
   }
 
   Future<List<Map<String, dynamic>>> _loadNormalFeedData(Map<String, String> locationData) async {
-    try {
-      // Fetch actual community posts from Firestore
-      final communityPosts = await _communityFeedService
-          .getCommunityFeedForWard(
-            locationData['districtId'] ?? 'pune',
-            locationData['bodyId'] ?? 'pune_m_cop',
-            locationData['wardId'] ?? 'ward_17',
-          );
-
-      // Convert CommunityPost objects to the expected Map format
-      return communityPosts
-          .map(
-            (post) => {
-              'author': post.authorName,
-              'content': post.content,
-              'timestamp': _formatTimestamp(post.timestamp),
-              'likes': post.likes,
-              'comments': post.comments,
-              'postId': post.id,
-              'authorId': post.authorId,
-            },
-          )
-          .toList();
-    } catch (e) {
-      AppLogger.common('Error loading normal feed data: $e');
-      return [];
-    }
+    // Disabled: Skip loading normal feed data to avoid loading indicator
+    // Return empty list immediately to prevent loading state
+    return [];
   }
 
   String _formatTimestamp(DateTime timestamp) {

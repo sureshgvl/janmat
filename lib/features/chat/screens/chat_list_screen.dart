@@ -67,20 +67,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
             },
           ),
 
-          // Watch ad button (only if quota low)
-          GetBuilder<ChatController>(
-            builder: (controller) {
-              if (!controller.canSendMessage) {
-                return IconButton(
-                  icon: const Icon(Icons.warning),
-                  tooltip: 'watchAd'.tr,
-                  color: Colors.orange,
-                  onPressed: () => ChatDialogs.showWatchAdDialog(context),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+          // // Watch ad button (only if quota low)
+          // GetBuilder<ChatController>(
+          //   builder: (controller) {
+          //     if (!controller.canSendMessage) {
+          //       return IconButton(
+          //         icon: const Icon(Icons.warning),
+          //         tooltip: 'watchAd'.tr,
+          //         color: Colors.orange,
+          //         onPressed: () => ChatDialogs.showWatchAdDialog(context),
+          //       );
+          //     }
+          //     return const SizedBox.shrink();
+          //   },
+          // ),
         ],
       ),
       backgroundColor: AppTheme.homeBackgroundColor,

@@ -442,23 +442,26 @@ class _MessageInputState extends State<MessageInput> {
                           : ChatTranslations.startVoiceRecording,
                     ),
                   );
-                } else if (shouldShowAds) {
+                }
+                else if (shouldShowAds) {
                   // Show watch ads button when user cannot send but is not premium
+                  // Ad functionality removed - button disabled
                   return Container(
                     margin: const EdgeInsets.only(bottom: 4),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade600,
+                      color: Colors.grey.shade400,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.play_circle_fill, color: Colors.white, size: 18),
-                      onPressed: () => controller.watchRewardedAdForXP(),
-                      tooltip: 'Watch ad to earn XP',
+                      onPressed: null, // Disabled as ad functionality removed
+                      tooltip: 'Ad functionality removed',
                       constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                       padding: EdgeInsets.zero,
                     ),
                   );
-                } else {
+                }
+                else {
                   // Show disabled microphone when user absolutely cannot send
                   return Container(
                     margin: const EdgeInsets.only(bottom: 4),

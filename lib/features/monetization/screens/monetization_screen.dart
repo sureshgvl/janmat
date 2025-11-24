@@ -5,7 +5,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/app_route_names.dart';
 import '../controllers/monetization_controller.dart';
+import 'payment_history_screen.dart';
 import '../widgets/premium_plans_tab.dart';
 import '../utils/purchase_handlers.dart';
 import '../utils/monetization_utils.dart';
@@ -22,6 +24,28 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
   final MonetizationController _controller = Get.put(MonetizationController());
   final Rx<String?> _userElectionType = Rx<String?>(null);
   late PurchaseHandlers _purchaseHandlers;
+
+  void _navigateToPaymentHistory(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const PaymentHistoryScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0); // Slide in from right
+          const end = Offset.zero;
+          const curve = Curves.easeInOutQuart; // Very smooth curve
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(
+            position: offsetAnimation,
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400), // Slightly longer for smoothness
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -65,7 +89,8 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
 
       if (currentUser != null) {
         AppLogger.monetization('👤 User found: ${currentUser.uid}');
-        await _controller.loadUserXPBalance(currentUser.uid);
+        //await _controller.loadUserXPBalance(currentUser.uid);
+        await _controller.loadUserPaymentHistory(currentUser.uid);
         await _controller.loadUserStatusData();
 
         // Get user's election type for plan filtering
@@ -107,25 +132,30 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
       final isCandidate = userRole == 'candidate';
 
       return Scaffold(
-         appBar: AppBar(
-           title: Text(AppLocalizations.of(context)!.premiumFeatures),
-           actions: [
-             IconButton(
-               icon: const Icon(Icons.refresh),
-               tooltip: AppLocalizations.of(context)!.refreshPlans,
-               onPressed: _refreshPlans,
-             ),
-           ],
-         ),
-         backgroundColor: AppTheme.homeBackgroundColor,
-         body: LoadingOverlay(
-           isLoading: _controller.isLoading.value,
-           child: PremiumPlansTab(
-             controller: _controller,
-             userElectionType: _userElectionType.value,
-           ),
-         ),
-       );
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.premiumFeatures),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.receipt_long),
+              tooltip: 'Payment History',
+              onPressed: () => _navigateToPaymentHistory(context),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: AppLocalizations.of(context)!.refreshPlans,
+              onPressed: _refreshPlans,
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.homeBackgroundColor,
+        body: LoadingOverlay(
+          isLoading: _controller.isLoading.value,
+          child: PremiumPlansTab(
+            controller: _controller,
+            userElectionType: _userElectionType.value,
+          ),
+        ),
+      );
     });
   }
 

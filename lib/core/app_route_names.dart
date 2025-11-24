@@ -24,6 +24,7 @@ class AppRouteNames {
 
   // Monetization routes
   static const monetization = '/monetization';
+  static const paymentHistory = '/payment-history';
 
   // Device management routes
   static const deviceManagement = '/device-management';

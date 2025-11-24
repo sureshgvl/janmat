@@ -157,27 +157,27 @@ class ChatDialogs {
           ],
         ),
         actions: [
-          // Option 1: Watch Rewarded Ad
-          TextButton.icon(
-            onPressed: () {
-              Get.back();
-              _watchRewardedAdForXP(context);
-            },
-            icon: const Icon(Icons.play_circle_outline),
-            label: Text(AppLocalizations.of(context)!.watchAdForXP),
-            style: TextButton.styleFrom(foregroundColor: Colors.green),
-          ),
+          //// Option 1: Watch Rewarded Ad
+          // TextButton.icon(
+          //   onPressed: () {
+          //     Get.back();
+          //     _watchRewardedAdForXP(context);
+          //   },
+          //   icon: const Icon(Icons.play_circle_outline),
+          //   label: Text(AppLocalizations.of(context)!.watchAdForXP),
+          //   style: TextButton.styleFrom(foregroundColor: Colors.green),
+          // ),
 
-          // Option 2: Buy XP
-          TextButton.icon(
-            onPressed: () {
-              Get.back();
-              Get.toNamed('/monetization');
-            },
-            icon: const Icon(Icons.shopping_cart),
-            label: Text(AppLocalizations.of(context)!.buyXP),
-            style: TextButton.styleFrom(foregroundColor: Colors.blue),
-          ),
+          // // Option 2: Buy XP
+          // TextButton.icon(
+          //   onPressed: () {
+          //     Get.back();
+          //     Get.toNamed('/monetization');
+          //   },
+          //   icon: const Icon(Icons.shopping_cart),
+          //   label: Text(AppLocalizations.of(context)!.buyXP),
+          //   style: TextButton.styleFrom(foregroundColor: Colors.blue),
+          // ),
 
           // Option 3: Cancel
           TextButton(
@@ -215,24 +215,24 @@ class ChatDialogs {
     );
   }
 
-  static void _watchRewardedAdForXP(BuildContext context) async {
-    final controller = Get.find<ChatController>();
+  // static void _watchRewardedAdForXP(BuildContext context) async {
+  //   final controller = Get.find<ChatController>();
 
-    Get.dialog(
-      AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(AppLocalizations.of(context)!.loadingRewardedAd),
-          ],
-        ),
-      ),
-      barrierDismissible: false,
-    );
+  //   Get.dialog(
+  //     AlertDialog(
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           CircularProgressIndicator(),
+  //           SizedBox(height: 16),
+  //           Text(AppLocalizations.of(context)!.loadingRewardedAd),
+  //         ],
+  //       ),
+  //     ),
+  //     barrierDismissible: false,
+  //   );
 
-    await controller.watchRewardedAdForXP();
-    Get.back(); // Close loading dialog
-  }
+  //   await controller.watchRewardedAdForXP();
+  //   Get.back(); // Close loading dialog
+  // }
 }

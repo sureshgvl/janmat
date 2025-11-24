@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/plan_model.dart';
+import '../../../models/payment_model.dart';
 import '../../../utils/app_logger.dart';
 
 class MonetizationRepository {
@@ -172,74 +173,74 @@ class MonetizationRepository {
     }
   }
 
-  Future<List<XPTransaction>> getUserXPTransactions(
-    String userId, {
-    int limit = 50,
-  }) async {
-    try {
-      final snapshot = await _firestore
-          .collection('xp_transactions')
-          .where('userId', isEqualTo: userId)
-          .orderBy('timestamp', descending: true)
-          .limit(limit)
-          .get();
+  // Future<List<XPTransaction>> getUserXPTransactions(
+  //   String userId, {
+  //   int limit = 50,
+  // }) async {
+  //   try {
+  //     final snapshot = await _firestore
+  //         .collection('xp_transactions')
+  //         .where('userId', isEqualTo: userId)
+  //         .orderBy('timestamp', descending: true)
+  //         .limit(limit)
+  //         .get();
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['transactionId'] = doc.id;
-        return XPTransaction.fromJson(data);
-      }).toList();
-    } catch (e) {
-      throw Exception('Failed to fetch XP transactions: $e');
-    }
-  }
+  //     return snapshot.docs.map((doc) {
+  //       final data = doc.data();
+  //       data['transactionId'] = doc.id;
+  //       return XPTransaction.fromJson(data);
+  //     }).toList();
+  //   } catch (e) {
+  //     throw Exception('Failed to fetch XP transactions: $e');
+  //   }
+  // }
 
-  Future<int> getUserXPBalance(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('xp_transactions')
-          .where('userId', isEqualTo: userId)
-          .get();
+  // Future<int> getUserXPBalance(String userId) async {
+  //   try {
+  //     final snapshot = await _firestore
+  //         .collection('xp_transactions')
+  //         .where('userId', isEqualTo: userId)
+  //         .get();
 
-      int balance = 0;
-      for (var doc in snapshot.docs) {
-        final transaction = XPTransaction.fromJson(doc.data());
-        balance += transaction.amount;
-      }
+  //     int balance = 0;
+  //     for (var doc in snapshot.docs) {
+  //       final transaction = XPTransaction.fromJson(doc.data());
+  //       balance += transaction.amount;
+  //     }
 
-      return balance;
-    } catch (e) {
-      throw Exception('Failed to calculate XP balance: $e');
-    }
-  }
+  //     return balance;
+  //   } catch (e) {
+  //     throw Exception('Failed to calculate XP balance: $e');
+  //   }
+  // }
 
-  Future<void> updateUserXPBalance(String userId, int xpAmount) async {
-    try {
-      AppLogger.monetization('💰 Updating XP balance for user $userId: $xpAmount');
+  // Future<void> updateUserXPBalance(String userId, int xpAmount) async {
+  //   try {
+  //     AppLogger.monetization('💰 Updating XP balance for user $userId: $xpAmount');
 
-      // Create transaction record
-      final transaction = XPTransaction(
-        transactionId: '', // Will be set by Firestore
-        userId: userId,
-        amount: xpAmount,
-        type: xpAmount > 0 ? 'earned' : 'spent',
-        description: xpAmount > 0 ? 'XP earned from ad' : 'XP spent',
-        timestamp: DateTime.now(),
-      );
+  //     // Create transaction record
+  //     final transaction = XPTransaction(
+  //       transactionId: '', // Will be set by Firestore
+  //       userId: userId,
+  //       amount: xpAmount,
+  //       type: xpAmount > 0 ? 'earned' : 'spent',
+  //       description: xpAmount > 0 ? 'XP earned from ad' : 'XP spent',
+  //       timestamp: DateTime.now(),
+  //     );
 
-      final transactionId = await createXPTransaction(transaction);
-      AppLogger.monetization('✅ Created XP transaction: $transactionId');
+  //     final transactionId = await createXPTransaction(transaction);
+  //     AppLogger.monetization('✅ Created XP transaction: $transactionId');
 
-      // Update user XP balance
-      final userRef = _firestore.collection('users').doc(userId);
-      await userRef.update({'xpPoints': FieldValue.increment(xpAmount)});
+  //     // Update user XP balance
+  //     final userRef = _firestore.collection('users').doc(userId);
+  //     await userRef.update({'xpPoints': FieldValue.increment(xpAmount)});
 
-      AppLogger.monetization('✅ Updated user XP balance: +$xpAmount');
-    } catch (e) {
-      AppLogger.monetization('❌ Failed to update XP balance: $e');
-      throw Exception('Failed to update XP balance: $e');
-    }
-  }
+  //     AppLogger.monetization('✅ Updated user XP balance: +$xpAmount');
+  //   } catch (e) {
+  //     AppLogger.monetization('❌ Failed to update XP balance: $e');
+  //     throw Exception('Failed to update XP balance: $e');
+  //   }
+  // }
 
   // User Subscription Updates
 
@@ -267,6 +268,115 @@ class MonetizationRepository {
       await userRef.update({'premium': true});
     } catch (e) {
       throw Exception('Failed to upgrade user to premium candidate: $e');
+    }
+  }
+
+  // Payment History Management
+
+  Future<String> createPaymentTransaction(PaymentTransaction transaction) async {
+    try {
+      AppLogger.monetization('🔥 FIRESTORE: Creating payment transaction for user ${transaction.userId}');
+      AppLogger.monetization('   Payment ID: ${transaction.paymentId}');
+      AppLogger.monetization('   Plan: ${transaction.planName}');
+      AppLogger.monetization('   Amount: ₹${transaction.amountInRupees}');
+      AppLogger.monetization('   Status: ${transaction.status}');
+
+      final docRef = await _firestore
+          .collection('payment_transactions')
+          .add(transaction.toJson());
+
+      AppLogger.monetization('✅ FIRESTORE: Payment transaction created successfully with ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      AppLogger.monetization('❌ FIRESTORE ERROR: Failed to create payment transaction: $e');
+      AppLogger.monetization('   Error Type: ${e.runtimeType}');
+      AppLogger.monetization('   Stack Trace: ${StackTrace.current}');
+      throw Exception('Failed to create payment transaction: $e');
+    }
+  }
+
+  Future<List<PaymentTransaction>> getUserPaymentHistory(
+    String userId, {
+    int limit = 50,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('payment_transactions')
+          .where('userId', isEqualTo: userId)
+          .orderBy('paymentDate', descending: true)
+          .limit(limit)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return PaymentTransaction.fromJson(data);
+      }).toList();
+    } catch (e) {
+      AppLogger.monetization('❌ FIRESTORE ERROR: Failed to fetch payment history: $e');
+      throw Exception('Failed to fetch payment history: $e');
+    }
+  }
+
+  Future<PaymentTransaction?> getPaymentById(String paymentId) async {
+    try {
+      final doc = await _firestore.collection('payment_transactions').doc(paymentId).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        return PaymentTransaction.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch payment: $e');
+    }
+  }
+
+  Future<void> updatePaymentStatus(
+    String paymentTransactionId,
+    String status, {
+    String? failureReason,
+  }) async {
+    try {
+      final updateData = <String, dynamic>{
+        'status': status,
+      };
+
+      if (failureReason != null) {
+        updateData['failureReason'] = failureReason;
+      }
+
+      await _firestore.collection('payment_transactions').doc(paymentTransactionId).update(updateData);
+    } catch (e) {
+      throw Exception('Failed to update payment status: $e');
+    }
+  }
+
+  Future<Map<String, double>> getUserPaymentStats(String userId) async {
+    try {
+      final payments = await getUserPaymentHistory(userId, limit: 1000);
+
+      double totalSpent = 0;
+      int totalTransactions = payments.where((p) => p.status == 'success').length;
+      double avgAmount = 0;
+
+      final successfulPayments = payments.where((p) => p.status == 'success').toList();
+
+      for (var payment in successfulPayments) {
+        totalSpent += payment.amountInRupees;
+      }
+
+      if (successfulPayments.isNotEmpty) {
+        avgAmount = totalSpent / successfulPayments.length;
+      }
+
+      return {
+        'totalSpent': totalSpent,
+        'totalTransactions': totalTransactions.toDouble(),
+        'avgTransactionAmount': avgAmount,
+      };
+    } catch (e) {
+      throw Exception('Failed to calculate payment stats: $e');
     }
   }
 
@@ -675,4 +785,3 @@ class MonetizationRepository {
     }
   }
 }
-

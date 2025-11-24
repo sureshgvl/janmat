@@ -96,17 +96,22 @@ class ChatController extends GetxController {
     // Premium users always can send
     if (user.premium) return true;
 
-    // Check quota only
-    return userQuota.value != null && userQuota.value!.canSendMessage;
+    // // // COMMENTED OUT: XP balance checks removed - no limits on messaging for users
+    // // // Check quota only
+    // // return userQuota.value != null && userQuota.value!.canSendMessage;
+
+    return true; // Always allow messaging
   }
 
-  bool get shouldShowWatchAdsButton {
-    final user = _cachedUser;
-    if (user == null || user.premium) return false;
+  // COMMENTED OUT: XP balance feature removed
+  // bool get shouldShowWatchAdsButton {
+  //   final user = _cachedUser;
+  //   if (user == null || user.premium) return false;
+  //   // Show if no remaining messages
+  //   return !canSendMessage;
+  // }
 
-    // Show if no remaining messages
-    return !canSendMessage;
-  }
+  bool get shouldShowWatchAdsButton => false; // Always false since XP/ads removed
 
   int get remainingMessages {
     final user = _cachedUser;
@@ -115,8 +120,10 @@ class ChatController extends GetxController {
     // Premium users have unlimited
     if (user.premium) return 999;
 
-    // Return quota only
-    return userQuota.value?.remainingMessages ?? 0;
+    // // // COMMENTED OUT: Quota limits removed - no limits on messaging
+    // // return userQuota.value?.remainingMessages ?? 0;
+
+    return 999; // Unlimited messages for non-premium users as well
   }
 
   // Load complete user data from Firestore
@@ -171,29 +178,30 @@ class ChatController extends GetxController {
         area: regularArea?.area,
       );
 
-      // Load user quota
-      try {
-        final quota = await _repository.getUserQuota(user.uid);
-        if (quota != null) {
-          userQuota.value = quota;
-          AppLogger.database(
-            'Loaded user quota: ${quota.remainingMessages} messages remaining',
-            tag: 'CHAT',
-          );
-        } else {
-          // Create default quota
-          final defaultQuota = UserQuota(
-            userId: user.uid,
-            lastReset: DateTime.now(),
-            createdAt: DateTime.now(),
-          );
-          userQuota.value = defaultQuota;
-          await _repository.updateUserQuota(defaultQuota);
-          AppLogger.database('Created default quota', tag: 'CHAT');
-        }
-      } catch (e) {
-        AppLogger.database('Failed to load quota: $e', tag: 'CHAT');
-      }
+      // // // COMMENTED OUT: Quota limits removed - no longer load or manage quotas
+      // // // Load user quota
+      // // try {
+      // //   final quota = await _repository.getUserQuota(user.uid);
+      // //   if (quota != null) {
+      // //     userQuota.value = quota;
+      // //     AppLogger.database(
+      // //       'Loaded user quota: ${quota.remainingMessages} messages remaining',
+      // //       tag: 'CHAT',
+      // //     );
+      // //   } else {
+      // //     // Create default quota
+      // //     final defaultQuota = UserQuota(
+      // //       userId: user.uid,
+      // //       lastReset: DateTime.now(),
+      // //       createdAt: DateTime.now(),
+      // //     );
+      // //     userQuota.value = defaultQuota;
+      // //     await _repository.updateUserQuota(defaultQuota);
+      // //     AppLogger.database('Created default quota', tag: 'CHAT');
+      // //   }
+      // // } catch (e) {
+      // //   AppLogger.database('Failed to load quota: $e', tag: 'CHAT');
+      // // }
     } else {
       AppLogger.database('No user data available for chat initialization', tag: 'CHAT');
     }
@@ -309,16 +317,6 @@ class ChatController extends GetxController {
   }
 
   bool get isRecording => _messageController.isRecording.value;
-
-  Future<void> watchRewardedAdForXP() async {
-    // Ad functionality removed - directly award extra messages
-    final user = _cachedUser;
-    if (user != null) {
-      await _awardExtraMessagesFromAd(10);
-    } else {
-      SnackbarUtils.showError('User not authenticated');
-    }
-  }
 
   // Delegate other methods as needed
   Future<void> getCompleteUserData() async {
@@ -538,11 +536,12 @@ class ChatController extends GetxController {
       tag: 'CHAT',
     );
 
-    // Check if user can send message
-    if (!canSendMessage) {
-      SnackbarUtils.showError('You have no remaining messages. Watch a rewarded ad to get 10 extra messages.');
-      return;
-    }
+    // // // COMMENTED OUT: Messaging limits removed - users can always send messages
+    // // // Check if user can send message
+    // // if (!canSendMessage) {
+    // //   SnackbarUtils.showError('You have no remaining messages. Watch a rewarded ad to get 10 extra messages.');
+    // //   return;
+    // // }
 
     // Set sending state to true
     _reactiveIsSendingMessage.value = true;
@@ -571,27 +570,29 @@ class ChatController extends GetxController {
         currentChatRoom.value!.roomId,
       );
 
-      // Deduct quota locally first
-      if (userQuota.value != null) {
-        final updatedQuota = userQuota.value!.copyWith(
-          messagesSent: userQuota.value!.messagesSent + 1,
-        );
-        userQuota.value = updatedQuota;
-        AppLogger.ui(
-          'Local quota updated: ${updatedQuota.remainingMessages} remaining',
-          tag: 'CHAT',
-        );
-      }
+      // // // COMMENTED OUT: Quota deduction removed - unlimited messaging
+      // // Deduct quota locally first
+      // // if (userQuota.value != null) {
+      // //   final updatedQuota = userQuota.value!.copyWith(
+      // //     messagesSent: userQuota.value!.messagesSent + 1,
+      // //   );
+      // //   userQuota.value = updatedQuota;
+      // //   AppLogger.ui(
+      // //     'Local quota updated: ${updatedQuota.remainingMessages} remaining',
+      // //     tag: 'CHAT',
+      // //   );
+      // // }
 
       // Send to server with quota handling
       AppLogger.ui('Sending message to server...', tag: 'CHAT');
       await sendMessage(currentChatRoom.value!.roomId, message);
 
-      // Update server-side quota
-      if (userQuota.value != null) {
-        await _repository.updateUserQuota(userQuota.value!);
-        AppLogger.ui('Server quota updated', tag: 'CHAT');
-      }
+      // // // COMMENTED OUT: Server quota updates removed
+      // // Update server-side quota
+      // // if (userQuota.value != null) {
+      // //   await _repository.updateUserQuota(userQuota.value!);
+      // //   AppLogger.ui('Server quota updated', tag: 'CHAT');
+      // // }
 
       // Update message status to sent
       AppLogger.ui('Updating message status to sent...', tag: 'CHAT');
@@ -618,41 +619,6 @@ class ChatController extends GetxController {
       );
 
       SnackbarUtils.showError('Failed to send message. Please try again.');
-    }
-  }
-
-  // Award extra messages from watching ad
-  Future<bool> _awardExtraMessagesFromAd(int extraMessages) async {
-    final user = _cachedUser;
-    if (user == null) {
-      AppLogger.ui('Cannot award extra messages: user is null', tag: 'CHAT');
-      return false;
-    }
-
-    try {
-      AppLogger.ui('Attempting to award $extraMessages extra messages to user: ${user.uid}', tag: 'CHAT');
-
-      // Use ChatRepository to add extra quota
-      await _repository.addExtraQuota(user.uid, extraMessages);
-
-      // Immediately refresh user quota to reflect changes
-      if (userQuota.value != null) {
-        final updatedQuota = userQuota.value!.copyWith(
-          extraQuota: userQuota.value!.extraQuota + extraMessages,
-        );
-        userQuota.value = updatedQuota;
-        AppLogger.ui('Local quota updated: ${updatedQuota.remainingMessages} remaining', tag: 'CHAT');
-      }
-
-      // Force UI update for all listeners
-      update();
-
-      AppLogger.ui('Successfully awarded $extraMessages extra messages to user: ${user.uid}', tag: 'CHAT');
-      return true;
-    } catch (e) {
-      AppLogger.ui('Error awarding extra messages from ad: $e', tag: 'CHAT');
-      AppLogger.ui('Error details: ${e.toString()}', tag: 'CHAT');
-      return false;
     }
   }
 

@@ -118,6 +118,7 @@ class HighlightSessionService {
   /// Track impression only if not already viewed in current session
   Future<bool> trackImpressionIfNotViewed({
     required String highlightId,
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -146,6 +147,7 @@ class HighlightSessionService {
     try {
       await _trackImpressionInFirestore(
         highlightId: highlightId,
+        stateId: stateId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,
@@ -300,6 +302,7 @@ class HighlightSessionService {
 
   Future<void> _trackImpressionInFirestore({
     required String highlightId,
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -308,7 +311,7 @@ class HighlightSessionService {
     if (districtId != null && bodyId != null && wardId != null) {
       await _firestore
           .collection('states')
-          .doc('maharashtra')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -321,15 +324,6 @@ class HighlightSessionService {
             'views': FieldValue.increment(1),
             'lastShown': FieldValue.serverTimestamp(),
           });
-    } else {
-      // Fallback to old structure
-      await _firestore
-          .collection('highlights')
-          .doc(highlightId)
-          .update({
-            'views': FieldValue.increment(1),
-            'lastShown': FieldValue.serverTimestamp(),
-          });
-    }
+    } 
   }
 }

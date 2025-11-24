@@ -981,7 +981,7 @@ class ChatRepository {
 
       // Parallel fetch of all required data
       final results = await Future.wait([
-        getUserDataAndQuota(userId),
+        //getUserDataAndQuota(userId),
         getChatRoomsForUser(
           userId,
           userRole,
@@ -1197,96 +1197,6 @@ class ChatRepository {
     }
   }
 
-  // Batch: Send message and update quota/XP in single transaction
-  Future<Map<String, dynamic>> sendMessageWithQuotaUpdate(
-    String roomId,
-    Message message,
-    String userId,
-    bool useQuota,
-    bool useXP,
-  ) async {
-    try {
-      AppLogger.chat('📦 BATCH: Sending message with quota/XP update');
-
-      // Perform the transaction with all reads first, then all writes
-      final result = await _firestore.runTransaction((transaction) async {
-        // READ PHASE: Get all data we need first
-        UserQuota? currentQuota;
-        if (useQuota) {
-          final quotaRef = _firestore.collection('user_quotas').doc(userId);
-          final quotaSnapshot = await transaction.get(quotaRef);
-          if (quotaSnapshot.exists) {
-            currentQuota = UserQuota.fromJson(quotaSnapshot.data()!);
-            AppLogger.chat(
-              '📊 Current quota before update: ${currentQuota.remainingMessages} messages',
-            );
-          } else {
-            AppLogger.chat('📊 No quota found, will create default quota');
-          }
-        }
-
-        // WRITE PHASE: Now perform all writes
-        // 1. Send message
-        final messageRef = _firestore
-            .collection('chats')
-            .doc(roomId)
-            .collection('messages')
-            .doc(message.messageId);
-
-        transaction.set(messageRef, message.toJson());
-
-        // 2. Update quota if needed
-        UserQuota? updatedQuota;
-        if (useQuota) {
-          final quotaRef = _firestore.collection('user_quotas').doc(userId);
-
-          if (currentQuota != null) {
-            // Existing quota - increment messagesSent
-            updatedQuota = currentQuota.copyWith(
-              messagesSent: currentQuota.messagesSent + 1,
-            );
-            transaction.set(quotaRef, updatedQuota.toJson());
-            AppLogger.chat(
-              '📊 Updated quota: ${updatedQuota.remainingMessages} messages remaining',
-            );
-          } else {
-            // No quota exists - create default with 1 message already sent
-            AppLogger.chat('📊 Creating default quota with 1 message sent');
-            updatedQuota = UserQuota(
-              userId: userId,
-              dailyLimit: 100,
-              messagesSent: 1, // Start with 1 since we're sending a message
-              extraQuota: 0,
-              lastReset: DateTime.now(),
-              createdAt: DateTime.now(),
-            );
-            transaction.set(quotaRef, updatedQuota.toJson());
-            AppLogger.chat(
-              '📊 Created new quota: ${updatedQuota.remainingMessages} messages remaining',
-            );
-          }
-        }
-
-        // 3. Update XP if needed
-        if (useXP) {
-          final userRef = _firestore.collection('users').doc(userId);
-          transaction.update(userRef, {'xpPoints': FieldValue.increment(-1)});
-          AppLogger.chat('⭐ XP decremented by 1');
-        }
-
-        return {'message': message, 'quota': updatedQuota};
-      });
-
-      AppLogger.chat(
-        '✅ BATCH: Message sent with quota/XP update in single transaction',
-      );
-      return result;
-    } catch (e) {
-      AppLogger.chat('❌ BATCH: Failed to send message with quota update: $e');
-      throw Exception('Failed to send message with quota update: $e');
-    }
-  }
-
   // Mark message as read
   Future<void> markMessageAsRead(
     String roomId,
@@ -1335,97 +1245,6 @@ class ChatRepository {
       return downloadUrl;
     } catch (e) {
       throw Exception('Failed to upload media file: $e');
-    }
-  }
-
-  // Get user quota
-  Future<UserQuota?> getUserQuota(String userId) async {
-    try {
-      final doc = await _firestore.collection('user_quotas').doc(userId).get();
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['userId'] = doc.id;
-        return UserQuota.fromJson(data);
-      }
-      return null;
-    } catch (e) {
-      throw Exception('Failed to get user quota: $e');
-    }
-  }
-
-  // Batch: Get user data and quota together
-  Future<Map<String, dynamic>> getUserDataAndQuota(String userId) async {
-    try {
-      AppLogger.chat('📦 BATCH: Fetching user data and quota together');
-
-      final results = await Future.wait([
-        _firestore.collection('users').doc(userId).get(),
-        _firestore.collection('user_quotas').doc(userId).get(),
-      ]);
-
-      final userDoc = results[0] as DocumentSnapshot;
-      final quotaDoc = results[1] as DocumentSnapshot;
-
-      UserModel? user;
-      if (userDoc.exists) {
-        final data = userDoc.data() as Map<String, dynamic>;
-        user = UserModel.fromJson(data);
-      }
-
-      UserQuota? quota;
-      if (quotaDoc.exists) {
-        final data = quotaDoc.data() as Map<String, dynamic>;
-        data['userId'] = quotaDoc.id;
-        quota = UserQuota.fromJson(data);
-      }
-
-      AppLogger.chat(
-        '✅ BATCH: Retrieved user data and quota in single operation',
-      );
-      return {'user': user, 'quota': quota};
-    } catch (e) {
-      AppLogger.chat('❌ BATCH: Failed to get user data and quota: $e');
-      throw Exception('Failed to get user data and quota: $e');
-    }
-  }
-
-  // Create or update user quota
-  Future<void> updateUserQuota(UserQuota quota) async {
-    try {
-      await _firestore
-          .collection('user_quotas')
-          .doc(quota.userId)
-          .set(quota.toJson());
-    } catch (e) {
-      throw Exception('Failed to update user quota: $e');
-    }
-  }
-
-  // Add extra quota (after watching ad)
-  Future<void> addExtraQuota(String userId, int extraQuota) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(quotaRef);
-        if (snapshot.exists) {
-          final currentQuota = UserQuota.fromJson(snapshot.data()!);
-          final updatedQuota = currentQuota.copyWith(
-            extraQuota: currentQuota.extraQuota + extraQuota,
-          );
-          transaction.set(quotaRef, updatedQuota.toJson());
-        } else {
-          // Create new quota
-          final newQuota = UserQuota(
-            userId: userId,
-            extraQuota: extraQuota,
-            lastReset: DateTime.now(),
-            createdAt: DateTime.now(),
-          );
-          transaction.set(quotaRef, newQuota.toJson());
-        }
-      });
-    } catch (e) {
-      throw Exception('Failed to add extra quota: $e');
     }
   }
 
@@ -1845,70 +1664,7 @@ class ChatRepository {
     AppLogger.database('Unknown room type, using fallback', tag: 'CHAT');
     return 'chats/$roomId'; // Fallback
   }
-
-  // Helper methods
-  Future<bool> _canUserSendMessage(String userId) async {
-    try {
-      // Get user data
-      final userDoc = await _firestore.collection('users').doc(userId).get();
-      if (!userDoc.exists) return false;
-
-      final user = UserModel.fromJson(userDoc.data()!);
-
-      // Premium users and candidates have unlimited messages
-      if (user.role == 'candidate' || user.role == 'admin' || user.premium) {
-        return true;
-      }
-
-      // Check quota for voters
-      final quota = await getUserQuota(userId);
-      if (quota == null) {
-        // Create default quota
-        final newQuota = UserQuota(
-          userId: userId,
-          lastReset: DateTime.now(),
-          createdAt: DateTime.now(),
-        );
-        await updateUserQuota(newQuota);
-        return true;
-      }
-
-      // Reset quota if it's a new day
-      final now = DateTime.now();
-      if (now.difference(quota.lastReset).inDays >= 1) {
-        final resetQuota = quota.copyWith(
-          messagesSent: 0,
-          extraQuota: 0,
-          lastReset: now,
-        );
-        await updateUserQuota(resetQuota);
-        return true;
-      }
-
-      return quota.canSendMessage;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<void> _incrementUserMessageCount(String userId) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(quotaRef);
-        if (snapshot.exists) {
-          final quota = UserQuota.fromJson(snapshot.data()!);
-          final updatedQuota = quota.copyWith(
-            messagesSent: quota.messagesSent + 1,
-          );
-          transaction.set(quotaRef, updatedQuota.toJson());
-        }
-      });
-    } catch (e) {
-      // Silently fail - quota tracking is not critical
-    }
-  }
-
+  
   // Get targeted rooms for a user (optimized queries)
   Future<List<ChatRoom>> _getTargetedRoomsForUser(
     String userId,

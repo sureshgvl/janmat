@@ -34,6 +34,7 @@ class _HighlightCarouselWidgetState extends State<HighlightCarouselWidget> {
   Future<void> _trackClick(HomeHighlight highlight) async {
     try {
       await HighlightService.trackClick(highlight.id,
+        stateId: widget.stateId,
         districtId: widget.districtId,
         bodyId: widget.bodyId,
         wardId: widget.wardId);

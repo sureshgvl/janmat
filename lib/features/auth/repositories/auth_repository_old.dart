@@ -22,9 +22,7 @@ import '../../../utils/app_logger.dart';
 class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
   final UserCacheService _cacheService = UserCacheService();
   final BackgroundSyncManager _syncManager = BackgroundSyncManager();
   final FCMService _fcmService = FCMService();
@@ -34,51 +32,89 @@ class AuthRepository {
     String phoneNumber,
     Function(String) onCodeSent,
   ) async {
-    AppLogger.auth('Initiating phone verification for: +91$phoneNumber', tag: 'PHONE_VERIFY');
+    AppLogger.auth(
+      'Initiating phone verification for: +91$phoneNumber',
+      tag: 'PHONE_VERIFY',
+    );
 
     try {
-      await _firebaseAuth.verifyPhoneNumber(
-        phoneNumber: '+91$phoneNumber',
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          AppLogger.auth('Phone verification completed automatically', tag: 'PHONE_VERIFY');
-          // Auto-verification successful, sign in immediately
-          try {
-            await _firebaseAuth.signInWithCredential(credential);
-            AppLogger.auth('Auto-signed in with phone credential', tag: 'PHONE_VERIFY');
-          } catch (e) {
-            AppLogger.authError('Auto-sign in failed', tag: 'PHONE_VERIFY', error: e);
-            rethrow;
-          }
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          AppLogger.authError('Phone verification failed: ${e.message}', tag: 'PHONE_VERIFY', error: e);
-          throw e;
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          AppLogger.auth('OTP sent successfully, verification ID: $verificationId', tag: 'PHONE_VERIFY');
-          onCodeSent(verificationId);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          AppLogger.auth('Auto-retrieval timeout, manual OTP entry required', tag: 'PHONE_VERIFY');
-          // This is called when auto-retrieval times out
-          // The verificationId is still valid for manual OTP entry
-          onCodeSent(verificationId);
-        },
-        // Force reCAPTCHA to be more responsive
-        timeout: const Duration(seconds: 30), // Reduced timeout for better UX
-        // Enable forceResendingToken for better UX
-        forceResendingToken: null,
-      ).timeout(
-        const Duration(seconds: 60), // Overall timeout for the entire operation
-        onTimeout: () {
-          AppLogger.auth('Phone verification timed out after 60 seconds', tag: 'PHONE_VERIFY');
-          throw Exception('Phone verification timed out. Please check your internet connection and try again.');
-        },
-      );
+      await _firebaseAuth
+          .verifyPhoneNumber(
+            phoneNumber: '+91$phoneNumber',
+            verificationCompleted: (PhoneAuthCredential credential) async {
+              AppLogger.auth(
+                'Phone verification completed automatically',
+                tag: 'PHONE_VERIFY',
+              );
+              // Auto-verification successful, sign in immediately
+              try {
+                await _firebaseAuth.signInWithCredential(credential);
+                AppLogger.auth(
+                  'Auto-signed in with phone credential',
+                  tag: 'PHONE_VERIFY',
+                );
+              } catch (e) {
+                AppLogger.authError(
+                  'Auto-sign in failed',
+                  tag: 'PHONE_VERIFY',
+                  error: e,
+                );
+                rethrow;
+              }
+            },
+            verificationFailed: (FirebaseAuthException e) {
+              AppLogger.authError(
+                'Phone verification failed: ${e.message}',
+                tag: 'PHONE_VERIFY',
+                error: e,
+              );
+              throw e;
+            },
+            codeSent: (String verificationId, int? resendToken) {
+              AppLogger.auth(
+                'OTP sent successfully, verification ID: $verificationId',
+                tag: 'PHONE_VERIFY',
+              );
+              onCodeSent(verificationId);
+            },
+            codeAutoRetrievalTimeout: (String verificationId) {
+              AppLogger.auth(
+                'Auto-retrieval timeout, manual OTP entry required',
+                tag: 'PHONE_VERIFY',
+              );
+              // This is called when auto-retrieval times out
+              // The verificationId is still valid for manual OTP entry
+              onCodeSent(verificationId);
+            },
+            // Force reCAPTCHA to be more responsive
+            timeout: const Duration(
+              seconds: 30,
+            ), // Reduced timeout for better UX
+            // Enable forceResendingToken for better UX
+            forceResendingToken: null,
+          )
+          .timeout(
+            const Duration(
+              seconds: 60,
+            ), // Overall timeout for the entire operation
+            onTimeout: () {
+              AppLogger.auth(
+                'Phone verification timed out after 60 seconds',
+                tag: 'PHONE_VERIFY',
+              );
+              throw Exception(
+                'Phone verification timed out. Please check your internet connection and try again.',
+              );
+            },
+          );
 
       AppLogger.auth('Phone verification setup completed', tag: 'PHONE_VERIFY');
     } catch (e) {
-      AppLogger.authError('Phone verification setup failed', tag: 'PHONE_VERIFY', error: e);
+      AppLogger.authError(
+        'Phone verification setup failed',
+        tag: 'PHONE_VERIFY',
+        error: e,
+      );
       rethrow;
     }
   }
@@ -98,26 +134,40 @@ class AuthRepository {
   Future<bool> _checkConnectivity() async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
-      final hasConnection = !connectivityResult.contains(ConnectivityResult.none);
-      AppLogger.network('Network connectivity check: ${hasConnection ? 'Connected' : 'No connection'}', tag: 'CONNECTIVITY');
+      final hasConnection = !connectivityResult.contains(
+        ConnectivityResult.none,
+      );
+      AppLogger.network(
+        'Network connectivity check: ${hasConnection ? 'Connected' : 'No connection'}',
+        tag: 'CONNECTIVITY',
+      );
       return hasConnection;
     } catch (e) {
-      AppLogger.network('Could not check connectivity: $e', tag: 'CONNECTIVITY');
+      AppLogger.network(
+        'Could not check connectivity: $e',
+        tag: 'CONNECTIVITY',
+      );
       return true; // Assume connected if check fails
     }
   }
 
   // Google Sign-In - Optimized for Release Build Performance
-  Future<UserCredential?> signInWithGoogle({bool forceAccountPicker = false}) async {
+  Future<UserCredential?> signInWithGoogle({
+    bool forceAccountPicker = false,
+  }) async {
     final startTime = DateTime.now();
     startPerformanceTimer('google_signin_release_optimized');
 
-    AppLogger.auth('🚀 Starting RELEASE-OPTIMIZED Google Sign-In at ${startTime.toIso8601String()}');
+    AppLogger.auth(
+      '🚀 Starting RELEASE-OPTIMIZED Google Sign-In at ${startTime.toIso8601String()}',
+    );
 
     try {
       // RELEASE OPTIMIZATION: Skip connectivity check for faster startup
       // App Check and Firebase will handle network issues
-      AppLogger.auth('⚡ [RELEASE_OPTIMIZED] Skipping connectivity check for speed');
+      AppLogger.auth(
+        '⚡ [RELEASE_OPTIMIZED] Skipping connectivity check for speed',
+      );
 
       GoogleSignInAccount? googleUser;
 
@@ -125,49 +175,67 @@ class AuthRepository {
       // Go directly to account picker for faster UX
       if (!forceAccountPicker) {
         // Try silent sign-in with shorter timeout (2s instead of 5s)
-        AppLogger.auth('🔍 [RELEASE_OPTIMIZED] Quick silent sign-in attempt...');
+        AppLogger.auth(
+          '🔍 [RELEASE_OPTIMIZED] Quick silent sign-in attempt...',
+        );
         try {
           googleUser = await _googleSignIn.signInSilently().timeout(
             const Duration(seconds: 2), // Reduced from 5s for faster UX
             onTimeout: () {
-              AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Silent sign-in timeout after 2s');
+              AppLogger.auth(
+                '⏰ [RELEASE_OPTIMIZED] Silent sign-in timeout after 2s',
+              );
               return null;
             },
           );
           if (googleUser != null) {
-            AppLogger.auth('✅ [RELEASE_OPTIMIZED] Silent sign-in successful: ${googleUser.displayName}');
+            AppLogger.auth(
+              '✅ [RELEASE_OPTIMIZED] Silent sign-in successful: ${googleUser.displayName}',
+            );
           }
         } catch (e) {
-          AppLogger.auth('ℹ️ [RELEASE_OPTIMIZED] Silent sign-in failed, proceeding to picker');
+          AppLogger.auth(
+            'ℹ️ [RELEASE_OPTIMIZED] Silent sign-in failed, proceeding to picker',
+          );
         }
       }
 
       // If silent failed or forced picker requested, show account picker
       if (googleUser == null) {
-        AppLogger.auth('📱 [RELEASE_OPTIMIZED] Showing Google account picker...');
+        AppLogger.auth(
+          '📱 [RELEASE_OPTIMIZED] Showing Google account picker...',
+        );
 
         final signInStart = DateTime.now();
         googleUser = await _googleSignIn.signIn().timeout(
           const Duration(seconds: 30), // Reduced from 45s for faster UX
           onTimeout: () {
             final timeoutDuration = DateTime.now().difference(signInStart);
-            AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Account picker timeout after ${timeoutDuration.inSeconds}s');
+            AppLogger.auth(
+              '⏰ [RELEASE_OPTIMIZED] Account picker timeout after ${timeoutDuration.inSeconds}s',
+            );
             throw Exception('Google Sign-In timed out. Please try again.');
           },
         );
 
         final signInDuration = DateTime.now().difference(signInStart);
-        AppLogger.auth('✅ [RELEASE_OPTIMIZED] Account picker completed in ${signInDuration.inSeconds}s');
+        AppLogger.auth(
+          '✅ [RELEASE_OPTIMIZED] Account picker completed in ${signInDuration.inSeconds}s',
+        );
       }
 
       if (googleUser == null) {
         final totalDuration = DateTime.now().difference(startTime);
         stopPerformanceTimer('google_signin_release_optimized');
-        AppLogger.auth('[RELEASE_OPTIMIZED] User cancelled Google Sign-In after ${totalDuration.inSeconds}s');
+        AppLogger.auth(
+          '[RELEASE_OPTIMIZED] User cancelled Google Sign-In after ${totalDuration.inSeconds}s',
+        );
         return null;
       }
 
-      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Google account selected: ${googleUser.displayName}');
+      AppLogger.auth(
+        '✅ [RELEASE_OPTIMIZED] Google account selected: ${googleUser.displayName}',
+      );
 
       // RELEASE OPTIMIZATION: Store account info asynchronously (don't await)
       _storeLastGoogleAccount(googleUser); // Fire-and-forget
@@ -178,12 +246,18 @@ class AuthRepository {
       final tokenFuture = googleUser.authentication;
       final userDataPrepFuture = _prepareUserDataLocally(googleUser);
 
-      final parallelResults = await Future.wait([tokenFuture, userDataPrepFuture]);
+      final parallelResults = await Future.wait([
+        tokenFuture,
+        userDataPrepFuture,
+      ]);
       final parallelDuration = DateTime.now().difference(parallelStart);
 
-      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Parallel operations completed in ${parallelDuration.inMilliseconds}ms');
+      AppLogger.auth(
+        '✅ [RELEASE_OPTIMIZED] Parallel operations completed in ${parallelDuration.inMilliseconds}ms',
+      );
 
-      final GoogleSignInAuthentication googleAuth = parallelResults[0] as GoogleSignInAuthentication;
+      final GoogleSignInAuthentication googleAuth =
+          parallelResults[0] as GoogleSignInAuthentication;
 
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
         throw 'Failed to retrieve authentication tokens from Google';
@@ -198,17 +272,24 @@ class AuthRepository {
       // RELEASE OPTIMIZATION: Firebase auth with shorter timeout (30s instead of 45s)
       final firebaseStart = DateTime.now();
 
-      final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential)
+      final UserCredential userCredential = await _firebaseAuth
+          .signInWithCredential(credential)
           .timeout(
             const Duration(seconds: 30), // Reduced from 45s for faster UX
             onTimeout: () {
-              AppLogger.auth('⏰ [RELEASE_OPTIMIZED] Firebase auth timeout after 30s');
-              throw Exception('Authentication is taking longer than expected. Please try again.');
+              AppLogger.auth(
+                '⏰ [RELEASE_OPTIMIZED] Firebase auth timeout after 30s',
+              );
+              throw Exception(
+                'Authentication is taking longer than expected. Please try again.',
+              );
             },
           );
 
       final firebaseDuration = DateTime.now().difference(firebaseStart);
-      AppLogger.auth('✅ [RELEASE_OPTIMIZED] Firebase auth successful in ${firebaseDuration.inMilliseconds}ms');
+      AppLogger.auth(
+        '✅ [RELEASE_OPTIMIZED] Firebase auth successful in ${firebaseDuration.inMilliseconds}ms',
+      );
 
       // RELEASE OPTIMIZATION: Create minimal user record asynchronously for faster navigation
       _createOrUpdateUserMinimal(userCredential.user!); // Fire-and-forget
@@ -223,41 +304,61 @@ class AuthRepository {
       final totalDuration = DateTime.now().difference(startTime);
       stopPerformanceTimer('google_signin_release_optimized');
 
-      AppLogger.auth('🎉 [RELEASE_OPTIMIZED] Google Sign-In completed in ${totalDuration.inSeconds}s');
-      AppLogger.auth('📊 [RELEASE_OPTIMIZED] Breakdown: Parallel=${parallelDuration.inMilliseconds}ms, Firebase=${firebaseDuration.inMilliseconds}ms');
+      AppLogger.auth(
+        '🎉 [RELEASE_OPTIMIZED] Google Sign-In completed in ${totalDuration.inSeconds}s',
+      );
+      AppLogger.auth(
+        '📊 [RELEASE_OPTIMIZED] Breakdown: Parallel=${parallelDuration.inMilliseconds}ms, Firebase=${firebaseDuration.inMilliseconds}ms',
+      );
 
       return userCredential;
     } catch (e) {
       final totalDuration = DateTime.now().difference(startTime);
       stopPerformanceTimer('google_signin_optimized');
 
-      AppLogger.auth('[GOOGLE_SIGNIN] Google Sign-In failed after ${totalDuration.inSeconds}s');
+      AppLogger.auth(
+        '[GOOGLE_SIGNIN] Google Sign-In failed after ${totalDuration.inSeconds}s',
+      );
 
       AppLogger.auth('[GOOGLE_SIGNIN] Error details: ${e.toString()}');
       AppLogger.auth('[GOOGLE_SIGNIN] Error type: ${e.runtimeType}');
       // Handle the special case where auth succeeded but timed out
       if (e.toString() == 'AUTH_SUCCESS_BUT_TIMEOUT') {
-        AppLogger.auth('✅ [GOOGLE_SIGNIN] Handling successful authentication that timed out');
+        AppLogger.auth(
+          '✅ [GOOGLE_SIGNIN] Handling successful authentication that timed out',
+        );
 
         final currentUser = _firebaseAuth.currentUser;
         if (currentUser != null) {
-          AppLogger.auth('✅ [GOOGLE_SIGNIN] Proceeding with authenticated user: ${currentUser.displayName} (UID: ${currentUser.uid})');
+          AppLogger.auth(
+            '✅ [GOOGLE_SIGNIN] Proceeding with authenticated user: ${currentUser.displayName} (UID: ${currentUser.uid})',
+          );
 
           // Minimal user data for successful auth
-          AppLogger.auth('👤 [GOOGLE_SIGNIN] Creating minimal user record for timeout recovery...');
+          AppLogger.auth(
+            '👤 [GOOGLE_SIGNIN] Creating minimal user record for timeout recovery...',
+          );
           final recoveryStart = DateTime.now();
           await _createOrUpdateUserMinimal(currentUser);
           final recoveryDuration = DateTime.now().difference(recoveryStart);
-          AppLogger.auth('✅ [GOOGLE_SIGNIN] Recovery user record created in ${recoveryDuration.inMilliseconds}ms');
+          AppLogger.auth(
+            '✅ [GOOGLE_SIGNIN] Recovery user record created in ${recoveryDuration.inMilliseconds}ms',
+          );
 
           // Background setup
           _performBackgroundSetup(currentUser);
-          AppLogger.auth('✅ [GOOGLE_SIGNIN] Background setup initiated for timeout recovery');
+          AppLogger.auth(
+            '✅ [GOOGLE_SIGNIN] Background setup initiated for timeout recovery',
+          );
 
-          AppLogger.auth('🎉 [GOOGLE_SIGNIN] Google Sign-In completed successfully despite timeout');
+          AppLogger.auth(
+            '🎉 [GOOGLE_SIGNIN] Google Sign-In completed successfully despite timeout',
+          );
           return null; // Return null to indicate success but no UserCredential
         } else {
-          AppLogger.auth('[GOOGLE_SIGNIN] Timeout recovery failed - no current user found');
+          AppLogger.auth(
+            '[GOOGLE_SIGNIN] Timeout recovery failed - no current user found',
+          );
         }
       }
 
@@ -265,26 +366,35 @@ class AuthRepository {
       String errorCategory = 'unknown';
       String userMessage = 'Sign-in failed';
 
-      if (e.toString().contains('network') || e.toString().contains('timeout')) {
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
         errorCategory = 'network';
-        userMessage = 'Network error during sign-in. Please check your internet connection and try again.';
+        userMessage =
+            'Network error during sign-in. Please check your internet connection and try again.';
         AppLogger.auth('🌐 [GOOGLE_SIGNIN] Network-related error detected');
-      } else if (e.toString().contains('cancelled') || e.toString().contains('CANCELLED')) {
+      } else if (e.toString().contains('cancelled') ||
+          e.toString().contains('CANCELLED')) {
         errorCategory = 'user_cancelled';
         userMessage = 'Sign-in was cancelled.';
         AppLogger.auth('🚫 [GOOGLE_SIGNIN] User cancelled the sign-in process');
-      } else if (e.toString().contains('sign_in_failed') || e.toString().contains('SIGN_IN_FAILED')) {
+      } else if (e.toString().contains('sign_in_failed') ||
+          e.toString().contains('SIGN_IN_FAILED')) {
         errorCategory = 'auth_failed';
         userMessage = 'Authentication failed. Please try again.';
         AppLogger.auth('🔐 [GOOGLE_SIGNIN] Authentication failure detected');
-      } else if (e.toString().contains('account') || e.toString().contains('ACCOUNT')) {
+      } else if (e.toString().contains('account') ||
+          e.toString().contains('ACCOUNT')) {
         errorCategory = 'account_issue';
-        userMessage = 'Account selection failed. Please try selecting a different account.';
+        userMessage =
+            'Account selection failed. Please try selecting a different account.';
         AppLogger.auth('👤 [GOOGLE_SIGNIN] Account-related error detected');
       } else if (e.toString().contains('Firebase authentication timed out')) {
         errorCategory = 'firebase_timeout';
-        userMessage = 'Sign-in is taking longer than expected. Please wait a moment and try again.';
-        AppLogger.auth('⏰ [GOOGLE_SIGNIN] Firebase authentication timeout detected');
+        userMessage =
+            'Sign-in is taking longer than expected. Please wait a moment and try again.';
+        AppLogger.auth(
+          '⏰ [GOOGLE_SIGNIN] Firebase authentication timeout detected',
+        );
       } else {
         errorCategory = 'unknown';
         userMessage = 'Sign-in failed: ${e.toString()}';
@@ -387,11 +497,15 @@ class AuthRepository {
 
       // Note: We keep the stored Google account info for smart login UX convenience
       // This allows users to quickly sign back in with the same account
-      AppLogger.auth('ℹ️ Stored Google account info preserved for quick re-login');
+      AppLogger.auth(
+        'ℹ️ Stored Google account info preserved for quick re-login',
+      );
 
       // Step 3: Clear app setup flags to force language selection and onboarding on next login
       await clearAppSetupFlags();
-      AppLogger.auth('✅ App setup flags cleared (language selection and onboarding will be shown again)');
+      AppLogger.auth(
+        '✅ App setup flags cleared (language selection and onboarding will be shown again)',
+      );
 
       // Step 4: Clear session-specific cache and temporary files (but keep user preferences)
       await _clearLogoutCache();
@@ -778,55 +892,6 @@ class AuthRepository {
     }
   }
 
-  // Create default quota for new user
-  Future<void> _createDefaultUserQuota(String userId) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      final quotaData = {
-        'userId': userId,
-        'dailyLimit': 100,
-        'messagesSent': 0,
-        'extraQuota': 0,
-        'lastReset': DateTime.now().toIso8601String(),
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-      await quotaRef.set(quotaData);
-      AppLogger.auth('✅ Created default quota for new user: $userId');
-    } catch (e) {
-      AppLogger.auth('Failed to create default quota for user $userId: $e');
-      // Don't throw here as user creation should succeed even if quota creation fails
-    }
-  }
-
-  // Create default quota for new user - Optimized version
-  Future<void> _createDefaultUserQuotaOptimized(String userId) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      final now = DateTime.now();
-
-      // Use server timestamp for better consistency
-      final quotaData = {
-        'userId': userId,
-        'dailyLimit': 100,
-        'messagesSent': 0,
-        'extraQuota': 0,
-        'lastReset': now.toIso8601String(),
-        'createdAt': now.toIso8601String(),
-        'lastUpdated': FieldValue.serverTimestamp(),
-      };
-
-      // Use set with merge for atomic operation
-      await quotaRef.set(quotaData, SetOptions(merge: true));
-      AppLogger.auth('✅ Created optimized default quota for new user: $userId');
-    } catch (e) {
-      AppLogger.auth(
-        '❌ Failed to create optimized default quota for user $userId: $e',
-      );
-      // Fallback to original method
-      await _createDefaultUserQuota(userId);
-    }
-  }
-
   // Delete account and all associated data with proper batch size management
   Future<void> deleteAccount() async {
     final user = _firebaseAuth.currentUser;
@@ -941,12 +1006,12 @@ class AuthRepository {
       await _deleteRewardsChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // 4. Delete XP transactions
-      AppLogger.auth('⭐ Deleting XP transactions...');
-      await _deleteXpTransactionsChunked(
-        userId,
-        getCurrentBatch,
-        commitIfNeeded,
-      );
+      // AppLogger.auth('⭐ Deleting XP transactions...');
+      // await _deleteXpTransactionsChunked(
+      //   userId,
+      //   getCurrentBatch,
+      //   commitIfNeeded,
+      // );
 
       // 5. If user is a candidate, delete candidate data
       if (isCandidate) {
@@ -1035,7 +1100,9 @@ class AuthRepository {
             'ℹ️ Firebase cache clearing skipped (normal after account deletion)',
           );
         } else {
-          AppLogger.auth('Warning: Firebase cache clearing failed: $cacheError');
+          AppLogger.auth(
+            'Warning: Firebase cache clearing failed: $cacheError',
+          );
         }
       }
 
@@ -1110,7 +1177,9 @@ class AuthRepository {
             'ℹ️ Firebase cache clearing skipped (normal after sign-out)',
           );
         } else {
-          AppLogger.auth('Warning: Firebase cache clearing failed: $cacheError');
+          AppLogger.auth(
+            'Warning: Firebase cache clearing failed: $cacheError',
+          );
         }
       }
 
@@ -1473,7 +1542,9 @@ class AuthRepository {
               }
             }
           } catch (e) {
-            AppLogger.auth('Warning: Failed to delete temp item ${file.path}: $e');
+            AppLogger.auth(
+              'Warning: Failed to delete temp item ${file.path}: $e',
+            );
           }
         }
 
@@ -1634,21 +1705,21 @@ class AuthRepository {
     }
   }
 
-  Future<void> _deleteXpTransactionsChunked(
-    String userId,
-    WriteBatch Function() getBatch,
-    Future<void> Function() commitIfNeeded,
-  ) async {
-    final xpTransactionsSnapshot = await _firestore
-        .collection('xp_transactions')
-        .where('userId', isEqualTo: userId)
-        .get();
+  // Future<void> _deleteXpTransactionsChunked(
+  //   String userId,
+  //   WriteBatch Function() getBatch,
+  //   Future<void> Function() commitIfNeeded,
+  // ) async {
+  //   final xpTransactionsSnapshot = await _firestore
+  //       .collection('xp_transactions')
+  //       .where('userId', isEqualTo: userId)
+  //       .get();
 
-    for (final doc in xpTransactionsSnapshot.docs) {
-      getBatch().delete(doc.reference);
-      await commitIfNeeded();
-    }
-  }
+  //   for (final doc in xpTransactionsSnapshot.docs) {
+  //     getBatch().delete(doc.reference);
+  //     await commitIfNeeded();
+  //   }
+  // }
 
   Future<void> _deleteCandidateDataChunked(
     String userId,
@@ -1661,10 +1732,14 @@ class AuthRepository {
       final districtsSnapshot = await _firestore.collection('districts').get();
 
       for (var districtDoc in districtsSnapshot.docs) {
-        final bodiesSnapshot = await districtDoc.reference.collection('bodies').get();
+        final bodiesSnapshot = await districtDoc.reference
+            .collection('bodies')
+            .get();
 
         for (var bodyDoc in bodiesSnapshot.docs) {
-          final wardsSnapshot = await bodyDoc.reference.collection('wards').get();
+          final wardsSnapshot = await bodyDoc.reference
+              .collection('wards')
+              .get();
 
           for (var wardDoc in wardsSnapshot.docs) {
             final candidateSnapshot = await wardDoc.reference
@@ -1750,17 +1825,6 @@ class AuthRepository {
       );
     } catch (e) {
       AppLogger.auth('Error deleting user chat rooms: $e');
-      // Don't throw here as we want to continue with other deletions
-    }
-  }
-
-  Future<void> _deleteUserQuota(String userId, WriteBatch batch) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      batch.delete(quotaRef);
-      AppLogger.auth('✅ Deleted user quota for: $userId');
-    } catch (e) {
-      AppLogger.auth('Error deleting user quota: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }
@@ -1867,16 +1931,18 @@ class AuthRepository {
   bool _isRetryableError(dynamic error) {
     final errorString = error.toString().toLowerCase();
     return errorString.contains('timeout') ||
-           errorString.contains('network') ||
-           errorString.contains('connection') ||
-           errorString.contains('unreachable');
+        errorString.contains('network') ||
+        errorString.contains('connection') ||
+        errorString.contains('unreachable');
   }
 
   // Simplified Firebase authentication - removed retry logic for faster feedback
   // Firebase auth should be fast with valid Google tokens
 
   // Prepare user data locally (fast operation)
-  Future<Map<String, dynamic>> _prepareUserDataLocally(GoogleSignInAccount googleUser) async {
+  Future<Map<String, dynamic>> _prepareUserDataLocally(
+    GoogleSignInAccount googleUser,
+  ) async {
     AppLogger.auth('📋 Preparing user data locally...');
 
     final userData = {
@@ -1952,14 +2018,14 @@ class AuthRepository {
     }
   }
 
-
-
   // Store last used Google account info for smart login UX - Enhanced Version
   Future<void> _storeLastGoogleAccount(GoogleSignInAccount account) async {
     try {
       // Validate account data before storing
       if (account.email == null || account.email.isEmpty) {
-        AppLogger.auth('⚠️ Cannot store Google account: email is null or empty');
+        AppLogger.auth(
+          '⚠️ Cannot store Google account: email is null or empty',
+        );
         return;
       }
 
@@ -1981,7 +2047,9 @@ class AuthRepository {
       // Also store backup copy for recovery
       await prefs.setString('last_google_account_backup', accountJson);
 
-      AppLogger.auth('✅ Enhanced account storage: ${account.email} (v2.0 with backup)');
+      AppLogger.auth(
+        '✅ Enhanced account storage: ${account.email} (v2.0 with backup)',
+      );
     } catch (e) {
       AppLogger.auth('⚠️ Error storing last Google account: $e');
       // Try to store minimal data as fallback
@@ -1996,7 +2064,9 @@ class AuthRepository {
         await prefs.setString('last_google_account', jsonEncode(minimalData));
         AppLogger.auth('✅ Fallback account storage successful');
       } catch (fallbackError) {
-        AppLogger.auth('⚠️ Fallback account storage also failed: $fallbackError');
+        AppLogger.auth(
+          '⚠️ Fallback account storage also failed: $fallbackError',
+        );
       }
     }
   }
@@ -2013,7 +2083,9 @@ class AuthRepository {
         accountData = prefs.getString('last_google_account_backup');
 
         if (accountData == null) {
-          AppLogger.auth('ℹ️ No stored Google account found (primary or backup)');
+          AppLogger.auth(
+            'ℹ️ No stored Google account found (primary or backup)',
+          );
           return null;
         } else {
           AppLogger.auth('📋 Found backup Google account data, restoring...');
@@ -2042,7 +2114,9 @@ class AuthRepository {
           final daysSinceLogin = DateTime.now().difference(lastLogin).inDays;
 
           if (daysSinceLogin > 30) {
-            AppLogger.auth('⚠️ Account data is ${daysSinceLogin} days old, clearing for security');
+            AppLogger.auth(
+              '⚠️ Account data is ${daysSinceLogin} days old, clearing for security',
+            );
             await prefs.remove('last_google_account');
             await prefs.remove('last_google_account_backup');
             return null;
@@ -2053,7 +2127,9 @@ class AuthRepository {
         }
       }
 
-      AppLogger.auth('✅ Successfully parsed and validated stored account: ${accountMap['displayName']} (${accountMap['email']})');
+      AppLogger.auth(
+        '✅ Successfully parsed and validated stored account: ${accountMap['displayName']} (${accountMap['email']})',
+      );
 
       return accountMap;
     } catch (e) {
@@ -2063,7 +2139,9 @@ class AuthRepository {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('last_google_account');
         await prefs.remove('last_google_account_backup');
-        AppLogger.auth('🧹 Cleared corrupted account data (primary and backup)');
+        AppLogger.auth(
+          '🧹 Cleared corrupted account data (primary and backup)',
+        );
       } catch (clearError) {
         AppLogger.auth('⚠️ Error clearing corrupted data: $clearError');
       }
@@ -2110,7 +2188,9 @@ class AuthRepository {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('is_first_time');
       await prefs.remove('onboarding_completed');
-      AppLogger.auth('✅ Cleared app setup flags (language selection and onboarding)');
+      AppLogger.auth(
+        '✅ Cleared app setup flags (language selection and onboarding)',
+      );
     } catch (e) {
       AppLogger.auth('⚠️ Error clearing app setup flags: $e');
     }

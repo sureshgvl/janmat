@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/plan_model.dart';
-import '../../highlight/controller/highlight_controller.dart';
+import '../../highlight/controller/highlight_plan_banner_controller.dart';
 import '../controllers/monetization_controller.dart';
 
 class PlanCard extends StatelessWidget {
@@ -118,14 +118,14 @@ class PlanCard extends StatelessWidget {
 
             // Price display logic
             if (plan.planId == 'free_plan') ...[
-                    Text(
-                      AppLocalizations.of(context)!.limited,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              Text(
+                AppLocalizations.of(context)!.limited,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ] else if (plan.type == 'voter') ...[
               const Text(
                 'XP Points',
@@ -186,7 +186,9 @@ class PlanCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: shouldDisableButton ? null : (onPurchase ?? () => _handlePurchase(context)),
+                  onPressed: shouldDisableButton
+                      ? null
+                      : (onPurchase ?? () => _handlePurchase(context)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: shouldDisableButton
                         ? Colors.grey
@@ -249,11 +251,16 @@ class PlanCard extends StatelessWidget {
   // Define plan hierarchy (higher number = higher tier)
   int _getPlanLevel(String planId) {
     switch (planId) {
-      case 'free_plan': return 0;
-      case 'basic_plan': return 1;
-      case 'gold_plan': return 2;
-      case 'platinum_plan': return 3;
-      default: return 0;
+      case 'free_plan':
+        return 0;
+      case 'basic_plan':
+        return 1;
+      case 'gold_plan':
+        return 2;
+      case 'platinum_plan':
+        return 3;
+      default:
+        return 0;
     }
   }
 
@@ -267,7 +274,8 @@ class PlanCard extends StatelessWidget {
       return 'This is your current active plan';
     }
 
-    if (currentPlanId != null && _isLowerOrEqualPlan(currentPlanId, plan.planId)) {
+    if (currentPlanId != null &&
+        _isLowerOrEqualPlan(currentPlanId, plan.planId)) {
       final currentLevel = _getPlanLevel(currentPlanId);
       final targetLevel = _getPlanLevel(plan.planId);
       if (currentLevel > targetLevel) {
@@ -301,7 +309,9 @@ class PlanCard extends StatelessWidget {
   String _getButtonText(BuildContext context, String? currentPlanId) {
     // Free plans
     if (plan.planId == 'free_plan') {
-      return currentPlanId == 'free_plan' ? 'Active Free Plan' : 'Activate Free Plan';
+      return currentPlanId == 'free_plan'
+          ? 'Active Free Plan'
+          : 'Activate Free Plan';
     }
 
     // XP plans
@@ -319,7 +329,8 @@ class PlanCard extends StatelessWidget {
     }
 
     // Determine if this is an upgrade or downgrade
-    if (currentPlanId != null && _getPlanLevel(currentPlanId) < _getPlanLevel(plan.planId)) {
+    if (currentPlanId != null &&
+        _getPlanLevel(currentPlanId) < _getPlanLevel(plan.planId)) {
       return 'Upgrade';
     }
 
@@ -332,100 +343,197 @@ class PlanCard extends StatelessWidget {
     // Dashboard Tabs Features (only for candidate plans)
     if (plan.dashboardTabs != null) {
       if (plan.dashboardTabs!.basicInfo.enabled) {
-        features.add(_buildFeatureItem(AppLocalizations.of(context)!.basicInfo, true));
+        features.add(
+          _buildFeatureItem(AppLocalizations.of(context)!.basicInfo, true),
+        );
       }
 
       if (plan.dashboardTabs!.manifesto.enabled) {
-        features.add(_buildFeatureItem(AppLocalizations.of(context)!.manifesto, true));
+        features.add(
+          _buildFeatureItem(AppLocalizations.of(context)!.manifesto, true),
+        );
         if (plan.dashboardTabs!.manifesto.features.pdfUpload) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.pdfUpload}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.pdfUpload}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.manifesto.features.videoUpload) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.videoUpload}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.videoUpload}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.manifesto.features.promises) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.promises(plan.dashboardTabs!.manifesto.features.maxPromises)}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.promises(plan.dashboardTabs!.manifesto.features.maxPromises)}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.manifesto.features.multipleVersions == true) {
-          features.add(_buildFeatureItem('  • Multiple Versions', true)); // Keep hardcoded as not in localization
+          features.add(
+            _buildFeatureItem('  • Multiple Versions', true),
+          ); // Keep hardcoded as not in localization
         }
       }
 
       if (plan.dashboardTabs!.achievements.enabled) {
-        final max = plan.dashboardTabs!.achievements.maxAchievements == -1 ? 'Unlimited' : plan.dashboardTabs!.achievements.maxAchievements.toString();
-        features.add(_buildFeatureItem('${AppLocalizations.of(context)!.achievements} ($max)', true));
+        final max = plan.dashboardTabs!.achievements.maxAchievements == -1
+            ? 'Unlimited'
+            : plan.dashboardTabs!.achievements.maxAchievements.toString();
+        features.add(
+          _buildFeatureItem(
+            '${AppLocalizations.of(context)!.achievements} ($max)',
+            true,
+          ),
+        );
       }
 
       if (plan.dashboardTabs!.media.enabled) {
-        final max = plan.dashboardTabs!.media.maxMediaItems == -1 ? 'Unlimited' : plan.dashboardTabs!.media.maxMediaItems.toString();
-        features.add(_buildFeatureItem('${AppLocalizations.of(context)!.mediaItems} ($max items)', true));
+        final max = plan.dashboardTabs!.media.maxMediaItems == -1
+            ? 'Unlimited'
+            : plan.dashboardTabs!.media.maxMediaItems.toString();
+        features.add(
+          _buildFeatureItem(
+            '${AppLocalizations.of(context)!.mediaItems} ($max items)',
+            true,
+          ),
+        );
       }
 
       if (plan.dashboardTabs!.contact.enabled) {
-        features.add(_buildFeatureItem(AppLocalizations.of(context)!.contact, true));
+        features.add(
+          _buildFeatureItem(AppLocalizations.of(context)!.contact, true),
+        );
         if (plan.dashboardTabs!.contact.features.extended) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.extendedInfo}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.extendedInfo}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.contact.features.socialLinks) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.socialLinks}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.socialLinks}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.contact.features.prioritySupport == true) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.prioritySupport}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.prioritySupport}',
+              true,
+            ),
+          );
         }
       }
 
       if (plan.dashboardTabs!.events.enabled) {
-        final max = plan.dashboardTabs!.events.maxEvents == -1 ? 'Unlimited' : plan.dashboardTabs!.events.maxEvents.toString();
-        features.add(_buildFeatureItem('${AppLocalizations.of(context)!.events} ($max)', true));
+        final max = plan.dashboardTabs!.events.maxEvents == -1
+            ? 'Unlimited'
+            : plan.dashboardTabs!.events.maxEvents.toString();
+        features.add(
+          _buildFeatureItem(
+            '${AppLocalizations.of(context)!.events} ($max)',
+            true,
+          ),
+        );
       }
 
       if (plan.dashboardTabs!.analytics.enabled) {
-        features.add(_buildFeatureItem(AppLocalizations.of(context)!.analytics, true));
+        features.add(
+          _buildFeatureItem(AppLocalizations.of(context)!.analytics, true),
+        );
         if (plan.dashboardTabs!.analytics.features?.advanced == true) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.advanced}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.advanced}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.analytics.features?.fullDashboard == true) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.fullDashboard}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.fullDashboard}',
+              true,
+            ),
+          );
         }
         if (plan.dashboardTabs!.analytics.features?.realTime == true) {
-          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.realTime}', true));
+          features.add(
+            _buildFeatureItem(
+              '  • ${AppLocalizations.of(context)!.realTime}',
+              true,
+            ),
+          );
         }
       }
     }
 
     // Profile Features
     if (plan.profileFeatures.premiumBadge) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.premiumBadge, true));
+      features.add(
+        _buildFeatureItem(AppLocalizations.of(context)!.premiumBadge, true),
+      );
     }
     if (plan.profileFeatures.sponsoredBanner) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.sponsoredBanner, true));
+      features.add(
+        _buildFeatureItem(AppLocalizations.of(context)!.sponsoredBanner, true),
+      );
     }
     if (plan.profileFeatures.highlightCarousel) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.highlightBanner, true));
+      features.add(
+        _buildFeatureItem(AppLocalizations.of(context)!.highlightBanner, true),
+      );
     }
     if (plan.profileFeatures.pushNotifications) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.pushNotifications, true));
+      features.add(
+        _buildFeatureItem(
+          AppLocalizations.of(context)!.pushNotifications,
+          true,
+        ),
+      );
     }
     if (plan.profileFeatures.multipleHighlights == true) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.carouselOnHome, true));
+      features.add(
+        _buildFeatureItem(AppLocalizations.of(context)!.carouselOnHome, true),
+      );
     }
     if (plan.profileFeatures.adminSupport == true) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.adminSupport, true));
+      features.add(
+        _buildFeatureItem(AppLocalizations.of(context)!.adminSupport, true),
+      );
     }
     if (plan.profileFeatures.customBranding == true) {
-      features.add(_buildFeatureItem(AppLocalizations.of(context)!.customBranding, true));
+      features.add(
+        _buildFeatureItem(AppLocalizations.of(context)!.customBranding, true),
+      );
     }
 
     // Add allocated seats display for highlight plans
     if (plan.type == 'highlight' && plan.highlightFeatures != null) {
       features.add(const SizedBox(height: 8));
-      features.add(_buildAllocatedSeatsDisplay(plan.highlightFeatures!.maxHighlights));
+      features.add(
+        _buildAllocatedSeatsDisplay(plan.highlightFeatures!.maxHighlights),
+      );
     }
 
     // Add allocated seats display for carousel plans
     if (plan.type == 'carousel' && plan.carouselFeatures != null) {
       features.add(const SizedBox(height: 8));
-      features.add(_buildAllocatedSeatsDisplay(plan.carouselFeatures!.maxCarouselSlots));
+      features.add(
+        _buildAllocatedSeatsDisplay(plan.carouselFeatures!.maxCarouselSlots),
+      );
     }
 
     return features;
@@ -442,12 +550,7 @@ class PlanCard extends StatelessWidget {
             size: 16,
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(name, style: const TextStyle(fontSize: 14))),
         ],
       ),
     );
@@ -483,7 +586,9 @@ class PlanCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: allocatedSeats == maxHighlights ? Colors.green : Colors.grey[600],
+                  color: allocatedSeats == maxHighlights
+                      ? Colors.green
+                      : Colors.grey[600],
                 ),
               ),
             ],
@@ -495,8 +600,12 @@ class PlanCard extends StatelessWidget {
               (index) => Container(
                 margin: const EdgeInsets.only(right: 4),
                 child: Icon(
-                  index < allocatedSeats ? Icons.event_seat : Icons.event_seat_outlined,
-                  color: index < allocatedSeats ? Colors.green[600] : Colors.grey[400],
+                  index < allocatedSeats
+                      ? Icons.event_seat
+                      : Icons.event_seat_outlined,
+                  color: index < allocatedSeats
+                      ? Colors.green[600]
+                      : Colors.grey[400],
                   size: 20,
                 ),
               ),
@@ -510,7 +619,7 @@ class PlanCard extends StatelessWidget {
   int _getCurrentAllocatedSeats() {
     try {
       // Get the highlight controller to check current usage
-      final highlightController = Get.find<HighlightController>();
+      final highlightController = Get.find<HighlightPlanBannerController>();
 
       // Get current user to find their highlights
       final currentUser = controller.currentFirebaseUser.value;
@@ -519,9 +628,12 @@ class PlanCard extends StatelessWidget {
       // For now, we'll count active highlights for this user
       // This is a simplified implementation - in production, you might want to
       // cache this or get it from a dedicated method
-      final userHighlights = highlightController.highlights.where(
-        (highlight) => highlight.candidateId == currentUser.uid && highlight.active
-      ).length;
+      final userHighlights = highlightController.highlights
+          .where(
+            (highlight) =>
+                highlight.candidateId == currentUser.uid && highlight.active,
+          )
+          .length;
 
       return userHighlights;
     } catch (e) {
@@ -625,9 +737,13 @@ class PlanCard extends StatelessWidget {
 
     // Add confirmation dialog for free plan activation when user has paid plan
     if (plan.planId == 'free_plan') {
-      final currentPlanId = controller.currentUserModel.value?.subscriptionPlanId;
+      final currentPlanId =
+          controller.currentUserModel.value?.subscriptionPlanId;
       if (currentPlanId != null && currentPlanId != 'free_plan') {
-        final shouldDowngrade = await _showDowngradeConfirmation(context, currentPlanId);
+        final shouldDowngrade = await _showDowngradeConfirmation(
+          context,
+          currentPlanId,
+        );
         if (!shouldDowngrade) {
           return; // User cancelled the downgrade
         }
@@ -638,7 +754,10 @@ class PlanCard extends StatelessWidget {
     debugPrint('Purchasing plan: ${plan.planId}');
   }
 
-  Future<bool> _showDowngradeConfirmation(BuildContext context, String currentPlanId) async {
+  Future<bool> _showDowngradeConfirmation(
+    BuildContext context,
+    String currentPlanId,
+  ) async {
     final currentPlanName = _getPlanDisplayName(currentPlanId);
     final result = await showDialog<bool>(
       context: context,
@@ -703,11 +822,16 @@ class PlanCard extends StatelessWidget {
 
   String _getPlanDisplayName(String planId) {
     switch (planId) {
-      case 'free_plan': return 'Free Plan';
-      case 'basic_plan': return 'Basic Plan';
-      case 'gold_plan': return 'Gold Plan';
-      case 'platinum_plan': return 'Platinum Plan';
-      default: return 'Unknown Plan';
+      case 'free_plan':
+        return 'Free Plan';
+      case 'basic_plan':
+        return 'Basic Plan';
+      case 'gold_plan':
+        return 'Gold Plan';
+      case 'platinum_plan':
+        return 'Platinum Plan';
+      default:
+        return 'Unknown Plan';
     }
   }
 }

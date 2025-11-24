@@ -51,10 +51,10 @@ class ShareCandidateProfileService {
     final location = candidate.location;
     return generateProfilePath(
       candidateId: candidate.candidateId,
-      stateId: location.stateId ?? 'maharashtra',
-      districtId: location.districtId ?? '',
-      bodyId: location.bodyId ?? '',
-      wardId: location.wardId ?? '',
+      stateId: location.stateId!,
+      districtId: location.districtId!,
+      bodyId: location.bodyId!,
+      wardId: location.wardId!,
     );
   }
 

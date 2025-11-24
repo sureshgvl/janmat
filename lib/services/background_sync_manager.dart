@@ -184,42 +184,6 @@ class BackgroundSyncManager {
     });
   }
 
-  // Sync user quota
-  Future<void> syncUserQuota(String userId) async {
-    addToSyncQueue(() async {
-      try {
-        AppLogger.common('📊 Syncing user quota...');
-
-        final quotaRef = _firestore.collection('user_quotas').doc(userId);
-        final quotaSnapshot = await quotaRef.get();
-
-        if (!quotaSnapshot.exists) {
-          // Create default quota
-          await quotaRef.set({
-            'userId': userId,
-            'dailyLimit': 100,
-            'messagesSent': 0,
-            'extraQuota': 0,
-            'lastReset': DateTime.now().toIso8601String(),
-            'createdAt': DateTime.now().toIso8601String(),
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-
-          AppLogger.common('✅ User quota created');
-        } else {
-          // Update last activity
-          await quotaRef.update({
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-
-          AppLogger.common('✅ User quota updated');
-        }
-      } catch (e) {
-        AppLogger.common('⚠️ Error syncing user quota: $e');
-      }
-    });
-  }
-
   // Clean up expired data
   Future<void> cleanupExpiredData(String userId) async {
     addToSyncQueue(() async {
@@ -266,7 +230,7 @@ class BackgroundSyncManager {
       await Future.wait([
         syncUserProfileAfterLogin(firebaseUser),
         syncUserPreferences(firebaseUser.uid),
-        syncUserQuota(firebaseUser.uid),
+        //syncUserQuota(firebaseUser.uid),
         cleanupExpiredData(firebaseUser.uid),
       ]);
 

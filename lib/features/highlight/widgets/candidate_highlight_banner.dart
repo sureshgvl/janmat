@@ -227,6 +227,7 @@ class _CandidateHighlightBannerState extends State<CandidateHighlightBanner> {
     try {
       HighlightService.trackImpression(
         highlight.id,
+        stateId: widget.stateId,
         districtId: widget.districtId,
         bodyId: widget.bodyId,
         wardId: widget.wardId,
@@ -243,6 +244,7 @@ class _CandidateHighlightBannerState extends State<CandidateHighlightBanner> {
     try {
       HighlightService.trackClick(
         highlight.id,
+        stateId: widget.stateId,
         districtId: widget.districtId,
         bodyId: widget.bodyId,
         wardId: widget.wardId,

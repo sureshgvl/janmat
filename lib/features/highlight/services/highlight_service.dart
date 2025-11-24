@@ -158,6 +158,7 @@ class HighlightService {
   // Track impression (view) - SESSION-BASED: Only track once per user session per highlight
   static Future<void> trackImpression(
     String highlightId, {
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -168,6 +169,7 @@ class HighlightService {
       // Use session-based tracking: only increment if not viewed in current session
       final impressionTracked = await sessionService.trackImpressionIfNotViewed(
         highlightId: highlightId,
+        stateId: stateId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,
@@ -196,6 +198,7 @@ class HighlightService {
   // Track click
   static Future<void> trackClick(
     String highlightId, {
+    String? stateId,
     String? districtId,
     String? bodyId,
     String? wardId,
@@ -205,79 +208,19 @@ class HighlightService {
       if (districtId != null && bodyId != null && wardId != null) {
         await FirebaseFirestore.instance
             .collection('states')
-            .doc('maharashtra') // TODO: Make dynamic
+            .doc(stateId) 
             .collection('districts')
             .doc(districtId)
             .collection('bodies')
             .doc(bodyId)
             .collection('wards')
             .doc(wardId)
-            .collection('highlights')
-            .doc(highlightId)
-            .update({'clicks': FieldValue.increment(1)});
-      } else {
-        // Fallback: try to find in old structure (for backward compatibility)
-        await FirebaseFirestore.instance
             .collection('highlights')
             .doc(highlightId)
             .update({'clicks': FieldValue.increment(1)});
       }
     } catch (e) {
       AppLogger.commonError('Error tracking click', error: e, isShow: isShow);
-    }
-  }
-
-  // Update highlight status with lifecycle management
-  static Future<void> updateHighlightStatusWithLifecycle(
-    String highlightId,
-    String status, {
-    String? districtId,
-    String? bodyId,
-    String? wardId,
-    DateTime? expiredAt,
-  }) async {
-    try {
-      final updates = <String, dynamic>{
-        'status': status,
-        'active': status == 'active',
-      };
-
-      if (expiredAt != null && status == 'expired') {
-        updates['expiredAt'] = Timestamp.fromDate(expiredAt);
-      }
-
-      // If location info is provided, use hierarchical path
-      if (districtId != null && bodyId != null && wardId != null) {
-        await FirebaseFirestore.instance
-            .collection('states')
-            .doc('maharashtra') // TODO: Make dynamic
-            .collection('districts')
-            .doc(districtId)
-            .collection('bodies')
-            .doc(bodyId)
-            .collection('wards')
-            .doc(wardId)
-            .collection('highlights')
-            .doc(highlightId)
-            .update(updates);
-      } else {
-        // Fallback: try to find in old structure (for backward compatibility)
-        await FirebaseFirestore.instance
-            .collection('highlights')
-            .doc(highlightId)
-            .update(updates);
-      }
-
-      AppLogger.common(
-        '✅ HighlightService: Updated highlight $highlightId status to $status',
-        isShow: isShow,
-      );
-    } catch (e) {
-      AppLogger.commonError(
-        '❌ HighlightService: Error updating highlight status with lifecycle',
-        error: e,
-        isShow: isShow,
-      );
     }
   }
 
@@ -330,6 +273,7 @@ class HighlightService {
   // Create or update Platinum highlight for real candidate
   static Future<String?> createOrUpdatePlatinumHighlight({
     required String candidateId,
+    required String stateId,
     required String districtId,
     required String bodyId,
     required String wardId,
@@ -354,6 +298,7 @@ class HighlightService {
       // Check if candidate already has an existing highlight in their specific ward
       final existingHighlights = await getHighlightsByCandidateInWard(
         candidateId: candidateId,
+        stateId: stateId,
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,
@@ -369,6 +314,7 @@ class HighlightService {
         // Update existing highlight
         return await updateExistingHighlight(
           existingHighlight: existingHighlight,
+          stateId: stateId,
           districtId: districtId,
           bodyId: bodyId,
           wardId: wardId,
@@ -391,6 +337,7 @@ class HighlightService {
         // Create new highlight
         return await _createNewPlatinumHighlight(
           candidateId: candidateId,
+          stateId: stateId,
           districtId: districtId,
           bodyId: bodyId,
           wardId: wardId,
@@ -418,6 +365,7 @@ class HighlightService {
   // Create Platinum highlight for real candidate
   static Future<String?> createPlatinumHighlight({
     required String candidateId,
+    required String stateId,
     required String districtId,
     required String bodyId,
     required String wardId,
@@ -436,6 +384,7 @@ class HighlightService {
     // For backward compatibility, delegate to the new method
     return await createOrUpdatePlatinumHighlight(
       candidateId: candidateId,
+      stateId: stateId,
       districtId: districtId,
       bodyId: bodyId,
       wardId: wardId,
@@ -454,6 +403,7 @@ class HighlightService {
   // Helper method to create new Platinum highlight
   static Future<String?> _createNewPlatinumHighlight({
     required String candidateId,
+    required String stateId,
     required String districtId,
     required String bodyId,
     required String wardId,
@@ -476,7 +426,7 @@ class HighlightService {
       int priorityValue = _getPriorityValue(priorityLevel);
 
       final location = LocationModel(
-        stateId: 'maharashtra', // Default state
+        stateId: stateId, 
         districtId: districtId,
         bodyId: bodyId,
         wardId: wardId,
@@ -515,7 +465,7 @@ class HighlightService {
       // Save to hierarchical structure: /states/maharashtra/districts/{districtId}/bodies/{bodyId}/wards/{wardId}/highlights/{highlightId}
       await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra') // TODO: Make dynamic based on user location
+          .doc(stateId) 
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -552,6 +502,7 @@ class HighlightService {
   // Helper method to update existing highlight
   static Future<String?> updateExistingHighlight({
     required Highlight existingHighlight,
+    required String stateId,
     required String districtId,
     required String bodyId,
     required String wardId,
@@ -603,7 +554,7 @@ class HighlightService {
       // Update in hierarchical structure
       await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')
@@ -640,6 +591,7 @@ class HighlightService {
   // Helper method to get highlights by candidate in a specific ward
   static Future<List<Highlight>> getHighlightsByCandidateInWard({
     required String candidateId,
+    required String stateId,
     required String districtId,
     required String bodyId,
     required String wardId,
@@ -652,7 +604,7 @@ class HighlightService {
 
       final snapshot = await FirebaseFirestore.instance
           .collection('states')
-          .doc('maharashtra')
+          .doc(stateId)
           .collection('districts')
           .doc(districtId)
           .collection('bodies')

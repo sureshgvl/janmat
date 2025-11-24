@@ -30,7 +30,7 @@ import '../features/deviceInfo/controller/device_info_controller.dart';
 import '../features/notificationSetting/controller/notification_settings_controller.dart';
 import '../features/follow/controller/following_controller.dart';
 import '../features/language/controller/language_controller.dart';
-import '../features/highlight/controller/highlight_controller.dart';
+import '../features/highlight/controller/highlight_plan_banner_controller.dart';
 import '../services/background_location_sync_service.dart';
 import '../features/candidate/services/manifesto_sync_service.dart';
 
@@ -47,7 +47,9 @@ import '../features/chat/services/whatsapp_style_chat_cache.dart';
 class AppBindings extends Bindings {
   @override
   Future<void> dependencies() async {
-    AppLogger.common('🔧 AppBindings dependencies() called - LAZY LOADING OPTIMIZATION');
+    AppLogger.common(
+      '🔧 AppBindings dependencies() called - LAZY LOADING OPTIMIZATION',
+    );
 
     // 🚀 CRITICAL CONTROLLERS: Only load these immediately as they're needed for app startup
     Get.put<AuthController>(AuthController());
@@ -79,9 +81,13 @@ class AppBindings extends Bindings {
     Get.lazyPut<SaveAllCoordinator>(() => SaveAllCoordinator());
     Get.lazyPut<OfflineDraftsService>(() => OfflineDraftsService());
     Get.lazyPut<DeviceInfoController>(() => DeviceInfoController());
-    Get.lazyPut<NotificationSettingsController>(() => NotificationSettingsController());
+    Get.lazyPut<NotificationSettingsController>(
+      () => NotificationSettingsController(),
+    );
     Get.lazyPut<FollowingController>(() => FollowingController());
-    Get.lazyPut<HighlightController>(() => HighlightController());
+    Get.lazyPut<HighlightPlanBannerController>(
+      () => HighlightPlanBannerController(),
+    );
 
     // 🎯 LAZY LOAD SERVICES: Only initialize when needed
     Get.lazyPut<RazorpayService>(() => RazorpayService());
@@ -123,7 +129,9 @@ class AppBindings extends Bindings {
       try {
         final notificationManager = NotificationManager();
         await notificationManager.initialize();
-        AppLogger.common('✅ NotificationManager initialized successfully (background)');
+        AppLogger.common(
+          '✅ NotificationManager initialized successfully (background)',
+        );
       } catch (e) {
         AppLogger.common('⚠️ Failed to initialize NotificationManager: $e');
       }
@@ -137,7 +145,9 @@ class AppBindings extends Bindings {
         final cacheWarmer = BackgroundCacheWarmer();
         await cacheWarmer.initialize();
         Get.put<BackgroundCacheWarmer>(cacheWarmer);
-        AppLogger.common('✅ BackgroundCacheWarmer initialized successfully (background)');
+        AppLogger.common(
+          '✅ BackgroundCacheWarmer initialized successfully (background)',
+        );
       } catch (e) {
         AppLogger.common('⚠️ Failed to initialize BackgroundCacheWarmer: $e');
       }
@@ -163,7 +173,9 @@ class AppBindings extends Bindings {
 
         await performanceMonitor.initialize();
         Get.put<ChatPerformanceMonitor>(performanceMonitor);
-        AppLogger.common('✅ ChatPerformanceMonitor initialized successfully (background)');
+        AppLogger.common(
+          '✅ ChatPerformanceMonitor initialized successfully (background)',
+        );
       } catch (e) {
         AppLogger.common('⚠️ Failed to initialize ChatPerformanceMonitor: $e');
       }

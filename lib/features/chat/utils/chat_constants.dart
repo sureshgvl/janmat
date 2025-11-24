@@ -67,7 +67,6 @@ class ChatConstants {
   // Firebase collection names
   static const String collectionChats = 'chats';
   static const String collectionUsers = 'users';
-  static const String collectionUserQuotas = 'user_quotas';
   static const String collectionReportedMessages = 'reported_messages';
 
   // Storage paths

@@ -16,7 +16,6 @@ import '../services/whatsapp_style_message_cache.dart';
 import '../services/message_sender.dart';
 import '../services/message_state_manager.dart';
 import '../services/voice_recorder_service.dart';
-import '../services/user_quota_manager.dart';
 import '../services/message_moderation_manager.dart';
 import '../repositories/chat_repository.dart';
 import 'room_controller.dart';
@@ -45,7 +44,6 @@ class MessageController extends GetxController {
    final MessageSender _messageSender = MessageSender();
    final MessageStateManager _messageStateManager = MessageStateManager();
    final VoiceRecorderService _voiceRecorderService = VoiceRecorderService();
-   final UserQuotaManager _userQuotaManager = UserQuotaManager();
    final MessageModerationManager _messageModerationManager = MessageModerationManager();
 
    // Lazy dependency to avoid initialization order issues
@@ -129,7 +127,8 @@ class MessageController extends GetxController {
       (msg, rId) async {
         // This function will be called by the offline queue
         await _repository.sendMessage(rId, msg);
-        await _updateUserQuotaAfterMessage();
+        // COMMENTED OUT: No quota updates needed
+        // await _updateUserQuotaAfterMessage();
 
         // Update private chat metadata if this is a private chat
         if (rId.startsWith('private_')) {
@@ -169,31 +168,31 @@ class MessageController extends GetxController {
     AppLogger.chat('MessageController: Quota loading deferred to ChatController');
   }
 
-  // Update user quota after sending a message
-  Future<void> _updateUserQuotaAfterMessage() async {
-    try {
-      // Get current quota
-      final currentQuota = userQuota.value;
-      if (currentQuota != null) {
-        // Increment messages sent
-        final updatedQuota = currentQuota.copyWith(
-          messagesSent: currentQuota.messagesSent + 1,
-        );
+  // COMMENTED OUT: Quota limits removed - no longer update quotas after messages
+  // Future<void> _updateUserQuotaAfterMessage() async {
+  //   try {
+  //     // Get current quota
+  //     final currentQuota = userQuota.value;
+  //     if (currentQuota != null) {
+  //       // Increment messages sent
+  //       final updatedQuota = currentQuota.copyWith(
+  //         messagesSent: currentQuota.messagesSent + 1,
+  //       );
 
-        // Update local state
-        userQuota.value = updatedQuota;
+  //       // Update local state
+  //       userQuota.value = updatedQuota;
 
-        // Update in repository
-        await _repository.updateUserQuota(updatedQuota);
+  //       // Update in repository
+  //       await _repository.updateUserQuota(updatedQuota);
 
-        AppLogger.chat(
-          'MessageController: Updated quota - sent: ${updatedQuota.messagesSent}, remaining: ${updatedQuota.remainingMessages}',
-        );
-      }
-    } catch (e) {
-      AppLogger.chat('MessageController: Failed to update quota: $e');
-    }
-  }
+  //       AppLogger.chat(
+  //         'MessageController: Updated quota - sent: ${updatedQuota.messagesSent}, remaining: ${updatedQuota.remainingMessages}',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     AppLogger.chat('MessageController: Failed to update quota: $e');
+  //   }
+  // }
 
   // Update private chat metadata when messages are sent
   Future<void> _updatePrivateChatMetadata(Message message, String roomId) async {
@@ -326,8 +325,8 @@ class MessageController extends GetxController {
           msg.copyWith(mediaUrl: remoteUrl),
         );
 
-        // Update local quota
-        await _updateUserQuotaAfterMessage();
+        // // COMMENTED OUT: Update local quota removed
+        // await _updateUserQuotaAfterMessage();
 
         // Update status to sent
         await _localMessageService.updateMessageStatus(
@@ -412,8 +411,8 @@ class MessageController extends GetxController {
           msg.copyWith(mediaUrl: remoteUrl),
         );
 
-        // Update local quota
-        await _updateUserQuotaAfterMessage();
+        // // COMMENTED OUT: Update local quota removed
+        //await _updateUserQuotaAfterMessage();
 
         // Update status to sent
         await _localMessageService.updateMessageStatus(

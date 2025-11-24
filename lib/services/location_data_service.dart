@@ -211,21 +211,7 @@ class LocationDataService {
           await _cacheDistrict(district);
           return district;
         }
-      } else {
-        // Fallback: search in Maharashtra (legacy behavior)
-        final districtDoc = await FirebaseFirestore.instance
-            .collection('states')
-            .doc('maharashtra')
-            .collection('districts')
-            .doc(districtId)
-            .get();
-
-        if (districtDoc.exists) {
-          final district = District.fromJson(districtDoc.data()!);
-          await _cacheDistrict(district);
-          return district;
-        }
-      }
+      } 
 
       return null;
     } catch (e) {
@@ -370,102 +356,6 @@ class LocationDataService {
         if (bodyId != null) 'bodyName': bodyId,
         if (wardId != null) 'wardName': wardId,
       };
-    }
-  }
-
-  /// Batch get location names for multiple locations (efficient for lists)
-  Future<Map<String, Map<String, String>>> batchGetLocationNames(
-    List<Map<String, String>> locationRequests,
-  ) async {
-    await _ensureInitialized();
-
-    final result = <String, Map<String, String>>{};
-    final currentLanguage = _getCurrentLanguageCode();
-
-    try {
-      // Collect unique IDs to minimize database calls
-      final uniqueStateIds = <String>{};
-      final uniqueDistrictIds = <String>{};
-      final uniqueBodyIds = <String>{};
-      final uniqueWardIds = <String>{};
-
-      for (var request in locationRequests) {
-        if (request['stateId'] != null) uniqueStateIds.add(request['stateId']!);
-        if (request['districtId'] != null) uniqueDistrictIds.add(request['districtId']!);
-        if (request['bodyId'] != null) uniqueBodyIds.add(request['bodyId']!);
-        if (request['wardId'] != null) uniqueWardIds.add(request['wardId']!);
-      }
-
-      // Batch fetch unique entities
-      final states = await Future.wait(uniqueStateIds.map(getState));
-      final bodies = await Future.wait(uniqueBodyIds.map((bodyId) {
-        // For batch operations, we need to find the corresponding stateId and districtId
-        // This is a limitation - batch operations work best when hierarchical context is provided
-        return getBody(bodyId); // Will use legacy search if no context provided
-      }));
-      final wards = await Future.wait(uniqueWardIds.map((wardId) {
-        // Same limitation for wards
-        return getWard(wardId); // Will use legacy search if no context provided
-      }));
-
-      // Create lookup maps
-      final stateMap = Map.fromEntries(states.whereType<State>().map((s) => MapEntry(s.id, s)));
-      final bodyMap = Map.fromEntries(bodies.whereType<Body>().map((b) => MapEntry(b.id, b)));
-      final wardMap = Map.fromEntries(wards.whereType<Ward>().map((w) => MapEntry(w.id, w)));
-
-      // Build results for each request with language support
-      for (var i = 0; i < locationRequests.length; i++) {
-        final request = locationRequests[i];
-        final names = <String, String>{};
-
-        // State name with language support
-        if (request['stateId'] != null) {
-          final state = stateMap[request['stateId']];
-          if (state != null) {
-            names['stateName'] = (currentLanguage == 'mr' && state.marathiName != null)
-                ? state.marathiName!
-                : state.name;
-          } else {
-            names['stateName'] = request['stateId']!;
-          }
-        }
-
-        // District name with language support
-        if (request['districtId'] != null) {
-          names['districtName'] = MaharashtraUtils.getDistrictDisplayNameWithLocale(
-            request['districtId']!,
-            currentLanguage,
-          );
-        }
-
-        // Body name (no language variants)
-        if (request['bodyId'] != null) {
-          names['bodyName'] = bodyMap[request['bodyId']]?.name ?? request['bodyId']!;
-        }
-
-        // Ward name (no language variants)
-        if (request['wardId'] != null) {
-          names['wardName'] = wardMap[request['wardId']]?.name ?? request['wardId']!;
-        }
-
-        result['request_$i'] = names;
-      }
-
-      return result;
-    } catch (e) {
-      AppLogger.commonError('❌ Error in batch location names: $e');
-      // Return fallback results
-      final fallback = <String, Map<String, String>>{};
-      for (var i = 0; i < locationRequests.length; i++) {
-        final request = locationRequests[i];
-        fallback['request_$i'] = {
-          if (request['stateId'] != null) 'stateName': request['stateId']!,
-          if (request['districtId'] != null) 'districtName': request['districtId']!,
-          if (request['bodyId'] != null) 'bodyName': request['bodyId']!,
-          if (request['wardId'] != null) 'wardName': request['wardId']!,
-        };
-      }
-      return fallback;
     }
   }
 

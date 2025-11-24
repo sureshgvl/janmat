@@ -13,6 +13,7 @@ import '../features/candidate/models/candidate_model.dart';
 import '../features/candidate/models/media_model.dart';
 import '../features/chat/screens/chat_list_screen.dart';
 import '../features/monetization/screens/monetization_screen.dart';
+import '../features/monetization/screens/payment_history_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/settings/screens/device_management_screen.dart';
 import '../features/notifications/screens/notification_center_screen.dart';
@@ -63,6 +64,10 @@ class AppRoutes {
     GetPage(
       name: AppRouteNames.monetization,
       page: () => const MonetizationScreen(),
+    ),
+    GetPage(
+      name: AppRouteNames.paymentHistory,
+      page: () => const PaymentHistoryScreen(),
     ),
     GetPage(name: AppRouteNames.settings, page: () => const SettingsScreen()),
     GetPage(

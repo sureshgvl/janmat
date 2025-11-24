@@ -131,12 +131,12 @@ class AccountDeletionService {
       await _deleteRewardsChunked(userId, getCurrentBatch, commitIfNeeded);
 
       // 4. Delete XP transactions
-      AppLogger.auth('⭐ Deleting XP transactions...');
-      await _deleteXpTransactionsChunked(
-        userId,
-        getCurrentBatch,
-        commitIfNeeded,
-      );
+      // AppLogger.auth('⭐ Deleting XP transactions...');
+      // await _deleteXpTransactionsChunked(
+      //   userId,
+      //   getCurrentBatch,
+      //   commitIfNeeded,
+      // );
 
       // 5. If user is a candidate, delete candidate data
       if (isCandidate) {
@@ -155,10 +155,6 @@ class AccountDeletionService {
         getCurrentBatch,
         commitIfNeeded,
       );
-
-      // 7. Delete user quota data
-      AppLogger.auth('📊 Deleting user quota...');
-      await _deleteUserQuota(userId, getCurrentBatch());
 
       // 8. Delete reported messages by the user
       AppLogger.auth('🚨 Deleting reported messages...');
@@ -336,21 +332,21 @@ class AccountDeletionService {
     }
   }
 
-  Future<void> _deleteXpTransactionsChunked(
-    String userId,
-    WriteBatch Function() getBatch,
-    Future<void> Function() commitIfNeeded,
-  ) async {
-    final xpTransactionsSnapshot = await _firestore
-        .collection('xp_transactions')
-        .where('userId', isEqualTo: userId)
-        .get();
+  // Future<void> _deleteXpTransactionsChunked(
+  //   String userId,
+  //   WriteBatch Function() getBatch,
+  //   Future<void> Function() commitIfNeeded,
+  // ) async {
+  //   final xpTransactionsSnapshot = await _firestore
+  //       .collection('xp_transactions')
+  //       .where('userId', isEqualTo: userId)
+  //       .get();
 
-    for (final doc in xpTransactionsSnapshot.docs) {
-      getBatch().delete(doc.reference);
-      await commitIfNeeded();
-    }
-  }
+  //   for (final doc in xpTransactionsSnapshot.docs) {
+  //     getBatch().delete(doc.reference);
+  //     await commitIfNeeded();
+  //   }
+  // }
 
   Future<void> _deleteCandidateDataChunked(
     String userId,
@@ -452,17 +448,6 @@ class AccountDeletionService {
       );
     } catch (e) {
       AppLogger.auth('Error deleting user chat rooms: $e');
-      // Don't throw here as we want to continue with other deletions
-    }
-  }
-
-  Future<void> _deleteUserQuota(String userId, WriteBatch batch) async {
-    try {
-      final quotaRef = _firestore.collection('user_quotas').doc(userId);
-      batch.delete(quotaRef);
-      AppLogger.auth('✅ Deleted user quota for: $userId');
-    } catch (e) {
-      AppLogger.auth('Error deleting user quota: $e');
       // Don't throw here as we want to continue with other deletions
     }
   }

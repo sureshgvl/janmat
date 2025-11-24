@@ -289,10 +289,10 @@ class ShareService {
     // Use the same ShareCandidateProfileService to generate the URL
     return ShareCandidateProfileService().generateFullProfileUrl(
       candidateId: candidate.candidateId,
-      stateId: candidate.location.stateId ?? 'maharashtra',
-      districtId: candidate.location.districtId ?? '',
-      bodyId: candidate.location.bodyId ?? '',
-      wardId: candidate.location.wardId ?? '',
+      stateId: candidate.location.stateId! ,
+      districtId: candidate.location.districtId!,
+      bodyId: candidate.location.bodyId!,
+      wardId: candidate.location.wardId!,
     );
   }
 

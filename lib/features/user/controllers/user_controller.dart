@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
 import '../../../utils/app_logger.dart';
@@ -12,6 +14,7 @@ class UserController extends GetxController {
   final RxBool isInitialized = false.obs;
 
   final UserRepository _userRepository = UserRepository();
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _userDocSubscription;
 
   @override
   void onInit() {
@@ -27,13 +30,40 @@ class UserController extends GetxController {
         loadUserData(firebaseUser.uid);
       } else {
         clearUserData();
+        _cancelUserDocSubscription();
       }
     });
+  }
+
+  /// Setup real-time listener for user document changes
+  void _setupUserDocListener(String uid) {
+    _cancelUserDocSubscription(); // Cancel any existing subscription
+
+    _userDocSubscription = _userRepository.listenToUserDocument(uid).listen(
+      (DocumentSnapshot<Map<String, dynamic>> snapshot) {
+        if (snapshot.exists && snapshot.data() != null) {
+          final userData = snapshot.data()!;
+          user.value = UserModel.fromJson(userData);
+          isInitialized.value = true;
+          AppLogger.common('🔄 User data updated from real-time listener');
+        }
+      },
+      onError: (error) {
+        AppLogger.commonError('❌ Error in user document listener', error: error);
+      },
+    );
+  }
+
+  /// Cancel the user document subscription
+  void _cancelUserDocSubscription() {
+    _userDocSubscription?.cancel();
+    _userDocSubscription = null;
   }
 
   @override
   void onClose() {
     AppLogger.common('🧑 UserController disposed');
+    _cancelUserDocSubscription();
     super.onClose();
   }
 
@@ -57,17 +87,27 @@ class UserController extends GetxController {
         user.value = UserModel.fromJson(userData);
         isInitialized.value = true;
 
+        // Setup real-time listener for future updates
+        _setupUserDocListener(uid);
+
         AppLogger.common('✅ User data loaded successfully in ${loadDuration.inMilliseconds}ms');
         if (user.value != null) {
           AppLogger.common('👤 User: ${user.value!.name} (${user.value!.role})');
         }
       } else {
-        AppLogger.common('⚠️ User document not found for UID: $uid');
-        throw Exception('User profile not found');
+        // Document doesn't exist - this is normal for new users during role selection
+        AppLogger.common('⚠️ User document not found for UID: $uid - likely new user, will load later');
+        // Don't set isInitialized to true, so it will try again when document is created
+        user.value = null; // Clear any existing user data
+        return;
       }
     } catch (e) {
       AppLogger.commonError('❌ Failed to load user data', error: e);
-      rethrow;
+      clearUserData(); // Reset to clean state
+      // Don't rethrow for document-not-found errors to prevent app crashes for new users
+      if (!e.toString().contains('User profile not found')) {
+        rethrow;
+      }
     } finally {
       isLoading.value = false;
     }

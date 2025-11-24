@@ -79,7 +79,7 @@ class HighlightTabState extends State<HighlightTab> {
       // Fetch ALL highlights in the ward (active, expired, inactive)
       AppLogger.candidate('📡 [HighlightDashboard] Fetching all highlights in ward: ${widget.candidateData.location.districtId}/${widget.candidateData.location.bodyId}/${widget.candidateData.location.wardId}');
       final allWardHighlights = await HighlightService.getAllHighlightsInWard(
-        widget.candidateData.location.stateId ?? 'maharashtra',
+        widget.candidateData.location.stateId!,
         widget.candidateData.location.districtId!,
         widget.candidateData.location.bodyId!,
         widget.candidateData.location.wardId!
