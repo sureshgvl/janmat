@@ -53,6 +53,9 @@ class MessageController extends GetxController {
   var isRecording = false.obs;
   String? currentRecordingPath;
 
+  // Room-specific message state to prevent messages from appearing in all rooms
+  final Map<String, RxList<Message>> _roomMessages = {};
+
   @override
   void onInit() {
     super.onInit();
@@ -556,19 +559,24 @@ class MessageController extends GetxController {
     update(); // Force UI update
   }
 
-  // Update message status
+  // Update message status - searches through all room messages since message IDs are unique
   Future<void> updateMessageStatus(
     String messageId,
     MessageStatus status,
   ) async {
     await _localMessageService.updateMessageStatus(messageId, status);
-    final messageIndex = messages.indexWhere((m) => m.messageId == messageId);
-    if (messageIndex != -1) {
-      messages[messageIndex] = messages[messageIndex].copyWith(status: status);
-      AppLogger.chat(
-        '📝 MessageController: Updated message $messageId status to $status',
-      );
-      update(); // Force GetX UI update
+
+    // Search through all room messages to find and update the message
+    for (final roomMessages in _roomMessages.values) {
+      final messageIndex = roomMessages.indexWhere((m) => m.messageId == messageId);
+      if (messageIndex != -1) {
+        roomMessages[messageIndex] = roomMessages[messageIndex].copyWith(status: status);
+        AppLogger.chat(
+          '📝 MessageController: Updated message $messageId status to $status',
+        );
+        update(); // Force GetX UI update
+        break; // Found and updated, no need to continue searching
+      }
     }
 }
 

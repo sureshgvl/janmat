@@ -5,10 +5,31 @@ import Razorpay from 'razorpay';
 // Initialize Firebase Admin - let it auto-discover credentials
 admin.initializeApp();
 
-// Initialize Razorpay
+// Initialize Razorpay - get configuration from multiple sources
+const getRazorpayConfig = () => {
+  const keyId = functions.config().razorpay?.key_id || 
+                process.env.RAZORPAY_KEY_ID || 
+                'rzp_test_RiMWsU7GNxKFqz'; // Fallback to test key
+  
+  const keySecret = functions.config().razorpay?.key_secret || 
+                   process.env.RAZORPAY_KEY_SECRET || 
+                   'cThh9upiy1NtnaHdO6cWr99I'; // Fallback to test secret
+  
+  console.log('🔧 Razorpay configuration loaded:', {
+    keyId: keyId?.substring(0, 15) + '...',
+    hasKeySecret: !!keySecret,
+    hasConfig: !!functions.config().razorpay,
+    fromEnv: !!process.env.RAZORPAY_KEY_ID
+  });
+  
+  return { keyId, keySecret };
+};
+
+const { keyId: razorpayKeyId, keySecret: razorpayKeySecret } = getRazorpayConfig();
+
 const razorpay = new Razorpay({
-  key_id: functions.config().razorpay?.key_id || process.env.RAZORPAY_KEY_ID || '',
-  key_secret: functions.config().razorpay?.key_secret || process.env.RAZORPAY_KEY_SECRET || '',
+  key_id: razorpayKeyId,
+  key_secret: razorpayKeySecret,
 });
 
 // Note: Using Firebase Admin SDK with FCM V1 API - no server key needed
@@ -553,7 +574,7 @@ export const createRazorpayOrder = functions.https.onCall(async (data, context) 
     }
 
     // Check if Razorpay is configured
-    if (!razorpay.key_id || !razorpay.key_secret) {
+    if (!razorpayKeyId || !razorpayKeySecret) {
       throw new functions.https.HttpsError('failed-precondition', 'Razorpay not configured');
     }
 
@@ -610,12 +631,21 @@ export const createRazorpayOrder = functions.https.onCall(async (data, context) 
     };
   } catch (error: any) {
     console.error('❌ Error creating Razorpay order:', error);
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error keys:', Object.keys(error || {}));
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error code:', error?.code);
+    console.error('❌ Error statusCode:', error?.statusCode);
+    console.error('❌ Error description:', error?.description);
+    console.error('❌ Full error object:', JSON.stringify(error, null, 2));
 
     if (error instanceof functions.https.HttpsError) {
       throw error;
     }
 
-    throw new functions.https.HttpsError('internal', `Failed to create order: ${error.message}`);
+    // Provide more detailed error message
+    const errorMessage = error?.message || error?.description || error?.error?.description || 'Unknown error';
+    throw new functions.https.HttpsError('internal', `Failed to create order: ${errorMessage}`);
   }
 });
 
@@ -699,7 +729,8 @@ export const razorpayWebhook = functions.https.onRequest(async (req, res) => {
         try {
           const captureResponse = await razorpay.payments.capture(
             paymentEntity.id,
-            paymentEntity.amount
+            paymentEntity.amount,
+            paymentEntity.currency
           );
 
           console.log('✅ Payment auto-captured:', captureResponse.id);
@@ -790,7 +821,7 @@ export const verifyRazorpayPayment = functions.https.onCall(async (data, context
     const sign = `${orderId}|${paymentId}`;
     const crypto = require('crypto');
     const expectedSignature = crypto
-      .createHmac('sha256', razorpay.key_secret)
+      .createHmac('sha256', razorpayKeySecret)
       .update(sign)
       .digest('hex');
 
@@ -824,6 +855,313 @@ export const verifyRazorpayPayment = functions.https.onCall(async (data, context
     throw new functions.https.HttpsError('internal', `Failed to verify payment: ${error.message}`);
   }
 });
+
+// Helper function to create Platinum welcome content
+async function createPlatinumWelcomeContent(userId: string) {
+  try {
+    console.log('🎉 Creating Platinum welcome content for user:', userId);
+
+    const db = admin.firestore();
+
+    // Get user data to find candidate information
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      console.log('❌ User document not found for Platinum content creation');
+      return;
+    }
+
+    const userData = userDoc.data();
+    if (!userData) {
+      console.log('❌ User data is empty');
+      return;
+    }
+
+    // Get candidate data
+    const candidateQuery = await db.collection('candidates').where('userId', '==', userId).limit(1).get();
+    if (candidateQuery.empty) {
+      console.log('❌ No candidate found for user:', userId);
+      return;
+    }
+
+    const candidateDoc = candidateQuery.docs[0];
+    const candidateData = candidateDoc.data();
+
+    // Extract location information
+    const location = userData.location || {};
+    const electionAreas = userData.electionAreas || [];
+
+    if (!location.stateId || !location.districtId || electionAreas.length === 0) {
+      console.log('❌ Missing location or election area data for user:', userId);
+      return;
+    }
+
+    const primaryArea = electionAreas[0];
+    const stateId = location.stateId;
+    const districtId = location.districtId;
+    const bodyId = primaryArea.bodyId;
+    const wardId = primaryArea.wardId;
+
+    if (!wardId) {
+      console.log('❌ Missing wardId for candidate');
+      return;
+    }
+
+    // Create Platinum highlight
+    const highlightId = `platinum_hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const locationKey = `${districtId}_${bodyId}_$wardId`;
+
+    const highlightData = {
+      id: highlightId,
+      candidateId: candidateDoc.id,
+      location: {
+        stateId: stateId,
+        districtId: districtId,
+        bodyId: bodyId,
+        wardId: wardId,
+      },
+      locationKey: locationKey,
+      package: 'platinum',
+      placement: ['top_banner'],
+      priority: 10, // High priority for Platinum
+      startDate: new Date(),
+      endDate: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)), // 30 days
+      active: true,
+      exclusive: true,
+      rotation: false,
+      views: 0,
+      clicks: 0,
+      imageUrl: candidateData.photo || null,
+      candidateName: candidateData.fullName || 'Candidate',
+      party: candidateData.party || '',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      bannerStyle: 'premium',
+      callToAction: 'View Profile',
+      priorityLevel: 'urgent',
+      customMessage: null,
+    };
+
+    // Save highlight to hierarchical structure
+    await db
+      .collection('states')
+      .doc(stateId)
+      .collection('districts')
+      .doc(districtId)
+      .collection('bodies')
+      .doc(bodyId)
+      .collection('wards')
+      .doc(wardId)
+      .collection('highlights')
+      .doc(highlightId)
+      .set(highlightData);
+
+    console.log('✅ Platinum highlight created successfully:', highlightId);
+
+    // Create welcome push feed item
+    const feedItemData = {
+      id: `feed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      candidateId: candidateDoc.id,
+      wardId: wardId,
+      title: '🎉 Platinum Plan Activated!',
+      message: `${candidateData.fullName || 'The candidate'} is now a Platinum member with maximum visibility!`,
+      imageUrl: candidateData.photo || null,
+      type: 'announcement',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)), // 7 days
+    };
+
+    await db.collection('push_feed').add(feedItemData);
+    console.log('✅ Platinum welcome feed item created');
+
+  } catch (error: any) {
+    console.error('❌ Error creating Platinum welcome content:', error);
+  }
+}
+
+// Helper function to create highlight banner for highlight plans
+async function createHighlightBanner(userId: string, planId: string, electionType: string, validityDays: number, paymentEntity: any) {
+  try {
+    console.log('🎯 Creating highlight banner for user:', userId, 'plan:', planId);
+
+    const db = admin.firestore();
+
+    // Get user data to find candidate information
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      console.log('❌ User document not found for highlight banner creation');
+      return;
+    }
+
+    const userData = userDoc.data();
+    if (!userData) {
+      console.log('❌ User data is empty');
+      return;
+    }
+
+    // Get candidate data
+    const candidateQuery = await db.collection('candidates').where('userId', '==', userId).limit(1).get();
+    if (candidateQuery.empty) {
+      console.log('❌ No candidate found for user:', userId);
+      return;
+    }
+
+    const candidateDoc = candidateQuery.docs[0];
+    const candidateData = candidateDoc.data();
+
+    // Extract location information
+    const location = userData.location || {};
+    const electionAreas = userData.electionAreas || [];
+
+    if (!location.stateId || !location.districtId || electionAreas.length === 0) {
+      console.log('❌ Missing location or election area data for user:', userId);
+      return;
+    }
+
+    const primaryArea = electionAreas[0];
+    const stateId = location.stateId;
+    const districtId = location.districtId;
+    const bodyId = primaryArea.bodyId;
+    const wardId = primaryArea.wardId;
+
+    if (!wardId) {
+      console.log('❌ Missing wardId for candidate');
+      return;
+    }
+
+    // Check if candidate already has an existing highlight in their ward
+    const existingHighlightsQuery = await db
+      .collection('states')
+      .doc(stateId)
+      .collection('districts')
+      .doc(districtId)
+      .collection('bodies')
+      .doc(bodyId)
+      .collection('wards')
+      .doc(wardId)
+      .collection('highlights')
+      .where('candidateId', '==', candidateDoc.id)
+      .limit(10)
+      .get();
+
+    let highlightId: string;
+    let isUpdate = false;
+
+    if (!existingHighlightsQuery.empty) {
+      // Update existing highlight
+      const existingHighlight = existingHighlightsQuery.docs[0];
+      highlightId = existingHighlight.id;
+      isUpdate = true;
+
+      console.log('🔄 Found existing highlight, updating:', highlightId);
+
+      // Calculate new end date - extend from current end date if it's in the future, otherwise from now
+      const currentData = existingHighlight.data();
+      const currentEndDate = currentData.endDate?.toDate() || new Date();
+      const now = new Date();
+      const baseDate = currentEndDate > now ? currentEndDate : now;
+      const newEndDate = new Date(baseDate.getTime() + (validityDays * 24 * 60 * 60 * 1000));
+
+      // Update existing highlight
+      await db
+        .collection('states')
+        .doc(stateId)
+        .collection('districts')
+        .doc(districtId)
+        .collection('bodies')
+        .doc(bodyId)
+        .collection('wards')
+        .doc(wardId)
+        .collection('highlights')
+        .doc(highlightId)
+        .update({
+          endDate: admin.firestore.Timestamp.fromDate(newEndDate),
+          active: true,
+          status: 'active',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          bannerStyle: 'premium',
+          callToAction: 'View Profile',
+          priorityLevel: 'normal',
+          customMessage: null,
+        });
+
+      console.log('✅ Existing highlight updated successfully');
+    } else {
+      // Create new highlight
+      highlightId = `highlight_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const locationKey = `${districtId}_${bodyId}_$wardId`;
+
+      console.log('🆕 Creating new highlight banner');
+
+      const highlightData = {
+        id: highlightId,
+        candidateId: candidateDoc.id,
+        location: {
+          stateId: stateId,
+          districtId: districtId,
+          bodyId: bodyId,
+          wardId: wardId,
+        },
+        locationKey: locationKey,
+        package: 'highlight',
+        placement: ['top_banner'],
+        priority: 5, // Normal priority for highlight plan
+        startDate: new Date(),
+        endDate: new Date(Date.now() + (validityDays * 24 * 60 * 60 * 1000)),
+        active: true,
+        exclusive: false,
+        rotation: true,
+        views: 0,
+        clicks: 0,
+        imageUrl: candidateData.photo || null,
+        candidateName: candidateData.fullName || 'Candidate',
+        party: candidateData.party || '',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        bannerStyle: 'premium',
+        callToAction: 'View Profile',
+        priorityLevel: 'normal',
+        customMessage: null,
+      };
+
+      // Save highlight to hierarchical structure
+      await db
+        .collection('states')
+        .doc(stateId)
+        .collection('districts')
+        .doc(districtId)
+        .collection('bodies')
+        .doc(bodyId)
+        .collection('wards')
+        .doc(wardId)
+        .collection('highlights')
+        .doc(highlightId)
+        .set(highlightData);
+
+      console.log('✅ New highlight banner created successfully:', highlightId);
+    }
+
+    // Create welcome push feed item only for new highlights
+    if (!isUpdate) {
+      const feedItemData = {
+        id: `feed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        candidateId: candidateDoc.id,
+        wardId: wardId,
+        title: '🎉 Highlight Plan Activated!',
+        message: `${candidateData.fullName || 'The candidate'} is now visible in highlight banners!`,
+        imageUrl: candidateData.photo || null,
+        type: 'announcement',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)), // 7 days
+      };
+
+      await db.collection('push_feed').add(feedItemData);
+      console.log('✅ Highlight welcome feed item created');
+    }
+
+  } catch (error: any) {
+    console.error('❌ Error creating highlight banner:', error);
+  }
+}
 
 // Helper function to process subscription activation
 async function processSubscriptionActivation(paymentEntity: any) {
@@ -899,13 +1237,13 @@ async function processSubscriptionActivation(paymentEntity: any) {
     await db.collection('users').doc(userId).update(userUpdate);
     console.log('✅ User premium status updated');
 
-    // TODO: Trigger additional setup logic (highlights, etc.) based on plan type
+    // Trigger additional setup logic (highlights, etc.) based on plan type
     if (planId === 'platinum_plan') {
       console.log('💎 Platinum plan purchased - triggering welcome content creation');
-      // This could trigger a cloud function or be handled by the app
+      await createPlatinumWelcomeContent(userId);
     } else if (planId.includes('highlight')) {
       console.log('🎯 Highlight plan purchased - triggering banner creation');
-      // This could trigger a cloud function or be handled by the app
+      await createHighlightBanner(userId, planId, electionType, validityDays, paymentEntity);
     }
 
     console.log('🎉 Subscription activation completed successfully');

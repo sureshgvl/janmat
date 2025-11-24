@@ -22,12 +22,38 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupDeletedStorageManual = exports.cleanupDeletedStorage = exports.sendExpirationWarnings = exports.checkExpiredSubscriptions = exports.updateUserFCMToken = exports.sendNotificationToTopic = exports.unsubscribeFromTopic = exports.subscribeToTopic = exports.sendPushNotificationToMultiple = exports.sendPushNotification = exports.testFirebaseAdmin = void 0;
+exports.verifyRazorpayPayment = exports.razorpayWebhook = exports.createRazorpayOrder = exports.sendExpirationWarnings = exports.checkExpiredSubscriptions = exports.updateUserFCMToken = exports.sendNotificationToTopic = exports.unsubscribeFromTopic = exports.subscribeToTopic = exports.sendPushNotificationToMultiple = exports.sendPushNotification = exports.testFirebaseAdmin = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const razorpay_1 = __importDefault(require("razorpay"));
 // Initialize Firebase Admin - let it auto-discover credentials
 admin.initializeApp();
+// Initialize Razorpay - get configuration from multiple sources
+const getRazorpayConfig = () => {
+    var _a, _b;
+    const keyId = ((_a = functions.config().razorpay) === null || _a === void 0 ? void 0 : _a.key_id) ||
+        process.env.RAZORPAY_KEY_ID ||
+        'rzp_test_RiMWsU7GNxKFqz'; // Fallback to test key
+    const keySecret = ((_b = functions.config().razorpay) === null || _b === void 0 ? void 0 : _b.key_secret) ||
+        process.env.RAZORPAY_KEY_SECRET ||
+        'cThh9upiy1NtnaHdO6cWr99I'; // Fallback to test secret
+    console.log('🔧 Razorpay configuration loaded:', {
+        keyId: (keyId === null || keyId === void 0 ? void 0 : keyId.substring(0, 15)) + '...',
+        hasKeySecret: !!keySecret,
+        hasConfig: !!functions.config().razorpay,
+        fromEnv: !!process.env.RAZORPAY_KEY_ID
+    });
+    return { keyId, keySecret };
+};
+const { keyId: razorpayKeyId, keySecret: razorpayKeySecret } = getRazorpayConfig();
+const razorpay = new razorpay_1.default({
+    key_id: razorpayKeyId,
+    key_secret: razorpayKeySecret,
+});
 // Note: Using Firebase Admin SDK with FCM V1 API - no server key needed
 // The Admin SDK handles authentication automatically via service account
 // Test function to check Firebase Admin SDK
@@ -459,158 +485,324 @@ exports.sendExpirationWarnings = functions.pubsub
         throw error;
     }
 });
-/**
- * Core cleanup logic for processing deleted storage files
- */
-async function performStorageCleanup() {
-    const startTime = Date.now();
-    console.log('🧹 [Cleanup] Starting nightly storage cleanup...');
+// ==================================
+// RAZORPAY PAYMENT FUNCTIONS
+// ==================================
+// Create Razorpay Order
+exports.createRazorpayOrder = functions.https.onCall(async (data, context) => {
+    var _a;
     try {
-        // Step 1: Find all candidates with pending storage deletions
-        // Note: collectionGroup doesn't support array inequality queries, so we get all candidates and filter in code
-        const candidatesQuery = admin.firestore().collectionGroup('candidates');
-        const candidatesSnapshot = await candidatesQuery.get();
-        const candidateCount = candidatesSnapshot.size;
-        console.log(`🧹 [Cleanup] Found ${candidateCount} total candidates, filtering for those with deleteStorage arrays...`);
-        // Filter candidates that have deleteStorage arrays with items
-        const candidatesWithDeletions = candidatesSnapshot.docs.filter(doc => {
-            const data = doc.data();
-            const deleteStorage = (data === null || data === void 0 ? void 0 : data.deleteStorage) || [];
-            return deleteStorage.length > 0;
-        });
-        console.log(`🧹 [Cleanup] Found ${candidatesWithDeletions.length} candidates with pending deletions`);
-        if (candidatesWithDeletions.length === 0) {
-            console.log('🧹 [Cleanup] No candidates with pending deletions. Exiting.');
-            return {
-                success: true,
-                candidatesProcessed: 0,
-                totalFilesDeleted: 0,
-                errors: [],
-                duration: '0s',
-                timestamp: new Date().toISOString()
-            };
+        console.log('💳 Creating Razorpay order...');
+        // Check if user is authenticated
+        if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
         }
-        let totalFilesDeleted = 0;
-        let candidatesProcessed = 0;
-        let errors = [];
-        // Step 2: Process each candidate's pending deletions
-        for (const docSnapshot of candidatesWithDeletions) {
-            try {
-                const candidateId = docSnapshot.id;
-                const candidateData = docSnapshot.data();
-                const deleteStorage = (candidateData === null || candidateData === void 0 ? void 0 : candidateData.deleteStorage) || [];
-                // Skip candidates with no files to delete
-                if (!deleteStorage || deleteStorage.length === 0) {
-                    continue;
-                }
-                // Extract hierarchical location for logging
-                const pathSegments = docSnapshot.ref.path.split('/');
-                const stateId = pathSegments[1];
-                const districtId = pathSegments[3];
-                const bodyId = pathSegments[5];
-                const wardId = pathSegments[7];
-                console.log(`🗑️ [Cleanup] Processing ${candidateId} (${stateId}/${districtId}/${bodyId}/${wardId}) - ${deleteStorage.length} files`);
-                let candidateFilesDeleted = 0;
-                // Delete each file in deleteStorage array
-                for (const storagePath of deleteStorage) {
-                    try {
-                        // storagePath format: 'media/images/photo.jpg' or 'media/videos/video.mp4'
-                        await admin.storage().bucket().file(storagePath).delete();
-                        candidateFilesDeleted++;
-                        totalFilesDeleted++;
-                        console.log(`✅ [Cleanup] Deleted: ${storagePath}`);
-                    }
-                    catch (fileError) {
-                        // Log error but continue processing other files
-                        console.error(`❌ [Cleanup] Failed to delete ${storagePath} for ${candidateId}:`, fileError);
-                        errors.push({
-                            candidateId,
-                            storagePath,
-                            error: fileError.message || 'Unknown error',
-                            location: `${stateId}/${districtId}/${bodyId}/${wardId}`
+        const { amount, currency = 'INR', receipt, notes, payment_capture = 0 // 0 = manual capture, 1 = auto-capture
+         } = data;
+        // Validate required parameters
+        if (!amount || amount <= 0) {
+            throw new functions.https.HttpsError('invalid-argument', 'Valid amount is required');
+        }
+        // Check if Razorpay is configured
+        if (!razorpayKeyId || !razorpayKeySecret) {
+            throw new functions.https.HttpsError('failed-precondition', 'Razorpay not configured');
+        }
+        console.log(`💰 Creating order for ₹${amount / 100} (${amount} paisa)`);
+        // Create order using Razorpay Orders API
+        const orderOptions = {
+            amount: amount,
+            currency: currency,
+            receipt: receipt || `receipt_${Date.now()}`,
+            notes: Object.assign({ userId: context.auth.uid }, notes),
+            payment_capture: payment_capture, // 0 for manual, 1 for automatic
+        };
+        console.log('📋 Order options:', orderOptions);
+        const order = await razorpay.orders.create(orderOptions);
+        console.log('✅ Order created successfully:', order.id);
+        // Store order details in Firestore for tracking
+        const db = admin.firestore();
+        await db.collection('razorpay_orders').doc(order.id).set({
+            orderId: order.id,
+            userId: context.auth.uid,
+            amount: order.amount,
+            currency: order.currency,
+            receipt: order.receipt,
+            status: order.status,
+            notes: order.notes,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return {
+            success: true,
+            order: {
+                id: order.id,
+                entity: order.entity,
+                amount: order.amount,
+                amount_paid: order.amount_paid,
+                amount_due: order.amount_due,
+                currency: order.currency,
+                receipt: order.receipt,
+                offer_id: order.offer_id,
+                status: order.status,
+                attempts: order.attempts,
+                notes: order.notes,
+                created_at: order.created_at,
+            },
+        };
+    }
+    catch (error) {
+        console.error('❌ Error creating Razorpay order:', error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', `Failed to create order: ${error.message}`);
+    }
+});
+// Razorpay Webhook Handler for Auto-capture
+exports.razorpayWebhook = functions.https.onRequest(async (req, res) => {
+    var _a, _b, _c;
+    try {
+        console.log('🔗 Razorpay webhook received');
+        // Only accept POST requests
+        if (req.method !== 'POST') {
+            console.log('❌ Invalid request method:', req.method);
+            res.status(405).send('Method not allowed');
+            return;
+        }
+        // Verify webhook signature
+        const secret = ((_a = functions.config().razorpay) === null || _a === void 0 ? void 0 : _a.webhook_secret) || process.env.RAZORPAY_WEBHOOK_SECRET;
+        if (!secret) {
+            console.log('❌ Webhook secret not configured');
+            res.status(500).send('Webhook secret not configured');
+            return;
+        }
+        const expectedSignature = req.headers['x-razorpay-signature'];
+        const body = JSON.stringify(req.body);
+        const crypto = require('crypto');
+        const generatedSignature = crypto
+            .createHmac('sha256', secret)
+            .update(body)
+            .digest('hex');
+        if (generatedSignature !== expectedSignature) {
+            console.log('❌ Invalid webhook signature');
+            res.status(400).send('Invalid signature');
+            return;
+        }
+        console.log('✅ Webhook signature verified');
+        const event = req.body.event;
+        const paymentEntity = (_c = (_b = req.body.payload) === null || _b === void 0 ? void 0 : _b.payment) === null || _c === void 0 ? void 0 : _c.entity;
+        if (!paymentEntity) {
+            console.log('❌ No payment entity in webhook');
+            res.status(400).send('Invalid webhook payload');
+            return;
+        }
+        console.log(`🎣 Webhook event: ${event}`);
+        console.log(`💳 Payment ID: ${paymentEntity.id}`);
+        const db = admin.firestore();
+        // Update payment status in Firestore
+        const paymentRef = db.collection('razorpay_payments').doc(paymentEntity.id);
+        await paymentRef.set({
+            paymentId: paymentEntity.id,
+            orderId: paymentEntity.order_id,
+            amount: paymentEntity.amount,
+            currency: paymentEntity.currency,
+            status: paymentEntity.status,
+            method: paymentEntity.method,
+            captured: paymentEntity.captured,
+            description: paymentEntity.description,
+            email: paymentEntity.email,
+            contact: paymentEntity.contact,
+            notes: paymentEntity.notes,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            webhookEvent: event,
+            webhookReceivedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        // Handle different webhook events
+        switch (event) {
+            case 'payment.authorized':
+                console.log('🔐 Payment authorized, processing auto-capture...');
+                // Auto-capture the payment
+                try {
+                    const captureResponse = await razorpay.payments.capture(paymentEntity.id, paymentEntity.amount, paymentEntity.currency);
+                    console.log('✅ Payment auto-captured:', captureResponse.id);
+                    // Update payment record with capture details
+                    await paymentRef.update({
+                        captured: true,
+                        capturedAt: admin.firestore.FieldValue.serverTimestamp(),
+                        captureId: captureResponse.id,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                    // Mark order as paid
+                    if (paymentEntity.order_id) {
+                        await db.collection('razorpay_orders').doc(paymentEntity.order_id).update({
+                            status: 'paid',
+                            paymentId: paymentEntity.id,
+                            capturedAt: admin.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                         });
                     }
+                    // Process subscription activation
+                    await processSubscriptionActivation(paymentEntity);
                 }
-                // Clear the deleteStorage array for this candidate
-                await docSnapshot.ref.update({
-                    deleteStorage: [],
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-                candidatesProcessed++;
-                console.log(`🔄 [Cleanup] Cleared deleteStorage for ${candidateId} (${candidateFilesDeleted} files deleted)`);
-            }
-            catch (candidateError) {
-                console.error(`💥 [Cleanup] Error processing candidate ${docSnapshot.id}:`, candidateError);
-                errors.push({
-                    candidateId: docSnapshot.id,
-                    storagePath: 'N/A',
-                    error: candidateError.message || 'Unknown error',
-                    location: docSnapshot.ref.path
-                });
-            }
+                catch (captureError) {
+                    console.error('❌ Failed to auto-capture payment:', captureError);
+                    // Update payment record with capture failure
+                    await paymentRef.update({
+                        captureError: captureError.message,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                }
+                break;
+            case 'payment.captured':
+                console.log('✅ Payment already captured');
+                await processSubscriptionActivation(paymentEntity);
+                break;
+            case 'payment.failed':
+                console.log('❌ Payment failed');
+                // Handle failed payment - could notify user
+                break;
+            default:
+                console.log(`⚠️ Unhandled webhook event: ${event}`);
         }
-        // Step 3: Report results
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        const result = {
-            success: errors.length === 0,
-            candidatesProcessed,
-            totalFilesDeleted,
-            errors,
-            duration: `${Math.round(duration / 1000)}s`,
-            timestamp: new Date().toISOString()
+        res.status(200).send('Webhook processed successfully');
+    }
+    catch (error) {
+        console.error('❌ Error processing webhook:', error);
+        res.status(500).send(`Internal server error: ${error.message}`);
+    }
+});
+// Verify Razorpay Payment Signature
+exports.verifyRazorpayPayment = functions.https.onCall(async (data, context) => {
+    var _a;
+    try {
+        console.log('🔍 Verifying Razorpay payment signature...');
+        if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+        }
+        const { paymentId, orderId, signature } = data;
+        if (!paymentId || !orderId || !signature) {
+            throw new functions.https.HttpsError('invalid-argument', 'paymentId, orderId, and signature are required');
+        }
+        // Get payment details from Firestore
+        const db = admin.firestore();
+        const paymentDoc = await db.collection('razorpay_payments').doc(paymentId).get();
+        if (!paymentDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Payment record not found');
+        }
+        const paymentData = paymentDoc.data();
+        if (!paymentData) {
+            throw new functions.https.HttpsError('not-found', 'Payment data not found');
+        }
+        // Generate expected signature for verification
+        const sign = `${orderId}|${paymentId}`;
+        const crypto = require('crypto');
+        const expectedSignature = crypto
+            .createHmac('sha256', razorpayKeySecret)
+            .update(sign)
+            .digest('hex');
+        const isValid = expectedSignature === signature;
+        console.log(`🔐 Signature verification: ${isValid ? 'VALID' : 'INVALID'}`);
+        if (isValid) {
+            // Update payment verification status
+            await paymentDoc.ref.update({
+                signatureVerified: true,
+                signatureVerifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+        }
+        return {
+            success: true,
+            verified: isValid,
+            paymentId,
+            orderId,
         };
-        if (errors.length > 0) {
-            console.warn(`⚠️ [Cleanup] Completed with ${errors.length} errors:`, errors);
+    }
+    catch (error) {
+        console.error('❌ Error verifying payment:', error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', `Failed to verify payment: ${error.message}`);
+    }
+});
+// Helper function to process subscription activation
+async function processSubscriptionActivation(paymentEntity) {
+    try {
+        console.log('🎯 Processing subscription activation for payment:', paymentEntity.id);
+        const db = admin.firestore();
+        const notes = paymentEntity.notes || {};
+        // Extract plan details from payment notes
+        const planId = notes.planId || notes.plan_id;
+        const userId = notes.userId || notes.user_id;
+        const electionType = notes.electionType || notes.election_type;
+        const validityDays = parseInt(notes.validityDays || notes.validity_days || '30');
+        if (!planId || !userId) {
+            console.log('⚠️ Missing planId or userId in payment notes, skipping subscription activation');
+            return;
+        }
+        console.log(`📋 Activating subscription: plan=${planId}, user=${userId}, election=${electionType}, days=${validityDays}`);
+        // Calculate subscription end date
+        const startDate = new Date();
+        const endDate = new Date(startDate.getTime() + (validityDays * 24 * 60 * 60 * 1000));
+        // Create subscription record
+        const subscriptionData = {
+            subscriptionId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            userId: userId,
+            planId: planId,
+            planType: planId.includes('highlight') ? 'highlight' :
+                planId.includes('carousel') ? 'carousel' : 'candidate',
+            electionType: electionType,
+            validityDays: validityDays,
+            amountPaid: paymentEntity.amount / 100,
+            purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt: admin.firestore.Timestamp.fromDate(endDate),
+            isActive: true,
+            paymentId: paymentEntity.id,
+            orderId: paymentEntity.order_id,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        await db.collection('subscriptions').add(subscriptionData);
+        console.log('✅ Subscription record created');
+        // Update user premium status
+        let userUpdate = {};
+        if (planId.includes('highlight')) {
+            userUpdate = {
+                highlightPlanId: planId,
+                highlightPlanExpiresAt: admin.firestore.Timestamp.fromDate(endDate),
+            };
+        }
+        else if (planId.includes('carousel')) {
+            userUpdate = {
+                carouselPlanId: planId,
+                carouselPlanExpiresAt: admin.firestore.Timestamp.fromDate(endDate),
+            };
         }
         else {
-            console.log(`✨ [Cleanup] Completed successfully!`);
+            // Candidate plan (Gold/Platinum)
+            userUpdate = {
+                premium: true,
+                subscriptionPlanId: planId,
+                subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(endDate),
+            };
         }
-        console.log(`📊 [Cleanup] Summary: ${candidatesProcessed} candidates, ${totalFilesDeleted} files deleted, ${errors.length} errors in ${result.duration}`);
-        return result;
+        userUpdate.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+        await db.collection('users').doc(userId).update(userUpdate);
+        console.log('✅ User premium status updated');
+        // TODO: Trigger additional setup logic (highlights, etc.) based on plan type
+        if (planId === 'platinum_plan') {
+            console.log('💎 Platinum plan purchased - triggering welcome content creation');
+            // This could trigger a cloud function or be handled by the app
+        }
+        else if (planId.includes('highlight')) {
+            console.log('🎯 Highlight plan purchased - triggering banner creation');
+            // This could trigger a cloud function or be handled by the app
+        }
+        console.log('🎉 Subscription activation completed successfully');
     }
     catch (error) {
-        console.error('💥 [Cleanup] Critical error:', error);
-        // Send error notification if you have alerting setup
-        // await sendErrorAlert('cleanupDeletedStorage failed', error);
-        throw error;
+        console.error('❌ Error processing subscription activation:', error);
+        // Don't throw error here as webhook should still succeed
     }
 }
-/**
- * Scheduled function that runs nightly to clean up deleted storage files.
- * Uses collectionGroup query to find all candidates with pending deletions across
- * the entire hierarchical structure (states/districts/bodies/wards/candidates).
- */
-exports.cleanupDeletedStorage = functions
-    .runWith({
-    timeoutSeconds: 540,
-    memory: '1GB', // Sufficient for file operations
-})
-    .pubsub
-    .schedule('every 24 hours') // Runs nightly at 2 AM IST (Firebase timezone)
-    .timeZone('Asia/Kolkata')
-    .onRun(async (context) => {
-    return await performStorageCleanup();
-});
-// Optional: HTTP-triggered version for manual runs (useful for testing)
-exports.cleanupDeletedStorageManual = functions
-    .https.onRequest(async (req, res) => {
-    try {
-        console.log('🧹 [Manual Cleanup] Triggered manually via HTTP');
-        // Run the cleanup logic directly
-        const result = await performStorageCleanup();
-        res.status(200).json({
-            status: 'success',
-            message: 'Manual cleanup completed',
-            result
-        });
-    }
-    catch (error) {
-        console.error('💥 [Manual Cleanup] Error:', error);
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
-    }
-});
 //# sourceMappingURL=index.js.map

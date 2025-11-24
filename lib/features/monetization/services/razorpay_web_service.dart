@@ -7,9 +7,9 @@ import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
 
 class RazorpayWebService {
-  // Razorpay keys - same as mobile version for consistency
-  static const String razorpayKeyId = 'rzp_live_RjD86XHWEf5MN5'; // Live key
-  static const String razorpayKeySecret = 'S4ZUIZBAVKTUUcy2PVQkuJVX'; // Live secret
+  // Razorpay keys - using test keys for integration testing
+  static const String razorpayKeyId = 'rzp_test_RiMWsU7GNxKFqz'; // Test key for integration testing
+  static const String razorpayKeySecret = 'cThh9upiy1NtnaHdO6cWr99I'; // Test secret
 
   // Success and error callbacks for web JS integration
   Function(String paymentId, String orderId, String signature)? _successCallback;
@@ -17,9 +17,13 @@ class RazorpayWebService {
 
   // Initialize Razorpay for web
   void initialize() {
-    AppLogger.razorpay('⚠️ WEB: Razorpay web service initialized (JS SDK loaded via HTML)');
+    final now = DateTime.now();
+    AppLogger.razorpay('⚠️ WEB: Razorpay web service initialized (JS SDK loaded via HTML) at ${now.toIso8601String()}');
     AppLogger.razorpay('Test Mode: ${isTestMode()}');
-    AppLogger.razorpay('Key ID: ${razorpayKeyId.substring(0, 15)}...');
+    AppLogger.razorpay('Key ID: ${isTestMode() ? razorpayKeyId : razorpayKeyId.substring(0, 15)}...');
+    if (isTestMode()) {
+      AppLogger.razorpay('🔑 TEST KEY CONFIRMED: Razorpay integration is using test environment');
+    }
   }
 
   // Start payment on web using JS SDK
@@ -112,15 +116,20 @@ class RazorpayWebService {
   // Create success handler function for JS
   js.JsFunction _createSuccessHandler() {
     return js.JsFunction.withThis((js.JsObject thisArg, js.JsObject response) {
+      final now = DateTime.now();
       // Extract payment details from JS response
       final paymentId = response['razorpay_payment_id']?.toString() ?? '';
       final orderId = response['razorpay_order_id']?.toString() ?? '';
       final signature = response['razorpay_signature']?.toString() ?? '';
 
-      AppLogger.razorpay('✅ WEB PAYMENT SUCCESS!');
+      AppLogger.razorpay('✅ WEB PAYMENT SUCCESS at ${now.toIso8601String()}!');
       AppLogger.razorpay('Payment ID: $paymentId');
       AppLogger.razorpay('Order ID: $orderId');
       AppLogger.razorpay('Signature: $signature');
+
+      if (isTestMode()) {
+        AppLogger.razorpay('🔍 TEST PAYMENT VALIDATION: ${paymentId.startsWith('pay_test_') ? '✅ Valid test payment' : '⚠️ Unexpected payment format'}');
+      }
 
       // Call the stored success callback
       if (_successCallback != null) {

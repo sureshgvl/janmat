@@ -620,7 +620,7 @@ class MonetizationController extends GetxController {
 
         // Create order (in production, this should be done on backend)
         final orderId = await razorpayService.createOrder(
-          amount: amount,
+          amount: amount * 100, // Convert rupees to paisa for Razorpay
           currency: 'INR',
           receipt: 'receipt_$planId',
           notes: {
@@ -628,7 +628,7 @@ class MonetizationController extends GetxController {
             'userId': currentUser.uid,
             'electionType': electionType,
             'validityDays': validityDays.toString(),
-            'calculatedAmount': amount.toString(),
+            'calculatedAmount': (amount * 100).toString(),
           },
         );
 
@@ -707,7 +707,7 @@ class MonetizationController extends GetxController {
 
         // Create order (in production, this should be done on backend)
         final orderId = await razorpayService.createOrder(
-          amount: amount,
+          amount: amount * 100, // Convert rupees to paisa for Razorpay
           currency: 'INR',
           receipt: 'receipt_$planId',
           notes: {
@@ -721,7 +721,7 @@ class MonetizationController extends GetxController {
         razorpayService.startPayment(
           orderId:
               orderId ?? 'test_order_${DateTime.now().millisecondsSinceEpoch}',
-          amount: amount,
+          amount: amount * 100, // Convert rupees to paisa for Razorpay
           description: 'Purchase $plan.name',
           contact: currentUser.phoneNumber ?? '',
           email: currentUser.email ?? '',

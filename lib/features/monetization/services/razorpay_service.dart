@@ -41,7 +41,8 @@ class RazorpayService extends GetxService {
   }
 
   void _initializeRazorpay() {
-    AppLogger.razorpay('Initializing Razorpay service...');
+    final now = DateTime.now();
+    AppLogger.razorpay('Initializing Razorpay service at ${now.toIso8601String()}...');
     _razorpay = Razorpay();
     AppLogger.razorpay('Razorpay instance created');
 
@@ -50,7 +51,12 @@ class RazorpayService extends GetxService {
 
     AppLogger.razorpay('Razorpay service initialized successfully');
     AppLogger.razorpay('Test Mode: ${isTestMode()}');
-    AppLogger.razorpay('Key ID: ${razorpayKeyId.substring(0, 15)}...');
+    AppLogger.razorpay('Key ID: ${isTestMode() ? razorpayKeyId : razorpayKeyId.substring(0, 15)}...');
+    if (isTestMode()) {
+      AppLogger.razorpay('🔑 TEST KEY CONFIRMED: Razorpay integration is using test environment');
+      AppLogger.razorpay('💳 TEST PAYMENT METHODS ENABLED: UPI (Google Pay/PhonePe), Cards, Net Banking, Wallets');
+      AppLogger.razorpay('📱 For Google Pay testing: Use UPI ID "success@razorpay" for successful test payments');
+    }
   }
 
   void _setupEventListeners() {
@@ -60,10 +66,15 @@ class RazorpayService extends GetxService {
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    AppLogger.razorpay('PAYMENT SUCCESS!');
+    final now = DateTime.now();
+    AppLogger.razorpay('PAYMENT SUCCESS at ${now.toIso8601String()}!');
     AppLogger.razorpay('Payment ID: ${response.paymentId}');
     AppLogger.razorpay('Order ID: ${response.orderId}');
     AppLogger.razorpay('Signature: ${response.signature}');
+
+    if (isTestMode()) {
+      AppLogger.razorpay('🔍 TEST PAYMENT VALIDATION: ${response.paymentId?.startsWith('pay_test_') == true ? '✅ Valid test payment' : '⚠️ Unexpected payment format'}');
+    }
 
     Fluttertoast.showToast(
       msg: 'Payment Successful! Payment ID: ${response.paymentId}',
@@ -77,7 +88,13 @@ class RazorpayService extends GetxService {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    AppLogger.razorpayError('PAYMENT ERROR!');
+    final now = DateTime.now();
+    AppLogger.razorpayError('PAYMENT ERROR at ${now.toIso8601String()}!');
+
+    if (isTestMode()) {
+      AppLogger.razorpay('🔍 TEST MODE: Payment error occurred while using test key');
+    }
+
     AppLogger.razorpayError('Error Code: ${response.code}');
     AppLogger.razorpayError('Error Message: ${response.message}');
     AppLogger.razorpayError('Error Data: ${response.toString()}');
@@ -138,8 +155,10 @@ class RazorpayService extends GetxService {
     String email,
     String? prefillName,
   ) {
-    AppLogger.razorpay('STARTING RAZORPAY PAYMENT PROCESS (Mobile)');
+    final now = DateTime.now();
+    AppLogger.razorpay('STARTING RAZORPAY PAYMENT PROCESS (Mobile) at ${now.toIso8601String()}');
     AppLogger.razorpay('Amount: ₹${amount / 100} ($amount paisa)');
+    AppLogger.razorpay('Test Mode Active: ${isTestMode()}');
 
     // Get the stored orderId from the MonetizationController if available
     final monetizationController = Get.find<MonetizationController>();
@@ -155,6 +174,12 @@ class RazorpayService extends GetxService {
         'contact': contact,
         'email': email,
         if (prefillName != null) 'name': prefillName,
+      },
+      'method': {
+        'upi': true,  // Enable UPI for Google Pay, PhonePe, etc.
+        'card': true,
+        'netbanking': true,
+        'wallet': true,
       },
       'external': {
         'wallets': ['paytm']
