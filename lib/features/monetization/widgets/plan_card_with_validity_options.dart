@@ -10,12 +10,16 @@ class PlanCardWithValidityOptions extends StatefulWidget {
   final String electionType;
   final Function(SubscriptionPlan, int) onPurchase;
   final bool compactMode;
+  final Future<DateTime> Function(int validityDays)? calculateExpiryDate;
+  final List<dynamic>? existingHighlights;
 
   const PlanCardWithValidityOptions({
     required this.plan,
     required this.electionType,
     required this.onPurchase,
     this.compactMode = false,
+    this.calculateExpiryDate,
+    this.existingHighlights,
     super.key,
   });
 
@@ -27,6 +31,69 @@ class PlanCardWithValidityOptions extends StatefulWidget {
 class _PlanCardWithValidityOptionsState
     extends State<PlanCardWithValidityOptions> {
   int? selectedValidityDays;
+  Map<int, String> _expiryTexts = {}; // Cache expiry texts
+  bool _isCalculatingExpiry = false; // Loading state for expiry calculation
+  List<dynamic> _currentHighlights = []; // Store highlights from AllocatedSeatsDisplay
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeExpiryTexts();
+  }
+
+  void _onHighlightsLoaded(List<dynamic> highlights) {
+    setState(() {
+      _currentHighlights = highlights;
+    });
+    // Recalculate expiry texts now that we have highlights
+    _initializeExpiryTexts();
+  }
+
+  Future<void> _initializeExpiryTexts() async {
+    if (widget.plan.type == 'highlight') {
+      // For highlight plans, calculate smart expiry dates
+      setState(() => _isCalculatingExpiry = true);
+
+      final validityOptions = widget.plan.pricing[widget.electionType]?.keys.toList() ?? [];
+
+      // If we have existing highlights, use them directly
+      if (_currentHighlights.isNotEmpty) {
+        // Find the highlight with the latest end date
+        DateTime latestEndDate = _currentHighlights.first.endDate;
+        for (final highlight in _currentHighlights) {
+          if (highlight.endDate.isAfter(latestEndDate)) {
+            latestEndDate = highlight.endDate;
+          }
+        }
+
+        // Calculate expiry for each validity option
+        for (final days in validityOptions) {
+          final expiryDate = latestEndDate.add(Duration(days: days));
+          _expiryTexts[days] = 'Valid until ${expiryDate.toString().split(' ')[0]}';
+        }
+      } else if (widget.calculateExpiryDate != null) {
+        // Fallback to API call if no existing highlights provided
+        for (final days in validityOptions) {
+          try {
+            final expiryDate = await widget.calculateExpiryDate!(days);
+            _expiryTexts[days] = 'Valid until ${expiryDate.toString().split(' ')[0]}';
+          } catch (e) {
+            // Fallback to simple calculation
+            final expiryDate = DateTime.now().add(Duration(days: days));
+            _expiryTexts[days] = 'Valid until ${expiryDate.toString().split(' ')[0]}';
+          }
+        }
+      } else {
+        // No existing highlights and no API callback - use simple calculation
+        for (final days in validityOptions) {
+          final expiryDate = DateTime.now().add(Duration(days: days));
+          _expiryTexts[days] = 'Valid until ${expiryDate.toString().split(' ')[0]}';
+        }
+      }
+
+      if (mounted) setState(() => _isCalculatingExpiry = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -544,6 +611,7 @@ class _PlanCardWithValidityOptionsState
                   districtId: _getCurrentUserDistrict(),
                   bodyId: _getCurrentUserBody(),
                   wardId: _getCurrentUserWard(),
+                  onHighlightsLoaded: _onHighlightsLoaded,
                 ),
               ],
 
@@ -558,6 +626,7 @@ class _PlanCardWithValidityOptionsState
                   districtId: _getCurrentUserDistrict(),
                   bodyId: _getCurrentUserBody(),
                   wardId: _getCurrentUserWard(),
+                  onHighlightsLoaded: _onHighlightsLoaded,
                 ),
               ],
 
@@ -576,8 +645,9 @@ class _PlanCardWithValidityOptionsState
                   final price = pricing![days]!;
                   final isSelected = selectedValidityDays == days;
                   final validityText = '$days Days';
-                  final expiryText =
-                      'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}';
+                  final expiryText = _isCalculatingExpiry && widget.plan.type == 'highlight'
+                      ? 'Calculating expiry...'
+                      : (_expiryTexts[days] ?? 'Valid until ${DateTime.now().add(Duration(days: days)).toString().split(' ')[0]}');
 
                   AppLogger.common(
                     '📅 [PlanCardWithValidityOptions] Full validity option: "$validityText" - "$expiryText" - ₹$price',

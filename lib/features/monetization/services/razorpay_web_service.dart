@@ -7,9 +7,28 @@ import 'package:get/get.dart';
 import '../../../utils/app_logger.dart';
 
 class RazorpayWebService {
-  // Razorpay keys - using test keys for integration testing
-  static const String razorpayKeyId = 'rzp_test_RiMWsU7GNxKFqz'; // Test key for integration testing
-  static const String razorpayKeySecret = 'cThh9upiy1NtnaHdO6cWr99I'; // Test secret
+  // Razorpay keys - Loaded from environment variables for security
+  static String get razorpayKeyId {
+    // Try environment variable first, fallback to test key for development
+    final key = const String.fromEnvironment('RAZORPAY_KEY_ID',
+        defaultValue: 'rzp_test_RiMWsU7GNxKFqz');
+
+    // Debug logging (remove in production)
+    debugPrint('🌐 Web Razorpay Key ID: ${key.substring(0, 15)}... (${key.startsWith('rzp_live') ? 'PRODUCTION' : 'TEST'})');
+
+    return key;
+  }
+
+  static String get razorpayKeySecret {
+    // Try environment variable first, fallback to test secret for development
+    final secret = const String.fromEnvironment('RAZORPAY_KEY_SECRET',
+        defaultValue: 'cThh9upiy1NtnaHdO6cWr99I');
+
+    // Debug logging (remove in production)
+    debugPrint('🌐 Web Razorpay Secret: ${secret.substring(0, 10)}... (${secret.length > 20 ? 'LOADED' : 'DEFAULT'})');
+
+    return secret;
+  }
 
   // Success and error callbacks for web JS integration
   Function(String paymentId, String orderId, String signature)? _successCallback;

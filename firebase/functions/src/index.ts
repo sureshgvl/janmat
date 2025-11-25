@@ -723,52 +723,31 @@ export const razorpayWebhook = functions.https.onRequest(async (req, res) => {
     // Handle different webhook events
     switch (event) {
       case 'payment.authorized':
-        console.log('🔐 Payment authorized, processing auto-capture...');
-
-        // Auto-capture the payment
-        try {
-          const captureResponse = await razorpay.payments.capture(
-            paymentEntity.id,
-            paymentEntity.amount,
-            paymentEntity.currency
-          );
-
-          console.log('✅ Payment auto-captured:', captureResponse.id);
-
-          // Update payment record with capture details
-          await paymentRef.update({
-            captured: true,
-            capturedAt: admin.firestore.FieldValue.serverTimestamp(),
-            captureId: captureResponse.id,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-
-          // Mark order as paid
-          if (paymentEntity.order_id) {
-            await db.collection('razorpay_orders').doc(paymentEntity.order_id).update({
-              status: 'paid',
-              paymentId: paymentEntity.id,
-              capturedAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          }
-
-          // Process subscription activation
-          await processSubscriptionActivation(paymentEntity);
-
-        } catch (captureError: any) {
-          console.error('❌ Failed to auto-capture payment:', captureError);
-
-          // Update payment record with capture failure
-          await paymentRef.update({
-            captureError: captureError.message,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
+        console.log('🔐 Payment authorized - waiting for capture event');
+        // In production, Razorpay auto-captures payments, so we wait for payment.captured event
         break;
 
       case 'payment.captured':
-        console.log('✅ Payment already captured');
+        console.log('✅ Payment captured successfully');
+
+        // Update payment record with capture details
+        await paymentRef.update({
+          captured: true,
+          capturedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Mark order as paid
+        if (paymentEntity.order_id) {
+          await db.collection('razorpay_orders').doc(paymentEntity.order_id).update({
+            status: 'paid',
+            paymentId: paymentEntity.id,
+            capturedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
+        // Process subscription activation
         await processSubscriptionActivation(paymentEntity);
         break;
 
@@ -1061,6 +1040,13 @@ async function createHighlightBanner(userId: string, planId: string, electionTyp
       const baseDate = currentEndDate > now ? currentEndDate : now;
       const newEndDate = new Date(baseDate.getTime() + (validityDays * 24 * 60 * 60 * 1000));
 
+      console.log('📅 Date calculation for highlight extension:');
+      console.log('  Current end date:', currentEndDate);
+      console.log('  Now:', now);
+      console.log('  Base date (max of current end or now):', baseDate);
+      console.log('  Validity days:', validityDays);
+      console.log('  New end date:', newEndDate);
+
       // Update existing highlight
       await db
         .collection('states')
@@ -1075,6 +1061,7 @@ async function createHighlightBanner(userId: string, planId: string, electionTyp
         .doc(highlightId)
         .update({
           endDate: admin.firestore.Timestamp.fromDate(newEndDate),
+          expiresAt: admin.firestore.Timestamp.fromDate(newEndDate), // Add expiresAt field for app compatibility
           active: true,
           status: 'active',
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -1092,6 +1079,8 @@ async function createHighlightBanner(userId: string, planId: string, electionTyp
 
       console.log('🆕 Creating new highlight banner');
 
+      const endDate = new Date(Date.now() + (validityDays * 24 * 60 * 60 * 1000));
+
       const highlightData = {
         id: highlightId,
         candidateId: candidateDoc.id,
@@ -1106,7 +1095,8 @@ async function createHighlightBanner(userId: string, planId: string, electionTyp
         placement: ['top_banner'],
         priority: 5, // Normal priority for highlight plan
         startDate: new Date(),
-        endDate: new Date(Date.now() + (validityDays * 24 * 60 * 60 * 1000)),
+        endDate: admin.firestore.Timestamp.fromDate(endDate),
+        expiresAt: admin.firestore.Timestamp.fromDate(endDate), // Add expiresAt field for app compatibility
         active: true,
         exclusive: false,
         rotation: true,

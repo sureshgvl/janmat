@@ -13,13 +13,28 @@ class RazorpayService extends GetxService {
   late Razorpay _razorpay;
   RazorpayWebService? _webService;
 
-  // Razorpay keys - Replace with your actual keys
-  static const String razorpayKeyId = 'rzp_test_RiMWsU7GNxKFqz'; // Test key
-  static const String razorpayKeySecret = 'cThh9upiy1NtnaHdO6cWr99I'; // Test secret
-
-  // // Production keys (uncomment for production)
-  // static const String razorpayKeyId = 'rzp_live_RjD86XHWEf5MN5';
-  // static const String razorpayKeySecret = 'S4ZUIZBAVKTUUcy2PVQkuJVX';
+  // Razorpay keys - Loaded from environment variables for security
+    static String get razorpayKeyId {
+      // Try environment variable first, fallback to test key for development
+      final key = const String.fromEnvironment('RAZORPAY_KEY_ID',
+          defaultValue: 'rzp_test_RiMWsU7GNxKFqz');
+  
+      // Debug logging (remove in production)
+      debugPrint('🔑 Razorpay Key ID: ${key.substring(0, 15)}... (${key.startsWith('rzp_live') ? 'PRODUCTION' : 'TEST'})');
+  
+      return key;
+    }
+  
+    static String get razorpayKeySecret {
+      // Try environment variable first, fallback to test secret for development
+      final secret = const String.fromEnvironment('RAZORPAY_KEY_SECRET',
+          defaultValue: 'cThh9upiy1NtnaHdO6cWr99I');
+  
+      // Debug logging (remove in production)
+      debugPrint('🔐 Razorpay Secret: ${secret.substring(0, 10)}... (${secret.length > 20 ? 'LOADED' : 'DEFAULT'})');
+  
+      return secret;
+    }
 
   @override
   void onInit() {

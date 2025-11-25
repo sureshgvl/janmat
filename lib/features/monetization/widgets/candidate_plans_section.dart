@@ -404,6 +404,7 @@ class CandidatePlansSection extends StatelessWidget {
                 plan: plan,
                 electionType: userElectionType!,
                 onPurchase: onPurchaseWithValidity,
+                calculateExpiryDate: (validityDays) => controller.calculateHighlightExpiryDate(FirebaseAuth.instance.currentUser!.uid, validityDays),
               );
             } else {
               AppLogger.monetization('⚠️ [CandidatePlansSection] Showing regular PlanCard for highlight plan (no pricing)');

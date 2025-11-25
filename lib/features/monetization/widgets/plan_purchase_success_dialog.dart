@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/plan_model.dart';
@@ -9,6 +10,7 @@ class PlanPurchaseSuccessDialog extends StatefulWidget {
   final int validityDays;
   final int amountPaid;
   final String? electionType;
+  final DateTime? expiresAt; // Add optional expiresAt parameter
   final VoidCallback? onContinue;
   final VoidCallback? onViewBenefits;
 
@@ -18,6 +20,7 @@ class PlanPurchaseSuccessDialog extends StatefulWidget {
     required this.validityDays,
     required this.amountPaid,
     this.electionType,
+    this.expiresAt, // Add to constructor
     this.onContinue,
     this.onViewBenefits,
   });
@@ -36,6 +39,17 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
   @override
   void initState() {
     super.initState();
+
+    // Debug logging to check if dialog is being created (only in debug mode)
+    if (kDebugMode) {
+      print('🎉 PlanPurchaseSuccessDialog CREATED:');
+      print('  Plan: ${widget.plan.name}');
+      print('  Validity: ${widget.validityDays} days');
+      print('  Amount: ₹${widget.amountPaid}');
+      print('  Election Type: ${widget.electionType}');
+      print('  Expires At: ${widget.expiresAt}');
+    }
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -453,7 +467,18 @@ class _PlanPurchaseSuccessDialogState extends State<PlanPurchaseSuccessDialog>
   }
 
   String _calculateExpiryDate() {
-    final expiryDate = DateTime.now().add(Duration(days: widget.validityDays));
+    // Use provided expiresAt if available, otherwise calculate from now
+    final expiryDate = widget.expiresAt ?? DateTime.now().add(Duration(days: widget.validityDays));
+
+    // Debug logging to check what date is being used (only in debug mode)
+    if (kDebugMode) {
+      print('🔍 Dialog _calculateExpiryDate:');
+      print('  widget.expiresAt: ${widget.expiresAt}');
+      print('  widget.validityDays: ${widget.validityDays}');
+      print('  calculated expiryDate: $expiryDate');
+      print('  formatted: ${expiryDate.day}/${expiryDate.month}/${expiryDate.year}');
+    }
+
     return '${expiryDate.day}/${expiryDate.month}/${expiryDate.year}';
   }
 }

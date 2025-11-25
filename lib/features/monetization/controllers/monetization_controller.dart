@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
@@ -898,6 +898,8 @@ class MonetizationController extends GetxController {
     String electionType,
     int validityDays,
   ) async {
+    DateTime? expiresAt; // Declare at method level
+
     try {
       final plan = getPlanById(planId);
       if (plan == null) {
@@ -910,9 +912,15 @@ class MonetizationController extends GetxController {
         return;
       }
 
-      // Calculate expiration date
+      // Calculate expiration date - for highlight plans, check existing highlights
       final purchasedAt = DateTime.now();
-      final expiresAt = purchasedAt.add(Duration(days: validityDays));
+      if (plan.type == 'highlight') {
+        // For highlight plans, check if user already has an existing highlight
+        expiresAt = await calculateHighlightExpiryDate(userId, validityDays);
+      } else {
+        // For other plans, use simple calculation
+        expiresAt = purchasedAt.add(Duration(days: validityDays));
+      }
 
       // Create subscription record with election data
       final subscription = UserSubscription(
@@ -985,17 +993,38 @@ class MonetizationController extends GetxController {
     }
 
     // Show post-purchase UI after successful completion
-    _showPostPurchaseUI(planId, electionType, validityDays);
+    _showPostPurchaseUI(planId, electionType, validityDays, expiresAt: expiresAt);
   }
 
   Future<void> _showPostPurchaseUI(
     String planId,
     String? electionType,
-    int validityDays,
-  ) async {
+    int validityDays, {
+    DateTime? expiresAt, // Add optional expiresAt parameter
+  }) async {
     try {
+      if (kDebugMode) {
+        AppLogger.monetization(
+          '🎉 ======= SHOWING POST-PURCHASE UI =======',
+        );
+        AppLogger.monetization(
+          '🎉 Plan ID: $planId, Election Type: $electionType, Validity: $validityDays days, Expires At: $expiresAt',
+        );
+      }
+
       final plan = getPlanById(planId);
-      if (plan == null) return;
+      if (plan == null) {
+        if (kDebugMode) AppLogger.monetization('❌ Plan not found: $planId');
+        return;
+      }
+
+      if (kDebugMode) AppLogger.monetization('✅ Found plan: ${plan.name}');
+
+      // Calculate amount paid based on election type and validity
+      final amountPaid = plan.pricing[electionType ?? '']?[validityDays] ?? 0;
+      if (kDebugMode) AppLogger.monetization('💰 Amount paid: ₹$amountPaid');
+
+      if (kDebugMode) AppLogger.monetization('🎉 About to show PlanPurchaseSuccessDialog...');
 
       // Show success dialog
       if (Get.context != null) {
@@ -1005,17 +1034,28 @@ class MonetizationController extends GetxController {
           builder: (context) => PlanPurchaseSuccessDialog(
             plan: plan,
             validityDays: validityDays,
-            amountPaid: plan.pricing[electionType ?? '']?[validityDays] ?? 0,
+            amountPaid: amountPaid,
             electionType: electionType,
+            expiresAt: expiresAt, // Pass the expiry date
             onContinue: () {
               Navigator.of(context).pop();
               _showWelcomeContent(plan);
             },
           ),
         );
+
+        if (kDebugMode) AppLogger.monetization('🎉 Dialog dismissed, post-purchase UI completed');
+      } else {
+        if (kDebugMode) AppLogger.monetization('❌ Get.context is null, cannot show dialog');
+      }
+
+      if (kDebugMode) {
+        AppLogger.monetization(
+          '🎉 ======= POST-PURCHASE UI COMPLETED =======\n',
+        );
       }
     } catch (e) {
-      AppLogger.monetization('Error showing post-purchase UI: $e');
+      if (kDebugMode) AppLogger.monetization('❌ Error showing post-purchase UI: $e');
     }
   }
 
@@ -1160,12 +1200,12 @@ class MonetizationController extends GetxController {
         // Check if candidate already has an existing highlight in their ward
         final existingHighlights =
             await HighlightService.getHighlightsByCandidateInWard(
-              candidateId: candidate.candidateId,
-              stateId: candidate.location.stateId!,
-              districtId: candidate.location.districtId!,
-              bodyId: candidate.location.bodyId!,
-              wardId: candidate.location.wardId!,
-            );
+          candidateId: candidate.candidateId,
+          stateId: candidate.location.stateId!,
+          districtId: candidate.location.districtId!,
+          bodyId: candidate.location.bodyId!,
+          wardId: candidate.location.wardId!,
+        );
 
         final existingHighlight = existingHighlights.isNotEmpty
             ? existingHighlights.first
@@ -1243,6 +1283,7 @@ class MonetizationController extends GetxController {
       AppLogger.monetization(
         '🎯 ======= HIGHLIGHT PLAN CONTENT CREATION FAILED =======\n',
       );
+      // Don't rethrow - we want the payment to still succeed even if content creation fails
     }
   }
 
@@ -1622,5 +1663,65 @@ class MonetizationController extends GetxController {
   void _stopUserSubscriptionListener() {
     _subscriptionListener?.cancel();
     _subscriptionListener = null;
+  }
+
+  // Calculate expiry date for highlight plans considering existing highlights
+  Future<DateTime> calculateHighlightExpiryDate(String userId, int validityDays) async {
+    try {
+      if (kDebugMode) {
+        AppLogger.monetization('🔍 Calculating highlight expiry date for user: $userId, validity: $validityDays days');
+      }
+
+      // Get candidate data to find location
+      final candidateController = Get.find<CandidateController>();
+      final candidate = await candidateController.candidateRepository.getCandidateData(userId);
+
+      if (candidate == null) {
+        if (kDebugMode) AppLogger.monetization('❌ No candidate data found, using simple calculation');
+        return DateTime.now().add(Duration(days: validityDays));
+      }
+
+      // Check for existing highlights in the candidate's ward
+      final existingHighlights = await HighlightService.getHighlightsByCandidateInWard(
+        candidateId: candidate.candidateId,
+        stateId: candidate.location.stateId!,
+        districtId: candidate.location.districtId!,
+        bodyId: candidate.location.bodyId!,
+        wardId: candidate.location.wardId!,
+      );
+
+      final now = DateTime.now();
+
+      if (existingHighlights.isNotEmpty) {
+        // Found existing highlight - extend from its current end date
+        final existingHighlight = existingHighlights.first;
+        final currentEndDate = existingHighlight.endDate;
+
+        // Always extend from the existing end date (even if expired)
+        final newExpiryDate = currentEndDate.add(Duration(days: validityDays));
+
+        if (kDebugMode) {
+          AppLogger.monetization('🔄 Found existing highlight, extending:');
+          AppLogger.monetization('  Current end date: $currentEndDate');
+          AppLogger.monetization('  Now: $now');
+          AppLogger.monetization('  New expiry: $newExpiryDate');
+        }
+
+        return newExpiryDate;
+      } else {
+        // No existing highlight - use simple calculation
+        final expiryDate = now.add(Duration(days: validityDays));
+
+        if (kDebugMode) {
+          AppLogger.monetization('🆕 No existing highlight found, using simple calculation: $expiryDate');
+        }
+
+        return expiryDate;
+      }
+    } catch (e) {
+      if (kDebugMode) AppLogger.monetization('❌ Error calculating highlight expiry: $e');
+      // Fallback to simple calculation
+      return DateTime.now().add(Duration(days: validityDays));
+    }
   }
 }

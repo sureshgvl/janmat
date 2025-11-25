@@ -9,6 +9,7 @@ class AllocatedSeatsDisplay extends StatefulWidget {
   final String? districtId;
   final String? bodyId;
   final String? wardId;
+  final Function(List<Highlight>)? onHighlightsLoaded;
 
   const AllocatedSeatsDisplay({
     required this.maxHighlights,
@@ -16,6 +17,7 @@ class AllocatedSeatsDisplay extends StatefulWidget {
     this.districtId,
     this.bodyId,
     this.wardId,
+    this.onHighlightsLoaded,
     super.key,
   });
 
@@ -91,6 +93,9 @@ class _AllocatedSeatsDisplayState extends State<AllocatedSeatsDisplay> {
         isLoading = false;
         _manageCountdownTimer();
       });
+
+      // Notify parent widget about loaded highlights
+      widget.onHighlightsLoaded?.call(highlights);
     } catch (e) {
       setState(() {
         allocatedHighlights = [];
