@@ -8,6 +8,7 @@ import '../../../utils/multi_level_cache.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/theme_constants.dart';
 import '../controllers/candidate_controller.dart';
+import '../controllers/candidate_selection_controller.dart';
 import '../../../features/user/models/user_model.dart';
 import '../widgets/candidate_card.dart';
 import '../../../utils/app_logger.dart';
@@ -21,6 +22,7 @@ class MyAreaCandidatesScreen extends StatefulWidget {
 
 class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
   CandidateController? candidateController;
+  CandidateSelectionController? selectionController;
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   UserModel? currentUser;
   final TextEditingController _searchController = TextEditingController();
@@ -29,13 +31,21 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize controller first - ensure it exists
+    // Initialize controllers first - ensure they exist
     try {
       candidateController = Get.find<CandidateController>();
     } catch (e) {
       // If not found, put it
       candidateController = Get.put<CandidateController>(CandidateController());
     }
+
+    try {
+      selectionController = Get.find<CandidateSelectionController>();
+    } catch (e) {
+      // If not found, put it
+      selectionController = Get.put<CandidateSelectionController>(CandidateSelectionController());
+    }
+
     _loadUserDataAndCandidates();
   }
 
@@ -146,14 +156,57 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.homeBackgroundColor,
-      appBar: AppBar(
-        title: Text(CandidateLocalizations.of(context)!.myAreaCandidates),
-        elevation: 0,
-      ),
-      body: Obx(() {
-        final controller = candidateController!;
+    return Obx(() {
+      final isInSelectionMode = selectionController!.isSelectionMode.value;
+      final selectedCount = selectionController!.selectedCandidates.length;
+
+      return Scaffold(
+        backgroundColor: AppTheme.homeBackgroundColor,
+        appBar: AppBar(
+          title: isInSelectionMode
+              ? Text('$selectedCount selected')
+              : Text(CandidateLocalizations.of(context)!.myAreaCandidates),
+          elevation: 0,
+          leading: isInSelectionMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => selectionController!.toggleSelectionMode(),
+                )
+              : null,
+          actions: [
+            if (isInSelectionMode)
+              Container(
+                margin: const EdgeInsets.only(right: AppSpacing.sm),
+                child: TextButton.icon(
+                  onPressed: selectedCount >= 2
+                      ? () => selectionController!.startComparison()
+                      : null,
+                  icon: const Icon(Icons.compare_arrows),
+                  label: const Text('Compare'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: selectedCount >= 2
+                        ? AppColors.primary
+                        : Colors.grey,
+                  ),
+                ),
+              )
+            else
+              Container(
+                margin: const EdgeInsets.only(right: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.compare, color: AppColors.accent),
+                  tooltip: 'Compare candidates',
+                  onPressed: () => selectionController!.toggleSelectionMode(),
+                ),
+              ),
+          ],
+        ),
+        body: Obx(() {
+          final controller = candidateController!;
 
         // Sort candidates by followers count (highest first)
         final sortedCandidates = controller.candidates.toList()
@@ -338,8 +391,9 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
             ),
           ],
         );
-      }),
-    );
+        }),
+      );
+    });
   }
 
 

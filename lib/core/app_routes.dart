@@ -7,6 +7,7 @@ import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/profile_completion_screen.dart';
 import '../features/candidate/screens/candidate_profile_screen.dart';
+import '../features/candidate/screens/candidate_comparison_screen.dart';
 import '../features/candidate/screens/change_party_symbol_screen.dart';
 import '../features/candidate/screens/media_add_post_screen.dart';
 import '../features/candidate/models/candidate_model.dart';
@@ -49,6 +50,13 @@ class AppRoutes {
     GetPage(
       name: AppRouteNames.publicCandidateProfile,
       page: () => const CandidateProfileScreen(isGuestAccess: true),
+    ),
+    GetPage(
+      name: AppRouteNames.candidateComparison,
+      page: () {
+        final candidates = Get.arguments as List<Candidate>? ?? [];
+        return CandidateComparisonScreen(candidates: candidates);
+      },
     ),
     GetPage(
       name: AppRouteNames.changePartySymbol,

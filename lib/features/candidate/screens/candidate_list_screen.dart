@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/candidate_controller.dart';
+import '../controllers/candidate_selection_controller.dart';
 import '../controllers/location_controller.dart';
 import '../controllers/search_controller.dart' as search;
 import '../controllers/pagination_controller.dart';
@@ -33,56 +34,88 @@ class CandidateListScreen extends StatefulWidget {
 
 class _CandidateListScreenState extends State<CandidateListScreen> {
   // Controllers
-  final CandidateController candidateController = Get.put(CandidateController());
+  final CandidateController candidateController = Get.put(
+    CandidateController(),
+  );
   final LocationController locationController = Get.put(LocationController());
-  final search.SearchController searchController = Get.put(search.SearchController());
+  final search.SearchController searchController = Get.put(
+    search.SearchController(),
+  );
+  late final CandidateSelectionController selectionController;
   late final PaginationController paginationController;
 
   final ScrollController _scrollController = ScrollController();
-  final String? currentUserId = FirebaseAuth.instance.currentUser?.uid; // Add current user ID
+  final String? currentUserId =
+      FirebaseAuth.instance.currentUser?.uid; // Add current user ID
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
 
-  // Initialize PaginationController
-    paginationController = Get.put(PaginationController(
-      loadFunction: (offset, limit) async {
-        AppLogger.candidate('🔄 [Pagination] Load function called with offset: $offset, limit: $limit');
-        AppLogger.candidate('🔄 [Pagination] Selected district: ${locationController.selectedDistrictId.value}');
-        AppLogger.candidate('🔄 [Pagination] Selected body: ${locationController.selectedBodyId.value}');
-        AppLogger.candidate('🔄 [Pagination] Selected ward: ${locationController.selectedWard.value?.name ?? 'null'}');
+    // Initialize controllers
+    selectionController = Get.put(CandidateSelectionController());
 
-        // Use CandidateRepository to load candidates
-        if (locationController.selectedDistrictId.value != null &&
-            locationController.selectedBodyId.value != null &&
-            locationController.selectedWard.value != null) {
-          try {
-            AppLogger.candidate('🔄 [Pagination] Calling getCandidatesByWard...');
-            final candidates = await candidateController.candidateRepository.getCandidatesByWard(
-              locationController.selectedDistrictId.value!,
-              locationController.selectedBodyId.value!,
-              locationController.selectedWard.value!.id,
-            );
-            AppLogger.candidate('🔄 [Pagination] getCandidatesByWard returned ${candidates.length} candidates');
+    // Initialize PaginationController
+    paginationController = Get.put(
+      PaginationController(
+        loadFunction: (offset, limit) async {
+          AppLogger.candidate(
+            '🔄 [Pagination] Load function called with offset: $offset, limit: $limit',
+          );
+          AppLogger.candidate(
+            '🔄 [Pagination] Selected district: ${locationController.selectedDistrictId.value}',
+          );
+          AppLogger.candidate(
+            '🔄 [Pagination] Selected body: ${locationController.selectedBodyId.value}',
+          );
+          AppLogger.candidate(
+            '🔄 [Pagination] Selected ward: ${locationController.selectedWard.value?.name ?? 'null'}',
+          );
 
-            // Update the candidateController.candidates list so the UI can display them
-            AppLogger.candidate('🔄 [Pagination] Updating candidateController.candidates with ${candidates.length} candidates');
-            candidateController.candidates.assignAll(candidates);
-            candidateController.update();
-            AppLogger.candidate('🔄 [Pagination] candidateController updated, returning ${candidates.length} candidates');
+          // Use CandidateRepository to load candidates
+          if (locationController.selectedDistrictId.value != null &&
+              locationController.selectedBodyId.value != null &&
+              locationController.selectedWard.value != null) {
+            try {
+              AppLogger.candidate(
+                '🔄 [Pagination] Calling getCandidatesByWard...',
+              );
+              final candidates = await candidateController.candidateRepository
+                  .getCandidatesByWard(
+                    locationController.selectedDistrictId.value!,
+                    locationController.selectedBodyId.value!,
+                    locationController.selectedWard.value!.id,
+                  );
+              AppLogger.candidate(
+                '🔄 [Pagination] getCandidatesByWard returned ${candidates.length} candidates',
+              );
 
-            return candidates;
-          } catch (e) {
-            AppLogger.candidateError('🔄 [Pagination] Failed to load candidates: $e');
-            return [];
+              // Update the candidateController.candidates list so the UI can display them
+              AppLogger.candidate(
+                '🔄 [Pagination] Updating candidateController.candidates with ${candidates.length} candidates',
+              );
+              candidateController.candidates.assignAll(candidates);
+              candidateController.update();
+              AppLogger.candidate(
+                '🔄 [Pagination] candidateController updated, returning ${candidates.length} candidates',
+              );
+
+              return candidates;
+            } catch (e) {
+              AppLogger.candidateError(
+                '🔄 [Pagination] Failed to load candidates: $e',
+              );
+              return [];
+            }
           }
-        }
-        AppLogger.candidate('🔄 [Pagination] Missing required location data, returning empty list');
-        return [];
-      },
-    ));
+          AppLogger.candidate(
+            '🔄 [Pagination] Missing required location data, returning empty list',
+          );
+          return [];
+        },
+      ),
+    );
 
     _initializeScreen();
   }
@@ -118,7 +151,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       if (widget.initialWardId != null) {
         await locationController.setInitialWard(widget.initialWardId!);
         // Load candidates for the initial ward using pagination
-        AppLogger.candidate('🔄 Loading initial candidates via pagination for ward: ${widget.initialWardId}');
+        AppLogger.candidate(
+          '🔄 Loading initial candidates via pagination for ward: ${widget.initialWardId}',
+        );
         await paginationController.loadInitial();
       } else {
         // Try to load candidates for current user
@@ -127,7 +162,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
       AppLogger.candidate('✅ Candidate list screen initialized successfully');
     } catch (e) {
-      AppLogger.candidateError('Failed to initialize candidate list screen: $e');
+      AppLogger.candidateError(
+        'Failed to initialize candidate list screen: $e',
+      );
     }
   }
 
@@ -142,7 +179,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
           locationController.selectedWard.value!.id,
           stateId: stateId ?? locationController.selectedStateId.value,
         );
-        AppLogger.candidate('✅ Candidates loaded for ward: ${locationController.selectedWard.value!.name}');
+        AppLogger.candidate(
+          '✅ Candidates loaded for ward: ${locationController.selectedWard.value!.name}',
+        );
       } catch (e) {
         AppLogger.candidateError('Failed to load candidates for ward: $e');
       }
@@ -155,7 +194,9 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
       final userModel = chatController.currentUser;
 
       if (userModel == null) {
-        AppLogger.candidate('No current user data available, skipping candidate loading');
+        AppLogger.candidate(
+          'No current user data available, skipping candidate loading',
+        );
         return;
       }
 
@@ -203,93 +244,133 @@ class _CandidateListScreenState extends State<CandidateListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.homeBackgroundColor,
-      appBar: AppBar(
-        title: Text(CandidateLocalizations.of(context)!.searchCandidates),
-        elevation: 0,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.refresh,
-                color: AppColors.accent,
-              ),
-              tooltip: 'Refresh candidates',
-              onPressed: locationController.selectedWard.value != null
-                  ? _refreshCandidates
-                  : null,
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
-        child: Column(
-          children: [
-            // Search and Filters Section
-            SearchAndFiltersSection(
-              locationController: locationController,
-              searchController: searchController,
-              onSearchChanged: _onSearchChanged,
-              onClearSearch: _onClearSearch,
-              onWardSelected: () async {
-                AppLogger.candidate('🔄 Ward selected via UI, loading candidates via pagination');
-                await paginationController.loadInitial();
-              },
-              onDistrictRefresh: () async {
-                await locationController.forceRefreshDistricts();
-              },
-            ),
+    return Obx(() {
+      final isInSelectionMode = selectionController.isSelectionMode.value;
+      final selectedCount = selectionController.selectedCandidates.length;
 
-            // Candidate List View
-            CandidateListView(
-              candidateController: candidateController,
-              searchController: searchController,
-              locationController: locationController,
-              paginationController: paginationController,
-              onRefresh: _refreshCandidates,
-              onLoadMore: _loadMoreCandidates,
-              currentUserId: currentUserId,
-            ),
+      return Scaffold(
+        backgroundColor: AppTheme.homeBackgroundColor,
+        appBar: AppBar(
+          title: isInSelectionMode
+              ? Text('$selectedCount selected')
+              : Text(CandidateLocalizations.of(context)!.searchCandidates),
+          elevation: 0,
+          leading: isInSelectionMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => selectionController.toggleSelectionMode(),
+                )
+              : null,
+          actions: [
+            if (isInSelectionMode)
+              Container(
+                margin: const EdgeInsets.only(right: AppSpacing.sm),
+                child: TextButton.icon(
+                  onPressed: selectedCount >= 2
+                      ? () => selectionController.startComparison()
+                      : null,
+                  icon: const Icon(Icons.compare_arrows),
+                  label: const Text('Compare'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: selectedCount >= 2
+                        ? AppColors.primary
+                        : Colors.grey,
+                  ),
+                ),
+              )
+            else
+              Container(
+                margin: const EdgeInsets.only(right: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.compare, color: AppColors.accent),
+                  tooltip: 'Compare candidates',
+                  onPressed: () => selectionController.toggleSelectionMode(),
+                ),
+              ),
+            // Container(
+            //   margin: const EdgeInsets.only(right: AppSpacing.sm),
+            //   decoration: BoxDecoration(
+            //     color: AppColors.accent.withValues(alpha: 0.1),
+            //     borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+            //   ),
+            //   child: IconButton(
+            //     icon: Icon(Icons.refresh, color: AppColors.accent),
+            //     tooltip: 'Refresh candidates',
+            //     onPressed: locationController.selectedWard.value != null
+            //         ? _refreshCandidates
+            //         : null,
+            //   ),
+            // ),
           ],
         ),
-      ),
-      floatingActionButton: Obx(() => locationController.selectedWard.value != null
-          ? Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
-                ),
-                borderRadius: BorderRadius.circular(AppBorderRadius.xxl),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+        body: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          child: Column(
+            children: [
+              // Search and Filters Section
+              SearchAndFiltersSection(
+                locationController: locationController,
+                searchController: searchController,
+                onSearchChanged: _onSearchChanged,
+                onClearSearch: _onClearSearch,
+                onWardSelected: () async {
+                  AppLogger.candidate(
+                    '🔄 Ward selected via UI, loading candidates via pagination',
+                  );
+                  await paginationController.loadInitial();
+                },
+                onDistrictRefresh: () async {
+                  await locationController.forceRefreshDistricts();
+                },
+              ),
+
+              // Candidate List View
+              CandidateListView(
+                candidateController: candidateController,
+                searchController: searchController,
+                locationController: locationController,
+                paginationController: paginationController,
+                onRefresh: _refreshCandidates,
+                onLoadMore: _loadMoreCandidates,
+                currentUserId: currentUserId,
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: Obx(
+          () => locationController.selectedWard.value != null
+              ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.secondary],
+                    ),
+                    borderRadius: BorderRadius.circular(AppBorderRadius.xxl),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: FloatingActionButton(
-                onPressed: _scrollToTop,
-                tooltip: 'Scroll to top',
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: const Icon(
-                  Icons.arrow_upward,
-                  color: Colors.white,
-                ),
-              ),
-            )
-          : const SizedBox.shrink()),
-    );
+                  child: FloatingActionButton(
+                    onPressed: _scrollToTop,
+                    tooltip: 'Scroll to top',
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    child: const Icon(Icons.arrow_upward, color: Colors.white),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      );
+    });
   }
 }

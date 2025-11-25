@@ -10,6 +10,7 @@ import '../controllers/candidate_controller.dart';
 import '../controllers/search_controller.dart' as search;
 import '../controllers/location_controller.dart';
 import '../controllers/pagination_controller.dart';
+import '../controllers/candidate_selection_controller.dart';
 import '../widgets/candidate_card.dart';
 
 class CandidateListView extends StatelessWidget {

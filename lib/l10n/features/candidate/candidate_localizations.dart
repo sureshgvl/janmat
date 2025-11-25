@@ -152,6 +152,27 @@ class CandidateLocalizations {
   String get townAreaCommittee => translate('townAreaCommittee');
   String get notifiedAreaCommittee => translate('notifiedAreaCommittee');
   String get industrialTownship => translate('industrialTownship');
+  String get candidateComparison => translate('candidateComparison');
+  String get compareCandidates => translate('compareCandidates');
+  String get selectCandidatesToCompare => translate('selectCandidatesToCompare');
+  String selectedCount({required int count}) => translate('selectedCount', args: {'count': count.toString()});
+  String get minimumTwoCandidatesRequired => translate('minimumTwoCandidatesRequired');
+  String comparingCandidates({required int count}) => translate('comparingCandidates', args: {'count': count.toString()});
+  String comparingPair({required String first, required String second}) => translate('comparingPair', args: {'first': first, 'second': second});
+  String get metric => translate('metric');
+  String get photo => translate('photo');
+  String get name => translate('name');
+  String get party => translate('party');
+  String get manifestoPoints => translate('manifestoPoints');
+  String get likes => translate('likes');
+  String get eventsAttended => translate('eventsAttended');
+  String get profileViews => translate('profileViews');
+  String get manifestoViews => translate('manifestoViews');
+  String get contactClicks => translate('contactClicks');
+  String get engagementRate => translate('engagementRate');
+  String get viewProfile => translate('viewProfile');
+  String get followers => translate('followers');
+  String pairOfTotal({required int current, required int total}) => translate('pairOfTotal', args: {'current': current.toString(), 'total': total.toString()});
 
   // Helper method to translate body types
   String translateBodyType(String bodyType) {

@@ -26,6 +26,7 @@ import '../features/user/services/user_data_service.dart';
 import '../features/user/controllers/user_data_controller.dart';
 import '../features/user/controllers/user_controller.dart';
 import '../features/candidate/controllers/candidate_user_controller.dart';
+import '../features/candidate/controllers/candidate_selection_controller.dart';
 import '../features/deviceInfo/controller/device_info_controller.dart';
 import '../features/notificationSetting/controller/notification_settings_controller.dart';
 import '../features/follow/controller/following_controller.dart';
@@ -70,6 +71,7 @@ class AppBindings extends Bindings {
     Get.put<MessageController>(MessageController());
     Get.lazyPut<ChatController>(() => ChatController(), fenix: true);
     Get.lazyPut<CandidateController>(() => CandidateController());
+    Get.lazyPut<CandidateSelectionController>(() => CandidateSelectionController());
     Get.lazyPut<MediaController>(() => MediaController());
     Get.lazyPut<MediaRepository>(() => MediaRepository());
     Get.lazyPut<AchievementsController>(() => AchievementsController());
