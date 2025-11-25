@@ -125,7 +125,7 @@ class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
         1.0 - (_verticalDrag.abs() / 300).clamp(0.0, 0.8);
 
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(opacity),
+      backgroundColor: Colors.black.withValues(alpha: opacity),
       body: GestureDetector(
         onVerticalDragUpdate: _onVerticalDragUpdate,
         onVerticalDragEnd: _onVerticalDragEnd,

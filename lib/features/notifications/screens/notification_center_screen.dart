@@ -529,7 +529,7 @@ class NotificationCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: notification.isUnread ? 2 : 0,
       color: notification.isUnread
-          ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
+          ? Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
           : null,
       child: InkWell(
         onTap: onTap,

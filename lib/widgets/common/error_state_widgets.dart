@@ -164,15 +164,15 @@ class ErrorStateWidget extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     switch (errorType) {
       case ErrorType.network:
-        return scheme.primaryContainer.withOpacity(0.3);
+        return scheme.primaryContainer.withValues(alpha: 0.3);
       case ErrorType.notFound:
-        return scheme.secondaryContainer.withOpacity(0.3);
+        return scheme.secondaryContainer.withValues(alpha: 0.3);
       case ErrorType.server:
-        return scheme.errorContainer.withOpacity(0.3);
+        return scheme.errorContainer.withValues(alpha: 0.3);
       case ErrorType.permission:
-        return scheme.errorContainer.withOpacity(0.3);
+        return scheme.errorContainer.withValues(alpha: 0.3);
       default:
-        return scheme.surfaceVariant.withOpacity(0.3);
+        return scheme.surfaceVariant.withValues(alpha: 0.3);
     }
   }
 
@@ -275,10 +275,10 @@ class RetryCard extends StatelessWidget {
       height: height,
       margin: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
         ),
       ),
       child: Material(

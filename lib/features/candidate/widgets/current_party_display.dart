@@ -40,10 +40,10 @@ class CurrentPartyDisplay extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
+              border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
               boxShadow: [
                 BoxShadow(
-                  color: theme.colorScheme.shadow.withOpacity(0.1),
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -68,7 +68,7 @@ class CurrentPartyDisplay extends StatelessWidget {
                       return Icon(
                         Icons.flag,
                         size: 24,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       );
                     },
                   ),
@@ -94,7 +94,7 @@ class CurrentPartyDisplay extends StatelessWidget {
                             controller.getCurrentSymbolDisplayName(),
                           ),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                             fontStyle: FontStyle.italic,
                           ),
                         ),

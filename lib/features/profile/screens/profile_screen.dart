@@ -52,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     child: Icon(
                       Icons.photo_camera,
                       color: Theme.of(context).colorScheme.primary,
@@ -71,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (userModel.photoURL != null) ...[
                   ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Colors.red.withOpacity(0.1),
+                      backgroundColor: Colors.red.withValues(alpha: 0.1),
                       child: const Icon(
                         Icons.remove_circle_outline,
                         color: Colors.red,
@@ -89,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      backgroundColor: Colors.blue.withValues(alpha: 0.1),
                       child: const Icon(
                         Icons.visibility,
                         color: Colors.blue,
@@ -379,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
       ),
       body: Container(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
         child: GetBuilder<UserController>(
           builder: (userController) {
             UserModel? userModel = userController.user.value;
@@ -404,13 +404,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icon(
                             Icons.error_outline,
                             size: 48,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             '${ProfileLocalizations.of(context)?.translate('error') ?? 'Error'}: ${snapshot.error}',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -425,14 +425,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icon(
                             Icons.account_circle_outlined,
                             size: 48,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             ProfileLocalizations.of(context)?.translate('userDataNotFound') ??
                                 'User data not found',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -486,7 +486,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               height: 120,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.primary,
                                   width: 2,
@@ -622,7 +622,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -732,7 +732,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: _isLoggingOut ? 0 : 8,
-                shadowColor: Colors.redAccent.withOpacity(0.4),
+                shadowColor: Colors.redAccent.withValues(alpha: 0.4),
               ),
               child: _isLoggingOut
                   ? const Row(
@@ -791,7 +791,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -848,7 +848,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: iconColor, size: 20),

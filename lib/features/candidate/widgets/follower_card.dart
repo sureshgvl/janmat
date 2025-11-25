@@ -31,18 +31,18 @@ class FollowerCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.grey.shade50.withOpacity(0.3)],
+          colors: [Colors.white, Colors.grey.shade50.withValues(alpha: 0.3)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.2),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
             spreadRadius: 1,
@@ -60,8 +60,8 @@ class FollowerCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(15),
           gradient: LinearGradient(
             colors: [
-              Colors.white.withOpacity(0.9),
-              Colors.white.withOpacity(0.95),
+              Colors.white.withValues(alpha: 0.9),
+              Colors.white.withValues(alpha: 0.95),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -80,7 +80,7 @@ class FollowerCard extends StatelessWidget {
                     radius: 28,
                     backgroundColor: Theme.of(
                       context,
-                    ).primaryColor.withOpacity(0.1),
+                    ).primaryColor.withValues(alpha: 0.1),
                     backgroundImage:
                         userData != null && userData!.photoURL != null
                         ? NetworkImage(userData!.photoURL!)

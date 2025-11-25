@@ -415,7 +415,7 @@ class _CandidateComparisonScreenState extends State<CandidateComparisonScreen> {
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) {
                                         return CircleAvatar(
-                                          backgroundColor: Colors.white.withOpacity(0.2),
+                                          backgroundColor: Colors.white.withValues(alpha: 0.2),
                                           child: Text(
                                             candidate.basicInfo!.fullName![0].toUpperCase(),
                                             style: const TextStyle(
@@ -428,7 +428,7 @@ class _CandidateComparisonScreenState extends State<CandidateComparisonScreen> {
                                       },
                                     )
                                   : CircleAvatar(
-                                      backgroundColor: Colors.white.withOpacity(0.2),
+                                      backgroundColor: Colors.white.withValues(alpha: 0.2),
                                       child: Text(
                                         candidate.basicInfo!.fullName![0].toUpperCase(),
                                         style: const TextStyle(

@@ -293,7 +293,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.black.withOpacity(0.2)
+                    ? Colors.black.withValues(alpha: 0.2)
                     : Colors.white,
                 border: Border(
                   bottom: BorderSide(
@@ -332,7 +332,7 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
                   ),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade800.withOpacity(0.5)
+                      ? Colors.grey.shade800.withValues(alpha: 0.5)
                       : Colors.grey.shade50,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),

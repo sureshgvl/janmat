@@ -203,7 +203,7 @@ class _WhatsAppImageViewerState extends State<WhatsAppImageViewer>
     // Make background transparent when dragging significantly
     final backgroundColor = _isDragging && _dragOffset > 20.0
         ? Colors.transparent
-        : Colors.black.withOpacity(opacity);
+        : Colors.black.withValues(alpha: opacity);
 
     return Scaffold(
       backgroundColor: backgroundColor,
