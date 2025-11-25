@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_logger.dart';
 import '../../../core/app_theme.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -58,8 +57,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payment History'),
-        backgroundColor: AppTheme.homeBackgroundColor,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+          tooltip: 'Back',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

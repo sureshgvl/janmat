@@ -304,6 +304,7 @@ class MonetizationRepository {
           .collection('payment_transactions')
           .where('userId', isEqualTo: userId)
           .orderBy('paymentDate', descending: true)
+          .orderBy('__name__', descending: true)
           .limit(limit)
           .get();
 
