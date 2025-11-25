@@ -100,10 +100,12 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         AppLogger.candidate(
           '📄 [PDF Upload] File too large: ${fileSizeMB.toStringAsFixed(1)}MB > 20MB limit',
         );
-        SnackbarUtils.showScaffoldWarning(
-          context,
-          'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-        );
+        if (mounted) {
+          SnackbarUtils.showScaffoldWarning(
+            context,
+            'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
+          );
+        }
         setState(() {
           _isUploadingPdf = false;
         });
@@ -156,13 +158,17 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       AppLogger.candidate('📄 [PDF Upload] PDF saved locally and added to display list');
 
-      SnackbarUtils.showScaffoldInfo(
-        context,
-        'PDF selected and ready for upload. Press Save to upload to server.',
-      );
+      if (mounted) {
+        SnackbarUtils.showScaffoldInfo(
+          context,
+          'PDF selected and ready for upload. Press Save to upload to server.',
+        );
+      }
     } catch (e) {
       AppLogger.candidate('📄 [PDF Upload] Error: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to select PDF: ${e.toString()}');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to select PDF: ${e.toString()}');
+      }
     } finally {
       setState(() {
         _isUploadingPdf = false;
@@ -219,7 +225,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       if (!validation.isValid) {
         AppLogger.candidate('🖼️ [Image Upload] File too large after optimization');
-        SnackbarUtils.showScaffoldError(context, validation.message);
+        if (mounted) {
+          SnackbarUtils.showScaffoldError(context, validation.message);
+        }
         setState(() {
           _isUploadingImage = false;
         });
@@ -276,13 +284,17 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         '🖼️ [Image Upload] Optimized image saved locally and added to display list',
       );
 
-      SnackbarUtils.showScaffoldInfo(
-        context,
-        'Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
-      );
+      if (mounted) {
+        SnackbarUtils.showScaffoldInfo(
+          context,
+          'Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
+        );
+      }
     } catch (e) {
       AppLogger.candidate('🖼️ [Image Upload] Error: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to select image: ${e.toString()}');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to select image: ${e.toString()}');
+      }
     } finally {
       setState(() {
         _isUploadingImage = false;
@@ -303,11 +315,13 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
         if (!canUploadVideo) {
           // Show upgrade message using snackbar
-          final candidateLocalizations = CandidateLocalizations.of(context);
-          SnackbarUtils.showScaffoldWarning(
-            context,
-            candidateLocalizations?.translate('videoUploadNotAvailableMessage') ?? 'Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.',
-          );
+          if (mounted) {
+            final candidateLocalizations = CandidateLocalizations.of(context);
+            SnackbarUtils.showScaffoldWarning(
+              context,
+              candidateLocalizations?.translate('videoUploadNotAvailableMessage') ?? 'Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.',
+            );
+          }
           return;
         }
       }
@@ -346,7 +360,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
       if (!validation.isValid) {
         AppLogger.candidate('🎥 [Video Upload] File too large');
-        SnackbarUtils.showScaffoldError(context, validation.message);
+        if (mounted) {
+          SnackbarUtils.showScaffoldError(context, validation.message);
+        }
         setState(() {
           _isUploadingVideo = false;
         });
@@ -402,10 +418,14 @@ class _FileUploadSectionState extends State<FileUploadSection> {
         '🎥 [Video Upload] Video saved locally and added to display list',
       );
 
-      SnackbarUtils.showScaffoldInfo(context, 'Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.');
+      if (mounted) {
+        SnackbarUtils.showScaffoldInfo(context, 'Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.');
+      }
     } catch (e) {
       AppLogger.candidate('🎥 [Video Upload] Error: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to select video: ${e.toString()}');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to select video: ${e.toString()}');
+      }
     } finally {
       setState(() {
         _isUploadingVideo = false;
@@ -1121,7 +1141,9 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                               widget.onLocalFilesUpdate(_localFiles);
                               // Clean up the local file
                               _cleanupLocalFile(localPath);
-                              SnackbarUtils.showScaffoldInfo(context, '$fileName removed from upload queue');
+                              if (mounted) {
+                                SnackbarUtils.showScaffoldInfo(context, '$fileName removed from upload queue');
+                              }
                             },
                             tooltip: 'Remove from upload queue',
                           ),

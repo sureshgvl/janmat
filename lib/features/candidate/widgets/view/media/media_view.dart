@@ -865,14 +865,18 @@ class _MediaTabViewState extends State<MediaTabView> {
           Navigator.of(context).pop();
         }
 
-        SnackbarUtils.showScaffoldSuccess(context, 'Post deleted successfully');
+        if (mounted) {
+          SnackbarUtils.showScaffoldSuccess(context, 'Post deleted successfully');
+        }
       } else {
         // Dismiss loading dialog
         if (mounted) {
           Navigator.of(context).pop();
         }
 
-        SnackbarUtils.showScaffoldError(context, 'Failed to delete post');
+        if (mounted) {
+          SnackbarUtils.showScaffoldError(context, 'Failed to delete post');
+        }
       }
     } catch (e) {
       // Dismiss loading dialog on error
@@ -881,7 +885,9 @@ class _MediaTabViewState extends State<MediaTabView> {
       }
 
       AppLogger.candidateError('Error deleting post: $e');
-      SnackbarUtils.showScaffoldError(context, 'Error deleting post: $e');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Error deleting post: $e');
+      }
     }
   }
 
@@ -1716,7 +1722,9 @@ class _MediaTabViewState extends State<MediaTabView> {
           wardId: widget.candidate.location.wardId ?? '',
           mediaItem: item,
         );
-        SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+        }
       } else {
         // Like
         await service.addLikeToMediaItem(
@@ -1729,7 +1737,9 @@ class _MediaTabViewState extends State<MediaTabView> {
           userName: currentUserInfo['name'],
           userPhoto: currentUserInfo['photo'],
         );
-        SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+        }
       }
 
       // Optimistic UI update - update local candidate data immediately
@@ -1772,10 +1782,12 @@ class _MediaTabViewState extends State<MediaTabView> {
       }
     } catch (e) {
       AppLogger.candidateError('Error toggling like: $e');
-      SnackbarUtils.showScaffoldError(
-        context,
-        'Failed to update like - please try again',
-      );
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(
+          context,
+          'Failed to update like - please try again',
+        );
+      }
     } finally {
       // Always clear loading state
       isLoading.value = false;
@@ -1836,7 +1848,9 @@ class _MediaTabViewState extends State<MediaTabView> {
           wardId: widget.candidate.location.wardId ?? '',
           mediaItem: item,
         );
-        SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+        }
       } else {
         // Like
         await service.addLikeToMediaItem(
@@ -1849,7 +1863,9 @@ class _MediaTabViewState extends State<MediaTabView> {
           userName: currentUserInfo['name'],
           userPhoto: currentUserInfo['photo'],
         );
-        SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+        }
       }
 
       // Force immediate UI refresh by triggering GetBuilder rebuild
@@ -1866,7 +1882,9 @@ class _MediaTabViewState extends State<MediaTabView> {
       }
     } catch (e) {
       AppLogger.candidateError('Error toggling like: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to update like');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to update like');
+      }
     }
   }
 
@@ -2235,10 +2253,14 @@ class _MediaTabViewState extends State<MediaTabView> {
 
       setState(() {}); // Refresh the comments sheet
 
-      SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+      if (mounted) {
+        SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+      }
     } catch (e) {
       AppLogger.candidateError('Error adding comment: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+      }
     }
   }
 
@@ -2281,7 +2303,9 @@ class _MediaTabViewState extends State<MediaTabView> {
       if (hasLiked) {
         // Unlike
         await service.removeLike(postId, mediaKey);
-        SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Unliked');
+        }
       } else {
         // Like
         await service.addLike(
@@ -2290,11 +2314,15 @@ class _MediaTabViewState extends State<MediaTabView> {
           userName: widget.candidate.basicInfo?.fullName,
           userPhoto: widget.candidate.basicInfo!.photo,
         );
-        SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Liked!');
+        }
       }
     } catch (e) {
       AppLogger.candidateError('Error toggling like: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to update like');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to update like');
+      }
     }
   }
 
@@ -2626,10 +2654,14 @@ class _MediaTabViewState extends State<MediaTabView> {
       controller.clear();
       setState(() {}); // Refresh the comments list
 
-      SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+      if (mounted) {
+        SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+      }
     } catch (e) {
       AppLogger.candidateError('Error adding comment: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+      }
     }
   }
 
@@ -2922,10 +2954,14 @@ class _MediaTabViewState extends State<MediaTabView> {
       // Force refresh of the parent widget to update comment count
       setState(() {});
 
-      SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+      if (mounted) {
+        SnackbarUtils.showScaffoldInfo(context, 'Comment added!');
+      }
     } catch (e) {
       AppLogger.candidateError('Error adding comment: $e');
-      SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to add comment');
+      }
     }
   }
 

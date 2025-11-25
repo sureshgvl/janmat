@@ -814,18 +814,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       AppLogger.common('✅ [HOME_SCREEN] Role updated successfully: $role');
 
       // Close modal and refresh data
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       _streamService.refreshData(forceRefresh: true);
 
     } catch (error) {
       AppLogger.common('❌ [HOME_SCREEN] Failed to update role: $error');
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save role selection: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save role selection: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

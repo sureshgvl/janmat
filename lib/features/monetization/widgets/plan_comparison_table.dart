@@ -596,15 +596,17 @@ class PlanComparisonTable extends StatelessWidget {
     final electionType = await controller.getUserElectionType(currentUser.uid) ?? 'municipal_corporation';
 
     // Navigate to plan selection screen with validity options
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PlanSelectionScreen(
-          plan: plan,
-          electionType: electionType,
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PlanSelectionScreen(
+            plan: plan,
+            electionType: electionType,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
 }

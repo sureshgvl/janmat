@@ -219,9 +219,13 @@ class ManifestoResourcesSection extends StatelessWidget {
       await file.writeAsBytes(response.bodyBytes);
 
       // Show success
-      SnackbarUtils.showScaffoldSuccess(context, CandidateTranslations.tr('pdfDownloadedSuccessfully'));
+      if (context.mounted) {
+        SnackbarUtils.showScaffoldSuccess(context, CandidateTranslations.tr('pdfDownloadedSuccessfully'));
+      }
     } catch (e) {
-      SnackbarUtils.showScaffoldError(context, '${CandidateTranslations.tr('downloadFailed')} ${e.toString()}');
+      if (context.mounted) {
+        SnackbarUtils.showScaffoldError(context, '${CandidateTranslations.tr('downloadFailed')} ${e.toString()}');
+      }
     }
   }
 
@@ -266,7 +270,9 @@ class ManifestoResourcesSection extends StatelessWidget {
       });
 
     } catch (e) {
-      SnackbarUtils.showScaffoldError(context, '${CandidateTranslations.tr('shareFailed')} ${e.toString()}');
+      if (context.mounted) {
+        SnackbarUtils.showScaffoldError(context, '${CandidateTranslations.tr('shareFailed')} ${e.toString()}');
+      }
     }
   }
 

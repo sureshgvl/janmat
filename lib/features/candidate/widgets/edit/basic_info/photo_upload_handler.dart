@@ -89,7 +89,9 @@ class PhotoUploadHandler {
       final photoUrl = await snapshot.ref.getDownloadURL();
 
       AppLogger.candidate('✅ Photo uploaded successfully to: profile_images/$userId/$fileName');
-      _showSuccessSnackBar(context, 'Profile photo uploaded successfully!');
+      if (context.mounted) {
+        _showSuccessSnackBar(context, 'Profile photo uploaded successfully!');
+      }
       return photoUrl;
     } catch (e) {
       final errorMessage = e.toString();

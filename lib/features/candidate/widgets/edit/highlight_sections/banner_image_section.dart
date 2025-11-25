@@ -202,15 +202,21 @@ class _BannerImageSectionState extends State<BannerImageSection> {
         // Update the config with local path
         widget.onImageUrlChanged(localPath);
 
-        SnackbarUtils.showScaffoldInfo(context, 'Banner image saved locally. It will be uploaded to Firebase when you save.');
+        if (mounted) {
+          SnackbarUtils.showScaffoldInfo(context, 'Banner image saved locally. It will be uploaded to Firebase when you save.');
+        }
 
         AppLogger.candidate('Banner image saved locally: $localPath');
       } else {
-        SnackbarUtils.showScaffoldError(context, 'Failed to save banner image');
+        if (mounted) {
+          SnackbarUtils.showScaffoldError(context, 'Failed to save banner image');
+        }
       }
     } catch (e) {
       AppLogger.candidate('Error uploading banner image: $e');
-      SnackbarUtils.showScaffoldError(context, 'Error: $e');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Error: $e');
+      }
     } finally {
       setState(() => _isUploading = false);
     }
