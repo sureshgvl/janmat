@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/candidate_user_controller.dart';
-import '../widgets/view/media/media_view.dart';
+import '../widgets/view/media/media_view_refactored.dart';
 
 class CandidateDashboardMedia extends StatefulWidget {
   const CandidateDashboardMedia({super.key});

@@ -155,7 +155,17 @@ class MediaRepository implements IMediaRepository {
       }
 
       final mediaData = data['media'] as List<dynamic>;
-      return mediaData.map((item) => item as Map<String, dynamic>).toList();
+      final result = mediaData.map((item) => item as Map<String, dynamic>).toList();
+
+      AppLogger.database('📦 MEDIA_REPO: Returning ${result.length} grouped media items', tag: 'MEDIA_REPO');
+      if (result.isNotEmpty) {
+        final firstItem = result.first;
+        AppLogger.database('📦 MEDIA_REPO: First item keys: ${firstItem.keys.toList()}', tag: 'MEDIA_REPO');
+        AppLogger.database('📦 MEDIA_REPO: First item likes: ${firstItem['likes']}', tag: 'MEDIA_REPO');
+        AppLogger.database('📦 MEDIA_REPO: First item comments: ${firstItem['comments']}', tag: 'MEDIA_REPO');
+      }
+
+      return result;
     } catch (e) {
       AppLogger.databaseError('Error fetching grouped media', tag: 'MEDIA_REPO', error: e);
       throw Exception('Failed to fetch grouped media: $e');

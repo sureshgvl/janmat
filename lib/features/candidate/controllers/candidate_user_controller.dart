@@ -12,6 +12,16 @@ import '../models/location_model.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../features/user/services/user_cache_service.dart';
 import '../repositories/candidate_repository.dart';
+import '../controllers/media_controller.dart';
+import '../controllers/achievements_controller.dart';
+import '../controllers/manifesto_controller.dart';
+import '../controllers/contact_controller.dart';
+import '../controllers/highlights_controller.dart';
+import '../controllers/events_controller.dart';
+import '../controllers/analytics_controller.dart';
+import '../controllers/save_all_coordinator.dart';
+import '../repositories/media_repository.dart';
+import '../../../services/file_upload_service.dart';
 import '../../../utils/app_logger.dart';
 
 /// Centralized controller for candidate role users.
@@ -74,6 +84,9 @@ class CandidateUserController extends GetxController {
     try {
       AppLogger.common('👤 [CANDIDATE_CONTROLLER] Initializing CandidateUserController for candidate user');
 
+      // CRITICAL FIX: Ensure all candidate-related controllers are initialized
+      await _ensureCandidateControllersInitialized();
+
       // CRITICAL FIX: Check current user.value first (not just UserController.to.user)
       // This handles the case where user.value is already set when initializeForCandidate is called
       if (user.value != null) {
@@ -115,6 +128,80 @@ class CandidateUserController extends GetxController {
     } catch (e) {
       AppLogger.commonError('❌ [CANDIDATE_CONTROLLER] Failed to initialize candidate data', error: e);
       // Don't rethrow - initialization failure shouldn't crash the app
+    }
+  }
+
+  /// Ensure all candidate-related controllers are initialized to prevent "controller not found" errors
+  Future<void> _ensureCandidateControllersInitialized() async {
+    try {
+      AppLogger.common('🔧 [CANDIDATE_CONTROLLER] Ensuring all candidate-related controllers are initialized');
+
+      // Initialize all candidate-related controllers that might be needed
+      // These are lazy-loaded in app bindings, so we need to ensure they're available
+
+      // Media-related controllers
+      if (!Get.isRegistered<MediaController>()) {
+        Get.put<MediaController>(MediaController());
+        AppLogger.common('✅ MediaController initialized');
+      }
+
+      if (!Get.isRegistered<MediaRepository>()) {
+        Get.put<MediaRepository>(MediaRepository());
+        AppLogger.common('✅ MediaRepository initialized');
+      }
+
+      // Achievements controller
+      if (!Get.isRegistered<AchievementsController>()) {
+        Get.put<AchievementsController>(AchievementsController());
+        AppLogger.common('✅ AchievementsController initialized');
+      }
+
+      // Manifesto controller
+      if (!Get.isRegistered<ManifestoController>()) {
+        Get.put<ManifestoController>(ManifestoController());
+        AppLogger.common('✅ ManifestoController initialized');
+      }
+
+      // Contact controller
+      if (!Get.isRegistered<ContactController>()) {
+        Get.put<ContactController>(ContactController());
+        AppLogger.common('✅ ContactController initialized');
+      }
+
+      // Events controller
+      if (!Get.isRegistered<EventsController>()) {
+        Get.put<EventsController>(EventsController());
+        AppLogger.common('✅ EventsController initialized');
+      }
+
+      // Highlights controller
+      if (!Get.isRegistered<HighlightsController>()) {
+        Get.put<HighlightsController>(HighlightsController());
+        AppLogger.common('✅ HighlightsController initialized');
+      }
+
+      // Analytics controller
+      if (!Get.isRegistered<AnalyticsController>()) {
+        Get.put<AnalyticsController>(AnalyticsController());
+        AppLogger.common('✅ AnalyticsController initialized');
+      }
+
+      // SaveAllCoordinator
+      if (!Get.isRegistered<SaveAllCoordinator>()) {
+        Get.put<SaveAllCoordinator>(SaveAllCoordinator());
+        AppLogger.common('✅ SaveAllCoordinator initialized');
+      }
+
+      // FileUploadService (should already be initialized in app bindings, but ensure)
+      if (!Get.isRegistered<FileUploadService>()) {
+        Get.put<FileUploadService>(FileUploadService());
+        AppLogger.common('✅ FileUploadService initialized');
+      }
+
+      AppLogger.common('🎉 [CANDIDATE_CONTROLLER] All candidate-related controllers initialized successfully');
+    } catch (e) {
+      AppLogger.commonError('❌ [CANDIDATE_CONTROLLER] Failed to initialize candidate controllers', error: e);
+      // Don't rethrow - controller initialization failure shouldn't crash the app
     }
   }
 
@@ -286,14 +373,19 @@ class CandidateUserController extends GetxController {
 
         // DEBUG: Check media count after refresh
         AppLogger.common('🖼️ [REFRESH MEDIA] Media count after refresh: ${candidate.value!.media?.length ?? "null"}');
+        AppLogger.common('🖼️ [REFRESH MEDIA] Media data type: ${candidate.value!.media?.runtimeType ?? "null"}');
         if (candidate.value!.media != null && candidate.value!.media!.isNotEmpty) {
           for (int i = 0; i < candidate.value!.media!.length; i++) {
             final mediaItem = candidate.value!.media![i] as Map<String, dynamic>;
             final itemTitle = mediaItem['title'] ?? 'Untitled';
             final itemImages = mediaItem['images'] as List<dynamic>? ?? [];
             final itemVideos = mediaItem['videos'] as List<dynamic>? ?? [];
-            AppLogger.common('   [REFRESH MEDIA] Media item $i: "$itemTitle" - ${itemImages.length} images, ${itemVideos.length} videos');
+            final itemDate = mediaItem['date'] ?? 'No date';
+            AppLogger.common('   [REFRESH MEDIA] Media item $i: "$itemTitle" (date: $itemDate) - ${itemImages.length} images, ${itemVideos.length} videos');
+            AppLogger.common('   [REFRESH MEDIA] Full media item data: $mediaItem');
           }
+        } else {
+          AppLogger.common('🖼️ [REFRESH MEDIA] No media items found in candidate data');
         }
 
         // DEBUG: Check achievements count after refresh
@@ -305,8 +397,8 @@ class CandidateUserController extends GetxController {
           }
         }
 
-        // Notify GetBuilder listeners to rebuild UI
-        update(['media_view']);
+        // Notify GetBuilder listeners to rebuild UI with the correct candidate-specific ID
+        update(['media_view_${candidate.value!.candidateId}']);
       } else {
         AppLogger.common('⚠️ No candidate data found during refresh for user: $uid');
       }

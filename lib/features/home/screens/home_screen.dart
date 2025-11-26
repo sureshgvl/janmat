@@ -53,37 +53,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _initializeStreaming() {
-    AppLogger.common('🏠 [HOME_SCREEN] 🎬 STAGE 1: Starting streaming service initialization');
+    // AppLogger.common('🏠 [HOME_SCREEN] 🎬 STAGE 1: Starting streaming service initialization');
     // Initialize the stream service
     _streamService.initialize();
-    AppLogger.common('🏠 [HOME_SCREEN] ✅ STAGE 2: Stream service initialized');
+    // AppLogger.common('🏠 [HOME_SCREEN] ✅ STAGE 2: Stream service initialized');
 
     // Listen to data stream
     _dataSubscription = _streamService.dataStream.listen((data) {
-      AppLogger.common('🏠 [HOME_SCREEN] 📡 STAGE 3: Received data from stream - isLoading: ${data.isLoading}, isComplete: ${data.isComplete}, hasUser: ${data.userModel != null}');
+      // AppLogger.common('🏠 [HOME_SCREEN] 📡 STAGE 3: Received data from stream - isLoading: ${data.isLoading}, isComplete: ${data.isComplete}, hasUser: ${data.userModel != null}');
 
       setState(() {
         _currentData = data;
       });
 
       if (data.isLoading) {
-        AppLogger.common('🏠 [HOME_SCREEN] ⏳ STAGE 4: Data loading... showing loading screen');
+        // AppLogger.common('🏠 [HOME_SCREEN] ⏳ STAGE 4: Data loading... showing loading screen');
         return;
       }
 
       if (data.isSignedOut) {
-        AppLogger.common('🏠 [HOME_SCREEN] 🚪 User signed out, navigation to login');
+        // AppLogger.common('🏠 [HOME_SCREEN] 🚪 User signed out, navigation to login');
         return;
       }
 
       if (data.hasError) {
-        AppLogger.common('🏠 [HOME_SCREEN] ❌ Error in data: ${data.errorMessage}');
+        // AppLogger.common('🏠 [HOME_SCREEN] ❌ Error in data: ${data.errorMessage}');
         return;
       }
 
       // ✅ USER DATA COMPLETE: No modal checks needed since flow is controlled pre-navigation
       if (data.isComplete) {
-        AppLogger.common('[HOME_SCREEN] [OK] Data is complete - user setup already validated by navigation flow');
+        // AppLogger.common('[HOME_SCREEN] [OK] Data is complete - user setup already validated by navigation flow');
       }
 
       // Handle district spotlight when user is authenticated
@@ -138,10 +138,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     // PERFORMANCE TRACKING: Log when home screen starts building
     final homeBuildStart = DateTime.now();
-    AppLogger.common(
-      '🏠 HOME SCREEN BUILD START: ${homeBuildStart.toIso8601String()}',
-      tag: 'HOME_PERF',
-    );
+    // AppLogger.common(
+    //   '🏠 HOME SCREEN BUILD START: ${homeBuildStart.toIso8601String()}',
+    //   tag: 'HOME_PERF',
+    // );
 
     return StreamBuilder<HomeScreenData>(
       stream: _streamService.dataStream,
@@ -150,13 +150,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         // Handle loading states
         if (data == null || data.isLoading) {
-          AppLogger.common('🏠 [HOME_SCREEN] Building loading screen - data: ${data?.toString()}');
+          // AppLogger.common('🏠 [HOME_SCREEN] Building loading screen - data: ${data?.toString()}');
           return _buildLoadingScreen(context);
         }
 
         // Handle signed out state
         if (data.isSignedOut) {
-          AppLogger.common('🏠 [HOME_SCREEN] User signed out, navigating to login');
+          // AppLogger.common('🏠 [HOME_SCREEN] User signed out, navigating to login');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               Get.offAllNamed('/login');
@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         // Handle error state
         if (data.hasError) {
-          AppLogger.common('🏠 [HOME_SCREEN] Error state - ${data.errorMessage}');
+          // AppLogger.common('🏠 [HOME_SCREEN] Error state - ${data.errorMessage}');
           return _buildErrorScreen(context, data.errorMessage);
         }
 
@@ -177,10 +177,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           final renderTime = homeRendered
               .difference(homeBuildStart)
               .inMilliseconds;
-          AppLogger.common(
-            '🎨 HOME SCREEN RENDERED: ${homeRendered.toIso8601String()} (${renderTime}ms from build start)',
-            tag: 'HOME_PERF',
-          );
+          // AppLogger.common(
+          //   '🎨 HOME SCREEN RENDERED: ${homeRendered.toIso8601String()} (${renderTime}ms from build start)',
+          //   tag: 'HOME_PERF',
+          // );
         });
 
         return Obx(() {
@@ -236,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildMainScreen(BuildContext context, HomeScreenData data, {Color? backgroundColor}) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
-    AppLogger.common('🏠 [HOME_SCREEN] Building main screen - data state: ${data.state}, user: ${data.userModel?.name} (${data.userModel?.role}), candidate: ${data.effectiveCandidateModel?.basicInfo?.fullName ?? 'null'}');
+    // AppLogger.common('🏠 [HOME_SCREEN] Building main screen - data state: ${data.state}, user: ${data.userModel?.name} (${data.userModel?.role}), candidate: ${data.effectiveCandidateModel?.basicInfo?.fullName ?? 'null'}');
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.home)),
@@ -259,26 +259,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     HomeScreenData data,
     User? currentUser,
   ) {
-    AppLogger.common('🏠 [HOME_SCREEN] Building drawer - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, effectiveCandidate: ${data.effectiveCandidateModel != null}');
+    // AppLogger.common('🏠 [HOME_SCREEN] Building drawer - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, effectiveCandidate: ${data.effectiveCandidateModel != null}');
 
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
-      AppLogger.common('🏠 [HOME_SCREEN] Building candidate drawer with candidate data - effectiveCandidate: ${data.effectiveCandidateModel?.basicInfo?.fullName ?? "null"}');
+      // AppLogger.common('🏠 [HOME_SCREEN] Building candidate drawer with candidate data - effectiveCandidate: ${data.effectiveCandidateModel?.basicInfo?.fullName ?? "null"}');
       final drawer = HomeDrawer(
         userModel: data.userModel!,
         candidateModel: data.effectiveCandidateModel,
         currentUser: currentUser!,
       );
-      AppLogger.common('🏠 [HOME_SCREEN] Candidate drawer created successfully');
+      // AppLogger.common('🏠 [HOME_SCREEN] Candidate drawer created successfully');
       return drawer;
     } else if (data.hasPartialData || data.isComplete) {
-      AppLogger.common('🏠 [HOME_SCREEN] Building drawer without candidate data - user role: ${data.userModel?.role}');
+      // AppLogger.common('🏠 [HOME_SCREEN] Building drawer without candidate data - user role: ${data.userModel?.role}');
       return HomeDrawer(
         userModel: data.userModel,
         candidateModel: null,
         currentUser: currentUser!,
       );
     } else {
-      AppLogger.common('🏠 [HOME_SCREEN] Building placeholder drawer');
+      // AppLogger.common('🏠 [HOME_SCREEN] Building placeholder drawer');
       return _buildPlaceholderDrawer(context);
     }
   }
@@ -289,11 +289,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     HomeScreenData data,
     User? currentUser,
   ) {
-    AppLogger.common('🏠 [HOME_SCREEN] Building body - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, role: ${data.role}');
+    // AppLogger.common('🏠 [HOME_SCREEN] Building body - isComplete: ${data.isComplete}, hasCachedCandidate: ${data.hasCachedCandidate}, isCandidateMode: ${data.isCandidateMode}, role: ${data.role}');
 
     // Regular home screen logic for completed user setup
     if ((data.isComplete || data.hasCachedCandidate) && data.isCandidateMode) {
-      AppLogger.common('🏠 [HOME_SCREEN] Building candidate body with candidate data');
+      // AppLogger.common('🏠 [HOME_SCREEN] Building candidate body with candidate data');
       return HomeBody(
         userModel: data.userModel!,
         candidateModel: data.effectiveCandidateModel,
@@ -301,10 +301,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     } else if ((data.hasPartialData || data.hasCachedCandidate) &&
         data.role == 'candidate') {
-      AppLogger.common('🏠 [HOME_SCREEN] Building candidate placeholder body');
+      // AppLogger.common('🏠 [HOME_SCREEN] Building candidate placeholder body');
       return _buildCandidatePlaceholderBody(context, data);
     } else {
-      AppLogger.common('🏠 [HOME_SCREEN] Building regular body without candidate data');
+      // AppLogger.common('🏠 [HOME_SCREEN] Building regular body without candidate data');
       return HomeBody(
         userModel: data.userModel,
         candidateModel: null,
@@ -639,7 +639,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Show role selection modal dialog
   void _showRoleSelectionModal(BuildContext context) {
-    AppLogger.common('🤝 [HOME_SCREEN] Showing role selection modal');
+    // AppLogger.common('🤝 [HOME_SCREEN] Showing role selection modal');
 
     showDialog(
       context: context,
@@ -704,7 +704,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Show profile completion modal dialog
   void _showProfileCompletionModal(BuildContext context, dynamic userModel) {
-    AppLogger.common('👤 [HOME_SCREEN] Showing profile completion modal');
+    // AppLogger.common('👤 [HOME_SCREEN] Showing profile completion modal');
 
     showDialog(
       context: context,
@@ -794,13 +794,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Handle role selection - update user data and refresh UI
   void _handleRoleSelection(BuildContext context, String role) async {
-    AppLogger.common('🎭 [HOME_SCREEN] Role selected: $role');
+    // AppLogger.common('🎭 [HOME_SCREEN] Role selected: $role');
 
     try {
       // Get current user
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        AppLogger.common('❌ [HOME_SCREEN] No user found for role selection');
+        // AppLogger.common('❌ [HOME_SCREEN] No user found for role selection');
         return;
       }
 
@@ -811,7 +811,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      AppLogger.common('✅ [HOME_SCREEN] Role updated successfully: $role');
+      // AppLogger.common('✅ [HOME_SCREEN] Role updated successfully: $role');
 
       // Close modal and refresh data
       if (mounted) {
@@ -820,7 +820,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _streamService.refreshData(forceRefresh: true);
 
     } catch (error) {
-      AppLogger.common('❌ [HOME_SCREEN] Failed to update role: $error');
+      // AppLogger.common('❌ [HOME_SCREEN] Failed to update role: $error');
       // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -835,7 +835,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Handle profile completion - navigate to dedicated screen
   void _handleProfileCompletion(BuildContext context, dynamic userModel) {
-    AppLogger.common('👤 [HOME_SCREEN] Profile completion triggered');
+    //AppLogger.common('👤 [HOME_SCREEN] Profile completion triggered');
     // Close modal and navigate to profile completion screen
     Navigator.of(context).pop();
     // Force a page refresh to clear any routing issues and show fresh UI

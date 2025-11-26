@@ -27,14 +27,24 @@ enum LogLevel {
 
   static LogLevel fromString(String level) {
     switch (level.toLowerCase()) {
-      case 'none': return LogLevel.none;
-      case 'fatal': return LogLevel.fatal;
-      case 'error': return LogLevel.error;
-      case 'warning': case 'warn': return LogLevel.warning;
-      case 'info': return LogLevel.info;
-      case 'debug': return LogLevel.debug;
-      case 'verbose': case 'all': return LogLevel.verbose;
-      default: return kReleaseMode ? LogLevel.warning : LogLevel.debug;
+      case 'none':
+        return LogLevel.none;
+      case 'fatal':
+        return LogLevel.fatal;
+      case 'error':
+        return LogLevel.error;
+      case 'warning':
+      case 'warn':
+        return LogLevel.warning;
+      case 'info':
+        return LogLevel.info;
+      case 'debug':
+        return LogLevel.debug;
+      case 'verbose':
+      case 'all':
+        return LogLevel.verbose;
+      default:
+        return kReleaseMode ? LogLevel.warning : LogLevel.debug;
     }
   }
 }
@@ -47,7 +57,9 @@ class AppLogger {
       errorMethodCount: 5,
       lineLength: 120,
       colors: true,
-      printEmojis: kIsWeb ? false : true, // Disable emojis on web to avoid encoding issues
+      printEmojis: kIsWeb
+          ? false
+          : true, // Disable emojis on web to avoid encoding issues
       printTime: true,
     ),
     level: kDebugMode ? Level.verbose : Level.warning,
@@ -73,7 +85,7 @@ class AppLogger {
       if (_globalLogLevel != null && _globalLogLevel != LogLevel.verbose) {
         // Disable UI logs (too noisy) and performance logs, but keep core monetization/candidate logs enabled
         AppLogger.configure(
-          ui: false,          // Disable UI logs (too noisy)
+          ui: false, // Disable UI logs (too noisy)
           performance: false, // Disable performance logs
           // Keep monetization and candidate logs enabled for web debugging
           monetization: true,
@@ -110,7 +122,9 @@ class AppLogger {
           realtimeOptimizer: false,
           districtSpotlight: false,
         );
-        AppLogger.common('🔧 Environment configured for debug level - disabled noisy logs but kept monetization/candidate logs enabled');
+        AppLogger.common(
+          '🔧 Environment configured for debug level - disabled noisy logs but kept monetization/candidate logs enabled',
+        );
       }
     } catch (e) {
       AppLogger.common('⚠️ Failed to load logging config from environment: $e');
@@ -152,7 +166,10 @@ class AppLogger {
   }
 
   // Write to universal storage
-  static Future<void> _writeToUniversalStorage(String message, {String? level}) async {
+  static Future<void> _writeToUniversalStorage(
+    String message, {
+    String? level,
+  }) async {
     if (_universalStorage == null) return;
 
     try {
@@ -272,19 +289,43 @@ class AppLogger {
     _showDistrictSpotlightLogs = districtSpotlight;
 
     AppLogger.common('🔧 AppLogger configured:');
-    AppLogger.common('   Chat: $_showChatLogs, Auth: $_showAuthLogs, Network: $_showNetworkLogs');
-    AppLogger.common('   Cache: $_showCacheLogs, Database: $_showDatabaseLogs, UI: $_showUILogs');
-    AppLogger.common('   Performance: $_showPerformanceLogs, Common: $_showCommonLogs');
-    AppLogger.common('   Monetization: $_showMonetizationLogs, Candidate: $_showCandidateLogs');
+    AppLogger.common(
+      '   Chat: $_showChatLogs, Auth: $_showAuthLogs, Network: $_showNetworkLogs',
+    );
+    AppLogger.common(
+      '   Cache: $_showCacheLogs, Database: $_showDatabaseLogs, UI: $_showUILogs',
+    );
+    AppLogger.common(
+      '   Performance: $_showPerformanceLogs, Common: $_showCommonLogs',
+    );
+    AppLogger.common(
+      '   Monetization: $_showMonetizationLogs, Candidate: $_showCandidateLogs',
+    );
     AppLogger.common('   Polls: $_showPollsLogs, Profile: $_showProfileLogs');
-    AppLogger.common('   Settings: $_showSettingsLogs, Notifications: $_showNotificationsLogs');
-    AppLogger.common('   Core: $_showCoreLogs, Highlight: $_showHighlightLogs, FCM: $_showFCMLogs');
-    AppLogger.common('   Video: $_showVideoLogs, Razorpay: $_showRazorpayLogs, Trial: $_showTrialLogs');
-    AppLogger.common('   UserCache: $_showUserCacheLogs, LocalDB: $_showLocalDatabaseLogs, Manifesto: $_showManifestoLogs');
-    AppLogger.common('   Symbol: $_showSymbolLogs, ABTest: $_showABTestLogs, BackgroundSync: $_showBackgroundSyncLogs');
-    AppLogger.common('   ConnectionOpt: $_showConnectionOptimizerLogs, DataComp: $_showDataCompressionLogs, ErrorRec: $_showErrorRecoveryLogs');
-    AppLogger.common('   MemoryMgr: $_showMemoryManagerLogs, MultiCache: $_showMultiLevelCacheLogs, ProgLoader: $_showProgressiveLoaderLogs');
-    AppLogger.common('   RealtimeOpt: $_showRealtimeOptimizerLogs, DistrictSpotlight: $_showDistrictSpotlightLogs');
+    AppLogger.common(
+      '   Settings: $_showSettingsLogs, Notifications: $_showNotificationsLogs',
+    );
+    AppLogger.common(
+      '   Core: $_showCoreLogs, Highlight: $_showHighlightLogs, FCM: $_showFCMLogs',
+    );
+    AppLogger.common(
+      '   Video: $_showVideoLogs, Razorpay: $_showRazorpayLogs, Trial: $_showTrialLogs',
+    );
+    AppLogger.common(
+      '   UserCache: $_showUserCacheLogs, LocalDB: $_showLocalDatabaseLogs, Manifesto: $_showManifestoLogs',
+    );
+    AppLogger.common(
+      '   Symbol: $_showSymbolLogs, ABTest: $_showABTestLogs, BackgroundSync: $_showBackgroundSyncLogs',
+    );
+    AppLogger.common(
+      '   ConnectionOpt: $_showConnectionOptimizerLogs, DataComp: $_showDataCompressionLogs, ErrorRec: $_showErrorRecoveryLogs',
+    );
+    AppLogger.common(
+      '   MemoryMgr: $_showMemoryManagerLogs, MultiCache: $_showMultiLevelCacheLogs, ProgLoader: $_showProgressiveLoaderLogs',
+    );
+    AppLogger.common(
+      '   RealtimeOpt: $_showRealtimeOptimizerLogs, DistrictSpotlight: $_showDistrictSpotlightLogs',
+    );
   }
 
   // Chat-related logs
@@ -294,9 +335,19 @@ class AppLogger {
     }
   }
 
-  static void chatError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void chatError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showChatLogs) {
-      _logger.e('💬❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '💬❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -313,9 +364,19 @@ class AppLogger {
     }
   }
 
-  static void authError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void authError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showAuthLogs) {
-      _logger.e('🔐❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🔐❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -326,9 +387,19 @@ class AppLogger {
     }
   }
 
-  static void networkError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void networkError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showNetworkLogs) {
-      _logger.e('🌐❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🌐❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -339,9 +410,19 @@ class AppLogger {
     }
   }
 
-  static void cacheError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void cacheError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showCacheLogs) {
-      _logger.e('🏗️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🏗️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -352,22 +433,44 @@ class AppLogger {
     }
   }
 
-  static void databaseError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void databaseError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showDatabaseLogs) {
-      _logger.e('💾❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '💾❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // UI logs
   static void ui(String message, {String? tag, bool isShow = true}) {
+    if (tag == 'HOME') return;
+
     if (isShow && _showUILogs) {
       _logger.d('🎨 ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void uiError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void uiError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showUILogs) {
-      _logger.e('🎨❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🎨❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -378,7 +481,11 @@ class AppLogger {
     }
   }
 
-  static void performanceWarning(String message, {String? tag, bool isShow = true}) {
+  static void performanceWarning(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showPerformanceLogs) {
       _logger.w('⚡⚠️ ${tag != null ? '[$tag] ' : ''}$message');
     }
@@ -386,15 +493,27 @@ class AppLogger {
 
   // Common logs
   static void common(String message, {String? tag, bool isShow = true}) {
+    if (tag == 'HOME') return;
+    
     if (isShow && _showCommonLogs) {
       final logMessage = '🔧 ${tag != null ? '[$tag] ' : ''}$message';
       _logger.d(logMessage);
     }
   }
 
-  static void commonError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void commonError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showCommonLogs) {
-      _logger.e('🔧❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🔧❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -409,9 +528,19 @@ class AppLogger {
     }
   }
 
-  static void monetizationError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void monetizationError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showMonetizationLogs) {
-      _logger.e('💰❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '💰❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
       // Force console output on web for monetization error logs
       if (kIsWeb) {
         print('💰❌ ${tag != null ? '[$tag] ' : ''}$message');
@@ -430,21 +559,30 @@ class AppLogger {
     if (isShow && _showCandidateLogs) {
       final logMessage = '👥 ${tag != null ? '[$tag] ' : ''}$message';
       _logger.d(logMessage);
-      // Force console output on web for candidate logs
-      if (kIsWeb) {
-        print(logMessage);
-      }
+      // Removed duplicate print statement that was causing logs to appear twice
     } else {
       // Debug why logs might not be shown
       if (kIsWeb) {
-        print('👥 [CANDIDATE LOG DEBUG] show=$isShow, showCandidateLogs=$_showCandidateLogs, message="$message"');
+        print(
+          '👥 [CANDIDATE LOG DEBUG] show=$isShow, showCandidateLogs=$_showCandidateLogs, message="$message"',
+        );
       }
     }
   }
 
-  static void candidateError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void candidateError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showCandidateLogs) {
-      _logger.e('👥❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '👥❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -455,9 +593,19 @@ class AppLogger {
     }
   }
 
-  static void pollsError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void pollsError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showPollsLogs) {
-      _logger.e('📊❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '📊❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -468,9 +616,19 @@ class AppLogger {
     }
   }
 
-  static void profileError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void profileError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showProfileLogs) {
-      _logger.e('👤❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '👤❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -481,9 +639,19 @@ class AppLogger {
     }
   }
 
-  static void settingsError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void settingsError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showSettingsLogs) {
-      _logger.e('⚙️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '⚙️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -494,9 +662,19 @@ class AppLogger {
     }
   }
 
-  static void notificationsError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void notificationsError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showNotificationsLogs) {
-      _logger.e('🔔❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🔔❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -507,9 +685,19 @@ class AppLogger {
     }
   }
 
-  static void coreError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void coreError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showCoreLogs) {
-      _logger.e('🏗️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🏗️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -520,9 +708,19 @@ class AppLogger {
     }
   }
 
-  static void highlightError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void highlightError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showHighlightLogs) {
-      _logger.e('⭐❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '⭐❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -533,9 +731,19 @@ class AppLogger {
     }
   }
 
-  static void fcmError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void fcmError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showFCMLogs) {
-      _logger.e('📱❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '📱❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -546,9 +754,19 @@ class AppLogger {
     }
   }
 
-  static void videoError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void videoError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showVideoLogs) {
-      _logger.e('🎥❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🎥❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -559,9 +777,19 @@ class AppLogger {
     }
   }
 
-  static void razorpayError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void razorpayError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showRazorpayLogs) {
-      _logger.e('💳❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '💳❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -572,9 +800,19 @@ class AppLogger {
     }
   }
 
-  static void trialError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void trialError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showTrialLogs) {
-      _logger.e('⏰❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '⏰❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -585,9 +823,19 @@ class AppLogger {
     }
   }
 
-  static void userCacheError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void userCacheError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showUserCacheLogs) {
-      _logger.e('👤💾❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '👤💾❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -598,9 +846,19 @@ class AppLogger {
     }
   }
 
-  static void localDatabaseError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void localDatabaseError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showLocalDatabaseLogs) {
-      _logger.e('💽❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '💽❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -611,9 +869,19 @@ class AppLogger {
     }
   }
 
-  static void manifestoError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void manifestoError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showManifestoLogs) {
-      _logger.e('📜❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '📜❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -624,9 +892,19 @@ class AppLogger {
     }
   }
 
-  static void symbolError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void symbolError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showSymbolLogs) {
-      _logger.e('🏛️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🏛️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -637,48 +915,100 @@ class AppLogger {
     }
   }
 
-  static void abTestError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void abTestError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showABTestLogs) {
-      _logger.e('🧪❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🧪❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // Background sync logs
-  static void backgroundSync(String message, {String? tag, bool isShow = true}) {
+  static void backgroundSync(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showBackgroundSyncLogs) {
       _logger.d('🔄 ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void backgroundSyncError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void backgroundSyncError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showBackgroundSyncLogs) {
-      _logger.e('🔄❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🔄❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // Connection optimizer logs
-  static void connectionOptimizer(String message, {String? tag, bool isShow = true}) {
+  static void connectionOptimizer(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showConnectionOptimizerLogs) {
       _logger.d('🌐⚡ ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void connectionOptimizerError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void connectionOptimizerError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showConnectionOptimizerLogs) {
-      _logger.e('🌐⚡❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🌐⚡❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // Data compression logs
-  static void dataCompression(String message, {String? tag, bool isShow = true}) {
+  static void dataCompression(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showDataCompressionLogs) {
       _logger.d('🗜️ ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void dataCompressionError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void dataCompressionError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showDataCompressionLogs) {
-      _logger.e('🗜️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🗜️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -689,9 +1019,19 @@ class AppLogger {
     }
   }
 
-  static void errorRecoveryError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void errorRecoveryError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showErrorRecoveryLogs) {
-      _logger.e('🔧🛠️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🔧🛠️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -702,61 +1042,127 @@ class AppLogger {
     }
   }
 
-  static void memoryManagerError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void memoryManagerError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showMemoryManagerLogs) {
-      _logger.e('🧠❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🧠❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // Multi-level cache logs
-  static void multiLevelCache(String message, {String? tag, bool isShow = true}) {
+  static void multiLevelCache(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showMultiLevelCacheLogs) {
       _logger.d('🏗️ ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void multiLevelCacheError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void multiLevelCacheError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showMultiLevelCacheLogs) {
-      _logger.e('🏗️❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🏗️❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // Progressive loader logs
-  static void progressiveLoader(String message, {String? tag, bool isShow = true}) {
+  static void progressiveLoader(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showProgressiveLoaderLogs) {
       _logger.d('📄 ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void progressiveLoaderError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void progressiveLoaderError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showProgressiveLoaderLogs) {
-      _logger.e('📄❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '📄❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // Realtime optimizer logs
-  static void realtimeOptimizer(String message, {String? tag, bool isShow = true}) {
+  static void realtimeOptimizer(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showRealtimeOptimizerLogs) {
       _logger.d('⚡📡 ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void realtimeOptimizerError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void realtimeOptimizerError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showRealtimeOptimizerLogs) {
-      _logger.e('⚡📡❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '⚡📡❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   // District spotlight logs
-  static void districtSpotlight(String message, {String? tag, bool isShow = true}) {
+  static void districtSpotlight(
+    String message, {
+    String? tag,
+    bool isShow = true,
+  }) {
     if (isShow && _showDistrictSpotlightLogs) {
       _logger.d('🎯 ${tag != null ? '[$tag] ' : ''}$message');
     }
   }
 
-  static void districtSpotlightError(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void districtSpotlightError(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow && _showDistrictSpotlightLogs) {
-      _logger.e('🎯❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '🎯❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -767,9 +1173,19 @@ class AppLogger {
     }
   }
 
-  static void error(String message, {String? tag, dynamic error, StackTrace? stackTrace, bool isShow = true}) {
+  static void error(
+    String message, {
+    String? tag,
+    dynamic error,
+    StackTrace? stackTrace,
+    bool isShow = true,
+  }) {
     if (isShow) {
-      _logger.e('❌ ${tag != null ? '[$tag] ' : ''}$message', error: error, stackTrace: stackTrace);
+      _logger.e(
+        '❌ ${tag != null ? '[$tag] ' : ''}$message',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -780,16 +1196,31 @@ class AppLogger {
   }
 
   // Section timing for performance monitoring
-  static Stopwatch startSectionTimer(String sectionName, {String? tag, bool isShow = true}) {
+  static Stopwatch startSectionTimer(
+    String sectionName, {
+    String? tag,
+    bool isShow = true,
+  }) {
     common('▶️ STARTING: $sectionName', tag: tag ?? 'TIMER', isShow: isShow);
     return Stopwatch()..start();
   }
 
-  static void endSectionTimer(String sectionName, Stopwatch timer, {String? tag, String? details, bool isShow = true}) {
+  static void endSectionTimer(
+    String sectionName,
+    Stopwatch timer, {
+    String? tag,
+    String? details,
+    bool isShow = true,
+  }) {
     timer.stop();
     final timeMs = timer.elapsedMilliseconds;
-    final emoji = timeMs > 1000 ? '🐌' : timeMs > 500 ? '⚠️' : '✅';
-    final message = '$sectionName completed in ${timeMs}ms${details != null ? ' ($details)' : ''}';
+    final emoji = timeMs > 1000
+        ? '🐌'
+        : timeMs > 500
+        ? '⚠️'
+        : '✅';
+    final message =
+        '$sectionName completed in ${timeMs}ms${details != null ? ' ($details)' : ''}';
     if (isShow && _showPerformanceLogs) {
       _logger.d('⚡ ${tag != null ? '[$tag] ' : ''}$emoji $message');
     }

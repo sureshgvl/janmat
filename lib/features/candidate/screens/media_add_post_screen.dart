@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/media_model.dart';
 import 'package:janmat/services/file_upload_service.dart';
+import 'package:janmat/services/media_storage_service.dart';
 import 'package:janmat/features/monetization/services/plan_service.dart';
 import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/features/candidate/controllers/media_controller.dart';
@@ -238,6 +243,10 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
   @override
   void initState() {
     super.initState();
+    // Ensure MediaController is initialized
+    if (!Get.isRegistered<MediaController>()) {
+      Get.put<MediaController>(MediaController());
+    }
     _loadNavigationArguments();
     _loadPlanLimits();
     _initializeData();
@@ -259,20 +268,9 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         }
       }
     }
-
-    // Handle existing item for edits
-    if (widget.existingItem != null) {
-      _existingItem = widget.existingItem;
-    } else if (Get.arguments is Map<String, dynamic>) {
-      final args = Get.arguments as Map<String, dynamic>;
-      if (args.containsKey('item')) {
-        _existingItem = args['item'] as MediaItem?;
-      }
-    }
   }
 
   late Candidate? _candidate;
-  late MediaItem? _existingItem;
 
   Future<void> _loadPlanLimits() async {
     try {
@@ -463,7 +461,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
                       child: media['type'] == 'image'
                           ? ReusableImageWidget(
                               imageUrl: media['url']!,
-                              isLocal: _fileUploadService.isLocalPath(media['url']!),
+                              isLocal: MediaStorageService.isLocalMedia(media['url']!),
                               fit: BoxFit.cover,
                             )
                           : Center(
@@ -535,7 +533,7 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
         builder: (context) => ImageGalleryViewer(
           images: images.map((img) => img['url']!).toList(),
           initialIndex: initialIndex,
-          isLocal: (index) => _fileUploadService.isLocalPath(images[index]['url']!),
+          isLocal: (index) => MediaStorageService.isLocalMedia(images[index]['url']!),
         ),
       ),
     );
@@ -678,11 +676,31 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
 
   Future<void> _pickImages() async {
     try {
-      final images = await _imagePicker.pickMultiImage(maxWidth: 1920, maxHeight: 1080);
-      if (images.isNotEmpty) {
-        for (final image in images) {
-          if (_selectedImages.length < _maxImages) {
-            await _saveImageLocally(image.path);
+      if (kIsWeb) {
+        // Web: Use file picker to get bytes directly and upload immediately
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: true,
+          withData: true, // Get bytes directly
+        );
+
+        if (result != null && result.files.isNotEmpty) {
+          for (final file in result.files) {
+            if (_selectedImages.length >= _maxImages) break;
+
+            if (file.bytes != null) {
+              await _uploadImageBytesToFirebase(file.bytes!, file.name);
+            }
+          }
+        }
+      } else {
+        // Mobile: Use image_picker
+        final images = await _imagePicker.pickMultiImage(maxWidth: 1920, maxHeight: 1080);
+        if (images.isNotEmpty) {
+          for (final image in images) {
+            if (_selectedImages.length < _maxImages) {
+              await _saveImageLocally(image.path);
+            }
           }
         }
       }
@@ -716,38 +734,106 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
   Future<void> _saveImageLocally(String imagePath) async {
     try {
       final candidateId = _candidate?.candidateId ?? 'temp-candidate-id';
-      final localPath = await _fileUploadService.saveExistingFileLocally(
-        imagePath,
-        candidateId,
-        'media_image',
-      );
 
-      if (localPath != null) {
+      // On web, upload immediately to Firebase to avoid blob URL issues
+      if (kIsWeb) {
+        AppLogger.candidate('🌐 [Web Upload] Uploading image directly to Firebase to avoid blob URLs');
+
+        // Show upload progress for immediate feedback
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            title: Row(
+              children: [
+                SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(width: 16),
+                Text('Uploading Image...'),
+              ],
+            ),
+            content: Text('Please wait while we upload your image...'),
+          ),
+        );
+
+        try {
+          // For web, we need to handle blob URLs differently
+          // Since blob URLs can't be fetched via HTTP, we need to get the bytes directly
+          if (imagePath.startsWith('blob:')) {
+            // Convert blob URL to Firebase URL using the blob upload method
+            final firebaseUrl = await _fileUploadService.uploadBlobUrlToFirebase(imagePath);
+            if (firebaseUrl != null) {
+              setState(() {
+                _selectedImages.add(firebaseUrl);
+              });
+              AppLogger.candidate('✅ Image uploaded to Firebase: $firebaseUrl');
+            } else {
+              throw Exception('Blob upload returned null');
+            }
+          } else {
+            // Fallback for non-blob URLs (shouldn't happen on web)
+            final firebaseUrl = await _fileUploadService.uploadLocalPhotoToFirebase(imagePath);
+            if (firebaseUrl != null) {
+              setState(() {
+                _selectedImages.add(firebaseUrl);
+              });
+              AppLogger.candidate('✅ Image uploaded to Firebase: $firebaseUrl');
+            } else {
+              throw Exception('Upload returned null');
+            }
+          }
+
+          if (mounted) {
+            Navigator.of(context).pop(); // Dismiss progress dialog
+          }
+        } catch (uploadError) {
+          if (mounted) {
+            Navigator.of(context).pop(); // Dismiss progress dialog
+          }
+          AppLogger.candidateError('❌ Web upload failed: $uploadError');
+          SnackbarUtils.showError('Failed to upload image: $uploadError');
+          return; // Don't re-throw, just show error
+        }
+      } else {
+        // Mobile: Save locally first (platform-aware)
+        final localReference = await MediaStorageService.saveMediaLocally(
+          imagePath,
+          candidateId,
+          'image',
+        );
+
+        // Add to selected images list
         setState(() {
-          _selectedImages.add(localPath);
+          _selectedImages.add(localReference);
         });
+
+        AppLogger.candidate('✅ Image saved locally: $localReference');
       }
     } catch (e) {
-      AppLogger.candidateError('Error saving image: $e');
+      AppLogger.candidateError('❌ Error saving/uploading image: $e');
+      SnackbarUtils.showError('Failed to save image: $e');
     }
   }
 
   Future<void> _saveVideoLocally(String videoPath) async {
     try {
       final candidateId = _candidate?.candidateId ?? 'temp-candidate-id';
-      final localPath = await _fileUploadService.saveExistingFileLocally(
+
+      // Save locally first (platform-aware)
+      final localReference = await MediaStorageService.saveMediaLocally(
         videoPath,
         candidateId,
-        'media_video',
+        'video',
       );
 
-      if (localPath != null) {
-        setState(() {
-          _selectedVideos.add(localPath);
-        });
-      }
+      // Add to selected videos list
+      setState(() {
+        _selectedVideos.add(localReference);
+      });
+
+      AppLogger.candidate('✅ Video saved locally: $localReference');
     } catch (e) {
-      AppLogger.candidateError('Error saving video: $e');
+      AppLogger.candidateError('❌ Error saving video locally: $e');
+      SnackbarUtils.showError('Failed to save video: $e');
     }
   }
 
@@ -767,6 +853,64 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
     });
   }
 
+  // Upload image bytes directly to Firebase (web-specific)
+  Future<void> _uploadImageBytesToFirebase(Uint8List bytes, String fileName) async {
+    try {
+      AppLogger.candidate('🌐 [Web Direct Upload] Starting upload for file: $fileName, bytes length: ${bytes.length}');
+
+      // Show upload progress
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          title: Row(
+            children: [
+              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              SizedBox(width: 16),
+              Text('Uploading Image...'),
+            ],
+          ),
+          content: Text('Please wait while we upload your image...'),
+        ),
+      );
+
+      // Generate Firebase storage path
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = 'media/images/web_upload_${timestamp}_${fileName.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\.]'), '_')}';
+      final storageRef = FirebaseStorage.instance.ref().child(storagePath);
+
+      AppLogger.candidate('🌐 [Web Direct Upload] Uploading bytes to Firebase: $storagePath');
+
+      // Upload bytes directly
+      final uploadTask = storageRef.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      AppLogger.candidate('✅ [Web Direct Upload] Successfully uploaded: $downloadUrl');
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss progress dialog
+      }
+
+      setState(() {
+        _selectedImages.add(downloadUrl);
+      });
+
+      AppLogger.candidate('✅ [Web Direct Upload] Added to selected images, total images: ${_selectedImages.length}');
+    } catch (e) {
+      AppLogger.candidateError('❌ [Web Direct Upload] Failed: $e');
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss progress dialog
+      }
+      SnackbarUtils.showError('Failed to upload image: $e');
+      // Don't re-throw - let the user continue without this image
+    }
+  }
+
   // Schedule cleanup of files that are being removed during edit operation (deferred delete pattern)
   Future<void> _cleanupDeletedFiles() async {
     if (widget.existingItem == null) return; // Only for edit operations
@@ -774,13 +918,13 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
     try {
       AppLogger.candidate('🧹 [Cleanup] Starting deferred cleanup of deleted files from edit operation');
 
-      // Get original files from existing item
-      final originalImages = widget.existingItem!.images.where((url) => !_fileUploadService.isLocalPath(url)).toList();
-      final originalVideos = widget.existingItem!.videos.where((url) => !_fileUploadService.isLocalPath(url)).toList();
+      // Get original Firebase URLs from existing item
+      final originalImages = widget.existingItem!.images.where((url) => !MediaStorageService.isLocalMedia(url)).toList();
+      final originalVideos = widget.existingItem!.videos.where((url) => !MediaStorageService.isLocalMedia(url)).toList();
 
       // Get current selection (only Firebase URLs, not local paths)
-      final currentImages = _selectedImages.where((url) => !_fileUploadService.isLocalPath(url)).toList();
-      final currentVideos = _selectedVideos.where((url) => !_fileUploadService.isLocalPath(url)).toList();
+      final currentImages = _selectedImages.where((url) => !MediaStorageService.isLocalMedia(url)).toList();
+      final currentVideos = _selectedVideos.where((url) => !MediaStorageService.isLocalMedia(url)).toList();
 
       // Find files that are in original but not in current selection
       final deletedImages = originalImages.where((url) => !currentImages.contains(url)).toList();
@@ -842,43 +986,16 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
   }
 
   // Upload all local files to Firebase Storage and return Firebase URLs with progress tracking
-  Future<List<String>> _uploadLocalFilesToFirebase(List<String> localPaths, String fileType, Function(String) onProgressUpdate) async {
-    final firebaseUrls = <String>[];
-
-    for (final localPath in localPaths) {
-      try {
-        if (_fileUploadService.isLocalPath(localPath)) {
-          // Update progress before upload
-          onProgressUpdate('Uploading ${firebaseUrls.length + 1}/${localPaths.length} $fileType(s)...');
-
-          // Upload local file to Firebase Storage
-          final firebaseUrl = await _fileUploadService.uploadLocalPhotoToFirebase(localPath);
-
-          if (firebaseUrl != null) {
-            firebaseUrls.add(firebaseUrl);
-            AppLogger.candidate('✅ Uploaded $fileType to Firebase: $firebaseUrl');
-
-            // Update progress after successful upload
-            onProgressUpdate('Uploaded ${firebaseUrls.length}/${localPaths.length} $fileType(s)');
-          } else {
-            AppLogger.candidateError('⚠️ Failed to upload $fileType, skipping: $localPath');
-            // Keep the original if upload fails (for compatibility)
-            firebaseUrls.add(localPath);
-          }
-        } else {
-          // Already a Firebase URL, keep as-is
-          firebaseUrls.add(localPath);
-        }
-    } catch (e) {
-      AppLogger.candidateError('Error saving post: $e');
-      if (mounted) {
-        SnackbarUtils.showError('Failed to save post: $e');
-      }
-    }
-    }
-
-    // Don't send completion message here - let the caller handle it
-    return firebaseUrls;
+  Future<List<String>> _uploadLocalFilesToFirebase(
+    List<String> localPaths,
+    String fileType,
+    Function(String) onProgressUpdate,
+  ) async {
+    return await MediaStorageService.uploadLocalMediaBatch(
+      localPaths,
+      fileType,
+      onProgressUpdate,
+    );
   }
 
   GlobalKey<_UploadProgressDialogState>? _progressDialogKey;
@@ -900,6 +1017,51 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
           initialMessage: 'Starting upload...',
           initialCurrentFile: 0,
           initialTotalFiles: totalFiles,
+        );
+      },
+    );
+  }
+
+  // Show general posting progress dialog
+  void _showPostingProgressDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
+          title: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Creating Post',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Please wait while we create your post...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
         );
       },
     );
@@ -965,13 +1127,16 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
     }
 
     // Calculate total files to upload
-    final totalLocalImages = _selectedImages.where((url) => _fileUploadService.isLocalPath(url)).length;
-    final totalLocalVideos = _selectedVideos.where((url) => _fileUploadService.isLocalPath(url)).length;
+    final totalLocalImages = _selectedImages.where((url) => MediaStorageService.isLocalMedia(url)).length;
+    final totalLocalVideos = _selectedVideos.where((url) => MediaStorageService.isLocalMedia(url)).length;
     final totalFilesToUpload = totalLocalImages + totalLocalVideos;
 
-    // Show upload progress dialog if there are files to upload
+    // Always show loading dialog when posting
     if (totalFilesToUpload > 0) {
       _showUploadProgressDialog(totalFilesToUpload);
+    } else {
+      // Show general posting progress dialog
+      _showPostingProgressDialog();
     }
 
     if (mounted) {
@@ -987,16 +1152,56 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       }
 
       // Upload all local files to Firebase Storage and get Firebase URLs with progress tracking
-      final firebaseImages = await _uploadLocalFilesToFirebase(_selectedImages, 'image', _updateUploadProgress);
-      final firebaseVideos = await _uploadLocalFilesToFirebase(_selectedVideos, 'video', _updateUploadProgress);
+      var firebaseImages = await _uploadLocalFilesToFirebase(_selectedImages, 'image', _updateUploadProgress);
+      var firebaseVideos = await _uploadLocalFilesToFirebase(_selectedVideos, 'video', _updateUploadProgress);
 
       // Close upload progress dialog after all uploads are complete
       if (totalFilesToUpload > 0 && mounted) {
         _updateUploadProgress('Upload completed successfully!');
       }
 
+      // CRITICAL: Ensure no blob URLs are stored in the database
+      // Check if any blob URLs remain (upload failures)
+      final hasBlobImages = firebaseImages.any((url) => url.startsWith('blob:'));
+      final hasBlobVideos = firebaseVideos.any((url) => url.startsWith('blob:'));
+
+      if (hasBlobImages || hasBlobVideos) {
+        AppLogger.candidateError('❌ CRITICAL: Blob URLs detected after upload! This will cause issues when app becomes inactive.');
+        AppLogger.candidateError('❌ Images with blob URLs: ${firebaseImages.where((url) => url.startsWith('blob:')).toList()}');
+        AppLogger.candidateError('❌ Videos with blob URLs: ${firebaseVideos.where((url) => url.startsWith('blob:')).toList()}');
+
+        // Filter out blob URLs to prevent saving corrupted data
+        final cleanImages = firebaseImages.where((url) => !url.startsWith('blob:')).toList();
+        final cleanVideos = firebaseVideos.where((url) => !url.startsWith('blob:')).toList();
+
+        AppLogger.candidate('🧹 Filtered out blob URLs. Clean images: ${cleanImages.length}, clean videos: ${cleanVideos.length}');
+
+        // Update the variables to use clean URLs
+        firebaseImages = cleanImages;
+        firebaseVideos = cleanVideos;
+
+        // If no valid media remains, show error
+        if (firebaseImages.isEmpty && firebaseVideos.isEmpty && _selectedYoutubeLinks.isEmpty) {
+          if (mounted) {
+            Navigator.of(context).pop(); // Dismiss progress dialog
+            SnackbarUtils.showError('All media uploads failed. Please try again.');
+          }
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+
+        // Show warning but allow saving with partial content
+        if (mounted) {
+          SnackbarUtils.showError('Some media files failed to upload but post will be saved with available content.');
+        }
+      }
+
       final String postDate = widget.existingItem != null
-          ? widget.existingItem!.date ?? DateTime.now().toIso8601String().split('T')[0]
+          ? widget.existingItem!.date
           : DateTime.now().toIso8601String().split('T')[0];
 
       final newMediaItem = MediaItem(
@@ -1074,6 +1279,11 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
       final success = await mediaController.saveMediaGrouped(_candidate!, allGroupedMedia);
 
       if (success) {
+        // Dismiss the posting progress dialog
+        if (mounted) {
+          Navigator.of(context).pop(); // Dismiss progress dialog
+        }
+
         // Show success message safely
         if (mounted) {
           SnackbarUtils.showSuccess('Post created successfully!');
@@ -1104,11 +1314,21 @@ class _MediaAddPostScreenState extends State<MediaAddPostScreen> {
           Navigator.of(context).pop();
         }
       } else {
+        // Dismiss the posting progress dialog on failure
+        if (mounted) {
+          Navigator.of(context).pop(); // Dismiss progress dialog
+        }
+
         if (mounted) {
           SnackbarUtils.showError('Failed to create post. Please try again.');
         }
       }
     } catch (e) {
+      // Dismiss the posting progress dialog on error
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss progress dialog
+      }
+
       AppLogger.candidateError('Error saving post: $e');
       if (mounted) {
         SnackbarUtils.showScaffoldError(context, 'Failed to save post: $e');

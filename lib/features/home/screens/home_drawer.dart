@@ -33,16 +33,16 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AppLogger.common(
-      '🏠 [HOME_DRAWER] Building drawer - userModel: ${userModel?.name} (${userModel?.role}), candidateModel param: ${candidateModel?.basicInfo?.fullName ?? "null"}',
-    );
+    // AppLogger.common(
+    //   '🏠 [HOME_DRAWER] Building drawer - userModel: ${userModel?.name} (${userModel?.role}), candidateModel param: ${candidateModel?.basicInfo?.fullName ?? "null"}',
+    // );
 
     // Profile header uses UserController only
     return GetBuilder<UserController>(
       builder: (userController) {
-        AppLogger.common(
-          '🏠 [HOME_DRAWER] User controller available with photoURL: ${userController.user.value?.photoURL}',
-        );
+        // AppLogger.common(
+        //   '🏠 [HOME_DRAWER] User controller available with photoURL: ${userController.user.value?.photoURL}',
+        // );
 
         return Drawer(
           child: ListView(
@@ -227,9 +227,9 @@ class HomeDrawer extends StatelessWidget {
               if (userModel?.role == 'candidate' && candidateModel != null) ...[
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      '🏠 [HOME_DRAWER] Showing candidate menu items - user role: ${userModel?.role}',
-                    );
+                    // AppLogger.common(
+                    //   '🏠 [HOME_DRAWER] Showing candidate menu items - user role: ${userModel?.role}',
+                    // );
                     return const SizedBox.shrink();
                   },
                 ),
@@ -295,9 +295,9 @@ class HomeDrawer extends StatelessWidget {
               Builder(
                 builder: (context) {
                   final showPremiumFeatures = userModel?.role == 'candidate';
-                  AppLogger.candidate(
-                    '🏠 [HOME_DRAWER] Role check: ${userModel?.role}, showPremiumFeatures: $showPremiumFeatures',
-                  );
+                  // AppLogger.candidate(
+                  //   '🏠 [HOME_DRAWER] Role check: ${userModel?.role}, showPremiumFeatures: $showPremiumFeatures',
+                  // );
 
                   if (!showPremiumFeatures) {
                     return const SizedBox.shrink();
@@ -309,13 +309,13 @@ class HomeDrawer extends StatelessWidget {
                       const Divider(),
                       Builder(
                         builder: (context) {
-                          AppLogger.candidate('🏠 [HOME_DRAWER] Rendering premium features button');
+                          //AppLogger.candidate('🏠 [HOME_DRAWER] Rendering premium features button');
                           return ListTile(
                             leading: const Icon(Icons.star, color: Color(0xFFFF9933)),
                             title: Text(AppLocalizations.of(context)!.premiumFeatures),
                             subtitle: Text(AppLocalizations.of(context)!.upgradeToUnlockPremiumFeatures),
                             onTap: () {
-                              AppLogger.core('🏠 [HOME_DRAWER] 🔥 PREMIUM FEATURES BUTTON CLICKED! 🔥');
+                              //AppLogger.core('🏠 [HOME_DRAWER] 🔥 PREMIUM FEATURES BUTTON CLICKED! 🔥');
                               Navigator.pop(context);
                               HomeNavigation.toRightToLeft(const MonetizationScreen());
                             },

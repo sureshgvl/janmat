@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,6 +12,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import '../utils/app_logger.dart';
 import '../features/candidate/services/media_cache_service.dart';
 
@@ -577,6 +580,11 @@ class FileUploadService {
   // Upload local photo to Firebase Storage with cache integration
   Future<String?> uploadLocalPhotoToFirebase(String localPath) async {
     try {
+      // Handle web blob URLs differently from mobile local files
+      if (kIsWeb && localPath.startsWith('blob:')) {
+        return await uploadBlobUrlToFirebase(localPath);
+      }
+
       // Remove the 'local:' prefix to get the actual file path
       final actualPath = localPath.replaceFirst('local:', '');
       final file = File(actualPath);
@@ -626,6 +634,51 @@ class FileUploadService {
     } catch (e) {
       AppLogger.commonError('Error uploading local photo to Firebase', error: e);
       throw Exception('Failed to upload local photo to Firebase: $e');
+    }
+  }
+
+  // Upload blob URL to Firebase Storage (web-specific) - made public for media upload
+  Future<String?> uploadBlobUrlToFirebase(String blobUrl) async {
+    try {
+      AppLogger.common('🌐 [Blob Upload] Starting blob URL upload to Firebase: $blobUrl', tag: 'WEB_UPLOAD');
+
+      // Use http package to fetch blob data (works on both web and mobile)
+      final response = await http.get(Uri.parse(blobUrl));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch blob data: HTTP ${response.statusCode}');
+      }
+
+      final bytes = response.bodyBytes;
+      if (bytes.isEmpty) {
+        throw Exception('Blob data is empty');
+      }
+
+      // Generate filename from blob URL or use timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'web_media_${timestamp}.jpg'; // Default to jpg, could be improved with MIME type detection
+
+      // Determine storage path
+      final storagePath = 'media/images/$fileName';
+      final contentType = 'image/jpeg';
+
+      final storageRef = _storage.ref().child(storagePath);
+
+      AppLogger.common('📤 [Blob Upload] Uploading blob to Firebase Storage: $storagePath', tag: 'WEB_UPLOAD');
+
+      final uploadTask = storageRef.putData(
+        bytes,
+        SettableMetadata(contentType: contentType),
+      );
+
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      AppLogger.common('✅ [Blob Upload] Successfully uploaded blob to Firebase: $downloadUrl', tag: 'WEB_UPLOAD');
+      return downloadUrl;
+    } catch (e) {
+      AppLogger.commonError('❌ [Blob Upload] Failed to upload blob URL', error: e, tag: 'WEB_UPLOAD');
+      throw Exception('Failed to upload blob URL to Firebase: $e');
     }
   }
 

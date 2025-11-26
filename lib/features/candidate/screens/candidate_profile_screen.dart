@@ -16,7 +16,7 @@ import '../controllers/candidate_controller.dart';
 import '../controllers/candidate_user_controller.dart';
 import '../widgets/view/basic_info/basic_info_tab_view.dart';
 import '../widgets/view/manifesto/manifesto_view.dart';
-import '../widgets/view/media/media_view.dart';
+import '../widgets/view/media/media_view_refactored.dart';
 import '../widgets/view/contact/contact_tab_view.dart';
 import '../widgets/view/achievements/achievements_tab_view.dart';
 
@@ -511,16 +511,18 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       AchievementsTabView(candidate: candidate!),
 
       // Media Tab
-      MediaTabView(candidate: candidate!, isOwnProfile: false),
+      MediaTabViewReactive(candidate: candidate!, isOwnProfile: false),
 
       // Contact Tab - Show data immediately, refresh happens in background
       ContactTabView(candidate: candidate!),
 
       // Events Tab - Always show VoterEventsSection for viewing events with RSVP functionality
       VoterEventsSection(candidateData: candidate!),
+
+      // Analytics Tab (only for own profile)
+      if (_isOwnProfile)
+        FollowersAnalyticsSection(candidateData: candidate!),
     ];
-
-
 
     return tabViews;
   }

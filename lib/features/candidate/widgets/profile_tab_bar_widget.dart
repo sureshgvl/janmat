@@ -86,6 +86,19 @@ class ProfileTabBarWidget extends StatelessWidget {
           ),
         ),
       ),
+
+      //Analytics (only for own profile)
+      if (isOwnProfile)
+        Tab(
+          child: Text(
+            CandidateTranslations.tr('analytics'),
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
     ];
 
 

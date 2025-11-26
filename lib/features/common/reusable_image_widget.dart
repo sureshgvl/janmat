@@ -77,12 +77,18 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
       double aspectRatio = 4 / 3; // Default
 
       if (widget.isLocal) {
-        // For local images, try to get actual dimensions
-        final file = File(widget.imageUrl.replaceFirst('local:', ''));
-        if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          final decodedImage = await decodeImageFromList(bytes);
-          aspectRatio = decodedImage.width / decodedImage.height;
+        // Handle blob URLs on web (can't read dimensions)
+        if (widget.imageUrl.startsWith('blob:')) {
+          // Use default aspect ratio for blob URLs
+          aspectRatio = 4 / 3;
+        } else {
+          // For regular local files, try to get actual dimensions
+          final file = File(widget.imageUrl.replaceFirst('local:', ''));
+          if (await file.exists()) {
+            final bytes = await file.readAsBytes();
+            final decodedImage = await decodeImageFromList(bytes);
+            aspectRatio = decodedImage.width / decodedImage.height;
+          }
         }
       } else {
         // PHASE 4 INTEGRATION: Check cache first for network images
@@ -122,9 +128,52 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
   }
 
   Widget _buildImage() {
-    final imageProvider = widget.isLocal
-        ? FileImage(File(widget.imageUrl.replaceFirst('local:', '')))
-        : NetworkImage(widget.imageUrl);
+    // Handle blob URLs specially - they are temporary and often invalid
+    if (widget.isLocal && widget.imageUrl.startsWith('blob:')) {
+      // Blob URLs are temporary and likely invalid - show error state
+      return Container(
+        constraints: BoxConstraints(
+          minHeight: widget.minHeight ?? 120,
+          maxHeight: widget.maxHeight ?? 250,
+          minWidth: widget.minWidth ?? 0,
+          maxWidth: widget.maxWidth ?? double.infinity,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+          border: widget.borderColor != null
+              ? Border.all(
+                  color: widget.borderColor!,
+                  width: widget.borderWidth,
+                )
+              : null,
+          color: Colors.grey.shade200,
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image, color: Colors.grey, size: 48),
+              SizedBox(height: 8),
+              Text(
+                'Image temporarily unavailable',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    ImageProvider imageProvider;
+
+    if (widget.isLocal) {
+      // Regular local files
+      imageProvider = FileImage(File(widget.imageUrl.replaceFirst('local:', '')));
+    } else {
+      // Network images
+      imageProvider = NetworkImage(widget.imageUrl);
+    }
 
     return Container(
       constraints: BoxConstraints(
@@ -188,6 +237,46 @@ class _ReusableImageWidgetState extends State<ReusableImageWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Special handling for blob URLs that may become invalid
+    if (widget.isLocal && widget.imageUrl.startsWith('blob:') && _hasError) {
+      // Show error state for invalid blob URLs
+      return GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight: widget.minHeight ?? 120,
+            maxHeight: widget.maxHeight ?? 250,
+            minWidth: widget.minWidth ?? 0,
+            maxWidth: widget.maxWidth ?? double.infinity,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+            border: widget.borderColor != null
+                ? Border.all(
+                    color: widget.borderColor!,
+                    width: widget.borderWidth,
+                  )
+                : null,
+            color: Colors.grey.shade200,
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                SizedBox(height: 8),
+                Text(
+                  'Image temporarily unavailable',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap:
           widget.onTap ??

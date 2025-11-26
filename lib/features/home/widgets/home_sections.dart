@@ -96,10 +96,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                 // SECTION 3: PUSH FEED CARDS
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      'Loading Push Feed Cards...',
-                      tag: 'FEED_SECTION',
-                    );
+                    // AppLogger.common(
+                    //   'Loading Push Feed Cards...',
+                    //   tag: 'FEED_SECTION',
+                    // );
                     return _feedWidgets.buildPushFeedSection(
                       context,
                       widget.userModel,
@@ -113,10 +113,10 @@ class _HomeBodyContentState extends State<HomeBodyContent> {
                 // SECTION 4: NORMAL FEED
                 Builder(
                   builder: (context) {
-                    AppLogger.common(
-                      'Loading Normal Feed...',
-                      tag: 'FEED_SECTION',
-                    );
+                    // AppLogger.common(
+                    //   'Loading Normal Feed...',
+                    //   tag: 'FEED_SECTION',
+                    // );
                     return _feedWidgets.buildNormalFeedSection(
                       context,
                       locationData,

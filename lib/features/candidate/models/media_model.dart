@@ -30,16 +30,26 @@ class MediaItem {
        comments = comments ?? [];
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
-    return MediaItem(
+    final likes = (json['likes'] as List<dynamic>?)?.map((like) => Like.fromJson(like as Map<String, dynamic>)).toList() ?? [];
+    final comments = (json['comments'] as List<dynamic>?)?.map((comment) => Comment.fromJson(comment as Map<String, dynamic>)).toList() ?? [];
+
+    final mediaItem = MediaItem(
       title: json['title'] ?? '',
       date: json['date'] ?? DateTime.now().toIso8601String().split('T')[0],
       images: List<String>.from(json['images'] ?? []),
       videos: List<String>.from(json['videos'] ?? []),
       youtubeLinks: List<String>.from(json['youtubeLinks'] ?? []),
       addedDate: json['added_date'],
-      likes: (json['likes'] as List<dynamic>?)?.map((like) => Like.fromJson(like as Map<String, dynamic>)).toList() ?? [],
-      comments: (json['comments'] as List<dynamic>?)?.map((comment) => Comment.fromJson(comment as Map<String, dynamic>)).toList() ?? [],
+      likes: likes,
+      comments: comments,
     );
+
+    // Debug logging
+    print('🧩 MediaItem parsed: ${mediaItem.title}, likes: ${mediaItem.likeCount}, comments: ${mediaItem.commentCount}');
+    print('   Likes data: ${json['likes']}');
+    print('   Comments data: ${json['comments']}');
+
+    return mediaItem;
   }
 
   Map<String, dynamic> toJson() {
