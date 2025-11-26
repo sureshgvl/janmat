@@ -6,7 +6,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../services/guest_routing_service.dart';
 import '../../../services/public_candidate_service.dart';
 import '../../../services/share_candidate_profile_service.dart';
 import '../../../widgets/common/shimmer_loading_widgets.dart';
@@ -47,11 +46,8 @@ enum ProfileScreenState {
 
 /// Loading States for candidate profile
 class CandidateProfileScreen extends StatefulWidget {
-  final bool isGuestAccess;
-
   const CandidateProfileScreen({
     super.key,
-    this.isGuestAccess = false,
   });
 
   @override
@@ -87,15 +83,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   void initState() {
     super.initState();
 
-    // Check if this is guest access (from URL parameters)
-    final args = Get.arguments;
-    if (args is PublicCandidateUrlParams) {
-      // Handle guest access via URL parameters
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await _handleGuestAccess(args);
-      });
-      return;
-    }
 
     // Standard access with candidate object or own profile loading
     if (Get.arguments == null) {
@@ -209,79 +196,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
-  /// Handle guest access via URL parameters
-  Future<void> _handleGuestAccess(PublicCandidateUrlParams urlParams) async {
-    try {
-      AppLogger.candidate('🚪 Handling guest access for URL: ${urlParams.toString()}');
 
-      // Set guest access flag
-      _isOwnProfile = false; // Guests can't edit profiles
-
-      // Initialize TabController for guest access (6 tabs, no analytics)
-      _tabController = TabController(length: 6, vsync: this);
-      _tabController?.addListener(_onTabChanged);
-
-      // Fetch candidate data using public service
-      final fetchedCandidate = await PublicCandidateService().getCandidateByFullPath(
-        stateId: urlParams.stateId,
-        districtId: urlParams.districtId,
-        bodyId: urlParams.bodyId,
-        wardId: urlParams.wardId,
-        candidateId: urlParams.candidateId,
-      );
-
-      if (fetchedCandidate == null) {
-        AppLogger.candidate('❌ Guest access failed - candidate not found');
-        SnackbarUtils.showError(
-          CandidateLocalizations.of(context)?.candidateDataNotFound ??
-              'Candidate profile not found',
-        );
-        _navigateGuestBack();
-        return;
-      }
-
-      AppLogger.candidate('✅ Guest access successful - loaded candidate: ${fetchedCandidate.basicInfo?.fullName}');
-
-      setState(() {
-        candidate = fetchedCandidate;
-      });
-
-      // Track guest profile view
-      await PublicCandidateService().trackGuestProfileView(
-        candidateId: urlParams.candidateId,
-        candidateName: fetchedCandidate.basicInfo?.fullName,
-        source: 'direct_url',
-      );
-
-      // Load location data for display (optimized batched queries)
-      await _loadLocationData();
-
-      // Note: Plan features are skipped for guests (no auth required)
-
-      // ✅ Mark screen as loaded after guest access success
-      if (mounted) {
-        setState(() {
-          _screenState = ProfileScreenState.loaded;
-        });
-      }
-
-    } catch (e, stackTrace) {
-      AppLogger.candidateError('❌ Guest access failed: $e $stackTrace');
-      SnackbarUtils.showError('Failed to load candidate profile');
-      _navigateGuestBack();
-    }
-  }
-
-  /// Navigate back for guest users (different from authenticated users)
-  void _navigateGuestBack() {
-    if (GuestRoutingService.isCurrentlyInGuestMode()) {
-      // For guests, navigate to login screen
-      Get.offAllNamed(AppRouteNames.login);
-    } else {
-      // For authenticated users, normal back navigation
-      Navigator.of(context).pop();
-    }
-  }
 
   // Refresh candidate data using direct document path (fast!)
   // Note: This preserves controller follow status to avoid UI inconsistencies
@@ -379,10 +294,10 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
-  // Load location data (optimized for different access types)
+  // Load location data (platform-aware for authenticated users)
   Future<void> _loadLocationData() async {
     AppLogger.candidate(
-      '🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId} (${widget.isGuestAccess ? 'guest' : 'authenticated'})',
+      '🔍 [Candidate Profile] Loading location data for candidate ${candidate?.candidateId}',
     );
     AppLogger.candidate(
       '📍 [Candidate Profile] IDs: district=${candidate?.location.districtId}, body=${candidate?.location.bodyId}, ward=${candidate?.location.wardId}',
@@ -391,35 +306,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     if (candidate == null) return;
 
     try {
-      // For guest access: Use optimized PublicCandidateService with batched, cached queries
-      if (widget.isGuestAccess) {
-        AppLogger.candidate('🚀 [Guest Access] Using optimized batched location loading...');
-
-        final locationData = await PublicCandidateService().getLocationDisplayData(
-          stateId: candidate!.location.stateId ?? 'maharashtra',
-          districtId: candidate!.location.districtId ?? '',
-          bodyId: candidate!.location.bodyId ?? '',
-          wardId: candidate!.location.wardId ?? '',
-        );
-
-        if (mounted) {
-          setState(() {
-            _districtName = locationData['districtName'];
-            _bodyName = locationData['bodyName'];
-            _wardName = locationData['wardName'];
-          });
-        }
-
-        AppLogger.candidate(
-          '✅ [Guest Access] Location data loaded from cache/batch:',
-        );
-        AppLogger.candidate('   📍 District: $_districtName');
-        AppLogger.candidate('   🏛️ Body: $_bodyName');
-        AppLogger.candidate('   🏛️ Ward: $_wardName');
-        return;
-      }
-
-      // For authenticated users: Use platform-aware location loading (works on web and mobile)
+      // Use platform-aware location loading (works on web and mobile)
       AppLogger.candidate('🔐 [Authenticated User] Using platform-aware location loading...');
       await _loadAuthenticatedLocationData();
 
@@ -759,13 +646,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       _screenState = ProfileScreenState.loading;
     });
 
-    // For guest access, retry the guest access flow
-    if (Get.arguments is PublicCandidateUrlParams) {
-      await _handleGuestAccess(Get.arguments as PublicCandidateUrlParams);
-      return;
-    }
-
-    // For normal access, restart the init flow
+    // Restart the init flow
     // This is a simplified retry - in production we'd want to extract the loading logic
     if (candidate != null) {
       setState(() {
@@ -825,7 +706,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
             ),
           ),
           body: CandidateNotFoundError(
-            isGuest: widget.isGuestAccess,
             onRetry: _retryLoadCandidate,
             onBrowseCandidates: () => Get.offAllNamed(AppRouteNames.home),
           ),
@@ -877,17 +757,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Check if this is guest access (accessed via direct URL)
-            final isGuestUser = GuestRoutingService.isCurrentlyInGuestMode();
-
-            if (isGuestUser) {
-              // Guest user behavior: Navigate to login screen for exploration
-              AppLogger.common('🚪 Guest user navigating back from profile');
-              Get.offAllNamed(AppRouteNames.login);
-            } else {
-              // Normal authenticated user behavior
-              Navigator.of(context).pop();
-            }
+            Navigator.of(context).pop();
           },
         ),
         actions: [

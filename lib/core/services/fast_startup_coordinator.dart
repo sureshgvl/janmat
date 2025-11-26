@@ -15,7 +15,6 @@ import '../../../features/language/controller/language_controller.dart';
 import '../../../utils/performance_monitor.dart';
 import '../../../services/home_screen_stream_service.dart';
 import '../../../features/user/services/user_status_manager.dart';
-import '../../../services/guest_routing_service.dart';
 
 /// Coordinates fast app startup with parallel initialization
 class FastStartupCoordinator {
@@ -129,14 +128,7 @@ class FastStartupCoordinator {
     AppLogger.core('🔍 Getting fast routing data...');
 
     try {
-      // Phase 2A: Check for guest routes (public candidate profiles) FIRST
-      final guestRouteData = await _checkGuestRouting();
-      if (guestRouteData != null) {
-        AppLogger.core('🚪 Guest routing detected - bypassing normal auth flow');
-        return guestRouteData;
-      }
-
-      // Phase 2B: No guest route, continue with normal authentication flow
+      // Continue with normal authentication flow
       AppLogger.core('🔐 Proceeding with normal authentication flow...');
 
       // Parallel auth and app state check
@@ -195,36 +187,6 @@ class FastStartupCoordinator {
     }
   }
 
-  /// Check for guest routing (public candidate profiles)
-  /// Returns routing data if guest URL is detected, null otherwise
-  Future<Map<String, dynamic>?> _checkGuestRouting() async {
-    try {
-      AppLogger.core('🔍 Checking for guest routing...');
-
-      final guestRouteData = await GuestRoutingService().checkGuestUrl();
-
-      if (guestRouteData != null) {
-        AppLogger.core('✅ Guest route detected: ${guestRouteData['initialRoute']}');
-
-        // Pre-load controller dependencies for guest mode
-        // (we'll use existing controllers but some features may be limited for guests)
-
-        return {
-          'isLoggedIn': false, // Guests are not logged in
-          'user': null,
-          'initialRoute': guestRouteData['initialRoute'],
-          'guestParams': guestRouteData['candidateParams'], // Make available for later use
-        };
-      }
-
-      AppLogger.core('📍 No guest route found');
-      return null;
-
-    } catch (e, stackTrace) {
-      AppLogger.coreError('⚠️ Guest routing check failed', error: e, stackTrace: stackTrace);
-      return null; // Fall back to normal auth flow
-    }
-  }
 
   /// Get app state (language, onboarding) synchronously
   Future<Map<String, dynamic>> _getAppState() async {

@@ -9,9 +9,9 @@ import '../../../utils/app_logger.dart';
 class RazorpayWebService {
   // Razorpay keys - Loaded from environment variables for security
   static String get razorpayKeyId {
-    // Try environment variable first, fallback to test key for development
+    // Try environment variable first, fallback to live key for testing
     final key = const String.fromEnvironment('RAZORPAY_KEY_ID',
-        defaultValue: 'rzp_test_RiMWsU7GNxKFqz');
+        defaultValue: 'rzp_live_RjD86XHWEf5MN5');
 
     // Debug logging (remove in production)
     debugPrint('🌐 Web Razorpay Key ID: ${key.substring(0, 15)}... (${key.startsWith('rzp_live') ? 'PRODUCTION' : 'TEST'})');
@@ -20,9 +20,9 @@ class RazorpayWebService {
   }
 
   static String get razorpayKeySecret {
-    // Try environment variable first, fallback to test secret for development
+    // Try environment variable first, fallback to live secret for testing
     final secret = const String.fromEnvironment('RAZORPAY_KEY_SECRET',
-        defaultValue: 'cThh9upiy1NtnaHdO6cWr99I');
+        defaultValue: 'S4ZUIZBAVKTUUcy2PVQkuJVX');
 
     // Debug logging (remove in production)
     debugPrint('🌐 Web Razorpay Secret: ${secret.substring(0, 10)}... (${secret.length > 20 ? 'LOADED' : 'DEFAULT'})');

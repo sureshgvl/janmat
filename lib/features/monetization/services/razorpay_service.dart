@@ -14,10 +14,10 @@ class RazorpayService extends GetxService {
   RazorpayWebService? _webService;
 
   // Razorpay keys - Loaded from environment variables for security
-    static String get razorpayKeyId {
-      // Try environment variable first, fallback to test key for development
-      final key = const String.fromEnvironment('RAZORPAY_KEY_ID',
-          defaultValue: 'rzp_test_RiMWsU7GNxKFqz');
+  static String get razorpayKeyId {
+    // Try environment variable first, fallback to live key for testing
+    final key = const String.fromEnvironment('RAZORPAY_KEY_ID',
+        defaultValue: 'rzp_live_RjD86XHWEf5MN5');
   
       // Debug logging (remove in production)
       debugPrint('🔑 Razorpay Key ID: ${key.substring(0, 15)}... (${key.startsWith('rzp_live') ? 'PRODUCTION' : 'TEST'})');
@@ -26,9 +26,9 @@ class RazorpayService extends GetxService {
     }
   
     static String get razorpayKeySecret {
-      // Try environment variable first, fallback to test secret for development
+      // Try environment variable first, fallback to live secret for testing
       final secret = const String.fromEnvironment('RAZORPAY_KEY_SECRET',
-          defaultValue: 'cThh9upiy1NtnaHdO6cWr99I');
+          defaultValue: 'S4ZUIZBAVKTUUcy2PVQkuJVX');
   
       // Debug logging (remove in production)
       debugPrint('🔐 Razorpay Secret: ${secret.substring(0, 10)}... (${secret.length > 20 ? 'LOADED' : 'DEFAULT'})');
@@ -297,7 +297,7 @@ class RazorpayService extends GetxService {
             'currency': currency,
             'receipt': receipt,
             'notes': notes,
-            'payment_capture': 0, // Manual capture, will be done via webhook
+            'payment_capture': isTestMode() ? 0 : 1, // Auto capture for live, manual for test
           });
 
       if (result.data['success'] == true) {

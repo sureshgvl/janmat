@@ -48,10 +48,6 @@ class AppRoutes {
       page: () => const CandidateProfileScreen(),
     ),
     GetPage(
-      name: AppRouteNames.publicCandidateProfile,
-      page: () => const CandidateProfileScreen(isGuestAccess: true),
-    ),
-    GetPage(
       name: AppRouteNames.candidateComparison,
       page: () {
         final candidates = Get.arguments as List<Candidate>? ?? [];

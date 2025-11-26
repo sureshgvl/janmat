@@ -656,20 +656,6 @@ class _MyFastAppState extends State<MyFastApp> with WidgetsBindingObserver {
     // Get initial route from startup data
     _currentRoute = widget.startupData['initialRoute'] as String;
 
-    // 🚪 Handle guest routing parameters
-    final guestParams = widget.startupData['guestParams'];
-    if (guestParams != null) {
-      print('🚪 FAST APP: Guest params found: $guestParams');
-      print('🚪 FAST APP: Current route: $_currentRoute');
-
-      // Navigate immediately with guest parameters
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        print('🚪 FAST APP: Executing guest navigation...');
-        Get.offAllNamed(_currentRoute, arguments: guestParams);
-      });
-    } else {
-      print('🚪 FAST APP: No guest params found in startup data');
-    }
 
     // Listen to theme changes and update GetX theme
     final themeController = Get.find<ThemeController>();

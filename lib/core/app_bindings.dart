@@ -93,7 +93,7 @@ class AppBindings extends Bindings {
 
     // 🎯 LAZY LOAD SERVICES: Only initialize when needed
     Get.lazyPut<RazorpayService>(() => RazorpayService());
-    Get.lazyPut<FileUploadService>(() => FileUploadService());
+    Get.put<FileUploadService>(FileUploadService()); // Eagerly load for immediate access
 
     // 🚀 ASYNC INITIALIZATION: Move heavy operations to background
     // Initialize media cache service asynchronously
