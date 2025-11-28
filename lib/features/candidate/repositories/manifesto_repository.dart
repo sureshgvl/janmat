@@ -61,12 +61,31 @@ class ManifestoRepository implements IManifestoRepository {
       if (!data.containsKey('manifesto_data')) {
         print('🔍 MANIFESTO_REPO: No manifesto_data found in candidate document');
         AppLogger.database('No manifesto_data found in candidate document', tag: 'MANIFESTO_REPO');
+
+        // ManifestoCacheService is disabled - no caching
+        AppLogger.database('⚠️ ManifestoCacheService disabled - no cache to clear for candidate: $candidateId', tag: 'MANIFESTO_REPO');
+
         return null;
       }
 
       print('🔍 MANIFESTO_REPO: Manifesto data found, parsing...');
       final manifestoData = data['manifesto_data'] as Map<String, dynamic>;
       print('🔍 MANIFESTO_REPO: Manifesto data: $manifestoData');
+
+      // Check if manifesto data is essentially empty (no meaningful content)
+      final hasTitle = manifestoData['title'] != null && manifestoData['title'].toString().trim().isNotEmpty;
+      final hasPromises = manifestoData['promises'] != null && (manifestoData['promises'] as List?)?.isNotEmpty == true;
+
+      if (!hasTitle && !hasPromises) {
+        print('🔍 MANIFESTO_REPO: Manifesto data exists but is empty, clearing cache');
+        AppLogger.database('Manifesto data exists but is empty, clearing cache', tag: 'MANIFESTO_REPO');
+
+        // ManifestoCacheService is disabled - no caching
+        AppLogger.database('⚠️ ManifestoCacheService disabled - no cache to clear for empty manifesto: $candidateId', tag: 'MANIFESTO_REPO');
+
+        return null;
+      }
+
       print('🔍 MANIFESTO_REPO: About to create ManifestoModel');
       final result = ManifestoModel.fromJson(manifestoData);
       print('🔍 MANIFESTO_REPO: Manifesto model created successfully: title=${result.title}');

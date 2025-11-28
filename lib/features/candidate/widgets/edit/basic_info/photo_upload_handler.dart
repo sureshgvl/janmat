@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../../utils/app_logger.dart';
+import '../../../../../core/services/firebase_uploader.dart';
+import '../../../../../core/models/unified_file.dart';
 import '../../../../../utils/snackbar_utils.dart';
 
 /// PhotoUploadHandler - Handles photo upload functionality
@@ -78,15 +80,18 @@ class PhotoUploadHandler {
     try {
       final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // Upload directly to Firebase Storage with proper path
-      final storageRef = FirebaseStorage.instance.ref().child('profile_images/$userId/$fileName');
-      final uploadTask = storageRef.putFile(
-        File(imagePath),
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Upload using FirebaseUploader
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: File(imagePath).lengthSync(),
+        file: File(imagePath),
+        mimeType: 'image/jpeg',
       );
-
-      final snapshot = await uploadTask.whenComplete(() {});
-      final photoUrl = await snapshot.ref.getDownloadURL();
+      final photoUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: 'profile_images/$userId/$fileName',
+        metadata: SettableMetadata(contentType: 'image/jpeg'),
+      ) ?? '';
 
       AppLogger.candidate('✅ Photo uploaded successfully to: profile_images/$userId/$fileName');
       if (context.mounted) {

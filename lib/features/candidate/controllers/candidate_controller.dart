@@ -10,10 +10,7 @@ import '../repositories/candidate_follow_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../../features/user/controllers/user_controller.dart';
 import '../../../utils/advanced_analytics.dart';
-import '../../../utils/memory_manager.dart';
-import '../../../utils/multi_level_cache.dart';
 import '../../notifications/services/candidate_following_notifications.dart';
-import '../../../services/local_database_service.dart';
 import '../../../utils/app_logger.dart';
 
 class CandidateController extends GetxController {
@@ -22,7 +19,6 @@ class CandidateController extends GetxController {
 
   // Optimization systems
   final AdvancedAnalyticsManager _analytics = AdvancedAnalyticsManager();
-  final MemoryManager _memoryManager = MemoryManager();
 
   // Public getter for repository access
   CandidateRepository get candidateRepository => _repository;
@@ -87,14 +83,8 @@ class CandidateController extends GetxController {
         success: true,
       );
 
-      // Memory management - register for cleanup
-      _memoryManager.registerObject(
-        'user_candidates_${userModel.uid}',
-        candidates,
-        ttl: Duration(minutes: 15),
-        category: 'user_candidates',
-        metadata: {'count': candidates.length, 'userId': userModel.uid},
-      );
+      // Memory management - register for cleanup (no-op)
+      AppLogger.candidate('Memory management skipped (no caching)');
 
       // Populate follow status for current user
       await _populateFollowStatusForCandidates();
@@ -147,18 +137,9 @@ class CandidateController extends GetxController {
       AppLogger.candidate('📊 [Controller:Candidates] Phase 1: Checking cache...');
       final cacheCheckStart = DateTime.now();
 
-      if (kIsWeb) {
-        // Web: Use MultiLevelCache directly for fast persistence
-        final cacheKey = 'candidates_dharashiv_dharashiv_zp_$wardId';
-        final cachedData = await MultiLevelCache().get<List<dynamic>>(cacheKey);
-        if (cachedData != null) {
-          cachedCandidates = cachedData.map((e) => Candidate.fromJson(e as Map<String, dynamic>)).toList();
-          AppLogger.candidate('🌐 WEB CACHE HIT - Using MultiLevelCache data');
-        }
-      } else {
-        // Mobile: Use SQLite cache
-        cachedCandidates = await _loadCandidatesFromSQLite(wardId);
-      }
+      // Cache loading skipped (no caching)
+      AppLogger.candidate('Cache loading skipped (no caching)');
+      cachedCandidates = null;
 
       final cacheCheckTime = DateTime.now().difference(cacheCheckStart).inMilliseconds;
 
@@ -181,14 +162,8 @@ class CandidateController extends GetxController {
         AppLogger.candidate('Firebase calls: 0');
         AppLogger.candidate('Follow status time: ${followTime}ms');
 
-        // Memory management - register for cleanup
-        _memoryManager.registerObject(
-          'candidates_${districtId}_${bodyId}_$wardId',
-          candidates,
-          ttl: Duration(minutes: 15),
-          category: 'candidates',
-          metadata: {'count': candidates.length},
-        );
+        // Memory management - register for cleanup (no-op)
+        AppLogger.candidate('Memory management skipped (no caching)');
 
         isLoading.value = false;
         update();
@@ -214,16 +189,8 @@ class CandidateController extends GetxController {
       AppLogger.candidate('Phase 2: Caching candidates...');
       final cacheStartTime = DateTime.now();
 
-      if (kIsWeb) {
-        // Web: Cache in MultiLevelCache
-        final cacheKey = 'candidates_dharashiv_dharashiv_zp_$wardId';
-        final candidatesJson = candidates.map((c) => c.toJson()).toList();
-        await MultiLevelCache().set<List<dynamic>>(cacheKey, candidatesJson, ttl: Duration(hours: 24));
-        AppLogger.candidate('🌐 Web cached ${candidates.length} candidates in MultiLevelCache');
-      } else {
-        // Mobile: Cache in SQLite
-        await _cacheCandidatesInSQLite(candidates, wardId);
-      }
+      // Caching skipped (no caching)
+      AppLogger.candidate('Caching skipped (no caching)');
 
       final cacheTime = DateTime.now().difference(cacheStartTime).inMilliseconds;
 
@@ -245,14 +212,8 @@ class CandidateController extends GetxController {
         success: true,
       );
 
-      // Memory management - register for cleanup
-      _memoryManager.registerObject(
-        'candidates_${districtId}_${bodyId}_$wardId',
-        candidates,
-        ttl: Duration(minutes: 15),
-        category: 'candidates',
-        metadata: {'count': candidates.length},
-      );
+      // Memory management - register for cleanup (no-op)
+      AppLogger.candidate('Memory management skipped (no caching)');
 
       final totalTime = DateTime.now().difference(overallStartTime).inMilliseconds;
       AppLogger.candidate('Operation completed successfully');
@@ -743,69 +704,15 @@ class CandidateController extends GetxController {
     AppLogger.candidate('Invalidated follow status session cache');
   }
 
-  // Load candidates from SQLite cache
+  // Load candidates from SQLite cache (no-op)
   Future<List<Candidate>?> _loadCandidatesFromSQLite(String wardId) async {
-    final startTime = DateTime.now();
-    try {
-      AppLogger.candidate('Checking candidates cache for ward: $wardId');
-
-      final localDb = LocalDatabaseService();
-
-      // Check cache validity
-      final lastUpdate = await localDb.getLastUpdateTime('candidates_$wardId');
-      final cacheAge = lastUpdate != null ? DateTime.now().difference(lastUpdate) : null;
-      final isCacheValid = lastUpdate != null &&
-          DateTime.now().difference(lastUpdate) < const Duration(hours: 24);
-
-      AppLogger.candidate('Candidates cache status for ward $wardId:');
-      AppLogger.candidate('Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}');
-      AppLogger.candidate('Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes');
-      AppLogger.candidate('Is valid: $isCacheValid');
-
-      if (!isCacheValid) {
-        AppLogger.candidate('Candidates cache expired for ward: $wardId');
-        return null;
-      }
-
-      final candidates = await localDb.getCandidatesForWard(wardId);
-      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
-
-      if (candidates == null || candidates.isEmpty) {
-        AppLogger.candidate('No candidates found in cache for ward: $wardId (${loadTime}ms)');
-        return null;
-      }
-
-      AppLogger.candidate('CACHE HIT - Loaded ${candidates.length} candidates from SQLite');
-      AppLogger.candidate('Ward: $wardId');
-      AppLogger.candidate('Load time: ${loadTime}ms');
-      AppLogger.candidate('Sample candidates: ${candidates.take(2).map((c) => '${c.candidateId}:${c.basicInfo!.fullName}').join(', ')}');
-
-      return candidates;
-    } catch (e) {
-      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
-      AppLogger.candidateError('Error loading candidates from SQLite (${loadTime}ms): $e');
-      return null;
-    }
+    AppLogger.candidate('SQLite cache loading skipped (no caching) for ward: $wardId');
+    return null;
   }
 
-  // Cache candidates in SQLite
+  // Cache candidates in SQLite (no-op)
   Future<void> _cacheCandidatesInSQLite(List<Candidate> candidates, String wardId) async {
-    final startTime = DateTime.now();
-    try {
-      AppLogger.candidate('Caching ${candidates.length} candidates for ward: $wardId');
-
-      final localDb = LocalDatabaseService();
-      await localDb.insertCandidates(candidates, wardId);
-
-      final cacheTime = DateTime.now().difference(startTime).inMilliseconds;
-      AppLogger.candidate('Successfully cached ${candidates.length} candidates');
-      AppLogger.candidate('Ward: $wardId');
-      AppLogger.candidate('Cache time: ${cacheTime}ms');
-      AppLogger.candidate('Cache key: candidates_$wardId');
-    } catch (e) {
-      final cacheTime = DateTime.now().difference(startTime).inMilliseconds;
-      AppLogger.candidateError('Error caching candidates (${cacheTime}ms): $e');
-    }
+    AppLogger.candidate('SQLite caching skipped (no caching) for ${candidates.length} candidates in ward: $wardId');
   }
 
   // Populate follow status for current candidates with session caching

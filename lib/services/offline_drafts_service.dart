@@ -7,8 +7,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
-import 'local_database_service.dart';
-import 'web_storage_helper.dart';
 import '../widgets/loading_overlay.dart';
 import '../features/candidate/controllers/candidate_user_controller.dart';
 import '../features/candidate/controllers/save_all_coordinator.dart';
@@ -116,8 +114,8 @@ class DraftData {
 class OfflineDraftsService extends GetxController {
   static OfflineDraftsService get to => Get.find();
 
-  // Dependencies
-  final LocalDatabaseService _localDb = LocalDatabaseService();
+  // Dependencies - LocalDatabaseService removed due to caching removal
+  // final LocalDatabaseService _localDb = LocalDatabaseService();
   final CandidateUserController _candidateController = CandidateUserController.to;
   final Connectivity _connectivity = Connectivity();
 
@@ -162,71 +160,17 @@ class OfflineDraftsService extends GetxController {
   }
 
   /// Create drafts table in SQLite database (mobile) or initialize web storage
+  /// DISABLED: Local caching removed
   Future<void> _createDraftsTable() async {
-    if (kIsWeb) {
-      // Web: No need to create tables, SharedPreferences handles this automatically
-      await WebStorageHelper.init();
-      AppLogger.database('🌐 [OfflineDrafts] Web storage initialized', tag: 'DRAFTS');
-    } else {
-      // Mobile: Create SQLite table
-      final db = await _localDb.database;
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS $draftsTable (
-          draftId TEXT PRIMARY KEY,
-          userId TEXT NOT NULL,
-          dataType TEXT NOT NULL,
-          tabName TEXT NOT NULL,
-          draftContent TEXT NOT NULL,
-          createdAt TEXT NOT NULL,
-          lastModified TEXT NOT NULL,
-          state TEXT NOT NULL,
-          syncedAt TEXT,
-          firebaseVersion TEXT,
-          UNIQUE(draftId)
-        )
-      ''');
-      AppLogger.database('🐘 [OfflineDrafts] SQLite drafts table created/verified', tag: 'DRAFTS');
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Service disabled - local caching removed', tag: 'DRAFTS');
   }
 
   /// Load pending drafts from local storage
+  /// DISABLED: Local caching removed
   Future<void> _loadPendingDrafts() async {
-    try {
-      if (kIsWeb) {
-        // Web: Load from SharedPreferences
-        final draftsMap = await WebStorageHelper.getOfflineDrafts();
-        final drafts = draftsMap.values.map((draftJson) =>
-          DraftData.fromJson(draftJson as Map<String, dynamic>)
-        ).where((draft) => draft.state != DraftState.saved).toList();
-
-        pendingDrafts.assignAll(drafts);
-        unsyncedDraftsCount.value = drafts.where((d) => d.state != DraftState.saved).length;
-        AppLogger.database('🌐 [OfflineDrafts] Web loaded ${drafts.length} pending drafts', tag: 'DRAFTS');
-      } else {
-        // Mobile: Load from SQLite database
-        final db = await _localDb.database;
-        final List<Map<String, dynamic>> maps = await db.query(
-          draftsTable,
-          where: 'state != ?',
-          whereArgs: [DraftState.saved.name],
-        );
-
-        final drafts = maps.map((map) {
-          // Convert draft content from JSON string back to Map
-          final mapCopy = Map<String, dynamic>.from(map);
-          if (mapCopy['draftContent'] is String) {
-            mapCopy['draftContent'] = json.decode(mapCopy['draftContent']);
-          }
-          return DraftData.fromJson(mapCopy);
-        }).toList();
-
-        pendingDrafts.assignAll(drafts);
-        unsyncedDraftsCount.value = drafts.where((d) => d.state != DraftState.saved).length;
-        AppLogger.database('🐘 [OfflineDrafts] SQLite loaded ${drafts.length} pending drafts', tag: 'DRAFTS');
-      }
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error loading pending drafts', error: e, tag: 'DRAFTS');
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Load pending drafts disabled - local caching removed', tag: 'DRAFTS');
   }
 
   /// Setup connectivity monitoring
@@ -266,6 +210,7 @@ class OfflineDraftsService extends GetxController {
   }
 
   /// Create or update a draft entry
+  /// DISABLED: Local caching removed
   Future<String> saveDraft({
     required String dataType,
     required String tabName,
@@ -273,57 +218,9 @@ class OfflineDraftsService extends GetxController {
     String? draftId,
     String? firebaseVersion,
   }) async {
-    final userId = _candidateController.user.value?.uid ?? 'anonymous';
-    final now = DateTime.now();
-
-    final draft = DraftData(
-      draftId: draftId ?? '${userId}_${dataType}_${tabName}_${now.millisecondsSinceEpoch}',
-      userId: userId,
-      dataType: dataType,
-      tabName: tabName,
-      draftContent: content,
-      createdAt: draftId != null ? _getExistingDraftCreateTime(draftId) ?? now : now,
-      lastModified: now,
-      state: DraftState.modified,
-      syncedAt: null,
-      firebaseVersion: firebaseVersion,
-    );
-
-    try {
-      if (kIsWeb) {
-        // Web: Save to SharedPreferences
-        await WebStorageHelper.saveOfflineDraft(draft.draftId, draft.toJson());
-        AppLogger.database('🌐 [OfflineDrafts] Web draft saved: ${draft.draftId}', tag: 'DRAFTS');
-      } else {
-        // Mobile: Save to SQLite database
-        final db = await _localDb.database;
-        await db.insert(
-          draftsTable,
-          {
-            ...draft.toJson(),
-            'draftContent': json.encode(draft.draftContent), // Store as JSON string
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-        AppLogger.database('🐘 [OfflineDrafts] SQLite draft saved: ${draft.draftId}', tag: 'DRAFTS');
-      }
-
-      // Update or add to pending drafts list
-      final existingIndex = pendingDrafts.indexWhere((d) => d.draftId == draft.draftId);
-      if (existingIndex >= 0) {
-        pendingDrafts[existingIndex] = draft;
-      } else {
-        pendingDrafts.add(draft);
-      }
-
-      unsyncedDraftsCount.value = pendingDrafts.where((d) => d.state != DraftState.saved).length;
-
-      AppLogger.database('📝 [OfflineDrafts] Draft saved: ${draft.draftId}', tag: 'DRAFTS');
-      return draft.draftId;
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error saving draft', error: e, tag: 'DRAFTS');
-      rethrow;
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Save draft disabled - local caching removed', tag: 'DRAFTS');
+    return 'disabled_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   /// Get existing draft creation time (for updates)
@@ -333,134 +230,31 @@ class OfflineDraftsService extends GetxController {
   }
 
   /// Get draft by ID
+  /// DISABLED: Local caching removed
   Future<DraftData?> getDraft(String draftId) async {
-    // First check memory cache
-    final cached = pendingDrafts.firstWhereOrNull((d) => d.draftId == draftId);
-    if (cached != null) return cached;
-
-    // Then check database
-    try {
-      final db = await _localDb.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        draftsTable,
-        where: 'draftId = ?',
-        whereArgs: [draftId],
-      );
-
-      if (maps.isNotEmpty) {
-        final map = maps.first;
-        final draft = DraftData.fromJson({
-          ...map,
-          'draftContent': json.decode(map['draftContent'] as String),
-        });
-        return draft;
-      }
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error getting draft: $draftId', error: e, tag: 'DRAFTS');
-    }
-
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Get draft disabled - local caching removed', tag: 'DRAFTS');
     return null;
   }
 
   /// Get all drafts for a user and data type
+  /// DISABLED: Local caching removed
   Future<List<DraftData>> getDraftsForUser({
     required String userId,
     String? dataType,
     String? tabName,
   }) async {
-    try {
-      final db = await _localDb.database;
-      String whereClause = 'userId = ?';
-      List<String> whereArgs = [userId];
-
-      if (dataType != null) {
-        whereClause += ' AND dataType = ?';
-        whereArgs.add(dataType);
-      }
-
-      if (tabName != null) {
-        whereClause += ' AND tabName = ?';
-        whereArgs.add(tabName);
-      }
-
-      final List<Map<String, dynamic>> maps = await db.query(
-        draftsTable,
-        where: whereClause,
-        whereArgs: whereArgs,
-        orderBy: 'lastModified DESC',
-      );
-
-      final drafts = maps.map((map) => DraftData.fromJson({
-        ...map,
-        'draftContent': json.decode(map['draftContent'] as String),
-      })).toList();
-
-      return drafts;
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error getting drafts for user', error: e, tag: 'DRAFTS');
-      return [];
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Get drafts for user disabled - local caching removed', tag: 'DRAFTS');
+    return [];
   }
 
   /// Sync draft with Firebase (attempt to save)
+  /// DISABLED: Local caching removed
   Future<bool> syncDraft(String draftId, {BuildContext? context}) async {
-    final draft = await getDraft(draftId);
-    if (draft == null) {
-      AppLogger.database('📝 [OfflineDrafts] Draft $draftId not found for sync', tag: 'DRAFTS');
-      return false;
-    }
-
-    if (!isOnline.value) {
-      AppLogger.database('📝 [OfflineDrafts] Skipping sync - offline', tag: 'DRAFTS');
-      return false;
-    }
-
-    try {
-      AppLogger.database('📝 [OfflineDrafts] Starting sync for draft: $draftId', tag: 'DRAFTS');
-
-      // Mark as saving
-      await _updateDraftState(draftId, DraftState.saving);
-
-      // Attempt to save based on data type
-      bool success = false;
-      String? errorMessage;
-
-      switch (draft.dataType) {
-        case 'candidate_profile':
-          success = await _syncCandidateProfileData(draft);
-          break;
-        case 'dashboard_changes':
-          success = await _syncDashboardChanges(draft);
-          break;
-        default:
-          AppLogger.database('📝 [OfflineDrafts] Unknown data type: ${draft.dataType}', tag: 'DRAFTS');
-          success = false;
-      }
-
-      // Update draft state
-      final newState = success ? DraftState.saved : DraftState.error;
-      final syncedAt = success ? DateTime.now() : null;
-
-      await _updateDraftState(draftId, newState, syncedAt: syncedAt);
-
-      if (success) {
-        AppLogger.database('✅ [OfflineDrafts] Draft synced successfully: $draftId', tag: 'DRAFTS');
-
-        // Remove from pending drafts if completely synced
-        pendingDrafts.removeWhere((d) => d.draftId == draftId);
-        unsyncedDraftsCount.value = pendingDrafts.where((d) => d.state != DraftState.saved).length;
-      } else {
-        AppLogger.database('❌ [OfflineDrafts] Draft sync failed: $draftId', tag: 'DRAFTS');
-        _updateDraftState(draftId, DraftState.error, errorMessage: errorMessage);
-      }
-
-      return success;
-
-    } catch (e, stackTrace) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error syncing draft', error: e, stackTrace: stackTrace, tag: 'DRAFTS');
-      await _updateDraftState(draftId, DraftState.error, errorMessage: e.toString());
-      return false;
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Sync draft disabled - local caching removed', tag: 'DRAFTS');
+    return false;
   }
 
   /// Automatically sync all pending drafts
@@ -560,72 +354,22 @@ class OfflineDraftsService extends GetxController {
   }
 
   /// Update draft state in database
+  /// DISABLED: Local caching removed
   Future<void> _updateDraftState(
     String draftId,
     DraftState newState, {
     DateTime? syncedAt,
     String? errorMessage,
   }) async {
-    try {
-      final db = await _localDb.database;
-      final updateData = {
-        'state': newState.name,
-        'lastModified': DateTime.now().toIso8601String(),
-      };
-
-      if (syncedAt != null) {
-        updateData['syncedAt'] = syncedAt.toIso8601String();
-      }
-
-      await db.update(
-        draftsTable,
-        updateData,
-        where: 'draftId = ?',
-        whereArgs: [draftId],
-      );
-
-      // Update in memory cache
-      final index = pendingDrafts.indexWhere((d) => d.draftId == draftId);
-      if (index >= 0) {
-        final updatedDraft = pendingDrafts[index].copyWith(
-          state: newState,
-          syncedAt: syncedAt,
-          lastModified: DateTime.now(),
-        );
-        pendingDrafts[index] = updatedDraft;
-      }
-
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error updating draft state', error: e, tag: 'DRAFTS');
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Update draft state disabled - local caching removed', tag: 'DRAFTS');
   }
 
   /// Delete draft from storage
+  /// DISABLED: Local caching removed
   Future<void> deleteDraft(String draftId) async {
-    try {
-      if (kIsWeb) {
-        // Web: Delete from SharedPreferences
-        await WebStorageHelper.deleteWebData('offline_drafts', draftId);
-        AppLogger.database('🌐 [OfflineDrafts] Web draft deleted: $draftId', tag: 'DRAFTS');
-      } else {
-        // Mobile: Delete from SQLite database
-        final db = await _localDb.database;
-        await db.delete(
-          draftsTable,
-          where: 'draftId = ?',
-          whereArgs: [draftId],
-        );
-        AppLogger.database('🐘 [OfflineDrafts] SQLite draft deleted: $draftId', tag: 'DRAFTS');
-      }
-
-      pendingDrafts.removeWhere((d) => d.draftId == draftId);
-      unsyncedDraftsCount.value = pendingDrafts.where((d) => d.state != DraftState.saved).length;
-
-      AppLogger.database('📝 [OfflineDrafts] Draft deleted: $draftId', tag: 'DRAFTS');
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error deleting draft', error: e, tag: 'DRAFTS');
-      rethrow;
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Delete draft disabled - local caching removed', tag: 'DRAFTS');
   }
 
   /// Force sync all pending drafts (manual trigger)
@@ -670,20 +414,9 @@ class OfflineDraftsService extends GetxController {
   }
 
   /// Clear old synced drafts (cleanup)
+  /// DISABLED: Local caching removed
   Future<void> clearSyncedDrafts({Duration olderThan = const Duration(days: 7)}) async {
-    try {
-      final cutoffDate = DateTime.now().subtract(olderThan);
-      final db = await _localDb.database;
-
-      final deleted = await db.delete(
-        draftsTable,
-        where: 'state = ? AND syncedAt IS NOT NULL AND syncedAt < ?',
-        whereArgs: [DraftState.saved.name, cutoffDate.toIso8601String()],
-      );
-
-      AppLogger.database('🧹 [OfflineDrafts] Cleared $deleted old synced drafts', tag: 'DRAFTS');
-    } catch (e) {
-      AppLogger.databaseError('📝 [OfflineDrafts] Error clearing synced drafts', error: e, tag: 'DRAFTS');
-    }
+    // Service disabled due to local caching removal
+    AppLogger.database('🚫 [OfflineDrafts] Clear synced drafts disabled - local caching removed', tag: 'DRAFTS');
   }
 }

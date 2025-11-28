@@ -5,30 +5,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/candidate_model.dart';
 import '../models/achievements_model.dart';
 import '../../../features/user/models/user_model.dart';
-import '../../../utils/data_compression.dart';
-import '../../../utils/error_recovery_manager.dart';
-import '../../../utils/advanced_analytics.dart';
-import '../../../utils/multi_level_cache.dart';
 import 'candidate_cache_manager.dart';
 import '../../../utils/app_logger.dart';
 
 class CandidateOperations {
   final FirebaseFirestore _firestore;
-  final DataCompressionManager _compressionManager;
-  final FirebaseDataOptimizer _dataOptimizer;
-  final ErrorRecoveryManager _errorRecovery;
-  final AdvancedAnalyticsManager _analytics;
-  final MultiLevelCache _cache;
   final CandidateCacheManager _cacheManager;
 
 
   CandidateOperations(
     this._firestore,
-    this._compressionManager,
-    this._dataOptimizer,
-    this._errorRecovery,
-    this._analytics,
-    this._cache,
+    dynamic compressionManager, // No longer used
+    dynamic dataOptimizer, // No longer used
+    dynamic errorRecovery, // No longer used
+    dynamic analytics, // No longer used
+    dynamic cache, // No longer used
     this._cacheManager,
   );
 
@@ -57,8 +48,8 @@ class CandidateOperations {
       candidateData['status'] = 'pending_election'; // Default status
       candidateData['createdAt'] = FieldValue.serverTimestamp();
 
-      // Optimize data for storage (compress if beneficial)
-      final optimizedData = _dataOptimizer.optimizeForSave(candidateData);
+      // Data optimization removed (no caching)
+      final optimizedData = candidateData;
 
       // Use the candidateId if provided, otherwise let Firestore generate one
       final docRef =

@@ -1,20 +1,20 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../../../utils/app_logger.dart';
 import '../../../../../../utils/snackbar_utils.dart';
 import '../../../models/candidate_model.dart';
 import '../../../controllers/candidate_user_controller.dart';
-import 'photo_upload_handler.dart';
 import 'date_picker_handler.dart';
 import 'gender_selector.dart';
 import 'form_field_builder.dart';
 import 'demo_data_populator.dart';
+import 'profile_photo_widget.dart';
 import '../../../../../../l10n/features/candidate/candidate_localizations.dart';
 
 /// BasicInfoEdit - Handles editing of candidate basic information
 /// Follows Single Responsibility Principle: Only responsible for editing logic
+/// Updated to use cross-platform ImageUploadSection for unified file handling
 class BasicInfoEdit extends StatefulWidget {
   final Candidate candidateData;
   final Candidate? editedData;
@@ -45,14 +45,12 @@ class BasicInfoEdit extends StatefulWidget {
 
 class _BasicInfoEditState extends State<BasicInfoEdit> {
   // Handler instances
-  final PhotoUploadHandler _photoHandler = PhotoUploadHandler();
   final DatePickerHandler _dateHandler = DatePickerHandler();
   final GenderSelector _genderSelector = GenderSelector();
 
   // Access controller directly for reactive photo updates
   final CandidateUserController _controller = Get.find<CandidateUserController>();
 
-  bool _isUploadingPhoto = false;
   late TextEditingController _nameController;
   late TextEditingController _cityController;
   late TextEditingController _wardController;
@@ -135,27 +133,6 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     }
   }
 
-  Future<void> _pickAndStoreImageLocally() async {
-    setState(() {
-      _isUploadingPhoto = true;
-    });
-
-    try {
-      final imagePath = await _photoHandler.pickAndCropImage(context);
-      if (imagePath != null) {
-        // Store local image path instead of uploading
-        // We'll use a special identifier to indicate this is a local path pending upload
-        final localPhotoIdentifier = 'local:$imagePath';
-        widget.onPhotoChange(localPhotoIdentifier);
-        AppLogger.candidate('📸 Photo selected locally: $imagePath');
-      }
-    } finally {
-      setState(() {
-        _isUploadingPhoto = false;
-      });
-    }
-  }
-
   Future<void> _selectBirthDate(BuildContext context) async {
     final picked = await _dateHandler.selectBirthDate(context);
     if (picked != null) {
@@ -220,6 +197,8 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
     return Obx(() {
       // Use controller's reactive data directly instead of widget parameters
       final data = _controller.editedData.value ?? _controller.candidateData.value!;
+      final photoValue = data.basicInfo?.photo;
+      final isLocalPhoto = photoValue != null && photoValue.startsWith('local:');
 
       return Card(
         margin: const EdgeInsets.all(16),
@@ -234,98 +213,40 @@ class _BasicInfoEditState extends State<BasicInfoEdit> {
               ),
               const SizedBox(height: 16),
 
-              // Photo and Name Section
-              Builder(
-                builder: (context) {
-                  final photoValue = data.basicInfo!.photo;
-                  final isLocalPhoto = photoValue != null && photoValue.startsWith('local:');
-                  AppLogger.candidate(
-                    '🎨 BasicInfoEdit displaying photo - value: "$photoValue", isLocal: $isLocalPhoto',
-                    tag: 'PHOTO_DEBUG'
-                  );
-                  if (isLocalPhoto) {
-                    final localPath = photoValue.substring(6);
-                    AppLogger.candidate('📁 Local file path: $localPath', tag: 'PHOTO_DEBUG');
-                  }
+              // Photo Section
+              Column(
+                children: [
+                  Text(
+                    'Profile Photo',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: ProfilePhotoWidget(
+                      currentPhotoUrl: photoValue != null && !photoValue.startsWith('local:') ? photoValue : null,
+                      storagePath: 'profile_images/${FirebaseAuth.instance.currentUser?.uid ?? "temp"}',
+                      onPhotoSelected: (String? uploadedUrl) {
+                        if (uploadedUrl != null) {
+                          widget.onPhotoChange(uploadedUrl);
+                          AppLogger.candidate('📸 Photo uploaded successfully: $uploadedUrl');
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-                  return Row(
-                    children: [
-                      // Profile Photo with Camera Overlay
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundImage: photoValue != null
-                                ? (isLocalPhoto
-                                    ? (kIsWeb && photoValue.substring(6).startsWith('blob:')
-                                        ? NetworkImage(photoValue.substring(6)) // Web: Use NetworkImage for blob URLs
-                                        : FileImage(File(photoValue.substring(6)))) // Mobile: Use FileImage for file paths
-                                    : NetworkImage(photoValue))
-                                : null,
-                            child: photoValue == null
-                                ? Text(
-                                    data.basicInfo?.fullName?.isNotEmpty == true
-                                        ? data.basicInfo!.fullName![0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(fontSize: 24),
-                                  )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: _isUploadingPhoto ? null : _pickAndStoreImageLocally,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.2),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: _isUploadingPhoto
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: CandidateLocalizations.of(context)!.fullName,
-                            border: const OutlineInputBorder(),
-                          ),
-                          onChanged: widget.onNameChange,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+              // Name Section
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: CandidateLocalizations.of(context)!.fullName,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: widget.onNameChange,
               ),
               const SizedBox(height: 16),
 

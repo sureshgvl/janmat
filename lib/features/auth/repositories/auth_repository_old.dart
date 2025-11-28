@@ -12,8 +12,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../features/user/models/user_model.dart';
 import '../../chat/controllers/chat_controller.dart';
 import '../../candidate/controllers/candidate_controller.dart';
-import '../../../services/admob_service.dart';
-import '../../../features/user/services/user_cache_service.dart';
 import '../../../services/background_sync_manager.dart';
 import '../../../services/fcm_service.dart';
 import '../../../utils/performance_monitor.dart';
@@ -23,7 +21,6 @@ class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-  final UserCacheService _cacheService = UserCacheService();
   final BackgroundSyncManager _syncManager = BackgroundSyncManager();
   final FCMService _fcmService = FCMService();
 
@@ -434,7 +431,6 @@ class AuthRepository {
           roleSelected: false,
           profileCompleted: false,
           electionAreas: [], // Will be set during profile completion
-          xpPoints: 0,
           premium: false,
           createdAt: DateTime.now(),
           photoURL: firebaseUser.photoURL,
@@ -444,7 +440,7 @@ class AuthRepository {
         await userDoc.set(userModel.toJson(), SetOptions(merge: true));
 
         // Create default quota for new user (optimized)
-        await _createDefaultUserQuotaOptimized(firebaseUser.uid);
+        // await _createDefaultUserQuotaOptimized(firebaseUser.uid);
 
         AppLogger.auth('✅ New user created successfully');
       } else {
@@ -1033,7 +1029,7 @@ class AuthRepository {
 
       // 7. Delete user quota data
       AppLogger.auth('📊 Deleting user quota...');
-      await _deleteUserQuota(userId, getCurrentBatch());
+      // await _deleteUserQuota(userId, getCurrentBatch());
 
       // 8. Delete reported messages by the user
       AppLogger.auth('🚨 Deleting reported messages...');
@@ -1142,9 +1138,6 @@ class AuthRepository {
       }
       if (Get.isRegistered<CandidateController>()) {
         Get.delete<CandidateController>(force: true);
-      }
-      if (Get.isRegistered<AdMobService>()) {
-        Get.delete<AdMobService>(force: true);
       }
 
       AppLogger.auth(
@@ -1952,8 +1945,6 @@ class AuthRepository {
       'preparedAt': DateTime.now().toIso8601String(),
     };
 
-    // Cache locally for immediate access
-    await _cacheService.cacheTempUserData(userData);
 
     AppLogger.auth('✅ User data prepared and cached locally');
     return userData;

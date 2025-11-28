@@ -5,12 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:uuid/uuid.dart';
-import '../local_database_service.dart'; // Assuming this exists for DB path
 import 'i_sync_service.dart';
+import '../../core/services/firebase_uploader.dart';
+import '../../core/models/unified_file.dart';
 
 // CallbackDispatcher for WorkManager
 void callbackDispatcher() {
@@ -29,7 +29,6 @@ void callbackDispatcher() {
 class MobileSyncService implements ISyncService {
   static MobileSyncService? _instance;
   Database? _database;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Uuid _uuid = const Uuid();
 
@@ -247,11 +246,18 @@ class MobileSyncService implements ISyncService {
     final localPath = row['localPath'] as String?;
     if (localPath == null || !File(localPath).existsSync()) return false;
 
-    final fileRef = _storage.ref().child('candidates/${op.candidateId}/media/${op.payload['tempId']}');
-    final uploadTask = fileRef.putFile(File(localPath));
-
-    await uploadTask;
-    final downloadUrl = await fileRef.getDownloadURL();
+    final file = File(localPath);
+    final fileName = localPath.split('/').last;
+    final unifiedFile = UnifiedFile(
+      name: fileName,
+      size: op.payload['size'] as int,
+      file: file,
+      mimeType: null, // Will be detected by FirebaseUploader
+    );
+    final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+      f: unifiedFile,
+      storagePath: 'candidates/${op.candidateId}/media/${op.payload['tempId']}',
+    );
 
     // Update Firestore media subcollection
     await _firestore.collection('candidates').doc(op.candidateId).collection('media').doc(op.payload['tempId']).set({

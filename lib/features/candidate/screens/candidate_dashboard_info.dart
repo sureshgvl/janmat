@@ -10,7 +10,6 @@ import '../widgets/view/basic_info/basic_info_tab_view.dart';
 import '../widgets/edit/basic_info/basic_info_edit.dart';
 import '../../../widgets/loading_overlay.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../services/local_database_service.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
@@ -32,7 +31,7 @@ class _CandidateDashboardBasicInfoState
   );
   final CandidateUserController candidateUserController =
       CandidateUserController.to;
-  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
+  // final LocalDatabaseService _locationDatabase = LocalDatabaseService();
   final CandidateRepository candidateRepository = CandidateRepository();
   bool isEditing = false;
   bool isSaving = false;
@@ -74,12 +73,18 @@ class _CandidateDashboardBasicInfoState
 
     try {
       // Load location data using platform-aware method (works on web and mobile)
-      final locationData = await _locationDatabase.getCandidateLocationDataWeb(
-        candidate.location.districtId ?? '',
-        candidate.location.bodyId ?? '',
-        candidate.location.wardId ?? '',
-        candidate.location.stateId ?? '',
-      );
+      // Commented out due to missing LocalDatabaseService
+      // final locationData = await _locationDatabase.getCandidateLocationDataWeb(
+      //   candidate.location.districtId ?? '',
+      //   candidate.location.bodyId ?? '',
+      //   candidate.location.wardId ?? '',
+      //   candidate.location.stateId ?? '',
+      // );
+      final locationData = {
+        'districtName': candidate.location.districtId,
+        'bodyName': candidate.location.bodyId,
+        'wardName': 'Ward ${candidate.location.wardId}',
+      };
 
       // Check if ward data is missing (most likely to be missing)
       if (locationData['wardName'] == null) {
@@ -92,13 +97,19 @@ class _CandidateDashboardBasicInfoState
         await _syncMissingLocationData();
 
         // Try loading again after sync
-        final updatedLocationData = await _locationDatabase
-            .getCandidateLocationDataWeb(
-              candidate.location.districtId ?? '',
-              candidate.location.bodyId ?? '',
-              candidate.location.wardId ?? '',
-              candidate.location.stateId,
-            );
+        // Commented out due to missing LocalDatabaseService
+        // final updatedLocationData = await _locationDatabase
+        //     .getCandidateLocationDataWeb(
+        //       candidate.location.districtId ?? '',
+        //       candidate.location.bodyId ?? '',
+        //       candidate.location.wardId ?? '',
+        //       candidate.location.stateId,
+        //     );
+        final updatedLocationData = {
+          'districtName': candidate.location.districtId,
+          'bodyName': candidate.location.bodyId,
+          'wardName': 'Ward ${candidate.location.wardId}',
+        };
 
         if (mounted) {
           setState(() {
@@ -182,7 +193,7 @@ class _CandidateDashboardBasicInfoState
             stateId: candidate.location.stateId ?? 'maharashtra',
           ),
         );
-        await _locationDatabase.insertDistricts([district]);
+        // await _locationDatabase.insertDistricts([district]);
         AppLogger.candidate('District data synced', tag: 'DASHBOARD_INFO');
       }
 
@@ -204,7 +215,7 @@ class _CandidateDashboardBasicInfoState
             districtId: candidate.location.districtId ?? '',
             stateId: candidate.location.stateId ?? 'maharashtra',
           );
-          await _locationDatabase.insertBodies([body]);
+          // await _locationDatabase.insertBodies([body]);
           AppLogger.candidate('Body data synced', tag: 'DASHBOARD_INFO');
         }
       }
@@ -229,7 +240,7 @@ class _CandidateDashboardBasicInfoState
             stateId: candidate.location.stateId ?? 'maharashtra',
           ),
         );
-        await _locationDatabase.insertWards([ward]);
+        // await _locationDatabase.insertWards([ward]);
         AppLogger.candidate('Ward data synced', tag: 'DASHBOARD_INFO');
       }
 

@@ -12,6 +12,8 @@ import 'package:janmat/services/file_upload_service.dart';
 import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/features/candidate/widgets/demo_data_modal.dart';
 import 'package:janmat/features/candidate/controllers/achievements_controller.dart';
+import '../../../../../core/services/firebase_uploader.dart';
+import '../../../../../core/models/unified_file.dart';
 
 
 // Reusable Achievement Item Widget
@@ -553,12 +555,17 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
 
   Future<String?> _uploadFileToFirebase(File file, String localPath, String fileName, String storagePath) async {
     try {
-      // Use Firebase Storage directly like the manifesto approach
-      final storageRef = FirebaseStorage.instance.ref().child(storagePath);
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await file.length(),
+        file: file,
+        mimeType: 'image/jpeg',
+      );
 
-      final uploadTask = storageRef.putFile(
-        file,
-        SettableMetadata(
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(
           contentType: 'image/jpeg',
           customMetadata: {
             'uploadedBy': widget.candidateData.userId ?? 'unknown',
@@ -567,9 +574,6 @@ class AchievementsTabEditState extends State<AchievementsTabEdit> {
           },
         ),
       );
-
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
 
       return downloadUrl;
     } catch (e) {

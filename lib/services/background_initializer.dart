@@ -6,7 +6,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import '../utils/app_logger.dart';
-import 'location_data_service.dart';
 
 /// Background Initializer Service for Zero Frame Skipping
 /// Uses Flutter isolates and compute functions to eliminate all frame drops
@@ -42,7 +41,6 @@ class BackgroundInitializer {
     // Defer all Firebase operations to post-frame callback
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _initializeFirebaseInBackground();
-      _initializeLocationDataService();
     });
 
     _isInitialized = true;
@@ -126,18 +124,6 @@ class BackgroundInitializer {
     }
   }
 
-  /// Initialize LocationDataService with zero frame impact
-  Future<void> _initializeLocationDataService() async {
-    try {
-      SchedulerBinding.instance.addPostFrameCallback((_) async {
-        AppLogger.common('🔄 Initializing LocationDataService with zero frames');
-        await LocationDataService.instance.initialize();
-        AppLogger.common('✅ LocationDataService initialized with zero frames');
-      });
-    } catch (e) {
-      AppLogger.commonError('❌ LocationDataService initialization failed', error: e);
-    }
-  }
 
   /// Initialize services with zero frame impact - disabled compute on web
   Future<void> initializeServiceWithZeroFrames(

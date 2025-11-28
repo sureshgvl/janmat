@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'local_database_service.dart';
 
 class BackgroundLocationSyncService {
   static BackgroundLocationSyncService? _instance;
   Timer? _syncTimer;
-  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
   final Connectivity _connectivity = Connectivity();
 
 
@@ -32,7 +30,7 @@ class BackgroundLocationSyncService {
     }
   }
 
-  // Perform periodic sync (simplified - main caching is done during profile completion)
+  // Perform periodic sync (simplified - no caching)
   Future<void> _performPeriodicSync() async {
     try {
       // Check network connectivity
@@ -42,13 +40,7 @@ class BackgroundLocationSyncService {
         return;
       }
 
-      developer.log('Checking SQLite database health...');
-
-      // Get database statistics to ensure it's working
-      final stats = await _locationDatabase.getStatistics();
-      developer.log('Database statistics: ${stats['districts']} districts, ${stats['bodies']} bodies, ${stats['wards']} wards');
-
-      developer.log('Periodic location sync completed successfully');
+      developer.log('Location sync completed successfully (no caching)');
     } catch (e) {
       developer.log('Error in periodic location sync: $e');
     }
@@ -66,45 +58,27 @@ class BackgroundLocationSyncService {
         throw Exception('No network connectivity');
       }
 
-      // Get current database statistics
-      final stats = await _locationDatabase.getStatistics();
-      developer.log('Current database statistics: ${stats['districts']} districts, ${stats['bodies']} bodies, ${stats['wards']} wards');
-      developer.log('Manual location sync completed');
+      developer.log('Manual location sync completed (no caching)');
     } catch (e) {
       developer.log('Error in manual location sync: $e');
       throw Exception('Failed to sync location data: $e');
     }
   }
 
-  // Get cache statistics
+  // Get cache statistics (no-op since no caching)
   Future<Map<String, int>> getCacheStatistics() async {
-    try {
-      return await _locationDatabase.getStatistics();
-    } catch (e) {
-      developer.log('Error getting cache statistics: $e');
-      return {'districts': 0, 'bodies': 0, 'wards': 0};
-    }
+    developer.log('Cache statistics requested (no caching)');
+    return {'districts': 0, 'bodies': 0, 'wards': 0};
   }
 
-  // Clear all cached data
+  // Clear all cached data (no-op since no caching)
   Future<void> clearCache() async {
-    try {
-      await _locationDatabase.clearAllData();
-      developer.log('Location cache cleared');
-    } catch (e) {
-      developer.log('Error clearing location cache: $e');
-    }
+    developer.log('Location cache clear requested (no caching)');
   }
 
-  // Preload location data (for better initial performance)
+  // Preload location data (no-op since no caching)
   Future<void> preloadLocationData() async {
-    try {
-      // Get current statistics to ensure database is accessible
-      final stats = await _locationDatabase.getStatistics();
-      developer.log('Database preloaded - contains ${stats['districts']} districts, ${stats['bodies']} bodies, ${stats['wards']} wards');
-    } catch (e) {
-      developer.log('Error preloading location data: $e');
-    }
+    developer.log('Location data preload requested (no caching)');
   }
 
   // Stop the background sync (useful for testing or when app is backgrounded for long time)

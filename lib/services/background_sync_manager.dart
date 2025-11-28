@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/features/user/models/user_model.dart';
-import 'package:janmat/features/user/services/user_cache_service.dart';
 import '../utils/app_logger.dart';
 
 
@@ -12,7 +11,6 @@ class BackgroundSyncManager {
   BackgroundSyncManager._internal();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final UserCacheService _cacheService = UserCacheService();
 
   // Queue for background operations
   final List<Future<void> Function()> _syncQueue = [];
@@ -126,7 +124,6 @@ class BackgroundSyncManager {
             roleSelected: false,
             profileCompleted: false,
             electionAreas: [],
-            xpPoints: 0,
             premium: false,
             createdAt: DateTime.now(),
             photoURL: null, // User will add manually
@@ -134,8 +131,7 @@ class BackgroundSyncManager {
 
           await userDoc.set(userModel.toJson(), SetOptions(merge: true));
 
-          // Cache the user profile locally
-          await _cacheService.cacheUserProfile(userModel);
+          // No caching - user profile stored in controller only
 
           AppLogger.common('✅ Full user profile created and cached');
         } else {
@@ -149,9 +145,7 @@ class BackgroundSyncManager {
 
           await userDoc.update(updatedData);
 
-          // Update cache
-          final userModel = UserModel.fromJson({...existingData, ...updatedData});
-          await _cacheService.cacheUserProfile(userModel);
+          // No caching - user profile stored in controller only
 
           AppLogger.common('✅ User profile updated and cache refreshed');
         }
@@ -167,17 +161,8 @@ class BackgroundSyncManager {
       try {
         AppLogger.common('🔄 Syncing user preferences...');
 
-        // Get local preferences and sync to Firestore
-        final prefs = await _cacheService.getQuickUserData();
-        if (prefs != null) {
-          final userPrefsRef = _firestore.collection('user_preferences').doc(userId);
-          await userPrefsRef.set({
-            'lastSync': FieldValue.serverTimestamp(),
-            'preferences': prefs,
-          }, SetOptions(merge: true));
-
-          AppLogger.common('✅ User preferences synced');
-        }
+        // No caching - preferences stored in controller only
+        AppLogger.common('✅ User preferences sync skipped (no caching)');
       } catch (e) {
         AppLogger.common('⚠️ Error syncing user preferences: $e');
       }
@@ -190,8 +175,7 @@ class BackgroundSyncManager {
       try {
         AppLogger.common('🧹 Cleaning up expired data...');
 
-        // Clean up old cached data
-        await _cacheService.clearUserCache();
+        // No caching - cleanup not needed
 
         // Clean up old Firestore data if needed
         // This could include cleaning up old messages, expired sessions, etc.

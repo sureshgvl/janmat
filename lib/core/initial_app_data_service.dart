@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/user/models/user_model.dart';
 import '../features/language/services/language_service.dart';
-import '../utils/multi_level_cache.dart';
 import '../utils/app_logger.dart';
 
 /// Extension to handle Locale serialization/deserialization for JSON
@@ -74,12 +73,12 @@ class InitialAppDataService {
     }
   }
 
-  // Background refresh mechanism for user data
+  // Background refresh mechanism for user data (simplified - no caching)
   Future<void> _refreshUserDataInBackground(String userId) async {
     try {
       AppLogger.core('🔄 Starting background user data refresh for: $userId');
 
-      // Fetch fresh data from server
+      // Fetch fresh data from server (no caching)
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -89,8 +88,7 @@ class InitialAppDataService {
         final userData = userDoc.data()!;
         final userModel = UserModel.fromJson(userData);
 
-        // Update routing cache with fresh data
-        final cache = MultiLevelCache();
+        // Determine route based on user data (no caching)
         final role = userModel.role;
         final profileCompleted = userModel.profileCompleted;
 
@@ -103,13 +101,7 @@ class InitialAppDataService {
           route = '/home';
         }
 
-        final updatedRoutingData = {
-          'route': route,
-          'locale': const Locale('en').toJson(), // Default locale
-        };
-
-        await cache.setUserRoutingData(userId, updatedRoutingData);
-        AppLogger.core('✅ Background refresh completed for user: $userId');
+        AppLogger.core('✅ Background refresh completed for user: $userId, route: $route');
       }
     } catch (e) {
       AppLogger.core('⚠️ Background refresh failed: $e');

@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../features/user/models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../models/candidate_model.dart';
 import '../models/events_model.dart';
 import '../models/basic_info_model.dart';
@@ -9,8 +9,7 @@ import '../models/contact_model.dart';
 import '../models/manifesto_model.dart';
 import '../models/achievements_model.dart';
 import '../models/location_model.dart';
-import '../../../features/user/controllers/user_controller.dart';
-import '../../../features/user/services/user_cache_service.dart';
+import '../../user/controllers/user_controller.dart';
 import '../repositories/candidate_repository.dart';
 import '../controllers/media_controller.dart';
 import '../controllers/achievements_controller.dart';
@@ -37,6 +36,12 @@ class CandidateUserController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isInitialized = false.obs;
   final RxBool isPaid = false.obs; // For backward compatibility
+
+  // Profile cache for other candidates (LRU cache with time expiration)
+  final Map<String, Candidate> _profileCache = {};
+  final Map<String, DateTime> _cacheTimestamps = {};
+  static const Duration _cacheExpiration = Duration(minutes: 30);
+  static const int _maxCacheSize = 10;
 
   // Events data (for backward compatibility with events tab)
   final RxList<EventData> events = RxList<EventData>([]);
@@ -473,17 +478,12 @@ class CandidateUserController extends GetxController {
     if (user.value == null) return;
 
     try {
-      // Clear user cache service to ensure fresh Firebase data is loaded (not cached Google login name)
-      final userCacheService = Get.find<UserCacheService>();
-      await userCacheService.clearUserCache();
-      AppLogger.common('🧹 Cleared user cache for fresh Firebase data load in candidate screens');
-
       await _userController.refreshUserData();
       user.value = _userController.user.value;
 
       await refreshCandidateData();
 
-      AppLogger.common('✅ Candidate user data refreshed (cache-free)');
+      AppLogger.common('✅ Candidate user data refreshed');
     } catch (e) {
       AppLogger.commonError('❌ Failed to refresh candidate user data', error: e);
     }
@@ -496,7 +496,80 @@ class CandidateUserController extends GetxController {
     isInitialized.value = false;
     isLoading.value = false;
     _userController.clearUserData();
-    AppLogger.common('🧹 Candidate user data cleared');
+
+    // Clear profile cache
+    _profileCache.clear();
+    _cacheTimestamps.clear();
+
+    AppLogger.common('🧹 Candidate user data and profile cache cleared');
+  }
+
+  /// Get cached profile for other candidates
+  Candidate? getCachedProfile(String candidateId) {
+    final cached = _profileCache[candidateId];
+    final timestamp = _cacheTimestamps[candidateId];
+
+    // Check if cache is expired (30 minutes)
+    if (timestamp != null &&
+        DateTime.now().difference(timestamp) > _cacheExpiration) {
+      AppLogger.common('⏰ Profile cache expired for candidate: $candidateId');
+      _profileCache.remove(candidateId);
+      _cacheTimestamps.remove(candidateId);
+      return null;
+    }
+
+    if (cached != null) {
+      AppLogger.common('✅ Using cached profile for candidate: $candidateId');
+    }
+
+    return cached;
+  }
+
+  /// Cache profile for other candidates (LRU eviction)
+  void cacheProfile(Candidate candidate) {
+    final candidateId = candidate.candidateId;
+
+    _profileCache[candidateId] = candidate;
+    _cacheTimestamps[candidateId] = DateTime.now();
+
+    AppLogger.common('💾 Cached profile for candidate: $candidateId');
+
+    // Implement LRU eviction if cache is too large
+    if (_profileCache.length > _maxCacheSize) {
+      // Find the oldest entry
+      String? oldestKey;
+      DateTime? oldestTime;
+
+      _cacheTimestamps.forEach((key, timestamp) {
+        if (oldestTime == null || timestamp.isBefore(oldestTime!)) {
+          oldestTime = timestamp;
+          oldestKey = key;
+        }
+      });
+
+      if (oldestKey != null) {
+        _profileCache.remove(oldestKey);
+        _cacheTimestamps.remove(oldestKey);
+        AppLogger.common('🗑️ Evicted oldest cached profile: $oldestKey');
+      }
+    }
+
+    AppLogger.common('📊 Profile cache size: ${_profileCache.length}/$_maxCacheSize');
+  }
+
+  /// Check if profile is cached and not expired
+  bool isProfileCached(String candidateId) {
+    return getCachedProfile(candidateId) != null;
+  }
+
+  /// Get cache statistics
+  Map<String, dynamic> getCacheStats() {
+    return {
+      'size': _profileCache.length,
+      'maxSize': _maxCacheSize,
+      'expirationMinutes': _cacheExpiration.inMinutes,
+      'cachedIds': _profileCache.keys.toList(),
+    };
   }
 
   /// Check if user has candidate role

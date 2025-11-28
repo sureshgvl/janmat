@@ -130,7 +130,6 @@ class UserController extends GetxController {
         role: updates['role'],
         roleSelected: updates['roleSelected'],
         profileCompleted: updates['profileCompleted'],
-        xpPoints: updates['xpPoints'],
         premium: updates['premium'],
         photoURL: updates['photoURL'],
         followingCount: updates['followingCount'],

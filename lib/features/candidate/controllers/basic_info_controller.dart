@@ -7,12 +7,13 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import '../../../utils/app_logger.dart';
 import '../../../services/sync/i_sync_service.dart';
-import '../controllers/candidate_user_controller.dart';
 import '../models/basic_info_model.dart';
 import '../repositories/basic_info_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
-import '../../../features/user/services/user_cache_service.dart';
+import '../../../features/user/controllers/user_controller.dart';
 import '../../notifications/services/constituency_notifications.dart';
+import '../../../core/services/firebase_uploader.dart';
+import '../../../core/models/unified_file.dart';
 
 abstract class IBasicInfoController {
   Future<BasicInfoModel?> getBasicInfo(dynamic candidate); // Accept candidate object
@@ -68,33 +69,61 @@ class BasicInfoController extends GetxController implements IBasicInfoController
 
         try {
           final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final storageRef = FirebaseStorage.instance.ref().child('profile_images/$userId/$fileName');
-
-          UploadTask uploadTask;
+          String? uploadedUrl;
 
           if (kIsWeb && localFilePath.startsWith('blob:')) {
-            // Web: Download blob data and upload as bytes
-            AppLogger.database('🌐 WEB UPLOAD: Converting blob to bytes...', tag: 'BASIC_INFO_TAB');
-            final response = await http.get(Uri.parse(localFilePath));
-            if (response.statusCode == 200) {
-              uploadTask = storageRef.putData(
-                response.bodyBytes,
-                SettableMetadata(contentType: 'image/jpeg'),
-              );
-            } else {
-              throw Exception('Failed to download blob: ${response.statusCode}');
-            }
-          } else {
-            // Mobile: Use File directly
-            AppLogger.database('📱 MOBILE UPLOAD: Using file path...', tag: 'BASIC_INFO_TAB');
-            uploadTask = storageRef.putFile(
-              File(localFilePath),
-              SettableMetadata(contentType: 'image/jpeg'),
-            );
-          }
+             // Web: Download blob data and upload using FirebaseUploader
+             AppLogger.database('🌐 WEB UPLOAD: Converting blob to bytes...', tag: 'BASIC_INFO_TAB');
+             // Fetch blob data with timeout
+             final client = http.Client();
+             try {
+               final request = http.Request('GET', Uri.parse(localFilePath));
+               final streamedResponse = await client.send(request).timeout(const Duration(seconds: 30));
+               final response = await http.Response.fromStream(streamedResponse);
 
-          final snapshot = await uploadTask.whenComplete(() {});
-          final uploadedUrl = await snapshot.ref.getDownloadURL();
+               if (response.statusCode == 200) {
+                 if (response.bodyBytes.isEmpty) {
+                   throw Exception('Selected file appears to be empty. Please choose a different file.');
+                 }
+
+                 // Validate file size (10MB limit for profile images)
+                 const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+                 if (response.bodyBytes.length > maxSizeBytes) {
+                   throw Exception('Profile image is too large (${(response.bodyBytes.length / (1024 * 1024)).toStringAsFixed(1)}MB). Maximum allowed size is 10MB.');
+                 }
+
+                 final unifiedFile = UnifiedFile(
+                   name: fileName,
+                   size: response.bodyBytes.length,
+                   bytes: response.bodyBytes,
+                   mimeType: 'image/jpeg',
+                 );
+                 uploadedUrl = await FirebaseUploader.uploadUnifiedFile(
+                   f: unifiedFile,
+                   storagePath: 'profile_images/$userId/$fileName',
+                   metadata: SettableMetadata(contentType: 'image/jpeg'),
+                 );
+               } else {
+                 throw Exception('Failed to read file data (HTTP ${response.statusCode}). Please try selecting the file again.');
+               }
+             } finally {
+               client.close();
+             }
+           } else {
+             // Mobile: Use FirebaseUploader
+             AppLogger.database('📱 MOBILE UPLOAD: Using FirebaseUploader...', tag: 'BASIC_INFO_TAB');
+             final unifiedFile = UnifiedFile(
+               name: fileName,
+               size: File(localFilePath).lengthSync(),
+               file: File(localFilePath),
+               mimeType: 'image/jpeg',
+             );
+             uploadedUrl = await FirebaseUploader.uploadUnifiedFile(
+               f: unifiedFile,
+               storagePath: 'profile_images/$userId/$fileName',
+               metadata: SettableMetadata(contentType: 'image/jpeg'),
+             );
+           }
 
           finalPhotoUrl = uploadedUrl;
           AppLogger.database('📸 PHOTO UPLOAD: Success! URL: $uploadedUrl', tag: 'BASIC_INFO_TAB');
@@ -106,6 +135,22 @@ class BasicInfoController extends GetxController implements IBasicInfoController
           }
         } catch (e) {
           AppLogger.databaseError('❌ PHOTO UPLOAD: Failed to upload photo', tag: 'BASIC_INFO_TAB', error: e);
+
+          // Provide user-friendly error messages for blob-specific errors
+          String errorMessage = 'Failed to upload profile photo';
+          if (e.toString().contains('timeout')) {
+            errorMessage = 'Photo upload timed out. The file may be too large or your connection is slow.';
+          } else if (e.toString().contains('CORS') || e.toString().contains('cross-origin')) {
+            errorMessage = 'Unable to access photo due to browser security restrictions. Please try selecting the file again.';
+          } else if (e.toString().contains('too large') || e.toString().contains('size')) {
+            errorMessage = e.toString(); // File size error already has good message
+          } else if (e.toString().contains('quota-exceeded')) {
+            errorMessage = 'Storage quota exceeded. Please contact support or try a smaller photo.';
+          } else if (e.toString().contains('unauthorized')) {
+            errorMessage = 'Upload permission denied. Please try logging in again.';
+          }
+
+          AppLogger.database('⚠️ PHOTO UPLOAD: Continuing with save using original photo. Error: $errorMessage', tag: 'BASIC_INFO_TAB');
           // Continue with save but keep original photo
           finalPhotoUrl = candidate.basicInfo?.photo;
         }
@@ -312,6 +357,15 @@ class BasicInfoController extends GetxController implements IBasicInfoController
         .doc(user.uid)
         .update({'photoURL': photoUrl});
 
+      // Also update UserController directly to ensure immediate UI update
+      try {
+        final userController = Get.find<UserController>();
+        await userController.updateUserData({'photoURL': photoUrl});
+        AppLogger.database('👤 SYNC: UserController updated directly', tag: 'SYNC_OPS');
+      } catch (e) {
+        AppLogger.database('⚠️ SYNC: UserController update failed, relying on real-time listener', tag: 'SYNC_OPS');
+      }
+
       AppLogger.database('📝 SYNC: User document updated successfully', tag: 'SYNC_OPS');
     } catch (e) {
       AppLogger.databaseError('⚠️ SYNC: User document update failed', tag: 'SYNC_OPS', error: e);
@@ -328,13 +382,6 @@ class BasicInfoController extends GetxController implements IBasicInfoController
       // Invalidate chat controller cache
       final chatController = Get.find<ChatController>();
       chatController.invalidateUserCache(user.uid);
-
-      // Update UserCacheService
-      final userCacheService = UserCacheService();
-      await userCacheService.updateCachedUserData({
-        'uid': user.uid,
-        'photoURL': photoUrl,
-      });
 
       AppLogger.database('💾 SYNC: Local caches updated successfully', tag: 'SYNC_OPS');
     } catch (e) {

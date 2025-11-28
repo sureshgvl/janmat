@@ -21,6 +21,7 @@ import 'core/app_initializer.dart';
 import 'core/app_routes.dart';
 import 'core/app_route_names.dart';
 import 'core/services/app_startup_service.dart';
+import 'core/services/prefs_service.dart';
 import 'services/background_initializer.dart';
 import 'core/portrait_wrapper.dart';
 import 'l10n/app_localizations.dart';
@@ -40,6 +41,7 @@ import 'features/language/controller/language_controller.dart';
 import 'services/home_screen_stream_service.dart';
 import 'features/user/services/user_status_manager.dart';
 import 'features/highlight/services/highlight_session_service.dart';
+import 'core/services/cache_service.dart';
 
 /// Extension to handle Locale serialization/deserialization for JSON
 extension LocaleJsonExtension on Locale {
@@ -320,6 +322,9 @@ void main() async {
   // Ensure Flutter binding is initialized for safety
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize SharedPreferences service
+  await PrefsService.init();
+
   // Initialize databaseFactory for SQLite before any other initialization
   if (kIsWeb) {
     // Web: Initialize Sqflite for web early
@@ -343,6 +348,9 @@ void main() async {
     // Mobile also uses Hive for media queue
     await Hive.initFlutter();
   }
+
+  // Initialize CacheService after Hive
+  await CacheService.initialize();
 
   // Web-specific configuration is handled by web/index.html
   // The HTML sets up centering and mobile viewport automatically

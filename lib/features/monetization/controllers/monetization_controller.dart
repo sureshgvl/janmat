@@ -12,7 +12,6 @@ import '../../../models/payment_model.dart';
 import '../../../models/body_model.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../services/razorpay_service.dart';
-import '../../../services/local_database_service.dart';
 import '../../highlight/controller/highlight_plan_banner_controller.dart' as hc;
 import '../../highlight/services/highlight_service.dart';
 import '../../../features/candidate/controllers/candidate_controller.dart';
@@ -233,27 +232,28 @@ class MonetizationController extends GetxController {
       );
 
       // Try SQLite cache first for better performance (MOBILE ONLY)
-      if (!kIsWeb) {
-        try {
-          final localDb = LocalDatabaseService();
-          final cachedBodies = await localDb.getBodiesForDistrict(districtId);
-          final cachedBody = cachedBodies.firstWhereOrNull(
-            (body) => body.id == bodyId,
-          );
+      // Commented out due to missing LocalDatabaseService
+      // if (!kIsWeb) {
+      //   try {
+      //     final localDb = LocalDatabaseService();
+      //     final cachedBodies = await localDb.getBodiesForDistrict(districtId);
+      //     final cachedBody = cachedBodies.firstWhereOrNull(
+      //       (body) => body.id == bodyId,
+      //     );
 
-          if (cachedBody != null) {
-            final electionType = _mapBodyTypeToElectionType(cachedBody.type);
-            AppLogger.monetization(
-              '✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})',
-            );
-            return electionType;
-          }
-        } catch (e) {
-          AppLogger.monetization(
-            '⚠️ [MonetizationController] SQLite cache failed on mobile: $e',
-          );
-        }
-      }
+      //     if (cachedBody != null) {
+      //       final electionType = _mapBodyTypeToElectionType(cachedBody.type);
+      //       AppLogger.monetization(
+      //         '✅ [MonetizationController] Found election type from cache: $electionType (body type: ${cachedBody.type})',
+      //       );
+      //       return electionType;
+      //     }
+      //   } catch (e) {
+      //     AppLogger.monetization(
+      //       '⚠️ [MonetizationController] SQLite cache failed on mobile: $e',
+      //     );
+      //   }
+      // }
 
       // Fallback to Firebase if not in cache or on web
       AppLogger.monetization(
@@ -1385,7 +1385,6 @@ class MonetizationController extends GetxController {
       _addLog('   Name: ${userModel.name}');
       _addLog('   Role: ${userModel.role}');
       _addLog('   Premium: ${userModel.premium}');
-      _addLog('   XP Points: ${userModel.xpPoints}');
       _addLog('   Profile Completed: ${userModel.profileCompleted}');
       _addLog(
         '   Subscription Plan: ${userModel.subscriptionPlanId ?? 'None'}',
@@ -1460,7 +1459,6 @@ class MonetizationController extends GetxController {
       'status': _getUserStatusText(user),
       'role': user.role,
       'premium': user.premium ?? false,
-      'xpBalance': user.xpPoints,
       'subscriptionCount': userSubscriptions.length,
       'activeSubscriptions': userSubscriptions
           .where((s) => s.isActive ?? false)

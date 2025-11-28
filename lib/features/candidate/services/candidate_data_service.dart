@@ -7,8 +7,6 @@ import '../models/contact_model.dart';
 import '../models/location_model.dart';
 import '../repositories/candidate_repository.dart';
 import '../../../utils/app_logger.dart';
-import '../../../features/user/services/user_cache_service.dart';
-import '../../../services/local_database_service.dart';
 import '../../../features/user/controllers/user_controller.dart';
 
 /// Service responsible for candidate data fetching, caching, and persistence.
@@ -16,21 +14,9 @@ import '../../../features/user/controllers/user_controller.dart';
 class CandidateDataService {
   final CandidateRepository _candidateRepository = CandidateRepository();
 
-  /// Fetch candidate data with caching and retry logic
+  /// Fetch candidate data from Firebase
   Future<Candidate?> fetchCandidateData(String userId) async {
-    // Check SQLite cache first for instant loading
-    final cachedCandidate = await _loadCandidateDataFromSQLite(userId);
-    if (cachedCandidate != null) {
-      AppLogger.database('⚡ Using cached candidate data from SQLite', tag: 'CANDIDATE_DATA_SERVICE');
-
-      // Refresh from Firebase in background (fire-and-forget)
-      _refreshCandidateDataInBackground(userId);
-
-      return cachedCandidate;
-    }
-
-    // CACHE MISS: Fetch from Firebase and cache for next time
-    AppLogger.database('Cache miss - fetching candidate data from Firebase', tag: 'CANDIDATE_DATA_SERVICE');
+    AppLogger.database('Fetching candidate data from Firebase', tag: 'CANDIDATE_DATA_SERVICE');
 
     // First check if user has completed their profile with retry logic
     final userDoc = await _fetchUserDocumentWithRetry(userId);
@@ -58,32 +44,12 @@ class CandidateDataService {
     // Try to fetch candidate data with retry logic
     final data = await _fetchCandidateDataWithRetry(userId);
     if (data != null) {
-      // Cache the candidate data in SQLite for instant future loads
-      await _cacheCandidateDataInSQLite(data);
-
-      // Update cache with the successful data for future use
-      try {
-        final userCacheService = UserCacheService();
-        await userCacheService.updateCachedUserData({
-          'uid': userData['uid'] ?? '',
-          'name': data.basicInfo!.fullName ?? userData['name'] ?? 'Unknown Candidate',
-          'email': userData['email'],
-          'photoURL': data.basicInfo!.photo ?? userData['photo'],
-          'party': data.party ?? userData['party'] ?? 'independent',
-          'districtId': data.location.districtId ?? userData['districtId'],
-          'bodyId': data.location.bodyId ?? userData['bodyId'],
-          'wardId': data.location.wardId ?? userData['wardId'],
-        });
-        AppLogger.database('Updated cache with successful candidate data', tag: 'CANDIDATE_DATA_SERVICE');
-      } catch (cacheError) {
-        AppLogger.databaseError('Failed to update cache with candidate data', tag: 'CANDIDATE_DATA_SERVICE', error: cacheError);
-      }
-
+      AppLogger.database('Successfully fetched candidate data', tag: 'CANDIDATE_DATA_SERVICE');
       return data;
     }
 
-    // Fallback: Try to use cached user data when Firestore is unavailable
-    return await _fallbackToCachedUserData(userData);
+    AppLogger.database('Failed to fetch candidate data', tag: 'CANDIDATE_DATA_SERVICE');
+    return null;
   }
 
   /// Check if user has premium access
@@ -154,147 +120,4 @@ class CandidateDataService {
     throw Exception('Failed to fetch candidate data after $maxRetries attempts');
   }
 
-  /// Load candidate data from SQLite cache
-  Future<Candidate?> _loadCandidateDataFromSQLite(String userId) async {
-    try {
-      AppLogger.database('Checking candidate data cache for user: $userId', tag: 'CANDIDATE_DATA_SERVICE');
-
-      final localDb = LocalDatabaseService();
-
-      // Check if candidate data cache is valid (24 hours)
-      final lastUpdate = await localDb.getLastUpdateTime('candidate_data_$userId');
-      final cacheAge = lastUpdate != null ? DateTime.now().difference(lastUpdate) : null;
-      final isCacheValid = lastUpdate != null &&
-          DateTime.now().difference(lastUpdate) < const Duration(hours: 24);
-
-      AppLogger.database('Candidate data cache status for user $userId:', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Last update: ${lastUpdate?.toIso8601String() ?? 'Never'}', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Cache age: ${cacheAge?.inMinutes ?? 'N/A'} minutes', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Is valid: $isCacheValid', tag: 'CANDIDATE_DATA_SERVICE');
-
-      if (!isCacheValid) {
-        AppLogger.database('Candidate data cache expired for user: $userId', tag: 'CANDIDATE_DATA_SERVICE');
-        return null;
-      }
-
-      // Try to load from a dedicated candidate cache table
-      final db = await localDb.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        LocalDatabaseService.candidatesTable,
-        where: 'id = ?',
-        whereArgs: ['user_candidate_$userId']
-      );
-
-      if (maps.isEmpty) {
-        AppLogger.database('No cached candidate data found for user: $userId', tag: 'CANDIDATE_DATA_SERVICE');
-        return null;
-      }
-
-      final map = maps.first;
-      final data = map['data'] as String;
-      final candidate = Candidate.fromJson(Map<String, dynamic>.from(json.decode(data)));
-
-      AppLogger.database('CACHE HIT - Loaded candidate data from SQLite', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  User: $userId', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Name: ${candidate.basicInfo!.fullName}', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Party: ${candidate.party}', tag: 'CANDIDATE_DATA_SERVICE');
-
-      return candidate;
-    } catch (e) {
-      AppLogger.databaseError('Error loading candidate data from SQLite (${e.toString()})', tag: 'CANDIDATE_DATA_SERVICE', error: e);
-      return null;
-    }
-  }
-
-  /// Cache candidate data in SQLite for instant future loads
-  Future<void> _cacheCandidateDataInSQLite(Candidate candidate) async {
-    try {
-      AppLogger.database('Caching candidate data for user: ${candidate.userId}', tag: 'CANDIDATE_DATA_SERVICE');
-
-      final localDb = LocalDatabaseService();
-
-      // Store in candidates table with special key for user's own data
-      final candidateDataMap = {
-        'id': 'user_candidate_${candidate.userId}',
-        'wardId': candidate.location.wardId ?? 'unknown',
-        'districtId': candidate.location.districtId ?? 'unknown',
-        'bodyId': candidate.location.bodyId ?? 'unknown',
-        'stateId': 'maharashtra',
-        'userId': candidate.userId,
-        'name': candidate.basicInfo!.fullName ?? 'Unknown',
-        'party': candidate.party ?? 'independent',
-        'followersCount': 0, // Not relevant for user's own data
-        'data': candidate.toJson().toString(),
-        'lastUpdated': DateTime.now().toIso8601String(),
-      };
-
-      final db = await localDb.database;
-      await db.insert(
-        LocalDatabaseService.candidatesTable,
-        candidateDataMap,
-        conflictAlgorithm: ConflictAlgorithm.replace
-      );
-
-      await localDb.updateCacheMetadata('candidate_data_${candidate.userId}');
-
-      AppLogger.database('Successfully cached candidate data', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Cache key: candidate_data_${candidate.userId}', tag: 'CANDIDATE_DATA_SERVICE');
-    } catch (e) {
-      AppLogger.databaseError('Error caching candidate data (${e.toString()})', tag: 'CANDIDATE_DATA_SERVICE', error: e);
-    }
-  }
-
-  /// Refresh candidate data from Firebase in background (fire-and-forget)
-  void _refreshCandidateDataInBackground(String userId) async {
-    try {
-      AppLogger.database('Background refresh: checking for updated candidate data', tag: 'CANDIDATE_DATA_SERVICE');
-
-      // Fetch latest data from Firebase
-      final data = await _fetchCandidateDataWithRetry(userId);
-      if (data != null) {
-        // Update cache with fresh data
-        await _cacheCandidateDataInSQLite(data);
-        AppLogger.database('Background refresh completed - cache updated', tag: 'CANDIDATE_DATA_SERVICE');
-      } else {
-        AppLogger.database('Background refresh: no candidate data found', tag: 'CANDIDATE_DATA_SERVICE');
-      }
-    } catch (e) {
-      AppLogger.database('Background refresh failed (non-critical): $e', tag: 'CANDIDATE_DATA_SERVICE');
-      // Don't throw - background refresh failure shouldn't affect UI
-    }
-  }
-
-  /// Fallback method to use cached user data when Firestore is unavailable
-  Future<Candidate?> _fallbackToCachedUserData(Map<String, dynamic> userData) async {
-    try {
-      AppLogger.database('Using cached user data fallback', tag: 'CANDIDATE_DATA_SERVICE');
-
-      // Create a basic candidate object from user data
-      final fallbackCandidate = Candidate(
-        candidateId: userData['uid'] ?? '',
-        userId: userData['uid'] ?? '',
-        party: userData['party'] ?? 'independent',
-        location: LocationModel(
-          districtId: userData['districtId'],
-          bodyId: userData['bodyId'],
-          wardId: userData['wardId'],
-        ),
-        sponsored: false, // Default to false when offline
-        approved: true, // Assume approved for cached data
-        status: 'active',
-        createdAt: DateTime.now(),
-        contact: ExtendedContact(phone: '', email: null, socialLinks: null),
-      );
-
-      AppLogger.database('Fallback candidate data loaded successfully', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Name: ${fallbackCandidate.basicInfo!.fullName}', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  Party: ${fallbackCandidate.party}', tag: 'CANDIDATE_DATA_SERVICE');
-      AppLogger.database('  District: ${fallbackCandidate.location.districtId}', tag: 'CANDIDATE_DATA_SERVICE');
-
-      return fallbackCandidate;
-    } catch (e) {
-      AppLogger.databaseError('Error creating fallback candidate data', tag: 'CANDIDATE_DATA_SERVICE', error: e);
-      return null;
-    }
-  }
 }

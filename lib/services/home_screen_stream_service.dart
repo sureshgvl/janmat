@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/services/home_data_preloader.dart';
-import 'package:janmat/utils/multi_level_cache.dart';
 import 'package:janmat/features/home/services/home_services.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
@@ -71,37 +70,9 @@ class HomeScreenStreamService {
     }
   }
 
-  /// 🚀 INSTANT DISPLAY: Try to emit cached candidate data immediately
+  /// 🚀 INSTANT DISPLAY: Try to emit cached candidate data immediately (no-op)
   Future<bool> _tryEmitInstantCachedData(String userId) async {
-    try {
-      // Try to get cached user and candidate data for instant display
-      final cacheKey = 'home_user_data_$userId';
-      final cachedHomeData = await MultiLevelCache().get<Map<String, dynamic>>(cacheKey);
-
-      if (cachedHomeData != null && cachedHomeData['user'] != null && cachedHomeData['candidate'] != null) {
-        // Convert cached data to models
-        final userModel = cachedHomeData['user'] is Map<String, dynamic>
-          ? UserModel.fromJson(cachedHomeData['user'] as Map<String, dynamic>)
-          : cachedHomeData['user'] as UserModel;
-
-        final candidateModel = cachedHomeData['candidate'] is Map<String, dynamic>
-          ? Candidate.fromJson(cachedHomeData['candidate'] as Map<String, dynamic>)
-          : cachedHomeData['candidate'] as Candidate;
-
-        // 🚀 INSTANT UI: Emit cached candidate data immediately for instant display
-        if (!_dataController.isClosed) {
-          _dataController.add(HomeScreenData.cachedCandidate(
-            userId: userId,
-            userModel: userModel,
-            cachedCandidateModel: candidateModel,
-          ));
-          AppLogger.common('⚡ INSTANT HOME: Emitted cached candidate data immediately');
-          return true;
-        }
-      }
-    } catch (e) {
-      AppLogger.common('⚠️ Could not load instant cached data: $e');
-    }
+    AppLogger.common('⚡ INSTANT HOME: Cached data loading skipped (no caching)');
     return false;
   }
 
@@ -153,68 +124,15 @@ class HomeScreenStreamService {
     }
   }
 
-  /// Emit cached or partial data for instant UI
+  /// Emit cached or partial data for instant UI (no-op)
   Future<void> _emitCachedOrPartialData(String userId) async {
-    try {
-      // Check for cached user routing data first
-      final routingData = await MultiLevelCache().getUserRoutingData(userId);
-
-      if (routingData != null && routingData['role'] == 'candidate') {
-        // For candidates, try to load cached candidate data for instant display
-        await _tryEmitCachedCandidateData(userId, routingData);
-      } else if (routingData != null) {
-        // For non-candidates, emit partial data from routing cache
-        if (!_dataController.isClosed) {
-          _dataController.add(HomeScreenData.partial(
-            userId: userId,
-            role: routingData['role'],
-            hasCompletedProfile: routingData['hasCompletedProfile'] ?? false,
-            hasSelectedRole: routingData['hasSelectedRole'] ?? false,
-          ));
-          AppLogger.common('⚡ Emitted partial data from routing cache for: $userId');
-        }
-      } else {
-        // No routing data, keep loading
-        _emitLoadingState(userId);
-      }
-    } catch (e) {
-      // Ignore cache errors, continue with fresh load
-      AppLogger.common('⚠️ Could not load partial data: $e');
-    }
+    AppLogger.common('⚡ Partial data loading skipped (no caching) for: $userId');
+    _emitLoadingState(userId);
   }
 
-  /// Try to emit cached candidate data for instant display
+  /// Try to emit cached candidate data for instant display (no-op)
   Future<void> _tryEmitCachedCandidateData(String userId, Map<String, dynamic> routingData) async {
-    try {
-      // Try to get cached user and candidate data
-      final cacheKey = 'home_user_data_$userId';
-      final cachedHomeData = await MultiLevelCache().get<Map<String, dynamic>>(cacheKey);
-
-      if (cachedHomeData != null && cachedHomeData['user'] != null && cachedHomeData['candidate'] != null) {
-        // Convert cached data to models
-        final userModel = cachedHomeData['user'] is Map<String, dynamic>
-          ? UserModel.fromJson(cachedHomeData['user'] as Map<String, dynamic>)
-          : cachedHomeData['user'] as UserModel;
-
-        final candidateModel = cachedHomeData['candidate'] is Map<String, dynamic>
-          ? Candidate.fromJson(cachedHomeData['candidate'] as Map<String, dynamic>)
-          : cachedHomeData['candidate'] as Candidate;
-
-        // Emit cached candidate data state for instant UI
-        if (!_dataController.isClosed) {
-          _dataController.add(HomeScreenData.cachedCandidate(
-            userId: userId,
-            userModel: userModel,
-            cachedCandidateModel: candidateModel,
-          ));
-          AppLogger.common('⚡ Emitted cached candidate data for instant display: $userId');
-        }
-        return;
-      }
-    } catch (e) {
-      AppLogger.common('⚠️ Could not load cached candidate data: $e');
-    }
-
+    AppLogger.common('⚡ Cached candidate data loading skipped (no caching) for: $userId');
     // Fall back to partial data if cached candidate data not available
     if (!_dataController.isClosed) {
       _dataController.add(HomeScreenData.partial(
@@ -260,8 +178,8 @@ class HomeScreenStreamService {
           'lastLogin': DateTime.now().toIso8601String(),
         };
 
-        // Cache routing data for future instant loads
-        await MultiLevelCache().setUserRoutingData(userId, routingData);
+        // Cache routing data for future instant loads (no-op)
+        AppLogger.common('⚡ Routing data caching skipped (no caching) for: $userId');
 
         // Initialize candidate controller if user is a candidate
         if (userModel.role == 'candidate') {

@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Universal storage interface and implementation
 import 'universal_storage.dart';
@@ -49,8 +50,26 @@ enum LogLevel {
   }
 }
 
+
 /// Custom logging utility for filtering and controlling app logs
 class AppLogger {
+  /// 🚨 EMERGENCY DEBUG: Test Firebase write
+  static Future<void> testFirebaseWrite() async {
+    try {
+      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+      final testDoc = firestore.collection('debug_test').doc('manifesto_likes_test');
+
+      await testDoc.set({
+        'testField': 'Manifesto likes test',
+        'timestamp': FieldValue.serverTimestamp(),
+        'message': 'This document tests if Firebase writes are working'
+      });
+
+      print('🔧 ✅ FIREBASE WRITE TEST SUCCESSFUL: Created debug_test/manifesto_likes_test');
+    } catch (e) {
+      print('🔧 ❌ FIREBASE WRITE TEST FAILED: $e');
+    }
+  }
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
       methodCount: 0,
@@ -60,7 +79,8 @@ class AppLogger {
       printEmojis: kIsWeb
           ? false
           : true, // Disable emojis on web to avoid encoding issues
-      printTime: true,
+      printTime: false, // Disable time printing to show only message
+      noBoxingByDefault: true, // Disable box drawing to show only message
     ),
     level: kDebugMode ? Level.verbose : Level.warning,
   );

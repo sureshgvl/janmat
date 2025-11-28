@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:janmat/features/user/services/user_cache_service.dart';
 import '../../../../../../../utils/app_logger.dart';
 import '../../chat/controllers/chat_controller.dart';
 
@@ -113,16 +112,8 @@ class UserSyncService {
     String userId,
   ) async {
     try {
-      final userCacheService = UserCacheService();
-      // Create updated user model
-      final updatedUserData = {
-        'uid': userId,
-        'name': updates['name'] ?? userData['name'],
-        'email': userData['email'],
-        'photoURL': updates['photo'] ?? userData['photo'],
-      };
-      await userCacheService.updateCachedUserData(updatedUserData);
-      AppLogger.database('Updated user cache after profile update', tag: 'USER_SYNC_SERVICE');
+      // User cache update removed - service not available
+      AppLogger.database('User cache update skipped - service not available', tag: 'USER_SYNC_SERVICE');
     } catch (e) {
       AppLogger.database('Could not update user cache: $e', tag: 'USER_SYNC_SERVICE');
     }

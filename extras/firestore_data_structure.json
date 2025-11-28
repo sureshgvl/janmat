@@ -9,7 +9,6 @@
         "name": "John Doe",
         "city": "Mumbai",
         "ward": "Ward 1 - Andheri",
-        "xpPoints": 150,
         "followingCount": 25,
         "lastMessageTime": "2025-01-15T10:30:00Z",
         "createdAt": "2025-01-01T00:00:00Z",

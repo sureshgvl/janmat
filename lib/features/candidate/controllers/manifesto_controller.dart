@@ -11,8 +11,9 @@ import '../models/candidate_model.dart';
 import '../models/manifesto_model.dart';
 import '../repositories/manifesto_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
-import '../../../features/user/services/user_cache_service.dart';
 import '../../notifications/services/constituency_notifications.dart';
+import '../../../core/services/firebase_uploader.dart';
+import '../../../core/models/unified_file.dart';
 
 abstract class IManifestoController {
   Future<ManifestoModel?> getManifesto(dynamic candidate);
@@ -490,14 +491,6 @@ class ManifestoController extends GetxController
         chatController.invalidateUserCache(user.uid);
       }
 
-      // Update UserCacheService
-      final userCacheService = UserCacheService();
-      await userCacheService.updateCachedUserData({
-        'uid': user?.uid ?? '',
-        'name': candidateName,
-        'photoURL': photoUrl,
-      });
-
       AppLogger.database(
         '💾 BACKGROUND: Caches updated',
         tag: 'MANIFESTO_FAST',
@@ -528,11 +521,9 @@ class ManifestoController extends GetxController
 
       // Use the repository's updateManifestoFields method which already handles the location lookup
       final Map<String, dynamic> fieldUpdates = {};
-      if (pdfUrl != null && pdfUrl.isNotEmpty) fieldUpdates['pdfUrl'] = pdfUrl;
-      if (imageUrl != null && imageUrl.isNotEmpty)
-        fieldUpdates['image'] = imageUrl;
-      if (videoUrl != null && videoUrl.isNotEmpty)
-        fieldUpdates['videoUrl'] = videoUrl;
+      if (pdfUrl != null) fieldUpdates['pdfUrl'] = pdfUrl;
+      if (imageUrl != null) fieldUpdates['image'] = imageUrl;
+      if (videoUrl != null) fieldUpdates['videoUrl'] = videoUrl;
 
       if (fieldUpdates.isEmpty) {
         AppLogger.database('No URLs to update', tag: 'MANIFESTO_URLS');
@@ -579,10 +570,6 @@ class ManifestoController extends GetxController
     final fileName =
         '${mediaType}_${userId}_${DateTime.now().millisecondsSinceEpoch}$extension';
 
-    final storageRef = FirebaseStorage.instance.ref().child(
-      'manifesto_media/${candidateId}/${mediaType}/$fileName',
-    );
-
     String contentType;
     switch (mediaType) {
       case 'pdfs':
@@ -599,28 +586,94 @@ class ManifestoController extends GetxController
     }
 
     if (kIsWeb && localPath.startsWith('blob:')) {
-      // Web: Download blob and upload as bytes
-      final response = await http.get(Uri.parse(localPath));
-      if (response.statusCode == 200) {
-        final uploadTask = storageRef.putData(
-          response.bodyBytes,
-          SettableMetadata(contentType: contentType),
-        );
-        final snapshot = await uploadTask.whenComplete(() {});
-        return await snapshot.ref.getDownloadURL();
-      } else {
-        throw Exception(
-          'Failed to download $mediaType: ${response.statusCode}',
-        );
+      // Web: Download blob with enhanced error handling
+      try {
+        // Validate blob URL format
+        if (!localPath.startsWith('blob:')) {
+          throw Exception('Invalid blob URL format. Please select the file again.');
+        }
+
+        // Fetch blob data with timeout
+        final client = http.Client();
+        try {
+          final request = http.Request('GET', Uri.parse(localPath));
+          final streamedResponse = await client.send(request).timeout(const Duration(seconds: 30));
+          final response = await http.Response.fromStream(streamedResponse);
+
+          if (response.statusCode == 200) {
+            if (response.bodyBytes.isEmpty) {
+              throw Exception('Selected file appears to be empty. Please choose a different file.');
+            }
+
+            // Validate file size (50MB limit for manifesto files)
+            const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+            if (response.bodyBytes.length > maxSizeBytes) {
+              throw Exception('$mediaType file is too large (${(response.bodyBytes.length / (1024 * 1024)).toStringAsFixed(1)}MB). Maximum allowed size is 50MB.');
+            }
+
+            final unifiedFile = UnifiedFile(
+              name: fileName,
+              size: response.bodyBytes.length,
+              bytes: response.bodyBytes,
+              mimeType: contentType,
+            );
+            return await FirebaseUploader.uploadUnifiedFile(
+              f: unifiedFile,
+              storagePath: 'manifesto_media/${candidateId}/${mediaType}/$fileName',
+              metadata: SettableMetadata(contentType: contentType),
+            ) ?? '';
+          } else {
+            throw Exception('Failed to read file data (HTTP ${response.statusCode}). Please try selecting the file again.');
+          }
+        } finally {
+          client.close();
+        }
+      } catch (blobError) {
+        if (blobError.toString().contains('timeout')) {
+          throw Exception('$mediaType upload timed out. The file may be too large or your connection is slow.');
+        } else if (blobError.toString().contains('CORS') || blobError.toString().contains('cross-origin')) {
+          throw Exception('Unable to access file due to browser security restrictions. Please try selecting the file again.');
+        } else {
+          throw Exception('Failed to process selected file: ${blobError.toString().split('Exception: ').last}');
+        }
       }
     } else {
-      // Mobile: Upload file directly
-      final uploadTask = storageRef.putFile(
-        File(localPath),
-        SettableMetadata(contentType: contentType),
-      );
-      final snapshot = await uploadTask.whenComplete(() {});
-      return await snapshot.ref.getDownloadURL();
+      // Mobile: Upload file using FirebaseUploader with error handling
+      try {
+        final file = File(localPath);
+        if (!await file.exists()) {
+          throw Exception('Local file not found: $localPath');
+        }
+
+        final fileSize = await file.length();
+        // Validate file size (50MB limit for manifesto files)
+        const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+        if (fileSize > maxSizeBytes) {
+          throw Exception('$mediaType file is too large (${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB). Maximum allowed size is 50MB.');
+        }
+
+        final unifiedFile = UnifiedFile(
+          name: fileName,
+          size: fileSize,
+          file: file,
+          mimeType: contentType,
+        );
+        return await FirebaseUploader.uploadUnifiedFile(
+          f: unifiedFile,
+          storagePath: 'manifesto_media/${candidateId}/${mediaType}/$fileName',
+          metadata: SettableMetadata(contentType: contentType),
+        ) ?? '';
+      } catch (fileError) {
+        if (fileError.toString().contains('quota-exceeded')) {
+          throw Exception('Storage quota exceeded. Please contact support or try a smaller file.');
+        } else if (fileError.toString().contains('unauthorized')) {
+          throw Exception('Upload permission denied. Please try logging in again.');
+        } else if (fileError.toString().contains('network')) {
+          throw Exception('Network error. Please check your internet connection and try again.');
+        } else {
+          throw Exception('Failed to upload $mediaType: ${fileError.toString().split('Exception: ').last}');
+        }
+      }
     }
   }
 

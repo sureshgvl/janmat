@@ -1,36 +1,20 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart' as file_picker;
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../candidate/models/candidate_model.dart';
 import '../../utils/app_logger.dart';
 import '../../utils/snackbar_utils.dart';
-import '../candidate/models/candidate_model.dart';
-import '../monetization/services/plan_service.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/features/candidate/candidate_localizations.dart';
+import '../candidate/controllers/candidate_user_controller.dart';
+import '../candidate/controllers/manifesto_controller.dart';
+import './file_helpers.dart';
+import './file_upload_handler.dart';
+import './file_storage_manager.dart';
+import '../../core/media/media_file.dart';
+import '../../core/media/media_uploader_advanced.dart';
 
-// File size validation result class
-class FileSizeValidation {
-  final bool isValid;
-  final double fileSizeMB;
-  final String message;
-  final String? recommendation;
-  final bool warning;
-
-  FileSizeValidation({
-    required this.isValid,
-    required this.fileSizeMB,
-    required this.message,
-    this.recommendation,
-    this.warning = false,
-  });
-}
-
+/// FileUploadSection - Now uses clean composition of modular components
 class FileUploadSection extends StatefulWidget {
   final Candidate candidateData;
   final bool isEditing;
@@ -38,6 +22,10 @@ class FileUploadSection extends StatefulWidget {
   final Function(String) onManifestoImageChange;
   final Function(String) onManifestoVideoChange;
   final Function(List<Map<String, dynamic>>) onLocalFilesUpdate;
+  final String? existingPdfUrl;
+  final String? existingImageUrl;
+  final String? existingVideoUrl;
+  final Function(String, bool)? onFileMarkedForDeletion;
 
   const FileUploadSection({
     super.key,
@@ -47,6 +35,10 @@ class FileUploadSection extends StatefulWidget {
     required this.onManifestoImageChange,
     required this.onManifestoVideoChange,
     required this.onLocalFilesUpdate,
+    this.existingPdfUrl,
+    this.existingImageUrl,
+    this.existingVideoUrl,
+    this.onFileMarkedForDeletion,
   });
 
   @override
@@ -54,1108 +46,1160 @@ class FileUploadSection extends StatefulWidget {
 }
 
 class _FileUploadSectionState extends State<FileUploadSection> {
-  bool _isUploadingPdf = false;
-  bool _isUploadingImage = false;
-  bool _isUploadingVideo = false;
+  // State tracking
+  bool _isDeletingPdf = false;
+  bool _isDeletingImage = false;
+  bool _isDeletingVideo = false;
+  bool _isUploadingAdvanced = false;
   final List<Map<String, dynamic>> _localFiles = [];
+  final Map<String, UploadProgress> _uploadProgress = {};
+  final Map<String, String> _uploadUrls = {};
+  final Map<String, String> _uploadErrors = {};
 
-  Future<void> _uploadManifestoPdf() async {
-    AppLogger.candidate('📄 [PDF Upload] Starting PDF selection process...');
+  // Components
+  late final FileUploadHandler _uploadHandler;
+  late final FileStorageManager _storageManager;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeComponents();
+    AppLogger.candidate('FileUploadSection initialized with composition');
+  }
+
+  void _initializeComponents() {
+    _uploadHandler = FileUploadHandler(
+      candidateData: widget.candidateData,
+      context: context,
+      localFiles: _localFiles,
+      onLocalFilesUpdate: _handleLocalFilesUpdate,
+    );
+
+    _storageManager = FileStorageManager();
+  }
+
+  void _handleLocalFilesUpdate(List<Map<String, dynamic>> files) {
+    //AppLogger.candidate('🔄 [FileUploadSection] _handleLocalFilesUpdate called with ${files.length} files');
+    // AppLogger.candidate('🔄 [FileUploadSection] Files content: $files'); // COMMENTED OUT - HIDES BYTES LOG
+    //AppLogger.candidate('🔄 [FileUploadSection] Before clear: _localFiles has ${_localFiles.length} files');
 
     setState(() {
-      _isUploadingPdf = true;
+      _localFiles.clear();
+      _localFiles.addAll(files);
+
+      //AppLogger.candidate('🔄 [FileUploadSection] Inside setState: _localFiles now has ${_localFiles.length} files');
+      // for (var i = 0; i < _localFiles.length; i++) {
+      //   AppLogger.candidate('🔄 [FileUploadSection] File $i: ${_localFiles[i]}'); // COMMENTED OUT - HIDES BYTES LOG
+      // }
     });
 
-    try {
-      // Step 1: Pick file from device
-      AppLogger.candidate('📄 [PDF Upload] Step 1: Picking file from device...');
-      file_picker.FilePickerResult? result = await file_picker
-          .FilePicker
-          .platform
-          .pickFiles(
-            type: file_picker.FileType.custom,
-            allowedExtensions: ['pdf'],
-            allowMultiple: false,
-          );
-
-      if (result == null || result.files.isEmpty) {
-        AppLogger.candidate('📄 [PDF Upload] User cancelled file selection');
-        setState(() {
-          _isUploadingPdf = false;
-        });
-        return;
-      }
-
-      final file = result.files.first;
-      final fileSize = file.size;
-      final fileSizeMB = fileSize / (1024 * 1024);
-
-      AppLogger.candidate(
-        '📄 [PDF Upload] File selected: ${file.name}, Size: ${fileSizeMB.toStringAsFixed(2)} MB',
-      );
-
-      // Step 2: Validate file size locally
-      AppLogger.candidate('📄 [PDF Upload] Step 2: Validating file size...');
-      if (fileSizeMB > 20.0) {
-        AppLogger.candidate(
-          '📄 [PDF Upload] File too large: ${fileSizeMB.toStringAsFixed(1)}MB > 20MB limit',
-        );
-        if (mounted) {
-          SnackbarUtils.showScaffoldWarning(
-            context,
-            'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-          );
-        }
-        setState(() {
-          _isUploadingPdf = false;
-        });
-        return;
-      }
-
-      AppLogger.candidate('📄 [PDF Upload] File size validation passed');
-
-      // Step 3: Save to local storage and show to user
-      AppLogger.candidate('📄 [PDF Upload] Step 3: Saving to local storage...');
-      final localPath = await _saveFileLocally(file, 'pdf');
-      if (localPath == null) {
-        AppLogger.candidate('📄 [PDF Upload] Failed to save locally');
-        throw Exception('Failed to save file locally');
-      }
-      AppLogger.candidate('📄 [PDF Upload] Saved locally at: $localPath');
-
-      // Check if we already have a PDF in local files (shouldn't happen due to UI logic, but safety check)
-      final existingPdfIndex = _localFiles.indexWhere((f) => f['type'] == 'pdf');
-      if (existingPdfIndex != -1) {
-        // Remove existing PDF before adding new one
-        final existingPath = _localFiles[existingPdfIndex]['localPath'] as String;
-        await _cleanupLocalFile(existingPath);
-        _localFiles.removeAt(existingPdfIndex);
-      }
-
-      // Add to local files list for visual display (prevent duplicates)
-      setState(() {
-        final existingIndex = _localFiles.indexWhere((f) => f['type'] == 'pdf');
-        if (existingIndex != -1) {
-          // Replace existing PDF file
-          _localFiles[existingIndex] = {
-            'type': 'pdf',
-            'localPath': localPath,
-            'fileName': file.name,
-            'fileSize': fileSizeMB,
-          };
-        } else {
-          // Add new PDF file
-          _localFiles.add({
-            'type': 'pdf',
-            'localPath': localPath,
-            'fileName': file.name,
-            'fileSize': fileSizeMB,
-          });
-        }
-      });
-
-      widget.onLocalFilesUpdate(_localFiles);
-
-      AppLogger.candidate('📄 [PDF Upload] PDF saved locally and added to display list');
-
-      if (mounted) {
-        SnackbarUtils.showScaffoldInfo(
-          context,
-          'PDF selected and ready for upload. Press Save to upload to server.',
-        );
-      }
-    } catch (e) {
-      AppLogger.candidate('📄 [PDF Upload] Error: $e');
-      if (mounted) {
-        SnackbarUtils.showScaffoldError(context, 'Failed to select PDF: ${e.toString()}');
-      }
-    } finally {
-      setState(() {
-        _isUploadingPdf = false;
-      });
-      AppLogger.candidate('📄 [PDF Upload] Selection process completed');
-    }
+    widget.onLocalFilesUpdate(_localFiles); // Pass the actual _localFiles, not the parameter
+    //AppLogger.candidate('🔄 [FileUploadSection] Final: _localFiles has ${_localFiles.length} files, hasImageLocal: ${_localFiles.any((f) => f['type'] == 'image')}');
   }
 
-  Future<void> _uploadManifestoImage() async {
-    AppLogger.candidate('🖼️ [Image Upload] Starting image selection process...');
-
-    setState(() {
-      _isUploadingImage = true;
-    });
-
-    try {
-      // Step 1: Pick image from gallery
-      AppLogger.candidate('🖼️ [Image Upload] Step 1: Picking image from gallery...');
-      final ImagePicker imagePicker = ImagePicker();
-      final XFile? image = await imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
-
-      if (image == null) {
-        AppLogger.candidate('🖼️ [Image Upload] User cancelled image selection');
-        setState(() {
-          _isUploadingImage = false;
-        });
-        return;
-      }
-
-      AppLogger.candidate(
-        '🖼️ [Image Upload] Image selected: ${image.name}, Path: ${image.path}',
-      );
-
-      // Step 2: Optimize image for manifesto (higher quality than achievements)
-      AppLogger.candidate(
-        '🖼️ [Image Upload] Step 2: Optimizing image for manifesto...',
-      );
-      final optimizedImage = await _optimizeManifestoImage(image);
-      AppLogger.candidate('🖼️ [Image Upload] Image optimization completed');
-
-      // Step 3: Validate file size with optimized image
-      AppLogger.candidate(
-        '🖼️ [Image Upload] Step 3: Validating optimized file size...',
-      );
-      final validation = await _validateManifestoFileSize(
-        optimizedImage.path,
-        'image',
-      );
-
-      if (!validation.isValid) {
-        AppLogger.candidate('🖼️ [Image Upload] File too large after optimization');
-        if (mounted) {
-          SnackbarUtils.showScaffoldError(context, validation.message);
-        }
-        setState(() {
-          _isUploadingImage = false;
-        });
-        return;
-      }
-
-      // Show warning for large files
-      if (validation.warning) {
-        final proceed = await _showFileSizeWarningDialog(validation);
-        if (proceed != true) {
-          AppLogger.candidate('🖼️ [Image Upload] User cancelled after size warning');
-          setState(() {
-            _isUploadingImage = false;
-          });
-          return;
-        }
-      }
-
-      AppLogger.candidate('🖼️ [Image Upload] File size validation passed');
-
-      // Step 4: Save optimized image to local storage
-      AppLogger.candidate(
-        '🖼️ [Image Upload] Step 4: Saving optimized image to local storage...',
-      );
-      final localPath = await _saveFileLocally(optimizedImage, 'image');
-      if (localPath == null) {
-        AppLogger.candidate('🖼️ [Image Upload] Failed to save locally');
-        throw Exception('Failed to save optimized image locally');
-      }
-      AppLogger.candidate('🖼️ [Image Upload] Saved locally at: $localPath');
-
-      // Check if we already have an image in local files (shouldn't happen due to UI logic, but safety check)
-      final existingImageIndex = _localFiles.indexWhere((f) => f['type'] == 'image');
-      if (existingImageIndex != -1) {
-        // Remove existing image before adding new one
-        final existingPath = _localFiles[existingImageIndex]['localPath'] as String;
-        await _cleanupLocalFile(existingPath);
-        _localFiles.removeAt(existingImageIndex);
-      }
-
-      // Add to local files list for visual display
-      setState(() {
-        _localFiles.add({
-          'type': 'image',
-          'localPath': localPath,
-          'fileName': optimizedImage.name,
-          'fileSize': validation.fileSizeMB,
-        });
-      });
-
-      widget.onLocalFilesUpdate(_localFiles);
-
-      AppLogger.candidate(
-        '🖼️ [Image Upload] Optimized image saved locally and added to display list',
-      );
-
-      if (mounted) {
-        SnackbarUtils.showScaffoldInfo(
-          context,
-          'Image optimized and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.',
-        );
-      }
-    } catch (e) {
-      AppLogger.candidate('🖼️ [Image Upload] Error: $e');
-      if (mounted) {
-        SnackbarUtils.showScaffoldError(context, 'Failed to select image: ${e.toString()}');
-      }
-    } finally {
-      setState(() {
-        _isUploadingImage = false;
-      });
-      AppLogger.candidate('🖼️ [Image Upload] Selection process completed');
-    }
-  }
-
-  Future<void> _uploadManifestoVideo() async {
-    AppLogger.candidate('🎥 [Video Upload] Starting video selection process...');
-
-    // Check if user can upload videos based on their plan
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      final plan = await PlanService.getUserPlan(currentUser.uid);
-      if (plan != null && plan.dashboardTabs?.manifesto.enabled == true) {
-        final canUploadVideo = plan.dashboardTabs!.manifesto.features.videoUpload;
-
-        if (!canUploadVideo) {
-          // Show upgrade message using snackbar
-          if (mounted) {
-            final candidateLocalizations = CandidateLocalizations.of(context);
-            SnackbarUtils.showScaffoldWarning(
-              context,
-              candidateLocalizations?.translate('videoUploadNotAvailableMessage') ?? 'Video upload is not available with your current plan. Upgrade to Gold or Platinum plan to add videos to your manifesto.',
-            );
-          }
-          return;
-        }
-      }
-    }
-
-    setState(() {
-      _isUploadingVideo = true;
-    });
-
-    try {
-      // Step 1: Pick video from gallery
-      AppLogger.candidate('🎥 [Video Upload] Step 1: Picking video from gallery...');
-      final ImagePicker imagePicker = ImagePicker();
-      final XFile? video = await imagePicker.pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(
-          minutes: 5,
-        ), // Limit to 5 minutes for manifesto videos
-      );
-
-      if (video == null) {
-        AppLogger.candidate('🎥 [Video Upload] User cancelled video selection');
-        setState(() {
-          _isUploadingVideo = false;
-        });
-        return;
-      }
-
-      AppLogger.candidate(
-        '🎥 [Video Upload] Video selected: ${video.name}, Path: ${video.path}',
-      );
-
-      // Step 2: Validate video file size
-      AppLogger.candidate('🎥 [Video Upload] Step 2: Validating video file size...');
-      final validation = await _validateManifestoFileSize(video.path, 'video');
-
-      if (!validation.isValid) {
-        AppLogger.candidate('🎥 [Video Upload] File too large');
-        if (mounted) {
-          SnackbarUtils.showScaffoldError(context, validation.message);
-        }
-        setState(() {
-          _isUploadingVideo = false;
-        });
-        return;
-      }
-
-      // Show warning for large files
-      if (validation.warning) {
-        final proceed = await _showFileSizeWarningDialog(validation);
-        if (proceed != true) {
-          AppLogger.candidate('🎥 [Video Upload] User cancelled after size warning');
-          setState(() {
-            _isUploadingVideo = false;
-          });
-          return;
-        }
-      }
-
-      AppLogger.candidate('🎥 [Video Upload] File size validation passed');
-
-      // Step 3: Save video to local storage
-      AppLogger.candidate('🎥 [Video Upload] Step 3: Saving video to local storage...');
-      final localPath = await _saveFileLocally(video, 'video');
-      if (localPath == null) {
-        AppLogger.candidate('🎥 [Video Upload] Failed to save locally');
-        throw Exception('Failed to save video locally');
-      }
-      AppLogger.candidate('🎥 [Video Upload] Saved locally at: $localPath');
-
-      // Check if we already have a video in local files (shouldn't happen due to UI logic, but safety check)
-      final existingVideoIndex = _localFiles.indexWhere((f) => f['type'] == 'video');
-      if (existingVideoIndex != -1) {
-        // Remove existing video before adding new one
-        final existingPath = _localFiles[existingVideoIndex]['localPath'] as String;
-        await _cleanupLocalFile(existingPath);
-        _localFiles.removeAt(existingVideoIndex);
-      }
-
-      // Add to local files list for visual display
-      setState(() {
-        _localFiles.add({
-          'type': 'video',
-          'localPath': localPath,
-          'fileName': video.name,
-          'fileSize': validation.fileSizeMB,
-          'isPremium': true, // Always premium for videos
-        });
-      });
-
-      widget.onLocalFilesUpdate(_localFiles);
-
-      AppLogger.candidate(
-        '🎥 [Video Upload] Video saved locally and added to display list',
-      );
-
-      if (mounted) {
-        SnackbarUtils.showScaffoldInfo(context, 'Video selected and ready for upload (${validation.fileSizeMB.toStringAsFixed(1)}MB). Press Save to upload to server.');
-      }
-    } catch (e) {
-      AppLogger.candidate('🎥 [Video Upload] Error: $e');
-      if (mounted) {
-        SnackbarUtils.showScaffoldError(context, 'Failed to select video: ${e.toString()}');
-      }
-    } finally {
-      setState(() {
-        _isUploadingVideo = false;
-      });
-      AppLogger.candidate('🎥 [Video Upload] Selection process completed');
-    }
-  }
-
-  // Local storage helper methods - Web compatible
-  Future<String?> _saveFileLocally(dynamic file, String type) async {
-    try {
-      if (kIsWeb && (type == 'image' || type == 'video')) {
-        // Web: Images/videos from picker need direct Firebase upload
-        AppLogger.candidate('🌐 [FileUpload] Web detected for $type - uploading directly to Firebase');
-
-        if (file is XFile) {
-          // Upload directly to Firebase Storage
-          final userId = widget.candidateData.userId ?? 'unknown_user';
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          final fileName = '${type}_${userId}_$timestamp.${type == 'video' ? 'mp4' : 'jpg'}';
-          final storagePath = 'manifesto/${type}s/$fileName';
-
-          final storageRef = FirebaseStorage.instance.ref().child(storagePath);
-
-          final uploadTask = storageRef.putFile(
-            File(file.path),
-            SettableMetadata(contentType: type == 'video' ? 'video/mp4' : 'image/jpeg'),
-          );
-
-          final snapshot = await uploadTask.whenComplete(() {});
-          final downloadUrl = await snapshot.ref.getDownloadURL();
-
-          AppLogger.candidate('🌐 [FileUpload] Web $type upload successful: $downloadUrl');
-          return downloadUrl;
-        }
-
-        // If file is not XFile, return null to indicate upload is complete
-        return null;
-      }
-
-      AppLogger.candidate('💾 [Local Storage] Saving $type file locally...');
-
-      // Clean up old temp files first (keep only files from last 30 minutes)
-      await _cleanupOldTempFiles();
-
-      // Get application documents directory (only for mobile)
-      final directory = await getApplicationDocumentsDirectory();
-      final localDir = Directory('${directory.path}/manifesto_temp');
-      if (!await localDir.exists()) {
-        await localDir.create(recursive: true);
-        AppLogger.candidate(
-          '💾 [Local Storage] Created temp directory: ${localDir.path}',
-        );
-      }
-
-      // Generate unique filename
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final userId = widget.candidateData.userId ?? 'unknown_user';
-      final fileName =
-          'temp_${type}_${userId}_$timestamp.${type == 'pdf' ? 'pdf' : 'tmp'}';
-      final localPath = '${localDir.path}/$fileName';
-
-      // Save file locally
-      if (file is file_picker.PlatformFile) {
-        if (file.bytes != null) {
-          // Web platform PDF or other files with bytes
-          final localFile = File(localPath);
-          await localFile.writeAsBytes(file.bytes!);
-          AppLogger.candidate('💾 [Local Storage] Saved web file to: $localPath');
-        } else if (file.path != null) {
-          // Mobile platform
-          await File(file.path!).copy(localPath);
-          AppLogger.candidate('💾 [Local Storage] Copied mobile file to: $localPath');
-        }
-      } else if (file is XFile) {
-        // Image picker file
-        await File(file.path).copy(localPath);
-        AppLogger.candidate('💾 [Local Storage] Copied image file to: $localPath');
-      }
-
-      AppLogger.candidate('💾 [Local Storage] File saved successfully at: $localPath');
-      return localPath;
-    } catch (e) {
-      AppLogger.candidate('💾 [Local Storage] Error saving/uploading file: $e');
-      return null;
-    }
-  }
-
-  // Clean up old temporary files (older than 30 minutes) - Web compatible
-  Future<void> _cleanupOldTempFiles() async {
-    if (kIsWeb) {
-      AppLogger.candidate('🌐 [Cache Cleanup] Web detected - no local cleanup needed');
+  /// Handle PDF deletion with UI updates - OPTIMIZED for speed
+  Future<void> _handlePdfDeletion() async {
+    final fileUrl = widget.existingPdfUrl ?? '';
+    if (fileUrl.isEmpty) {
+      AppLogger.candidate('❌ [PDF Delete] No PDF URL to delete');
       return;
     }
 
+    setState(() => _isDeletingPdf = true);
+
     try {
-      AppLogger.candidate('🧹 [Cache Cleanup] Starting cache cleanup...');
+      AppLogger.candidate('🗑️ [PDF Delete] Starting optimized deletion process...');
 
-      final directory = await getApplicationDocumentsDirectory();
-      final localDir = Directory('${directory.path}/manifesto_temp');
+      // Step 1: Delete from Firebase Storage (fast operation)
+      final success = await _storageManager.deleteFromStorage(fileUrl);
+      if (!success) throw Exception('Failed to delete from storage');
 
-      if (!await localDir.exists()) {
-        AppLogger.candidate('🧹 [Cache Cleanup] Temp directory does not exist, nothing to clean');
-        return;
+      AppLogger.candidate('✅ [PDF Delete] File deleted from storage');
+
+      // Step 2: Update Firestore directly (avoid triggering full app refresh)
+      final manifestoController = Get.find<ManifestoController>();
+      await manifestoController.updateManifestoUrls(widget.candidateData, pdfUrl: '');
+
+      AppLogger.candidate('✅ [PDF Delete] Firestore updated');
+
+      // Step 3: Update local UI state only (no controller updates that trigger refresh)
+      widget.onManifestoPdfChange('');
+
+      if (mounted) {
+        SnackbarUtils.showScaffoldSuccess(context, 'PDF file deleted successfully');
       }
 
-      final files = await localDir.list().toList();
-      final cutoffTime = DateTime.now().subtract(const Duration(minutes: 30));
-      int cleanedCount = 0;
-      int totalSize = 0;
+      AppLogger.candidate('✅ [PDF Delete] PDF successfully deleted from storage and database');
 
-      for (final entity in files) {
-        if (entity is File) {
-          try {
-            final stat = await entity.stat();
-            if (stat.modified.isBefore(cutoffTime)) {
-              final size = stat.size;
-              await entity.delete();
-              cleanedCount++;
-              totalSize += size;
-              AppLogger.candidate('🧹 [Cache Cleanup] Deleted old file: ${entity.path} (${(size / (1024 * 1024)).toStringAsFixed(2)} MB)');
-            }
-          } catch (e) {
-            AppLogger.candidate('⚠️ [Cache Cleanup] Failed to delete ${entity.path}: $e');
-          }
-        }
-      }
-
-      if (cleanedCount > 0) {
-        AppLogger.candidate('🧹 [Cache Cleanup] Cleaned up $cleanedCount old files, freed ${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB');
-      } else {
-        AppLogger.candidate('🧹 [Cache Cleanup] No old files to clean');
-      }
     } catch (e) {
-      AppLogger.candidate('⚠️ [Cache Cleanup] Error during cache cleanup: $e');
+      AppLogger.candidateError('❌ [PDF Delete] Failed to delete PDF: $e');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to delete PDF file. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _isDeletingPdf = false);
     }
   }
 
-  Future<void> _cleanupLocalFile(String localPath) async {
+  /// Handle image deletion with UI updates - OPTIMIZED for speed
+  Future<void> _handleImageDeletion() async {
+    final fileUrl = widget.existingImageUrl ?? '';
+    if (fileUrl.isEmpty) {
+      AppLogger.candidate('❌ [Image Delete] No image URL to delete');
+      return;
+    }
+
+    setState(() => _isDeletingImage = true);
+
     try {
-      AppLogger.candidate('🧹 [Local Storage] Cleaning up local file: $localPath');
-      final file = File(localPath);
-      if (await file.exists()) {
-        await file.delete();
-        AppLogger.candidate('🧹 [Local Storage] Local file deleted successfully');
-      } else {
-        AppLogger.candidate('🧹 [Local Storage] Local file not found, nothing to clean');
+      AppLogger.candidate('🗑️ [Image Delete] Starting optimized deletion process...');
+
+      // Step 1: Delete from Firebase Storage (fast operation)
+      final success = await _storageManager.deleteFromStorage(fileUrl);
+      if (!success) throw Exception('Failed to delete from storage');
+
+      AppLogger.candidate('✅ [Image Delete] File deleted from storage');
+
+      // Step 2: Update Firestore directly (avoid triggering full app refresh)
+      final manifestoController = Get.find<ManifestoController>();
+      await manifestoController.updateManifestoUrls(widget.candidateData, imageUrl: '');
+
+      AppLogger.candidate('✅ [Image Delete] Firestore updated');
+
+      // Step 3: Update local UI state only (no controller updates that trigger refresh)
+      widget.onManifestoImageChange('');
+
+      if (mounted) {
+        SnackbarUtils.showScaffoldSuccess(context, 'Image file deleted successfully');
       }
+
+      AppLogger.candidate('✅ [Image Delete] Image successfully deleted from storage and database');
+
     } catch (e) {
-      AppLogger.candidate('🧹 [Local Storage] Error cleaning up local file: $e');
+      AppLogger.candidateError('❌ [Image Delete] Failed to delete image: $e');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to delete image file. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _isDeletingImage = false);
     }
   }
 
-  // File size validation for manifesto files
-  Future<FileSizeValidation> _validateManifestoFileSize(
-    String filePath,
-    String type,
-  ) async {
+  /// Handle video deletion with UI updates - OPTIMIZED for speed
+  Future<void> _handleVideoDeletion() async {
+    final fileUrl = widget.existingVideoUrl ?? '';
+    if (fileUrl.isEmpty) {
+      AppLogger.candidate('❌ [Video Delete] No video URL to delete');
+      return;
+    }
+
+    setState(() => _isDeletingVideo = true);
+
     try {
-      final file = File(filePath.replaceFirst('local:', ''));
-      final fileSize = await file.length();
-      final fileSizeMB = fileSize / (1024 * 1024);
+      AppLogger.candidate('🗑️ [Video Delete] Starting optimized deletion process...');
 
-      switch (type) {
-        case 'pdf':
-          if (fileSizeMB > 20.0) {
-            return FileSizeValidation(
-              isValid: false,
-              fileSizeMB: fileSizeMB,
-              message:
-                  'PDF file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-              recommendation:
-                  'Please choose a smaller PDF or compress the current one.',
-            );
-          } else if (fileSizeMB > 10.0) {
-            return FileSizeValidation(
-              isValid: true,
-              fileSizeMB: fileSizeMB,
-              message:
-                  'Large PDF detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-              recommendation:
-                  'Consider compressing the PDF for faster uploads.',
-              warning: true,
-            );
-          }
-          break;
+      // Step 1: Delete from Firebase Storage (fast operation)
+      final success = await _storageManager.deleteFromStorage(fileUrl);
+      if (!success) throw Exception('Failed to delete from storage');
 
-        case 'image':
-          if (fileSizeMB > 10.0) {
-            return FileSizeValidation(
-              isValid: false,
-              fileSizeMB: fileSizeMB,
-              message:
-                  'Image file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 10MB.',
-              recommendation:
-                  'Please choose a smaller image or compress the current one.',
-            );
-          } else if (fileSizeMB > 5.0) {
-            return FileSizeValidation(
-              isValid: true,
-              fileSizeMB: fileSizeMB,
-              message:
-                  'Large image detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-              recommendation:
-                  'Consider compressing the image for faster uploads.',
-              warning: true,
-            );
-          }
-          break;
+      AppLogger.candidate('✅ [Video Delete] File deleted from storage');
 
-        case 'video':
-          if (fileSizeMB > 100.0) {
-            return FileSizeValidation(
-              isValid: false,
-              fileSizeMB: fileSizeMB,
-              message:
-                  'Video file is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 100MB.',
-              recommendation:
-                  'Please choose a smaller video or compress the current one.',
-            );
-          } else if (fileSizeMB > 50.0) {
-            return FileSizeValidation(
-              isValid: true,
-              fileSizeMB: fileSizeMB,
-              message:
-                  'Large video detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-              recommendation:
-                  'Consider compressing the video for faster uploads.',
-              warning: true,
-            );
-          }
-          break;
+      // Step 2: Update Firestore directly (avoid triggering full app refresh)
+      final manifestoController = Get.find<ManifestoController>();
+      await manifestoController.updateManifestoUrls(widget.candidateData, videoUrl: '');
+
+      AppLogger.candidate('✅ [Video Delete] Firestore updated');
+
+      // Step 3: Update local UI state only (no controller updates that trigger refresh)
+      widget.onManifestoVideoChange('');
+
+      if (mounted) {
+        SnackbarUtils.showScaffoldSuccess(context, 'Video file deleted successfully');
       }
 
-      return FileSizeValidation(
-        isValid: true,
-        fileSizeMB: fileSizeMB,
-        message:
-            'File size is acceptable (${fileSizeMB.toStringAsFixed(1)}MB).',
-        recommendation: null,
+      AppLogger.candidate('✅ [Video Delete] Video successfully deleted from storage and database');
+
+    } catch (e) {
+      AppLogger.candidateError('❌ [Video Delete] Failed to delete video: $e');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Failed to delete video file. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _isDeletingVideo = false);
+    }
+  }
+
+  /// Convert local files to MediaFile objects for advanced uploading
+  List<MediaFile> _convertToMediaFiles() {
+    return _localFiles.map((fileEntry) {
+      final fileName = fileEntry['fileName'] as String? ?? 'unknown';
+      final fileType = fileEntry['type'] as String? ?? 'other';
+      final fileSize = (fileEntry['fileSize'] as num?)?.toInt() ?? 0;
+      final bytes = fileEntry['bytes'] as Uint8List?;
+
+      return MediaFile(
+        id: '${fileType}_${DateTime.now().millisecondsSinceEpoch}_${_localFiles.indexOf(fileEntry)}',
+        name: fileName,
+        type: fileType,
+        bytes: bytes ?? Uint8List(0),
+        size: fileSize,
       );
-    } catch (e) {
-      AppLogger.candidate('📏 [File Size Validation] Error: $e');
-      return FileSizeValidation(
-        isValid: false,
-        fileSizeMB: 0.0,
-        message: 'Failed to validate file size: ${e.toString()}',
-        recommendation: 'Please try selecting the file again.',
+    }).toList();
+  }
+
+  /// Upload all pending files using advanced uploader with progress tracking
+  Future<Map<String, String>> uploadPendingFilesAdvanced() async {
+    if (_localFiles.isEmpty) return {};
+
+    setState(() {
+      _isUploadingAdvanced = true;
+      _uploadProgress.clear();
+      _uploadUrls.clear();
+      _uploadErrors.clear();
+    });
+
+    try {
+      AppLogger.candidate('🚀 [Advanced File Upload] Starting upload with progress tracking...');
+
+      // Convert local files to MediaFile objects
+      final mediaFiles = _convertToMediaFiles();
+
+      // Create advanced uploader
+      final uploader = MediaUploaderAdvanced();
+
+      // Show progress dialog
+      if (mounted) {
+        _showAdvancedUploadDialog(mediaFiles.length);
+      }
+
+      // Upload with progress callbacks
+      final urls = await uploader.uploadFiles(
+        mediaFiles,
+        userId: widget.candidateData.candidateId,
+        category: 'manifesto',
+        onProgress: (fileId, progress) {
+          if (mounted) {
+            setState(() => _uploadProgress[fileId] = progress);
+          }
+        },
+        onComplete: (fileId, url) {
+          if (mounted) {
+            setState(() => _uploadUrls[fileId] = url);
+            AppLogger.candidate('✅ [Advanced Upload] Completed: $fileId -> $url');
+          }
+        },
+        onError: (fileId, error) {
+          if (mounted) {
+            setState(() => _uploadErrors[fileId] = error);
+            AppLogger.candidate('❌ [Advanced Upload] Error: $fileId -> $error');
+          }
+        },
       );
+
+      // Update Firestore with uploaded URLs
+      await _updateFirestoreWithUrls(urls);
+
+      // Clear local files after successful upload
+      if (mounted) {
+        setState(() => _localFiles.clear());
+        widget.onLocalFilesUpdate([]);
+      }
+
+      // Close progress dialog
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      AppLogger.candidate('🎉 [Advanced File Upload] All files uploaded successfully!');
+      return _uploadUrls;
+
+    } catch (e) {
+      AppLogger.candidateError('❌ [Advanced File Upload] Failed: $e');
+      if (mounted) {
+        SnackbarUtils.showScaffoldError(context, 'Upload failed: ${e.toString()}');
+      }
+      return {};
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAdvanced = false);
+      }
     }
   }
 
-  // Show file size warning dialog
-  Future<bool?> _showFileSizeWarningDialog(
-    FileSizeValidation validation,
-  ) async {
-    return showDialog<bool>(
+  /// Show advanced upload progress dialog
+  void _showAdvancedUploadDialog(int totalFiles) {
+    showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('File Size Warning'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(validation.message),
-            if (validation.recommendation != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                validation.recommendation!,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Uploading Files'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Uploading $totalFiles file${totalFiles > 1 ? 's' : ''}...'),
+                const SizedBox(height: 16),
+                ..._uploadProgress.entries.map((entry) {
+                  final fileId = entry.key;
+                  final progress = entry.value;
+                  final fileName = _getFileNameFromId(fileId);
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fileName,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(value: progress.percent / 100),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${progress.percent.toStringAsFixed(1)}% • '
+                          '${progress.speedKBps.toStringAsFixed(1)} KB/s • '
+                          '${progress.eta.inMinutes}:${(progress.eta.inSeconds % 60).toString().padLeft(2, '0')} remaining',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                if (_uploadErrors.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Errors:',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                  ..._uploadErrors.entries.map((entry) => Text(
+                    '${_getFileNameFromId(entry.key)}: ${entry.value}',
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  )),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            if (_isUploadingAdvanced)
+              TextButton(
+                onPressed: () {
+                  // TODO: Implement cancel functionality when MediaUploaderAdvanced supports it
+                  // For now, just show a message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Cancel functionality coming soon')),
+                  );
+                },
+                child: const Text('Cancel'),
               ),
-            ],
-            const SizedBox(height: 8),
-            Text(
-              'File size: ${validation.fileSizeMB.toStringAsFixed(1)}MB',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            TextButton(
+              onPressed: _isUploadingAdvanced ? null : () => Navigator.of(context).pop(),
+              child: Text(_isUploadingAdvanced ? 'Uploading...' : 'Close'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Choose Different File'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Continue Anyway'),
+      ),
+    );
+  }
+
+  /// Get filename from file ID
+  String _getFileNameFromId(String fileId) {
+    // Extract filename from the file ID pattern: type_timestamp_index
+    final parts = fileId.split('_');
+    if (parts.length >= 3) {
+      final index = int.tryParse(parts.last) ?? 0;
+      if (index < _localFiles.length) {
+        return _localFiles[index]['fileName'] as String? ?? 'Unknown file';
+      }
+    }
+    return 'File';
+  }
+
+  /// Update Firestore with uploaded URLs
+  Future<void> _updateFirestoreWithUrls(List<String> urls) async {
+    try {
+      final manifestoController = Get.find<ManifestoController>();
+
+      // Map URLs to file types
+      String? pdfUrl, imageUrl, videoUrl;
+
+      for (int i = 0; i < urls.length && i < _localFiles.length; i++) {
+        final fileEntry = _localFiles[i];
+        final url = urls[i];
+        final fileType = fileEntry['type'] as String?;
+
+        switch (fileType) {
+          case 'pdf':
+            pdfUrl = url;
+            break;
+          case 'image':
+            imageUrl = url;
+            break;
+          case 'video':
+            videoUrl = url;
+            break;
+        }
+      }
+
+      // Update Firestore
+      await manifestoController.updateManifestoUrls(
+        widget.candidateData,
+        pdfUrl: pdfUrl,
+        imageUrl: imageUrl,
+        videoUrl: videoUrl,
+      );
+
+      // Update local state
+      final candidateController = Get.find<CandidateUserController>();
+      if (pdfUrl != null) {
+        candidateController.updateManifestoInfo('pdfUrl', pdfUrl);
+        widget.onManifestoPdfChange(pdfUrl);
+      }
+      if (imageUrl != null) {
+        candidateController.updateManifestoInfo('image', imageUrl);
+        widget.onManifestoImageChange(imageUrl);
+      }
+      if (videoUrl != null) {
+        candidateController.updateManifestoInfo('videoUrl', videoUrl);
+        widget.onManifestoVideoChange(videoUrl);
+      }
+
+    } catch (e) {
+      AppLogger.candidateError('❌ [Firestore Update] Failed to update URLs: $e');
+      rethrow;
+    }
+  }
+
+  /// Legacy method for backward compatibility - now uses advanced uploader
+  Future<Map<String, String>> uploadPendingFiles() async {
+    return await uploadPendingFilesAdvanced();
+  }
+
+  // Build row methods with better visual feedback
+  Widget _buildPdfRow() {
+    final hasPdfInDb = widget.existingPdfUrl != null && widget.existingPdfUrl!.isNotEmpty;
+    final hasPdfLocal = _localFiles.any((f) => f['type'] == 'pdf');
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasPdfLocal ? Colors.orange.shade50 : hasPdfInDb ? Colors.red.shade50 : Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: hasPdfLocal ? Colors.orange.shade300 : hasPdfInDb ? Colors.red.shade300 : Colors.red.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.picture_as_pdf,
+                color: hasPdfLocal ? Colors.orange.shade700 : hasPdfInDb ? Colors.red.shade700 : Colors.red.shade700,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (hasPdfLocal) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'PDF Selected for Upload',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Will Save',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        _localFiles.firstWhere((f) => f['type'] == 'pdf', orElse: () => {})['fileName'] ?? 'PDF selected',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade600,
+                        ),
+                      ),
+                    ] else if (hasPdfInDb) ...[
+                      Text(
+                        'PDF File',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                      Text(
+                        FileHelpers.getFileNameFromUrl(widget.existingPdfUrl ?? ''),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.red.shade600,
+                        ),
+                      ),
+                    ] else ...[
+                      Text(
+                        'No PDF Selected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (hasPdfInDb || hasPdfLocal) ...[
+                SizedBox(
+                  width: hasPdfInDb ? 140 : 100, // Constrain button width
+                  child: ElevatedButton.icon(
+                    onPressed: _uploadHandler.uploadManifestoPdf,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Change'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: hasPdfLocal ? Colors.orange.shade600 : Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+                if (hasPdfInDb) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _isDeletingPdf ? null : _handlePdfDeletion,
+                    icon: _isDeletingPdf
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'Delete PDF',
+                    constraints: const BoxConstraints(maxWidth: 40, maxHeight: 40),
+                  ),
+                ],
+              ] else ...[
+                ElevatedButton.icon(
+                  onPressed: _uploadHandler.uploadManifestoPdf,
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Choose PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
     );
   }
 
-  // Optimize image for manifesto (higher quality than achievements)
-  Future<XFile> _optimizeManifestoImage(XFile image) async {
-    try {
-      final file = File(image.path);
-      final fileSize = await file.length();
-      final fileSizeMB = fileSize / (1024 * 1024);
+  Widget _buildImageRow() {
+    final hasImageInDb = widget.existingImageUrl != null && widget.existingImageUrl!.isNotEmpty;
+    final hasImageLocal = _localFiles.any((f) => f['type'] == 'image');
 
-      AppLogger.candidate(
-        '🖼️ [Manifesto Image] Original size: ${fileSizeMB.toStringAsFixed(2)} MB',
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasImageLocal ? Colors.orange.shade50 : hasImageInDb ? Colors.green.shade50 : Colors.green.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: hasImageLocal ? Colors.orange.shade300 : hasImageInDb ? Colors.green.shade300 : Colors.green.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Show selected image preview when local file exists
+          if (hasImageLocal) ...[
+            // Image preview with controls
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image thumbnail container
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: _buildImageThumbnail(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Content column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Status and info row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Image Selected for Upload',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Will Save',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Filename and size
+                      Text(
+                        '${((_localFiles.firstWhere((f) => f['type'] == 'image', orElse: () => {})['fileName'] as String?)?.isNotEmpty ?? false) ? _localFiles.firstWhere((f) => f['type'] == 'image', orElse: () => {})['fileName'] : 'Image selected'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '(${(_localFiles.firstWhere((f) => f['type'] == 'image', orElse: () => {})['fileSize'] as double? ?? 0.0) > 0 ? (_localFiles.firstWhere((f) => f['type'] == 'image', orElse: () => {})['fileSize'] as double?)?.toStringAsFixed(1) ?? '0.0' : 'Processing...'}MB)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Action buttons row
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _uploadHandler.uploadManifestoImage,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Change Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade600,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() => _localFiles.removeWhere((f) => f['type'] == 'image'));
+                      widget.onLocalFilesUpdate(_localFiles);
+                    },
+                    icon: const Icon(Icons.delete, size: 16),
+                    label: const Text('Remove'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade600,
+                      side: BorderSide(color: Colors.red.shade300),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (hasImageInDb) ...[
+            // Existing uploaded image display
+            Row(
+              children: [
+                // Image thumbnail container
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.network(
+                      widget.existingImageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Center(child: CircularProgressIndicator(value: progress.expectedTotalBytes != null ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes! : null));
+                      },
+                      errorBuilder: (context, error, stackTrace) => Icon(Icons.image_not_supported, color: Colors.green.shade300),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Image Uploaded',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                      Text(
+                        'Successfully saved to manifesto',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 140, // Constrain button width
+                  child: ElevatedButton.icon(
+                    onPressed: _uploadHandler.uploadManifestoImage,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Change'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _isDeletingImage ? null : _handleImageDeletion,
+                  icon: _isDeletingImage
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Delete Image',
+                  constraints: const BoxConstraints(maxWidth: 40, maxHeight: 40),
+                ),
+              ],
+            ),
+          ] else ...[
+            // No image selected - show choose button
+            Row(
+              children: [
+                Icon(
+                  Icons.image,
+                  color: Colors.green.shade700,
+                  size: 60,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No Image Selected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                      Text(
+                        'Add an image to your manifesto (Gold+ plan required)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _uploadHandler.uploadManifestoImage,
+                  icon: const Icon(Icons.photo_camera, size: 16),
+                  label: const Text('Choose Image'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Build image thumbnail for local files
+  Widget _buildImageThumbnail() {
+    final imageEntry = _localFiles.firstWhere((f) => f['type'] == 'image', orElse: () => {});
+
+    // PRIORITY 1: Check if we have image bytes (stored during web upload)
+    final bytes = imageEntry['bytes'] as Uint8List?;
+    if (bytes != null && bytes.isNotEmpty) {
+      // AppLogger.candidate('🖼️ [THUMBNAIL] Using memory bytes (${bytes.length} bytes)'); // COMMENTED OUT - HIDES BYTES LOG
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Icon(Icons.image, color: Colors.orange.shade300, size: 40),
       );
+    }
 
-      // Manifesto images need higher quality than achievement photos
-      int quality = 85; // Higher than achievements (80)
-      int? maxWidth;
-      int? maxHeight;
-
-      if (fileSizeMB > 8.0) {
-        // Very large files (>8MB) - moderate optimization for manifesto
-        quality = 75;
-        maxWidth = 1600;
-        maxHeight = 1600;
-        AppLogger.candidate(
-          '🖼️ [Manifesto Image] Large file detected (>8MB), applying moderate optimization',
+    // PRIORITY 2: Check if we have a local file path
+    final localPath = imageEntry['localPath'] as String?;
+    if (localPath != null && localPath.isNotEmpty) {
+      // Check if it's a web blob URL or data URL
+      if (localPath.startsWith('blob:') || localPath.startsWith('data:')) {
+        // Web file - try to show from network (blob URLs can work with Image.network)
+        AppLogger.candidate('🖼️ [THUMBNAIL] Using blob URL: $localPath');
+        return Image.network(
+          localPath,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Center(child: CircularProgressIndicator(
+              value: progress.expectedTotalBytes != null ?
+                progress.cumulativeBytesLoaded / progress.expectedTotalBytes! : null
+            ));
+          },
+          errorBuilder: (context, error, stackTrace) => Icon(Icons.image, color: Colors.orange.shade300, size: 40),
         );
-      } else if (fileSizeMB > 4.0) {
-        // Large files (4-8MB) - light optimization
-        quality = 80;
-        maxWidth = 2000;
-        maxHeight = 2000;
-        AppLogger.candidate(
-          '🖼️ [Manifesto Image] Large file detected (4-8MB), applying light optimization',
+      } else if (!kIsWeb) {
+        // Mobile file - show from local file path (only on mobile platforms)
+        AppLogger.candidate('🖼️ [THUMBNAIL] Using file path: $localPath');
+        return Image.file(
+          File(localPath),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Icon(Icons.image, color: Colors.orange.shade300, size: 40),
         );
       } else {
-        // Small files - no optimization needed
-        AppLogger.candidate(
-          '🖼️ [Manifesto Image] File size acceptable, no optimization needed',
-        );
-        return image;
+        // On web with non-blob URLs (shouldn't happen with our setup), fallback to icon
+        AppLogger.candidate('🖼️ [THUMBNAIL] Web non-blob URL: $localPath, using fallback icon');
+        return Icon(Icons.image, color: Colors.orange.shade300, size: 40);
       }
-
-      // Get the original image temp path for cleanup
-      final originalTempPath = image.path;
-      AppLogger.candidate('🖼️ [Manifesto Image] Original temp path: $originalTempPath');
-
-      // Create optimized version
-      final ImagePicker imagePicker = ImagePicker();
-      final optimizedImage = await imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: maxWidth.toDouble(),
-        maxHeight: maxHeight.toDouble(),
-        imageQuality: quality,
-      );
-
-      if (optimizedImage != null) {
-        final optimizedFile = File(optimizedImage.path);
-        final optimizedSize = await optimizedFile.length();
-        final optimizedSizeMB = optimizedSize / (1024 * 1024);
-
-        AppLogger.candidate(
-          '🖼️ [Manifesto Image] Optimized size: ${optimizedSizeMB.toStringAsFixed(2)} MB (${((fileSize - optimizedSize) / fileSize * 100).toStringAsFixed(1)}% reduction)',
-        );
-
-        // If optimization created a different file, clean up the original temp file
-        if (optimizedImage.path != originalTempPath) {
-          AppLogger.candidate('🖼️ [Manifesto Image] Cleaning up original temp file');
-          try {
-            await _cleanupLocalFile(originalTempPath);
-          } catch (cleanupError) {
-            AppLogger.candidate('⚠️ [Manifesto Image] Failed to cleanup original temp file: $cleanupError');
-          }
-        }
-
-        return optimizedImage;
-      }
-
-      // If optimization failed, return original
-      AppLogger.candidate('⚠️ [Manifesto Image] Optimization returned null, using original');
-      return image;
-    } catch (e) {
-      AppLogger.candidate(
-        '⚠️ [Manifesto Image] Optimization failed, using original: $e',
-      );
-      return image;
     }
+
+    // Fallback icon
+    AppLogger.candidate('🖼️ [THUMBNAIL] No image data found, using fallback icon');
+    return Icon(Icons.image, color: Colors.orange.shade300, size: 40);
+  }
+
+  Widget _buildVideoRow() {
+    final hasVideoInDb = widget.existingVideoUrl != null && widget.existingVideoUrl!.isNotEmpty;
+    final hasVideoLocal = _localFiles.any((f) => f['type'] == 'video');
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasVideoLocal ? Colors.orange.shade50 : hasVideoInDb ? Colors.purple.shade50 : Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: hasVideoLocal ? Colors.orange.shade300 : hasVideoInDb ? Colors.purple.shade300 : Colors.purple.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Show selected video preview when local file exists
+          if (hasVideoLocal) ...[
+            // Video preview with controls
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Video thumbnail container
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                    color: Colors.black,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Icon(Icons.video_call, color: Colors.orange.shade300, size: 40),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Content column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Status and info row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Video Selected for Upload',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Will Save',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Filename and size
+                      Text(
+                        '${((_localFiles.firstWhere((f) => f['type'] == 'video', orElse: () => {})['fileName'] as String?)?.isNotEmpty ?? false) ? _localFiles.firstWhere((f) => f['type'] == 'video', orElse: () => {})['fileName'] : 'Video selected'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '(${(_localFiles.firstWhere((f) => f['type'] == 'video', orElse: () => {})['fileSize'] as double? ?? 0.0) > 0 ? (_localFiles.firstWhere((f) => f['type'] == 'video', orElse: () => {})['fileSize'] as double?)?.toStringAsFixed(1) ?? '0.0' : 'Processing...'}MB)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Action buttons row
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _uploadHandler.uploadManifestoVideo,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Change Video'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade600,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() => _localFiles.removeWhere((f) => f['type'] == 'video'));
+                      widget.onLocalFilesUpdate(_localFiles);
+                    },
+                    icon: const Icon(Icons.delete, size: 16),
+                    label: const Text('Remove'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade600,
+                      side: BorderSide(color: Colors.red.shade300),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (hasVideoInDb) ...[
+            // Existing uploaded video display
+            Row(
+              children: [
+                // Video thumbnail container
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.purple.shade200),
+                    color: Colors.black,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Icon(Icons.video_call, color: Colors.purple.shade300, size: 40),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Video Uploaded',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                      Text(
+                        'Premium feature active',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.purple.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 140, // Constrain button width
+                  child: ElevatedButton.icon(
+                    onPressed: _uploadHandler.uploadManifestoVideo,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Change'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _isDeletingVideo ? null : _handleVideoDeletion,
+                  icon: _isDeletingVideo
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Delete Video',
+                  constraints: const BoxConstraints(maxWidth: 40, maxHeight: 40),
+                ),
+              ],
+            ),
+          ] else ...[
+            // No video selected - show choose button
+            Row(
+              children: [
+                Icon(
+                  Icons.video_call,
+                  color: Colors.purple.shade700,
+                  size: 60,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No Video Selected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                      Text(
+                        'Video uploads require Gold+ plan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.purple.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _uploadHandler.uploadManifestoVideo,
+                  icon: const Icon(Icons.videocam, size: 16),
+                  label: const Text('Choose Video'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (!widget.isEditing) return const SizedBox.shrink();
 
-    // Check if files already exist in database OR are pending local upload
-    final hasPdfInDb = widget.candidateData.manifestoData?.pdfUrl != null &&
-                       widget.candidateData.manifestoData!.pdfUrl!.isNotEmpty;
-    final hasImageInDb = widget.candidateData.manifestoData?.image != null &&
-                         widget.candidateData.manifestoData!.image!.isNotEmpty;
-    final hasVideoInDb = widget.candidateData.manifestoData?.videoUrl != null &&
-                         widget.candidateData.manifestoData!.videoUrl!.isNotEmpty;
-
-    // Check if files are pending local upload (only allow one per type)
-    final hasPdfLocal = _localFiles.where((file) => file['type'] == 'pdf').isNotEmpty;
-    final hasImageLocal = _localFiles.where((file) => file['type'] == 'image').isNotEmpty;
-    final hasVideoLocal = _localFiles.where((file) => file['type'] == 'video').isNotEmpty;
-
-    // Combine database and local checks
-    final hasPdf = hasPdfInDb || hasPdfLocal;
-    final hasImage = hasImageInDb || hasImageLocal;
-    final hasVideo = hasVideoInDb || hasVideoLocal;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          children: [
-            // PDF Upload Row
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: hasPdf ? Colors.grey.shade100 : Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: hasPdf ? Colors.grey.shade300 : Colors.red.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.picture_as_pdf,
-                    color: hasPdf ? Colors.grey.shade500 : Colors.red.shade700,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hasPdf ? 'PDF Already Added' : AppLocalizations.of(context)!.uploadPdf,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: hasPdf ? Colors.grey.shade600 : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          hasPdf ? 'One PDF allowed per manifesto' : AppLocalizations.of(context)!.pdfFileLimit,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: hasPdf ? Colors.grey.shade500 : Colors.red.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: (!hasPdf && !_isUploadingPdf) ? _uploadManifestoPdf : null,
-                    icon: _isUploadingPdf
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Icon(Icons.upload_file),
-                    label: Text(hasPdf ? 'PDF Added' : 'Choose PDF'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasPdf ? Colors.grey.shade400 : Colors.red.shade600,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+        // PDF Upload Row
+        _buildPdfRow(),
 
-            // Image Upload Row
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: hasImage ? Colors.grey.shade100 : Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: hasImage ? Colors.grey.shade300 : Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.image,
-                    color: hasImage ? Colors.grey.shade500 : Colors.green.shade700,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hasImage ? 'Image Already Added' : AppLocalizations.of(context)!.uploadImage,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: hasImage ? Colors.grey.shade600 : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          hasImage ? 'One image allowed per manifesto' : AppLocalizations.of(context)!.imageFileLimit,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: hasImage ? Colors.grey.shade500 : Colors.green.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: (!hasImage && !_isUploadingImage)
-                        ? _uploadManifestoImage
-                        : null,
-                    icon: _isUploadingImage
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Icon(Icons.photo_camera),
-                    label: Text(hasImage ? 'Image Added' : 'Choose Image'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasImage ? Colors.grey.shade400 : Colors.green.shade600,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-            // Video Upload Row
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: hasVideo ? Colors.grey.shade100 : Colors.purple.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: hasVideo ? Colors.grey.shade300 : Colors.purple.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.video_call,
-                    color: hasVideo ? Colors.grey.shade500 : Colors.purple.shade700,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hasVideo ? 'Video Already Added' : AppLocalizations.of(context)!.uploadVideo,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: hasVideo ? Colors.grey.shade600 : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          hasVideo ? 'One video allowed per manifesto' : AppLocalizations.of(context)!.videoFileLimit,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: hasVideo ? Colors.grey.shade500 : Colors.purple.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: (!hasVideo && !_isUploadingVideo)
-                        ? _uploadManifestoVideo
-                        : null,
-                    icon: _isUploadingVideo
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Icon(Icons.videocam),
-                    label: Text(hasVideo ? 'Video Added' : 'Choose Video'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasVideo ? Colors.grey.shade400 : Colors.purple.shade600,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        // Image Upload Row
+        _buildImageRow(),
 
-        // Display locally stored files (ready for upload)
-        if (_localFiles.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.pending, color: Colors.amber.shade700, size: 24),
-                    const SizedBox(width: 12),
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.filesReadyForUpload(_localFiles.length),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppLocalizations.of(context)!.filesUploadMessage,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                ..._localFiles.map((localFile) {
-                  final type = localFile['type'] as String;
-                  final fileName = localFile['fileName'] as String;
-                  final fileSize = localFile['fileSize'] as double;
-                  final localPath = localFile['localPath'] as String;
+        const SizedBox(height: 8),
 
-                  IconData icon;
-                  Color color;
-                  switch (type) {
-                    case 'pdf':
-                      icon = Icons.picture_as_pdf;
-                      color = Colors.red;
-                      break;
-                    case 'image':
-                      icon = Icons.image;
-                      color = Colors.green;
-                      break;
-                    case 'video':
-                      icon = Icons.video_call;
-                      color = Colors.purple;
-                      break;
-                    default:
-                      icon = Icons.file_present;
-                      color = Colors.grey;
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(icon, color: color, size: 24),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  fileName,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '${fileSize.toStringAsFixed(2)} MB • Ready for upload',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _localFiles.remove(localFile);
-                              });
-                              widget.onLocalFilesUpdate(_localFiles);
-                              // Clean up the local file
-                              _cleanupLocalFile(localPath);
-                              if (mounted) {
-                                SnackbarUtils.showScaffoldInfo(context, '$fileName removed from upload queue');
-                              }
-                            },
-                            tooltip: 'Remove from upload queue',
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
+        // Video Upload Row
+        _buildVideoRow(),
       ],
     );
   }

@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:janmat/core/app_theme.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
-import '../../../utils/multi_level_cache.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../../utils/theme_constants.dart';
 import '../controllers/candidate_controller.dart';
@@ -52,28 +51,18 @@ class _MyAreaCandidatesScreenState extends State<MyAreaCandidatesScreen> {
   Future<void> _loadUserDataAndCandidates() async {
     if (currentUserId != null) {
       try {
-        // First try to get user data from cache (from silent login)
-        final cacheKey = 'home_user_data_$currentUserId';
-        final cachedHomeData = await MultiLevelCache().get<Map<String, dynamic>>(cacheKey);
+        // Fetch user data from Firebase
+        AppLogger.candidate('Fetching user data from Firebase');
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .get();
 
-        if (cachedHomeData != null && cachedHomeData['user'] != null) {
-          // Use cached user data
-          currentUser = UserModel.fromJson(Map<String, dynamic>.from(cachedHomeData['user']));
-          AppLogger.candidate('Using cached user data for My Area Candidates screen');
+        if (userDoc.exists) {
+          currentUser = UserModel.fromJson(userDoc.data()!);
         } else {
-          // Fallback to fetching from Firebase if cache is not available
-          AppLogger.candidate('Cached user data not found, fetching from Firebase');
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUserId)
-              .get();
-
-          if (userDoc.exists) {
-            currentUser = UserModel.fromJson(userDoc.data()!);
-          } else {
-            AppLogger.candidate('User document not found in Firebase');
-            return;
-          }
+          AppLogger.candidate('User document not found in Firebase');
+          return;
         }
 
         // Load candidates from user's ward using new electionAreas structure

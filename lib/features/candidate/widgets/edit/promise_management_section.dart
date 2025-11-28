@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../utils/app_logger.dart';
 import '../../../monetization/services/plan_service.dart';
 import '../../../../l10n/features/candidate/candidate_localizations.dart';
+import '../../../../core/app_route_names.dart';
+import '../../controllers/candidate_user_controller.dart';
+import '../../../common/upgrade_plan_dialog.dart';
+import '../../../user/models/user_model.dart';
 
 class PromiseManagementSection extends StatefulWidget {
   final List<Map<String, dynamic>> promiseControllers;
@@ -26,34 +31,53 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
   Future<void> _addNewPromise() async {
     AppLogger.candidate('Add New Promise button pressed');
 
-    // Check if user can add more promises based on their plan
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      final plan = await PlanService.getUserPlan(currentUser.uid);
-      if (plan != null && plan.dashboardTabs?.manifesto.enabled == true) {
-        final maxPromises = plan.dashboardTabs!.manifesto.features.maxPromises;
-        final currentPromises = widget.promiseControllers.length;
+    final currentPromises = widget.promiseControllers.length;
+    AppLogger.candidate('Current promises count before adding: $currentPromises');
 
-        if (currentPromises >= maxPromises) {
-          // Show upgrade message
-          final localizations = CandidateLocalizations.of(context);
-          if (localizations != null) {
-            _showUpgradeDialog(
-              localizations.translate('promiseLimitReached'),
-              localizations.translate('promiseLimitMessage', args: {
-                'count': maxPromises.toString(),
-                'promiseText': maxPromises == 1
-                    ? localizations.translate('promiseSingular')
-                    : localizations.translate('promisePlural')
-              }),
-              localizations.translate('upgradeToGold'),
-            );
-          }
-          return;
-        }
+    // SIMPLIFIED PLAN CHECK: Use user controller data first (same as file upload)
+    final candidateUserController = Get.find<CandidateUserController>();
+    UserModel? user = candidateUserController.user.value;
+
+    // If user data not available in controller, try to get it
+    if (user == null) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await candidateUserController.loadCandidateUserData(currentUser.uid);
+        user = candidateUserController.user.value;
       }
     }
 
+    // Determine if user is on free plan - promises are limited to 2 for free plans
+    bool isFreePlan = true; // Default to free plan
+
+    if (user != null) {
+      // Simple check: if subscriptionPlanId is "free_plan", then free plan
+      // Otherwise, it's paid plan (gold_plan, etc.)
+      isFreePlan = user.subscriptionPlanId == "free_plan";
+
+      AppLogger.candidate('🗂️ [Promises] Plan check - subscriptionPlanId: ${user.subscriptionPlanId}, isFreePlan: $isFreePlan');
+    }
+
+    // FREE PLAN: Enforce 2 promise limit
+    const int freePlanMaxPromises = 2;
+
+    if (isFreePlan && currentPromises >= freePlanMaxPromises) {
+      AppLogger.candidate('Hit free plan limit - showing upgrade dialog. Current: $currentPromises, Max: $freePlanMaxPromises');
+
+      final result = await UpgradePlanDialog.showPromiseLimitExceeded(
+        context: context,
+        currentPromises: currentPromises,
+        maxPromises: freePlanMaxPromises,
+      );
+
+      if (result == false || result == null) {
+        // User canceled or dialog was dismissed - don't add promise
+        return;
+      }
+    }
+
+    // ALLOW ADDING: If we get here, user can add the promise
+    AppLogger.candidate('Allowing promise addition - adding new promise');
     setState(() {
       final newController = <String, dynamic>{
         'title': TextEditingController(),
@@ -61,6 +85,7 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
       };
       widget.promiseControllers.add(newController);
     });
+
     // Create updated promises list from controllers
     final updatedPromises = widget.promiseControllers.map((controller) {
       final title = (controller['title'] as TextEditingController).text;
@@ -70,9 +95,8 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
       return <String, dynamic>{'title': title, 'points': points};
     }).toList();
     widget.onPromisesChange(updatedPromises);
-    AppLogger.candidate(
-      'Added new promise, total promises: ${widget.promiseControllers.length}',
-    );
+
+    AppLogger.candidate('Promise added successfully. Total promises now: ${widget.promiseControllers.length}');
   }
 
   void _deletePromise(int index) {
@@ -637,6 +661,37 @@ class _PromiseManagementSectionState extends State<PromiseManagementSection> {
               Navigator.of(context).pop();
               // TODO: Navigate to monetization screen
               // Get.to(() => const MonetizationScreen());
+            },
+            child: Text(buttonText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFreePlanUpgradeDialog(String titleKey, String messageKey) {
+    final localizations = CandidateLocalizations.of(context);
+    if (localizations == null) return;
+
+    final title = localizations.translate(titleKey) ?? 'Upgrade Required';
+    final message = localizations.translate(messageKey) ?? 'This feature requires a premium plan. Upgrade to access more promises and media uploads.';
+    final buttonText = localizations.translate('upgradeNow') ?? 'Upgrade Now';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(localizations.translate('cancel') ?? 'Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Navigate to monetization screen
+              Get.toNamed(AppRouteNames.monetization);
             },
             child: Text(buttonText),
           ),

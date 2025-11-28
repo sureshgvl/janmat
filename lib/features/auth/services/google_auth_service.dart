@@ -9,12 +9,10 @@ import '../../../utils/app_logger.dart';
 import '../../../utils/performance_monitor.dart';
 import '../../../services/background_sync_manager.dart';
 import '../../../services/fcm_service.dart';
-import '../../../features/user/services/user_cache_service.dart';
 
 class GoogleAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final UserCacheService _cacheService = UserCacheService();
   final BackgroundSyncManager _syncManager = BackgroundSyncManager();
   final FCMService _fcmService = FCMService();
 
@@ -154,9 +152,9 @@ class GoogleAuthService {
     };
 
     // Cache locally for immediate access
-    await _cacheService.cacheTempUserData(userData);
+    // await _cacheService.cacheTempUserData(userData);
 
-    AppLogger.auth('✅ User data prepared and cached locally');
+    AppLogger.auth('✅ User data prepared locally');
     return userData;
   }
 

@@ -1,16 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/like_model.dart';
 import '../../../utils/performance_monitor.dart';
-import '../../../utils/connection_optimizer.dart';
 import '../../../utils/app_logger.dart';
-import 'manifesto_cache_service.dart';
-import '../../../services/local_database_service.dart';
 
 class ManifestoLikesService {
   static final PerformanceMonitor _monitor = PerformanceMonitor();
-  static final ConnectionOptimizer _connectionOptimizer = ConnectionOptimizer();
-  static final ManifestoCacheService _cacheService = ManifestoCacheService();
-  static final LocalDatabaseService _dbService = LocalDatabaseService();
 
   /// Toggle like for a manifesto
   /// Returns true if liked, false if unliked
@@ -18,46 +12,25 @@ class ManifestoLikesService {
     _monitor.startTimer('toggle_like');
 
     try {
-      // Check cache first
-      final hasLiked = await _cacheService.hasUserLiked(userId, manifestoId);
+      final likesRef = FirebaseFirestore.instance.collection('likes');
+
+      // Check if user already liked
+      final existingLike = await likesRef
+          .where('userId', isEqualTo: userId)
+          .where('postId', isEqualTo: manifestoId)
+          .limit(1)
+          .get();
+
       bool isLiked;
 
-      if (hasLiked) {
-        // Unlike: find the like record and remove it from cache
-        final db = await _dbService.database;
-        final existingLike = await db.query(
-          LocalDatabaseService.likesTable,
-          where: 'userId = ? AND postId = ? AND (syncAction != ? OR syncAction IS NULL)',
-          whereArgs: [userId, manifestoId, 'delete'],
-          limit: 1,
-        );
-
-        if (existingLike.isNotEmpty) {
-          final likeId = existingLike.first['id'] as String;
-          await _cacheService.removeCachedLike(likeId);
-        }
+      if (existingLike.docs.isNotEmpty) {
+        // Unlike: remove from Firestore
+        await likesRef.doc(existingLike.docs.first.id).delete();
+        _monitor.trackFirebaseWrite('likes', 1);
         isLiked = false;
-
-        // If online, sync to Firestore
-        if (_connectionOptimizer.currentQuality != ConnectionQuality.offline) {
-          try {
-            final likesRef = FirebaseFirestore.instance.collection('likes');
-            final existingLike = await likesRef
-                .where('userId', isEqualTo: userId)
-                .where('postId', isEqualTo: manifestoId)
-                .limit(1)
-                .get();
-
-            if (existingLike.docs.isNotEmpty) {
-              await likesRef.doc(existingLike.docs.first.id).delete();
-              _monitor.trackFirebaseWrite('likes', 1);
-            }
-          } catch (e) {
-            AppLogger.commonError('Failed to sync unlike to Firestore, will retry later', error: e);
-          }
-        }
+        AppLogger.common('Unliked manifesto $manifestoId by user $userId');
       } else {
-        // Like: add to cache
+        // Like: add to Firestore
         final like = LikeModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           userId: userId,
@@ -65,22 +38,10 @@ class ManifestoLikesService {
           createdAt: DateTime.now(),
         );
 
-        await _cacheService.cacheLike(like, synced: false);
+        await likesRef.add(like.toJson());
+        _monitor.trackFirebaseWrite('likes', 1);
         isLiked = true;
-
-        // If online, sync to Firestore
-        if (_connectionOptimizer.currentQuality != ConnectionQuality.offline) {
-          try {
-            final likesRef = FirebaseFirestore.instance.collection('likes');
-            await likesRef.add(like.toJson());
-            _monitor.trackFirebaseWrite('likes', 1);
-
-            // Mark as synced
-            await _cacheService.markLikeSynced(like.id);
-          } catch (e) {
-            AppLogger.commonError('Failed to sync like to Firestore, will retry later', error: e);
-          }
-        }
+        AppLogger.common('Liked manifesto $manifestoId by user $userId');
       }
 
       _monitor.stopTimer('toggle_like');
@@ -92,14 +53,8 @@ class ManifestoLikesService {
     }
   }
 
-  /// Get stream of like count for a manifesto (with offline support)
+  /// Get stream of like count for a manifesto
   static Stream<int> getLikeCountStream(String manifestoId) {
-    // If offline, return cached count
-    if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-      return Stream.fromFuture(_cacheService.getCachedLikeCount(manifestoId));
-    }
-
-    // Online: Get from Firestore
     final likesRef = FirebaseFirestore.instance.collection('likes');
 
     return likesRef
@@ -111,14 +66,8 @@ class ManifestoLikesService {
         });
   }
 
-  /// Get stream of user's like status for a manifesto (with offline support)
+  /// Get stream of user's like status for a manifesto
   static Stream<bool> getUserLikeStatusStream(String userId, String manifestoId) {
-    // If offline, return cached result as stream
-    if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-      return Stream.fromFuture(_cacheService.hasUserLiked(userId, manifestoId));
-    }
-
-    // Online: Get from Firestore as stream
     final likesRef = FirebaseFirestore.instance.collection('likes');
 
     return likesRef
@@ -132,19 +81,11 @@ class ManifestoLikesService {
         });
   }
 
-  /// Check if user has liked a manifesto (with offline support)
+  /// Check if user has liked a manifesto
   static Future<bool> hasUserLiked(String userId, String manifestoId) async {
     _monitor.startTimer('check_user_like');
 
     try {
-      // Check cache first
-      final cachedResult = await _cacheService.hasUserLiked(userId, manifestoId);
-      if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-        _monitor.stopTimer('check_user_like');
-        return cachedResult;
-      }
-
-      // Online: Check Firestore and update cache if needed
       final likesRef = FirebaseFirestore.instance.collection('likes');
       final existingLike = await likesRef
           .where('userId', isEqualTo: userId)
@@ -159,8 +100,7 @@ class ManifestoLikesService {
     } catch (e) {
       _monitor.stopTimer('check_user_like');
       AppLogger.commonError('Error checking user like', error: e);
-      // Fall back to cache
-      return await _cacheService.hasUserLiked(userId, manifestoId);
+      return false;
     }
   }
 

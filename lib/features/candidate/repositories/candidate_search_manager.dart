@@ -2,10 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/candidate_model.dart';
 import '../../../features/user/models/user_model.dart';
 import '../../../utils/performance_monitor.dart' as perf_monitor;
-import '../../../utils/data_compression.dart';
-import '../../../utils/error_recovery_manager.dart';
-import '../../../utils/advanced_analytics.dart';
-import '../../../utils/multi_level_cache.dart';
 import '../../../utils/app_logger.dart';
 import 'candidate_cache_manager.dart';
 import 'candidate_state_manager.dart';
@@ -14,10 +10,6 @@ import 'candidate_follow_manager.dart';
 
 class CandidateSearchManager {
   final FirebaseFirestore _firestore;
-  final FirebaseDataOptimizer _dataOptimizer;
-  final ErrorRecoveryManager _errorRecovery;
-  final AdvancedAnalyticsManager _analytics;
-  final MultiLevelCache _cache;
   final CandidateCacheManager _cacheManager;
   final CandidateStateManager _stateManager;
   final CandidateOperations _operations;
@@ -28,10 +20,10 @@ class CandidateSearchManager {
 
   CandidateSearchManager(
     this._firestore,
-    this._dataOptimizer,
-    this._errorRecovery,
-    this._analytics,
-    this._cache,
+    dynamic dataOptimizer, // No longer used
+    dynamic errorRecovery, // No longer used
+    dynamic analytics, // No longer used
+    dynamic cache, // No longer used
     this._cacheManager,
     this._stateManager,
     this._operations,
@@ -96,33 +88,7 @@ class CandidateSearchManager {
     // For now, assume candidates are in default state, but cache key is more generic
     final cacheKey = 'candidates_${districtId}_${bodyId}_$wardId';
 
-    // Check multi-level cache first
-    final cachedData = await _cache.get<List<Candidate>>(cacheKey);
-    if (cachedData != null) {
-      _analytics.trackFirebaseOperation(
-        'cache_hit',
-        'candidates',
-        cachedData.length,
-      );
-      monitor.trackCacheHit('candidate_ward');
-      monitor.stopTimer('getCandidatesByWard');
-      AppLogger.candidate(
-        '⚡ MULTI_CACHE HIT: Returning ${cachedData.length} cached candidates for ward $wardId',
-      );
-      return cachedData;
-    }
-
-    // Check legacy cache as fallback
-    final cachedCandidates = _getCachedCandidates(cacheKey);
-    if (cachedCandidates != null) {
-      monitor.trackCacheHit('candidate_ward');
-      monitor.stopTimer('getCandidatesByWard');
-      AppLogger.candidate(
-        '⚡ LEGACY CACHE HIT: Returning ${cachedCandidates.length} cached candidates for ward $wardId',
-      );
-      return cachedCandidates;
-    }
-
+    // Cache disabled - always fetch from server
     monitor.trackCacheMiss('candidate_ward');
     final actualStateId = stateId ?? DEFAULT_STATE_ID;
     AppLogger.candidate(
@@ -130,31 +96,20 @@ class CandidateSearchManager {
     );
 
     try {
-      // Use error recovery for Firebase operation
-      final snapshot = await _errorRecovery.executeWithRecovery(
-        'get_candidates_by_ward',
-        () async {
-          return await _firestore
-              .collection('states')
-              .doc(actualStateId)
-              .collection('districts')
-              .doc(districtId)
-              .collection('bodies')
-              .doc(bodyId)
-              .collection('wards')
-              .doc(wardId)
-              .collection('candidates')
-              .get();
-        },
-      );
+      // Direct Firebase operation (error recovery removed)
+      final snapshot = await _firestore
+          .collection('states')
+          .doc(actualStateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .get();
 
       monitor.trackFirebaseRead('candidates', snapshot.docs.length);
-      _analytics.trackFirebaseOperation(
-        'read',
-        'candidates',
-        snapshot.docs.length,
-        success: true,
-      );
 
       AppLogger.candidate(
         '📊 getCandidatesByWard: Found ${snapshot.docs.length} candidates in $actualStateId/$districtId/$bodyId/$wardId',
@@ -162,9 +117,8 @@ class CandidateSearchManager {
 
       final candidates = snapshot.docs.map((doc) {
         final data = doc.data();
-        // Decompress data if it was compressed during storage
-        final decompressedData = _dataOptimizer.optimizeAfterLoad(data);
-        final candidateData = Map<String, dynamic>.from(decompressedData);
+        // Data optimization removed
+        final candidateData = Map<String, dynamic>.from(data);
         candidateData['candidateId'] = doc.id;
 
         // Log candidate details
@@ -181,11 +135,9 @@ class CandidateSearchManager {
       // Fetch following counts from user documents
       final candidatesWithFollowingCount = await _populateFollowingCounts(candidates);
 
-      // Cache in both systems
-      await _cache.set(cacheKey, candidatesWithFollowingCount, ttl: Duration(minutes: 15));
-      _cacheData(cacheKey, candidatesWithFollowingCount); // Legacy cache
+      // Caching disabled
       AppLogger.candidate(
-        '💾 Cached ${candidatesWithFollowingCount.length} candidates for ward $wardId in both cache systems',
+        '✅ Retrieved ${candidatesWithFollowingCount.length} candidates for ward $wardId (no caching)',
       );
 
       monitor.stopTimer('getCandidatesByWard');
@@ -194,15 +146,7 @@ class CandidateSearchManager {
       );
       return candidatesWithFollowingCount;
     } catch (e) {
-      // Track failed operation
-      _analytics.trackFirebaseOperation(
-        'read',
-        'candidates',
-        0,
-        success: false,
-        error: e.toString(),
-      );
-
+      // Analytics tracking removed
       monitor.stopTimer('getCandidatesByWard');
       AppLogger.candidateError('Failed to fetch candidates: $e');
       throw Exception('Failed to fetch candidates: $e');

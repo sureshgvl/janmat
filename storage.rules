@@ -26,10 +26,10 @@ service firebase.storage {
     }
 
     // Profile photos (current implementation path)
-    match /profile_photos/{allPaths=**} {
+    match /profile_photos/{userId}/{allPaths=**} {
       allow read: if true; // Public read for profile photos
-      allow write: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Candidate media files
@@ -62,6 +62,22 @@ service firebase.storage {
       allow delete: if request.auth != null; // Allow all authenticated users to delete
     }
 
+    // Candidate media files (background sync uploads)
+    match /candidates/{candidateId}/media/{allPaths=**} {
+      allow read: if true; // Public read for candidate media
+      allow write: if request.auth != null &&
+        (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
+      allow delete: if request.auth != null &&
+        (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
+    }
+
+    // Manifesto media files (PDF, images, videos)
+    match /manifesto_media/{candidateId}/{allPaths=**} {
+      allow read: if true; // Public read for manifesto media files
+      allow write: if request.auth != null; // Allow all authenticated users to write
+      allow delete: if request.auth != null; // Allow all authenticated users to delete
+    }
+
     // Candidate symbol images (for independent candidates)
     match /candidate_symbols/{allPaths=**} {
       allow read: if true; // Public read for symbol images
@@ -72,14 +88,10 @@ service firebase.storage {
     // Highlight banner images
     match /highlight_banners/{candidateId}/{allPaths=**} {
       allow read: if true; // Public read for highlight banner images
-      // TEMPORARY: Allow all authenticated users during testing
-      allow write: if request.auth != null; // Allow all authenticated users to write during testing
-      allow delete: if request.auth != null; // Allow all authenticated users to delete during testing
-      // PRODUCTION RULES (uncomment when ready):
-      // allow write: if request.auth != null &&
-      //   (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
-      // allow delete: if request.auth != null &&
-      //   (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
+      allow write: if request.auth != null &&
+        (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
+      allow delete: if request.auth != null &&
+        (request.auth.uid == candidateId || _isAdmin(request.auth.uid));
     }
   }
 

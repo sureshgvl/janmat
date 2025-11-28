@@ -332,7 +332,7 @@ class _LocationBreadcrumbState extends State<LocationBreadcrumb> {
         );
 
         final bodyDisplayName = widget.locationController.selectedBodyId.value != null
-            ? (widget.locationController.selectedBody?.name ?? 'Body ${widget.locationController.selectedBodyId.value}')
+            ? (widget.locationController.selectedBody.value?.name ?? 'Body ${widget.locationController.selectedBodyId.value}')
             : CandidateLocalizations.of(context)!.selectArea;
 
         parts.add(

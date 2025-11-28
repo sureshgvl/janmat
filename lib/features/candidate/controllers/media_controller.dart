@@ -6,7 +6,6 @@ import '../models/media_model.dart';
 import '../models/candidate_model.dart';
 import '../repositories/media_repository.dart';
 import '../../chat/controllers/chat_controller.dart';
-import '../../../features/user/services/user_cache_service.dart';
 import '../../notifications/services/constituency_notifications.dart';
 
 abstract class IMediaController {
@@ -229,14 +228,6 @@ class MediaController extends GetxController implements IMediaController {
       if (user != null) {
         chatController.invalidateUserCache(user.uid);
       }
-
-      // Update UserCacheService
-      final userCacheService = UserCacheService();
-      await userCacheService.updateCachedUserData({
-        'uid': user?.uid ?? '',
-        'name': candidateName,
-        'photoURL': photoUrl,
-      });
 
       AppLogger.database('💾 BACKGROUND: Caches updated', tag: 'MEDIA_FAST');
     } catch (e) {

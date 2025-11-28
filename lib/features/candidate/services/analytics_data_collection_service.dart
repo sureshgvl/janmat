@@ -27,11 +27,11 @@ class AnalyticsDataCollectionService {
 
       // Record in candidate analytics
       final candidateAnalyticsRef = _getCandidateAnalyticsRef(candidateId);
-      batch.update(candidateAnalyticsRef, {
+      batch.set(candidateAnalyticsRef, {
         'profile_views': FieldValue.increment(1),
         'last_viewed_at': timestamp,
         'updated_at': timestamp,
-      });
+      }, SetOptions(merge: true));
 
       // Record detailed view event
       final viewEventRef = candidateAnalyticsRef.collection('profile_views').doc();
@@ -103,7 +103,7 @@ class AnalyticsDataCollectionService {
           break;
       }
 
-      batch.update(candidateAnalyticsRef, updateData);
+      batch.set(candidateAnalyticsRef, updateData, SetOptions(merge: true));
 
       // Record detailed interaction event
       final interactionRef = candidateAnalyticsRef.collection('manifesto_interactions').doc();
@@ -179,10 +179,10 @@ class AnalyticsDataCollectionService {
       final demographics = await _calculateDemographics(followersSnapshot.docs);
 
       // Update demographics in analytics
-      await candidateAnalyticsRef.update({
+      await candidateAnalyticsRef.set({
         'demographics': demographics,
         'demographics_last_updated': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       AppLogger.common('📊 Aggregated demographic data for candidate: $candidateId');
     } catch (e) {
@@ -225,11 +225,11 @@ class AnalyticsDataCollectionService {
       // Calculate trends
       final trends = _calculateTrends(growthData);
 
-      await candidateAnalyticsRef.update({
+      await candidateAnalyticsRef.set({
         'follower_growth': growthData,
         'growth_trends': trends,
         'trends_last_calculated': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       AppLogger.common('📊 Calculated growth trends for candidate: $candidateId');
     } catch (e) {

@@ -1,14 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/performance_monitor.dart';
-import '../../../utils/connection_optimizer.dart';
 import '../../../utils/app_logger.dart';
-import 'manifesto_cache_service.dart';
 import '../../notifications/services/poll_notification_service.dart';
 
 class ManifestoPollService {
   static final PerformanceMonitor _monitor = PerformanceMonitor();
-  static final ConnectionOptimizer _connectionOptimizer = ConnectionOptimizer();
-  static final ManifestoCacheService _cacheService = ManifestoCacheService();
   static const String _mainPollId = 'main_poll';
 
   // Prevent multiple simultaneous votes
@@ -29,65 +25,52 @@ class ManifestoPollService {
     _monitor.startTimer('vote_on_manifesto_poll');
 
     try {
-      // Cache vote locally first
-      await _cacheService.cachePollVote(manifestoId, userId, option, synced: false);
+      final pollRef = FirebaseFirestore.instance
+          .collection('manifesto_polls')
+          .doc(manifestoId)
+          .collection('polls')
+          .doc(_mainPollId);
 
-      // If online, sync to Firestore
-      if (_connectionOptimizer.currentQuality != ConnectionQuality.offline) {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
         try {
-          final pollRef = FirebaseFirestore.instance
-              .collection('manifesto_polls')
-              .doc(manifestoId)
-              .collection('polls')
-              .doc(_mainPollId);
+          final snapshot = await transaction.get(pollRef);
 
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            try {
-              final snapshot = await transaction.get(pollRef);
+          Map<String, int> votes = {};
+          Map<String, String> userVotes = {};
 
-              Map<String, int> votes = {};
-              Map<String, String> userVotes = {};
+          if (snapshot.exists) {
+            final data = snapshot.data()!;
+            votes = Map<String, int>.from(data['votes'] ?? {});
+            userVotes = Map<String, String>.from(data['userVotes'] ?? {});
+          }
 
-              if (snapshot.exists) {
-                final data = snapshot.data()!;
-                votes = Map<String, int>.from(data['votes'] ?? {});
-                userVotes = Map<String, String>.from(data['userVotes'] ?? {});
-              }
-
-              // Check if user already voted
-              if (userVotes.containsKey(userId)) {
-                // Remove previous vote
-                final previousOption = userVotes[userId]!;
-                if (votes.containsKey(previousOption)) {
-                  votes[previousOption] = (votes[previousOption] ?? 0) - 1;
-                }
-              }
-
-              // Add new vote
-              userVotes[userId] = option;
-              votes[option] = (votes[option] ?? 0) + 1;
-
-              transaction.set(pollRef, {
-                'pollId': _mainPollId,
-                'manifestoId': manifestoId,
-                'votes': votes,
-                'userVotes': userVotes,
-                'updatedAt': FieldValue.serverTimestamp(),
-              }, SetOptions(merge: true));
-            } catch (transactionError) {
-              AppLogger.common('Transaction error: $transactionError');
-              // Don't rethrow here, let outer catch handle it
-              rethrow;
+          // Check if user already voted
+          if (userVotes.containsKey(userId)) {
+            // Remove previous vote
+            final previousOption = userVotes[userId]!;
+            if (votes.containsKey(previousOption)) {
+              votes[previousOption] = (votes[previousOption] ?? 0) - 1;
             }
-          });
+          }
 
-          _monitor.trackFirebaseWrite('manifesto_polls', 1);
-          await _cacheService.markPollVoteSynced(manifestoId, userId);
-        } catch (e) {
-          AppLogger.common('Failed to sync poll vote to Firestore, will retry later: $e');
-          // Vote remains in cache as unsynced
+          // Add new vote
+          userVotes[userId] = option;
+          votes[option] = (votes[option] ?? 0) + 1;
+
+          transaction.set(pollRef, {
+            'pollId': _mainPollId,
+            'manifestoId': manifestoId,
+            'votes': votes,
+            'userVotes': userVotes,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (transactionError) {
+          AppLogger.common('Transaction error: $transactionError');
+          rethrow;
         }
-      }
+      });
+
+      _monitor.trackFirebaseWrite('manifesto_polls', 1);
 
       _monitor.stopTimer('vote_on_manifesto_poll');
       AppLogger.common('✅ Vote recorded for manifesto $manifestoId by user $userId on option $option');
@@ -122,14 +105,8 @@ class ManifestoPollService {
     }
   }
 
-  /// Get stream of poll results for a manifesto (with offline support)
+  /// Get stream of poll results for a manifesto
   static Stream<Map<String, int>> getPollResultsStream(String manifestoId) {
-    // If offline, return cached results
-    if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-      return Stream.fromFuture(_cacheService.getCachedPollResults(manifestoId));
-    }
-
-    // Online: Get from Firestore
     final pollRef = FirebaseFirestore.instance
         .collection('manifesto_polls')
         .doc(manifestoId)
@@ -148,19 +125,11 @@ class ManifestoPollService {
     });
   }
 
-  /// Check if user has already voted on a manifesto poll (with offline support)
+  /// Check if user has already voted on a manifesto poll
   static Future<bool> hasUserVoted(String manifestoId, String userId) async {
     _monitor.startTimer('check_user_voted_manifesto_poll');
 
     try {
-      // Check cache first
-      final cachedResult = await _cacheService.hasUserVoted(manifestoId, userId);
-      if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-        _monitor.stopTimer('check_user_voted_manifesto_poll');
-        return cachedResult;
-      }
-
-      // Online: Check Firestore
       final pollRef = FirebaseFirestore.instance
           .collection('manifesto_polls')
           .doc(manifestoId)
@@ -185,19 +154,12 @@ class ManifestoPollService {
     } catch (e) {
       _monitor.stopTimer('check_user_voted_manifesto_poll');
       AppLogger.common('Error checking user vote: $e');
-      // Fall back to cache
-      return await _cacheService.hasUserVoted(manifestoId, userId);
+      return false;
     }
   }
 
-  /// Get stream of user's current vote on a manifesto poll (with offline support)
+  /// Get stream of user's current vote on a manifesto poll
   static Stream<String?> getUserVoteStream(String manifestoId, String userId) {
-    // If offline, return cached result as stream
-    if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-      return Stream.fromFuture(_cacheService.getCachedUserVote(manifestoId, userId));
-    }
-
-    // Online: Get from Firestore as stream
     final pollRef = FirebaseFirestore.instance
         .collection('manifesto_polls')
         .doc(manifestoId)
@@ -217,19 +179,11 @@ class ManifestoPollService {
     });
   }
 
-  /// Get user's current vote on a manifesto poll (with offline support)
+  /// Get user's current vote on a manifesto poll
   static Future<String?> getUserVote(String manifestoId, String userId) async {
     _monitor.startTimer('get_user_vote_manifesto_poll');
 
     try {
-      // Check cache first
-      final cachedResult = await _cacheService.getCachedUserVote(manifestoId, userId);
-      if (_connectionOptimizer.currentQuality == ConnectionQuality.offline) {
-        _monitor.stopTimer('get_user_vote_manifesto_poll');
-        return cachedResult;
-      }
-
-      // Online: Check Firestore
       final pollRef = FirebaseFirestore.instance
           .collection('manifesto_polls')
           .doc(manifestoId)
@@ -254,8 +208,7 @@ class ManifestoPollService {
     } catch (e) {
       _monitor.stopTimer('get_user_vote_manifesto_poll');
       AppLogger.common('Error getting user vote: $e');
-      // Fall back to cache
-      return await _cacheService.getCachedUserVote(manifestoId, userId);
+      return null;
     }
   }
 

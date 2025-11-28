@@ -4,7 +4,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:janmat/features/chat/models/chat_message.dart';
 import 'package:janmat/features/chat/models/chat_room.dart';
 import 'package:janmat/features/chat/models/poll.dart';
-import 'package:janmat/features/chat/models/user_quota.dart';
 import 'package:janmat/features/user/controllers/user_data_controller.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:uuid/uuid.dart';
@@ -14,6 +13,8 @@ import '../../notifications/services/poll_notification_service.dart';
 import '../../notifications/services/notification_manager.dart';
 import '../../notifications/models/notification_type.dart';
 import '../../../utils/app_logger.dart';
+import '../../../core/services/firebase_uploader.dart';
+import '../../../core/models/unified_file.dart';
 
 // WhatsApp-style Chat Metadata for efficient caching
 class ChatMetadata {
@@ -128,7 +129,6 @@ class ChatMetadata {
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final _uuid = const Uuid();
   final CandidateRepository _candidateRepository = CandidateRepository();
 
@@ -1234,15 +1234,20 @@ class ChatRepository {
     String contentType,
   ) async {
     try {
-      final storageRef = _storage.ref().child('chat_media/$roomId/$fileName');
-      final uploadTask = storageRef.putFile(
-        File(filePath),
-        SettableMetadata(contentType: contentType),
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(filePath).length(),
+        file: File(filePath),
+        mimeType: contentType,
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: 'chat_media/$roomId/$fileName',
+        metadata: SettableMetadata(contentType: contentType),
+      );
+
+      return downloadUrl ?? '';
     } catch (e) {
       throw Exception('Failed to upload media file: $e');
     }

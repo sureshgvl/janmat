@@ -32,7 +32,6 @@ class UserManagementService {
           roleSelected: false,
           profileCompleted: false,
           electionAreas: [], // Will be set during profile completion
-          xpPoints: 0,
           premium: false,
           createdAt: DateTime.now(),
         );

@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import '../model/district_spotlight_model.dart';
 import '../../../utils/app_logger.dart';
 import '../screens/district_spotlight_overlay.dart';
-import '../../../services/local_database_service.dart';
 
 class DistrictSpotlightService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -73,21 +72,9 @@ class DistrictSpotlightService {
           return;
         }
 
-        // Check if we need to download the image (partyId comparison)
-        final localDb = LocalDatabaseService();
-        final cachedSpotlight = await localDb.getDistrictSpotlight(stateId, districtId);
-        final needsImageDownload = cachedSpotlight == null ||
-            cachedSpotlight.partyId != spotlight.partyId;
-
-        if (needsImageDownload) {
-          AppLogger.districtSpotlight('📥 Downloading/preloading spotlight image for party: ${spotlight.partyId}');
-          // Preload the image before showing the dialog
-          await _preloadSpotlightImage(spotlight.fullImage);
-        } else {
-          AppLogger.districtSpotlight('✅ Using cached image for party: ${spotlight.partyId}');
-          // Still preload to ensure image is ready, but it should be fast
-          await _preloadSpotlightImage(spotlight.fullImage);
-        }
+        // Preload the image before showing the dialog
+        AppLogger.districtSpotlight('📥 Preloading spotlight image for party: ${spotlight.partyId}');
+        await _preloadSpotlightImage(spotlight.fullImage);
 
         // Show the spotlight as a global dialog
         AppLogger.common('🎯 Showing district spotlight dialog globally');
@@ -185,46 +172,16 @@ class DistrictSpotlightService {
     }
   }
 
-  /// Get active district spotlight for a specific district with caching
+  /// Get active district spotlight for a specific district
   static Future<DistrictSpotlight?> getActiveDistrictSpotlight(String stateId, String districtId) async {
     try {
-      AppLogger.common('🔍 Checking cached district spotlight for $stateId/$districtId');
+      AppLogger.common('🔥 Fetching district spotlight from Firestore for $stateId/$districtId');
+      final spotlight = await getDistrictSpotlight(stateId, districtId);
 
-      // First check local database for cached spotlight
-      final localDb = LocalDatabaseService();
-      final cachedSpotlight = await localDb.getDistrictSpotlight(stateId, districtId);
-
-      // Always fetch fresh data from Firestore to check current status
-      AppLogger.common('🔥 Fetching fresh district spotlight from Firestore for $stateId/$districtId');
-      final freshSpotlight = await getDistrictSpotlight(stateId, districtId);
-
-      if (freshSpotlight != null && freshSpotlight.isActive) {
-        // Check if we need to update cache (version changed OR no cached data exists)
-        final needsCacheUpdate = cachedSpotlight == null ||
-            cachedSpotlight.version != freshSpotlight.version;
-
-        if (needsCacheUpdate) {
-          if (cachedSpotlight == null) {
-            AppLogger.districtSpotlight('📥 No cached data, caching fresh spotlight data');
-          } else {
-            AppLogger.districtSpotlight('📥 Version changed (${cachedSpotlight.version} -> ${freshSpotlight.version}), updating cache');
-          }
-
-          // Cache the fresh data
-          await localDb.insertDistrictSpotlight(freshSpotlight, stateId, districtId);
-          AppLogger.districtSpotlight('💾 Cached/Updated fresh spotlight data for $stateId/$districtId');
-        } else {
-          AppLogger.districtSpotlight('✅ Cache is up-to-date, no changes needed');
-        }
-
-        return freshSpotlight;
+      if (spotlight != null && spotlight.isActive) {
+        AppLogger.common('✅ Found active spotlight for $districtId');
+        return spotlight;
       } else {
-        // If Firestore shows inactive or no spotlight, clear cache if it exists
-        if (cachedSpotlight != null) {
-          AppLogger.districtSpotlight('🗑️ Clearing cached spotlight as Firestore shows inactive/null');
-          await localDb.clearDistrictSpotlight(stateId, districtId);
-        }
-
         AppLogger.common('ℹ️ No active spotlight found in Firestore for $districtId');
         return null;
       }

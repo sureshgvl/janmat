@@ -3,10 +3,8 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../l10n/features/candidate/candidate_localizations.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../services/public_candidate_service.dart';
 import '../../../services/share_candidate_profile_service.dart';
 import '../../../widgets/common/shimmer_loading_widgets.dart';
 import '../../../widgets/common/error_state_widgets.dart';
@@ -27,7 +25,6 @@ import '../widgets/follow_stats_widget.dart';
 import '../widgets/profile_tab_bar_widget.dart';
 import '../../../utils/symbol_utils.dart';
 import '../../monetization/services/plan_service.dart';
-import '../../../services/local_database_service.dart';
 import '../services/analytics_data_collection_service.dart';
 import '../../../utils/app_logger.dart';
 import '../../../models/district_model.dart';
@@ -64,7 +61,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       : Get.put<CandidateController>(CandidateController());
   final CandidateUserController dataController = CandidateUserController.to;
   final CandidateRepository candidateRepository = CandidateRepository();
-  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   TabController? _tabController;
   final bool _isUploadingPhoto = false;
@@ -82,7 +78,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
   @override
   void initState() {
     super.initState();
-
 
     // Standard access with candidate object or own profile loading
     if (Get.arguments == null) {
@@ -137,17 +132,155 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       return;
     }
 
-    candidate = Get.arguments as Candidate;
+    // Check if arguments contain candidate data
+    final argumentsCandidate = Get.arguments != null ? Get.arguments as Candidate : null;
 
     // Determine if this is the user's own profile
-    _isOwnProfile =
-        currentUserId != null &&
-        candidate != null &&
-        currentUserId == candidate!.userId;
+    // If arguments contain candidate data and it matches current user, OR if no arguments (direct navigation to own profile)
+    _isOwnProfile = (argumentsCandidate != null && currentUserId != null && currentUserId == argumentsCandidate.userId) ||
+                   (Get.arguments == null && currentUserId != null);
 
     AppLogger.candidate(
-      '👤 Profile ownership check: currentUserId=$currentUserId, candidateUserId=${candidate!.userId}, isOwnProfile=$_isOwnProfile',
+      '👤 Profile ownership check: currentUserId=$currentUserId, argumentsCandidateUserId=${argumentsCandidate?.userId}, isOwnProfile=$_isOwnProfile',
     );
+
+    // For own profile, use session caching - only load if not already cached
+    if (_isOwnProfile) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          // Check if we already have cached data in the controller
+          if (dataController.candidate.value != null) {
+            AppLogger.candidate('✅ Using cached candidate data for own profile: ${dataController.candidate.value!.basicInfo!.fullName}');
+
+            setState(() {
+              candidate = dataController.candidate.value;
+            });
+
+            // Initialize TabController after getting candidate data
+            _tabController?.dispose();
+            _tabController = TabController(
+              length: _isOwnProfile ? 7 : 6,
+              vsync: this,
+            );
+            _tabController?.addListener(_onTabChanged);
+            _loadPlanFeatures();
+            await _loadLocationData();
+
+            // Mark screen as loaded after all data is ready
+            if (mounted) {
+              setState(() {
+                _screenState = ProfileScreenState.loaded;
+              });
+            }
+
+            // Do a background refresh to ensure data is up to date
+            _refreshCandidateDataSilently();
+          } else {
+            AppLogger.candidate('🔄 No cached data found, loading fresh candidate data for own profile');
+
+            // Load fresh data directly from repository
+            final candidateRepository = CandidateRepository();
+            final freshCandidate = await candidateRepository.getCandidateData(currentUserId!);
+
+            if (freshCandidate != null) {
+              AppLogger.candidate(
+                '✅ LOADED fresh candidate data directly from repository: ${freshCandidate.basicInfo!.fullName}',
+              );
+
+              // Update controller with fresh data
+              dataController.candidate.value = freshCandidate;
+              dataController.editedData.value = freshCandidate;
+
+              setState(() {
+                candidate = freshCandidate;
+              });
+
+              // Initialize TabController after getting candidate data
+              _tabController?.dispose();
+              _tabController = TabController(
+                length: _isOwnProfile ? 7 : 6,
+                vsync: this,
+              );
+              _tabController?.addListener(_onTabChanged);
+              _loadPlanFeatures();
+              await _loadLocationData();
+
+              // Mark screen as loaded after all data is ready
+              if (mounted) {
+                setState(() {
+                  _screenState = ProfileScreenState.loaded;
+                });
+              }
+            } else {
+              AppLogger.candidate('❌ LOAD: No candidate data found in repository');
+              if (mounted) {
+                setState(() {
+                  _screenState = ProfileScreenState.candidateNotFound;
+                });
+              }
+            }
+          }
+        } catch (e) {
+          AppLogger.candidateError(
+            '❌ Failed to load own candidate data: $e',
+          );
+          if (mounted) {
+            setState(() {
+              _screenState = ProfileScreenState.error;
+            });
+          }
+        }
+      });
+
+      // Listen to candidate data changes for real-time updates (only for own profile)
+      ever(dataController.candidate, (Candidate? newCandidate) {
+        if (newCandidate != null && mounted) {
+          AppLogger.candidate('🔄 Own candidate data updated in profile screen, refreshing UI');
+          setState(() {
+            candidate = newCandidate;
+          });
+        }
+      });
+    } else {
+      // For other profiles, check cache first
+      if (argumentsCandidate != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final cachedCandidate = dataController.getCachedProfile(argumentsCandidate.candidateId);
+          if (cachedCandidate != null) {
+            AppLogger.candidate('✅ Using cached data for candidate profile: ${argumentsCandidate.candidateId}');
+            setState(() {
+              candidate = cachedCandidate;
+            });
+
+            // Initialize TabController after getting candidate data
+            _tabController?.dispose();
+            _tabController = TabController(
+              length: _isOwnProfile ? 7 : 6,
+              vsync: this,
+            );
+            _tabController?.addListener(_onTabChanged);
+            _loadPlanFeatures();
+            await _loadLocationData();
+
+            // Mark screen as loaded after all data is ready
+            if (mounted) {
+              setState(() {
+                _screenState = ProfileScreenState.loaded;
+              });
+            }
+
+            // Do a background refresh to ensure data is up to date
+            _refreshOtherCandidateDataSilently(argumentsCandidate.candidateId);
+          } else {
+            AppLogger.candidate('🔄 No cached data found, using arguments data for candidate: ${argumentsCandidate.candidateId}');
+            candidate = argumentsCandidate;
+
+            // Cache this profile for future use
+            dataController.cacheProfile(argumentsCandidate);
+          }
+        });
+      }
+    }
 
     // Initialize TabController after determining profile ownership
     // Length is 6 for non-own profiles (no analytics), 7 for own profile (with analytics)
@@ -328,24 +461,17 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
 
   // Platform-aware location loading for authenticated users (works on web and mobile)
   Future<void> _loadAuthenticatedLocationData() async {
-    // Load location data using platform-aware method (works on web and mobile)
-    final locationData = await _locationDatabase.getCandidateLocationDataWeb(
-      candidate!.location.districtId ?? '',
-      candidate!.location.bodyId ?? '',
-      candidate!.location.wardId ?? '',
-      candidate!.location.stateId ?? 'maharashtra',
-    );
-
+    // Since database is not available, use IDs as names
     if (mounted) {
       setState(() {
-        _districtName = locationData['districtName'];
-        _bodyName = locationData['bodyName'];
-        _wardName = locationData['wardName'];
+        _districtName = candidate!.location.districtId;
+        _bodyName = candidate!.location.bodyId;
+        _wardName = 'Ward ${candidate!.location.wardId}';
       });
     }
 
     AppLogger.candidate(
-      '✅ [Candidate Profile] Location data loaded successfully (platform-aware):',
+      '✅ [Candidate Profile] Location data loaded successfully (using IDs):',
     );
     AppLogger.candidate('   📍 District: $_districtName');
     AppLogger.candidate('   🏛️ Body: $_bodyName');
@@ -373,118 +499,6 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
-  // Sync missing location data from Firebase to SQLite
-  Future<void> _syncMissingLocationData() async {
-    try {
-      AppLogger.candidate(
-        '🔄 [Candidate Profile] Syncing missing location data from Firebase...',
-      );
-
-      // Sync district data if missing
-      if (_districtName == null) {
-        AppLogger.candidate(
-          '🏙️ [Sync] Fetching district data for ${candidate?.location.districtId}',
-        );
-        final districts = await candidateRepository.getAllDistricts();
-        final district = districts.firstWhere(
-          (d) => d.id == candidate?.location.districtId,
-          orElse: () => District(
-            id: candidate!.location.districtId ?? '',
-            name: candidate!.location.districtId ?? '',
-            stateId:
-                candidate!.location.stateId ??
-                'maharashtra', // Use candidate's actual state ID with fallback
-          ),
-        );
-        await _locationDatabase.insertDistricts([district]);
-        AppLogger.candidate('✅ [Sync] District data synced');
-      }
-
-      // Sync body data if missing
-      if (_bodyName == null) {
-        AppLogger.candidate(
-          '🏛️ [Sync] Fetching body data for ${candidate?.location.bodyId}',
-        );
-        // Note: We need to get bodies for the district first
-        final bodies = await candidateRepository.getWardsByDistrictAndBody(
-          candidate!.location.districtId ?? '',
-          candidate!.location.bodyId ?? '',
-        );
-        // Extract body info from wards (since we don't have direct body fetch)
-        if (bodies.isNotEmpty) {
-          final body = Body(
-            id: candidate!.location.bodyId ?? '',
-            name: candidate!.location.bodyId ?? '', // Fallback name
-            type: BodyType.municipal_corporation, // Default
-            districtId: candidate!.location.districtId ?? '',
-            stateId:
-                candidate!.location.stateId ??
-                'maharashtra', // Use candidate's actual state ID
-          );
-          await _locationDatabase.insertBodies([body]);
-          AppLogger.candidate('✅ [Sync] Body data synced');
-        }
-      }
-
-      // Sync ward data (most critical)
-      if (_wardName == null) {
-        AppLogger.candidate(
-          '🏛️ [Sync] Fetching ward data for ${candidate?.location.wardId}',
-        );
-        AppLogger.candidate(
-          '🏛️ [Sync] Candidate stateId: ${candidate!.location.stateId}',
-        );
-
-        // Get the correct stateId for this candidate
-        final stateId =
-            candidate!.location.stateId ?? 'maharashtra'; // Default fallback
-        AppLogger.candidate('🏛️ [Sync] Using stateId: $stateId');
-
-        final wards = await candidateRepository.getWardsByDistrictAndBody(
-          candidate!.location.districtId ?? '',
-          candidate!.location.bodyId ?? '',
-          candidate!.location.stateId ??
-              'maharashtra', // Pass the candidate's stateId
-        );
-
-        AppLogger.candidate(
-          '🏛️ [Sync] Found ${wards.length} wards from Firebase',
-        );
-        for (var w in wards) {
-          AppLogger.candidate('🏛️ [Sync] Ward: ${w.id} -> ${w.name}');
-        }
-
-        final ward = wards.firstWhere(
-          (w) => w.id == candidate?.location.wardId,
-          orElse: () => Ward(
-            id: candidate!.location.wardId ?? '',
-            name: 'Ward ${candidate!.location.wardId ?? ''}',
-            districtId: candidate!.location.districtId ?? '',
-            bodyId: candidate!.location.bodyId ?? '',
-            stateId: stateId,
-          ),
-        );
-
-        AppLogger.candidate(
-          '🏛️ [Sync] Selected ward: ${ward.id} -> "${ward.name}"',
-        );
-
-        // Force update the ward data in SQLite to ensure we have the latest from Firebase
-        AppLogger.candidate(
-          '🔄 [Sync] Force updating ward data in SQLite: "${ward.name}"',
-        );
-        await _locationDatabase.insertWards([ward]);
-        AppLogger.candidate('✅ [Sync] Ward data synced');
-      }
-
-      AppLogger.candidate('✅ [Candidate Profile] Location data sync completed');
-    } catch (e) {
-      AppLogger.candidateError(
-        '❌ [Candidate Profile] Error syncing location data: $e',
-      );
-      // Continue with fallback display
-    }
-  }
 
   // Build tab views conditionally
   List<Widget> _buildTabViews() {
@@ -642,6 +656,66 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
     }
   }
 
+  // Silent background refresh without UI feedback
+  Future<void> _refreshCandidateDataSilently() async {
+    try {
+      AppLogger.candidate('🔄 Background refresh: Updating candidate data silently');
+
+      // For own profile, refresh from controller silently
+      if (_isOwnProfile) {
+        await dataController.refreshCandidateData();
+        _syncWithControllerData();
+      }
+
+      // Refresh follow status if user is logged in
+      if (currentUserId != null && candidate != null) {
+        await controller.checkFollowStatus(
+          currentUserId!,
+          candidate!.candidateId,
+        );
+      }
+
+      AppLogger.candidate('✅ Background refresh completed successfully');
+    } catch (e) {
+      AppLogger.candidateError('❌ Background refresh failed: $e');
+      // Don't show error to user for silent refresh
+    }
+  }
+
+  // Silent background refresh for other candidates' profiles
+  Future<void> _refreshOtherCandidateDataSilently(String candidateId) async {
+    try {
+      AppLogger.candidate('🔄 Background refresh for other candidate: $candidateId');
+
+      // Load fresh data from repository
+      final candidateRepository = CandidateRepository();
+      final freshCandidate = await candidateRepository.getCandidateData(candidateId);
+
+      if (freshCandidate != null) {
+        // Update cache with fresh data
+        dataController.cacheProfile(freshCandidate);
+
+        // Update UI if this screen is still showing this candidate
+        if (mounted && candidate != null && candidate!.candidateId == candidateId) {
+          setState(() {
+            candidate = freshCandidate;
+          });
+          AppLogger.candidate('✅ Background refresh updated UI for candidate: $candidateId');
+        }
+      }
+
+      // Refresh follow status if user is logged in
+      if (currentUserId != null) {
+        await controller.checkFollowStatus(currentUserId!, candidateId);
+      }
+
+      AppLogger.candidate('✅ Background refresh for other candidate completed: $candidateId');
+    } catch (e) {
+      AppLogger.candidateError('❌ Background refresh for other candidate failed: $e');
+      // Don't show error to user for silent refresh
+    }
+  }
+
   // Retry loading candidate - for error states
   Future<void> _retryLoadCandidate() async {
     setState(() {
@@ -746,6 +820,22 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         );
 
       case ProfileScreenState.loaded:
+        // Check if candidate data is actually available
+        if (candidate == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(CandidateLocalizations.of(context)!.candidateProfile),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            body: CandidateNotFoundError(
+              onRetry: _retryLoadCandidate,
+              onBrowseCandidates: () => Get.offAllNamed(AppRouteNames.home),
+            ),
+          );
+        }
         // Continue with normal profile view
         break;
     }
@@ -860,5 +950,11 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
   }
 }

@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/features/user/services/user_status_manager.dart';
 import '../../../utils/app_logger.dart';
-import '../../../utils/multi_level_cache.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../l10n/features/profile/profile_localizations.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -1088,7 +1087,6 @@ class ProfileCompletionController extends GetxController {
           wardId: selectedWard?.id,
         ),
         electionAreas: electionAreas,
-        xpPoints: 0,
         premium: false,
         createdAt: DateTime.now(),
         photoURL: currentUser.photoURL,
@@ -1101,29 +1099,8 @@ class ProfileCompletionController extends GetxController {
       final saveUserTime = DateTime.now().difference(saveUserStartTime).inMilliseconds;
       AppLogger.common('💾 [PROFILE_COMPLETION] User data saved in ${saveUserTime}ms');
 
-      // Clear cached user data to ensure fresh data is loaded on next home screen access
-      try {
-        await MultiLevelCache().remove('home_user_data_${currentUser.uid}');
-        AppLogger.common('🧹 [PROFILE_COMPLETION] Cleared cached home user data for fresh reload');
-      } catch (e) {
-        AppLogger.commonError('⚠️ Failed to clear cached user data after profile completion', error: e);
-      }
-
-      // Update cached routing data immediately to prevent navigation loops
-      final cacheUpdateStartTime = DateTime.now();
-      try {
-        final routingData = {
-          'hasCompletedProfile': true,
-          'hasSelectedRole': true,
-          'role': currentRole,
-          'lastLogin': DateTime.now().toIso8601String(),
-        };
-        await MultiLevelCache().setUserRoutingData(currentUser.uid, routingData);
-        final cacheUpdateTime = DateTime.now().difference(cacheUpdateStartTime).inMilliseconds;
-        AppLogger.common('💾 [PROFILE_COMPLETION] Routing cache updated in ${cacheUpdateTime}ms');
-      } catch (e) {
-        AppLogger.commonError('⚠️ Failed to update routing cache after profile completion', error: e);
-      }
+      // No caching - data will be loaded fresh from Firebase on next access
+      AppLogger.common('🧹 [PROFILE_COMPLETION] No caching to clear - using fresh Firebase data');
 
       // Refresh chat for voter
       final chatRefreshStartTime = DateTime.now();
@@ -1209,7 +1186,6 @@ class ProfileCompletionController extends GetxController {
           wardId: selectedWard!.id,
         ),
         electionAreas: electionAreas,
-        xpPoints: 0,
         premium: false,
         subscriptionPlanId: 'free_plan',
         createdAt: DateTime.now(),

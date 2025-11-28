@@ -46,6 +46,125 @@ class _CandidateDashboardManifestoState
     }
   }
 
+  Future<void> _handleSaveManifesto() async {
+    // Create a stream controller for progress updates
+    final messageController = StreamController<String>();
+    messageController.add(
+      'Preparing to save manifesto...',
+    );
+
+    // Show loading dialog with message stream
+    LoadingDialog.show(
+      context,
+      initialMessage: 'Preparing to save manifesto...',
+      messageStream: messageController.stream,
+    );
+
+    try {
+      // Update progress: Starting file upload
+      messageController.add('Uploading files to cloud...');
+
+      final uploadSuccess = await _manifestoSectionKey.currentState!.uploadPendingFiles();
+      if (!uploadSuccess) {
+        AppLogger.candidate(
+          '❌ [MANIFESTO_SAVE] File upload failed',
+          tag: 'DASHBOARD_SAVE_MANIFESTO',
+        );
+        if (context.mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          SnackbarUtils.showError('Failed to upload files. Please try again.');
+        }
+        return;
+      }
+
+      AppLogger.candidate(
+        '✅ [MANIFESTO_SAVE] Files uploaded successfully, now getting manifesto data...',
+        tag: 'DASHBOARD_SAVE_MANIFESTO',
+      );
+
+      // Update progress: Files uploaded, preparing data
+      messageController.add('Files uploaded successfully. Preparing manifesto data...');
+
+      // NOW get the manifesto data from the form (URLs should be updated by upload callbacks)
+      final manifestoData = _manifestoSectionKey.currentState!.getManifestoData();
+
+      AppLogger.candidate(
+        '📝 [MANIFESTO_SAVE] Manifesto data from form after uploads: title="${manifestoData.title}", pdfUrl="${manifestoData.pdfUrl?.isNotEmpty == true ? 'SET' : 'null'}", image="${manifestoData.image?.isNotEmpty == true ? 'SET' : 'null'}", video="${manifestoData.videoUrl?.isNotEmpty == true ? 'SET' : 'null'}", promises=${manifestoData.promises?.length ?? 0}',
+        tag: 'DASHBOARD_SAVE_MANIFESTO',
+      );
+
+      // Update progress: Saving to database
+      messageController.add('Saving manifesto to database...');
+
+      // Use editedData if available (contains uploaded file updates), otherwise fallback to candidateData
+      final candidate =
+          controller.editedData.value ??
+          controller.candidateData.value!;
+
+      final success = await manifestoController
+          .saveManifestoTab(
+            candidateId: candidate.candidateId,
+            candidate: candidate,
+            manifesto: manifestoData,
+            onProgress: (message) =>
+                messageController.add(message),
+          );
+
+      if (success) {
+        AppLogger.candidate(
+          '🎉 [MANIFESTO_SAVE] Save operation successful!',
+          tag: 'DASHBOARD_SAVE_MANIFESTO',
+        );
+        // Update progress: Success
+        messageController.add(
+          'Manifesto saved successfully!',
+        );
+
+        // Wait a moment to show success message
+        await Future.delayed(
+          const Duration(milliseconds: 800),
+        );
+
+        if (context.mounted) {
+          Navigator.of(
+            context,
+          ).pop(); // Close loading dialog
+
+          // Update the candidate data with the saved manifesto for immediate view update
+          // Preserve existing data (like achievements) by using the current candidateData as base
+          controller.candidateData.value = controller.candidateData.value!.copyWith(
+            manifestoData: manifestoData,
+          );
+
+          setState(() => isEditing = false);
+          SnackbarUtils.showSuccess('Manifesto updated successfully');
+        }
+      } else {
+        AppLogger.candidate(
+          '❌ [MANIFESTO_SAVE] Save operation failed',
+          tag: 'DASHBOARD_SAVE_MANIFESTO',
+        );
+
+        if (context.mounted) {
+          Navigator.of(
+            context,
+          ).pop(); // Close loading dialog
+          SnackbarUtils.showError('Failed to update manifesto');
+        }
+      }
+    } catch (e) {
+      AppLogger.candidateError('❌ [MANIFESTO_SAVE] Exception during save',
+        tag: 'DASHBOARD_SAVE_MANIFESTO', error: e);
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        SnackbarUtils.showError('An error occurred: $e');
+      }
+    } finally {
+      // Clean up the stream controller
+      await messageController.close();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = CandidateLocalizations.of(context)!;
@@ -101,114 +220,7 @@ class _CandidateDashboardManifestoState
                   children: [
                     FloatingActionButton(
                       heroTag: 'save_manifesto',
-                      onPressed: isSaving ? null : () async {
-                        // Create a stream controller for progress updates
-                        final messageController = StreamController<String>();
-                        messageController.add(
-                          'Preparing to save manifesto...',
-                        );
-
-                        // Show loading dialog with message stream
-                        LoadingDialog.show(
-                          context,
-                          initialMessage: 'Preparing to save manifesto...',
-                          messageStream: messageController.stream,
-                        );
-
-                        try {
-                          final uploadSuccess = await _manifestoSectionKey.currentState!.uploadPendingFiles();
-                          if (!uploadSuccess) {
-                            AppLogger.candidate(
-                              '❌ [MANIFESTO_SAVE] File upload failed',
-                              tag: 'DASHBOARD_SAVE_MANIFESTO',
-                            );
-                            if (context.mounted) {
-                              Navigator.of(context).pop(); // Close loading dialog
-                              SnackbarUtils.showError('Failed to upload files. Please try again.');
-                            }
-                            return;
-                          }
-
-                          AppLogger.candidate(
-                            '✅ [MANIFESTO_SAVE] Files uploaded successfully, now getting manifesto data...',
-                            tag: 'DASHBOARD_SAVE_MANIFESTO',
-                          );
-
-                          // NOW get the manifesto data from the form (URLs should be updated by upload callbacks)
-                          final manifestoData = _manifestoSectionKey.currentState!.getManifestoData();
-
-                          AppLogger.candidate(
-                            '📝 [MANIFESTO_SAVE] Manifesto data from form after uploads: title="${manifestoData.title}", pdfUrl="${manifestoData.pdfUrl?.isNotEmpty == true ? 'SET' : 'null'}", image="${manifestoData.image?.isNotEmpty == true ? 'SET' : 'null'}", video="${manifestoData.videoUrl?.isNotEmpty == true ? 'SET' : 'null'}", promises=${manifestoData.promises?.length ?? 0}',
-                            tag: 'DASHBOARD_SAVE_MANIFESTO',
-                          );
-
-                          // Use editedData if available (contains uploaded file updates), otherwise fallback to candidateData
-                          final candidate =
-                              controller.editedData.value ??
-                              controller.candidateData.value!;
-
-                          final success = await manifestoController
-                              .saveManifestoTab(
-                                candidateId: candidate.candidateId,
-                                candidate: candidate,
-                                manifesto: manifestoData,
-                                onProgress: (message) =>
-                                    messageController.add(message),
-                              );
-
-                          if (success) {
-                            AppLogger.candidate(
-                              '🎉 [MANIFESTO_SAVE] Save operation successful!',
-                              tag: 'DASHBOARD_SAVE_MANIFESTO',
-                            );
-                            // Update progress: Success
-                            messageController.add(
-                              'Manifesto saved successfully!',
-                            );
-
-                            // Wait a moment to show success message
-                            await Future.delayed(
-                              const Duration(milliseconds: 800),
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-
-                              // Update the candidate data with the saved manifesto for immediate view update
-                              controller.candidateData.value = candidate.copyWith(
-                                manifestoData: manifestoData,
-                              );
-
-                              setState(() => isEditing = false);
-                              SnackbarUtils.showSuccess('Manifesto updated successfully');
-                            }
-                          } else {
-                            AppLogger.candidate(
-                              '❌ [MANIFESTO_SAVE] Save operation failed',
-                              tag: 'DASHBOARD_SAVE_MANIFESTO',
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // Close loading dialog
-                              SnackbarUtils.showError('Failed to update manifesto');
-                            }
-                          }
-                        } catch (e) {
-                          AppLogger.candidateError('❌ [MANIFESTO_SAVE] Exception during save',
-                            tag: 'DASHBOARD_SAVE_MANIFESTO', error: e);
-                          if (context.mounted) {
-                            Navigator.of(context).pop(); // Close loading dialog
-                            SnackbarUtils.showError('An error occurred: $e');
-                          }
-                        } finally {
-                          // Clean up the stream controller
-                          await messageController.close();
-                        }
-                      }, //onpress
+                      onPressed: isSaving ? null : _handleSaveManifesto,
                       backgroundColor: Colors.green,
                       tooltip: 'Save Manifesto',
                       child: const Icon(Icons.save, size: 28),

@@ -4,7 +4,6 @@ import '../../../models/candidate_model.dart';
 import '../../../controllers/candidate_controller.dart';
 import '../../../../../utils/symbol_utils.dart';
 import '../../../../../l10n/app_localizations.dart';
-import '../../../../../services/local_database_service.dart';
 import '../../../../../services/share_service.dart';
 import '../../../../../models/district_model.dart';
 import '../../../../../models/ward_model.dart';
@@ -36,7 +35,6 @@ class _ProfileTabViewState extends State<ProfileTabView>
   int _profileLikes = 0;
   String? _districtName;
   String? _wardDisplayName;
-  final LocalDatabaseService _locationDatabase = LocalDatabaseService();
 
   @override
   void initState() {
@@ -49,116 +47,18 @@ class _ProfileTabViewState extends State<ProfileTabView>
     AppLogger.candidate('🔍 [Profile Tab] Loading location data for candidate ${widget.candidate.candidateId}');
     AppLogger.candidate('📍 [Profile Tab] IDs: district=${widget.candidate.location.districtId}, body=${widget.candidate.location.bodyId}, ward=${widget.candidate.location.wardId}');
 
-    try {
-      final locationData = await _locationDatabase.getCandidateLocationData(
-        widget.candidate.location.districtId ?? '',
-        widget.candidate.location.bodyId ?? '',
-        widget.candidate.location.wardId ?? '',
-        widget.candidate.location.stateId ?? 'maharashtra',
-      );
-
-      if (locationData['wardName'] == null) {
-        AppLogger.candidate('⚠️ [Profile Tab] Ward data not found in cache, triggering sync...');
-        await _syncMissingLocationData();
-        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
-          widget.candidate.location.districtId ?? '',
-          widget.candidate.location.bodyId ?? '',
-          widget.candidate.location.wardId ?? '',
-          widget.candidate.location.stateId ?? 'maharashtra',
-        );
-
-        if (mounted) {
-          setState(() {
-            _districtName = updatedLocationData['districtName'];
-            _wardDisplayName = updatedLocationData['wardName'];
-          });
-        }
-
-        AppLogger.candidate('✅ [Profile Tab] Location data loaded after sync:');
-        AppLogger.candidate('   📍 District: $_districtName');
-        AppLogger.candidate('   🏛️ Ward: $_wardDisplayName');
-      } else {
-        if (mounted) {
-          setState(() {
-            _districtName = locationData['districtName'];
-            _wardDisplayName = locationData['wardName'];
-          });
-        }
-
-        AppLogger.candidate('✅ [Profile Tab] Location data loaded successfully from SQLite:');
-        AppLogger.candidate('   📍 District: $_districtName');
-        AppLogger.candidate('   🏛️ Ward: $_wardDisplayName');
-      }
-    } catch (e) {
-      AppLogger.candidateError('❌ [Profile Tab] Error loading location data: $e');
-      if (mounted) {
-        setState(() {
-          _districtName = widget.candidate.location.districtId;
-          _wardDisplayName = 'Ward ${widget.candidate.location.wardId}';
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _districtName = widget.candidate.location.districtId;
+        _wardDisplayName = 'Ward ${widget.candidate.location.wardId}';
+      });
     }
+
+    AppLogger.candidate('✅ [Profile Tab] Location data loaded:');
+    AppLogger.candidate('   📍 District: $_districtName');
+    AppLogger.candidate('   🏛️ Ward: $_wardDisplayName');
   }
 
-  Future<void> _syncMissingLocationData() async {
-    try {
-      AppLogger.candidate('🔄 [Profile Tab] Syncing missing location data...');
-      final candidateRepository = Get.find<CandidateController>().candidateRepository;
-
-      if (_districtName == null) {
-        AppLogger.candidate('🏙️ [Sync] Fetching district data for ${widget.candidate.location.districtId}');
-        final districts = await candidateRepository.getAllDistricts();
-        final district = districts.firstWhere(
-          (d) => d.id == widget.candidate.location.districtId,
-          orElse: () => District(
-            id: widget.candidate.location.districtId ?? '',
-            name: widget.candidate.location.districtId ?? '',
-            stateId: widget.candidate.location.stateId ?? 'maharashtra',
-          ),
-        );
-        await _locationDatabase.insertDistricts([district]);
-        AppLogger.candidate('✅ [Sync] District data synced');
-      }
-
-      if (_wardDisplayName == null) {
-        AppLogger.candidate('🏛️ [Sync] Fetching ward data for ${widget.candidate.location.wardId}');
-        final wards = await candidateRepository.getWardsByDistrictAndBody(
-          widget.candidate.location.districtId ?? '',
-          widget.candidate.location.bodyId ?? '',
-        );
-        final ward = wards.firstWhere(
-          (w) => w.id == widget.candidate.location.wardId,
-          orElse: () => Ward(
-            id: widget.candidate.location.wardId ?? '',
-            name: 'Ward ${widget.candidate.location.wardId ?? ''}',
-            districtId: widget.candidate.location.districtId ?? '',
-            bodyId: widget.candidate.location.bodyId ?? '',
-            stateId: widget.candidate.location.stateId ?? 'maharashtra',
-          ),
-        );
-        await _locationDatabase.insertWards([ward]);
-        AppLogger.candidate('✅ [Sync] Ward data synced');
-
-        final updatedLocationData = await _locationDatabase.getCandidateLocationData(
-          widget.candidate.location.districtId ?? '',
-          widget.candidate.location.bodyId ?? '',
-          widget.candidate.location.wardId ?? '',
-          widget.candidate.location.stateId ?? 'maharashtra',
-        );
-
-        if (mounted) {
-          setState(() {
-            _districtName = updatedLocationData['districtName'];
-            _wardDisplayName = updatedLocationData['wardName'];
-          });
-        }
-      }
-
-      AppLogger.candidate('✅ [Profile Tab] Location data sync completed');
-    } catch (e) {
-      AppLogger.candidateError('❌ [Profile Tab] Error syncing location data: $e');
-    }
-  }
 
   void _toggleProfileLike() {
     setState(() {

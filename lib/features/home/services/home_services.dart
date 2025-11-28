@@ -3,13 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import '../../../utils/app_logger.dart';
-import '../../../utils/multi_level_cache.dart';
 import '../../candidate/models/candidate_model.dart';
 import '../../candidate/controllers/candidate_user_controller.dart';
 import '../../candidate/repositories/candidate_repository.dart';
 
 class HomeServices {
-  final MultiLevelCache _cache = MultiLevelCache();
 
   Future<Map<String, dynamic>> getUserData(String? uid, {bool forceRefresh = false}) async {
     AppLogger.common('🏠 [HOME_SERVICES] getUserData called - uid: $uid, forceRefresh: $forceRefresh');
@@ -27,38 +25,7 @@ class HomeServices {
       return {'user': null, 'candidate': null};
     }
 
-    final cacheKey = 'home_user_data_$uid';
-    AppLogger.common('🔑 [HOME_SERVICES] Using cache key: $cacheKey');
-
-    // Try cache first (unless force refresh)
-    if (!forceRefresh) {
-      try {
-        final cachedData = await _cache.get<Map<String, dynamic>>(cacheKey);
-        if (cachedData != null && cachedData['user'] != null) {
-          final userData = cachedData['user'] as Map<String, dynamic>;
-          final userRole = userData['role'];
-          final hasCandidate = cachedData['candidate'] != null;
-
-          // CRITICAL FIX: Check for data corruption - missing role field
-          if (userRole == null || userRole.toString().isEmpty) {
-            AppLogger.common('🚨 CRITICAL DATA CORRUPTION: User document $uid is missing role field! This indicates background operations are corrupting user data.');
-            AppLogger.common('🔄 [HOME_SERVICES] Force fresh load due to corrupted cache data');
-            // Force fresh load if cached data is corrupted
-          } else {
-            AppLogger.common('⚡ [HOME_SERVICES] Cache hit for home user data: $uid - role: $userRole, hasCandidate: $hasCandidate');
-            return cachedData;
-          }
-        } else {
-          AppLogger.common('📭 [HOME_SERVICES] Cache miss or invalid data for: $uid');
-        }
-      } catch (e) {
-        AppLogger.common('⚠️ [HOME_SERVICES] Cache retrieval failed, will fetch fresh data: $e');
-      }
-    } else {
-      AppLogger.common('🔄 [HOME_SERVICES] Force refresh requested, skipping cache');
-    }
-
-    AppLogger.common('🔄 [HOME_SERVICES] Fetching fresh user data for home: $uid');
+    AppLogger.common('🔄 [HOME_SERVICES] Fetching fresh user data for home: $uid (no caching)');
 
     try {
       // Try to fetch from server with retry logic for unavailable errors
@@ -78,7 +45,7 @@ class HomeServices {
           AppLogger.common('🎯 Loading candidate data for ${userModel.name} (role: ${userModel.role})');
           try {
             // Use direct repository load for reliable home screen display
-            candidateModel = await _loadCandidateDataOptimized(userModel.uid);
+            candidateModel = await _loadCandidateDataDirect(userModel.uid);
             if (candidateModel != null) {
               AppLogger.common('✅ Loaded candidate data directly: ${candidateModel.basicInfo!.fullName}');
 
@@ -104,63 +71,28 @@ class HomeServices {
           AppLogger.common('ℹ️ Skipping candidate data load - not a candidate (role: ${userModel.role})');
         }
 
-        // Prepare result data (serialize to JSON Maps for consistent caching)
+        // Prepare result data (serialize to JSON Maps)
         final result = {'user': userModel.toJson(), 'candidate': candidateModel?.toJson()};
 
-        // Cache the result with high priority for home screen
-        try {
-          await _cache.set<Map<String, dynamic>>(cacheKey, result,
-            priority: CachePriority.high,
-            ttl: const Duration(minutes: 30)); // Cache for 30 minutes
-          AppLogger.common('✅ Cached home user data for: $uid');
-        } catch (e) {
-          AppLogger.common('⚠️ Failed to cache home data, continuing without cache: $e');
-        }
-
+        AppLogger.common('✅ Fresh user data loaded for: $uid (no caching)');
         return result;
       }
     } catch (e) {
       AppLogger.commonError('❌ User data fetch failed', error: e);
-      // Try to return cached data even if old, as fallback
-      try {
-        final cachedData = await _cache.get<Map<String, dynamic>>(cacheKey);
-        if (cachedData != null) {
-          AppLogger.common('🔄 Returning stale cached data as fallback');
-          return cachedData;
-        }
-      } catch (cacheError) {
-        AppLogger.common('⚠️ Even cache fallback failed: $cacheError');
-      }
     }
 
     return {'user': null, 'candidate': null};
   }
 
-  // Optimized candidate data loading for home screen
-  Future<Candidate?> _loadCandidateDataOptimized(String uid) async {
+  // Direct candidate data loading for home screen (no caching)
+  Future<Candidate?> _loadCandidateDataDirect(String uid) async {
     try {
-      // Try cache first
-      final candidateCache = MultiLevelCache();
-      final candidateCacheKey = 'candidate_data_$uid';
-      final cachedCandidate = await candidateCache.get<Map<String, dynamic>>(candidateCacheKey);
-
-      if (cachedCandidate != null) {
-        AppLogger.common('⚡ Using cached candidate data');
-        return Candidate.fromJson(cachedCandidate);
-      }
-
       // Use CandidateRepository to fetch from the correct nested structure
       final candidateRepository = CandidateRepository();
       final candidate = await candidateRepository.getCandidateData(uid);
 
       if (candidate != null) {
-        // Cache for future use
-        try {
-          await candidateCache.set(candidateCacheKey, candidate.toJson(), ttl: const Duration(hours: 1));
-          AppLogger.common('💾 Candidate data cached');
-        } catch (e) {
-          AppLogger.common('⚠️ Failed to cache candidate data');
-        }
+        AppLogger.common('✅ Candidate data loaded directly');
       }
 
       return candidate;
@@ -244,25 +176,4 @@ class HomeServices {
     return false;
   }
 
-  // Background refresh for cache updates
-  void _refreshUserDataInBackground(String uid, MultiLevelCache cache, String cacheKey) async {
-    try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get(const GetOptions(source: Source.server))
-          .timeout(const Duration(seconds: 3));
-
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        final userModel = UserModel.fromJson(userData);
-        final result = {'user': userModel.toJson(), 'candidate': null};
-
-        await cache.set(cacheKey, result, ttl: const Duration(hours: 1));
-        AppLogger.common('🔄 Background cache refresh completed');
-      }
-    } catch (e) {
-      AppLogger.common('⚠️ Background cache refresh failed');
-    }
-  }
 }

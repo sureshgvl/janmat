@@ -1,45 +1,38 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import '../../../core/services/user_prefs_service.dart';
 
 class LanguageService {
-  static const String _languageKey = 'selected_language';
-  static const String _firstTimeKey = 'is_first_time';
-  static const String _onboardingCompletedKey = 'onboarding_completed';
+  final UserPrefsService _prefs = UserPrefsService();
 
-  // Get stored language preference
+  // ENABLED: Language persistence using SharedPreferences
   Future<String?> getStoredLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_languageKey);
+    return _prefs.language;
   }
 
-  // Set language preference
+  // ENABLED: Language persistence using SharedPreferences
   Future<void> setLanguage(String languageCode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_languageKey, languageCode);
+    await _prefs.setLanguage(languageCode);
+    await _prefs.setLanguageSelected(true); // Mark language as selected
   }
 
   // Check if it's first time user
   Future<bool> isFirstTimeUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_firstTimeKey) ?? true;
+    return _prefs.isFirstLaunch;
   }
 
   // Mark user as not first time
   Future<void> markFirstTimeComplete() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_firstTimeKey, false);
+    await _prefs.completeFirstLaunch();
   }
 
   // Check if onboarding is completed
   Future<bool> isOnboardingCompleted() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_onboardingCompletedKey) ?? false;
+    return _prefs.isOnboardingCompleted;
   }
 
   // Mark onboarding as completed
   Future<void> markOnboardingCompleted() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_onboardingCompletedKey, true);
+    await _prefs.setOnboardingCompleted(true);
   }
 
   // Get locale from stored language
@@ -51,13 +44,9 @@ class LanguageService {
     return null;
   }
 
-  // Set default language for first time users
+  // DISABLED: Language persistence - no SharedPreferences caching
   Future<void> setDefaultLanguage(String languageCode) async {
-    final prefs = await SharedPreferences.getInstance();
-    final existingLanguage = prefs.getString(_languageKey);
-    if (existingLanguage == null) {
-      await prefs.setString(_languageKey, languageCode);
-    }
+    // No-op - no persistence
   }
 }
 

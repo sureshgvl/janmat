@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
 import '../../../l10n/app_localizations.dart';
+import '../../../../core/services/firebase_uploader.dart';
+import '../../../../core/models/unified_file.dart';
 import '../models/candidate_model.dart';
 import '../models/candidate_party_model.dart';
 import '../repositories/candidate_repository.dart';
@@ -12,7 +11,6 @@ import '../../../utils/symbol_utils.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../utils/candidate_data_manager.dart';
-
 
 class ChangePartySymbolController extends GetxController {
   final candidateRepository = CandidateRepository();
@@ -23,13 +21,12 @@ class ChangePartySymbolController extends GetxController {
   final Rx<Candidate?> candidate = Rx<Candidate?>(null);
   final RxBool isLoading = false.obs;
 
-  // Backward compatibility properties
-  final RxBool isLoadingParties = false.obs; // Always false since we use static data
-  final RxBool isIndependent = false.obs; // Tracks if current selected party is independent
-  final RxBool isUploadingImage = false.obs; // Upload progress indicator
-  final Rx<String?> symbolImageUrl = Rx<String?>(null); // Firebase Storage URL when uploaded
-  final Rx<File?> selectedSymbolImage = Rx<File?>(null); // Local image file before upload
-  final symbolNameController = TextEditingController(); // Symbol name input
+  // Symbol management with cross-platform unified file handling
+  final RxBool isIndependent = false.obs;
+  final RxBool isUploadingImage = false.obs;
+  final Rx<String?> symbolImageUrl = Rx<String?>(null);
+  final Rx<UnifiedFile?> selectedSymbolFile = Rx<UnifiedFile?>(null);
+  final symbolNameController = TextEditingController();
 
   @override
   void onInit() {
@@ -77,7 +74,7 @@ class ChangePartySymbolController extends GetxController {
 
       // For independent candidates, upload local image to Firebase first
       String? firebaseUrl;
-      if (isIndependentParty && selectedSymbolImage.value != null) {
+      if (isIndependentParty && selectedSymbolFile.value != null) {
         AppLogger.candidate('📤 ChangePartySymbolController: Uploading symbol image for independent candidate');
         firebaseUrl = await _uploadSymbolImageToFirebase();
         if (firebaseUrl != null) {
@@ -123,6 +120,9 @@ class ChangePartySymbolController extends GetxController {
   // Backward compatibility methods
   Rx<Candidate?> get currentCandidate => candidate;
 
+  // Backward compatibility getter for isLoadingParties
+  RxBool get isLoadingParties => isLoading;
+
   Future<bool> updatePartyAndSymbol(BuildContext context) async {
     if (selectedParty.value == null) return false;
     await changeParty(selectedParty.value!);
@@ -157,65 +157,33 @@ class ChangePartySymbolController extends GetxController {
     return candidate.value?.symbolName ?? '';
   }
 
-  // Local image selection for independent candidates (upload happens on save)
-  Future<void> pickSymbolImage(BuildContext context) async {
-    final localizations = AppLocalizations.of(context)!;
-
-    AppLogger.candidate('📸 ChangePartySymbolController: Starting local image selection');
-    isUploadingImage.value = true; // Using this to show loading during selection
-
+  // Cross-platform unified file selection for independent candidates
+  Future<void> selectSymbolFile(UnifiedFile file) async {
     try {
-      final ImagePicker picker = ImagePicker();
-      AppLogger.candidate('📸 ChangePartySymbolController: Opening image picker');
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      AppLogger.candidate('📸 ChangePartySymbolController: Unified file selected - Name: ${file.name}, Size: ${file.size} bytes');
 
-      if (image != null) {
-        AppLogger.candidate(
-          '📸 ChangePartySymbolController: Image selected - Path: ${image.path}',
-        );
-        AppLogger.candidate('📸 ChangePartySymbolController: Image name: ${image.name}');
-
-        // Check image file size (5MB limit)
-        final file = File(image.path);
-        final fileSize = await file.length();
-        const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-
-        AppLogger.candidate(
-          '📏 ChangePartySymbolController: File size check - Size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB, Limit: 5MB',
-        );
-
-        if (fileSize > maxSizeInBytes) {
-          AppLogger.candidate(
-            '❌ ChangePartySymbolController: File too large - rejecting selection',
-          );
-          SnackbarUtils.showError(localizations.symbolImageSizeLimitError);
-          isUploadingImage.value = false;
-          return;
-        }
-
-        AppLogger.candidate('✅ ChangePartySymbolController: File size validation passed');
-
-        // Store locally - will upload to Firebase on save
-        selectedSymbolImage.value = file;
-        AppLogger.candidate('🎯 ChangePartySymbolController: Image stored locally for upload on save');
-
-        isUploadingImage.value = false;
-
-        SnackbarUtils.showSuccess(localizations.symbolUploadSuccess ?? 'Symbol image selected successfully');
-      } else {
-        AppLogger.candidate('❌ ChangePartySymbolController: No image selected by user');
-        isUploadingImage.value = false;
+      // Check image file size (5MB limit)
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSizeInBytes) {
+        AppLogger.candidate('❌ ChangePartySymbolController: File too large - rejecting selection');
+        SnackbarUtils.showError('Symbol image exceeds 5MB limit');
+        return;
       }
+
+      // Store the unified file - will upload to Firebase on save
+      selectedSymbolFile.value = file;
+      AppLogger.candidate('🎯 ChangePartySymbolController: Unified file stored for upload on save');
+
+      SnackbarUtils.showSuccess('Symbol image selected successfully');
     } catch (e) {
-      AppLogger.candidateError('💥 ChangePartySymbolController: Error during image selection: $e');
-      isUploadingImage.value = false;
-      SnackbarUtils.showError(localizations.symbolUploadError(e.toString()));
+      AppLogger.candidateError('💥 ChangePartySymbolController: Error selecting unified file: $e');
+      SnackbarUtils.showError('Failed to select symbol image');
     }
   }
 
-  // Upload local image to Firebase Storage (called during party update)
+  // Upload unified file to Firebase Storage (called during party update)
   Future<String?> _uploadSymbolImageToFirebase() async {
-    if (selectedSymbolImage.value == null) return null;
+    if (selectedSymbolFile.value == null) return null;
 
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -224,26 +192,33 @@ class ChangePartySymbolController extends GetxController {
     }
 
     try {
-      AppLogger.candidate('📤 ChangePartySymbolController: Starting Firebase upload for selected image');
+      AppLogger.candidate('📤 ChangePartySymbolController: Starting Firebase upload for selected unified file');
 
       final fileName = '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      AppLogger.candidate('� ChangePartySymbolController: Firebase Storage path: candidate_symbols/$fileName');
+      final storagePath = 'candidate_symbols/$fileName';
 
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('candidate_symbols')
-          .child(fileName);
+      AppLogger.candidate('📤 ChangePartySymbolController: Firebase Storage path: $storagePath');
 
-      // Upload the local file
-      final snapshot = await storageRef.putFile(selectedSymbolImage.value!);
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      // Upload using our cross-platform FirebaseUploader
+      final url = await FirebaseUploader.uploadUnifiedFile(
+        f: selectedSymbolFile.value!,
+        storagePath: storagePath,
+        onProgress: (progress) {
+          AppLogger.candidate('📤 Upload progress: $progress%');
+        },
+      );
 
-      AppLogger.candidate('✅ ChangePartySymbolController: Firebase upload completed');
+      if (url != null) {
+        AppLogger.candidate('✅ ChangePartySymbolController: Firebase upload completed - URL: $url');
 
-      // Clear local storage now that it's uploaded
-      selectedSymbolImage.value = null;
+        // Clear local storage now that it's uploaded
+        selectedSymbolFile.value = null;
 
-      return downloadUrl;
+        return url;
+      } else {
+        AppLogger.candidateError('❌ ChangePartySymbolController: Firebase upload failed - no URL returned');
+        return null;
+      }
     } catch (e) {
       AppLogger.candidateError('💥 ChangePartySymbolController: Firebase upload failed: $e');
       return null;

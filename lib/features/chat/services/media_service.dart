@@ -5,9 +5,10 @@ import 'package:path/path.dart' as path;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../../utils/app_logger.dart';
+import '../../../core/services/firebase_uploader.dart';
+import '../../../core/models/unified_file.dart';
 
 class MediaService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Upload media file to Firebase Storage with automatic compression
   Future<String> uploadMediaFile(
@@ -31,14 +32,18 @@ class MediaService {
         }
       }
 
-      final storageRef = _storage.ref().child('chat_media/$roomId/$fileName');
-      final uploadTask = storageRef.putFile(
-        File(finalFilePath),
-        SettableMetadata(contentType: contentType),
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(finalFilePath).length(),
+        file: File(finalFilePath),
+        mimeType: contentType,
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: 'chat_media/$roomId/$fileName',
+        metadata: SettableMetadata(contentType: contentType),
+      ) ?? '';
 
       AppLogger.chat('✅ MediaService: Upload completed successfully');
       return downloadUrl;

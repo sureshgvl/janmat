@@ -5,7 +5,6 @@ import 'package:janmat/features/home/services/home_services.dart';
 import 'package:janmat/services/background_sync_manager.dart';
 import 'package:janmat/services/background_initializer.dart';
 import 'package:janmat/utils/app_logger.dart';
-import 'package:janmat/utils/multi_level_cache.dart';
 import 'package:janmat/utils/background_sync_manager.dart' as bg_sync;
 
 /// Service for preloading home screen data using background services
@@ -18,7 +17,6 @@ class HomeDataPreloader {
   final HomeServices _homeServices = HomeServices();
   final BackgroundSyncManager _backgroundSync = BackgroundSyncManager();
   final bg_sync.BackgroundSyncManager _utilsSync = bg_sync.BackgroundSyncManager();
-  final MultiLevelCache _cache = MultiLevelCache();
 
   bool _isPreloading = false;
   final StreamController<bool> _preloadStatusController = StreamController<bool>.broadcast();
@@ -67,63 +65,14 @@ class HomeDataPreloader {
     }
   }
 
-  /// Pre-cache user routing data for instant navigation decisions
+  /// Pre-cache user routing data for instant navigation decisions (no-op)
   Future<void> _preCacheUserRoutingData(String uid) async {
-    try {
-      final routingData = await _cache.getUserRoutingData(uid);
-      if (routingData == null) {
-        // Create minimal routing data if none exists
-        final defaultRoutingData = {
-          'hasCompletedProfile': false,
-          'hasSelectedRole': false,
-          'role': null,
-          'lastLogin': DateTime.now().toIso8601String(),
-        };
-        await _cache.setUserRoutingData(uid, defaultRoutingData);
-        AppLogger.common('⚡ Pre-cached default routing data for $uid');
-      }
-    } catch (e) {
-      AppLogger.common('⚠️ Failed to pre-cache routing data: $e');
-    }
+    AppLogger.common('⚡ Routing data pre-cache skipped (no caching)');
   }
 
-  /// Pre-cache complete home data (user + candidate) for instant display
+  /// Pre-cache complete home data (user + candidate) for instant display (no-op)
   Future<void> _preCacheCompleteHomeData(String uid) async {
-    try {
-      // Check if we already have cached home data
-      final cacheKey = 'home_user_data_$uid';
-      final existingData = await _cache.get<Map<String, dynamic>>(cacheKey);
-
-      if (existingData != null && existingData['user'] != null) {
-        AppLogger.common('⚡ Home data already cached for instant display: $uid');
-        return;
-      }
-
-      // Pre-load and cache complete home data
-      AppLogger.common('🔄 Pre-caching complete home data for instant display: $uid');
-
-      final result = await _homeServices.getUserData(uid, forceRefresh: false);
-
-      if (result['user'] != null) {
-        // Cache the complete home data for instant access
-        final homeData = {
-          'user': result['user'],
-          'candidate': result['candidate'],
-          'cachedAt': DateTime.now().toIso8601String(),
-        };
-
-        await _cache.set(
-          cacheKey,
-          homeData,
-          priority: CachePriority.high,
-          ttl: const Duration(hours: 24), // Cache for 24 hours
-        );
-
-        AppLogger.common('✅ Pre-cached complete home data for instant display: $uid');
-      }
-    } catch (e) {
-      AppLogger.common('⚠️ Failed to pre-cache complete home data: $e');
-    }
+    AppLogger.common('⚡ Home data pre-cache skipped (no caching): $uid');
   }
 
   /// Preload home data for authenticated user
@@ -169,75 +118,37 @@ class HomeDataPreloader {
     });
   }
 
-  /// Preload routing data for faster navigation
+  /// Preload routing data for faster navigation (no-op)
   Future<void> _preloadUserRoutingData(String uid) async {
     _backgroundSync.addToSyncQueue(() async {
-      AppLogger.common('🔄 Background preload: User routing data for $uid');
-
-      // Preload routing-related data that determines navigation flow
-      final routingData = {
-        'hasCompletedProfile': false,
-        'hasSelectedRole': false,
-        'role': null,
-        'lastLogin': DateTime.now().toIso8601String(),
-      };
-
-      await _cache.setUserRoutingData(uid, routingData);
-      AppLogger.common('✅ Background preload: User routing data cached for $uid');
+      AppLogger.common('🔄 Background preload: User routing data for $uid (no caching)');
+      AppLogger.common('✅ Background preload: User routing data skipped for $uid');
     });
   }
 
-  /// Warm up cache with frequently accessed data
+  /// Warm up cache with frequently accessed data (no-op)
   Future<void> _warmupCacheForUser(String uid) async {
     _backgroundSync.addToSyncQueue(() async {
-      AppLogger.common('🔄 Background preload: Cache warmup for $uid');
-
-      // Warm up cache with user-specific data patterns
-      final warmupKeys = [
-        'home_user_data_$uid',
-        'candidate_data_$uid',
-        'user_routing_$uid',
-      ];
-
-      await _cache.warmup(warmupKeys.where((key) => true).toList());
-      AppLogger.common('✅ Background preload: Cache warmup completed for $uid');
+      AppLogger.common('🔄 Background preload: Cache warmup for $uid (no caching)');
+      AppLogger.common('✅ Background preload: Cache warmup skipped for $uid');
     });
   }
 
-  /// Preload data for offline use
+  /// Preload data for offline use (no-op)
   Future<void> preloadForOfflineUse(String uid) async {
     _utilsSync.queueOperation('offline_user_data_$uid', () async {
-      AppLogger.common('🔄 Preloading for offline: User data for $uid');
-
-      // Ensure critical data is cached for offline use
-      final result = await _homeServices.getUserData(uid, forceRefresh: false);
-
-      // Also cache candidate data with longer TTL for offline
-      if (result['candidate'] != null) {
-        await _cache.set(
-          'candidate_data_$uid',
-          result['candidate'],
-          priority: CachePriority.high,
-          ttl: const Duration(days: 1), // Cache for offline use
-        );
-      }
-
-      AppLogger.common('✅ Offline preload completed for user: $uid');
+      AppLogger.common('🔄 Preloading for offline: User data for $uid (no caching)');
+      AppLogger.common('✅ Offline preload skipped for user: $uid');
     });
   }
 
   /// Get preload status
   bool get isPreloading => _isPreloading;
 
-  /// Clear all preloaded data
+  /// Clear all preloaded data (no-op)
   Future<void> clearPreloadedData() async {
-    AppLogger.common('🧹 Clearing preloaded home data');
-
-    await _cache.clear();
-    // Note: BackgroundSyncManager doesn't have clearPendingOperations method
-    // The queue will be managed automatically
-
-    AppLogger.common('✅ Preloaded data cleared');
+    AppLogger.common('🧹 Clearing preloaded home data (no caching)');
+    AppLogger.common('✅ Preloaded data clear skipped');
   }
 
   /// Background sync for updated data

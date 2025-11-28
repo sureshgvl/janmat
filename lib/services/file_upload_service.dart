@@ -1,12 +1,11 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
-import 'dart:convert';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart' as fp;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -15,6 +14,8 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../utils/app_logger.dart';
 import '../features/candidate/services/media_cache_service.dart';
+import '../core/services/firebase_uploader.dart';
+import '../core/models/unified_file.dart';
 
 /// Defines different image usage purposes for optimization
 enum ImagePurpose {
@@ -37,8 +38,8 @@ class FileUploadService {
         AppLogger.common('🌐 [Profile Photo] Web detected - using file picker');
 
         // Web: Use file picker for web-compatible image selection
-        FilePickerResult? result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
+        fp.FilePickerResult? result = await fp.FilePicker.platform.pickFiles(
+          type: fp.FileType.image,
           allowMultiple: false,
         );
 
@@ -52,17 +53,23 @@ class FileUploadService {
         }
 
         final fileName = 'profile_$userId.jpg';
-        final storageRef = _storage.ref().child('profile_photos/$fileName');
+        final storagePath = 'profile_images/$fileName';
 
-        AppLogger.common('🌐 [Profile Photo] Uploading to Firebase Storage: profile_photos/$fileName');
+        AppLogger.common('🌐 [Profile Photo] Uploading to Firebase Storage: $storagePath');
 
-        final uploadTask = storageRef.putData(
-          file.bytes!,
-          SettableMetadata(contentType: 'image/jpeg'),
+        // Create UnifiedFile for web
+        final unifiedFile = UnifiedFile(
+          name: fileName,
+          size: file.bytes!.length,
+          bytes: file.bytes,
+          mimeType: 'image/jpeg',
         );
 
-        final snapshot = await uploadTask.whenComplete(() {});
-        final downloadUrl = await snapshot.ref.getDownloadURL();
+        final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+          f: unifiedFile,
+          storagePath: storagePath,
+          metadata: SettableMetadata(contentType: 'image/jpeg'),
+        );
 
         AppLogger.common('🌐 [Profile Photo] Web upload successful: $downloadUrl');
         return downloadUrl;
@@ -79,15 +86,21 @@ class FileUploadService {
       if (image == null) return null;
 
       final fileName = 'profile_$userId.jpg';
-      final storageRef = _storage.ref().child('profile_photos/$fileName');
+      final storagePath = 'profile_images/$fileName';
 
-      final uploadTask = storageRef.putFile(
-        File(image.path),
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Create UnifiedFile for mobile
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(image.path).length(),
+        file: File(image.path),
+        mimeType: 'image/jpeg',
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       return downloadUrl;
     } catch (e) {
@@ -99,8 +112,8 @@ class FileUploadService {
   // Upload manifesto PDF
   Future<String?> uploadManifestoPdf(String userId) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
+      fp.FilePickerResult? result = await fp.FilePicker.platform.pickFiles(
+        type: fp.FileType.custom,
         allowedExtensions: ['pdf'],
         allowMultiple: false,
       );
@@ -110,25 +123,22 @@ class FileUploadService {
       final file = result.files.first;
       final fileName =
           'manifesto_${userId}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final storageRef = _storage.ref().child('manifestos/$fileName');
+      final storagePath = 'manifesto_files/$fileName';
 
-      UploadTask uploadTask;
-      if (file.bytes != null) {
-        // Web platform
-        uploadTask = storageRef.putData(
-          file.bytes!,
-          SettableMetadata(contentType: 'application/pdf'),
-        );
-      } else {
-        // Mobile platforms
-        uploadTask = storageRef.putFile(
-          File(file.path!),
-          SettableMetadata(contentType: 'application/pdf'),
-        );
-      }
+      // Create UnifiedFile (works for both web and mobile)
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: file.bytes != null ? file.bytes!.length : await File(file.path!).length(),
+        bytes: file.bytes,
+        file: file.bytes == null ? File(file.path!) : null,
+        mimeType: 'application/pdf',
+      );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: 'application/pdf'),
+      );
 
       return downloadUrl;
     } catch (e) {
@@ -151,15 +161,21 @@ class FileUploadService {
 
       final fileName =
           'candidate_${candidateId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef = _storage.ref().child('candidate_photos/$fileName');
+      final storagePath = 'candidate_media/$fileName';
 
-      final uploadTask = storageRef.putFile(
-        File(image.path),
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Create UnifiedFile for mobile
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(image.path).length(),
+        file: File(image.path),
+        mimeType: 'image/jpeg',
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       return downloadUrl;
     } catch (e) {
@@ -202,15 +218,21 @@ class FileUploadService {
           .replaceAll(' ', '_');
       final fileName =
           'achievement_${candidateId}_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef = _storage.ref().child('achievements/$fileName');
+      final storagePath = 'achievements/$fileName';
 
-      final uploadTask = storageRef.putFile(
-        File(fileToUpload.path),
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Create UnifiedFile for mobile
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(fileToUpload.path).length(),
+        file: File(fileToUpload.path),
+        mimeType: 'image/jpeg',
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       // Clean up the temporary optimized file if different from original
       if (optimizedImage != null && optimizedImage.path != image.path) {
@@ -242,15 +264,21 @@ class FileUploadService {
 
       final fileName =
           'manifesto_image_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef = _storage.ref().child('manifesto_images/$fileName');
+      final storagePath = 'manifesto_images/$fileName';
 
-      final uploadTask = storageRef.putFile(
-        File(image.path),
-        SettableMetadata(contentType: 'image/jpeg'),
+      // Create UnifiedFile for mobile
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(image.path).length(),
+        file: File(image.path),
+        mimeType: 'image/jpeg',
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       return downloadUrl;
     } catch (e) {
@@ -262,8 +290,8 @@ class FileUploadService {
   // Upload manifesto video
   Future<String?> uploadManifestoVideo(String userId) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.video,
+      fp.FilePickerResult? result = await fp.FilePicker.platform.pickFiles(
+        type: fp.FileType.video,
         allowMultiple: false,
       );
 
@@ -272,25 +300,22 @@ class FileUploadService {
       final file = result.files.first;
       final fileName =
           'manifesto_video_${userId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final storageRef = _storage.ref().child('manifesto_videos/$fileName');
+      final storagePath = 'manifesto_videos/$fileName';
 
-      UploadTask uploadTask;
-      if (file.bytes != null) {
-        // Web platform
-        uploadTask = storageRef.putData(
-          file.bytes!,
-          SettableMetadata(contentType: 'video/mp4'),
-        );
-      } else {
-        // Mobile platforms
-        uploadTask = storageRef.putFile(
-          File(file.path!),
-          SettableMetadata(contentType: 'video/mp4'),
-        );
-      }
+      // Create UnifiedFile (works for both web and mobile)
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: file.bytes != null ? file.bytes!.length : await File(file.path!).length(),
+        bytes: file.bytes,
+        file: file.bytes == null ? File(file.path!) : null,
+        mimeType: 'video/mp4',
+      );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: 'video/mp4'),
+      );
 
       return downloadUrl;
     } catch (e) {
@@ -307,15 +332,21 @@ class FileUploadService {
   ) async {
     try {
       final fileName = path.basename(filePath);
-      final storageRef = _storage.ref().child('$storagePath/$fileName');
+      final fullStoragePath = '$storagePath/$fileName';
 
-      final uploadTask = storageRef.putFile(
-        File(filePath),
-        SettableMetadata(contentType: contentType),
+      // Create UnifiedFile for mobile
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await File(filePath).length(),
+        file: File(filePath),
+        mimeType: contentType,
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: fullStoragePath,
+        metadata: SettableMetadata(contentType: contentType),
+      );
 
       return downloadUrl;
     } catch (e) {
@@ -336,8 +367,7 @@ class FileUploadService {
   // Delete file from storage
   Future<void> deleteFile(String fileUrl) async {
     try {
-      final ref = _storage.refFromURL(fileUrl);
-      await ref.delete();
+      await FirebaseUploader.deleteByUrl(fileUrl);
       AppLogger.common('File deleted successfully: $fileUrl');
     } catch (e) {
       // Log the error but don't throw it - file might not exist
@@ -353,6 +383,575 @@ class FileUploadService {
     } catch (e) {
       AppLogger.commonError('Error getting download URL', error: e);
       return null;
+    }
+  }
+
+  // Check if a path is a local path
+  bool isLocalPath(String path) {
+    return path.startsWith('local:');
+  }
+
+  // Clean up all temporary local photos (mobile only)
+  Future<void> cleanupTempPhotos() async {
+    if (kIsWeb) {
+      AppLogger.common('🌐 [FileUpload] Web detected - no local cleanup needed', tag: 'WEB_CLEANUP');
+      return;
+    }
+
+    try {
+      final tempDir = await _getLocalTempDirectory();
+      if (await tempDir.exists()) {
+        final files = tempDir.listSync();
+        for (final file in files) {
+          if (file is File) {
+            await file.delete();
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.commonError('Error cleaning up temp photos', error: e);
+    }
+  }
+
+  // Validate file size and provide recommendations
+  Future<FileSizeValidation> validateFileSize(String filePath) async {
+    try {
+      final file = File(filePath.replaceFirst('local:', ''));
+      final fileSize = await file.length();
+      final fileSizeMB = fileSize / (1024 * 1024);
+
+      if (fileSizeMB > 20.0) {
+        return FileSizeValidation(
+          isValid: false,
+          fileSizeMB: fileSizeMB,
+          message:
+              'File is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
+          recommendation:
+              'Please choose a smaller image or compress the current one.',
+        );
+      } else if (fileSizeMB > 10.0) {
+        return FileSizeValidation(
+          isValid: true,
+          fileSizeMB: fileSizeMB,
+          message:
+              'Large file detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
+          recommendation: 'Consider compressing the image for faster uploads.',
+          warning: true,
+        );
+      } else if (fileSizeMB > 5.0) {
+        return FileSizeValidation(
+          isValid: true,
+          fileSizeMB: fileSizeMB,
+          message: 'Medium file size (${fileSizeMB.toStringAsFixed(1)}MB).',
+          recommendation: null,
+        );
+      } else {
+        return FileSizeValidation(
+          isValid: true,
+          fileSizeMB: fileSizeMB,
+          message: 'Optimal file size (${fileSizeMB.toStringAsFixed(1)}MB).',
+          recommendation: null,
+        );
+      }
+    } catch (e) {
+      return FileSizeValidation(
+        isValid: false,
+        fileSizeMB: 0,
+        message: 'Unable to validate file size: $e',
+        recommendation: 'Please try again or choose a different file.',
+      );
+    }
+  }
+
+  // Comprehensive file validation with MIME type detection and security checks
+  Future<FileValidationResult> validateFileComprehensive(
+    dynamic fileData, {
+    required String fileType,
+    String? fileName,
+    String? mimeType,
+    bool isWebBlob = false,
+  }) async {
+    try {
+      int fileSize;
+      String detectedMimeType = mimeType ?? 'application/octet-stream';
+      String detectedType = fileType;
+
+      // Handle different input types
+      if (isWebBlob && fileData is Uint8List) {
+        // Web blob data
+        fileSize = fileData.length;
+        // Try to detect MIME type from bytes
+        detectedMimeType = _detectMimeTypeFromBytes(fileData, fileName);
+      } else if (fileData is String && fileData.startsWith('local:')) {
+        // Local file path
+        final actualPath = fileData.substring(6);
+        final file = File(actualPath);
+        if (!await file.exists()) {
+          return FileValidationResult.invalid(
+            'File not found: $actualPath',
+            recommendation: 'Please select a valid file.',
+          );
+        }
+        fileSize = await file.length();
+        detectedMimeType = mimeType ?? _detectMimeTypeFromPath(actualPath);
+      } else if (fileData is File) {
+        // File object
+        fileSize = await fileData.length();
+        detectedMimeType = mimeType ?? _detectMimeTypeFromPath(fileData.path);
+      } else {
+        return FileValidationResult.invalid(
+          'Invalid file data provided',
+          recommendation: 'Please select a valid file.',
+        );
+      }
+
+      final fileSizeMB = fileSize / (1024 * 1024);
+      final errors = <String>[];
+
+      // Size validation based on file type
+      final sizeLimits = _getFileSizeLimits(fileType);
+      if (fileSizeMB > sizeLimits['max']!) {
+        errors.add('$detectedType is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is ${sizeLimits['max']!.toStringAsFixed(1)}MB.');
+      }
+
+      // MIME type validation
+      if (!_isValidMimeType(detectedMimeType, fileType)) {
+        errors.add('Invalid file type. Expected $fileType format, got $detectedMimeType.');
+      }
+
+      // Security checks
+      if (fileSize == 0) {
+        errors.add('File appears to be empty.');
+      }
+
+      // Firebase Storage limits
+      const firebaseMaxSize = 50 * 1024 * 1024; // 50MB
+      if (fileSize > firebaseMaxSize) {
+        errors.add('File exceeds Firebase Storage limit of 50MB.');
+      }
+
+      // Determine validation result
+      if (errors.isNotEmpty) {
+        return FileValidationResult.invalid(
+          errors.first,
+          recommendation: 'Please choose a different file that meets the requirements.',
+          errors: errors,
+        );
+      }
+
+      // Generate appropriate message
+      String message;
+      String? recommendation;
+      bool warning = false;
+
+      if (fileSizeMB > sizeLimits['warning']!) {
+        message = 'Large $detectedType detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.';
+        recommendation = 'Consider compressing the $detectedType for faster uploads.';
+        warning = true;
+      } else if (fileSizeMB > sizeLimits['optimal']!) {
+        message = 'Good $detectedType size (${fileSizeMB.toStringAsFixed(1)}MB).';
+      } else {
+        message = 'Optimal $detectedType size (${fileSizeMB.toStringAsFixed(1)}MB).';
+      }
+
+      return FileValidationResult.valid(
+        fileSizeMB,
+        message,
+        recommendation: recommendation,
+        warning: warning,
+        mimeType: detectedMimeType,
+        detectedType: detectedType,
+      );
+
+    } catch (e) {
+      return FileValidationResult.invalid(
+        'Unable to validate file: ${e.toString()}',
+        recommendation: 'Please try again or choose a different file.',
+        errors: [e.toString()],
+      );
+    }
+  }
+
+  // Get file size limits based on type
+  Map<String, double> _getFileSizeLimits(String fileType) {
+    switch (fileType.toLowerCase()) {
+      case 'image':
+      case 'photo':
+      case 'profile':
+        return {'max': 10.0, 'warning': 5.0, 'optimal': 2.0};
+      case 'video':
+        return {'max': 50.0, 'warning': 20.0, 'optimal': 10.0};
+      case 'pdf':
+      case 'document':
+        return {'max': 25.0, 'warning': 10.0, 'optimal': 5.0};
+      default:
+        return {'max': 25.0, 'warning': 10.0, 'optimal': 5.0};
+    }
+  }
+
+  // Detect MIME type from file path
+  String _detectMimeTypeFromPath(String path) {
+    final extension = path.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'mp4':
+        return 'video/mp4';
+      case 'mov':
+        return 'video/quicktime';
+      case 'avi':
+        return 'video/x-msvideo';
+      case 'pdf':
+        return 'application/pdf';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  // Detect MIME type from file bytes (basic implementation)
+  String _detectMimeTypeFromBytes(Uint8List bytes, String? fileName) {
+    if (fileName != null) {
+      return _detectMimeTypeFromPath(fileName);
+    }
+
+    // Basic magic number detection
+    if (bytes.length >= 4) {
+      final header = bytes.sublist(0, 4);
+      if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
+        return 'image/jpeg';
+      } else if (header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) {
+        return 'image/png';
+      } else if (header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46) {
+        return 'image/gif';
+      } else if (header[0] == 0x25 && header[1] == 0x50 && header[2] == 0x44 && header[3] == 0x46) {
+        return 'application/pdf';
+      }
+    }
+
+    return 'application/octet-stream';
+  }
+
+  // Validate MIME type against expected file type
+  bool _isValidMimeType(String mimeType, String expectedType) {
+    final mimeLower = mimeType.toLowerCase();
+    final typeLower = expectedType.toLowerCase();
+
+    switch (typeLower) {
+      case 'image':
+      case 'photo':
+      case 'profile':
+        return mimeLower.startsWith('image/');
+      case 'video':
+        return mimeLower.startsWith('video/');
+      case 'pdf':
+      case 'document':
+        return mimeLower == 'application/pdf';
+      default:
+        return true; // Allow unknown types
+    }
+  }
+
+  // Validate media file size with specific limits for images and videos (backward compatibility)
+  Future<FileSizeValidation> validateMediaFileSize(
+    String filePath,
+    String fileType,
+  ) async {
+    final result = await validateFileComprehensive(
+      filePath,
+      fileType: fileType,
+    );
+
+    return FileSizeValidation(
+      isValid: result.isValid,
+      fileSizeMB: result.fileSizeMB,
+      message: result.message,
+      recommendation: result.recommendation,
+      warning: result.warning,
+    );
+  }
+
+  // Save existing file to local storage (for media tab) - Web compatible
+  Future<String?> saveExistingFileLocally(
+    String sourceFilePath,
+    String candidateId,
+    String fileName,
+  ) async {
+    if (kIsWeb) {
+      AppLogger.common('🌐 [FileUpload] Web detected - redirecting to Firebase upload', tag: 'WEB_MEDIA');
+      // On web, we can't save locally, so just return the source path as-is
+      // The calling code should handle web-specific logic
+      return sourceFilePath;
+    }
+
+    try {
+      AppLogger.common('📱 [FileUpload] Saving existing file locally...', tag: 'LOCAL_STORAGE');
+
+      // Get application documents directory
+      final directory = await getApplicationDocumentsDirectory();
+      final localDir = Directory('${directory.path}/media_temp');
+      if (!await localDir.exists()) {
+        await localDir.create(recursive: true);
+        AppLogger.common(
+          'Created media temp directory: ${localDir.path}',
+          tag: 'LOCAL_STORAGE',
+        );
+      }
+
+      // Generate unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final localFileName = '${fileName}_${candidateId}_$timestamp';
+      final localPath = '${localDir.path}/$localFileName';
+
+      // Copy the source file to local storage
+      await File(sourceFilePath).copy(localPath);
+
+      AppLogger.common('File saved successfully at: $localPath', tag: 'LOCAL_STORAGE');
+      return 'local:$localPath';
+    } catch (e) {
+      AppLogger.common('Error saving existing file locally: $e', tag: 'LOCAL_STORAGE_ERROR');
+      return null;
+    }
+  }
+
+  // Advanced image compression with flutter_image_compress for professional quality
+  Future<XFile?> compressImageWithQuality(
+    XFile sourceImage, {
+    int quality = 85,
+    int? maxWidth,
+    int? maxHeight,
+    bool autoCorrectOrientation = true,
+  }) async {
+    // Web compatibility fix: Skip compression on web
+    if (kIsWeb) {
+      AppLogger.common('🌐 [Image Compress] Skipping compression on web', tag: 'MEDIA_OPTIM');
+      return sourceImage;
+    }
+
+    try {
+      final sourceFile = File(sourceImage.path);
+      final originalSize = await sourceFile.length();
+      final originalSizeMB = originalSize / (1024 * 1024);
+      AppLogger.common('🔧 [Image Optim] Starting advanced compression...', tag: 'MEDIA_OPTIM');
+
+      final dir = await getTemporaryDirectory();
+      final compressedFile = File('${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      final compressedBytes = await FlutterImageCompress.compressWithFile(
+        sourceImage.path,
+        minWidth: maxWidth ?? 1920,
+        minHeight: maxHeight ?? 1080,
+        quality: quality,
+        autoCorrectionAngle: autoCorrectOrientation,
+      );
+
+      if (compressedBytes != null) {
+        await compressedFile.writeAsBytes(compressedBytes);
+
+        final compressedSize = await compressedFile.length();
+        final compressedSizeMB = compressedSize / (1024 * 1024);
+        final compressionRatio = ((originalSize - compressedSize) / originalSize * 100);
+
+        AppLogger.common('✅ [Image Optim] Compressed: ${originalSizeMB.toStringAsFixed(2)}MB → ${compressedSizeMB.toStringAsFixed(2)}MB (${compressionRatio.toStringAsFixed(1)}% reduction)', tag: 'MEDIA_OPTIM');
+
+        return XFile(compressedFile.path);
+      } else {
+        AppLogger.common('⚠️ [Image Optim] Compression failed, using original', tag: 'MEDIA_OPTIM');
+        return sourceImage;
+      }
+    } catch (e) {
+      AppLogger.commonError('❌ [Image Optim] Compression error', error: e, tag: 'MEDIA_OPTIM');
+      return sourceImage; // Return original if compression fails
+    }
+  }
+
+  // Intelligent compression based on image size and purpose
+  Future<XFile?> optimizeImageSmartly(
+    XFile sourceImage, {
+    ImagePurpose purpose = ImagePurpose.thumbnail, // Default to thumbnail for performance
+  }) async {
+    // Web compatibility fix: Skip optimization on web to avoid file operations
+    if (kIsWeb) {
+      AppLogger.common('🌐 [Smart Optim] Skipping image optimization on web', tag: 'MEDIA_OPTIM');
+      return sourceImage;
+    }
+
+    try {
+      final sourceFile = File(sourceImage.path);
+      final originalSize = await sourceFile.length();
+      final originalSizeMB = originalSize / (1024 * 1024);
+
+      AppLogger.common('🧠 [Smart Optim] Analyzing image for purpose: $purpose', tag: 'MEDIA_OPTIM');
+
+      // Configure optimization based on purpose
+      late int quality;
+      late int maxWidth;
+      late int maxHeight;
+
+      switch (purpose) {
+        case ImagePurpose.profilePhoto:
+          quality = 90; // High quality for profile
+          maxWidth = 512;
+          maxHeight = 512;
+          break;
+
+        case ImagePurpose.candidatePhoto:
+          quality = 85; // Good quality for candidate display
+          maxWidth = 800;
+          maxHeight = 800;
+          break;
+
+        case ImagePurpose.thumbnail:
+          quality = 70; // Lower quality for lists/grids
+          maxWidth = 300;
+          maxHeight = 300;
+          break;
+
+        case ImagePurpose.achievement:
+          quality = 80; // Balanced for achievements
+          maxWidth = 1200;
+          maxHeight = 800;
+          break;
+
+        case ImagePurpose.upload:
+          // Adaptive based on file size
+          if (originalSizeMB > 15.0) {
+            quality = 60; // Very aggressive for very large files
+            maxWidth = 1600;
+            maxHeight = 1200;
+          } else if (originalSizeMB > 8.0) {
+            quality = 70; // Moderate for large files
+            maxWidth = 1800;
+            maxHeight = 1350;
+          } else if (originalSizeMB > 3.0) {
+            quality = 80; // Light optimization for medium files
+            maxWidth = 2000;
+            maxHeight = 1500;
+          } else {
+            quality = 90; // Minimal optimization for small files
+            maxWidth = 2500;
+            maxHeight = 1800;
+          }
+          break;
+      }
+
+      // Apply compression
+      final optimizedImage = await compressImageWithQuality(
+        sourceImage,
+        quality: quality,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+      );
+
+      if (optimizedImage != null && optimizedImage.path != sourceImage.path) {
+        final optimizedSize = await File(optimizedImage.path).length();
+        final optimizedSizeMB = optimizedSize / (1024 * 1024);
+        AppLogger.common('✅ [Smart Optim] Optimized for $purpose: ${originalSizeMB.toStringAsFixed(2)}MB → ${optimizedSizeMB.toStringAsFixed(2)}MB', tag: 'MEDIA_OPTIM');
+        return optimizedImage;
+      }
+
+      return sourceImage;
+    } catch (e) {
+      AppLogger.commonError('❌ [Smart Optim] Error', error: e, tag: 'MEDIA_OPTIM');
+      return sourceImage;
+    }
+  }
+
+  // Process deleted storage files asynchronously (called when candidate opens dashboard)
+  Future<void> cleanupDeletedStorageFiles({
+    required String stateId,
+    required String districtId,
+    required String bodyId,
+    required String wardId,
+    required String candidateId,
+  }) async {
+    AppLogger.common('🧹 [Cleanup] Starting async cleanup of deleteStorage for candidate: $candidateId', tag: 'STORAGE_CLEANUP');
+
+    try {
+      // Get candidate document path
+      final candidateRef = FirebaseFirestore.instance
+          .collection('states')
+          .doc(stateId)
+          .collection('districts')
+          .doc(districtId)
+          .collection('bodies')
+          .doc(bodyId)
+          .collection('wards')
+          .doc(wardId)
+          .collection('candidates')
+          .doc(candidateId);
+
+      // Get current candidate data
+      final candidateDoc = await candidateRef.get();
+      if (!candidateDoc.exists) {
+        AppLogger.common('⚠️ [Cleanup] Candidate document not found for: $candidateId', tag: 'STORAGE_CLEANUP');
+        return;
+      }
+
+      final candidateData = candidateDoc.data()!;
+      final deleteStorage = candidateData['deleteStorage'] as List<dynamic>? ?? [];
+
+      if (deleteStorage.isEmpty) {
+        AppLogger.common('✅ [Cleanup] No files to delete for candidate: $candidateId', tag: 'STORAGE_CLEANUP');
+        return;
+      }
+
+      AppLogger.common('📋 [Cleanup] Found ${deleteStorage.length} files to delete: $deleteStorage', tag: 'STORAGE_CLEANUP');
+
+      int deletedCount = 0;
+      int errorCount = 0;
+
+      // Process each file in deleteStorage array
+      for (final storagePath in deleteStorage) {
+        try {
+          if (storagePath is String && storagePath.isNotEmpty) {
+            // Delete from Firebase Storage
+            await _storage.ref().child(storagePath).delete();
+            deletedCount++;
+            AppLogger.common('✅ [Cleanup] Deleted: $storagePath', tag: 'STORAGE_CLEANUP');
+          }
+        } catch (e) {
+          errorCount++;
+          AppLogger.common('❌ [Cleanup] Failed to delete $storagePath for $candidateId: ${e.toString()}', tag: 'STORAGE_CLEANUP');
+          // Continue processing other files even if one fails
+        }
+      }
+
+      // Clear the deleteStorage array in Firestore
+      await candidateRef.update({
+        'deleteStorage': FieldValue.delete(), // Delete the field entirely or set to []
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      AppLogger.common('🔄 [Cleanup] Cleared deleteStorage array for $candidateId ($deletedCount files deleted, $errorCount errors)', tag: 'STORAGE_CLEANUP');
+
+    } catch (e) {
+      AppLogger.commonError('💥 [Cleanup] Error processing deleteStorage cleanup for $candidateId', error: e, tag: 'STORAGE_CLEANUP');
+      // Don't re-throw - this is background cleanup, failures shouldn't break the app
+    }
+  }
+
+  // Calculate and display optimization statistics
+  Future<String> generateOptimizationReport(XFile original, XFile? optimized) async {
+    if (optimized == null) {
+      return 'Optimization failed - keeping original';
+    }
+
+    try {
+      final originalSize = await File(original.path).length();
+      final optimizedSize = await File(optimized.path).length();
+      final reductionBytes = originalSize - optimizedSize;
+      final reductionPercent = (reductionBytes / originalSize * 100);
+
+      return 'Size reduced: ${(originalSize / (1024 * 1024)).toStringAsFixed(2)}MB → ${(optimizedSize / (1024 * 1024)).toStringAsFixed(2)}MB (${reductionPercent.toStringAsFixed(1)}% saved)';
+    } catch (e) {
+      return 'Could not generate report: $e';
     }
   }
 
@@ -419,8 +1018,8 @@ class FileUploadService {
         await _ensureFirebaseAuth();
 
         // Web: Use file picker for web-compatible image selection
-        FilePickerResult? result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
+        fp.FilePickerResult? result = await fp.FilePicker.platform.pickFiles(
+          type: fp.FileType.image,
           allowMultiple: false,
         );
 
@@ -439,18 +1038,24 @@ class FileUploadService {
             .replaceAll(' ', '_');
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileName = 'achievement_${candidateId}_${sanitizedTitle}_$timestamp.jpg';
-        final storageRef = _storage.ref().child('achievements/$fileName');
+        final storagePath = 'achievements/$fileName';
 
         AppLogger.common('🌐 [FileUpload] Uploading to Firebase Storage: achievements/$fileName');
 
-        try {
-          final uploadTask = storageRef.putData(
-            file.bytes!,
-            SettableMetadata(contentType: 'image/jpeg'),
-          );
+        // Create UnifiedFile for web
+        final unifiedFile = UnifiedFile(
+          name: fileName,
+          size: file.bytes!.length,
+          bytes: file.bytes,
+          mimeType: 'image/jpeg',
+        );
 
-          final snapshot = await uploadTask.whenComplete(() {});
-          final downloadUrl = await snapshot.ref.getDownloadURL();
+        try {
+          final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+            f: unifiedFile,
+            storagePath: storagePath,
+            metadata: SettableMetadata(contentType: 'image/jpeg'),
+          );
 
           AppLogger.common('🌐 [FileUpload] Web file picker upload successful: $downloadUrl');
           return downloadUrl;
@@ -577,6 +1182,113 @@ class FileUploadService {
     }
   }
 
+  // Upload file with progress tracking
+  Future<String?> uploadFileWithProgress(
+    dynamic fileData,
+    String storagePath,
+    String contentType, {
+    Function(UploadProgress progress)? onProgress,
+    String? fileName,
+  }) async {
+    try {
+      // Validate file first
+      final validation = await validateFileComprehensive(
+        fileData,
+        fileType: _getFileTypeFromContentType(contentType),
+      );
+
+      if (!validation.isValid) {
+        throw Exception(validation.message);
+      }
+
+      // Create UnifiedFile
+      late UnifiedFile unifiedFile;
+      if (fileData is String && fileData.startsWith('local:')) {
+        final actualPath = fileData.substring(6);
+        final file = File(actualPath);
+        unifiedFile = UnifiedFile(
+          name: fileName ?? path.basename(actualPath),
+          size: await file.length(),
+          file: file,
+          mimeType: contentType,
+        );
+      } else if (fileData is Uint8List) {
+        unifiedFile = UnifiedFile(
+          name: fileName ?? 'web_upload',
+          size: fileData.length,
+          bytes: fileData,
+          mimeType: contentType,
+        );
+      } else if (fileData is File) {
+        unifiedFile = UnifiedFile(
+          name: fileName ?? path.basename(fileData.path),
+          size: await fileData.length(),
+          file: fileData,
+          mimeType: contentType,
+        );
+      } else {
+        throw Exception('Unsupported file data type');
+      }
+
+      // Track upload start time for ETA calculation
+      final startTime = DateTime.now();
+
+      // Upload with progress tracking
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        onProgressBytes: (bytesTransferred, totalBytes) {
+          if (onProgress != null) {
+            final elapsed = DateTime.now().difference(startTime);
+            final eta = UploadProgress.calculateEstimatedTime(bytesTransferred, totalBytes, elapsed);
+            final progress = UploadProgress(
+              percentage: (bytesTransferred / totalBytes) * 100,
+              bytesTransferred: bytesTransferred,
+              totalBytes: totalBytes,
+              status: 'Uploading...',
+              estimatedTimeRemaining: eta,
+            );
+            onProgress(progress);
+          }
+        },
+        metadata: SettableMetadata(contentType: contentType),
+      );
+
+      // Send completion progress
+      if (onProgress != null) {
+        final finalProgress = UploadProgress(
+          percentage: 100.0,
+          bytesTransferred: unifiedFile.size,
+          totalBytes: unifiedFile.size,
+          status: 'Upload complete!',
+        );
+        onProgress(finalProgress);
+      }
+
+      return downloadUrl;
+    } catch (e) {
+      // Send error progress
+      if (onProgress != null) {
+        final errorProgress = UploadProgress(
+          percentage: 0.0,
+          bytesTransferred: 0,
+          totalBytes: 0,
+          status: 'Upload failed: ${e.toString().split('Exception: ').last}',
+        );
+        onProgress(errorProgress);
+      }
+      throw Exception('Failed to upload file with progress: $e');
+    }
+  }
+
+  // Helper method to determine file type from content type
+  String _getFileTypeFromContentType(String contentType) {
+    if (contentType.startsWith('image/')) return 'image';
+    if (contentType.startsWith('video/')) return 'video';
+    if (contentType == 'application/pdf') return 'pdf';
+    return 'document';
+  }
+
   // Upload local photo to Firebase Storage with cache integration
   Future<String?> uploadLocalPhotoToFirebase(String localPath) async {
     try {
@@ -603,26 +1315,32 @@ class FileUploadService {
       final storagePath = isVideo ? 'media/videos/$fileName' : 'media/images/$fileName';
       final contentType = isVideo ? 'video/mp4' : 'image/jpeg';
 
-      final storageRef = _storage.ref().child(storagePath);
-
       AppLogger.common('📤 [Media Upload] Uploading ${isVideo ? 'video' : 'image'} to Firebase Storage: $storagePath', tag: 'UPLOAD');
 
-      final uploadTask = storageRef.putFile(
-        file,
-        SettableMetadata(contentType: contentType),
+      // Create UnifiedFile for mobile
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: await file.length(),
+        file: file,
+        mimeType: contentType,
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: contentType),
+      );
 
       // PHASE 4 INTEGRATION: Add uploaded file to cache for instant future access
-      try {
-        final cacheService = Get.find<MediaCacheService>();
-        await cacheService.putFile(downloadUrl, file, mediaType: 'upload');
-        AppLogger.common('💾 [Cache Integration] Cached uploaded ${isVideo ? 'video' : 'image'}: $fileName', tag: 'CACHE');
-      } catch (cacheError) {
-        AppLogger.common('⚠️ [Cache Integration] Failed to cache uploaded file, continuing...', tag: 'CACHE');
-        // Continue with upload even if caching fails
+      if (downloadUrl != null) {
+        try {
+          final cacheService = Get.find<MediaCacheService>();
+          await cacheService.putFile(downloadUrl, file, mediaType: 'upload');
+          AppLogger.common('💾 [Cache Integration] Cached uploaded ${isVideo ? 'video' : 'image'}: $fileName', tag: 'CACHE');
+        } catch (cacheError) {
+          AppLogger.common('⚠️ [Cache Integration] Failed to cache uploaded file, continuing...', tag: 'CACHE');
+          // Continue with upload even if caching fails
+        }
       }
 
       // Delete the local temporary file after successful upload AND caching
@@ -642,334 +1360,119 @@ class FileUploadService {
     try {
       AppLogger.common('🌐 [Blob Upload] Starting blob URL upload to Firebase: $blobUrl', tag: 'WEB_UPLOAD');
 
-      // Use http package to fetch blob data (works on both web and mobile)
-      final response = await http.get(Uri.parse(blobUrl));
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to fetch blob data: HTTP ${response.statusCode}');
+      // Validate blob URL format
+      if (!blobUrl.startsWith('blob:')) {
+        throw Exception('Invalid blob URL format. Expected blob: URL, got: $blobUrl');
       }
 
-      final bytes = response.bodyBytes;
+      // Fetch blob data with timeout and retry logic
+      Uint8List bytes;
+      try {
+        bytes = await _fetchBlobWithRetry(blobUrl);
+      } catch (fetchError) {
+        if (fetchError.toString().contains('CORS') || fetchError.toString().contains('cross-origin')) {
+          throw Exception('Unable to access blob data due to browser security restrictions. Please try selecting the file again.');
+        } else if (fetchError.toString().contains('timeout')) {
+          throw Exception('Blob data fetch timed out. The file may be too large or your connection is slow.');
+        } else {
+          throw Exception('Failed to read file data: ${fetchError.toString()}');
+        }
+      }
+
       if (bytes.isEmpty) {
-        throw Exception('Blob data is empty');
+        throw Exception('File appears to be empty. Please select a valid file.');
       }
 
-      // Generate filename from blob URL or use timestamp
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'web_media_${timestamp}.jpg'; // Default to jpg, could be improved with MIME type detection
+      // Validate file size (50MB limit for Firebase Storage)
+      const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+      if (bytes.length > maxSizeBytes) {
+        throw Exception('File is too large (${(bytes.length / (1024 * 1024)).toStringAsFixed(1)}MB). Maximum allowed size is 50MB.');
+      }
 
-      // Determine storage path
+      // Generate unique filename to avoid conflicts
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final randomSuffix = (timestamp % 1000).toString().padLeft(3, '0');
+      final fileName = 'web_media_${timestamp}_$randomSuffix.jpg';
+
+      // Determine storage path and content type
       final storagePath = 'media/images/$fileName';
       final contentType = 'image/jpeg';
 
-      final storageRef = _storage.ref().child(storagePath);
+      AppLogger.common('📤 [Blob Upload] Uploading bytes to Firebase Storage: $storagePath', tag: 'WEB_UPLOAD');
 
-      AppLogger.common('📤 [Blob Upload] Uploading blob to Firebase Storage: $storagePath', tag: 'WEB_UPLOAD');
-
-      final uploadTask = storageRef.putData(
-        bytes,
-        SettableMetadata(contentType: contentType),
+      // Create UnifiedFile for web blob
+      final unifiedFile = UnifiedFile(
+        name: fileName,
+        size: bytes.length,
+        bytes: bytes,
+        mimeType: contentType,
       );
 
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      final downloadUrl = await FirebaseUploader.uploadUnifiedFile(
+        f: unifiedFile,
+        storagePath: storagePath,
+        metadata: SettableMetadata(contentType: contentType),
+      );
 
       AppLogger.common('✅ [Blob Upload] Successfully uploaded blob to Firebase: $downloadUrl', tag: 'WEB_UPLOAD');
       return downloadUrl;
     } catch (e) {
       AppLogger.commonError('❌ [Blob Upload] Failed to upload blob URL', error: e, tag: 'WEB_UPLOAD');
-      throw Exception('Failed to upload blob URL to Firebase: $e');
+
+      // Provide user-friendly error messages
+      if (e.toString().contains('quota-exceeded')) {
+        throw Exception('Storage quota exceeded. Please contact support or try a smaller file.');
+      } else if (e.toString().contains('unauthorized')) {
+        throw Exception('Upload permission denied. Please try logging in again.');
+      } else if (e.toString().contains('network')) {
+        throw Exception('Network error. Please check your internet connection and try again.');
+      }
+
+      throw Exception('Failed to upload file: ${e.toString().split('Exception: ').last}');
     }
   }
 
-  // Clean up all temporary local photos (mobile only)
-  Future<void> cleanupTempPhotos() async {
-    if (kIsWeb) {
-      AppLogger.common('🌐 [FileUpload] Web detected - no local cleanup needed', tag: 'WEB_CLEANUP');
-      return;
-    }
+  // Helper method to fetch blob data with timeout and retry logic
+  Future<Uint8List> _fetchBlobWithRetry(String blobUrl, {int maxRetries = 2, Duration timeout = const Duration(seconds: 30)}) async {
+    int attempt = 0;
+    Exception? lastError;
 
-    try {
-      final tempDir = await _getLocalTempDirectory();
-      if (await tempDir.exists()) {
-        final files = tempDir.listSync();
-        for (final file in files) {
-          if (file is File) {
-            await file.delete();
+    while (attempt <= maxRetries) {
+      try {
+        AppLogger.common('🌐 [Blob Fetch] Attempt ${attempt + 1}/${maxRetries + 1} to fetch blob data', tag: 'WEB_UPLOAD');
+
+        // Create HTTP client with timeout
+        final client = http.Client();
+        try {
+          final request = http.Request('GET', Uri.parse(blobUrl));
+          final streamedResponse = await client.send(request).timeout(timeout);
+          final response = await http.Response.fromStream(streamedResponse);
+
+          if (response.statusCode == 200) {
+            AppLogger.common('✅ [Blob Fetch] Successfully fetched ${response.bodyBytes.length} bytes', tag: 'WEB_UPLOAD');
+            return response.bodyBytes;
+          } else {
+            throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
           }
+        } finally {
+          client.close();
+        }
+      } catch (e) {
+        lastError = e as Exception;
+        attempt++;
+
+        if (attempt <= maxRetries) {
+          final delay = Duration(seconds: attempt * 2); // Exponential backoff
+          AppLogger.common('⚠️ [Blob Fetch] Attempt $attempt failed, retrying in ${delay.inSeconds}s: $e', tag: 'WEB_UPLOAD');
+          await Future.delayed(delay);
         }
       }
-    } catch (e) {
-      AppLogger.commonError('Error cleaning up temp photos', error: e);
     }
+
+    throw Exception('Failed to fetch blob data after ${maxRetries + 1} attempts: ${lastError?.toString() ?? 'Unknown error'}');
   }
 
-  // Check if a path is a local path
-  bool isLocalPath(String path) {
-    return path.startsWith('local:');
-  }
-
-  // Validate file size and provide recommendations
-  Future<FileSizeValidation> validateFileSize(String filePath) async {
-    try {
-      final file = File(filePath.replaceFirst('local:', ''));
-      final fileSize = await file.length();
-      final fileSizeMB = fileSize / (1024 * 1024);
-
-      if (fileSizeMB > 20.0) {
-        return FileSizeValidation(
-          isValid: false,
-          fileSizeMB: fileSizeMB,
-          message:
-              'File is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is 20MB.',
-          recommendation:
-              'Please choose a smaller image or compress the current one.',
-        );
-      } else if (fileSizeMB > 10.0) {
-        return FileSizeValidation(
-          isValid: true,
-          fileSizeMB: fileSizeMB,
-          message:
-              'Large file detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-          recommendation: 'Consider compressing the image for faster uploads.',
-          warning: true,
-        );
-      } else if (fileSizeMB > 5.0) {
-        return FileSizeValidation(
-          isValid: true,
-          fileSizeMB: fileSizeMB,
-          message: 'Medium file size (${fileSizeMB.toStringAsFixed(1)}MB).',
-          recommendation: null,
-        );
-      } else {
-        return FileSizeValidation(
-          isValid: true,
-          fileSizeMB: fileSizeMB,
-          message: 'Optimal file size (${fileSizeMB.toStringAsFixed(1)}MB).',
-          recommendation: null,
-        );
-      }
-    } catch (e) {
-      return FileSizeValidation(
-        isValid: false,
-        fileSizeMB: 0,
-        message: 'Unable to validate file size: $e',
-        recommendation: 'Please try again or choose a different file.',
-      );
-    }
-  }
-
-  // Validate media file size with specific limits for images and videos
-  Future<FileSizeValidation> validateMediaFileSize(
-    String filePath,
-    String fileType,
-  ) async {
-    try {
-      final file = File(filePath.replaceFirst('local:', ''));
-      final fileSize = await file.length();
-      final fileSizeMB = fileSize / (1024 * 1024);
-
-      double maxSizeMB;
-      String fileTypeName;
-
-      switch (fileType) {
-        case 'image':
-          maxSizeMB = 10.0; // 10MB for images
-          fileTypeName = 'image';
-          break;
-        case 'video':
-          maxSizeMB = 20.0; // 20MB for videos
-          fileTypeName = 'video';
-          break;
-        default:
-          maxSizeMB = 20.0; // Default fallback
-          fileTypeName = 'file';
-      }
-
-      if (fileSizeMB > maxSizeMB) {
-        return FileSizeValidation(
-          isValid: false,
-          fileSizeMB: fileSizeMB,
-          message:
-              '$fileTypeName is too large (${fileSizeMB.toStringAsFixed(1)}MB). Maximum allowed is ${maxSizeMB.toStringAsFixed(1)}MB.',
-          recommendation:
-              'Please choose a smaller $fileTypeName or compress the current one.',
-        );
-      } else if (fileSizeMB > maxSizeMB * 0.8) {
-        return FileSizeValidation(
-          isValid: true,
-          fileSizeMB: fileSizeMB,
-          message:
-              'Large $fileTypeName detected (${fileSizeMB.toStringAsFixed(1)}MB). Upload may take longer.',
-          recommendation:
-              'Consider compressing the $fileTypeName for faster uploads.',
-          warning: true,
-        );
-      } else {
-        return FileSizeValidation(
-          isValid: true,
-          fileSizeMB: fileSizeMB,
-          message:
-              'Optimal $fileTypeName size (${fileSizeMB.toStringAsFixed(1)}MB).',
-          recommendation: null,
-        );
-      }
-    } catch (e) {
-      return FileSizeValidation(
-        isValid: false,
-        fileSizeMB: 0,
-        message: 'Unable to validate file size: $e',
-        recommendation: 'Please try again or choose a different file.',
-      );
-    }
-  }
-
-  // =================== ADVANCED IMAGE OPTIMIZATION METHODS (PHASE 3) ===================
-
-  /// Advanced image compression with flutter_image_compress for professional quality
-  Future<XFile?> compressImageWithQuality(
-    XFile sourceImage, {
-    int quality = 85,
-    int? maxWidth,
-    int? maxHeight,
-    bool autoCorrectOrientation = true,
-  }) async {
-    // Web compatibility fix: Skip compression on web
-    if (kIsWeb) {
-      AppLogger.common('🌐 [Image Compress] Skipping compression on web', tag: 'MEDIA_OPTIM');
-      return sourceImage;
-    }
-
-    try {
-      final sourceFile = File(sourceImage.path);
-      final originalSize = await sourceFile.length();
-      final originalSizeMB = originalSize / (1024 * 1024);
-      AppLogger.common('🔧 [Image Optim] Starting advanced compression...', tag: 'MEDIA_OPTIM');
-
-      final dir = await getTemporaryDirectory();
-      final compressedFile = File('${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg');
-
-      final compressedBytes = await FlutterImageCompress.compressWithFile(
-        sourceImage.path,
-        minWidth: maxWidth ?? 1920,
-        minHeight: maxHeight ?? 1080,
-        quality: quality,
-        autoCorrectionAngle: autoCorrectOrientation,
-      );
-
-      if (compressedBytes != null) {
-        await compressedFile.writeAsBytes(compressedBytes);
-
-        final compressedSize = await compressedFile.length();
-        final compressedSizeMB = compressedSize / (1024 * 1024);
-        final compressionRatio = ((originalSize - compressedSize) / originalSize * 100);
-
-        AppLogger.common('✅ [Image Optim] Compressed: ${originalSizeMB.toStringAsFixed(2)}MB → ${compressedSizeMB.toStringAsFixed(2)}MB (${compressionRatio.toStringAsFixed(1)}% reduction)', tag: 'MEDIA_OPTIM');
-
-        return XFile(compressedFile.path);
-      } else {
-        AppLogger.common('⚠️ [Image Optim] Compression failed, using original', tag: 'MEDIA_OPTIM');
-        return sourceImage;
-      }
-    } catch (e) {
-      AppLogger.commonError('❌ [Image Optim] Compression error', error: e, tag: 'MEDIA_OPTIM');
-      return sourceImage; // Return original if compression fails
-    }
-  }
-
-  /// Intelligent compression based on image size and purpose
-  Future<XFile?> optimizeImageSmartly(
-    XFile sourceImage, {
-    ImagePurpose purpose = ImagePurpose.thumbnail, // Default to thumbnail for performance
-  }) async {
-    // Web compatibility fix: Skip optimization on web to avoid file operations
-    if (kIsWeb) {
-      AppLogger.common('🌐 [Smart Optim] Skipping image optimization on web', tag: 'MEDIA_OPTIM');
-      return sourceImage;
-    }
-
-    try {
-      final sourceFile = File(sourceImage.path);
-      final originalSize = await sourceFile.length();
-      final originalSizeMB = originalSize / (1024 * 1024);
-
-      AppLogger.common('🧠 [Smart Optim] Analyzing image for purpose: $purpose', tag: 'MEDIA_OPTIM');
-
-      // Configure optimization based on purpose
-      late int quality;
-      late int maxWidth;
-      late int maxHeight;
-
-      switch (purpose) {
-        case ImagePurpose.profilePhoto:
-          quality = 90; // High quality for profile
-          maxWidth = 512;
-          maxHeight = 512;
-          break;
-
-        case ImagePurpose.candidatePhoto:
-          quality = 85; // Good quality for candidate display
-          maxWidth = 800;
-          maxHeight = 800;
-          break;
-
-        case ImagePurpose.thumbnail:
-          quality = 70; // Lower quality for lists/grids
-          maxWidth = 300;
-          maxHeight = 300;
-          break;
-
-        case ImagePurpose.achievement:
-          quality = 80; // Balanced for achievements
-          maxWidth = 1200;
-          maxHeight = 800;
-          break;
-
-        case ImagePurpose.upload:
-          // Adaptive based on file size
-          if (originalSizeMB > 15.0) {
-            quality = 60; // Very aggressive for very large files
-            maxWidth = 1600;
-            maxHeight = 1200;
-          } else if (originalSizeMB > 8.0) {
-            quality = 70; // Moderate for large files
-            maxWidth = 1800;
-            maxHeight = 1350;
-          } else if (originalSizeMB > 3.0) {
-            quality = 80; // Light optimization for medium files
-            maxWidth = 2000;
-            maxHeight = 1500;
-          } else {
-            quality = 90; // Minimal optimization for small files
-            maxWidth = 2500;
-            maxHeight = 1800;
-          }
-          break;
-      }
-
-      // Apply compression
-      final optimizedImage = await compressImageWithQuality(
-        sourceImage,
-        quality: quality,
-        maxWidth: maxWidth,
-        maxHeight: maxHeight,
-      );
-
-      if (optimizedImage != null && optimizedImage.path != sourceImage.path) {
-        final optimizedSize = await File(optimizedImage.path).length();
-        final optimizedSizeMB = optimizedSize / (1024 * 1024);
-        AppLogger.common('✅ [Smart Optim] Optimized for $purpose: ${originalSizeMB.toStringAsFixed(2)}MB → ${optimizedSizeMB.toStringAsFixed(2)}MB', tag: 'MEDIA_OPTIM');
-        return optimizedImage;
-      }
-
-      return sourceImage;
-    } catch (e) {
-      AppLogger.commonError('❌ [Smart Optim] Error', error: e, tag: 'MEDIA_OPTIM');
-      return sourceImage;
-    }
-  }
-
-  /// Batch optimize multiple images
+  // Batch optimize multiple images
   Future<List<XFile?>> optimizeMultipleImages(
     List<XFile> images, {
     ImagePurpose purpose = ImagePurpose.thumbnail,
@@ -987,146 +1490,100 @@ class FileUploadService {
 
     return optimizedImages;
   }
+}
 
-  /// Process deleted storage files asynchronously (called when candidate opens dashboard)
-  Future<void> cleanupDeletedStorageFiles({
-    required String stateId,
-    required String districtId,
-    required String bodyId,
-    required String wardId,
-    required String candidateId,
-  }) async {
-    AppLogger.common('🧹 [Cleanup] Starting async cleanup of deleteStorage for candidate: $candidateId', tag: 'STORAGE_CLEANUP');
+// Comprehensive file validation result
+class FileValidationResult {
+  final bool isValid;
+  final double fileSizeMB;
+  final String message;
+  final String? recommendation;
+  final bool warning;
+  final String? mimeType;
+  final String? detectedType;
+  final List<String> errors;
 
-    try {
-      // Get candidate document path
-      final candidateRef = FirebaseFirestore.instance
-          .collection('states')
-          .doc(stateId)
-          .collection('districts')
-          .doc(districtId)
-          .collection('bodies')
-          .doc(bodyId)
-          .collection('wards')
-          .doc(wardId)
-          .collection('candidates')
-          .doc(candidateId);
+  FileValidationResult({
+    required this.isValid,
+    required this.fileSizeMB,
+    required this.message,
+    this.recommendation,
+    this.warning = false,
+    this.mimeType,
+    this.detectedType,
+    this.errors = const [],
+  });
 
-      // Get current candidate data
-      final candidateDoc = await candidateRef.get();
-      if (!candidateDoc.exists) {
-        AppLogger.common('⚠️ [Cleanup] Candidate document not found for: $candidateId', tag: 'STORAGE_CLEANUP');
-        return;
-      }
-
-      final candidateData = candidateDoc.data()!;
-      final deleteStorage = candidateData['deleteStorage'] as List<dynamic>? ?? [];
-
-      if (deleteStorage.isEmpty) {
-        AppLogger.common('✅ [Cleanup] No files to delete for candidate: $candidateId', tag: 'STORAGE_CLEANUP');
-        return;
-      }
-
-      AppLogger.common('📋 [Cleanup] Found ${deleteStorage.length} files to delete: $deleteStorage', tag: 'STORAGE_CLEANUP');
-
-      int deletedCount = 0;
-      int errorCount = 0;
-
-      // Process each file in deleteStorage array
-      for (final storagePath in deleteStorage) {
-        try {
-          if (storagePath is String && storagePath.isNotEmpty) {
-            // Delete from Firebase Storage
-            await _storage.ref().child(storagePath).delete();
-            deletedCount++;
-            AppLogger.common('✅ [Cleanup] Deleted: $storagePath', tag: 'STORAGE_CLEANUP');
-          }
-        } catch (e) {
-          errorCount++;
-          AppLogger.common('❌ [Cleanup] Failed to delete $storagePath for $candidateId: ${e.toString()}', tag: 'STORAGE_CLEANUP');
-          // Continue processing other files even if one fails
-        }
-      }
-
-      // Clear the deleteStorage array in Firestore
-      await candidateRef.update({
-        'deleteStorage': FieldValue.delete(), // Delete the field entirely or set to []
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      AppLogger.common('🔄 [Cleanup] Cleared deleteStorage array for $candidateId ($deletedCount files deleted, $errorCount errors)', tag: 'STORAGE_CLEANUP');
-
-    } catch (e) {
-      AppLogger.commonError('💥 [Cleanup] Error processing deleteStorage cleanup for $candidateId', error: e, tag: 'STORAGE_CLEANUP');
-      // Don't re-throw - this is background cleanup, failures shouldn't break the app
-    }
+  // Factory for invalid results
+  factory FileValidationResult.invalid(String message, {String? recommendation, List<String> errors = const []}) {
+    return FileValidationResult(
+      isValid: false,
+      fileSizeMB: 0,
+      message: message,
+      recommendation: recommendation,
+      errors: errors,
+    );
   }
 
-  /// Calculate and display optimization statistics
-  Future<String> generateOptimizationReport(XFile original, XFile? optimized) async {
-    if (optimized == null) {
-      return 'Optimization failed - keeping original';
-    }
-
-    try {
-      final originalSize = await File(original.path).length();
-      final optimizedSize = await File(optimized.path).length();
-      final reductionBytes = originalSize - optimizedSize;
-      final reductionPercent = (reductionBytes / originalSize * 100);
-
-      return 'Size reduced: ${(originalSize / (1024 * 1024)).toStringAsFixed(2)}MB → ${(optimizedSize / (1024 * 1024)).toStringAsFixed(2)}MB (${reductionPercent.toStringAsFixed(1)}% saved)';
-    } catch (e) {
-      return 'Could not generate report: $e';
-    }
-  }
-
-  // =================== BACKWARD COMPATIBILITY METHODS ===================
-
-  // Save existing file to local storage (for media tab) - Web compatible
-  Future<String?> saveExistingFileLocally(
-    String sourceFilePath,
-    String candidateId,
-    String fileName,
-  ) async {
-    if (kIsWeb) {
-      AppLogger.common('🌐 [FileUpload] Web detected - redirecting to Firebase upload', tag: 'WEB_MEDIA');
-      // On web, we can't save locally, so just return the source path as-is
-      // The calling code should handle web-specific logic
-      return sourceFilePath;
-    }
-
-    try {
-      AppLogger.common('📱 [FileUpload] Saving existing file locally...', tag: 'LOCAL_STORAGE');
-
-      // Get application documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final localDir = Directory('${directory.path}/media_temp');
-      if (!await localDir.exists()) {
-        await localDir.create(recursive: true);
-        AppLogger.common(
-          'Created media temp directory: ${localDir.path}',
-          tag: 'LOCAL_STORAGE',
-        );
-      }
-
-      // Generate unique filename
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final localFileName = '${fileName}_${candidateId}_$timestamp';
-      final localPath = '${localDir.path}/$localFileName';
-
-      // Copy the source file to local storage
-      await File(sourceFilePath).copy(localPath);
-
-      AppLogger.common('File saved successfully at: $localPath', tag: 'LOCAL_STORAGE');
-      return 'local:$localPath';
-    } catch (e) {
-      AppLogger.common('Error saving existing file locally: $e', tag: 'LOCAL_STORAGE_ERROR');
-      return null;
-    }
+  // Factory for valid results
+  factory FileValidationResult.valid(double fileSizeMB, String message, {
+    String? recommendation,
+    bool warning = false,
+    String? mimeType,
+    String? detectedType,
+  }) {
+    return FileValidationResult(
+      isValid: true,
+      fileSizeMB: fileSizeMB,
+      message: message,
+      recommendation: recommendation,
+      warning: warning,
+      mimeType: mimeType,
+      detectedType: detectedType,
+    );
   }
 }
 
-// File size validation result
+// Upload progress tracking
+class UploadProgress {
+  final double percentage;
+  final int bytesTransferred;
+  final int totalBytes;
+  final String status;
+  final Duration? estimatedTimeRemaining;
+
+  UploadProgress({
+    required this.percentage,
+    required this.bytesTransferred,
+    required this.totalBytes,
+    this.status = 'Uploading...',
+    this.estimatedTimeRemaining,
+  });
+
+  // Calculate estimated time remaining based on current speed
+  static Duration? calculateEstimatedTime(int bytesTransferred, int totalBytes, Duration elapsed) {
+    if (bytesTransferred == 0 || elapsed.inMilliseconds == 0) return null;
+
+    final bytesPerMs = bytesTransferred / elapsed.inMilliseconds;
+    final remainingBytes = totalBytes - bytesTransferred;
+    final remainingMs = remainingBytes / bytesPerMs;
+
+    return Duration(milliseconds: remainingMs.toInt());
+  }
+
+  String get formattedProgress => '${percentage.toStringAsFixed(1)}%';
+
+  String get formattedSpeed {
+    if (estimatedTimeRemaining == null) return '';
+    final seconds = estimatedTimeRemaining!.inSeconds;
+    if (seconds < 60) return '${seconds}s remaining';
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes}m ${remainingSeconds}s remaining';
+  }
+}
+
+// File size validation result (kept for backward compatibility)
 class FileSizeValidation {
   final bool isValid;
   final double fileSizeMB;

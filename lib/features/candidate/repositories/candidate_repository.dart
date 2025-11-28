@@ -4,10 +4,6 @@ import '../models/basic_info_model.dart';
 import '../../../models/ward_model.dart';
 import '../../../models/district_model.dart';
 import '../../../features/user/models/user_model.dart';
-import '../../../utils/data_compression.dart';
-import '../../../utils/error_recovery_manager.dart';
-import '../../../utils/advanced_analytics.dart';
-import '../../../utils/multi_level_cache.dart';
 import '../../../utils/app_logger.dart';
 
 import 'candidate_cache_manager.dart';
@@ -20,11 +16,6 @@ import 'basic_info_repository.dart';
 class CandidateRepository {
   // Shared services
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final DataCompressionManager _compressionManager = DataCompressionManager();
-  final FirebaseDataOptimizer _dataOptimizer = FirebaseDataOptimizer();
-  final ErrorRecoveryManager _errorRecovery = ErrorRecoveryManager();
-  final AdvancedAnalyticsManager _analytics = AdvancedAnalyticsManager();
-  final MultiLevelCache _cache = MultiLevelCache();
 
   // Manager instances
   late final CandidateCacheManager _cacheManager;
@@ -38,7 +29,7 @@ class CandidateRepository {
   CandidateRepository() {
     _cacheManager = CandidateCacheManager();
     _stateManager = CandidateStateManager(_firestore, _cacheManager);
-    _operations = CandidateOperations(_firestore, _compressionManager, _dataOptimizer, _errorRecovery, _analytics, _cache, _cacheManager);
+    _operations = CandidateOperations(_firestore, null, null, null, null, null, _cacheManager);
     _followManager = CandidateFollowManager(_firestore, _cacheManager, _stateManager);
     _basicInfoRepository = BasicInfoRepository(firestore: _firestore);
     // Initialize search manager after operations and follow manager are ready
@@ -46,7 +37,7 @@ class CandidateRepository {
   }
 
   void _initializeSearchManager() {
-    _searchManager = CandidateSearchManager(_firestore, _dataOptimizer, _errorRecovery, _analytics, _cache, _cacheManager, _stateManager, _operations, _followManager);
+    _searchManager = CandidateSearchManager(_firestore, null, null, null, null, _cacheManager, _stateManager, _operations, _followManager);
   }
 
   // Delegate methods to managers

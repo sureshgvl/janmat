@@ -1,19 +1,19 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:get/get.dart';
-import 'package:janmat/features/candidate/controllers/manifesto_controller.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/manifesto_model.dart';
 import 'package:janmat/features/candidate/widgets/edit/promise_management_section.dart';
-import 'package:janmat/features/common/confirmation_dialog.dart';
 import 'package:janmat/features/common/file_upload_section.dart';
-import 'package:janmat/features/common/reusable_image_widget.dart';
 import 'package:janmat/l10n/app_localizations.dart';
-import 'package:janmat/services/video_processing_service.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
+import '../../../../common/file_storage_manager.dart';
+import '../../../../../core/media/media_file.dart';
+import '../../../../../core/media/media_upload_handler.dart';
 
 
 class ManifestoTabEdit extends StatefulWidget {
@@ -48,13 +48,14 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   // Get controller reference for reactive data access
   CandidateUserController get _candidateController => CandidateUserController.to;
 
-  final ManifestoController _manifestoController = Get.find<ManifestoController>();
   late TextEditingController _manifestoTextController;
   late TextEditingController _titleController;
   late List<Map<String, dynamic>> _promiseControllers;
-  String? _originalText;
-  List<Map<String, dynamic>> _localFiles = [];
-  final bool _isSaving = false;
+   String? _originalText;
+   List<Map<String, dynamic>> _localFiles = [];
+   bool _isUploading = false; // Prevent multiple simultaneous uploads
+
+  // No need for callback anymore - using direct upload logic
 
   // Files marked for deletion (will be deleted on save)
   final Map<String, bool> _filesMarkedForDeletion = {
@@ -130,7 +131,34 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
 
   void _showDemoTitleOptions() {
     String selectedLanguage = 'en';
-    final wardId = widget.candidateData.location.wardId;
+
+    // Demo manifesto titles in different languages
+    final Map<String, List<String>> demoTitles = {
+      'en': [
+        'Building a Prosperous Future Together',
+        'Empowering Our Community for Tomorrow',
+        'Vision for Progress and Development',
+        'Commitment to Change and Growth',
+        'Together Towards a Better Tomorrow',
+        'Your Voice, Our Mission',
+        'Leading with Integrity and Purpose',
+        'A New Era of Development',
+        'Promises for a Brighter Future',
+        'Working for You, Every Day',
+      ],
+      'mr': [
+        'एकत्रितपणे समृद्ध भविष्य घडवूया',
+        'आमच्या समुदायाला उद्या साठी सशक्त करूया',
+        'प्रगती आणि विकासाचे दृष्टीपत्र',
+        'बदल आणि वाढीचे वचन',
+        'एकत्रितपणे चांगल्या उद्याकडे',
+        'तुमचा आवाज, आमचे ध्येय',
+        'निष्ठा आणि उद्देशाने नेतृत्व',
+        'विकासाचा नवीन युग',
+        'उज्ज्वल भविष्यासाठी वचने',
+        'तुमच्यासाठी काम करणे, दररोज',
+      ],
+    };
 
     showDialog(
       context: context,
@@ -141,10 +169,77 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Language Selection and title options...
+                // Language Selection
+                Row(
+                  children: [
+                    Text('Language: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(width: 8),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'en', label: Text('English')),
+                        ButtonSegment(value: 'mr', label: Text('मराठी')),
+                      ],
+                      selected: {selectedLanguage},
+                      onSelectionChanged: (Set<String> selection) {
+                        setState(() {
+                          selectedLanguage = selection.first;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Title Options
+                Text(
+                  'Choose from these suggested manifesto titles:',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 12),
+
+                // Demo titles list
+                ...demoTitles[selectedLanguage]!.map((title) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: () {
+                      _titleController.text = title;
+                      widget.onManifestoTitleChange(title);
+                      Navigator.of(context).pop();
+                      SnackbarUtils.showSuccess('Manifesto title updated!');
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.shade50,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lightbulb, color: Colors.amber, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                )),
               ],
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+          ],
         ),
       ),
     );
@@ -172,218 +267,12 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     super.dispose();
   }
 
-  Future<void> _cleanupLocalFile(String localPath) async {
-    try {
-      AppLogger.candidate('🧹 [Local Storage] Cleaning up local file: $localPath');
-      final file = File(localPath);
-      if (await file.exists()) {
-        await file.delete();
-        AppLogger.candidate('🧹 [Local Storage] Local file deleted successfully');
-      }
-    } catch (e) {
-      AppLogger.candidateError('🧹 [Local Storage] Error cleaning up local file: $e');
-    }
-  }
 
-  // Sequential upload method to avoid race conditions
-  Future<void> _uploadLocalFilesToFirebase() async {
-    if (_localFiles.isEmpty) {
-      AppLogger.candidate('☁️ [Sequential Upload] No local files to upload');
-      return;
-    }
 
-    AppLogger.candidate('☁️ [Sequential Upload] Starting sequential upload for ${_localFiles.length} local files...');
 
-    final uploadedUrls = <String, String>{};
-    final filesToProcess = List<Map<String, dynamic>>.from(_localFiles); // Create a copy to avoid modification during iteration
 
-    for (final localFile in filesToProcess) {
-      try {
-        final type = localFile['type'] as String;
-        final localPath = localFile['localPath'] as String;
-        final fileName = localFile['fileName'] as String;
-        final isPremiumVideo = localFile['isPremium'] as bool? ?? false;
 
-        // Check if we already uploaded a file of this type (safety net)
-        if (uploadedUrls.containsKey(type)) {
-          AppLogger.candidate('⚠️ [Sequential Upload] Already uploaded $type, skipping duplicate');
-          await _cleanupLocalFile(localPath);
-          continue;
-        }
 
-        AppLogger.candidate('☁️ [Sequential Upload] Processing $type file: $fileName');
-
-        final file = File(localPath);
-        String? uploadedUrl;
-
-        // Handle video uploads with Cloudinary for premium users
-        if (type == 'video' && isPremiumVideo) {
-          uploadedUrl = await _uploadVideoFile(file, fileName, localPath);
-        } else {
-          uploadedUrl = await _uploadRegularFileToFirebase(file, localPath, fileName, type);
-        }
-
-        if (uploadedUrl != null) {
-          uploadedUrls[type] = uploadedUrl;
-          AppLogger.candidate('✅ [Sequential Upload] $type uploaded successfully');
-
-          if (mounted) {
-            SnackbarUtils.showSuccess('$type uploaded and ready!');
-          }
-        } else {
-          AppLogger.candidate('❌ [Sequential Upload] Failed to upload $type, skipping');
-        }
-
-        await _cleanupLocalFile(localPath);
-      } catch (e) {
-        AppLogger.candidateError('☁️ [Sequential Upload] Error processing ${localFile['type']}: $e');
-        // Don't break the loop - continue with other files
-      }
-    }
-
-    // Clear local files after processing all
-    setState(() => _localFiles.clear());
-
-    if (uploadedUrls.isNotEmpty) {
-      AppLogger.candidate('🔄 [Batch Update] Updating URLs: $uploadedUrls');
-      await _batchUpdateManifestoUrls(uploadedUrls);
-    } else {
-      AppLogger.candidate('⚠️ [Sequential Upload] No files were successfully uploaded');
-      if (mounted) {
-        SnackbarUtils.showWarning('No files were uploaded successfully. Please try again.');
-      }
-    }
-  }
-
-  Future<String?> _uploadVideoFile(File file, String fileName, String localPath) async {
-    try {
-      final videoService = VideoProcessingService();
-
-      if (mounted) {
-        SnackbarUtils.showInfo('Processing premium video with multi-resolution optimization...');
-      }
-
-      final processedVideo = await videoService.uploadAndProcessVideo(
-        file, widget.candidateData.userId ?? 'unknown_user',
-        onProgress: (progress) => AppLogger.candidate('🎥 [Cloudinary Progress] ${progress.toStringAsFixed(1)}%'),
-      );
-
-      AppLogger.candidate('🎥 [Cloudinary Success] Video processed successfully');
-
-      if (mounted) {
-        SnackbarUtils.showSuccess('Premium video processed and optimized! Available in ${processedVideo.resolutions.length} resolutions.');
-      }
-
-      return processedVideo.originalUrl;
-    } catch (cloudinaryError) {
-      AppLogger.candidateError('🎥 [Cloudinary Error] $cloudinaryError');
-      return await _uploadRegularFileToFirebase(file, localPath, fileName, 'video');
-    }
-  }
-
-  Future<String?> _uploadRegularFileToFirebase(File file, String localPath, String fileName, String type) async {
-    try {
-      AppLogger.candidate('📄 [Firebase Upload] Uploading $type file: $fileName');
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final firebaseFileName = '${type}_$timestamp.${_getFileExtension(type)}';
-
-      final storagePath = 'manifesto_files/$firebaseFileName';
-      final storageRef = FirebaseStorage.instance.ref().child(storagePath);
-
-      final uploadTask = storageRef.putFile(
-        file,
-        SettableMetadata(
-          contentType: _getContentType(type),
-          customMetadata: {
-            'uploadedBy': widget.candidateData.userId ?? 'unknown',
-            'uploadTime': DateTime.now().toIso8601String(),
-            'fileType': type,
-          },
-        ),
-      );
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        AppLogger.candidate('📄 [Firebase Upload] $type upload progress: ${progress.toStringAsFixed(1)}%');
-      });
-
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-
-      AppLogger.candidate('📄 [Firebase Upload] $type uploaded successfully');
-      return downloadUrl;
-    } catch (e) {
-      AppLogger.candidateError('📄 [Firebase Upload] Failed to upload $type: $e');
-      return null;
-    }
-  }
-
-  // Batch update all URLs at once to avoid race conditions
-  Future<void> _batchUpdateManifestoUrls(Map<String, String> uploadedUrls) async {
-    try {
-      AppLogger.candidate('🔄 [Batch URL Update] Updating manifesto URLs: $uploadedUrls');
-
-      final controller = Get.find<ManifestoController>();
-      final success = await controller.updateManifestoUrls(
-        widget.candidateData,
-        pdfUrl: uploadedUrls['pdf'],
-        imageUrl: uploadedUrls['image'],
-        videoUrl: uploadedUrls['video'],
-      );
-
-      if (success) {
-        AppLogger.candidate('✅ [Batch URL Update] Manifesto URLs updated successfully');
-
-        // Update the local data with the new URLs so getManifestoData() returns correct values
-        // Only update if the URL is not null and not empty
-        if (uploadedUrls['pdf'] != null && uploadedUrls['pdf']!.isNotEmpty) {
-          widget.onManifestoPdfChange(uploadedUrls['pdf']!);
-        }
-        if (uploadedUrls['image'] != null && uploadedUrls['image']!.isNotEmpty) {
-          widget.onManifestoImageChange(uploadedUrls['image']!);
-        }
-        if (uploadedUrls['video'] != null && uploadedUrls['video']!.isNotEmpty) {
-          widget.onManifestoVideoChange(uploadedUrls['video']!);
-        }
-
-        await _refreshParentData();
-      } else {
-        AppLogger.candidate('❌ [Batch URL Update] Failed to update manifesto URLs');
-        if (mounted) {
-          SnackbarUtils.showError('Files uploaded but failed to save URLs');
-        }
-      }
-    } catch (e) {
-      AppLogger.candidateError('❌ [Batch URL Update] Exception: $e');
-      if (mounted) {
-        SnackbarUtils.showError('Error saving file URLs: $e');
-      }
-    }
-  }
-
-  Future<void> _refreshParentData() async {
-    final manifestoData = getManifestoData();
-    widget.onManifestoChange(manifestoData.toJson()['title'] ?? '');
-  }
-
-  String _getFileExtension(String type) {
-    switch (type) {
-      case 'pdf': return 'pdf';
-      case 'image': return 'jpg';
-      case 'video': return 'mp4';
-      default: return 'tmp';
-    }
-  }
-
-  String _getContentType(String type) {
-    switch (type) {
-      case 'pdf': return 'application/pdf';
-      case 'image': return 'image/jpeg';
-      case 'video': return 'video/mp4';
-      default: return 'application/octet-stream';
-    }
-  }
 
   ManifestoModel getManifestoData() {
     final data = _getData(); // Use reactive controller data
@@ -412,11 +301,8 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     // Check if we have any pending uploads that should override the current URLs
     // This handles the case where files were uploaded but not yet saved to database
     if (_localFiles.isNotEmpty) {
-      for (final localFile in _localFiles) {
-        final type = localFile['type'] as String;
-        // Note: We don't have the uploaded URL here since it's not stored locally
-        // The URLs will be updated after the batch update completes
-      }
+      // Note: We don't have the uploaded URL here since it's not stored locally
+      // The URLs will be updated after the batch update completes
     }
 
     final result = ManifestoModel(
@@ -436,6 +322,20 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
   }
 
   Future<bool> uploadPendingFiles() async {
+    // Prevent multiple simultaneous uploads
+    if (_isUploading) {
+      AppLogger.candidate('⚠️ [Upload] Upload already in progress, skipping duplicate request');
+      AppLogger.candidate('⚠️ [Upload] _isUploading flag is: $_isUploading');
+      if (mounted) {
+        SnackbarUtils.showScaffoldWarning(context, 'Upload already in progress. Please wait.');
+      }
+      return false;
+    }
+
+    AppLogger.candidate('✅ [Upload] Starting upload process, setting _isUploading = true');
+
+    _isUploading = true;
+
     try {
       bool hasDeletions = _filesMarkedForDeletion.values.any((marked) => marked);
 
@@ -445,25 +345,183 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         AppLogger.candidate('🗑️ [Save] Marked files deleted successfully');
       }
 
-      if (_localFiles.isNotEmpty) {
-        AppLogger.candidate('☁️ [Save] Uploading ${_localFiles.length} pending local files...');
-        await _uploadLocalFilesToFirebase();
-        AppLogger.candidate('✅ [Save] Local files uploaded successfully');
+      // Use the FileStorageManager's unified upload logic with stored _localFiles
+      final uploadedUrls = await _uploadLocalFilesUsingStorageManager();
+
+      if (uploadedUrls.isNotEmpty) {
+        AppLogger.candidate('✅ [Save] Files uploaded successfully: $uploadedUrls');
+
+        // IMMEDIATE UI UPDATES: No delay needed
+        // Update the manifesto data with uploaded URLs
+        if (uploadedUrls['pdf'] != null) {
+          widget.onManifestoPdfChange(uploadedUrls['pdf']!);
+        }
+        if (uploadedUrls['image'] != null) {
+          widget.onManifestoImageChange(uploadedUrls['image']!);
+        }
+        if (uploadedUrls['video'] != null) {
+          widget.onManifestoVideoChange(uploadedUrls['video']!);
+        }
       }
 
       return true;
     } catch (e) {
-      AppLogger.candidateError('💾 [Save] Error during file operations: $e');
+      AppLogger.candidateError('💾 [Save] Error during file operations: ${e.toString().split('\n').first}');
       return false;
+    } finally {
+      AppLogger.candidate('🔄 [Upload] Upload process finished, resetting _isUploading = false');
+      _isUploading = false;
     }
+  }
+
+  /// Automatically delete old files when new ones are uploaded to replace them
+  Future<void> _autoDeleteOldFilesForUpload() async {
+    final data = _getData();
+    final Map<String, String> filesToDelete = {};
+
+    // Check each local file type and see if there's an existing file to replace
+    for (final localFile in _localFiles) {
+      final type = localFile['type'] as String;
+      String? existingUrl;
+
+      switch (type) {
+        case 'pdf':
+          existingUrl = data.manifestoData?.pdfUrl;
+          break;
+        case 'image':
+          existingUrl = data.manifestoData?.image;
+          break;
+        case 'video':
+          existingUrl = data.manifestoData?.videoUrl;
+          break;
+      }
+
+      if (existingUrl != null && existingUrl.isNotEmpty) {
+        filesToDelete[type] = existingUrl;
+        AppLogger.candidate('🗑️ [AutoDelete] Will delete existing $type file: $existingUrl');
+      }
+    }
+
+    // Delete the old files
+    for (final entry in filesToDelete.entries) {
+      final type = entry.key;
+      final url = entry.value;
+      try {
+        AppLogger.candidate('🗑️ [AutoDelete] Deleting old $type file from storage...');
+        await _deleteFileFromStorageOnly(type, url);
+        AppLogger.candidate('✅ [AutoDelete] Successfully deleted old $type file');
+      } catch (e) {
+        AppLogger.candidateError('❌ [AutoDelete] Failed to delete old $type file: $e');
+        // Continue with upload even if deletion fails
+      }
+    }
+  }
+
+  Future<Map<String, String>> _uploadLocalFilesUsingStorageManager() async {
+    if (_localFiles.isEmpty) {
+      AppLogger.candidate('🚀 [Storage Manager Upload] No local files to upload');
+      return {};
+    }
+
+    AppLogger.candidate('🚀 [Storage Manager Upload] Starting bulk upload of ${_localFiles.length} files...');
+    AppLogger.candidate('🚀 [Storage Manager Upload] Current _isUploading flag: $_isUploading');
+
+    // AUTO DELETE OLD FILES: Before uploading new files, delete existing ones of the same type
+    await _autoDeleteOldFilesForUpload();
+
+    if (!mounted) return {};
+
+    // Use ADVANCED media uploader with PROGRESS DIALOG
+    final mediaHandler = MediaUploadHandler(
+      context: context,
+      userId: widget.candidateData.candidateId,
+      category: 'manifesto',
+    );
+
+    // Convert local files to MediaFile format for advanced uploading
+    final mediaFiles = <MediaFile>[];
+    for (final localFile in _localFiles) {
+      final type = localFile['type'] as String;
+      final fileName = localFile['fileName'] as String;
+      final bytes = localFile['bytes'] as Uint8List?; // Check for pre-read bytes
+      final tempPath = localFile['localPath'] as String;
+
+      // Create MediaFile - handle both web (with bytes) and mobile (with temp path) cases
+      if (bytes != null && bytes.isNotEmpty) {
+        // Web files with pre-read bytes
+        final mediaFile = MediaFile(
+          id: '${type}_${DateTime.now().millisecondsSinceEpoch}',
+          name: fileName,
+          type: type,
+          bytes: bytes,
+          size: bytes.length,
+        );
+        mediaFiles.add(mediaFile);
+      } else {
+        // Mobile files or web files without pre-read bytes - need to read from temp path
+        try {
+          Uint8List fileBytes;
+          if (kIsWeb && tempPath.startsWith('temp:')) {
+            // Web file stored in memory
+            final tempId = tempPath.split(':')[1];
+            final storageManager = FileStorageManager();
+            if (storageManager.hasWebFileData(tempId)) {
+              fileBytes = storageManager.getWebFileData(tempId)!;
+            } else {
+              AppLogger.candidate('⚠️ [Upload] Web file data not found for $tempId');
+              continue;
+            }
+          } else {
+            // Mobile file - read from local path
+            final file = File(tempPath.replaceFirst('local:', ''));
+            fileBytes = await file.readAsBytes();
+          }
+
+          final mediaFile = MediaFile(
+            id: '${type}_${DateTime.now().millisecondsSinceEpoch}',
+            name: fileName,
+            type: type,
+            bytes: fileBytes,
+            size: fileBytes.length,
+          );
+          mediaFiles.add(mediaFile);
+        } catch (e) {
+          AppLogger.candidate('⚠️ [Upload] Failed to read file bytes for $fileName: $e');
+          continue;
+        }
+      }
+    }
+
+    if (mediaFiles.isEmpty) {
+      AppLogger.candidate('⚠️ [Upload] No valid media files to upload');
+      return {};
+    }
+
+    // Show progress dialog and upload with real-time progress tracking
+    final urls = await mediaHandler.uploadMediaFilesWithProgressDialog(
+      mediaFiles,
+      customPath: 'manifesto_files/${widget.candidateData.candidateId}/',
+    );
+
+    // Convert back to expected format
+    final result = <String, String>{};
+    for (int i = 0; i < mediaFiles.length; i++) {
+      final mediaFile = mediaFiles[i];
+      if (i < urls.length) {
+        result[mediaFile.type] = urls[i];
+      }
+    }
+
+    // Clear local files after upload attempt
+    setState(() => _localFiles.clear());
+
+    return result;
   }
 
   Future<void> _deleteMarkedFiles() async {
     final data = _getData();
 
     AppLogger.candidate('🗑️ [DeleteFiles] ===== STARTING SEQUENTIAL DELETION PROCESS =====');
-
-    final deletionTasks = <Future<void> Function()>[];
 
     // Store original URLs and capture them before any clearing
     // CRITICAL: Get URLs before any widget callbacks can modify them
@@ -552,21 +610,6 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     }
   }
 
-  Future<void> _deleteFileAndClearUrl(String type, String url) async {
-    try {
-      AppLogger.candidate('🗑️ [DeleteFile] Starting deletion of $type file with URL: $url');
-      _clearUrlInData(type, '');
-      AppLogger.candidate('🗑️ [DeleteFile] Cleared URL from local data');
-
-      await _deleteFileFromStorageWithRetry(url, type.toUpperCase());
-      AppLogger.candidate('✅ [DeleteFile] Successfully deleted $type file and cleared URL');
-    } catch (e) {
-      AppLogger.candidate('❌ [DeleteFile] Failed to delete $type file: $e');
-      if (mounted) {
-        SnackbarUtils.showWarning('Failed to delete $type file. It may still be referenced in your manifesto.');
-      }
-    }
-  }
 
   void _clearUrlInData(String type, String url) {
     switch (type) {
@@ -663,23 +706,10 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
     }
   }
 
-  String _getFileNameFromUrl(String url) {
-    try {
-      final uri = Uri.parse(url);
-      final pathSegments = uri.pathSegments;
-      if (pathSegments.isNotEmpty) {
-        return pathSegments.last;
-      }
-      return 'Unknown File';
-    } catch (e) {
-      return 'Unknown File';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final data = _getData();
-    final manifesto = data.manifestoData?.title ?? '';
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -746,351 +776,27 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         ),
         const SizedBox(height: 12),
 
-        // Upload section
+        // Upload section - now handles both upload and change operations
         FileUploadSection(
           candidateData: widget.candidateData,
           isEditing: widget.isEditing,
+          existingPdfUrl: data.manifestoData?.pdfUrl,
+          existingImageUrl: data.manifestoData?.image,
+          existingVideoUrl: data.manifestoData?.videoUrl,
           onManifestoPdfChange: widget.onManifestoPdfChange,
           onManifestoImageChange: widget.onManifestoImageChange,
           onManifestoVideoChange: widget.onManifestoVideoChange,
           onLocalFilesUpdate: (files) => setState(() => _localFiles = files),
+          onFileMarkedForDeletion: (fileType, marked) {
+            // Handle file deletion marking for change operations
+            setState(() => _filesMarkedForDeletion[fileType] = marked);
+          },
         ),
-
-        // Display existing files
-        _buildUploadedFilesSection(context, data),
       ],
     );
   }
 
-  Widget _buildUploadedFilesSection(BuildContext context, Candidate data) {
-    final fileTypes = ['pdf', 'image', 'video'];
-    final fileUrls = {
-      'pdf': data.manifestoData?.pdfUrl,
-      'image': data.manifestoData?.image,
-      'video': data.manifestoData?.videoUrl,
-    };
 
-    return Column(
-      children: fileTypes.map((type) {
-        final url = fileUrls[type];
-        if (url == null || url.isEmpty) return const SizedBox.shrink();
 
-        return Column(
-          children: [
-            const SizedBox(height: 8),
-            _buildFileCard(context, type, url),
-          ],
-        );
-      }).toList(),
-    );
-  }
 
-  Widget _buildFileCard(BuildContext context, String type, String url) {
-    final isMarkedForDeletion = _filesMarkedForDeletion[type]!;
-
-    switch (type) {
-      case 'pdf':
-        return _buildFileDisplayCard(
-          context: context,
-          icon: Icons.picture_as_pdf,
-          iconColor: isMarkedForDeletion ? Colors.red.shade900 : Colors.red.shade700,
-          bgColor: isMarkedForDeletion ? Colors.red.shade50 : Colors.red.shade50,
-          borderColor: isMarkedForDeletion ? Colors.red.shade300 : Colors.red.shade200,
-          fileType: 'PDF',
-          fileName: _getFileNameFromUrl(url),
-          isMarkedForDeletion: isMarkedForDeletion,
-          onDeletionToggle: (checked) => _handleDeletionToggle(context, type, checked),
-        );
-      case 'image':
-        return _buildImageDisplayCard(
-          context: context,
-          imageUrl: url,
-          fileName: _getFileNameFromUrl(url),
-          isMarkedForDeletion: isMarkedForDeletion,
-          onDeletionToggle: (checked) => _handleDeletionToggle(context, type, checked),
-        );
-      case 'video':
-        return _buildVideoDisplayCard(
-          context: context,
-          videoUrl: url,
-          fileName: _getFileNameFromUrl(url),
-          isMarkedForDeletion: isMarkedForDeletion,
-          onDeletionToggle: (checked) => _handleDeletionToggle(context, type, checked),
-        );
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Future<void> _handleDeletionToggle(BuildContext context, String type, bool? checked) async {
-    if (checked == true) {
-      final title = 'Mark ${type.toUpperCase()} for Deletion';
-      final content = '${type.toUpperCase()} will be deleted when you save changes.';
-      final confirmText = 'Mark for Deletion';
-      final snackBarMessage = '${type.toUpperCase()} marked for deletion';
-
-      final confirmed = await ConfirmationDialog.show(
-        context: context,
-        title: title,
-        content: content,
-        confirmText: confirmText,
-      );
-
-      if (confirmed == true) {
-        // CRITICAL FIX: Capture the original URL BEFORE marking for deletion
-        // This ensures we have the URL even if the controller state changes
-        final data = _getData();
-        String? originalUrl;
-        switch (type) {
-          case 'pdf':
-            originalUrl = data.manifestoData?.pdfUrl;
-            break;
-          case 'image':
-            originalUrl = data.manifestoData?.image;
-            break;
-          case 'video':
-            originalUrl = data.manifestoData?.videoUrl;
-            break;
-        }
-
-        if (originalUrl != null && originalUrl.isNotEmpty) {
-          _originalUrlsBeforeDeletion[type] = originalUrl;
-          AppLogger.candidate('💾 [URLCapture] Stored original $type URL for deletion: $originalUrl');
-        } else {
-          AppLogger.candidate('⚠️ [URLCapture] No original $type URL found to capture');
-        }
-
-        setState(() => _filesMarkedForDeletion[type] = true);
-        if (context.mounted) {
-          SnackbarUtils.showWarning(snackBarMessage);
-        }
-      }
-    } else {
-      // Clear the captured URL when unmarking
-      _originalUrlsBeforeDeletion.remove(type);
-      setState(() => _filesMarkedForDeletion[type] = false);
-    }
-  }
-
-  Widget _buildFileDisplayCard({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required Color borderColor,
-    required String fileType,
-    required String fileName,
-    required bool isMarkedForDeletion,
-    required Function(bool?) onDeletionToggle,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Manifesto $fileType',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: iconColor,
-                    decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                Text(
-                  fileName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isMarkedForDeletion ? Colors.red.shade600 : Colors.grey,
-                    decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                if (isMarkedForDeletion) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    AppLocalizations.of(context)!.willBeDeletedWhenYouSave,
-                    style: TextStyle(fontSize: 10, color: Colors.red.shade700, fontStyle: FontStyle.italic),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Checkbox(value: isMarkedForDeletion, onChanged: onDeletionToggle, activeColor: Colors.red),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageDisplayCard({
-    required BuildContext context,
-    required String imageUrl,
-    required String fileName,
-    required bool isMarkedForDeletion,
-    required Function(bool?) onDeletionToggle,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isMarkedForDeletion ? Colors.red.shade100 : Colors.green.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isMarkedForDeletion ? Colors.red.shade300 : Colors.green.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.image,
-                color: isMarkedForDeletion ? Colors.red.shade900 : Colors.green.shade700,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.manifestoImage,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isMarkedForDeletion ? Colors.red.shade900 : Colors.green.shade700,
-                        decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    Text(
-                      fileName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isMarkedForDeletion ? Colors.red.shade600 : Colors.grey,
-                        decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    if (isMarkedForDeletion) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        AppLocalizations.of(context)!.willBeDeletedWhenYouSave,
-                        style: TextStyle(fontSize: 10, color: Colors.red.shade700, fontStyle: FontStyle.italic),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Checkbox(value: isMarkedForDeletion, onChanged: onDeletionToggle, activeColor: Colors.red),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ReusableImageWidget(
-            imageUrl: imageUrl,
-            fit: BoxFit.contain,
-            minHeight: 120,
-            maxHeight: 200,
-            borderColor: Colors.grey.shade300,
-            fullScreenTitle: 'Manifesto Image',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVideoDisplayCard({
-    required BuildContext context,
-    required String videoUrl,
-    required String fileName,
-    required bool isMarkedForDeletion,
-    required Function(bool?) onDeletionToggle,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isMarkedForDeletion ? Colors.red.shade100 : Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isMarkedForDeletion ? Colors.red.shade300 : Colors.purple.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.video_call,
-                color: isMarkedForDeletion ? Colors.red.shade900 : Colors.purple.shade700,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.manifestoVideo,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isMarkedForDeletion ? Colors.red.shade900 : Colors.purple.shade700,
-                        decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    Text(
-                      fileName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isMarkedForDeletion ? Colors.red.shade600 : Colors.grey,
-                        decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.of(context)!.premiumFeatureMultiResolution,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isMarkedForDeletion ? Colors.red.shade700 : Colors.purple,
-                        fontStyle: FontStyle.italic,
-                        decoration: isMarkedForDeletion ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    if (isMarkedForDeletion) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        AppLocalizations.of(context)!.willBeDeletedWhenYouSave,
-                        style: TextStyle(fontSize: 10, color: Colors.red.shade700, fontStyle: FontStyle.italic),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Checkbox(value: isMarkedForDeletion, onChanged: onDeletionToggle, activeColor: Colors.red),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-                color: Colors.black,
-              ),
-              child: const Center(
-                child: Icon(Icons.play_circle_fill, color: Colors.white, size: 64),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

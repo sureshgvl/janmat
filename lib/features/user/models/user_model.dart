@@ -66,7 +66,6 @@ class UserModel {
   final bool profileCompleted;
   final LocationModel? location;
   final List<ElectionArea> electionAreas;
-  final int xpPoints;
   final bool premium;
   final String? subscriptionPlanId; // current active candidate subscription
   final DateTime? subscriptionExpiresAt;
@@ -168,7 +167,6 @@ class UserModel {
     required this.profileCompleted,
     this.location,
     this.electionAreas = const [],
-    required this.xpPoints,
     required this.premium,
     this.subscriptionPlanId,
     this.subscriptionExpiresAt,
@@ -270,7 +268,6 @@ class UserModel {
               wardId: json['wardId'],
             ),
       electionAreas: areas,
-      xpPoints: json['xpPoints'] ?? 0,
       premium: json['premium'] ?? false,
       subscriptionPlanId: json['subscriptionPlanId'],
       subscriptionExpiresAt: subscriptionExpiresAt,
@@ -340,7 +337,6 @@ class UserModel {
       'profileCompleted': profileCompleted,
       'location': location?.toJson(),
       'electionAreas': electionAreas.map((e) => e.toJson()).toList(),
-      'xpPoints': xpPoints,
       'premium': premium,
       'subscriptionPlanId': subscriptionPlanId,
       'subscriptionExpiresAt': subscriptionExpiresAt?.toIso8601String(),
@@ -372,7 +368,6 @@ class UserModel {
     bool? profileCompleted,
     LocationModel? location,
     List<ElectionArea>? electionAreas,
-    int? xpPoints,
     bool? premium,
     String? subscriptionPlanId,
     DateTime? subscriptionExpiresAt,
@@ -402,7 +397,6 @@ class UserModel {
       profileCompleted: profileCompleted ?? this.profileCompleted,
       location: location ?? this.location,
       electionAreas: electionAreas ?? this.electionAreas,
-      xpPoints: xpPoints ?? this.xpPoints,
       premium: premium ?? this.premium,
       subscriptionPlanId: subscriptionPlanId ?? this.subscriptionPlanId,
       subscriptionExpiresAt:

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/app_logger.dart';
-import '../../../utils/multi_level_cache.dart';
+import '../../../core/services/user_prefs_service.dart';
 
 /// User Status Manager - Centralized service for managing role and profile status
 /// with SharedPreferences for instant access and Firebase fallbacks
@@ -19,7 +19,7 @@ class UserStatusManager {
   static const String _lastUpdatedKey = 'user_status_last_updated';
 
   SharedPreferences? _prefs;
-  final MultiLevelCache _cache = MultiLevelCache();
+  final UserPrefsService _userPrefs = UserPrefsService();
 
   /// Initialize the status manager
   Future<void> initialize() async {
@@ -27,7 +27,7 @@ class UserStatusManager {
     AppLogger.common('✅ User Status Manager initialized');
   }
 
-  /// Get user role with fallback strategy: SharedPreferences → User Data Cache → Firebase
+  /// Get user role with fallback strategy: SharedPreferences → Firebase
   Future<String?> getUserRole(String userId) async {
     try {
       // 1. Try SharedPreferences first (instant access)
@@ -37,19 +37,7 @@ class UserStatusManager {
         return role;
       }
 
-      // 2. Try user data cache
-      final routingData = await _cache.getUserRoutingData(userId);
-      if (routingData != null && routingData['role'] != null) {
-        final cachedRole = routingData['role'] as String;
-        if (cachedRole.isNotEmpty) {
-          // Update SharedPreferences for future instant access
-          await _updateSharedPreferences(userId, role: cachedRole);
-          AppLogger.common('💾 User role from cache: $cachedRole for user: $userId');
-          return cachedRole;
-        }
-      }
-
-      // 3. Fallback to Firebase
+      // 2. Fallback to Firebase
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -59,9 +47,8 @@ class UserStatusManager {
         final userData = userDoc.data();
         final firebaseRole = userData?['role'] as String?;
         if (firebaseRole != null && firebaseRole.isNotEmpty) {
-          // Update SharedPreferences and cache for future instant access
+          // Update SharedPreferences for future instant access
           await _updateSharedPreferences(userId, role: firebaseRole);
-          await _updateCache(userId, role: firebaseRole);
           AppLogger.common('🔥 User role from Firebase: $firebaseRole for user: $userId');
           return firebaseRole;
         }
@@ -78,23 +65,13 @@ class UserStatusManager {
   /// Get role selected status with fallback strategy
   Future<bool> getRoleSelected(String userId) async {
     try {
-      // 1. Try SharedPreferences first
-      final roleSelected = _prefs?.getBool('$_roleSelectedKey\_$userId');
-      if (roleSelected != null) {
-        AppLogger.common('⚡ Role selected from SharedPreferences: $roleSelected for user: $userId');
-        return roleSelected;
+      // 1. Try UserPrefsService first (global preference)
+      if (_userPrefs.isRoleSelected) {
+        AppLogger.common('⚡ Role selected from UserPrefsService: true for user: $userId');
+        return true;
       }
 
-      // 2. Try user data cache
-      final routingData = await _cache.getUserRoutingData(userId);
-      if (routingData != null && routingData['hasSelectedRole'] != null) {
-        final cachedRoleSelected = routingData['hasSelectedRole'] as bool;
-        await _updateSharedPreferences(userId, roleSelected: cachedRoleSelected);
-        AppLogger.common('💾 Role selected from cache: $cachedRoleSelected for user: $userId');
-        return cachedRoleSelected;
-      }
-
-      // 3. Fallback to Firebase
+      // 2. Fallback to Firebase
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -103,8 +80,9 @@ class UserStatusManager {
       if (userDoc.exists) {
         final userData = userDoc.data();
         final firebaseRoleSelected = userData?['roleSelected'] as bool? ?? false;
-        await _updateSharedPreferences(userId, roleSelected: firebaseRoleSelected);
-        await _updateCache(userId, roleSelected: firebaseRoleSelected);
+        if (firebaseRoleSelected) {
+          await _userPrefs.setRoleSelected(true);
+        }
         AppLogger.common('🔥 Role selected from Firebase: $firebaseRoleSelected for user: $userId');
         return firebaseRoleSelected;
       }
@@ -119,23 +97,13 @@ class UserStatusManager {
   /// Get profile completed status with fallback strategy
   Future<bool> getProfileCompleted(String userId) async {
     try {
-      // 1. Try SharedPreferences first
-      final profileCompleted = _prefs?.getBool('$_profileCompletedKey\_$userId');
-      if (profileCompleted != null) {
-        AppLogger.common('⚡ Profile completed from SharedPreferences: $profileCompleted for user: $userId');
-        return profileCompleted;
+      // 1. Try UserPrefsService first (global preference)
+      if (_userPrefs.isProfileCompleted) {
+        AppLogger.common('⚡ Profile completed from UserPrefsService: true for user: $userId');
+        return true;
       }
 
-      // 2. Try user data cache
-      final routingData = await _cache.getUserRoutingData(userId);
-      if (routingData != null && routingData['hasCompletedProfile'] != null) {
-        final cachedProfileCompleted = routingData['hasCompletedProfile'] as bool;
-        await _updateSharedPreferences(userId, profileCompleted: cachedProfileCompleted);
-        AppLogger.common('💾 Profile completed from cache: $cachedProfileCompleted for user: $userId');
-        return cachedProfileCompleted;
-      }
-
-      // 3. Fallback to Firebase
+      // 2. Fallback to Firebase
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -144,8 +112,9 @@ class UserStatusManager {
       if (userDoc.exists) {
         final userData = userDoc.data();
         final firebaseProfileCompleted = userData?['profileCompleted'] as bool? ?? false;
-        await _updateSharedPreferences(userId, profileCompleted: firebaseProfileCompleted);
-        await _updateCache(userId, profileCompleted: firebaseProfileCompleted);
+        if (firebaseProfileCompleted) {
+          await _userPrefs.setProfileCompleted(true);
+        }
         AppLogger.common('🔥 Profile completed from Firebase: $firebaseProfileCompleted for user: $userId');
         return firebaseProfileCompleted;
       }
@@ -175,11 +144,11 @@ class UserStatusManager {
   /// Update role when selected (called from role selection screen)
   Future<void> updateRole(String userId, String role) async {
     try {
-      // Update SharedPreferences
-      await _updateSharedPreferences(userId, role: role, roleSelected: true);
+      // Update SharedPreferences (user-specific role)
+      await _updateSharedPreferences(userId, role: role);
 
-      // Update cache
-      await _updateCache(userId, role: role, roleSelected: true);
+      // Update UserPrefsService (global role selected flag)
+      await _userPrefs.setRoleSelected(true);
 
       // Update Firebase (async, don't wait)
       _updateFirebaseAsync(userId, role: role, roleSelected: true);
@@ -194,11 +163,8 @@ class UserStatusManager {
   /// Update profile completed status (called from profile completion screen)
   Future<void> updateProfileCompleted(String userId, bool completed) async {
     try {
-      // Update SharedPreferences
-      await _updateSharedPreferences(userId, profileCompleted: completed);
-
-      // Update cache
-      await _updateCache(userId, profileCompleted: completed);
+      // Update UserPrefsService (global profile completed flag)
+      await _userPrefs.setProfileCompleted(completed);
 
       // Update Firebase (async, don't wait)
       _updateFirebaseAsync(userId, profileCompleted: completed);
@@ -213,14 +179,14 @@ class UserStatusManager {
   /// Clear all status data for a user (logout, account deletion, etc.)
   Future<void> clearUserStatus(String userId) async {
     try {
-      // Clear SharedPreferences
+      // Clear SharedPreferences (user-specific data)
       await _prefs?.remove('$_roleKey\_$userId');
       await _prefs?.remove('$_roleSelectedKey\_$userId');
       await _prefs?.remove('$_profileCompletedKey\_$userId');
       await _prefs?.remove('$_lastUpdatedKey\_$userId');
 
-      // Clear cache
-      await _cache.remove('user_routing_$userId');
+      // Clear UserPrefsService (global user flow data)
+      await _userPrefs.clearAllUserData();
 
       AppLogger.common('🧹 Cleared all status data for user: $userId');
     } catch (e) {
@@ -249,26 +215,6 @@ class UserStatusManager {
     await _prefs!.setString('$_lastUpdatedKey\_$userId', DateTime.now().toIso8601String());
   }
 
-  /// Update cache
-  Future<void> _updateCache(String userId, {
-    String? role,
-    bool? roleSelected,
-    bool? profileCompleted,
-  }) async {
-    try {
-      final existingData = await _cache.getUserRoutingData(userId);
-      final routingData = existingData ?? <String, dynamic>{};
-
-      if (role != null) routingData['role'] = role;
-      if (roleSelected != null) routingData['hasSelectedRole'] = roleSelected;
-      if (profileCompleted != null) routingData['hasCompletedProfile'] = profileCompleted;
-      routingData['lastLogin'] = DateTime.now().toIso8601String();
-
-      await _cache.setUserRoutingData(userId, routingData);
-    } catch (e) {
-      AppLogger.commonError('❌ Error updating cache for $userId', error: e);
-    }
-  }
 
   /// Update Firebase asynchronously
   Future<void> _updateFirebaseAsync(String userId, {
