@@ -67,6 +67,94 @@
   </style>
 </head>
 <body>
+  <script>
+    // Smart PWA update handling - only show update prompt when there's actual new content
+    if ('serviceWorker' in navigator && !window.location.hostname.includes('localhost')) {
+      // Production mode - register service worker with proper update handling
+      navigator.serviceWorker.register('/flutter_service_worker.js?v=' + Date.now())
+        .then(reg => {
+          console.log('ServiceWorker registered:', reg);
+
+          // Check for updates
+          reg.update().catch(() => {});
+
+          reg.onupdatefound = () => {
+            const newWorker = reg.installing;
+            console.log('New ServiceWorker found, installing...');
+
+            if (newWorker) {
+              newWorker.onstatechange = () => {
+                console.log('New ServiceWorker state:', newWorker.state);
+
+                if (newWorker.state === 'installed') {
+                  if (navigator.serviceWorker.controller) {
+                    // New version available! Check if user has already been prompted
+                    const lastPromptVersion = localStorage.getItem('janmat_last_update_prompt');
+                    const currentVersion = localStorage.getItem('janmat_app_version') || '1.0.0';
+
+                    // Fetch current version from version.json
+                    fetch('/version.json')
+                      .then(response => response.json())
+                      .then(versionData => {
+                        // Use build_number as more precise version identifier
+                        const newVersion = versionData.build_number + '_' + versionData.version;
+
+                        console.log('App version check - Current:', currentVersion, 'New:', newVersion, 'LastPrompt:', lastPromptVersion);
+
+                        // Only show prompt if versions are different AND user hasn't been prompted for this version
+                        if (newVersion !== currentVersion && lastPromptVersion !== newVersion) {
+                          const shouldUpdate = confirm("🚀 New update available! Click OK to apply and refresh the app.");
+                          if (shouldUpdate) {
+                            // Update stored version and prompt flag
+                            localStorage.setItem('janmat_app_version', newVersion);
+                            localStorage.setItem('janmat_last_update_prompt', newVersion);
+                            console.log('User accepted update for version:', newVersion);
+                            // Force hard refresh to activate new service worker
+                            window.location.reload(true);
+                          } else {
+                            // User dismissed, don't prompt again for this version
+                            localStorage.setItem('janmat_last_update_prompt', newVersion);
+                            console.log('User dismissed update prompt for version:', newVersion);
+                          }
+                        } else {
+                          console.log('No new update or already prompted for this version');
+                        }
+                      })
+                      .catch(err => {
+                        console.log('Could not fetch version.json, using fallback:', err);
+                        // Fallback: still show update prompt but less frequently
+                        const now = Date.now();
+                        const lastPrompt = localStorage.getItem('janmat_update_prompt_time');
+                        if (!lastPrompt || (now - parseInt(lastPrompt)) > 24 * 60 * 60 * 1000) { // 24 hours
+                          const shouldUpdate = confirm("🚀 New update available! Click OK to apply and refresh the app.");
+                          if (shouldUpdate) {
+                            localStorage.setItem('janmat_update_prompt_time', now.toString());
+                            window.location.reload(true);
+                          }
+                        }
+                      });
+                  } else {
+                    // First time user - app installed successfully
+                    console.log("✅ PWA installed and ready!");
+                    // Clear any old prompt flags on fresh install
+                    localStorage.removeItem('janmat_last_update_prompt');
+                    localStorage.removeItem('janmat_update_prompt_time');
+                  }
+                }
+              };
+            }
+          };
+        })
+        .catch(error => {
+          console.log('ServiceWorker registration failed:', error);
+        });
+    } else if (window.location.hostname.includes('localhost')) {
+      // Development mode - skip PWA service worker entirely
+      console.log('🔧 DEVELOPMENT MODE: Skipping service worker registration (localhost)');
+    }
+  </script>
+
+  <script src="flutter.js" defer></script>
   <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>

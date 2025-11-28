@@ -1576,6 +1576,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile Photo'**
   String get profilePhoto;
+
+  /// No description provided for @noteBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Note:'**
+  String get noteBold;
+
+  /// No description provided for @independentCandidateNoteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'For independent candidates, symbol image is mandatory for proper display.'**
+  String get independentCandidateNoteMessage;
+
+  /// No description provided for @supportedFormats.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported formats: JPG, PNG. Image '**
+  String get supportedFormats;
+
+  /// No description provided for @sizeForVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'size 256 x 256 px for visibility.'**
+  String get sizeForVisibility;
+
+  /// No description provided for @uploadingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get uploadingText;
+
+  /// No description provided for @tapToSelectFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select files'**
+  String get tapToSelectFiles;
+
+  /// No description provided for @allowedExtensionsText.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed:'**
+  String get allowedExtensionsText;
+
+  /// No description provided for @maxSizeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Max size:'**
+  String get maxSizeText;
+
+  /// No description provided for @filesText.
+  ///
+  /// In en, this message translates to:
+  /// **'files'**
+  String get filesText;
+
+  /// No description provided for @uploadedText.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded'**
+  String get uploadedText;
+
+  /// No description provided for @fileUploadedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'File uploaded successfully'**
+  String get fileUploadedSuccessfully;
+
+  /// No description provided for @failedToLoadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load image'**
+  String get failedToLoadImage;
+
+  /// No description provided for @fileSelectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'File selection failed: {error}'**
+  String fileSelectionFailed(Object error);
+
+  /// No description provided for @uploadFailedNoUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed - no URL returned'**
+  String get uploadFailedNoUrl;
+
+  /// No description provided for @uploadsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} uploads failed'**
+  String uploadsFailed(Object count);
+
+  /// No description provided for @allUploadsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'All uploads failed'**
+  String get allUploadsFailed;
+
+  /// No description provided for @allFileUploadsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'All file uploads failed'**
+  String get allFileUploadsFailed;
+
+  /// No description provided for @uploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed: {error}'**
+  String uploadFailed(Object error);
+
+  /// No description provided for @uploadDocumentsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload documents (PDF, DOC, DOCX)'**
+  String get uploadDocumentsSubtitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

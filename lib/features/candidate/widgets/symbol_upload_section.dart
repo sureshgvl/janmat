@@ -88,12 +88,26 @@ class SymbolUploadSection extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 // Important notice
-                const Text(
-                  '**Note:** For independent candidates, symbol image is mandatory for proper display.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: localizations.noteBold,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      TextSpan(
+                        text: localizations.independentCandidateNoteMessage,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -111,12 +125,25 @@ class SymbolUploadSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Supported formats: JPG, PNG. Image size 256 x 256 for visibility.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontStyle: FontStyle.italic,
+                    RichText(
+                      text: TextSpan(
+                        text: localizations.supportedFormats,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: localizations.sizeForVisibility,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

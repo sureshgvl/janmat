@@ -810,4 +810,67 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get profilePhoto => 'प्रोफाइल फोटो';
+
+  @override
+  String get noteBold => 'नोट:';
+
+  @override
+  String get independentCandidateNoteMessage => 'स्वतंत्र उमेदवारांसाठी, चिन्ह प्रतिमा योग्य दर्शनासाठी अनिवार्य आहे.';
+
+  @override
+  String get supportedFormats => 'समर्थित स्वरूप: JPG, PNG. प्रतिमा ';
+
+  @override
+  String get sizeForVisibility => 'आकार 256 x 256 px दृश्यमानतेसाठी.';
+
+  @override
+  String get uploadingText => 'अपलोड करत आहे...';
+
+  @override
+  String get tapToSelectFiles => 'फायली निवडण्यासाठी टॅप करा';
+
+  @override
+  String get allowedExtensionsText => 'परवानगी आहे:';
+
+  @override
+  String get maxSizeText => 'कमाल आकार:';
+
+  @override
+  String get filesText => 'फायली';
+
+  @override
+  String get uploadedText => 'अपलोड झाली';
+
+  @override
+  String get fileUploadedSuccessfully => 'फाइल यशस्वीरित्या अपलोड झाली';
+
+  @override
+  String get failedToLoadImage => 'प्रतिमा लोड करण्यात अयशस्वी';
+
+  @override
+  String fileSelectionFailed(Object error) {
+    return 'फाइल निवड अयशस्वी: $error';
+  }
+
+  @override
+  String get uploadFailedNoUrl => 'अपलोड अयशस्वी - कोणताही URL मिळाला नाही';
+
+  @override
+  String uploadsFailed(Object count) {
+    return '$count अपलोड अयशस्वी झाले';
+  }
+
+  @override
+  String get allUploadsFailed => 'सर्व अपलोड अयशस्वी झाले';
+
+  @override
+  String get allFileUploadsFailed => 'सर्व फाइल अपलोड अयशस्वी झाले';
+
+  @override
+  String uploadFailed(Object error) {
+    return 'अपलोड अयशस्वी: $error';
+  }
+
+  @override
+  String get uploadDocumentsSubtitle => 'दस्तऐवज अपलोड करा (PDF, DOC, DOCX)';
 }

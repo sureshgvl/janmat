@@ -21,7 +21,7 @@ class PrefKeys {
   // User Preferences
   static const String lastLoginTime = "last_login_time";
   static const String appLaunchCount = "app_launch_count";
-  static const String firstLaunch = "first_launch";
+  static const String firstLaunch = "is_first_time";
 
   // Cache & Performance
   static const String cacheTimestamp = "cache_timestamp";

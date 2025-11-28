@@ -10,9 +10,7 @@ import '../repositories/auth_repository.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../user/services/user_token_manager.dart';
-import '../../user/models/user_model.dart';
-import '../../candidate/models/candidate_model.dart';
-import '../../candidate/repositories/candidate_repository.dart';
+
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
@@ -561,6 +559,21 @@ class AuthController extends GetxController {
             AppLogger.authError('Failed to update legacy user flags', error: e);
           }
           return AppRouteNames.home; // LEGACY: Go directly to home since they have role and data
+        }
+
+        // 🛠️ CORRUPTION FIX: Check if user has missing role but is an existing candidate
+        if (!roleSelected && role.isEmpty && userData?['candidateId'] != null && userData!['candidateId'].toString().isNotEmpty) {
+          AppLogger.auth('✅ EXISTING CANDIDATE DETECTED: Auto-setting role to candidate (candidateId exists)');
+
+          // Auto-fix the corrupted user document
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+            'role': 'candidate',
+            'roleSelected': true,
+            'profileCompleted': true, // Assume existing candidates have completed profiles
+          }).catchError((e) => AppLogger.auth('⚠️ Candidate role fix failed: $e'));
+
+          AppLogger.auth('🎯 → Home screen (existing candidate auto-fixed)');
+          return AppRouteNames.home;
         }
 
         // CLEAN FLOW: Navigate based on completion status

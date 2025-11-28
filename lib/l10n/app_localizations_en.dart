@@ -810,4 +810,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profilePhoto => 'Profile Photo';
+
+  @override
+  String get noteBold => 'Note:';
+
+  @override
+  String get independentCandidateNoteMessage => 'For independent candidates, symbol image is mandatory for proper display.';
+
+  @override
+  String get supportedFormats => 'Supported formats: JPG, PNG. Image ';
+
+  @override
+  String get sizeForVisibility => 'size 256 x 256 px for visibility.';
+
+  @override
+  String get uploadingText => 'Uploading...';
+
+  @override
+  String get tapToSelectFiles => 'Tap to select files';
+
+  @override
+  String get allowedExtensionsText => 'Allowed:';
+
+  @override
+  String get maxSizeText => 'Max size:';
+
+  @override
+  String get filesText => 'files';
+
+  @override
+  String get uploadedText => 'Uploaded';
+
+  @override
+  String get fileUploadedSuccessfully => 'File uploaded successfully';
+
+  @override
+  String get failedToLoadImage => 'Failed to load image';
+
+  @override
+  String fileSelectionFailed(Object error) {
+    return 'File selection failed: $error';
+  }
+
+  @override
+  String get uploadFailedNoUrl => 'Upload failed - no URL returned';
+
+  @override
+  String uploadsFailed(Object count) {
+    return '$count uploads failed';
+  }
+
+  @override
+  String get allUploadsFailed => 'All uploads failed';
+
+  @override
+  String get allFileUploadsFailed => 'All file uploads failed';
+
+  @override
+  String uploadFailed(Object error) {
+    return 'Upload failed: $error';
+  }
+
+  @override
+  String get uploadDocumentsSubtitle => 'Upload documents (PDF, DOC, DOCX)';
 }

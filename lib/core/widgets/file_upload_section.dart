@@ -8,6 +8,7 @@ import 'package:janmat/core/services/file_picker_helper.dart';
 import 'package:janmat/core/services/firebase_uploader.dart';
 import 'package:janmat/core/services/cache_service.dart';
 import 'package:janmat/utils/app_logger.dart';
+import '../../l10n/app_localizations.dart';
 
 /// A unified file upload section widget that works across web and mobile platforms.
 /// Integrates FilePickerHelper + FirebaseUploader + CacheService for seamless cross-platform file handling.
@@ -76,6 +77,8 @@ class _FileUploadSectionState extends State<FileUploadSection> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
@@ -125,6 +128,8 @@ class _FileUploadSectionState extends State<FileUploadSection> {
   }
 
   Widget _buildUploadArea() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       width: double.infinity,
       height: 120,
@@ -150,7 +155,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             ),
             const SizedBox(height: 8),
             Text(
-              _isUploading ? 'Uploading...' : 'Tap to select files',
+              _isUploading ? localizations.uploadingText : localizations.tapToSelectFiles,
               style: TextStyle(
                 color: _isUploading ? Colors.blue[600] : Colors.grey[600],
                 fontWeight: FontWeight.w500,
@@ -159,7 +164,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             if (widget.allowedExtensions.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                'Allowed: ${widget.allowedExtensions.join(", ")}',
+                '${localizations.allowedExtensionsText}${widget.allowedExtensions.join(", ")}',
                 style: TextStyle(
                   color: Colors.grey[500],
                   fontSize: 12,
@@ -168,7 +173,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
             ],
             const SizedBox(height: 2),
             Text(
-              'Max size: ${widget.maxFileSize}MB${widget.maxFiles > 1 ? " (max ${widget.maxFiles} files)" : ""}',
+              '${localizations.maxSizeText}${widget.maxFileSize}MB${widget.maxFiles > 1 ? " (max ${widget.maxFiles} ${localizations.filesText})" : ""}',
               style: TextStyle(
                 color: Colors.grey[500],
                 fontSize: 11,
@@ -181,6 +186,8 @@ class _FileUploadSectionState extends State<FileUploadSection> {
   }
 
   Widget _buildPreview() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -210,7 +217,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Uploaded',
+                        localizations.uploadedText,
                         style: TextStyle(
                           color: Colors.green[700],
                           fontWeight: FontWeight.w500,
@@ -254,7 +261,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'File uploaded successfully',
+                        localizations.fileUploadedSuccessfully,
                         style: TextStyle(
                           color: Colors.green[700],
                           fontWeight: FontWeight.w500,
@@ -312,7 +319,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'File uploaded successfully',
+                        localizations.fileUploadedSuccessfully,
                         style: TextStyle(
                           color: Colors.green[700],
                           fontWeight: FontWeight.w500,
@@ -347,7 +354,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Text(
-                          'Failed to load image',
+                          localizations.failedToLoadImage,
                           style: TextStyle(
                             color: Colors.red[600],
                             fontSize: 12,
@@ -478,7 +485,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       }
     } catch (e) {
       setState(() {
-        _uploadError = 'File selection failed: ${e.toString()}';
+        _uploadError = AppLocalizations.of(context)!.fileSelectionFailed(e.toString());
       });
       AppLogger.core('FileUploadSection: File selection error: $e');
     }
@@ -515,7 +522,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
           widget.onUploadComplete(url);
           AppLogger.core('FileUploadSection: File uploaded successfully: $url');
         } else {
-          throw Exception('Upload failed - no URL returned');
+          throw Exception(AppLocalizations.of(context)!.uploadFailedNoUrl);
         }
       } else {
         // Multiple file upload
@@ -550,10 +557,10 @@ class _FileUploadSectionState extends State<FileUploadSection> {
           if (urls.isNotEmpty) {
             _uploadedUrl = urls.first;
             if (urls.length < files.length) {
-              _uploadError = '${files.length - urls.length} uploads failed';
+              _uploadError = AppLocalizations.of(context)!.uploadsFailed((files.length - urls.length).toString());
             }
           } else {
-            _uploadError = 'All uploads failed';
+            _uploadError = AppLocalizations.of(context)!.allUploadsFailed;
           }
         });
 
@@ -561,13 +568,13 @@ class _FileUploadSectionState extends State<FileUploadSection> {
           widget.onUploadComplete(urls.first);
           AppLogger.core('FileUploadSection: ${urls.length}/${files.length} files uploaded successfully');
         } else {
-          throw Exception('All file uploads failed');
+          throw Exception(AppLocalizations.of(context)!.allFileUploadsFailed);
         }
       }
     } catch (e) {
       setState(() {
         _isUploading = false;
-        _uploadError = 'Upload failed: ${e.toString()}';
+        _uploadError = AppLocalizations.of(context)!.uploadFailed(e.toString());
       });
       AppLogger.coreError('FileUploadSection: Upload error', error: e);
     }
@@ -630,7 +637,7 @@ class DocumentUploadSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return FileUploadSection(
       title: title,
-      subtitle: 'Upload documents (PDF, DOC, DOCX)',
+      subtitle: AppLocalizations.of(context)!.uploadDocumentsSubtitle,
       storagePath: storagePath,
       allowedExtensions: allowedExtensions,
       maxFileSize: 25,

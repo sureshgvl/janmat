@@ -1,6 +1,6 @@
 {
   "build_type": "release",
-  "timestamp": "2025-11-17",
+  "timestamp": "2025-11-28",
   "flutter_version": "latest",
   "build_files": [
     "build/web/index.html",
@@ -22,7 +22,8 @@
     "User Flow Management",
     "Candidate Dashboard",
     "Profile System",
-    "Multi-language Support"
+    "Multi-language Support",
+    "Enhanced Manifesto Edit UI"
   ],
   "deployment_targets": [
     "Firebase Hosting",
@@ -30,5 +31,6 @@
     "Netlify",
     "GitHub Pages",
     "Any static hosting"
-  ]
+  ],
+  "notes": "Updated manifesto edit UI with responsive file upload buttons and better mobile compatibility"
 }

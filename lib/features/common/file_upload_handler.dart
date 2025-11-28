@@ -468,7 +468,7 @@ class FileUploadHandler {
     if (user == null) {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        await candidateUserController.loadCandidateUserData(currentUser.uid);
+        await candidateUserController.loadCandidateUserData();
         user = candidateUserController.user.value;
       }
     }

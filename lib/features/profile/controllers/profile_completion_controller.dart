@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:janmat/features/user/models/user_model.dart';
 import 'package:janmat/features/user/services/user_status_manager.dart';
 import '../../../utils/app_logger.dart';
@@ -19,6 +18,7 @@ import '../../candidate/models/contact_model.dart';
 import '../../../models/district_model.dart';
 import '../../../models/body_model.dart';
 import '../../candidate/repositories/candidate_repository.dart';
+import '../../../core/services/cache_service.dart';
 
 import '../../notifications/services/constituency_notifications.dart';
 
@@ -218,7 +218,7 @@ class ProfileCompletionController extends GetxController {
 
   Future<void> loadStates() async {
     try {
-      AppLogger.common('🔍 Loading states from Firestore');
+      AppLogger.common('🔍 Loading states (fresh from Firestore, then cache)');
 
       // Load states from Firestore
       final statesSnapshot = await FirebaseFirestore.instance
@@ -230,10 +230,27 @@ class ProfileCompletionController extends GetxController {
       );
 
       if (statesSnapshot.docs.isNotEmpty) {
-        states = statesSnapshot.docs.map((doc) {
+        final allStatesMap = <String, Map<String, dynamic>>{};
+
+        for (final doc in statesSnapshot.docs) {
           final data = doc.data();
-          AppLogger.common('🏛️ State: ${doc.id} - ${data['name'] ?? 'Unknown'} - Marathi: ${data['marathiName']} - Code: ${data['code']} - Active: ${data['isActive']}');
-          return state_model.State.fromJson({'id': doc.id, ...data});
+          // Remove Timestamp fields that can't be serialized to cache
+          final serializableData = Map<String, dynamic>.from(data);
+          serializableData.remove('createdAt');
+          serializableData.remove('updatedAt');
+          AppLogger.common('🏛️ State: ${doc.id} - ${serializableData['name'] ?? 'Unknown'} - Marathi: ${serializableData['marathiName']} - Code: ${serializableData['code']} - Active: ${serializableData['isActive']}');
+
+          final stateData = {'id': doc.id, ...serializableData};
+          allStatesMap[doc.id] = stateData;
+        }
+
+        // Cache the complete states map for future use
+        await CacheService.saveData('states', allStatesMap);
+        AppLogger.common('💾 Cached all states data');
+
+        // Convert to State objects and filter
+        states = allStatesMap.values.map((stateData) {
+          return state_model.State.fromJson(stateData);
         }).toList();
 
         // Filter out inactive states
@@ -244,9 +261,6 @@ class ProfileCompletionController extends GetxController {
         if (filteredCount > 0) {
           AppLogger.common('🚫 Filtered out $filteredCount inactive states. Active states: ${states.length}');
         }
-
-        // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
-        //AppLogger.common('� [Profile] Using Firestore directly - caching not supported on web');
       }
 
       // No default state selection - user must choose
@@ -269,16 +283,16 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  // Optimized: Load districts only for selected state with caching
+  // Optimized: Load districts only for selected state (fresh from Firebase, then cache)
   Future<void> loadDistrictsForState(String stateId) async {
     const int maxRetries = 3;
     int retryCount = 0;
 
     while (retryCount < maxRetries) {
       try {
-        AppLogger.common('🔍 Loading districts for state: $stateId (attempt ${retryCount + 1})');
+        AppLogger.common('🔍 Loading districts for state: $stateId (fresh from Firebase, then cache)');
 
-        // Load from Firestore directly (web-compatible approach)
+        // Load from Firestore (always fresh for profile selection)
         final districtsSnapshot = await FirebaseFirestore.instance
             .collection('states')
             .doc(stateId)
@@ -291,10 +305,29 @@ class ProfileCompletionController extends GetxController {
         districts.clear();
         districtBodies.clear();
 
-        districts = districtsSnapshot.docs.map((doc) {
+        // Create districts map for caching and objects for use
+        final allDistrictsMap = <String, Map<String, dynamic>>{};
+        for (final doc in districtsSnapshot.docs) {
           final data = doc.data();
           AppLogger.common('🏙️ District: ${doc.id} - ${data['name'] ?? 'Unknown'} - Active: ${data['isActive']}');
-          return District.fromJson({'id': doc.id, 'stateId': stateId, ...data});
+
+          // Remove Timestamp fields that can't be serialized to cache
+          final serializableData = Map<String, dynamic>.from(data);
+          serializableData.remove('createdAt');
+          serializableData.remove('updatedAt');
+
+          final districtData = {'id': doc.id, 'stateId': stateId, ...serializableData};
+          allDistrictsMap[doc.id] = districtData;
+        }
+
+        // Cache the districts map for future use
+        final cacheKey = 'districts_$stateId';
+        await CacheService.saveData(cacheKey, allDistrictsMap);
+        AppLogger.common('💾 Cached districts for state $stateId');
+
+        // Convert to District objects and filter
+        districts = allDistrictsMap.values.map((districtData) {
+          return District.fromJson(districtData);
         }).toList();
 
         // Filter out inactive districts
@@ -307,9 +340,6 @@ class ProfileCompletionController extends GetxController {
         }
 
         AppLogger.common('✅ Loaded ${districts.length} active districts from Firestore for state $stateId');
-
-        // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
-        AppLogger.common('🌐 [Profile] Skipping district caching on web - using Firestore directly');
 
         // Load bodies only for the selected state
         await _loadBodiesForDistricts(stateId);
@@ -336,10 +366,12 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  // Helper method to load bodies for multiple districts
+  // Helper method to load bodies for multiple districts (fresh from Firebase, then cache)
   Future<void> _loadBodiesForDistricts(String stateId) async {
     for (final district in districts) {
       try {
+        AppLogger.common('🔍 Loading bodies for district: ${district.id} (fresh from Firebase, then cache)');
+
         final bodiesSnapshot = await FirebaseFirestore.instance
             .collection('states')
             .doc(stateId)
@@ -350,18 +382,32 @@ class ProfileCompletionController extends GetxController {
 
         AppLogger.common('📊 Found ${bodiesSnapshot.docs.length} bodies in district ${district.id}');
 
-        districtBodies[district.id] = bodiesSnapshot.docs.map((doc) {
+        // Create bodies map for caching
+        final allBodiesMap = <String, Map<String, dynamic>>{};
+        for (final doc in bodiesSnapshot.docs) {
           final data = doc.data();
-          return Body.fromJson({
+          // Remove Timestamp fields that can't be serialized to cache
+          final serializableData = Map<String, dynamic>.from(data);
+          serializableData.remove('createdAt');
+          serializableData.remove('updatedAt');
+          final bodyData = {
             'id': doc.id,
             'districtId': district.id,
             'stateId': stateId,
-            ...data,
-          });
-        }).toList();
+            ...serializableData,
+          };
+          allBodiesMap[doc.id] = bodyData;
+        }
 
-        // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
-        AppLogger.common(' [Profile] Skipping bodies caching on web for district ${district.id} - using Firestore directly');
+        // Cache the bodies map for future use
+        final cacheKey = 'bodies_${stateId}_${district.id}';
+        await CacheService.saveData(cacheKey, allBodiesMap);
+        AppLogger.common('💾 Cached bodies for district ${district.id}');
+
+        // Convert to Body objects
+        districtBodies[district.id] = allBodiesMap.values.map((bodyData) {
+          return Body.fromJson(bodyData);
+        }).toList();
       } catch (e) {
         AppLogger.commonError('❌ Failed to load bodies for district ${district.id}', error: e);
         districtBodies[district.id] = []; // Set empty list on error
@@ -369,15 +415,16 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  // Optimized: Load bodies only for selected district
+  // Optimized: Load bodies only for selected district (fresh from Firebase, then cache)
   Future<void> loadBodiesForDistrict(String districtId) async {
     try {
-      AppLogger.common('🔍 Loading bodies for district: $districtId');
+      AppLogger.common('🔍 Loading bodies for district: $districtId (fresh from Firebase, then cache)');
 
       // Clear previous bodies and wards for this district
       districtBodies.remove(districtId);
       bodyWards.clear();
 
+      // Load from Firestore (always fresh for profile selection)
       final bodiesSnapshot = await FirebaseFirestore.instance
           .collection('states')
           .doc(selectedStateId!)
@@ -388,15 +435,33 @@ class ProfileCompletionController extends GetxController {
 
       AppLogger.common('📊 Found ${bodiesSnapshot.docs.length} bodies in district $districtId');
 
-      districtBodies[districtId] = bodiesSnapshot.docs.map((doc) {
+      // Create bodies map for caching
+      final allBodiesMap = <String, Map<String, dynamic>>{};
+      for (final doc in bodiesSnapshot.docs) {
         final data = doc.data();
-        AppLogger.common('🏢 Body: ${doc.id} - ${data['name'] ?? 'Unknown'} (${data['type'] ?? 'Unknown'})');
-        return Body.fromJson({
+        // Remove Timestamp fields that can't be serialized to cache
+        final serializableData = Map<String, dynamic>.from(data);
+        serializableData.remove('createdAt');
+        serializableData.remove('updatedAt');
+        AppLogger.common('🏢 Body: ${doc.id} - ${serializableData['name'] ?? 'Unknown'} (${serializableData['type'] ?? 'Unknown'})');
+
+        final bodyData = {
           'id': doc.id,
           'districtId': districtId,
           'stateId': selectedStateId!,
-          ...data,
-        });
+          ...serializableData,
+        };
+        allBodiesMap[doc.id] = bodyData;
+      }
+
+      // Cache the bodies map for future use
+      final cacheKey = 'bodies_${selectedStateId}_${districtId}';
+      await CacheService.saveData(cacheKey, allBodiesMap);
+      AppLogger.common('💾 Cached bodies for district $districtId');
+
+      // Convert to Body objects
+      districtBodies[districtId] = allBodiesMap.values.map((bodyData) {
+        return Body.fromJson(bodyData);
       }).toList();
 
       update();
@@ -407,14 +472,15 @@ class ProfileCompletionController extends GetxController {
     }
   }
 
-  // Optimized: Load wards only for selected body
+  // Optimized: Load wards only for selected body (fresh from Firebase, then cache)
   Future<void> loadWardsForBody(String districtId, String bodyId) async {
     try {
-      AppLogger.common('🔍 [PROFILE_CONTROLLER] Loading wards for body: $bodyId in district: $districtId');
+      AppLogger.common('🔍 [PROFILE_CONTROLLER] Loading wards for body: $bodyId in district: $districtId (fresh from Firebase, then cache)');
 
       // Clear previous wards for this body
       bodyWards.remove(bodyId);
 
+      // Load from Firestore (always fresh for profile selection)
       final wardsSnapshot = await FirebaseFirestore.instance
           .collection('states')
           .doc(selectedStateId!)
@@ -432,15 +498,32 @@ class ProfileCompletionController extends GetxController {
         AppLogger.common('   Ward: ${doc.id} - ${doc.data()['name'] ?? 'No name'}');
       }
 
-      bodyWards[bodyId] = wardsSnapshot.docs.map((doc) {
+      // Create wards map for caching
+      final allWardsMap = <String, Map<String, dynamic>>{};
+      for (final doc in wardsSnapshot.docs) {
         final data = doc.data();
-        return Ward.fromJson({
-          ...data,
-          'wardId': doc.id,
+        // Remove Timestamp fields that can't be serialized to cache
+        final serializableData = Map<String, dynamic>.from(data);
+        serializableData.remove('createdAt');
+        serializableData.remove('updatedAt');
+        final wardData = {
+          ...serializableData,
+          'id': doc.id,  // Use 'id' field for Ward.fromJson
           'districtId': districtId,
           'bodyId': bodyId,
           'stateId': selectedStateId!,
-        });
+        };
+        allWardsMap[doc.id] = wardData;
+      }
+
+      // Cache the wards map for future use
+      final cacheKey = 'wards_${selectedStateId}_${districtId}_${bodyId}';
+      await CacheService.saveData(cacheKey, allWardsMap);
+      AppLogger.common('💾 Cached wards for body $bodyId');
+
+      // Convert to Ward objects
+      bodyWards[bodyId] = allWardsMap.values.map((wardData) {
+        return Ward.fromJson(wardData);
       }).toList();
 
       // Sort wards by ward number ascending
@@ -449,9 +532,6 @@ class ProfileCompletionController extends GetxController {
         final bNumber = int.tryParse(RegExp(r'ward_(\d+)').firstMatch(b.id.toLowerCase())?.group(1) ?? '0') ?? 0;
         return aNumber.compareTo(bNumber);
       });
-
-      // 🚀 OPTIMIZED: Web doesn't support persistent database storage, skip caching
-      AppLogger.common(' [Profile] Skipping wards caching on web for $districtId/$bodyId - using Firestore directly');
 
       update();
       AppLogger.common('✅ Successfully loaded ${bodyWards[bodyId]!.length} wards for body $bodyId');

@@ -56,7 +56,7 @@ class _CandidateDashboardAchievementsState
       } else {
         // If initialized but no candidate data, try to refresh
         AppLogger.common('🔄 [DASHBOARD_ACHIEVEMENTS] Controller initialized but no data, calling loadCandidateUserData()');
-        await controller.loadCandidateUserData(controller.user.value!.uid);
+        await controller.loadCandidateUserData();
       }
     } else if (controller.candidateData.value != null && controller.candidateData.value!.achievements == null) {
       // DATA EXISTS but achievements is null - need to refresh from Firebase

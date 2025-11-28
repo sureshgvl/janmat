@@ -98,7 +98,7 @@ class CandidateUserController extends GetxController {
         AppLogger.common('👤 [CANDIDATE_CONTROLLER] Current user set: ${user.value!.name}, role: ${user.value!.role}');
         if (user.value!.role == 'candidate' && candidate.value == null) {
           AppLogger.common('👤 [CANDIDATE_CONTROLLER] Loading candidate data for current candidate user: ${user.value!.name}');
-          await loadCandidateUserData(user.value!.uid);
+          await loadCandidateUserData();
           return; // Don't need to set up listeners if we already loaded data
         } else {
           AppLogger.common('👤 [CANDIDATE_CONTROLLER] User is not candidate or candidate data already exists - role: ${user.value!.role}, hasCandidate: ${candidate.value != null}');
@@ -115,8 +115,8 @@ class CandidateUserController extends GetxController {
           userController.user.value?.role == 'candidate' &&
           candidate.value == null) {
         AppLogger.common('👤 [CANDIDATE_CONTROLLER] Loading candidate data for already authenticated candidate user (fallback)');
-        // Load candidate data via Firebase call since it's not available yet
-        await loadCandidateUserData(currentUser.uid);
+        // Load candidate data via Firebase call - candidate data may not be available yet
+        await loadCandidateUserData();
         return; // Don't need to set up listeners if we already loaded data
       }
 
@@ -127,7 +127,7 @@ class CandidateUserController extends GetxController {
         if (authenticatedUser != null && authenticatedUser.role == 'candidate' && candidate.value == null) {
           AppLogger.common('👤 [CANDIDATE_CONTROLLER] Loading candidate data for authenticated candidate user');
           // Load candidate data via Firebase call - candidate data may not be available yet
-          await loadCandidateUserData(authenticatedUser.uid);
+          await loadCandidateUserData();
         }
       });
     } catch (e) {
@@ -216,20 +216,19 @@ class CandidateUserController extends GetxController {
     super.onClose();
   }
 
-  /// Load both user and candidate data for candidate role users
-  /// This should be called once after login for candidate users
-  Future<void> loadCandidateUserData(String uid) async {
+  /// Load candidate data for candidate role users
+  /// User data is already available from shared UserController
+  Future<void> loadCandidateUserData() async {
     if (isInitialized.value) {
-      AppLogger.common('ℹ️ Candidate user data already loaded, skipping');
+      AppLogger.common('ℹ️ Candidate data already loaded, skipping');
       return;
     }
 
     try {
       isLoading.value = true;
-      AppLogger.common('📥 Loading candidate user data for UID: $uid');
+      AppLogger.common('📥 Loading candidate data (user data already available from UserController)');
 
-      // Load user data first
-      await _userController.loadUserData(uid);
+      // Use user data from shared UserController instead of loading our own
       user.value = _userController.user.value;
 
       // Verify user is a candidate
@@ -239,75 +238,25 @@ class CandidateUserController extends GetxController {
         return;
       }
 
+      if (user.value == null) {
+        AppLogger.common('⚠️ No user data available from UserController, skipping candidate data load');
+        return;
+      }
+
       // Load candidate data - always load for candidates
 
-      AppLogger.common('🗳️ Calling _candidateRepository.getCandidateData for UID: $uid');
+      AppLogger.common('🗳️ Calling _candidateRepository.getCandidateData for UID: ${user.value!.uid}');
       try {
         candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
         AppLogger.common('✅ Candidate repository returned: ${candidate.value != null ? "data found" : "null"}');
 
         if (candidate.value == null) {
-          // Debug: Scan all candidates in the system to see if data exists elsewhere
-          await _candidateRepository.logAllCandidatesInSystem();
-          AppLogger.commonError('❌ DEBUG: Candidate data is null after repository call - check Firebase database');
-
-          // 🔧 AUTO-CREATE BASIC CANDIDATE DATA FOR TESTING MEDIA FUNCTIONALITY
-          AppLogger.common('🚀 AUTO-FIX: Creating minimal candidate data for media testing');
-          try {
-            // Create a basic candidate profile for testing
-            final testCandidate = Candidate(
-              candidateId: user.value!.uid,
-              userId: user.value!.uid,
-              party: 'Independent',
-              sponsored: false,
-              contact: ContactModel(
-                email: user.value!.email ?? '',
-                phone: user.value!.phone ?? '',
-                address: '',
-                socialLinks: {},
-              ),
-              location: LocationModel(
-                stateId: 'maharashtra',
-                districtId: 'maharashtra/pune',
-                bodyId: 'pune_municipal_corporation',
-                wardId: 'ward_1',
-              ),
-              basicInfo: BasicInfoModel(
-                fullName: user.value!.name ?? 'Test Candidate',
-                age: null,
-                gender: null,
-                education: null,
-                profession: null,
-                languages: [],
-              ),
-              manifestoData: ManifestoModel(
-                title: 'Test Manifesto',
-                promises: [],
-              ),
-              achievements: [],
-              media: [],
-              events: [],
-              highlights: [],
-              createdAt: DateTime.now(),
-            );
-
-            await _candidateRepository.createCandidate(testCandidate);
-            AppLogger.common('✅ Test candidate profile created successfully');
-
-            // Now load it again
-            candidate.value = await _candidateRepository.getCandidateData(user.value!.uid);
-            if (candidate.value != null) {
-              AppLogger.common('✅ Test candidate data loaded: ${candidate.value!.basicInfo!.fullName}');
-            }
-          } catch (e) {
-            AppLogger.commonError('❌ Failed to auto-create test candidate profile: $e');
-          }
+          AppLogger.common('⚠️ No candidate data found for user - user needs to be registered as a candidate first');
         }
 
       } catch (e) {
         AppLogger.commonError('❌ Error loading candidate data from repository: $e');
-        // Debug: Try to scan all candidates to see what's available
-        await _candidateRepository.logAllCandidatesInSystem();
+        // User location data is already loaded from UserController - no need for verbose scanning
         rethrow;
       }
       editedData.value = candidate.value; // Initialize edited data
@@ -462,12 +411,11 @@ class CandidateUserController extends GetxController {
       AppLogger.database('Current user name: ${FirebaseAuth.instance.currentUser?.displayName ?? 'null'}', tag: 'CANDIDATE_DEBUG');
       AppLogger.database('Controller user role: ${user.value?.role ?? 'not set'}', tag: 'CANDIDATE_DEBUG');
 
-      // Try scanning all candidate documents to see what's available
-      await _candidateRepository.logAllCandidatesInSystem();
+      // Simplified debug - user location data is already loaded from UserController
+      AppLogger.database('User location data already loaded in UserController - no need for verbose scanning', tag: 'CANDIDATE_DEBUG');
 
       AppLogger.database('🔍 CANDIDATE DATA DEBUG SCAN COMPLETED', tag: 'CANDIDATE_DEBUG');
-      AppLogger.database('Check the logs above for any candidate documents found', tag: 'CANDIDATE_DEBUG');
-      AppLogger.database('If no candidates are found, user needs to register as candidate first', tag: 'CANDIDATE_DEBUG');
+      AppLogger.database('Check UserController for user data and location information', tag: 'CANDIDATE_DEBUG');
     } catch (e) {
       AppLogger.databaseError('❌ Error in candidate data debug scan', tag: 'CANDIDATE_DEBUG', error: e);
     }

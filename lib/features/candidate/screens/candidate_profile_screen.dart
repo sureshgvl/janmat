@@ -86,7 +86,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       if (currentUserId != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
-            await dataController.loadCandidateUserData(currentUserId!);
+          await dataController.loadCandidateUserData();
             if (dataController.candidate.value != null) {
               AppLogger.candidate(
                 '✅ Retrieved candidate data for own profile: ${dataController.candidate.value!.basicInfo!.fullName}',
@@ -732,7 +732,7 @@ class _CandidateProfileScreenState extends State<CandidateProfileScreen>
       // If candidate is still null, try reloading for own profile
       if (currentUserId != null) {
         try {
-          await dataController.loadCandidateUserData(currentUserId!);
+          await dataController.loadCandidateUserData();
           if (dataController.candidate.value != null) {
             setState(() {
               candidate = dataController.candidate.value;

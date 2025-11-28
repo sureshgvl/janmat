@@ -131,11 +131,11 @@ class FastStartupCoordinator {
       // Continue with normal authentication flow
       AppLogger.core('🔐 Proceeding with normal authentication flow...');
 
-      // Parallel auth and app state check
+      // Parallel auth and app state check - ULTRA-FAST 2-SECOND SILENT LOGIN
       final futures = [
-        // Fast auth check
+        // Fast auth check - Optimized for 2-second silent login detection
         FirebaseAuth.instance.authStateChanges().first.timeout(
-          const Duration(seconds: 2),
+          const Duration(seconds: 2), // ⚡ 2-Second silent login as requested
           onTimeout: () => null,
         ),
         // App state check

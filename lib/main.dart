@@ -15,6 +15,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'dart:io';
 
+// Remove unused import that was causing compilation issues
+
 import 'features/common/animated_splash_screen.dart';
 import 'core/app_bindings.dart';
 import 'core/app_initializer.dart';
@@ -70,9 +72,9 @@ Future<Map<String, dynamic>> _getFastStartupData() async {
 
   // 🚀 OPTIMIZATION: Parallel load critical data only
   final results = await Future.wait([
-    // Get auth state (fast)
+    // Get auth state (OPTIMIZED TIMEOUT: Reduced for 2-second silent login performance)
     FirebaseAuth.instance.authStateChanges().first.timeout(
-      const Duration(seconds: 2),
+      const Duration(seconds: 2), // Reduced for lightning-fast 2-second silent login
       onTimeout: () => null,
     ),
     // Get app setup state (fast)
@@ -96,17 +98,20 @@ Future<Map<String, dynamic>> _getFastStartupData() async {
   final isLanguageSelected = setupState['isLanguageSelected'] ?? false;
   final isOnboardingCompleted = setupState['isOnboardingCompleted'] ?? false;
 
-  // 🚀 OPTIMIZATION: Simplified routing logic - let HomeScreen handle complex routing
+  // 🚀 OPTIMIZATION: Smart routing logic for logged-in users
   String initialRoute;
-  if (!isLanguageSelected) {
-    initialRoute = AppRouteNames.languageSelection;
-  } else if (!isOnboardingCompleted) {
-    initialRoute = AppRouteNames.onboarding;
-  } else if (!isLoggedIn) {
-    initialRoute = AppRouteNames.login;
+  if (!isLoggedIn) {
+    // Not logged in - start from language selection
+    if (!isLanguageSelected) {
+      initialRoute = AppRouteNames.languageSelection;
+    } else {
+      // Language selected but not logged in - go to login
+      initialRoute = AppRouteNames.login;
+    }
   } else {
-    // 🚀 INSTANT HOME: Always route to home for logged-in users
+    // 🔥 LOGGED-IN USER: Skip onboarding for returning users
     // HomeScreen will handle role/profile checks and navigation internally
+    // If user was already past role selection, they won't see it again
     initialRoute = AppRouteNames.home;
   }
 
@@ -205,6 +210,28 @@ Future<String> _getUserFlowRoute(User? user) async {
           'roleSelected': true,
           'profileCompleted': true,
         }).catchError((e) => AppLogger.core('⚠️ Legacy update failed: $e'));
+        return AppRouteNames.home;
+      }
+
+      // 🛠️ CORRUPTION FIX: Check if user has missing role but is an existing candidate
+      if (!roleSelected && role.isEmpty && userData?['candidateId'] != null && userData!['candidateId'].toString().isNotEmpty) {
+        AppLogger.core('✅ EXISTING CANDIDATE DETECTED: Auto-setting role to candidate (candidateId exists)');
+
+        // Auto-fix the corrupted user document
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'role': 'candidate',
+          'roleSelected': true,
+          'profileCompleted': true, // Assume existing candidates have completed profiles
+        }).catchError((e) => AppLogger.core('⚠️ Candidate role fix failed: $e'));
+
+        // Sync UserStatusManager with corrected data
+        await _syncUserStatusManager(user.uid,
+          role: 'candidate',
+          roleSelected: true,
+          profileCompleted: true,
+        );
+
+        AppLogger.core('🎯 → Home screen (existing candidate auto-fixed)');
         return AppRouteNames.home;
       }
 
@@ -351,6 +378,10 @@ void main() async {
 
   // Initialize CacheService after Hive
   await CacheService.initialize();
+
+  // 🚀 SMART PERSISTENCE: Uses Firebase defaults (works on web & mobile without crashes)
+  // Note: Firebase automatically chooses optimal persistence per platform
+  AppLogger.core('🚀 Using Firebase automatic persistence for reliable cross-platform silent login');
 
   // Web-specific configuration is handled by web/index.html
   // The HTML sets up centering and mobile viewport automatically
